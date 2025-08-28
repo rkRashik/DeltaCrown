@@ -1,4 +1,6 @@
 <h1>{{ t.name }}</h1>
-<p>{{ t.short_description }}</p>
-<a href="{% url 'tournaments:register' t.slug %}">Register</a> |
-<a href="{% url 'tournaments:bracket_view' t.slug %}">View Bracket</a>
+<p>Starts: {{ t.start_at }} | Slots: {{ t.slot_size }}</p>
+<p>
+  <a href="{% url 'tournaments:register' t.slug %}">Register</a> |
+  <a href="{% url 'tournaments:bracket_view' t.slug %}">View Bracket</a>
+</p>

@@ -1,0 +1,12 @@
+<h1>Tournaments</h1>
+<ul>
+  {% for t in tournaments %}
+    <li>
+      <a href="{% url 'tournaments:tournament_detail' t.slug %}">{{ t.name }}</a>
+      — <a href="{% url 'tournaments:bracket_view' t.slug %}">Bracket</a>
+      — <a href="{% url 'tournaments:register' t.slug %}">Register</a>
+    </li>
+  {% empty %}
+    <li>No tournaments yet.</li>
+  {% endfor %}
+</ul>

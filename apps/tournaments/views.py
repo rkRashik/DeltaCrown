@@ -6,11 +6,39 @@ from .models import Tournament, Registration, Match
 from apps.corelib.brackets import report_result
 from django.utils import timezone
 from .forms import SoloRegistrationForm, TeamRegistrationForm
+from apps.user_profile.models import UserProfile
 
 
 @login_required
 def register_view(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
+
+    profile, _ = UserProfile.objects.get_or_create(
+        user=request.user,
+        defaults={"display_name": request.user.get_username() or (request.user.email or "Player")}
+    )
+
+    # pick solo/team by your tournament logic (solo if no teams; team if Valorant/team-game)
+    is_team = bool(getattr(t, "valorant_config", None))  # example heuristic
+
+    if request.method == "POST":
+        if is_team:
+            form = TeamRegistrationForm(request.POST, tournament=t, user_profile=profile)
+        else:
+            form = SoloRegistrationForm(request.POST, tournament=t, user_profile=profile)
+        if form.is_valid():
+            form.save()
+            return render(request, "tournaments/register_success.html", {"tournament": t})
+    else:
+        if is_team:
+            form = TeamRegistrationForm(tournament=t, user_profile=profile)
+            template = "tournaments/register_team.html"
+        else:
+            form = SoloRegistrationForm(tournament=t, user_profile=profile)
+            template = "tournaments/register_solo.html"
+
+    # 👇 pass 'profile' so the template never reaches for request.user.profile
+    return render(request, template, {"tournament": t, "form": form, "profile": profile})
 
     # Business rule: optional registration window guard (MVP)
     now = timezone.now()
@@ -87,3 +115,7 @@ def bracket_view(request, slug):
 def tournament_detail(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
     return render(request, "tournaments/detail.html", {"t": t})
+
+def tournament_list(request):
+    qs = Tournament.objects.order_by("-start_at")
+    return render(request, "tournaments/list.html", {"tournaments": qs})

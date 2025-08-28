@@ -1,7 +1,7 @@
 <h1>Register: {{ tournament.name }} (Team)</h1>
 <form method="post">
   {% csrf_token %}
-  <p><strong>Captain:</strong> {{ request.user.profile.display_name }}</p>
+  <p><strong>Captain:</strong> {{ profile.display_name }}</p>
   {{ form.as_p }}
   <button type="submit">Submit Registration</button>
 </form>

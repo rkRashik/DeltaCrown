@@ -5,6 +5,6 @@ from .models import UserProfile
 
 
 @receiver(post_save, sender=User)
-def create_profile(sender, instance, created, **kwargs):
+def create_profile_on_user_create(sender, instance, created, **kwargs):
     if created:
-        UserProfile.objects.create(user=instance, display_name=instance.username)
+        UserProfile.objects.get_or_create(user=instance, defaults={"display_name": instance.username})
