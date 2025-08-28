@@ -1,3 +1,109 @@
 from django.db import models
+from django.utils.text import slugify
+from django_ckeditor_5.fields import CKEditor5Field
 
-# Create your models here.
+from apps.user_profile.models import UserProfile
+from apps.teams.models import Team
+
+
+
+STATUS_CHOICES = [
+    ("DRAFT", "Draft"),
+    ("PUBLISHED", "Published"),
+    ("RUNNING", "Running"),
+    ("COMPLETED", "Completed"),
+]
+
+def tournament_banner_path(instance, filename):
+    return f"tournaments/{instance.id}/banner/{filename}"
+
+def rules_pdf_path(instance, filename):
+    return f"tournaments/{instance.id}/rules/{filename}"
+
+class Tournament(models.Model):
+    # Identity
+    name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=220, unique=True, blank=True)
+
+    short_description = models.CharField(max_length=280, blank=True)
+
+    # Schedule (BST per settings)
+    reg_open_at = models.DateTimeField()
+    reg_close_at = models.DateTimeField()
+    start_at = models.DateTimeField()
+    end_at   = models.DateTimeField()
+
+    # Capacity & money
+    slot_size = models.PositiveIntegerField()
+    entry_fee_bdt = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    prize_pool_bdt = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    prize_distribution_richtext = CKEditor5Field("Prize distribution", config_name="default", blank=True)
+
+    # Media & links
+    banner    = models.ImageField(upload_to=tournament_banner_path, blank=True, null=True)
+    rules_pdf = models.FileField(upload_to=rules_pdf_path, blank=True, null=True)
+    fb_stream = models.URLField(blank=True)
+    yt_stream = models.URLField(blank=True)
+    discord_link = models.URLField(blank=True)
+
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default="DRAFT")
+
+    # Tournament-level rules/terms (rich text)
+    rules_richtext = CKEditor5Field("Rules", config_name="default", blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes  = [models.Index(fields=["status"]), models.Index(fields=["start_at"])]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+
+PAYMENT_METHODS = [("bkash","bKash"),("nagad","Nagad"),("rocket","Rocket"),("bank","Bank Transfer")]
+PAYMENT_STATUS  = [("pending","Pending"),("verified","Verified"),("rejected","Rejected")]
+
+class Registration(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="registrations")
+
+    # Either solo user OR team
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True, related_name="solo_registrations")
+    team = models.ForeignKey(Team,        on_delete=models.CASCADE, null=True, blank=True, related_name="team_registrations")
+
+    # Payment (manual verification MVP)
+    payment_method    = models.CharField(max_length=10, choices=PAYMENT_METHODS, blank=True)
+    payment_reference = models.CharField(max_length=120, blank=True)
+    payment_status    = models.CharField(max_length=10, choices=PAYMENT_STATUS, default="pending")
+
+    status = models.CharField(max_length=12, default="PENDING")  # PENDING|CONFIRMED|CHECKED_IN|WITHDRAWN
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("tournament","user"), ("tournament","team")]
+        indexes = [
+            models.Index(fields=["tournament","status"]),
+            models.Index(fields=["payment_status"]),
+        ]
+
+    def clean(self):
+        # Enforce XOR: exactly one of (user, team)
+        if bool(self.user_id) == bool(self.team_id):
+            from django.core.exceptions import ValidationError
+            raise ValidationError("Registration must be either solo (user) or team, not both.")
+
+        # Paid events must include method+reference
+        if self.tournament.entry_fee_bdt and self.tournament.entry_fee_bdt > 0:
+            if not self.payment_method or not self.payment_reference:
+                from django.core.exceptions import ValidationError
+                raise ValidationError("Payment method and reference are required for paid events.")
+
+    def __str__(self):
+        who = self.user.display_name if self.user_id else (self.team.tag if self.team_id else "Unknown")
+        return f"{who} @ {self.tournament.name}"

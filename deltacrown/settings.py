@@ -20,14 +20,20 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'django_ckeditor_5',
+    # Django core
+    "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
+    "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
 
+    # 3rd-party
+    "django_ckeditor_5",
+
+    # Local apps (Part 2 + Part 3 sequence)
+    "apps.user_profile.apps.UserProfileConfig",
+    "apps.teams.apps.TeamsConfig",
+    "apps.tournaments.apps.TournamentsConfig",
+
+    "apps.game_efootball.apps.GameEfootballConfig",
+    "apps.game_valorant.apps.GameValorantConfig",
 ]
 
 MIDDLEWARE = [
@@ -129,3 +135,58 @@ DATABASES = {
 
 TIME_ZONE = env("TIME_ZONE", default="Asia/Dhaka")
 LANGUAGE_CODE = "en-us"
+
+
+# Minimal, safe default — works out of the box
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": [
+            "heading", "|",
+            "bold", "italic", "underline", "link", "|",
+            "bulletedList", "numberedList", "blockQuote", "|",
+            "insertTable", "imageUpload", "|",
+            "undo", "redo",
+        ],
+        "language": "en",
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "imageStyle:alignLeft",
+                "imageStyle:full",
+                "imageStyle:alignRight",
+                "imageStyle:side",
+            ]
+        },
+        "table": {
+            "contentToolbar": ["tableColumn", "tableRow", "mergeTableCells"]
+        },
+    },
+
+    # (Optional) A richer toolbar you can opt into via config_name="rich"
+    "rich": {
+        "toolbar": [
+            "heading", "|",
+            "bold", "italic", "underline", "strikethrough", "code", "|",
+            "link", "blockQuote", "horizontalLine", "|",
+            "bulletedList", "numberedList", "outdent", "indent", "|",
+            "insertTable", "imageUpload", "|",
+            "undo", "redo",
+        ],
+        "language": "en",
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "toggleImageCaption",
+                "imageStyle:inline",
+                "imageStyle:block",
+                "imageStyle:side",
+                "linkImage",
+            ]
+        },
+        "table": {
+            "contentToolbar": [
+                "tableColumn", "tableRow", "mergeTableCells", "tableProperties", "tableCellProperties"
+            ]
+        },
+    },
+}
