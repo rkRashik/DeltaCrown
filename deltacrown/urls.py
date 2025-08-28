@@ -18,5 +18,6 @@ urlpatterns = [
     # home -> list
     path("", tviews.tournament_list, name="home"),
 
+    path("teams/", include("apps.teams.urls", namespace="teams")),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
