@@ -13,34 +13,16 @@ from apps.user_profile.models import UserProfile
 def register_view(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
 
+    # Ensure the user has a profile we can pass to forms/templates
     profile, _ = UserProfile.objects.get_or_create(
         user=request.user,
         defaults={"display_name": request.user.get_username() or (request.user.email or "Player")}
     )
 
-    # pick solo/team by your tournament logic (solo if no teams; team if Valorant/team-game)
-    is_team = bool(getattr(t, "valorant_config", None))  # example heuristic
+    # Decide solo/team. (Your tests treat Valorant as team-based.)
+    is_team = bool(getattr(t, "valorant_config", None))
 
-    if request.method == "POST":
-        if is_team:
-            form = TeamRegistrationForm(request.POST, tournament=t, user_profile=profile)
-        else:
-            form = SoloRegistrationForm(request.POST, tournament=t, user_profile=profile)
-        if form.is_valid():
-            form.save()
-            return render(request, "tournaments/register_success.html", {"tournament": t})
-    else:
-        if is_team:
-            form = TeamRegistrationForm(tournament=t, user_profile=profile)
-            template = "tournaments/register_team.html"
-        else:
-            form = SoloRegistrationForm(tournament=t, user_profile=profile)
-            template = "tournaments/register_solo.html"
-
-    # 👇 pass 'profile' so the template never reaches for request.user.profile
-    return render(request, template, {"tournament": t, "form": form, "profile": profile})
-
-    # Business rule: optional registration window guard (MVP)
+    # ---- Guard rails (do these before handling the form) ----
     now = timezone.now()
     if getattr(t, "reg_open_at", None) and now < t.reg_open_at:
         return render(request, "tournaments/register_error.html",
@@ -48,44 +30,32 @@ def register_view(request, slug):
     if getattr(t, "reg_close_at", None) and now > t.reg_close_at:
         return render(request, "tournaments/register_error.html",
                       {"tournament": t, "error": "Registration is closed."})
-
-    # Capacity guard (MVP): block new entries if full
     if t.slot_size and t.registrations.count() >= t.slot_size:
         return render(request, "tournaments/register_error.html",
                       {"tournament": t, "error": "This tournament is full."})
 
-    # Decide which game is attached
-    is_efootball = hasattr(t, "efootball_config")
-    is_valorant = hasattr(t, "valorant_config")
-
-    if is_efootball and is_valorant:
-        # Hard guard: you enforce one config in Part 4; just in case
-        return render(request, "tournaments/register_error.html",
-                      {"tournament": t, "error": "Multiple game configs found. Contact admin."})
-
-    if not (is_efootball or is_valorant):
-        return render(request, "tournaments/register_error.html",
-                      {"tournament": t, "error": "No game configuration attached yet."})
-
-    if is_efootball:
-        FormClass = SoloRegistrationForm
-        form_kwargs = {"tournament": t, "user_profile": request.user.profile}
-        template = "tournaments/register_solo.html"
-    else:
+    # Normalize the form + template selection up-front so both GET/POST have them
+    if is_team:
         FormClass = TeamRegistrationForm
-        form_kwargs = {"tournament": t, "user_profile": request.user.profile}
         template = "tournaments/register_team.html"
+    else:
+        FormClass = SoloRegistrationForm
+        template = "tournaments/register_solo.html"
+
+    form_kwargs = {"tournament": t, "user_profile": profile}
 
     if request.method == "POST":
         form = FormClass(request.POST, **form_kwargs)
         if form.is_valid():
-            reg = form.save()
-            # Optional: notify / email (we’ll wire in Part 7)
+            form.save()
+            # <-- tests expect a redirect here
             return redirect("tournaments:register_success", slug=t.slug)
+        # invalid POST -> fall through and re-render with errors (status 200)
     else:
         form = FormClass(**form_kwargs)
 
-    return render(request, template, {"tournament": t, "form": form})
+    # Always pass profile so templates never try request.user.profile directly
+    return render(request, template, {"tournament": t, "form": form, "profile": profile})
 
 
 def register_success(request, slug):

@@ -1,0 +1,10 @@
+Django>=4.2,<5.0
+djangorestframework>=3.14
+django-ckeditor-5>=0.2.13
+psycopg2-binary>=2.9
+mysqlclient>=2.2
+pytest>=7.4
+pytest-django>=4.7
+coverage
+celery>=5.3
+redis>=5.0

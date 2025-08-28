@@ -1,70 +1,55 @@
 from pathlib import Path
-import environ, os
+import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# -----------------------------------------------------------------------------
+# Paths & Core
+# -----------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
+DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-*qn7+%70=1#*4ona%di0+y7jn=l$4fzg4zt6fa*=x2)dg-#&hp'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "192.168.68.108",   # your LAN IP
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://192.168.68.108:8000",
-    "http://127.0.0.1:8000",
-]
-
-
-# Application definition
-
+# -----------------------------------------------------------------------------
+# Applications
+# -----------------------------------------------------------------------------
 INSTALLED_APPS = [
-    # Django core...
-    "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
-    "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
+    # Django core
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
 
-    # Postgres extras (ArrayField etc.)
-    "django.contrib.postgres",
-
-    # 3rd-party
+    # Third-party
+    "rest_framework",
     "django_ckeditor_5",
 
     # Local apps
-    "apps.tournaments",
-    "apps.user_profile",
     "apps.teams",
-    "apps.game_efootball",
+    "apps.tournaments",
     "apps.game_valorant",
+    "apps.game_efootball",
+    "apps.user_profile",
 ]
-
-
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'deltacrown.urls'
+ROOT_URLCONF = "deltacrown.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "templates"],  # optional templates dir
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -77,130 +62,88 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'deltacrown.wsgi.application'
+WSGI_APPLICATION = "deltacrown.wsgi.application"
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# -----------------------------------------------------------------------------
+# Database (PostgreSQL)
+#   Uses env vars when present; otherwise defaults match what you created.
+# -----------------------------------------------------------------------------
+DB_NAME = os.getenv("DB_NAME", "deltacrown")
+DB_USER = os.getenv("DB_USER", "dc_user")          # you created: dc_user
+DB_PASSWORD = os.getenv("DB_PASSWORD", "Rashik0001")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": DB_NAME,
+        "USER": DB_USER,
+        "PASSWORD": DB_PASSWORD,
+        "HOST": DB_HOST,
+        "PORT": DB_PORT,
     }
 }
 
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
+# -----------------------------------------------------------------------------
+# Passwords, Auth, I18N
+# -----------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "UTC"
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = 'static/'
+# -----------------------------------------------------------------------------
+# Static & Media
+# -----------------------------------------------------------------------------
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Postgres Database
-env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
-
-SECRET_KEY = env("SECRET_KEY")
-DEBUG = env.bool("DEBUG", default=False)
-
-DATABASES = {
-    'default': env.db(),   # uses DATABASE_URL
+# -----------------------------------------------------------------------------
+# DRF (minimal, fine for tests)
+# -----------------------------------------------------------------------------
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
 }
 
-TIME_ZONE = env("TIME_ZONE", default="Asia/Dhaka")
-LANGUAGE_CODE = "en-us"
-
-
-# Minimal, safe default — works out of the box
+# -----------------------------------------------------------------------------
+# CKEditor 5 (keep it quiet/harmless in tests)
+# -----------------------------------------------------------------------------
 CKEDITOR_5_CONFIGS = {
     "default": {
-        "toolbar": [
-            "heading", "|",
-            "bold", "italic", "underline", "link", "|",
-            "bulletedList", "numberedList", "blockQuote", "|",
-            "insertTable", "imageUpload", "|",
-            "undo", "redo",
-        ],
-        "language": "en",
-        "image": {
-            "toolbar": [
-                "imageTextAlternative",
-                "imageStyle:alignLeft",
-                "imageStyle:full",
-                "imageStyle:alignRight",
-                "imageStyle:side",
-            ]
-        },
-        "table": {
-            "contentToolbar": ["tableColumn", "tableRow", "mergeTableCells"]
-        },
-    },
-
-    # (Optional) A richer toolbar you can opt into via config_name="rich"
-    "rich": {
-        "toolbar": [
-            "heading", "|",
-            "bold", "italic", "underline", "strikethrough", "code", "|",
-            "link", "blockQuote", "horizontalLine", "|",
-            "bulletedList", "numberedList", "outdent", "indent", "|",
-            "insertTable", "imageUpload", "|",
-            "undo", "redo",
-        ],
-        "language": "en",
-        "image": {
-            "toolbar": [
-                "imageTextAlternative",
-                "toggleImageCaption",
-                "imageStyle:inline",
-                "imageStyle:block",
-                "imageStyle:side",
-                "linkImage",
-            ]
-        },
-        "table": {
-            "contentToolbar": [
-                "tableColumn", "tableRow", "mergeTableCells", "tableProperties", "tableCellProperties"
-            ]
-        },
-    },
+        "toolbar": "full",
+    }
 }
+CKEDITOR_5_CUSTOM_CSS = None
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff"
+
+# -----------------------------------------------------------------------------
+# Email (in-memory for tests)
+# -----------------------------------------------------------------------------
+EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+# -----------------------------------------------------------------------------
+# Testing niceties
+# -----------------------------------------------------------------------------
+# Faster hashing during tests
+if os.getenv("FAST_TESTS", "1") == "1":
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
