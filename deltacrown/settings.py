@@ -20,21 +20,25 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    # Django core
+    # Django core...
     "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes",
     "django.contrib.sessions","django.contrib.messages","django.contrib.staticfiles",
+
+    # Postgres extras (ArrayField etc.)
+    "django.contrib.postgres",
 
     # 3rd-party
     "django_ckeditor_5",
 
-    # Local apps (Part 2 + Part 3 sequence)
-    "apps.user_profile.apps.UserProfileConfig",
-    "apps.teams.apps.TeamsConfig",
-    "apps.tournaments.apps.TournamentsConfig",
-
-    "apps.game_efootball.apps.GameEfootballConfig",
-    "apps.game_valorant.apps.GameValorantConfig",
+    # Local apps
+    "apps.tournaments",
+    "apps.user_profile",
+    "apps.teams",
+    "apps.game_efootball",
+    "apps.game_valorant",
 ]
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
