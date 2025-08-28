@@ -1,0 +1,7 @@
+<h1>Register: {{ tournament.name }} (Solo)</h1>
+<form method="post">
+  {% csrf_token %}
+  <p><strong>Your profile:</strong> {{ request.user.profile.display_name }}</p>
+  {{ form.as_p }}
+  <button type="submit">Submit Registration</button>
+</form>
