@@ -107,3 +107,26 @@ class Registration(models.Model):
     def __str__(self):
         who = self.user.display_name if self.user_id else (self.team.tag if self.team_id else "Unknown")
         return f"{who} @ {self.tournament.name}"
+
+
+
+class Bracket(models.Model):
+    tournament = models.OneToOneField(Tournament, on_delete=models.CASCADE, related_name="bracket")
+    is_locked = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Bracket for {self.tournament.name}"
+
+class Match(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="matches")
+    round_no = models.PositiveIntegerField()
+    best_of = models.PositiveIntegerField(default=1)
+    # Solo or Team participants will be enforced in Part 6; keep simple for now
+    participant_a = models.CharField(max_length=120)  # placeholder display name
+    participant_b = models.CharField(max_length=120)
+    score_a = models.PositiveIntegerField(default=0)
+    score_b = models.PositiveIntegerField(default=0)
+    winner = models.CharField(max_length=120, blank=True)
+    state = models.CharField(max_length=20, default="SCHEDULED")  # SCHEDULED|REPORTED|VERIFIED
+    created_at = models.DateTimeField(auto_now_add=True)
