@@ -1,0 +1,4 @@
+<h1>{{ t.name }}</h1>
+<p>{{ t.short_description }}</p>
+<a href="{% url 'tournaments:register' t.slug %}">Register</a> |
+<a href="{% url 'tournaments:bracket_view' t.slug %}">View Bracket</a>

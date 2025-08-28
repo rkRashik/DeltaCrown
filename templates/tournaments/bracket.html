@@ -1,0 +1,17 @@
+<h1>{{ t.name }} — Bracket</h1>
+{% for round in rounds %}
+  <h2>Round {{ forloop.counter }}</h2>
+  <table border="1" cellpadding="6">
+    <tr><th>#</th><th>A</th><th>B</th><th>Score</th><th>Winner</th><th>Status</th></tr>
+    {% for m in round %}
+      <tr>
+        <td>{{ m.position }}</td>
+        <td>{% if m.is_solo_match %}{{ m.user_a.display_name }}{% else %}{{ m.team_a.tag }}{% endif %}</td>
+        <td>{% if m.is_solo_match %}{{ m.user_b.display_name }}{% else %}{{ m.team_b.tag }}{% endif %}</td>
+        <td>{{ m.score_a }} - {{ m.score_b }}</td>
+        <td>{% if m.winner_user %}{{ m.winner_user.display_name }}{% elif m.winner_team %}{{ m.winner_team.tag }}{% endif %}</td>
+        <td>{{ m.get_state_display }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+{% endfor %}

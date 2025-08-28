@@ -1,9 +1,12 @@
-from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, render, redirect
+from django.db.models import Max
+from django.core.exceptions import ValidationError
+from .models import Tournament, Registration, Match
+from apps.corelib.brackets import report_result
 from django.utils import timezone
-
-from .models import Tournament, Registration
 from .forms import SoloRegistrationForm, TeamRegistrationForm
+
 
 @login_required
 def register_view(request, slug):
@@ -60,3 +63,27 @@ def register_view(request, slug):
 def register_success(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
     return render(request, "tournaments/register_success.html", {"tournament": t})
+
+
+@login_required
+def report_match_view(request, match_id):
+    m = get_object_or_404(Match, id=match_id)
+    if request.method == "POST":
+        try:
+            sa = int(request.POST.get("score_a", "0"))
+            sb = int(request.POST.get("score_b", "0"))
+            report_result(m, sa, sb, reporter=request.user.profile)
+            return render(request, "tournaments/report_submitted.html", {"match": m})
+        except (ValueError, ValidationError) as e:
+            return render(request, "tournaments/report_form.html", {"match": m, "error": str(e)})
+    return render(request, "tournaments/report_form.html", {"match": m})
+
+def bracket_view(request, slug):
+    t = get_object_or_404(Tournament, slug=slug)
+    rounds = t.matches.aggregate(Max("round_no"))["round_no__max"] or 0
+    rows = [t.matches.filter(round_no=r).order_by("position") for r in range(1, rounds + 1)]
+    return render(request, "tournaments/bracket.html", {"t": t, "rounds": rows})
+
+def tournament_detail(request, slug):
+    t = get_object_or_404(Tournament, slug=slug)
+    return render(request, "tournaments/detail.html", {"t": t})

@@ -110,14 +110,39 @@ TournamentAdmin.actions = [action_generate_bracket, action_lock_bracket]
 @admin.register(Match)
 class MatchAdmin(admin.ModelAdmin):
     list_display = (
-        "tournament", "round_no",
-        "participant_a", "participant_b",
+        "tournament", "round_no", "position",
+        "participant_a_name", "participant_b_name",
         "score_a", "score_b",
-        "winner", "set_winner_link",
+        "winner_name", "set_winner_link",
         "state",
     )
     list_filter = ("tournament", "round_no", "state")
-    search_fields = ("participant_a", "participant_b")
+    search_fields = (
+        "tournament__name",
+        "user_a__display_name", "user_b__display_name",
+        "team_a__name", "team_a__tag",
+        "team_b__name", "team_b__tag",
+    )
+
+    def participant_a_name(self, obj):
+        if obj.is_solo_match:
+            return obj.user_a.display_name if obj.user_a else "—"
+        return obj.team_a.tag if obj.team_a else "—"
+    participant_a_name.short_description = "Side A"
+
+    def participant_b_name(self, obj):
+        if obj.is_solo_match:
+            return obj.user_b.display_name if obj.user_b else "—"
+        return obj.team_b.tag if obj.team_b else "—"
+    participant_b_name.short_description = "Side B"
+
+    def winner_name(self, obj):
+        if obj.winner_user:
+            return obj.winner_user.display_name
+        if obj.winner_team:
+            return obj.winner_team.tag
+        return ""
+    winner_name.short_description = "Winner"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -129,15 +154,21 @@ class MatchAdmin(admin.ModelAdmin):
         return custom + urls
 
     def set_winner_link(self, obj):
-        if obj.winner:
-            return obj.winner
-        a = f'<a href="{obj.id}/set_winner/a/">Set {obj.participant_a}</a>'
-        b = f'<a href="{obj.id}/set_winner/b/">Set {obj.participant_b}</a>'
-        return format_html(f"{a} | {b}")
+        # If already has a winner, no links
+        if obj.winner_user_id or obj.winner_team_id:
+            return "—"
+        links = []
+        if obj.user_a_id or obj.team_a_id:
+            label_a = obj.user_a.display_name if obj.is_solo_match else (obj.team_a.tag if obj.team_a else "A")
+            links.append(f'<a href="{obj.id}/set_winner/a/">Set {label_a}</a>')
+        if obj.user_b_id or obj.team_b_id:
+            label_b = obj.user_b.display_name if obj.is_solo_match else (obj.team_b.tag if obj.team_b else "B")
+            links.append(f'<a href="{obj.id}/set_winner/b/">Set {label_b}</a>')
+        return format_html(" | ".join(links))
     set_winner_link.short_description = "Resolve"
 
     def set_winner_view(self, request, match_id, who):
-        from apps.corelib.brackets import admin_set_winner  # stub now; finalize in Part 6
+        from apps.corelib.brackets import admin_set_winner
         m = Match.objects.get(id=match_id)
         try:
             admin_set_winner(m, who=who)

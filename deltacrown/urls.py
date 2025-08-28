@@ -12,4 +12,5 @@ urlpatterns = [
 
     path("tournaments/", include("apps.tournaments.urls")),
 
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
