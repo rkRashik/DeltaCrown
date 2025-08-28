@@ -1,0 +1,47 @@
+Title,Description,Labels,Milestone,Column
+Initialize repository,"Create local folder, init Git, create .gitignore, README.md scaffold.","setup,git,phase1",Phase 1 – MVP,Todo
+Create virtual environment,"Create venv, pin Python 3.11+, upgrade pip, install base deps.","setup,python,phase1",Phase 1 – MVP,Todo
+Install core packages,"Install django, psycopg2-binary, django-environ, pillow, django-ckeditor.","setup,deps,phase1",Phase 1 – MVP,Todo
+Start Django project,Run django-admin startproject deltacrown . and verify server boots.,"setup,django,phase1",Phase 1 – MVP,Todo
+Create modular apps,"Create apps: tournaments, user_profile, teams, game_efootball, game_valorant, adminhub, corelib.","setup,architecture,phase1",Phase 1 – MVP,Todo
+Configure Postgres,"Create DB/user in pgAdmin, add DATABASE_URL and SECRET_KEY in .env.","database,postgres,phase1",Phase 1 – MVP,Todo
+Static & media settings,"Configure STATIC_URL/ROOT and MEDIA_URL/ROOT, URL patterns for media.","settings,assets,phase1",Phase 1 – MVP,Todo
+Rich text editor,Install & configure django-ckeditor; verify admin widgets render.,"admin,ux,phase1",Phase 1 – MVP,Todo
+Push to GitHub,"Create remote repo, push main branch, protect main.","git,github,phase1",Phase 1 – MVP,Todo
+UserProfile model,"Implement UserProfile (display_name, region, avatar, ids) + auto-create signal.","models,accounts,phase1",Phase 1 – MVP,Todo
+Team & TeamMembership models,Implement Team and TeamMembership with captain role and unique membership.,"models,teams,phase1",Phase 1 – MVP,Todo
+Tournament model (generic),"Implement clean Tournament fields (name, slug, dates, fees, prize pool, rules rich text).","models,tournaments,phase1",Phase 1 – MVP,Todo
+Registration model,"Implement Registration linking tournament to solo user OR team, with manual payment fields.","models,registration,phase1",Phase 1 – MVP,Todo
+Admin registration,Register Tournament & Registration admin with filters and search.,"admin,phase1",Phase 1 – MVP,Todo
+Initial migrations,"makemigrations & migrate for user_profile, teams, tournaments.","database,migrations,phase1",Phase 1 – MVP,Todo
+EfootballConfig model,"OneToOne to Tournament; fields: format_type, duration, strength cap, extra rules.","models,efootball,phase1",Phase 1 – MVP,Todo
+ValorantConfig model,"OneToOne to Tournament; fields: best_of, rounds_per_match, map_pool, overtime, extra rules.","models,valorant,phase1",Phase 1 – MVP,Todo
+Game config admin,Register basic admin pages for EfootballConfig & ValorantConfig.,"admin,phase1",Phase 1 – MVP,Todo
+Migrate game configs,Create and apply migrations for game config apps.,"database,migrations,phase1",Phase 1 – MVP,Todo
+Tournament admin inlines,Inline edit of exactly one game config on Tournament admin page.,"admin,ux,phase1",Phase 1 – MVP,Todo
+One-config guard,Warn and prevent saving both Valorant and eFootball configs simultaneously.,"admin,validation,phase1",Phase 1 – MVP,Todo
+Verify payment action,Bulk admin action sets payment_status=verified and status=CONFIRMED.,"admin,finance,phase1",Phase 1 – MVP,Todo
+Bracket/Match models (admin-ready),Add Bracket (1:1 Tournament) and Match skeleton for admin actions.,"models,brackets,phase1",Phase 1 – MVP,Todo
+Bracket admin actions,Add Generate Bracket (idempotent) and Lock Bracket actions.,"admin,brackets,phase1",Phase 1 – MVP,Todo
+Match admin override,Add Set Winner action/view to resolve disputes and progress winners.,"admin,matches,phase1",Phase 1 – MVP,Todo
+Registration URLs,Add /tournaments/<slug>/register/ and success route.,"urls,registration,phase1",Phase 1 – MVP,Todo
+SoloRegistration form,Implement eFootball solo registration with conditional payment fields.,"forms,efootball,phase1",Phase 1 – MVP,Todo
+TeamRegistration form,Captain-only Valorant team registration; prevent duplicate team entries.,"forms,valorant,phase1",Phase 1 – MVP,Todo
+Registration views & templates,Dynamic form selection by game config; simple templates and success page.,"views,templates,phase1",Phase 1 – MVP,Todo
+Registration tests,Unit tests for solo free and team paid scenarios.,"testing,registration,phase1",Phase 1 – MVP,Todo
+Capacity guard,Block registration when slot_size reached (MVP behavior).,"rules,registration,phase1",Phase 1 – MVP,Todo
+Match model upgrade,Use typed participants (user/team) with validators; states SCHEDULED→REPORTED→VERIFIED.,"models,matches,phase1",Phase 1 – MVP,Todo
+Bracket engine,"Idempotent single-elim generator, power-of-two padding, byes auto-advance.","brackets,logic,phase1",Phase 1 – MVP,Todo
+Progression logic,Propagate winners to next round; guard finals.,"brackets,progression,phase1",Phase 1 – MVP,Todo
+Report result view,Participants report scores; basic permission checks.,"views,matches,phase1",Phase 1 – MVP,Todo
+Verify & apply,Referee/admin verification step confirms and propagates.,"admin,matches,phase1",Phase 1 – MVP,Todo
+Bracket command,Management command: manage.py generate_bracket <slug-or-id>.,"devx,cli,phase1",Phase 1 – MVP,Todo
+Bracket tests,"Unit tests for generator, byes, progression.","testing,brackets,phase1",Phase 1 – MVP,Todo
+Public pages (MVP),"List, detail, register, bracket views; minimal styling.","ui,templates,phase1",Phase 1 – MVP,Todo
+Tournament detail tabs,"Overview, Rules (rich text), Game Settings, Bracket tabs.","ui,templates,phase1",Phase 1 – MVP,Todo
+Seed data,Fixture/seed for 1 eFootball and 1 Valorant tournament for smoke tests.,"devx,fixtures,phase1",Phase 1 – MVP,Todo
+End-to-end smoke run,"Register solo+team, verify payments, generate+lock bracket, report results.","testing,e2e,phase1",Phase 1 – MVP,Todo
+README setup,Write step-by-step setup: clone→venv→.env→migrate→createsuperuser→run.,"docs,readme,phase1",Phase 1 – MVP,Todo
+Conventional commits,Adopt conventional commits; reference issue numbers in messages.,"git,workflow,phase1",Phase 1 – MVP,Todo
+Pre-commit hooks,Add black/flake8/isort pre-commit hooks.,"qa,lint,phase1",Phase 1 – MVP,Todo
+Error monitoring (dev),Integrate Sentry DSN for dev/staging (optional in Phase 1).,"ops,monitoring,phase1",Phase 1 – MVP,Todo
