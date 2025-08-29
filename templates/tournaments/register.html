@@ -1,0 +1,167 @@
+{# templates/tournaments/register.html #}
+{% extends "base.html" %}
+{% load tz %}
+
+{% block title %}Register · {{ t.name }}{% endblock %}
+
+{% block content %}
+  <h1>Register — {{ t.name }}</h1>
+
+  {% if amount and amount|floatformat:0 != "0" %}
+    <div class="alert alert-info">
+      Entry fee: <strong>BDT {{ amount }}</strong><br>
+      Please pay first, then submit the form with your details.<br>
+      {% if s %}
+        {% if s.bkash_receive_number %}bKash (Send Money to): <strong>{{ s.bkash_receive_number }}</strong><br>{% endif %}
+        {% if s.nagad_receive_number %}Nagad (Send Money to): <strong>{{ s.nagad_receive_number }}</strong><br>{% endif %}
+        {% if s.rocket_receive_number %}Rocket (Send Money to): <strong>{{ s.rocket_receive_number }}</strong><br>{% endif %}
+        {% if s.bank_instructions %}<hr><pre class="mb-0">{{ s.bank_instructions }}</pre>{% endif %}
+      {% endif %}
+      After sending, provide your wallet/account number and Transaction ID (TRX ID).
+    </div>
+  {% else %}
+    <div class="alert alert-success">This tournament is free to join.</div>
+  {% endif %}
+
+  <ul class="nav nav-tabs mt-3">
+    <li class="nav-item">
+      <a class="nav-link {% if mode == 'solo' %}active{% endif %}" href="?mode=solo">Solo</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% if mode == 'team' %}active{% endif %}" href="?mode=team">Team</a>
+    </li>
+  </ul>
+
+  {% if mode == "solo" %}
+    <form method="post" class="mt-3">
+      {% csrf_token %}
+      <input type="hidden" name="mode" value="solo">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Payment Method</label>
+          {{ form_solo.payment_method }}
+          {% if form_solo.payment_method.errors %}<div class="text-danger small">{{ form_solo.payment_method.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Your Wallet/Account Number</label>
+          {{ form_solo.payment_sender }}
+          {% if form_solo.payment_sender.errors %}<div class="text-danger small">{{ form_solo.payment_sender.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Transaction / Reference ID</label>
+          {{ form_solo.payment_reference }}
+          {% if form_solo.payment_reference.errors %}<div class="text-danger small">{{ form_solo.payment_reference.errors.0 }}</div>{% endif %}
+        </div>
+
+        {# dynamic “what’s required” banner (solo) #}
+        <div class="col-12">
+          <div
+            class="alert alert-info payment-help"
+            role="alert"
+            hidden
+            data-bkash="{{ s.bkash_receive_number|default_if_none:'' }}"
+            data-nagad="{{ s.nagad_receive_number|default_if_none:'' }}"
+            data-rocket="{{ s.rocket_receive_number|default_if_none:'' }}"
+          ></div>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-primary">Submit Registration</button>
+        <a class="btn btn-outline-secondary" href="{% url 'tournaments:detail' t.slug %}">Cancel</a>
+      </div>
+    </form>
+  {% else %}
+    <form method="post" class="mt-3">
+      {% csrf_token %}
+      <input type="hidden" name="mode" value="team">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Team</label>
+          {{ form_team.team }}
+          {% if form_team.team.errors %}<div class="text-danger small">{{ form_team.team.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Payment Method</label>
+          {{ form_team.payment_method }}
+          {% if form_team.payment_method.errors %}<div class="text-danger small">{{ form_team.payment_method.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Your Wallet/Account Number</label>
+          {{ form_team.payment_sender }}
+          {% if form_team.payment_sender.errors %}<div class="text-danger small">{{ form_team.payment_sender.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Transaction / Reference ID</label>
+          {{ form_team.payment_reference }}
+          {% if form_team.payment_reference.errors %}<div class="text-danger small">{{ form_team.payment_reference.errors.0 }}</div>{% endif %}
+        </div>
+
+        {# dynamic “what’s required” banner (team) #}
+        <div class="col-12">
+          <div
+            class="alert alert-info payment-help"
+            role="alert"
+            hidden
+            data-bkash="{{ s.bkash_receive_number|default_if_none:'' }}"
+            data-nagad="{{ s.nagad_receive_number|default_if_none:'' }}"
+            data-rocket="{{ s.rocket_receive_number|default_if_none:'' }}"
+          ></div>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-primary">Submit Team Registration</button>
+        <a class="btn btn-outline-secondary" href="{% url 'tournaments:detail' t.slug %}">Cancel</a>
+      </div>
+    </form>
+  {% endif %}
+
+  {# tiny script to auto-explain what’s needed per method #}
+  <script>
+    (function () {
+      function helpText(method, ds) {
+        const m = (method || '').toLowerCase();
+        if (m === 'bkash' || m === 'nagad' || m === 'rocket') {
+          const toNum =
+            (m === 'bkash'  && ds.bkash) ||
+            (m === 'nagad'  && ds.nagad) ||
+            (m === 'rocket' && ds.rocket) || null;
+
+          return (toNum
+            ? `Wallet selected: Send Money to ${toNum}. Then enter the payer wallet/phone AND the Transaction/Reference ID.`
+            : 'Wallet selected: Enter the payer wallet/phone AND the Transaction/Reference ID.');
+        }
+        if (m === 'bank') {
+          return 'Bank transfer selected: Enter the bank reference/transaction ID. Sender account is optional.';
+        }
+        return '';
+      }
+
+      function wireForm(form) {
+        const select = form.querySelector('select[name="payment_method"]');
+        const help = form.querySelector('.payment-help');
+        if (!select || !help) return;
+
+        const ds = {
+          bkash: help.dataset.bkash || '',
+          nagad: help.dataset.nagad || '',
+          rocket: help.dataset.rocket || ''
+        };
+
+        const update = () => {
+          const msg = helpText(select.value, ds);
+          help.textContent = msg;
+          if (msg) {
+            help.removeAttribute('hidden');
+          } else {
+            help.setAttribute('hidden', 'hidden');
+          }
+        };
+
+        select.addEventListener('change', update);
+        update(); // init on load
+      }
+
+      document.querySelectorAll('form').forEach(wireForm);
+    })();
+  </script>
+{% endblock %}

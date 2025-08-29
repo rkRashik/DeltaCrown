@@ -29,7 +29,7 @@ INSTALLED_APPS = [
 
     # Local apps
     "apps.teams",
-    "apps.tournaments",
+    "apps.tournaments.apps.TournamentsConfig",
     "apps.game_valorant",
     "apps.game_efootball",
     "apps.user_profile",

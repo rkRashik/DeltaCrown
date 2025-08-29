@@ -8,6 +8,10 @@ class Notification(models.Model):
         MATCH_SCHEDULED = "match_scheduled", "Match scheduled"
         CHECKIN_OPEN = "checkin_open", "Check-in window opened"
 
+        PAYMENT_INSTRUCTIONS = "PAYMENT_INSTRUCTIONS", "Payment instructions"
+        PAYMENT_VERIFIED = "PAYMENT_VERIFIED", "Payment verified"
+        PAYMENT_REJECTED = "PAYMENT_REJECTED", "Payment rejected"
+
     recipient = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="notifications")
     type = models.CharField(max_length=32, choices=Type.choices)
     title = models.CharField(max_length=120)

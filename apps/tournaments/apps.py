@@ -1,3 +1,4 @@
+# apps/tournaments/apps.py
 from django.apps import AppConfig
 
 

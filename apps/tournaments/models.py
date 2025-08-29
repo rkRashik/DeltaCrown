@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
@@ -96,6 +97,16 @@ class Registration(models.Model):
     status = models.CharField(max_length=12, default="PENDING")  # PENDING|CONFIRMED|CHECKED_IN|WITHDRAWN
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Extra payment capture fields
+    payment_sender = models.CharField(max_length=32, blank=True, help_text="Payer account/phone")
+    # payment_reference already exists (TRX ID etc.)
+    payment_verified_by = models.ForeignKey(
+        get_user_model(), null=True, blank=True, on_delete=models.SET_NULL, related_name="verified_registrations"
+    )
+    payment_verified_at = models.DateTimeField(null=True, blank=True)
+    payment_note = models.TextField(blank=True)
+
+
     class Meta:
         unique_together = [("tournament","user"), ("tournament","team")]
         indexes = [
@@ -104,16 +115,33 @@ class Registration(models.Model):
         ]
 
     def clean(self):
-        # Enforce XOR: exactly one of (user, team)
-        if bool(self.user_id) == bool(self.team_id):
-            from django.core.exceptions import ValidationError
-            raise ValidationError("Registration must be either solo (user) or team, not both.")
+        from django.core.exceptions import ValidationError
 
-        # Paid events must include method+reference
-        if self.tournament.entry_fee_bdt and self.tournament.entry_fee_bdt > 0:
-            if not self.payment_method or not self.payment_reference:
-                from django.core.exceptions import ValidationError
-                raise ValidationError("Payment method and reference are required for paid events.")
+        errors = {}
+
+        # XOR: exactly one of (user, team) must be set (not both, not neither)
+        if bool(self.user_id) == bool(self.team_id):
+            errors["user"] = "Select a user OR a team (not both)."
+            errors["team"] = "Select a user OR a team (not both)."
+
+        # Manual payment requirements for paid tournaments
+        fee = self.tournament.entry_fee_bdt or 0
+        pm = (self.payment_method or "").strip().lower()
+        ref = (self.payment_reference or "").strip()
+        # sender is intentionally optional at registration time to keep team flow simple
+        # (admin can ask/enter it during verification)
+        # snd = (self.payment_sender or "").strip()
+
+        if fee and fee > 0:
+            if not pm:
+                errors["payment_method"] = "Select a payment method."
+            if not ref:
+                errors["payment_reference"] = "Enter the transaction/reference ID."
+            # NOTE: Do NOT require payment_sender here. It’s optional at registration time.
+
+        if errors:
+            raise ValidationError(errors)
+
 
     def __str__(self):
         who = self.user.display_name if self.user_id else (self.team.tag if self.team_id else "Unknown")
@@ -250,5 +278,13 @@ class TournamentSettings(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Payment receiving numbers the organizer sets per tournament
+    bkash_receive_number = models.CharField(max_length=20, blank=True, help_text="Organizer bKash number")
+    nagad_receive_number = models.CharField(max_length=20, blank=True, help_text="Organizer Nagad number")
+    rocket_receive_number = models.CharField(max_length=20, blank=True, help_text="Organizer Rocket number")
+    bank_instructions = models.TextField(blank=True, help_text="Bank account details or instructions (optional)")
+
+
     def __str__(self):
         return f"Settings for {self.tournament}"
+

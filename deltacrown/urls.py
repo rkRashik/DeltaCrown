@@ -1,33 +1,34 @@
+# deltacrown/urls.py
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from apps.tournaments import views as tviews
-
+from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    # CKEditor-5
-    path("ckeditor5/", include("django_ckeditor_5.urls")),
-    # to work this {% url 'login' %} works
+    path("admin/", admin.site.urls),
+
+    # Auth (so {% url 'login' %} works)
     path("accounts/", include("django.contrib.auth.urls")),
 
-    # Apps Tournaments
-    path("tournaments/", include("apps.tournaments.urls")),
-        # optional short alias for brackets
-        path("brackets/<slug:slug>/", tviews.bracket_view, name="bracket_view"),
-        # home -> list
-        path("", tviews.tournament_list, name="home"),
-        # for  /t/<slug> style
-        path("t/", include("apps.tournaments.urls")),
+    # CKEditor-5
+    path("ckeditor5/", include("django_ckeditor_5.urls")),
 
-    # Apps Teams
+    # --- Tournaments ---
+    # Primary mount with the "tournaments" namespace
+    path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
+    # Optional short alias; give it a DIFFERENT namespace to avoid urls.W005
+    path("t/", include(("apps.tournaments.urls", "tournaments"), namespace="t")),
+
+    # Home -> tournaments list
+    path("", RedirectView.as_view(pattern_name="tournaments:list", permanent=False), name="home"),
+
+    # Teams
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
 
-    # Apps User Profile
+    # User profiles
     path("profiles/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
 
-    # App Notification
-    path("notifications/", include("apps.notifications.urls")),
-
+    # Notifications
+    path("notifications/", include(("apps.notifications.urls", "notifications"), namespace="notifications")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
