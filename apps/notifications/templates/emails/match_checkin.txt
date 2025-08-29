@@ -1,0 +1,9 @@
+﻿Hi,
+
+Check-in is open for "{{ t.name }}".
+Round {{ m.round_no }}, match {{ m.position }}.
+
+Window: {{ open_dt }} → {{ close_dt }}
+Tournament page: https://your-domain.example/t/{{ t.slug }}/
+
+— DeltaCrown

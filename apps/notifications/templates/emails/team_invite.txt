@@ -1,0 +1,7 @@
+﻿Hi {{ profile.display_name|default:profile.user.username }},
+
+{{ inviter.display_name }} invited you to join {{ team.name }} ({{ team.tag }}).
+
+Respond to invites: https://your-domain.example/teams/invites/
+
+— DeltaCrown
