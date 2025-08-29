@@ -8,6 +8,10 @@ from apps.game_efootball.models import EfootballConfig
 from apps.game_valorant.models import ValorantConfig
 from .services.scheduling import auto_schedule_matches, clear_schedule
 
+from django.template.response import TemplateResponse
+from django.urls import path
+from .services.analytics import tournament_stats
+
 
 # --- Inlines: show exactly one game config per tournament (plus settings) ---
 class EfootballConfigInline(admin.StackedInline):
@@ -81,9 +85,36 @@ class TournamentAdmin(admin.ModelAdmin):
     Your model uses fields like start_at / end_at / slot_size / entry_fee_bdt.
     We expose safe accessors (methods) instead of hard-coding missing names like start_date/end_date.
     """
-    list_display = ("name", "status", "starts", "ends", "slots", "fee", "pool")
+    list_display = ("name", "status", "starts", "ends", "slots", "fee", "pool", "analytics_link")
     list_filter = ("status", HasEntryFeeFilter)
     search_fields = ("name", "slug")
+
+    def analytics_link(self, obj):
+        return format_html('<a href="{}">Analytics</a>', f"./{obj.pk}/analytics/")
+    analytics_link.short_description = "Dashboard"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path("<int:pk>/analytics/", self.admin_site.admin_view(self.analytics_view), name="tournament_analytics"),
+        ]
+        return custom + urls
+
+    def analytics_view(self, request, pk):
+        obj = self.get_object(request, pk)
+        if not self.has_view_permission(request, obj):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+
+        stats = tournament_stats(obj)
+        ctx = {
+            **self.admin_site.each_context(request),
+            "title": f"Analytics — {obj.name}",
+            "tournament": obj,
+            "stats": stats,
+        }
+        return TemplateResponse(request, "admin/tournaments/tournament/analytics.html", ctx)
+
 
     # We dynamically include settings + exactly one (or both if none) game config inline(s)
     def get_inlines(self, request, obj=None):
