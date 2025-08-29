@@ -1,8 +1,9 @@
 from datetime import timedelta
 from django.db import transaction
 
-def _get_ts(t):
-    s = getattr(t, "settings", None)
+def _get_ts(tournament):
+    """Pull TournamentSettings with sane defaults if absent."""
+    s = getattr(tournament, "settings", None)
     return {
         "round_duration_mins": getattr(s, "round_duration_mins", 45),
         "round_gap_mins": getattr(s, "round_gap_mins", 10),
@@ -10,11 +11,13 @@ def _get_ts(t):
         "check_in_close_mins": getattr(s, "check_in_close_mins", 15),
     }
 
+
 @transaction.atomic
 def auto_schedule_matches(tournament):
     """
-    round 1 -> tournament.start_at
-    round N -> previous round + duration + gap
+    Assign start_at to all matches by round:
+      round 1 -> tournament.start_at
+      round N -> previous round + duration + gap
     """
     if not getattr(tournament, "start_at", None):
         raise ValueError("Tournament.start_at must be set before scheduling.")
@@ -22,7 +25,7 @@ def auto_schedule_matches(tournament):
     knobs = _get_ts(tournament)
     per_round = {}
 
-    # Use your related_name="matches"
+    # ✅ Use your related_name="matches" (not match_set)
     qs = tournament.matches.all().order_by("round_no", "position", "id")
     if not qs.exists():
         return 0
@@ -50,19 +53,19 @@ def auto_schedule_matches(tournament):
 
 
 def clear_schedule(tournament):
-    qs = tournament.matches.filter(start_at__isnull=False)
-    return qs.update(start_at=None)
+    """Remove scheduled times from all matches."""
+    return tournament.matches.filter(start_at__isnull=False).update(start_at=None)
 
 
 def get_checkin_window(match):
     """
-    Returns (open_dt, close_dt) based on TournamentSettings.
-    If match.start_at is None -> (None, None)
+    Returns (open_dt, close_dt) for a given match using TournamentSettings.
+    Requires match.start_at. If absent, returns (None, None).
     """
-    if not match.start_at:
+    if not getattr(match, "start_at", None):
         return (None, None)
-    t = match.tournament
-    knobs = _get_ts(t)
+    tournament = match.tournament
+    knobs = _get_ts(tournament)
     open_dt = match.start_at - timedelta(minutes=knobs["check_in_open_mins"])
     close_dt = match.start_at - timedelta(minutes=knobs["check_in_close_mins"])
     return (open_dt, close_dt)

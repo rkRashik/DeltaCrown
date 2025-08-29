@@ -150,6 +150,9 @@ class Match(models.Model):
     score_a = models.PositiveIntegerField(default=0)
     score_b = models.PositiveIntegerField(default=0)
 
+    # scheduled start time for this match
+    start_at = models.DateTimeField(null=True, blank=True)
+
     # typed winner
     winner_user = models.ForeignKey(UserProfile, null=True, blank=True, on_delete=models.SET_NULL, related_name="wins_as_user")
     winner_team = models.ForeignKey(Team, null=True, blank=True, on_delete=models.SET_NULL, related_name="wins_as_team")

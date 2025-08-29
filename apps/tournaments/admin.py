@@ -282,10 +282,11 @@ def action_auto_schedule(modeladmin, request, queryset):
     total = 0
     for t in queryset:
         try:
-            total += auto_schedule_matches(t)
+            count = auto_schedule_matches(t)
+            total += count
         except Exception as e:
             modeladmin.message_user(request, f"{t.name}: {e}", level=messages.ERROR)
-    modeladmin.message_user(request, f"Scheduled {total} match(es).")
+    modeladmin.message_user(request, f"Scheduled {total} match(es) across {queryset.count()} tournament(s).")
 
 @admin.action(description="Clear scheduled times")
 def action_clear_schedule(modeladmin, request, queryset):
@@ -294,7 +295,7 @@ def action_clear_schedule(modeladmin, request, queryset):
         total += clear_schedule(t)
     modeladmin.message_user(request, f"Cleared start times for {total} match(es).")
 
-# attach
+# attach to TournamentAdmin (keep existing actions too)
 TournamentAdmin.actions = list(set(getattr(TournamentAdmin, "actions", []) + [
     action_auto_schedule, action_clear_schedule
 ]))
