@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
 
     # Third-party
     "rest_framework",
@@ -33,6 +34,7 @@ INSTALLED_APPS = [
     "apps.game_efootball",
     "apps.user_profile",
     "apps.notifications",
+
 ]
 
 MIDDLEWARE = [
@@ -101,9 +103,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Dhaka"
 USE_I18N = True
 USE_TZ = True
+LOGIN_URL = "login"
 
 # -----------------------------------------------------------------------------
 # Static & Media
