@@ -1,93 +1,98 @@
+{% extends "base.html" %}
 {% load tournament_extras %}
 
-<h1>{{ t.name }}</h1>
+{% block title %}{{ t.name }} · DeltaCrown{% endblock %}
 
-<p>
-  Status: {{ t.status }}<br>
-  Registration: {{ t.reg_open_at|localtime|date:"M d, Y H:i" }} → {{ t.reg_close_at|localtime|date:"M d, Y H:i" }}<br>
-  Starts: {{ t.start_at|localtime|date:"M d, Y H:i" }} | Ends: {{ t.end_at|localtime|date:"M d, Y H:i" }} | Slots: {{ t.slot_size }}
-</p>
+{% block content %}
+  <h1>{{ t.name }}</h1>
 
-{% if t.settings %}
   <p>
-    {% if t.settings.invite_only %}<span style="padding:2px 6px;border-radius:4px;background:#eee;">Invite-only</span>{% endif %}
-    {% if t.settings.allow_substitutes %}<span style="padding:2px 6px;border-radius:4px;background:#eee;">Substitutes allowed</span>{% endif %}
-    {% if t.settings.custom_format_enabled %}<span style="padding:2px 6px;border-radius:4px;background:#eee;">Custom format</span>{% endif %}
+    Status: {{ t.status }}<br>
+    Registration: {{ t.reg_open_at|localtime|date:"M d, Y H:i" }} → {{ t.reg_close_at|localtime|date:"M d, Y H:i" }}<br>
+    Starts: {{ t.start_at|localtime|date:"M d, Y H:i" }} | Ends: {{ t.end_at|localtime|date:"M d, Y H:i" }} | Slots: {{ t.slot_size }}
   </p>
-{% endif %}
 
-{# Rules PDF (prefer settings, fallback to tournament) #}
-{% if t.settings and t.settings.rules_pdf %}
-  <p><a href="{{ t.settings.rules_pdf.url }}" target="_blank">Download Rules (PDF)</a></p>
-{% elif t.rules_pdf %}
-  <p><a href="{{ t.rules_pdf.url }}" target="_blank">Download Rules (PDF)</a></p>
-{% endif %}
-
-{# Streams (prefer settings, fallback to tournament fields) #}
-{% if t.settings and (t.settings.youtube_stream_url or t.settings.facebook_stream_url) %}
-  <p>
-    Official Streams:
-    {% if t.settings.youtube_stream_url %}
-      <a href="{{ t.settings.youtube_stream_url }}" target="_blank">YouTube</a>
-    {% endif %}
-    {% if t.settings.facebook_stream_url %}
-      {% if t.settings.youtube_stream_url %} | {% endif %}
-      <a href="{{ t.settings.facebook_stream_url }}" target="_blank">Facebook</a>
-    {% endif %}
-  </p>
-{% elif t.yt_stream or t.fb_stream %}
-  <p>
-    Official Streams:
-    {% if t.yt_stream %}
-      <a href="{{ t.yt_stream }}" target="_blank">YouTube</a>
-    {% endif %}
-    {% if t.fb_stream %}
-      {% if t.yt_stream %} | {% endif %}
-      <a href="{{ t.fb_stream }}" target="_blank">Facebook</a>
-    {% endif %}
-  </p>
-{% endif %}
-
-{# Discord link (if provided in settings) #}
-{% if t.settings and t.settings.discord_link %}
-  <p>Discord: <a href="{{ t.settings.discord_link }}" target="_blank">Join</a></p>
-{% endif %}
-
-{# Global check-in window info (from settings) #}
-{% if t.settings and (t.settings.check_in_open_mins or t.settings.check_in_close_mins) %}
-  <p>
-    Check-in window: opens {{ t.settings.check_in_open_mins }} mins before start,
-    closes {{ t.settings.check_in_close_mins }} mins before.
-  </p>
-{% endif %}
-
-<p>
-  <a href="{% url 'tournaments:register' t.slug %}">Register</a>
-  {% if t.settings and t.settings.bracket_visibility == 'public' %}
-    | <a href="{% url 'tournaments:bracket_view' t.slug %}">View Bracket</a>
-  {% else %}
-    | <span title="Bracket visible to captains/organizers only">Bracket (restricted)</span>
+  {% if t.settings %}
+    <p>
+      {% if t.settings.invite_only %}<span style="padding:2px 6px;border-radius:4px;background:#eee;">Invite-only</span>{% endif %}
+      {% if t.settings.allow_substitutes %}<span style="padding:2px 6px;border-radius:4px;background:#eee;">Substitutes allowed</span>{% endif %}
+      {% if t.settings.custom_format_enabled %}<span style="padding:2px 6px;border-radius:4px;background:#eee;">Custom format</span>{% endif %}
+    </p>
   {% endif %}
-</p>
 
-<hr>
+  {# Rules PDF (prefer settings, fallback to tournament) #}
+  {% if t.settings and t.settings.rules_pdf %}
+    <p><a href="{{ t.settings.rules_pdf.url }}" target="_blank">Download Rules (PDF)</a></p>
+  {% elif t.rules_pdf %}
+    <p><a href="{{ t.rules_pdf.url }}" target="_blank">Download Rules (PDF)</a></p>
+  {% endif %}
 
-<h3>Matches</h3>
-<ul>
-  {% for m in t.matches.all %}
-    <li>
-      Round {{ m.round_no }}, Match {{ m.position }} —
-      {% if m.start_at %}
-        starts {{ m.start_at|localtime|date:"M d, Y H:i" }}
-        {% match_checkin_window m as win %}
-        {% if win.0 and win.1 %}
-          <small>(Check-in: {{ win.0|localtime|date:"H:i" }} → {{ win.1|localtime|date:"H:i" }})</small>
-        {% endif %}
-      {% else %}
-        <em>Not scheduled yet</em>
+  {# Streams (prefer settings, fallback to tournament fields) #}
+  {% if t.settings and (t.settings.youtube_stream_url or t.settings.facebook_stream_url) %}
+    <p>
+      Official Streams:
+      {% if t.settings.youtube_stream_url %}
+        <a href="{{ t.settings.youtube_stream_url }}" target="_blank">YouTube</a>
       {% endif %}
-    </li>
-  {% empty %}
-    <li>No matches yet.</li>
-  {% endfor %}
-</ul>
+      {% if t.settings.facebook_stream_url %}
+        {% if t.settings.youtube_stream_url %} | {% endif %}
+        <a href="{{ t.settings.facebook_stream_url }}" target="_blank">Facebook</a>
+      {% endif %}
+    </p>
+  {% elif t.yt_stream or t.fb_stream %}
+    <p>
+      Official Streams:
+      {% if t.yt_stream %}
+        <a href="{{ t.yt_stream }}" target="_blank">YouTube</a>
+      {% endif %}
+      {% if t.fb_stream %}
+        {% if t.yt_stream %} | {% endif %}
+        <a href="{{ t.fb_stream }}" target="_blank">Facebook</a>
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {# Discord link (if provided in settings) #}
+  {% if t.settings and t.settings.discord_link %}
+    <p>Discord: <a href="{{ t.settings.discord_link }}" target="_blank">Join</a></p>
+  {% endif %}
+
+  {# Global check-in window info (from settings) #}
+  {% if t.settings and (t.settings.check_in_open_mins or t.settings.check_in_close_mins) %}
+    <p>
+      Check-in window: opens {{ t.settings.check_in_open_mins }} mins before start,
+      closes {{ t.settings.check_in_close_mins }} mins before.
+    </p>
+  {% endif %}
+
+  <p>
+    <a href="{% url 'tournaments:register' t.slug %}">Register</a>
+    {% if t.settings and t.settings.bracket_visibility == 'public' %}
+      | <a href="{% url 'tournaments:bracket_view' t.slug %}">View Bracket</a>
+    {% else %}
+      | <span title="Bracket visible to captains/organizers only">Bracket (restricted)</span>
+    {% endif %}
+  </p>
+
+  <hr>
+
+  <h3>Matches</h3>
+  <ul>
+    {% for m in t.matches.all %}
+      <li>
+        Round {{ m.round_no }}, Match {{ m.position }} —
+        {% if m.start_at %}
+          starts {{ m.start_at|localtime|date:"M d, Y H:i" }}
+          {% match_checkin_window m as win %}
+          {% if win.0 and win.1 %}
+            <small>(Check-in: {{ win.0|localtime|date:"H:i" }} → {{ win.1|localtime|date:"H:i" }})</small>
+          {% endif %}
+        {% else %}
+          <em>Not scheduled yet</em>
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>No matches yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

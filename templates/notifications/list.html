@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Notifications · DeltaCrown{% endblock %}
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 m-0">Notifications</h1>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'notifications:mark_all_read' %}">Mark all read</a>
+  </div>
+
+  <div class="list-group">
+    {% for n in notifications %}
+      <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
+         href="{{ n.url|default:'#' }}">
+        <div class="me-auto">
+          <div class="fw-semibold">{{ n.title }}</div>
+          {% if n.body %}<small class="text-muted">{{ n.body }}</small>{% endif %}
+          <div><small class="text-muted">{{ n.created_at|date:"M d, Y H:i" }}</small></div>
+        </div>
+        {% if not n.is_read %}
+          <span class="badge bg-danger rounded-pill">New</span>
+        {% endif %}
+      </a>
+    {% empty %}
+      <div class="list-group-item"><em>No notifications</em></div>
+    {% endfor %}
+  </div>
+{% endblock %}

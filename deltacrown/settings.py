@@ -62,6 +62,10 @@ TEMPLATES = [
         },
     },
 ]
+TEMPLATES[0]["OPTIONS"]["context_processors"] += [
+    "apps.notifications.context_processors.unread_notifications",
+]
+
 
 WSGI_APPLICATION = "deltacrown.wsgi.application"
 

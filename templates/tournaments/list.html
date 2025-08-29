@@ -1,12 +1,32 @@
-<h1>Tournaments</h1>
-<ul>
-  {% for t in tournaments %}
-    <li>
-      <a href="{% url 'tournaments:tournament_detail' t.slug %}">{{ t.name }}</a>
-      — <a href="{% url 'tournaments:bracket_view' t.slug %}">Bracket</a>
-      — <a href="{% url 'tournaments:register' t.slug %}">Register</a>
-    </li>
-  {% empty %}
-    <li>No tournaments yet.</li>
-  {% endfor %}
-</ul>
+{% extends "base.html" %}
+{% block title %}Tournaments · DeltaCrown{% endblock %}
+{% block content %}
+  <div class="d-flex align-items-center mb-3">
+    <h1 class="h3 mb-0">Tournaments</h1>
+  </div>
+  <div class="row g-3">
+    {% for t in tournaments %}
+      <div class="col-12 col-md-6 col-lg-4">
+        <div class="card h-100">
+          {% if t.banner %}
+            <img src="{{ t.banner.url }}" class="card-img-top" alt="{{ t.name }}">
+          {% endif %}
+          <div class="card-body">
+            <h5 class="card-title">{{ t.name }}</h5>
+            {% if t.short_description %}<p class="card-text text-muted">{{ t.short_description }}</p>{% endif %}
+            <p class="small m-0">
+              Starts: <strong>{{ t.start_at|date:"M d, Y H:i" }}</strong><br>
+              Slots: <strong>{{ t.slot_size }}</strong>
+            </p>
+          </div>
+          <div class="card-footer bg-white">
+            <a class="btn btn-sm btn-primary" href="{% url 'tournaments:detail' t.slug %}">View</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'tournaments:register' t.slug %}">Register</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12"><p class="text-muted">No tournaments yet.</p></div>
+    {% endfor %}
+  </div>
+{% endblock %}
