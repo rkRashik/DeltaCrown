@@ -1,0 +1,5 @@
+<h1>{{ profile.display_name }}</h1>
+<img src="{{ profile.avatar.url }}" alt="avatar" width="100">
+<p>{{ profile.bio }}</p>
+<p>Region: {{ profile.get_region_display }}</p>
+<p>Preferred Games: {{ profile.preferred_games }}</p>

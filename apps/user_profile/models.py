@@ -17,8 +17,12 @@ class UserProfile(models.Model):
     display_name = models.CharField(max_length=80)
     region = models.CharField(max_length=2, choices=REGION_CHOICES, default="BD")
     avatar = models.ImageField(upload_to=user_avatar_path, blank=True, null=True)
+    bio = models.TextField(blank=True)
 
     # Social / game IDs (nullable)
+    youtube_link = models.URLField(blank=True)
+    twitch_link = models.URLField(blank=True)
+    preferred_games = models.JSONField(default=list, blank=True)
     discord_id = models.CharField(max_length=64, blank=True)
     riot_id = models.CharField(max_length=100, blank=True)        # Valorant (later)
     efootball_id = models.CharField(max_length=100, blank=True)   # eFootball (later)

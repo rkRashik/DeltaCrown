@@ -1,0 +1,8 @@
+<h1>My Tournaments</h1>
+<ul>
+  {% for reg in registrations %}
+    <li>{{ reg.tournament.name }} ({{ reg.status }})</li>
+  {% empty %}
+    <li>No tournaments yet.</li>
+  {% endfor %}
+</ul>

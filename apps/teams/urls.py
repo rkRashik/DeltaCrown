@@ -13,4 +13,6 @@ urlpatterns = [
     path("invites/", views.my_invites, name="my_invites"),
     path("invites/<str:token>/accept/", views.accept_invite_view, name="accept_invite"),
     path("invites/<str:token>/decline/", views.decline_invite_view, name="decline_invite"),
+    path("create-quick/", views.create_team_quick, name="create_quick"),
+
 ]

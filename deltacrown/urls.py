@@ -20,4 +20,7 @@ urlpatterns = [
 
     path("teams/", include("apps.teams.urls", namespace="teams")),
 
+    # User Profile
+    path("profile/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -8,3 +8,6 @@ from .models import UserProfile
 def create_profile_on_user_create(sender, instance, created, **kwargs):
     if created:
         UserProfile.objects.get_or_create(user=instance, defaults={"display_name": instance.username})
+    else:
+        # make sure we never lose the profile (e.g., users imported without profile)
+        UserProfile.objects.get_or_create(user=instance)

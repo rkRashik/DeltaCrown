@@ -4,9 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError, PermissionDenied
+from django.views.decorators.http import require_http_methods
 
 from apps.user_profile.models import UserProfile
-from .models import Team, TeamInvite
+from .models import Team, TeamInvite, TeamMembership
 from .services import (
     invite_member, accept_invite, decline_invite,
     leave_team, transfer_captain, can_manage_team
@@ -85,4 +86,18 @@ def transfer_captain_view(request, team_id, user_id):
         messages.success(request, f"Captaincy transferred to {new_cap.user.username}.")
     except (ValidationError, PermissionDenied) as e:
         messages.error(request, str(e))
+    return redirect("teams:team_detail", team_id=team.id)
+
+@login_required
+@require_http_methods(["POST"])
+def create_team_quick(request):
+    name = request.POST.get("name","").strip()
+    tag  = request.POST.get("tag","").strip().upper()
+    if not name or not tag:
+        messages.error(request, "Team name and tag are required.")
+        return redirect("home")
+    cap_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    team = Team.objects.create(name=name, tag=tag, captain=cap_profile)
+    TeamMembership.objects.get_or_create(team=team, user=cap_profile, defaults={"role": "captain"})
+    messages.success(request, f"Team {tag} created.")
     return redirect("teams:team_detail", team_id=team.id)

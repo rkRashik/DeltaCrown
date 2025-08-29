@@ -4,7 +4,7 @@ from django_ckeditor_5.fields import CKEditor5Field
 from django.core.exceptions import ValidationError
 from apps.user_profile.models import UserProfile
 from apps.teams.models import Team
-
+from django.utils import timezone
 
 
 STATUS_CHOICES = [
@@ -21,10 +21,21 @@ def rules_pdf_path(instance, filename):
     return f"tournaments/{instance.id}/rules/{filename}"
 
 class Tournament(models.Model):
+    class Game(models.TextChoices):
+        VALORANT = "valorant", "Valorant"
+        EFOOTBALL = "efootball", "eFootball Mobile"
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        OPEN = "open", "Open for Registration"
+        ONGOING = "ongoing", "Ongoing"
+        COMPLETED = "completed", "Completed"
+
+
     # Identity
     name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
-
+    game = models.CharField(max_length=20, choices=Game.choices)
     short_description = models.CharField(max_length=280, blank=True)
 
     # Schedule (BST per settings)
