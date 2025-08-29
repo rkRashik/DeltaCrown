@@ -41,7 +41,7 @@ class Tournament(models.Model):
     # Schedule (BST per settings)
     reg_open_at = models.DateTimeField()
     reg_close_at = models.DateTimeField()
-    start_at = models.DateTimeField()
+    start_at = models.DateTimeField(null=True, blank=True)  # scheduled start time
     end_at   = models.DateTimeField()
 
     # Capacity & money
@@ -200,3 +200,52 @@ class Match(models.Model):
             self.winner_team = self.team_a if side == "a" else self.team_b
             self.winner_user = None
         self.state = "VERIFIED"
+
+
+class BracketVisibility(models.TextChoices):
+    PUBLIC = "public", "Public"
+    CAPTAINS = "captains", "Team Captains Only"
+
+def rules_upload_path(instance, filename):
+    return f"tournaments/{instance.tournament_id}/rules/{filename}"
+
+class TournamentSettings(models.Model):
+    tournament = models.OneToOneField(
+        "tournaments.Tournament",
+        on_delete=models.CASCADE,
+        related_name="settings",
+    )
+    round_duration_mins = models.PositiveIntegerField(default=45)  # each round duration
+    round_gap_mins = models.PositiveIntegerField(default=10)  # gap between rounds
+
+    # Toggles / options (generic across games)
+    invite_only = models.BooleanField(default=False)
+    auto_check_in = models.BooleanField(default=False)
+    allow_substitutes = models.BooleanField(default=False)
+    custom_format_enabled = models.BooleanField(default=False)
+    automatic_scheduling_enabled = models.BooleanField(default=False)
+
+    # Visibility & region
+    bracket_visibility = models.CharField(
+        max_length=16, choices=BracketVisibility.choices, default=BracketVisibility.PUBLIC
+    )
+    region_lock = models.CharField(
+        max_length=64, blank=True,
+        help_text="Optional region code/name to restrict participation (e.g., 'Bangladesh' or 'ASIA')."
+    )
+
+    # Check-in window (minutes relative to match start)
+    check_in_open_mins = models.PositiveIntegerField(default=60, help_text="Open before start (minutes)")
+    check_in_close_mins = models.PositiveIntegerField(default=15, help_text="Close before start (minutes)")
+
+    # Media & rules
+    rules_pdf = models.FileField(upload_to=rules_upload_path, blank=True, null=True)
+    facebook_stream_url = models.URLField(blank=True)
+    youtube_stream_url = models.URLField(blank=True)
+    discord_link = models.URLField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Settings for {self.tournament}"

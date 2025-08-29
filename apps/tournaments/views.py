@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Max
 from django.core.exceptions import ValidationError
-from .models import Tournament, Registration, Match
+from .models import Tournament, Registration, Match, TournamentSettings
 from apps.corelib.brackets import report_result
 from django.utils import timezone
 from .forms import SoloRegistrationForm, TeamRegistrationForm
@@ -83,7 +83,14 @@ def bracket_view(request, slug):
     return render(request, "tournaments/bracket.html", {"t": t, "rounds": rows})
 
 def tournament_detail(request, slug):
-    t = get_object_or_404(Tournament, slug=slug)
+    # pull settings efficiently
+    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
+
+    # safety for legacy rows that might lack settings
+    if not hasattr(t, "settings"):
+        TournamentSettings.objects.get_or_create(tournament=t)
+        t = Tournament.objects.select_related("settings").get(pk=t.pk)
+
     return render(request, "tournaments/detail.html", {"t": t})
 
 def tournament_list(request):

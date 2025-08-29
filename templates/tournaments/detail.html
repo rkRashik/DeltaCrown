@@ -1,6 +1,49 @@
 <h1>{{ t.name }}</h1>
 <p>Starts: {{ t.start_at }} | Slots: {{ t.slot_size }}</p>
+
+{% if t.settings and t.settings.rules_pdf %}
+  <p><a href="{{ t.settings.rules_pdf.url }}" target="_blank">Download Rules (PDF)</a></p>
+{% elif t.rules_pdf %}
+  <p><a href="{{ t.rules_pdf.url }}" target="_blank">Download Rules (PDF)</a></p>
+{% endif %}
+
+{% if t.settings and (t.settings.youtube_stream_url or t.settings.facebook_stream_url) %}
+  <p>
+    Official Streams:
+    {% if t.settings.youtube_stream_url %}
+      <a href="{{ t.settings.youtube_stream_url }}" target="_blank">YouTube</a>
+    {% endif %}
+    {% if t.settings.facebook_stream_url %}
+      {% if t.settings.youtube_stream_url %} | {% endif %}
+      <a href="{{ t.settings.facebook_stream_url }}" target="_blank">Facebook</a>
+    {% endif %}
+  </p>
+{% elif t.yt_stream or t.fb_stream %}
+  <p>
+    Official Streams:
+    {% if t.yt_stream %}
+      <a href="{{ t.yt_stream }}" target="_blank">YouTube</a>
+    {% endif %}
+    {% if t.fb_stream %}
+      {% if t.yt_stream %} | {% endif %}
+      <a href="{{ t.fb_stream }}" target="_blank">Facebook</a>
+    {% endif %}
+  </p>
+{% endif %}
+
+
+  <p>
+    Check-in window:
+    opens {{ t.settings.check_in_open_mins }} mins before start,
+    closes {{ t.settings.check_in_close_mins }} mins before.
+  </p>
+{% endif %}
+
 <p>
-  <a href="{% url 'tournaments:register' t.slug %}">Register</a> |
-  <a href="{% url 'tournaments:bracket_view' t.slug %}">View Bracket</a>
+  <a href="{% url 'tournaments:register' t.slug %}">Register</a>
+  {% if t.settings and t.settings.bracket_visibility == 'public' %}
+    | <a href="{% url 'tournaments:bracket_view' t.slug %}">View Bracket</a>
+  {% else %}
+    | <span title="Bracket visible to captains/organizers only">Bracket (restricted)</span>
+  {% endif %}
 </p>
