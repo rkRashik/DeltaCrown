@@ -1,6 +1,6 @@
 from django.db import migrations
 
-def backfill_profiles(apps, schema_editor):
+def backfill(apps, schema_editor):
     User = apps.get_model("auth", "User")
     UserProfile = apps.get_model("user_profile", "UserProfile")
     for u in User.objects.all():
@@ -11,6 +11,4 @@ class Migration(migrations.Migration):
         ("user_profile", "0001_initial"),
         ("auth", "0012_alter_user_first_name_max_length"),
     ]
-    operations = [
-        migrations.RunPython(backfill_profiles, migrations.RunPython.noop),
-    ]
+    operations = [migrations.RunPython(backfill, migrations.RunPython.noop)]

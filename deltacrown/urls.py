@@ -10,17 +10,17 @@ urlpatterns = [
     # CKEditor-5
     path("ckeditor5/", include("django_ckeditor_5.urls")),
 
+    # Apps Tournaments
     path("tournaments/", include("apps.tournaments.urls")),
+        # optional short alias for brackets
+        path("brackets/<slug:slug>/", tviews.bracket_view, name="bracket_view"),
+        # home -> list
+        path("", tviews.tournament_list, name="home"),
 
-    # optional short alias for brackets (Part 6)
-    path("brackets/<slug:slug>/", tviews.bracket_view, name="bracket_view"),
+    # Apps Teams
+    path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
 
-    # home -> list
-    path("", tviews.tournament_list, name="home"),
-
-    path("teams/", include("apps.teams.urls", namespace="teams")),
-
-    # User Profile
-    path("profile/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
+    # Apps User Profile
+    path("profiles/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

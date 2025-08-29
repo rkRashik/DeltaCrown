@@ -7,6 +7,7 @@ from django import forms
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.models import User
 from apps.tournaments.models import Registration
+from django.contrib.auth import get_user_model
 
 
 class ProfileForm(forms.ModelForm):
@@ -24,11 +25,18 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
         return profile
 
+
+User = get_user_model()
+
 def profile_view(request, username):
     user = get_object_or_404(User, username=username)
+    # If you attached profile via OneToOne + signal, this will exist
     return render(request, "user_profile/profile.html", {"profile": user.profile})
+
 
 @login_required
 def my_tournaments_view(request):
-    regs = Registration.objects.filter(user=request.user.profile)
+    # adjust Registration import/model to your project
+    from apps.tournaments.models import Registration
+    regs = Registration.objects.filter(user=request.user.profile).select_related("tournament")
     return render(request, "user_profile/my_tournaments.html", {"registrations": regs})

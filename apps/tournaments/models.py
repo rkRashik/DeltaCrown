@@ -35,7 +35,7 @@ class Tournament(models.Model):
     # Identity
     name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=220, unique=True, blank=True)
-    game = models.CharField(max_length=20, choices=Game.choices)
+    game = models.CharField(max_length=32, blank=True, default="")
     short_description = models.CharField(max_length=280, blank=True)
 
     # Schedule (BST per settings)

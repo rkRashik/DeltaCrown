@@ -1,8 +1,16 @@
-<h1>My Tournaments</h1>
-<ul>
-  {% for reg in registrations %}
-    <li>{{ reg.tournament.name }} ({{ reg.status }})</li>
-  {% empty %}
-    <li>No tournaments yet.</li>
-  {% endfor %}
-</ul>
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2>My Tournaments</h2>
+  <ul>
+    {% for reg in registrations %}
+      <li>
+        <strong>{{ reg.tournament.name }}</strong>
+        — status: {{ reg.status }} — starts: {{ reg.tournament.start_at }}
+      </li>
+    {% empty %}
+      <li>No tournaments yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
