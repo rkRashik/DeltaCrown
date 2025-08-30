@@ -1,0 +1,13 @@
+<h1>Checkout</h1>
+<ul>
+    {% for item in order.items.all %}
+        <li>
+            {{ item.product.name }} - {{ item.quantity }} x BDT {{ item.price }}
+        </li>
+    {% endfor %}
+</ul>
+<p>Total: BDT {{ order.total_price }}</p>
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit">Proceed to Payment</button>
+</form>

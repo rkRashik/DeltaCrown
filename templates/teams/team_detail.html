@@ -1,60 +1,48 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container py-4">
-  <h3>{{ team.tag }} — {{ team.name }}</h3>
+<h1>Team: {{ team.name }}</h1>
+<p>Captain: {{ team.captain.display_name }}</p>
+<img src="{{ team.logo.url }}" alt="{{ team.name }} logo" />
 
-  <h5 class="mt-3">Roster</h5>
-  <ul class="list-group mb-3">
-    {% for m in memberships %}
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      <div>
-        <strong>@{{ m.user.user.username }}</strong>
-        <small class="text-muted ms-2">({{ m.role }})</small>
-      </div>
-      {% if is_captain and m.user != team.captain %}
-        <a class="btn btn-sm btn-outline-primary" href="{% url 'teams:transfer_captain' team.id m.user.id %}">Make Captain</a>
-      {% endif %}
-    </li>
-    {% empty %}
-      <li class="list-group-item text-muted">No members.</li>
+<h2>Roster</h2>
+<ul>
+    {% for membership in team.memberships.all %}
+        <li>{{ membership.user.display_name }} (Role: {{ membership.get_role_display }})</li>
     {% endfor %}
-  </ul>
+</ul>
 
-  {% if is_captain %}
-  <div class="card p-3 mb-3">
-    <h6>Invite a player</h6>
-    <form method="post" action="{% url 'teams:invite_member' team.id %}">
-      {% csrf_token %}
-      <div class="row g-2">
-        <div class="col-md-4">
-          <input class="form-control" name="username" placeholder="username" required>
-        </div>
-        <div class="col-md-6">
-          <input class="form-control" name="message" placeholder="optional message">
-        </div>
-        <div class="col-md-2">
-          <button class="btn btn-primary w-100" type="submit">Invite</button>
-        </div>
-      </div>
+<h2>Pending Invites</h2>
+<ul>
+    {% for invite in pending_invites %}
+        <li>{{ invite.user.display_name }} (Pending)</li>
+    {% endfor %}
+</ul>
+
+<h2>Match History</h2>
+<ul>
+    {% for tournament in match_history %}
+        <li>{{ tournament.name }} - {{ tournament.status }}</li>
+    {% endfor %}
+</ul>
+
+<!-- Button to transfer captain role -->
+{% if user == team.captain.user %}
+    <h2>Transfer Captain Role</h2>
+    <form method="POST" action="{% url 'teams:transfer_captain' team.slug %}">
+        {% csrf_token %}
+        <label for="new_captain">New Captain: </label>
+        <select id="new_captain" name="new_captain">
+            {% for member in team.memberships.exclude(user=team.captain.user) %}
+                <option value="{{ member.user.id }}">{{ member.user.display_name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Transfer Captain Role</button>
     </form>
-  </div>
+{% endif %}
 
-  <div class="card p-3 mb-3">
-    <h6>Pending Invites</h6>
-    <ul class="list-group">
-      {% for inv in invites %}
-        <li class="list-group-item d-flex justify-content-between">
-          <span>@{{ inv.invited_user.user.username }} — {{ inv.status|lower }}</span>
-        </li>
-      {% empty %}
-        <li class="list-group-item text-muted">No pending invites.</li>
-      {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
-
-  {% if not is_captain %}
-    <a class="btn btn-outline-danger" href="{% url 'teams:leave_team' team.id %}">Leave Team</a>
-  {% endif %}
-</div>
-{% endblock %}
+<!-- Button to leave the team -->
+{% if user != team.captain.user %}
+    <h2>Leave Team</h2>
+    <form method="POST" action="{% url 'teams:leave_team' team.slug %}">
+        {% csrf_token %}
+        <button type="submit">Leave Team</button>
+    </form>
+{% endif %}

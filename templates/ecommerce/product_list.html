@@ -1,0 +1,12 @@
+<h1>Product Catalog</h1>
+<ul>
+    {% for product in products %}
+        <li>
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" />
+            <h2>{{ product.name }}</h2>
+            <p>{{ product.description }}</p>
+            <p>Price: BDT {{ product.price }}</p>
+            <a href="{% url 'ecommerce:add_to_cart' product.id %}">Add to Cart</a>
+        </li>
+    {% endfor %}
+</ul>

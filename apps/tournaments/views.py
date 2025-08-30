@@ -5,97 +5,87 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from .models import Tournament, Registration, Match, TournamentSettings
 from .forms import SoloRegistrationForm, TeamRegistrationForm
-from apps.user_profile.models import UserProfile
+from django.apps import apps
 from apps.teams.models import Team
 from apps.corelib.brackets import report_result
-
+from django.contrib.admin.views.decorators import staff_member_required
 
 def _get_profile(user):
+    # Works whether the OneToOne is named "profile" or "userprofile"
     return getattr(user, "profile", None) or getattr(user, "userprofile", None)
 
+def _ensure_profile(user):
+    p = _get_profile(user)
+    if p:
+        return p
+    # Avoid direct import to prevent circular deps
+    UserProfile = apps.get_model("user_profile", "UserProfile")
+    p, _ = UserProfile.objects.get_or_create(
+        user=user,
+        defaults={"display_name": getattr(user, "username", "Player")},
+    )
+    return p
 
 @login_required
 def register_view(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
-    p = _get_profile(request.user)
-    if p is None:
-        p, _ = UserProfile.objects.get_or_create(
-            user=request.user,
-            defaults={"display_name": getattr(request.user, "username", "Player")},
-        )
+    p = _ensure_profile(request.user)
 
-    # GET => show both forms
-    if request.method != "POST":
+    is_efootball = hasattr(t, "efootball_config")
+    is_valorant = hasattr(t, "valorant_config")
+
+    if is_efootball and is_valorant:
         return render(
             request,
-            "tournaments/register.html",
-            {
-                "t": t,
-                "solo_form": SoloRegistrationForm(tournament=t, user_profile=p),
-                "team_form": TeamRegistrationForm(tournament=t, user_profile=p),
-            },
+            "tournaments/register_error.html",
+            {"tournament": t, "error": "Multiple game configs found. Contact admin."},
         )
 
-    # ---------- TEAM REG ----------
-    if "team" in request.POST:
-        team_id = request.POST.get("team")
-        pm = (request.POST.get("payment_method") or "").strip()
-        pref = (request.POST.get("payment_reference") or "").strip()
+    if not (is_efootball or is_valorant):
+        return render(
+            request,
+            "tournaments/register_error.html",
+            {"tournament": t, "error": "No game configuration attached yet."},
+        )
 
-        # must be the captain's team
-        team_obj = Team.objects.filter(id=team_id, captain=p).first()
+    if is_efootball:
+        FormClass = SoloRegistrationForm
+        template = "tournaments/register_solo.html"
+    else:
+        FormClass = TeamRegistrationForm
+        template = "tournaments/register_team.html"
 
-        # If paid tournament, require both fields; otherwise allow empty
-        fee = (t.entry_fee_bdt or 0)
-        missing_payment = (fee > 0) and (not pm or not pref)
-
-        if team_obj and not missing_payment:
-            # Create only if not already registered
-            if not Registration.objects.filter(tournament=t, team=team_obj).exists():
-                reg = Registration.objects.create(
-                    tournament=t,
-                    team=team_obj,
-                    payment_method=pm,
-                    payment_reference=pref,
-                )
-                # best-effort email (don’t crash tests if mail isn’t wired)
-                try:
-                    from apps.notifications.services import send_payment_instructions_for_registration
-                    send_payment_instructions_for_registration(reg)
-                except Exception:
-                    pass
+    if request.method == "POST":
+        form = FormClass(request.POST, tournament=t, user_profile=p)
+        if form.is_valid():
+            form.save()
             return redirect("tournaments:register_success", slug=t.slug)
+    else:
+        form = FormClass(tournament=t, user_profile=p)
 
-        # Show validation errors with the form if something is missing/wrong
-        team_form = TeamRegistrationForm(request.POST, tournament=t, user_profile=p)
-        solo_form = SoloRegistrationForm(tournament=t, user_profile=p)
-        return render(request, "tournaments/register.html", {"t": t, "solo_form": solo_form, "team_form": team_form})
-
-    # ---------- SOLO REG ----------
-    solo_form = SoloRegistrationForm(request.POST, tournament=t, user_profile=p)
-    team_form = TeamRegistrationForm(tournament=t, user_profile=p)
-    if solo_form.is_valid():
-        reg = solo_form.save()
-        try:
-            from apps.notifications.services import send_payment_instructions_for_registration
-            send_payment_instructions_for_registration(reg)
-        except Exception:
-            pass
-        return redirect("tournaments:register_success", slug=t.slug)
-    return render(request, "tournaments/register.html", {"t": t, "solo_form": solo_form, "team_form": team_form})
+    return render(request, template, {"tournament": t, "form": form})
 
 @login_required
 def report_match_view(request, match_id):
-    m = get_object_or_404(Match, id=match_id)
+    match = get_object_or_404(Match, id=match_id)
+
     if request.method == "POST":
         try:
-            sa = int(request.POST.get("score_a", "0"))
-            sb = int(request.POST.get("score_b", "0"))
-            report_result(m, sa, sb, reporter=request.user.profile)
-            return render(request, "tournaments/report_submitted.html", {"match": m})
+            # Retrieve scores from the form
+            score_a = int(request.POST.get("score_a", "0"))
+            score_b = int(request.POST.get("score_b", "0"))
+
+            # Call the helper function to report the result
+            report_result(match, score_a, score_b, reporter=request.user.profile)
+
+            # Render success page
+            return render(request, "tournaments/report_submitted.html", {"match": match})
+
         except (ValueError, ValidationError) as e:
-            return render(request, "tournaments/report_form.html", {"match": m, "error": str(e)})
-    return render(request, "tournaments/report_form.html", {"match": m})
+            # In case of validation errors, re-render the form with an error message
+            return render(request, "tournaments/report_form.html", {"match": match, "error": str(e)})
+
+    return render(request, "tournaments/report_form.html", {"match": match})
 
 def bracket_view(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
@@ -117,3 +107,17 @@ def tournament_detail(request, slug):
 def tournament_list(request):
     qs = Tournament.objects.order_by("-start_at")
     return render(request, "tournaments/list.html", {"tournaments": qs})
+
+@staff_member_required
+def resolve_dispute(request, match_id):
+    match = get_object_or_404(Match, id=match_id)
+
+    if match.state == "DISPUTED":
+        # Allow admin to mark the match as VERIFIED and resolve the dispute
+        if request.method == "POST":
+            match.state = "VERIFIED"
+            match.save()
+            # You can also send an email notification to participants here.
+            return redirect("admin:index")
+
+    return render(request, "admin/resolve_dispute.html", {"match": match})

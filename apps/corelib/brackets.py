@@ -3,6 +3,8 @@ from typing import List, Dict, Tuple
 from django.db import transaction, models
 from django.core.exceptions import ValidationError
 from apps.tournaments.models import Bracket, Match, Registration
+from apps.user_profile.models import UserProfile
+
 
 # ----- helpers -----
 def _best_of_for(tournament) -> int:
@@ -117,19 +119,41 @@ def generate_bracket(tournament):
     _auto_advance_byes(tournament)
     return b
 
-def report_result(match: Match, score_a: int, score_b: int, reporter):
-    # reporter must be one of the two users OR a team captain
+def report_result(match: Match, score_a: int, score_b: int, reporter: UserProfile):
     if match.is_solo_match:
         if reporter not in [match.user_a, match.user_b]:
             raise ValidationError("Not authorized to report this match.")
     else:
-        captains = [match.team_a.captain if match.team_a_id else None,
-                    match.team_b.captain if match.team_b_id else None]
+        captains = [match.team_a.captain if match.team_a else None, match.team_b.captain if match.team_b else None]
         if reporter not in [c for c in captains if c]:
             raise ValidationError("Only captains may report team matches.")
-    match.score_a, match.score_b = score_a, score_b
-    match.set_winner_by_scores()
+
+    # Check if the result is a draw
+    if score_a == score_b:
+        raise ValidationError("No draws allowed.")
+
+    # Update match with scores
+    match.score_a = score_a
+    match.score_b = score_b
+
+    # Determine the winner
+    if score_a > score_b:
+        match.winner_user = match.user_a if match.is_solo_match else match.team_a
+        match.winner_team = None if match.is_solo_match else match.team_a
+    else:
+        match.winner_user = match.user_b if match.is_solo_match else match.team_b
+        match.winner_team = None if match.is_solo_match else match.team_b
+
+    match.state = "REPORTED"
     match.save()
+
+    # Handle dispute flag
+    if 'dispute' in match.__dict__ and match.dispute:
+        match.state = "DISPUTED"  # Update state to disputed if there's a flag
+        match.save()
+
+    return match
+
 
 def verify_and_apply(match: Match):
     match.state = "VERIFIED"

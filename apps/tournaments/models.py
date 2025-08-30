@@ -3,7 +3,7 @@ from django.db import models
 from django.utils.text import slugify
 from django_ckeditor_5.fields import CKEditor5Field
 from django.core.exceptions import ValidationError
-from apps.user_profile.models import UserProfile
+
 from apps.teams.models import Team
 from django.utils import timezone
 
@@ -86,7 +86,7 @@ class Registration(models.Model):
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name="registrations")
 
     # Either solo user OR team
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, null=True, blank=True, related_name="solo_registrations")
+    user = models.ForeignKey('user_profile.UserProfile', on_delete=models.CASCADE, null=True, blank=True, related_name="solo_registrations")
     team = models.ForeignKey(Team,        on_delete=models.CASCADE, null=True, blank=True, related_name="team_registrations")
 
     # Payment (manual verification MVP)
@@ -168,11 +168,11 @@ class Match(models.Model):
     best_of = models.PositiveIntegerField(default=1)
 
     # Side A
-    user_a = models.ForeignKey(UserProfile, null=True, blank=True, on_delete=models.SET_NULL, related_name="matches_as_user_a")
+    user_a = models.ForeignKey('user_profile.UserProfile', null=True, blank=True, on_delete=models.SET_NULL, related_name="matches_as_user_a")
     team_a = models.ForeignKey(Team, null=True, blank=True, on_delete=models.SET_NULL, related_name="matches_as_team_a")
 
     # Side B
-    user_b = models.ForeignKey(UserProfile, null=True, blank=True, on_delete=models.SET_NULL, related_name="matches_as_user_b")
+    user_b = models.ForeignKey('user_profile.UserProfile', null=True, blank=True, on_delete=models.SET_NULL, related_name="matches_as_user_b")
     team_b = models.ForeignKey(Team, null=True, blank=True, on_delete=models.SET_NULL, related_name="matches_as_team_b")
 
     score_a = models.PositiveIntegerField(default=0)
@@ -182,7 +182,7 @@ class Match(models.Model):
     start_at = models.DateTimeField(null=True, blank=True)
 
     # typed winner
-    winner_user = models.ForeignKey(UserProfile, null=True, blank=True, on_delete=models.SET_NULL, related_name="wins_as_user")
+    winner_user = models.ForeignKey('user_profile.UserProfile', null=True, blank=True, on_delete=models.SET_NULL, related_name="wins_as_user")
     winner_team = models.ForeignKey(Team, null=True, blank=True, on_delete=models.SET_NULL, related_name="wins_as_team")
 
     state = models.CharField(max_length=10, choices=STATE, default="SCHEDULED")

@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import sys
 
 # -----------------------------------------------------------------------------
 # Paths & Core
@@ -34,6 +35,7 @@ INSTALLED_APPS = [
     "apps.game_efootball",
     "apps.user_profile",
     "apps.notifications",
+    "apps.ecommerce",
 
 ]
 
@@ -82,13 +84,13 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": DB_NAME,
-        "USER": DB_USER,
-        "PASSWORD": DB_PASSWORD,
-        "HOST": DB_HOST,
-        "PORT": DB_PORT,
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
     }
 }
 
@@ -168,3 +170,7 @@ if os.getenv("FAST_TESTS", "1") == "1":
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+
+TEST_RUNNER = 'deltacrown.test_runner.CustomTestRunner'

@@ -1,5 +1,5 @@
 ﻿from django.db import models
-from apps.user_profile.models import UserProfile
+
 
 class Notification(models.Model):
     class Type(models.TextChoices):
@@ -12,7 +12,7 @@ class Notification(models.Model):
         PAYMENT_VERIFIED = "PAYMENT_VERIFIED", "Payment verified"
         PAYMENT_REJECTED = "PAYMENT_REJECTED", "Payment rejected"
 
-    recipient = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="notifications")
+    recipient = models.ForeignKey('user_profile.UserProfile', on_delete=models.CASCADE, related_name="notifications")
     type = models.CharField(max_length=32, choices=Type.choices)
     title = models.CharField(max_length=120)
     body = models.TextField(blank=True)

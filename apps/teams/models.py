@@ -2,35 +2,40 @@
 from django.db import models
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from apps.user_profile.models import UserProfile
 
 def team_logo_path(instance, filename):
     return f"team_logos/{instance.id}/{filename}"
 
 class Team(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    tag  = models.CharField(max_length=10, unique=True)
-    logo = models.ImageField(upload_to=team_logo_path, blank=True, null=True)
-    captain = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="captain_of")
+    tag = models.CharField(max_length=10, unique=True)
+    logo = models.ImageField(upload_to="team_logos/", blank=True, null=True)
+    captain = models.ForeignKey('user_profile.UserProfile', on_delete=models.CASCADE, related_name="captain_of")
     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        indexes = [models.Index(fields=["name"]), models.Index(fields=["tag"])]
+    def __str__(self):
+        return self.name
 
     def __str__(self):
         return f"{self.tag} — {self.name}"
 
+
 class TeamMembership(models.Model):
-    ROLE_CHOICES = [("captain", "Captain"), ("player", "Player"), ("sub", "Substitute")]
+    ROLE_CHOICES = [("captain", "Captain"), ("player", "Player"), ("substitute", "Substitute")]
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="memberships")
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="team_memberships")
+    user = models.ForeignKey('user_profile.UserProfile', on_delete=models.CASCADE, related_name="team_memberships")
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="player")
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("team", "user")
-        indexes = [models.Index(fields=["team", "role"])]
+        indexes = [
+            models.Index(fields=["team", "role"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.display_name} - {self.role} of {self.team.name}"
 
 
 # Global roster limits (tweakable; per-game rules come later during tournament registration)
@@ -46,8 +51,8 @@ class TeamInvite(models.Model):
     ]
 
     team = models.ForeignKey("Team", on_delete=models.CASCADE, related_name="invites")
-    invited_user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="team_invites")
-    invited_by = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="sent_team_invites")
+    invited_user = models.ForeignKey('user_profile.UserProfile', on_delete=models.CASCADE, related_name="team_invites")
+    invited_by = models.ForeignKey('user_profile.UserProfile', on_delete=models.CASCADE, related_name="sent_team_invites")
     message = models.CharField(max_length=200, blank=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="PENDING")
     token = models.CharField(max_length=36, unique=True)  # uuid4 string
