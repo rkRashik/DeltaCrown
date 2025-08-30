@@ -1,26 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Notifications · DeltaCrown{% endblock %}
-{% block content %}
-  <div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 m-0">Notifications</h1>
-    <a class="btn btn-sm btn-outline-secondary" href="{% url 'notifications:mark_all_read' %}">Mark all read</a>
-  </div>
 
-  <div class="list-group">
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Notifications</h1>
+  <a class="btn btn-sm btn-outline" href="{% url 'notifications:mark_all_read' %}?next={{ request.path }}">
+    Mark all as read
+  </a>
+</div>
+
+{% if notifications %}
+  <ul class="list-group">
     {% for n in notifications %}
-      <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
-         href="{{ n.url|default:'#' }}">
-        <div class="me-auto">
-          <div class="fw-semibold">{{ n.title }}</div>
-          {% if n.body %}<small class="text-muted">{{ n.body }}</small>{% endif %}
-          <div><small class="text-muted">{{ n.created_at|date:"M d, Y H:i" }}</small></div>
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-semibold">{{ n.get_type_display }}</div>
+          <div class="text-muted small">{{ n.title }}</div>
+          {% if n.url %}
+            <a class="small" href="{{ n.url }}">Open</a>
+          {% endif %}
         </div>
-        {% if not n.is_read %}
-          <span class="badge bg-danger rounded-pill">New</span>
-        {% endif %}
-      </a>
-    {% empty %}
-      <div class="list-group-item"><em>No notifications</em></div>
+        <div class="text-end">
+          <div class="small text-muted">{{ n.created_at }}</div>
+          {% if not n.is_read %}
+            <a class="btn btn-sm btn-outline mt-1" href="{% url 'notifications:mark_read' n.id %}?next={{ request.path }}">Mark read</a>
+          {% endif %}
+        </div>
+      </li>
     {% endfor %}
-  </div>
+  </ul>
+{% else %}
+  <div class="alert alert-info mt-3">No notifications.</div>
+{% endif %}
 {% endblock %}

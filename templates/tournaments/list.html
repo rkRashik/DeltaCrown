@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Tournaments · DeltaCrown{% endblock %}
+
 {% block content %}
-  <div class="d-flex align-items-center mb-3">
-    <h1 class="h3 mb-0">Tournaments</h1>
-  </div>
+<div class="d-flex align-items-center mb-3">
+  <h1 class="h3 mb-0">Tournaments</h1>
+</div>
+
+{% if tournaments %}
   <div class="row g-3">
     {% for t in tournaments %}
       <div class="col-12 col-md-6 col-lg-4">
@@ -12,40 +15,63 @@
             <img src="{{ t.banner.url }}" class="card-img-top" alt="{{ t.name }}">
           {% endif %}
           <div class="card-body">
-            <h5 class="card-title">{{ t.name }}</h5>
-            {% if t.short_description %}<p class="card-text text-muted">{{ t.short_description }}</p>{% endif %}
-            <p class="small m-0">
-              Starts: <strong>{{ t.start_at|date:"M d, Y H:i" }}</strong><br>
-              Slots: <strong>{{ t.slot_size }}</strong>
-            </p>
+            <h5 class="card-title mb-1">
+              <a href="{% url 'tournaments:detail' t.slug %}">{{ t.name }}</a>
+            </h5>
+            {% if t.short_description %}
+              <p class="card-text text-muted mb-2">{{ t.short_description }}</p>
+            {% endif %}
+
+            <div class="small text-muted">
+              <div>Game: {{ t.get_game_display|default:"—" }}</div>
+              <div>Starts: <strong>{{ t.start_at|date:"M d, Y H:i" }}</strong></div>
+              <div>Slots: {{ t.slot_size }}</div>
+              <div>
+                Type:
+                {% if t.entry_fee and t.entry_fee|floatformat:"-2" != "0" %}
+                  Paid ({{ t.entry_fee }})
+                {% else %}
+                  Free
+                {% endif %}
+              </div>
+            </div>
           </div>
-          <div class="card-footer bg-white">
-            <a class="btn btn-sm btn-primary" href="{% url 'tournaments:detail' t.slug %}">View</a>
-            <a class="btn btn-sm btn-outline-secondary" href="{% url 'tournaments:register' t.slug %}">Register</a>
+
+          <div class="card-footer d-flex justify-content-between align-items-center">
+            <a class="btn btn-sm btn-outline" href="{% url 'tournaments:detail' t.slug %}">View</a>
+            {% if t.is_registration_open %}
+              <a class="btn btn-sm btn-primary" href="{% url 'tournaments:register' t.slug %}">Register</a>
+            {% else %}
+              <span class="badge bg-secondary">Closed</span>
+            {% endif %}
           </div>
         </div>
       </div>
-    {% empty %}
-      <div class="col-12"><p class="text-muted">No tournaments yet.</p></div>
     {% endfor %}
   </div>
+
+  {% if is_paginated %}
+    <nav aria-label="Tournament pagination" class="mt-4">
+      <ul class="pagination">
+        {% if page_obj.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Prev</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Prev</span></li>
+        {% endif %}
+
+        <li class="page-item disabled">
+          <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+{% else %}
+  <div class="alert alert-info">No tournaments found.</div>
+{% endif %}
 {% endblock %}
-
-
-<nav class="mt-3" aria-label="Tournaments pages">
-  <ul class="pagination">
-    {% if page_obj.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Prev</a></li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">Prev</span></li>
-    {% endif %}
-    <li class="page-item disabled"><span class="page-link">
-      Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-    </span></li>
-    {% if page_obj.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
-    {% else %}
-      <li class="page-item disabled"><span class="page-link">Next</span></li>
-    {% endif %}
-  </ul>
-</nav>

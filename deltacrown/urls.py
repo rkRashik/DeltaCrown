@@ -30,5 +30,6 @@ urlpatterns = [
     path("profiles/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
 
     # Notifications
-    path("notifications/", include(("apps.notifications.urls", "notifications"), namespace="notifications")),
+    path("notifications/", include("apps.notifications.urls", namespace="notifications")),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
