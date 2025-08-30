@@ -2,12 +2,10 @@
 {% block title %}Tournaments · DeltaCrown{% endblock %}
 
 {% block content %}
-<div class="d-flex align-items-center mb-3">
-  <h1 class="h3 mb-0">Tournaments</h1>
-</div>
+<h1 class="mb-4">Tournaments</h1>
 
 {% if tournaments %}
-  <div class="row g-3">
+  <div class="row g-4">
     {% for t in tournaments %}
       <div class="col-12 col-md-6 col-lg-4">
         <div class="card h-100">
@@ -19,10 +17,10 @@
               <a href="{% url 'tournaments:detail' t.slug %}">{{ t.name }}</a>
             </h5>
             {% if t.short_description %}
-              <p class="card-text text-muted mb-2">{{ t.short_description }}</p>
+              <p class="mb-2 meta">{{ t.short_description }}</p>
             {% endif %}
 
-            <div class="small text-muted">
+            <div class="small meta">
               <div>Game: {{ t.get_game_display|default:"—" }}</div>
               <div>Starts: <strong>{{ t.start_at|date:"M d, Y H:i" }}</strong></div>
               <div>Slots: {{ t.slot_size }}</div>
@@ -42,7 +40,7 @@
             {% if t.is_registration_open %}
               <a class="btn btn-sm btn-primary" href="{% url 'tournaments:register' t.slug %}">Register</a>
             {% else %}
-              <span class="badge bg-secondary">Closed</span>
+              <span class="status-chip">Closed</span>
             {% endif %}
           </div>
         </div>
