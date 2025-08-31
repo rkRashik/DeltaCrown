@@ -12,7 +12,8 @@ from django.template.response import TemplateResponse
 from django.urls import path
 from .services.analytics import tournament_stats
 from apps.notifications.models import Notification
-
+from django.http import HttpResponse
+import csv
 
 # --- Inlines: show exactly one game config per tournament (plus settings) ---
 class EfootballConfigInline(admin.StackedInline):
@@ -409,3 +410,47 @@ def action_clear_schedule(modeladmin, request, queryset):
 TournamentAdmin.actions = list(set(getattr(TournamentAdmin, "actions", []) + [
     action_auto_schedule, action_clear_schedule
 ]))
+
+
+
+def export_tournaments_csv(modeladmin, request, queryset):
+    """
+    Export selected Tournaments as CSV.
+    Fields chosen to be stable and useful for ops/review.
+    """
+    ts = timezone.now().strftime("%Y%m%d-%H%M%S")
+    filename = f"tournaments-{ts}.csv"
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "id",
+        "name",
+        "slug",
+        "status",
+        "slot_size",
+        "reg_open_at",
+        "reg_close_at",
+        "start_at",
+        "end_at",
+    ])
+
+    for t in queryset.order_by("id"):
+        writer.writerow([
+            t.id,
+            t.name,
+            t.slug,
+            getattr(t, "status", ""),
+            getattr(t, "slot_size", ""),
+            getattr(t, "reg_open_at", "") or "",
+            getattr(t, "reg_close_at", "") or "",
+            getattr(t, "start_at", "") or "",
+            getattr(t, "end_at", "") or "",
+        ])
+
+    return response
+
+
+export_tournaments_csv.short_description = "Export selected tournaments to CSV"
