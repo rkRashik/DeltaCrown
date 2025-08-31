@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Sign in — DeltaCrown{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <h1 class="h3 mb-3">Sign in</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label for="id_username" class="form-label">Username</label>
+        {{ form.username }}
+      </div>
+
+      <div class="mb-3">
+        <label for="id_password" class="form-label">Password</label>
+        {{ form.password }}
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Sign in</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

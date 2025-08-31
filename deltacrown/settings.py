@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
 
     # Third-party
+    "django.contrib.sitemaps",
     "rest_framework",
     "django_ckeditor_5",
 

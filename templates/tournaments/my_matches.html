@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}My Matches{% endblock %}
+{% block content %}
+<h1 class="mb-3">My Matches</h1>
+{% if matches %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Tournament</th><th>Round</th><th>Participants</th><th>Score</th><th>State</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in matches %}
+        <tr>
+          <td>#{{ m.id }}</td>
+          <td>{{ m.tournament.name }}</td>
+          <td>{{ m.round_no }}</td>
+          <td>
+            {% if m.is_solo_match %}
+              {{ m.user_a.display_name }} vs {{ m.user_b.display_name }}
+            {% else %}
+              {{ m.team_a.tag }} vs {{ m.team_b.tag }}
+            {% endif %}
+          </td>
+          <td>{{ m.score_a|default:"-" }} – {{ m.score_b|default:"-" }}</td>
+          <td>{{ m.state }}</td>
+          <td>
+            <a class="btn btn-sm btn-outline" href="{% url 'tournaments:match_review' m.id %}">Review</a>
+            <a class="btn btn-sm btn-primary ms-1" href="{% url 'tournaments:match_report' m.id %}">Report</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-info">No matches found for your account.</div>
+{% endif %}
+{% endblock %}

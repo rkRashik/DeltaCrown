@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Signed out — DeltaCrown{% endblock %}
+{% block content %}
+<div class="text-center">
+  <h1 class="h3 mb-3">You’ve been signed out</h1>
+  <p class="mb-4">Thanks for visiting. Come back soon!</p>
+  <a class="btn btn-primary" href="{% url 'login' %}">Sign in again</a>
+</div>
+{% endblock %}

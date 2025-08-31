@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Registration Closed{% endblock %}
+{% block content %}
+  <h1>Registration Closed</h1>
+  <p>Registration is not open for <strong>{{ t.name }}</strong> at this time.</p>
+  <p>Opens: {{ t.reg_open_at|date:"M d, Y h:i A" }} · Closes: {{ t.reg_close_at|date:"M d, Y h:i A" }}</p>
+  <a class="btn btn-primary" href="{% url 'tournaments:detail' t.slug %}">Back to tournament</a>
+{% endblock %}

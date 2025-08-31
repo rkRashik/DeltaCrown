@@ -4,6 +4,14 @@
 
 {% block title %}{{ t.name }} · DeltaCrown{% endblock %}
 
+{% block og_title %}{{ t.name }} · DeltaCrown{% endblock %}
+{% block og_description %}{{ t.short_description|default:"Tournament details and bracket." }}{% endblock %}
+{% block og_image %}
+  {% if t.banner %}
+    <meta property="og:image" content="{{ t.banner.url }}"/>
+  {% endif %}
+{% endblock %}
+
 {% block content %}
   <h1>{{ t.name }}</h1>
 
