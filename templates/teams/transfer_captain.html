@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Transfer Captain · {{ team.tag }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Transfer Captain — {{ team.name }} ({{ team.tag }})</h1>
+
+<form method="post" class="card">
+  <div class="card-body">
+    {% csrf_token %}
+    <label class="form-label" for="new_captain_id">New Captain</label>
+    <select id="new_captain_id" name="new_captain_id" class="form-select">
+      {% for m in options %}
+        <option value="{{ m.id }}">
+          {% if m.user and m.user.user %}
+            {{ m.user.user.username }}
+          {% else %}
+            Member #{{ m.user_id }}
+          {% endif %}
+        </option>
+      {% endfor %}
+    </select>
+
+    <div class="mt-3">
+      <button class="btn btn-primary" type="submit">Transfer</button>
+      <!-- CHANGED: use existing numeric route -->
+      <a class="btn btn-outline" href="{% url 'teams:team_detail' team.id %}">Cancel</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

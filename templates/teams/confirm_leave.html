@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Leave Team · {{ team.tag }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Leave Team: {{ team.name }} ({{ team.tag }})</h1>
+
+<div class="alert alert-warning">
+  {% if will_delete %}
+    You are the <strong>captain and the only member</strong>. Leaving will <strong>delete this team</strong>.
+  {% else %}
+    Are you sure you want to leave this team?
+  {% endif %}
+</div>
+
+<form method="post" class="d-flex gap-2">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-danger">Confirm Leave</button>
+  <!-- CHANGED: use existing numeric route -->
+  <a class="btn btn-outline" href="{% url 'teams:team_detail' team.id %}">Cancel</a>
+</form>
+{% endblock %}

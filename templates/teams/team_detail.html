@@ -1,3 +1,12 @@
+{% if request.user.is_authenticated and membership %}
+  <div class="d-flex gap-2 my-3">
+    {% if membership.role == "captain" %}
+      <a class="btn btn-warning btn-sm" href="{% url 'teams:transfer' team.tag %}">Transfer Captain</a>
+    {% endif %}
+    <a class="btn btn-outline-danger btn-sm" href="{% url 'teams:leave' team.tag %}">Leave Team</a>
+  </div>
+{% endif %}
+
 <h1>Team: {{ team.name }}</h1>
 <p>Captain: {{ team.captain.display_name }}</p>
 <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" />
