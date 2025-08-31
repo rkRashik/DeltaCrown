@@ -1,4 +1,3 @@
-{% load static %}
 <div class="dropdown">
   <a class="dc-link position-relative dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
     🔔
@@ -10,13 +9,17 @@
     <div class="list-group list-group-flush">
       {% if items %}
         {% for n in items %}
-          <a class="list-group-item list-group-item-action" href="{{ n.url|default:'/notifications/' }}">
-            <div class="d-flex justify-content-between">
+          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-start" href="{{ n.url|default:'/notifications/' }}">
+            <div class="me-2">
               <div class="fw-semibold">{{ n.title|default:n.get_type_display }}</div>
+              {% if n.message %}<div class="small text-muted">{{ n.message|truncatechars:120 }}</div>{% endif %}
               <small class="text-muted">{{ n.created_at|date:"M d, H:i" }}</small>
             </div>
-            {% if n.message %}
-              <div class="small text-muted">{{ n.message|truncatechars:120 }}</div>
+            {% if not n.is_read %}
+              <form method="post" action="{% url 'notifications:mark_read' n.id %}">
+                {% csrf_token %}
+                <button class="btn btn-link btn-sm p-0" title="Mark read">✓</button>
+              </form>
             {% endif %}
           </a>
         {% endfor %}

@@ -1,51 +1,47 @@
-from django.apps import apps
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
 from django.urls import reverse
-from django.views.decorators.http import require_http_methods
+from django.apps import apps
 
+Notification = apps.get_model("notifications", "Notification")
+UserProfile = apps.get_model("user_profile", "UserProfile")
 
-def _get_profile(user):
-    return getattr(user, "profile", None) or getattr(user, "userprofile", None)
-
+def _profile(user):
+    p = getattr(user, "profile", None) or getattr(user, "userprofile", None)
+    if p:
+        return p
+    p, _ = UserProfile.objects.get_or_create(
+        user=user, defaults={"display_name": getattr(user, "username", "Player")}
+    )
+    return p
 
 @login_required
 def list_view(request):
-    Notification = apps.get_model("notifications", "Notification")
-    profile = _get_profile(request.user)
-    qs = Notification.objects.filter(recipient=profile).order_by("-created_at")
-    # Mark unread as read when opening? Keep as-is (read on list open)
-    qs.filter(is_read=False).update(is_read=True)
-    return render(request, "notifications/list.html", {"notifications": qs})
+    p = _profile(request.user)
+    qs = Notification.objects.filter(recipient=p).order_by("-created_at")
 
+    paginator = Paginator(qs, 15)  # 15 per page
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(
+        request,
+        "notifications/list.html",
+        {"notifications": page_obj.object_list, "page_obj": page_obj},
+    )
 
 @login_required
-@require_http_methods(["GET", "POST"])
 def mark_all_read(request):
-    """
-    Mark all notifications for the current user as read.
-    Accept GET for compatibility with existing templates; prefer POST in forms.
-    """
-    Notification = apps.get_model("notifications", "Notification")
-    profile = _get_profile(request.user)
-    Notification.objects.filter(recipient=profile, is_read=False).update(is_read=True)
-
-    next_url = request.GET.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
-    return redirect(next_url)
-
+    p = _profile(request.user)
+    Notification.objects.filter(recipient=p, is_read=False).update(is_read=True)
+    return redirect("notifications:list")
 
 @login_required
-@require_http_methods(["GET", "POST"])
-def mark_read(request, pk: int):
-    """
-    Mark a single notification as read.
-    """
-    Notification = apps.get_model("notifications", "Notification")
-    profile = _get_profile(request.user)
-    n = get_object_or_404(Notification, pk=pk, recipient=profile)
-    if not n.is_read:
+def mark_read(request, pk):
+    p = _profile(request.user)
+    n = get_object_or_404(Notification, id=pk, recipient=p)
+    if request.method == "POST" and not getattr(n, "is_read", False):
         n.is_read = True
         n.save(update_fields=["is_read"])
-
-    next_url = request.GET.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
     return redirect(next_url)

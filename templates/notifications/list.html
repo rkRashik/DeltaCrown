@@ -1,35 +1,55 @@
 {% extends "base.html" %}
 {% block title %}Notifications · DeltaCrown{% endblock %}
-
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h4 mb-0">Notifications</h1>
-  <a class="btn btn-sm btn-outline" href="{% url 'notifications:mark_all_read' %}?next={{ request.path }}">
-    Mark all as read
-  </a>
-</div>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 m-0">Notifications</h1>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'notifications:mark_all_read' %}">Mark all read</a>
+  </div>
 
-{% if notifications %}
-  <ul class="list-group">
+  <div class="list-group">
     {% for n in notifications %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <div class="fw-semibold">{{ n.get_type_display }}</div>
-          <div class="text-muted small">{{ n.title }}</div>
-          {% if n.url %}
-            <a class="small" href="{{ n.url }}">Open</a>
-          {% endif %}
+      <div class="list-group-item d-flex justify-content-between align-items-start">
+        <div class="me-3">
+          <div class="fw-semibold">
+            {% if n.url %}<a href="{{ n.url }}">{{ n.title|default:n.get_type_display }}</a>
+            {% else %}{{ n.title|default:n.get_type_display }}{% endif %}
+          </div>
+          {% if n.message %}<div class="small text-muted">{{ n.message }}</div>{% endif %}
+          <div><small class="text-muted">{{ n.created_at|date:"M d, Y H:i" }}</small></div>
         </div>
-        <div class="text-end">
-          <div class="small text-muted">{{ n.created_at }}</div>
+
+        <div class="text-nowrap">
           {% if not n.is_read %}
-            <a class="btn btn-sm btn-outline mt-1" href="{% url 'notifications:mark_read' n.id %}?next={{ request.path }}">Mark read</a>
+            <form method="post" action="{% url 'notifications:mark_read' n.id %}" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="btn btn-sm btn-primary" type="submit" title="Mark read">Mark read</button>
+            </form>
+          {% else %}
+            <span class="badge bg-secondary">Read</span>
           {% endif %}
         </div>
-      </li>
+      </div>
+    {% empty %}
+      <div class="list-group-item"><em>No notifications</em></div>
     {% endfor %}
-  </ul>
-{% else %}
-  <div class="alert alert-info mt-3">No notifications.</div>
-{% endif %}
+  </div>
+
+  <nav class="mt-3">
+    <ul class="pagination mb-0">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+      {% endif %}
+
+      <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">Next</span></li>
+      {% endif %}
+    </ul>
+  </nav>
 {% endblock %}
