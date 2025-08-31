@@ -15,6 +15,47 @@
 {% block content %}
   <h1>{{ t.name }}</h1>
 
+  <div class="d-flex align-items-center gap-2 my-3" aria-label="Share this page">
+    <span class="text-muted">Share:</span>
+
+    <a
+      class="btn btn-sm btn-outline-secondary"
+      href="https://twitter.com/intent/tweet?url={{ request.build_absolute_uri|urlencode }}&text={{ t.name|urlencode }}"
+      target="_blank" rel="noopener"
+    >Twitter</a>
+
+    <a
+      class="btn btn-sm btn-outline-secondary"
+      href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}"
+      target="_blank" rel="noopener"
+    >Facebook</a>
+
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-secondary"
+      id="copy-share-link"
+      data-url="{{ request.build_absolute_uri }}"
+    >Copy link</button>
+  </div>
+
+  <script>
+    (function() {
+      var btn = document.getElementById('copy-share-link');
+      if (!btn) return;
+      btn.addEventListener('click', function() {
+        var url = btn.getAttribute('data-url') || window.location.href;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function(){
+            btn.textContent = 'Copied!';
+            setTimeout(function(){ btn.textContent = 'Copy link'; }, 1500);
+          }).catch(function(){ window.prompt('Copy this URL:', url); });
+        } else {
+          window.prompt('Copy this URL:', url);
+        }
+      });
+    })();
+  </script>
+
   <p>
     Status: {{ t.status }}<br>
     Registration:
