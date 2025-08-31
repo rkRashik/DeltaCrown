@@ -288,3 +288,51 @@ class TournamentSettings(models.Model):
     def __str__(self):
         return f"Settings for {self.tournament}"
 
+
+# --- Match timeline & disputes -------------------------------------------------
+
+class MatchEvent(models.Model):
+    KIND = [
+        ("REPORT", "Report submitted"),
+        ("CONFIRM", "Opponent confirmed"),
+        ("DISPUTE_OPENED", "Dispute opened"),
+        ("DISPUTE_RESOLVED", "Dispute resolved"),
+        ("COMMENT", "Comment"),
+    ]
+    match = models.ForeignKey("Match", on_delete=models.CASCADE, related_name="events")
+    actor = models.ForeignKey('user_profile.UserProfile', on_delete=models.SET_NULL, null=True, blank=True)
+    kind = models.CharField(max_length=20, choices=KIND)
+    note = models.TextField(blank=True)
+    data = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [models.Index(fields=["match", "created_at"])]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} on match #{self.match_id}"
+
+
+class MatchDispute(models.Model):
+    RESOLUTION = [
+        ("KEEP_REPORTED", "Keep reported result"),
+        ("SET_WINNER_A", "Set winner: Side A"),
+        ("SET_WINNER_B", "Set winner: Side B"),
+        ("VOID", "Void match"),
+    ]
+    match = models.OneToOneField("Match", on_delete=models.CASCADE, related_name="dispute", null=True, blank=True)
+    opened_by = models.ForeignKey('user_profile.UserProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name="disputes_opened")
+    reason = models.TextField()
+    is_open = models.BooleanField(default=True)
+    resolved_by = models.ForeignKey('user_profile.UserProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name="disputes_resolved")
+    resolution = models.CharField(max_length=20, choices=RESOLUTION, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        state = "OPEN" if self.is_open else "RESOLVED"
+        return f"Dispute {state} for match #{getattr(self.match,'id',None)}"

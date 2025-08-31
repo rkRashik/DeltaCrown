@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Open Dispute · Match #{{ match.id }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">Open Dispute</h1>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<form method="post" class="card">
+  <div class="card-body">
+    {% csrf_token %}
+    <label for="reason" class="form-label">Reason</label>
+    <textarea id="reason" name="reason" rows="4" class="form-control" placeholder="Explain what’s wrong with the reported result."></textarea>
+
+    <div class="mt-3">
+      <button class="btn btn-danger btn-sm" type="submit">Submit Dispute</button>
+      <a class="btn btn-outline btn-sm" href="{% url 'tournaments:match_review' match.id %}">Cancel</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

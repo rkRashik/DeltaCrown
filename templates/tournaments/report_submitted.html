@@ -1,3 +1,12 @@
-<h1>Result Submitted</h1>
-<p>Your result for the match has been successfully submitted.</p>
-<p><a href="{% url 'tournaments:match_detail' match.id %}">Back to match details</a></p>
+{% extends "base.html" %}
+{% block title %}Result Submitted{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-body">
+    <h1 class="h4 mb-2">Result Submitted</h1>
+    <p class="mb-3">Your result has been recorded as <strong>REPORTED</strong>. The opponent can now confirm or open a dispute.</p>
+    <a class="btn btn-primary btn-sm" href="{% url 'tournaments:match_review' match.id %}">Go to Match Review</a>
+  </div>
+</div>
+{% endblock %}

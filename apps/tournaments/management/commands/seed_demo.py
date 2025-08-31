@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.db import transaction
+from django.db import transaction, connection
 from django.utils import timezone
 
 
@@ -43,8 +43,19 @@ def _ensure_profile(user):
     return p
 
 
+def _table_exists(model) -> bool:
+    """Check if the DB table for a model exists (prevents aborted transactions)."""
+    db_table = model._meta.db_table
+    try:
+        with connection.cursor() as cursor:
+            tables = set(connection.introspection.table_names(cursor))
+    except Exception:
+        tables = set(connection.introspection.table_names())
+    return db_table in tables
+
+
 class Command(BaseCommand):
-    help = "Seed demo data: users, teams, tournaments, registrations, brackets, matches, notifications."
+    help = "Seed demo data: users, teams, tournaments, registrations, matches, notifications."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -55,6 +66,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **opts):
+        # Models
         User = get_user_model()
         Tournament = apps.get_model("tournaments", "Tournament")
         Registration = apps.get_model("tournaments", "Registration")
@@ -64,22 +76,38 @@ class Command(BaseCommand):
         TeamMembership = apps.get_model("teams", "TeamMembership")
         Notification = apps.get_model("notifications", "Notification")
 
-        # Known demo identifiers so --fresh can clean safely
+        # Ensure core tables exist (fail early with a clear message)
+        required_models = [User, Tournament, Team, TeamMembership, Registration, Match]
+        missing = [m.__name__ for m in required_models if not _table_exists(m)]
+        if missing:
+            raise SystemExit(
+                "Required tables are missing: "
+                + ", ".join(missing)
+                + ". Run:  python manage.py migrate"
+            )
+
+        # Known demo identifiers
         SOLO_SLUG = "efootball-weekend-cup"
         TEAM_SLUG = "valorant-5v5-clash"
         TEAM1_TAG = "WLV"
         TEAM2_TAG = "RVN"
 
+        # Fresh cleanup (only if the tables exist; DO NOT swallow DB errors)
         if opts["fresh"]:
-            # Best-effort cleanup by identifiers
-            try:
+            if _table_exists(Registration):
+                Registration.objects.all().delete()
+            if _table_exists(Match):
+                Match.objects.all().delete()
+            if _table_exists(Bracket):
+                Bracket.objects.all().delete()
+            if _table_exists(Tournament):
                 Tournament.objects.filter(slug__in=[SOLO_SLUG, TEAM_SLUG]).delete()
-            except Exception:
-                pass
-            try:
+            if _table_exists(TeamMembership):
+                TeamMembership.objects.all().delete()
+            if _table_exists(Team):
                 Team.objects.filter(tag__in=[TEAM1_TAG, TEAM2_TAG]).delete()
-            except Exception:
-                pass
+            if _table_exists(Notification):
+                Notification.objects.all().delete()
 
         # --- Users & profiles ---
         # admin (for login)
@@ -139,13 +167,15 @@ class Command(BaseCommand):
         solo_attrs = dict(
             name="Efootball Weekend Cup",
             slug=SOLO_SLUG,
+            game="efootball",
             short_description="1v1 friendly eFootball cup.",
             reg_open_at=dt(-1),
             reg_close_at=dt(3),
             start_at=dt(4),
             end_at=dt(4) + timedelta(hours=4),
             slot_size=8,
-            entry_fee=Decimal("0.00"),
+            entry_fee=Decimal("0.00") if "entry_fee" in _fields(Tournament) else None,
+            entry_fee_bdt=Decimal("0.00") if "entry_fee_bdt" in _fields(Tournament) else None,
         )
         t_solo = Tournament.objects.filter(slug=SOLO_SLUG).first()
         if not t_solo:
@@ -155,25 +185,26 @@ class Command(BaseCommand):
         team_attrs = dict(
             name="Valorant 5v5 Clash",
             slug=TEAM_SLUG,
+            game="valorant",
             short_description="Competitive 5v5 Valorant bracket.",
             reg_open_at=dt(-1),
             reg_close_at=dt(5),
             start_at=dt(6),
             end_at=dt(6) + timedelta(hours=6),
             slot_size=8,
-            entry_fee=Decimal("0.00"),
+            entry_fee=Decimal("0.00") if "entry_fee" in _fields(Tournament) else None,
+            entry_fee_bdt=Decimal("0.00") if "entry_fee_bdt" in _fields(Tournament) else None,
         )
         t_team = Tournament.objects.filter(slug=TEAM_SLUG).first()
         if not t_team:
             t_team = _safe_create(Tournament, **team_attrs)
 
         # --- Registrations ---
-        # Mark as confirmed if your model has such a field/value.
         reg_status_field = "status" if "status" in _fields(Registration) else None
         CONF = "CONFIRMED"
+        defaults = {reg_status_field: CONF} if reg_status_field else {}
 
         # solo registrations (users)
-        defaults = {reg_status_field: CONF} if reg_status_field else {}
         Registration.objects.get_or_create(tournament=t_solo, user=p_alice, defaults=defaults)
         Registration.objects.get_or_create(tournament=t_solo, user=p_bob, defaults=defaults)
 
@@ -182,8 +213,7 @@ class Command(BaseCommand):
         Registration.objects.get_or_create(tournament=t_team, team=t_ravens, defaults=defaults)
 
         # --- Brackets (best-effort) ---
-        # If you have a Bracket model without required fields, this will adapt.
-        if Bracket is not None:
+        if _table_exists(Bracket):
             Bracket.objects.get_or_create(tournament=t_solo)
             Bracket.objects.get_or_create(tournament=t_team)
 
@@ -214,8 +244,8 @@ class Command(BaseCommand):
                 team_b=t_ravens if "team_b" in _fields(Match) else None,
             )
 
-        # --- Notifications (optional, tolerate model differences) ---
-        if Notification is not None:
+        # --- Notifications (optional) ---
+        if _table_exists(Notification):
             try:
                 Notification.notify_once(
                     recipient=p_alice,
@@ -234,12 +264,11 @@ class Command(BaseCommand):
                     match=m2,
                 )
             except Exception:
-                # Ignore if model differs; seed should not fail entirely
+                # ignore if model differs
                 pass
 
-        # --- Done ---
         self.stdout.write(self.style.SUCCESS("✅ Seed data created:"))
-        self.stdout.write(f"  Users: admin/admin123 (superuser), alice, bob, carol, dave (all 'pass1234')")
-        self.stdout.write(f"  Teams: {t_wolves.tag} ({t_wolves.name}), {t_ravens.tag} ({t_ravens.name})")
-        self.stdout.write(f"  Tournaments: {t_solo.slug}, {t_team.slug}")
+        self.stdout.write("  Users: admin/admin123 (superuser), alice, bob, carol, dave (all 'pass1234')")
+        self.stdout.write(f"  Teams: {TEAM1_TAG} (Wolves), {TEAM2_TAG} (Ravens)")
+        self.stdout.write(f"  Tournaments: {SOLO_SLUG}, {TEAM_SLUG}")
         self.stdout.write(f"  Matches: solo #{getattr(m1, 'id', None)}, team #{getattr(m2, 'id', None)}")
