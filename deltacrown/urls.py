@@ -7,11 +7,15 @@ from django.views.generic import TemplateView
 from django.contrib.sitemaps.views import sitemap
 
 from . import views as project_views
+from apps.user_profile import views as user_profile_views
 from .sitemaps import sitemaps
 
 urlpatterns = [
     # Home
     path("", project_views.home, name="home"),
+
+    # Dashboard (login required at view level)
+    path("dashboard/", user_profile_views.dashboard, name="dashboard"),
 
     # Admin
     path("admin/", admin.site.urls),

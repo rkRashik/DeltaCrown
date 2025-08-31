@@ -43,3 +43,14 @@ def my_tournaments_view(request):
     from apps.tournaments.models import Registration
     regs = Registration.objects.filter(user=request.user.profile).select_related("tournament")
     return render(request, "user_profile/my_tournaments.html", {"registrations": regs})
+
+
+@login_required
+def dashboard(request):
+    """
+    Minimal user dashboard. We can enrich later with:
+    - Upcoming matches
+    - Recent notifications
+    - Registered tournaments
+    """
+    return render(request, "user_profile/dashboard.html")

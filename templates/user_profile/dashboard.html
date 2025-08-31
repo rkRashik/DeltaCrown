@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — DeltaCrown{% endblock %}
+
+{% block content %}
+<main id="content" class="container py-4" role="main" aria-labelledby="page-title">
+  <h1 id="page-title" class="mb-3">Dashboard</h1>
+
+  <p class="text-muted">Welcome back{% if request.user.is_authenticated %}, {{ request.user.username }}{% endif %}.</p>
+
+  <div class="row g-3 mt-3">
+    <div class="col-12 col-md-6">
+      <div class="card p-3 h-100">
+        <h2 class="h5 mb-2">Quick actions</h2>
+        <ul class="mb-0">
+          <li><a href="{% url 'home' %}">Browse tournaments</a></li>
+          <li><a href="{% url 'login' %}">Sign in/out</a> (account)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="col-12 col-md-6">
+      <div class="card p-3 h-100">
+        <h2 class="h5 mb-2">What’s next</h2>
+        <p class="mb-0">We’ll add upcoming matches, registrations, and notifications here.</p>
+      </div>
+    </div>
+  </div>
+</main>
+{% endblock %}
