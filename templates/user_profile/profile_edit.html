@@ -1,11 +1,74 @@
 {% extends "base.html" %}
+{% block title %}Edit Profile{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-  <h3>My Profile</h3>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button class="btn btn-primary" type="submit">Save</button>
+  <h1 class="h4 mb-3">Edit Profile</h1>
+
+  <form method="post" enctype="multipart/form-data" class="card">
+    <div class="card-body">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          {{ form.display_name.label_tag }}
+          {{ form.display_name }}
+          {{ form.display_name.errors }}
+          {% if form.display_name.help_text %}<small class="help-text">{{ form.display_name.help_text }}</small>{% endif %}
+        </div>
+
+        <div class="col-12 col-md-6">
+          {{ form.region.label_tag }}
+          {{ form.region }}
+          {{ form.region.errors }}
+          {% if form.region.help_text %}<small class="help-text">{{ form.region.help_text }}</small>{% endif %}
+        </div>
+
+        <div class="col-12 col-md-6">
+          {{ form.avatar.label_tag }}
+          {{ form.avatar }}
+          {{ form.avatar.errors }}
+          {% if form.instance.avatar %}
+            <div class="mt-2">
+              <img src="{{ form.instance.avatar.url }}" alt="Current avatar" class="img-thumbnail" style="max-width: 140px;">
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="col-12">
+          {{ form.bio.label_tag }}
+          {{ form.bio }}
+          {{ form.bio.errors }}
+        </div>
+
+        <div class="col-12 col-md-4">
+          {{ form.discord_id.label_tag }}
+          {{ form.discord_id }}
+          {{ form.discord_id.errors }}
+        </div>
+
+        <div class="col-12 col-md-4">
+          {{ form.riot_id.label_tag }}
+          {{ form.riot_id }}
+          {{ form.riot_id.errors }}
+        </div>
+
+        <div class="col-12 col-md-4">
+          {{ form.efootball_id.label_tag }}
+          {{ form.efootball_id }}
+          {{ form.efootball_id.errors }}
+        </div>
+      </div>
+    </div>
+
+    <div class="card-footer d-flex gap-2">
+      <button class="btn btn-primary" type="submit">Save changes</button>
+      <a class="btn btn-outline" href="{% url 'user_profile:profile' request.user.username %}">View profile</a>
+    </div>
   </form>
 </div>
 {% endblock %}
