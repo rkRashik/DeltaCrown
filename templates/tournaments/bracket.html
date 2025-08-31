@@ -1,17 +1,45 @@
-<h1>{{ t.name }} — Bracket</h1>
-{% for round in rounds %}
-  <h2>Round {{ forloop.counter }}</h2>
-  <table border="1" cellpadding="6">
-    <tr><th>#</th><th>A</th><th>B</th><th>Score</th><th>Winner</th><th>Status</th></tr>
-    {% for m in round %}
-      <tr>
-        <td>{{ m.position }}</td>
-        <td>{% if m.is_solo_match %}{{ m.user_a.display_name }}{% else %}{{ m.team_a.tag }}{% endif %}</td>
-        <td>{% if m.is_solo_match %}{{ m.user_b.display_name }}{% else %}{{ m.team_b.tag }}{% endif %}</td>
-        <td>{{ m.score_a }} - {{ m.score_b }}</td>
-        <td>{% if m.winner_user %}{{ m.winner_user.display_name }}{% elif m.winner_team %}{{ m.winner_team.tag }}{% endif %}</td>
-        <td>{{ m.get_state_display }}</td>
-      </tr>
+{% extends "base.html" %}
+{% block title %}Bracket · {{ t.name }}{% endblock %}
+
+{% block content %}
+<h1 class="mb-3">{{ t.name }} — Bracket</h1>
+
+{% if rounds %}
+  <div class="row g-3">
+    {% for col in rounds %}
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card h-100">
+          <div class="card-header">Round {{ forloop.counter }}</div>
+          <div class="card-body">
+            {% for m in col %}
+              <div class="mb-3 p-2 border rounded">
+                <div class="small mb-1 muted">Match #{{ m.id }}</div>
+                {% if m.is_solo_match %}
+                  <div>A: {{ m.user_a.display_name|default:"—" }}</div>
+                  <div>B: {{ m.user_b.display_name|default:"—" }}</div>
+                {% else %}
+                  <div>A: {{ m.team_a.tag|default:"—" }}</div>
+                  <div>B: {{ m.team_b.tag|default:"—" }}</div>
+                {% endif %}
+                <div class="mt-2 small">Score: {{ m.score_a|default:"-" }} – {{ m.score_b|default:"-" }}</div>
+                <div class="mt-2 d-flex gap-2">
+                  <a class="btn btn-sm btn-outline" href="{% url 'tournaments:match_review' m.id %}">Review</a>
+                  <a class="btn btn-sm btn-primary" href="{% url 'tournaments:match_report' m.id %}">Report</a>
+                </div>
+              </div>
+            {% empty %}
+              <div class="muted">No matches in this round.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
     {% endfor %}
-  </table>
-{% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">No bracket data yet.</div>
+{% endif %}
+
+<div class="mt-3">
+  <a class="btn btn-outline btn-sm" href="{% url 'tournaments:detail' t.slug %}">Back to Tournament</a>
+</div>
+{% endblock %}

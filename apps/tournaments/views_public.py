@@ -204,3 +204,24 @@ def register_view(request, slug):
 def register_success(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
     return render(request, "tournaments/register_success.html", {"t": t})
+
+@login_required
+def my_matches_view(request):
+    """
+    Show matches for the logged-in user:
+    - Solo: user_a or user_b
+    - Team: matches where the user's team captaincy applies (team_a.captain or team_b.captain)
+    """
+    from .models import Match
+    p = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
+    if p is None:
+        # No profile yet — nothing to show
+        qs = Match.objects.none()
+    else:
+        qs = (
+            Match.objects
+            .select_related("tournament", "user_a__user", "user_b__user", "team_a", "team_b")
+            .filter(Q(user_a=p) | Q(user_b=p) | Q(team_a__captain=p) | Q(team_b__captain=p))
+            .order_by("-id")
+        )
+    return render(request, "tournaments/my_matches.html", {"matches": qs})
