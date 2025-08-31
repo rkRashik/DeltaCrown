@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "django_ckeditor_5",
 
     # Local apps
+    "apps.corelib",
     "apps.teams",
     "apps.tournaments.apps.TournamentsConfig",
     "apps.game_valorant",
