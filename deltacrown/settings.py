@@ -140,14 +140,24 @@ REST_FRAMEWORK = {
 # -----------------------------------------------------------------------------
 # Email config (settings)
 # -----------------------------------------------------------------------------
-DEFAULT_FROM_EMAIL = os.getenv("DeltaCrownEmail", "deltacrownhq@gmail.com")
 
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", DEFAULT_FROM_EMAIL)
-EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword", "")  # Use a Gmail App Password
+# DEFAULT_FROM_EMAIL = os.getenv("DeltaCrownEmail", "deltacrownhq@gmail.com")
+# EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+# EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+# EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", DEFAULT_FROM_EMAIL)
+# EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword", "")  # Use a Gmail App Password
+
+# -----------------------------------------------------------------------------
+# Email (dev-safe)
+# -----------------------------------------------------------------------------
+# Print emails to the console during development.
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "DeltaCrown <no-reply@deltacrown.local>"
+SERVER_EMAIL = "errors@deltacrown.local"
+
+
 
 # -----------------------------------------------------------------------------
 # CKEditor 5 (keep it quiet/harmless in tests)
