@@ -5,8 +5,41 @@ from django.urls import reverse_lazy
 from django import forms
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth import get_user_model
-
+from django.db.models import Q
 from .models import UserProfile
+
+
+def _get_upcoming_matches_for_user(user, limit=5):
+    """
+    Best-effort query for a user's active/upcoming matches.
+    Safe against schema differences; returns [] on any issue.
+    """
+    try:
+        from apps.tournaments.models import Match
+        from apps.teams.models import TeamMembership
+
+        # Get profile safely
+        p = getattr(user, "userprofile", None) or getattr(user, "profile", None)
+        if not p:
+            return []
+
+        team_ids = list(
+            TeamMembership.objects.filter(user=p).values_list("team_id", flat=True)
+        )
+
+        qs = (
+            Match.objects.filter(state__in=["PENDING", "SCHEDULED"])
+            .filter(
+                Q(user_a=p) | Q(user_b=p) | Q(team_a_id__in=team_ids) | Q(team_b_id__in=team_ids)
+            )
+            .select_related("tournament", "user_a", "user_b", "team_a", "team_b")
+            .order_by("round_no", "id")[:limit]
+        )
+        return list(qs)
+    except Exception:
+        # If schema/fields differ, fail silently and show an empty state.
+        return []
+
 
 class ProfileForm(forms.ModelForm):
     class Meta:
@@ -48,9 +81,8 @@ def my_tournaments_view(request):
 @login_required
 def dashboard(request):
     """
-    Minimal user dashboard. We can enrich later with:
-    - Upcoming matches
-    - Recent notifications
-    - Registered tournaments
+    Minimal user dashboard: now includes 'upcoming_matches' (read-only).
     """
-    return render(request, "user_profile/dashboard.html")
+    upcoming = _get_upcoming_matches_for_user(request.user, limit=5)
+    ctx = {"upcoming_matches": upcoming}
+    return render(request, "user_profile/dashboard.html", ctx)

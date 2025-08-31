@@ -1,11 +1,17 @@
 # deltacrown/views.py
 from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse
-
+from django.http import JsonResponse
 
 def home(request: HttpRequest) -> HttpResponse:
     # If you already had a home(), keep your original body.
     return render(request, "home.html")
+
+def healthz(_request: HttpRequest) -> JsonResponse:
+    """
+    Simple liveness probe. No DB touch, no auth required.
+    """
+    return JsonResponse({"ok": True})
 
 
 def page_not_found_view(request: HttpRequest, exception, template_name="errors/404.html") -> HttpResponse:

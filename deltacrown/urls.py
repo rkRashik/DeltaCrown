@@ -17,6 +17,9 @@ urlpatterns = [
     # Dashboard (login required at view level)
     path("dashboard/", user_profile_views.dashboard, name="dashboard"),
 
+    # Health check
+    path("healthz/", project_views.healthz, name="healthz"),
+
     # Admin
     path("admin/", admin.site.urls),
 

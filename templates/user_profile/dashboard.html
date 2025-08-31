@@ -17,10 +17,53 @@
         </ul>
       </div>
     </div>
+
     <div class="col-12 col-md-6">
       <div class="card p-3 h-100">
         <h2 class="h5 mb-2">What’s next</h2>
         <p class="mb-0">We’ll add upcoming matches, registrations, and notifications here.</p>
+      </div>
+    </div>
+
+    <!-- NEW: Upcoming matches -->
+    <div class="col-12">
+      <div class="card p-3">
+        <h2 class="h5 mb-3">Upcoming matches</h2>
+
+        {% if upcoming_matches %}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Tournament</th>
+                  <th>Round</th>
+                  <th>Participants</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for m in upcoming_matches %}
+                <tr>
+                  <td>#{{ m.id }}</td>
+                  <td>{{ m.tournament.name }}</td>
+                  <td>{{ m.round_no }}</td>
+                  <td>
+                    {% if m.is_solo_match %}
+                      {{ m.user_a.display_name }} vs {{ m.user_b.display_name }}
+                    {% else %}
+                      {{ m.team_a.tag }} vs {{ m.team_b.tag }}
+                    {% endif %}
+                  </td>
+                  <td>{{ m.state }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="alert alert-info mb-0">No upcoming matches yet. Join a tournament to get started.</div>
+        {% endif %}
       </div>
     </div>
   </div>
