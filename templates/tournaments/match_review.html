@@ -23,6 +23,8 @@
           <strong>State:</strong> {{ match.state }}
         </div>
       </div>
+
+      <!-- ACTIONS (this is where the staff button lives) -->
       <div class="col-auto">
         {% if match.state == "REPORTED" %}
           <form method="post" action="{% url 'tournaments:match_confirm' match.id %}">
@@ -32,6 +34,13 @@
           <a class="btn btn-danger btn-sm mt-2" href="{% url 'tournaments:match_dispute' match.id %}">Open Dispute</a>
         {% else %}
           <span class="status-chip">No pending action</span>
+        {% endif %}
+
+        {# STAFF-ONLY RESOLVE BUTTON — place it right here beside the actions #}
+        {% if request.user.is_staff %}
+          <a class="btn btn-warning btn-sm mt-2 ms-0" href="{% url 'tournaments:match_dispute_resolve' match.id %}">
+            Staff: Resolve Dispute
+          </a>
         {% endif %}
       </div>
     </div>
@@ -59,6 +68,12 @@
     {% endif %}
   </div>
 </div>
+
+{% if dispute %}
+  <div class="alert alert-warning mt-3">
+    <strong>Dispute open:</strong> {{ dispute.reason }}
+  </div>
+{% endif %}
 
 <h3 class="mt-4">Comments</h3>
 <div class="card">
@@ -97,13 +112,6 @@
     {% endif %}
   </div>
 </div>
-
-
-{% if dispute %}
-  <div class="alert alert-warning mt-3">
-    <strong>Dispute open:</strong> {{ dispute.reason }}
-  </div>
-{% endif %}
 
 <div class="mt-3">
   <a class="btn btn-outline btn-sm" href="{% url 'tournaments:bracket_view' match.tournament.slug %}">Back to Bracket</a>

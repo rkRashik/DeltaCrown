@@ -303,3 +303,78 @@ def resolve_dispute(request, match_id):
         return redirect("admin:index")
 
     return render(request, "admin/resolve_dispute.html", {"match": m})
+
+@staff_member_required
+def match_dispute_resolve_view(request, match_id):
+    """
+    Staff-only resolver. POST 'action' in {'keep','set_a','set_b','void'}.
+    Writes a timeline event and closes the dispute if open. Advances the bracket when applicable.
+    """
+    m = get_object_or_404(Match, id=match_id)
+    try:
+        MatchDispute = apps.get_model("tournaments", "MatchDispute")
+        d = MatchDispute.objects.filter(match=m, is_open=True).first()
+    except Exception:
+        d = None
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").lower()
+        actor = _get_profile(request.user)
+
+        if action == "keep":
+            if d:
+                d.is_open = False
+                d.resolution = "KEEP_REPORTED"
+                d.resolved_at = timezone.now()
+                d.resolved_by = actor
+                d.save()
+            _create_event("DISPUTE_RESOLVED", m, actor=actor, note="Keep reported")
+            verify_and_apply(m)
+
+        elif action in {"set_a", "set_b"}:
+            # Force winner and verify
+            is_solo = getattr(m, "is_solo_match", False)
+            if action == "set_a":
+                if is_solo:
+                    m.winner_user = m.user_a
+                else:
+                    m.winner_team = m.team_a
+            else:
+                if is_solo:
+                    m.winner_user = m.user_b
+                else:
+                    m.winner_team = m.team_b
+            if hasattr(m, "state"):
+                m.state = "VERIFIED"
+            m.save()
+            verify_and_apply(m)
+            if d:
+                d.is_open = False
+                d.resolution = "SET_WINNER_A" if action == "set_a" else "SET_WINNER_B"
+                d.resolved_at = timezone.now()
+                d.resolved_by = actor
+                d.save()
+            _create_event("DISPUTE_RESOLVED", m, actor=actor,
+                          note="Set winner: Side A" if action == "set_a" else "Set winner: Side B")
+
+        elif action == "void":
+            # Clear winner & mark void; do not advance
+            if hasattr(m, "winner_user"):
+                m.winner_user = None
+            if hasattr(m, "winner_team"):
+                m.winner_team = None
+            if hasattr(m, "state"):
+                m.state = "VOID"
+            m.save()
+            if d:
+                d.is_open = False
+                d.resolution = "VOID"
+                d.resolved_at = timezone.now()
+                d.resolved_by = actor
+                d.save()
+            _create_event("DISPUTE_RESOLVED", m, actor=actor, note="Void match")
+
+        return redirect("tournaments:match_review", match_id=m.id)
+
+    # GET → show the staff form
+    return render(request, "tournaments/staff_dispute.html", {"match": m, "dispute": d})
