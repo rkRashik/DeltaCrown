@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Security check failed (403 CSRF){% endblock %}
+{% block content %}
+<main id="content" class="container py-4" role="main" aria-labelledby="page-title">
+  <h1 id="page-title" class="mb-3">Security check failed</h1>
+  <p class="text-muted">CSRF verification failed. Please refresh the page and try again.</p>
+  {% if reason %}
+    <p class="text-muted"><small>Reason: {{ reason }}</small></p>
+  {% endif %}
+  <a class="btn btn-primary mt-3" href="{% url 'home' %}">Go home</a>
+</main>
+{% endblock %}

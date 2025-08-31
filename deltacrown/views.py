@@ -21,3 +21,11 @@ def server_error_view(request: HttpRequest, template_name="errors/500.html") -> 
     Custom 500 handler. Called without 'exception'.
     """
     return render(request, template_name, status=500)
+
+
+def permission_denied_view(request: HttpRequest, exception, template_name="errors/403.html") -> HttpResponse:
+    """
+    Custom 403 handler for PermissionDenied and similar cases (not CSRF; CSRF uses 403_csrf.html).
+    """
+    ctx = {"path": request.path}
+    return render(request, template_name, ctx, status=403)

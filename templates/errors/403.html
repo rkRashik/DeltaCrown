@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Access denied (403){% endblock %}
+{% block content %}
+<main id="content" class="container py-4" role="main" aria-labelledby="page-title">
+  <h1 id="page-title" class="mb-3">Access denied</h1>
+  <p class="text-muted">You don’t have permission to access <code>{{ path }}</code>.</p>
+  <a class="btn btn-primary mt-3" href="{% url 'home' %}">Go home</a>
+</main>
+{% endblock %}

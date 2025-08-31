@@ -51,3 +51,4 @@ urlpatterns = [
 # Error handlers (use fully-qualified dotted path or module attributes)
 handler404 = "deltacrown.views.page_not_found_view"
 handler500 = "deltacrown.views.server_error_view"
+handler403 = "deltacrown.views.permission_denied_view"
