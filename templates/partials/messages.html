@@ -1,9 +1,8 @@
 {% if messages %}
-  <div class="mt-2">
+  <div class="mb-3">
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:'secondary' }} alert-dismissible fade show" role="alert">
+      <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %}">
         {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     {% endfor %}
   </div>

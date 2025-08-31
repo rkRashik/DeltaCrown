@@ -4,24 +4,26 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
+from . import views as project_views
+
 
 urlpatterns = [
+    # Home (new): render templates/home.html via deltacrown.views.home
+    path("", project_views.home, name="home"),
+
+    # Admin
     path("admin/", admin.site.urls),
 
-    # Auth (so {% url 'login' %} works)
+    # Auth (login/logout/password views)
     path("accounts/", include("django.contrib.auth.urls")),
 
     # CKEditor-5
     path("ckeditor5/", include("django_ckeditor_5.urls")),
 
-    # --- Tournaments ---
-    # Primary mount with the "tournaments" namespace
+    # Tournaments (primary mount with namespace)
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
-    # Optional short alias; give it a DIFFERENT namespace to avoid urls.W005
+    # Optional short alias with a different namespace to avoid urls.W005
     path("t/", include(("apps.tournaments.urls", "tournaments"), namespace="t")),
-
-    # Home -> tournaments list
-    path("", RedirectView.as_view(pattern_name="tournaments:list", permanent=False), name="home"),
 
     # Teams
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),

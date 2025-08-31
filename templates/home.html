@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}DeltaCrown — Home{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Welcome to DeltaCrown</h1>
+<p class="muted mb-4">Pick where you want to go:</p>
+
+<div class="row g-4">
+  <div class="col-12 col-md-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-2">Browse Tournaments</h5>
+        <p class="muted mb-3">Search, filter, and register for events.</p>
+        <a class="btn btn-primary btn-sm" href="{% url 'tournaments:list' %}">Open Tournaments</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-2">My Matches</h5>
+        <p class="muted mb-3">See matches you’re in. Report or review results.</p>
+        {% if request.user.is_authenticated %}
+          <a class="btn btn-primary btn-sm" href="{% url 'tournaments:my_matches' %}">Open My Matches</a>
+        {% else %}
+          <a class="btn btn-outline btn-sm" href="{% url 'login' %}">Sign in</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-2">Notifications</h5>
+        <p class="muted mb-3">Check check-ins, schedule, results.</p>
+        <a class="btn btn-outline btn-sm" href="{% url 'notifications:list' %}">Open Notifications</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-lg-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h5 class="card-title mb-2">Admin</h5>
+        <p class="muted mb-3">Manage tournaments, teams, and players.</p>
+        <a class="btn btn-outline btn-sm" href="{% url 'admin:index' %}">Go to Admin</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
