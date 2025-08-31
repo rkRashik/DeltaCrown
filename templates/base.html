@@ -27,6 +27,9 @@
     {% block extra_css %}{% endblock %}
   </head>
   <body>
+    <!-- Skip link for accessibility -->
+    <a href="#content" class="visually-hidden-focusable">Skip to main content</a>
+
     <header class="dc-navbar">
       <div class="dc-navbar-inner">
         <a class="dc-brand" href="/">
@@ -51,7 +54,7 @@
       </div>
     </header>
 
-    <main class="container my-4">
+    <main id="content" role="main" class="container my-4">
       {% include "partials/messages.html" %}
       {% block content %}{% endblock %}
     </main>

@@ -42,3 +42,8 @@ urlpatterns = [
     path("profiles/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
     path("notifications/", include("apps.notifications.urls", namespace="notifications")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+# Error handlers (use fully-qualified dotted path or module attributes)
+handler404 = "deltacrown.views.page_not_found_view"
+handler500 = "deltacrown.views.server_error_view"
