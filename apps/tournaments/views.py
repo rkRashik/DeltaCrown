@@ -156,7 +156,18 @@ def match_review_view(request, match_id):
     except Exception:
         pass
 
-    return render(request, "tournaments/match_review.html", {"match": m, "events": events, "dispute": dispute})
+    comments = []
+    try:
+        MatchComment = apps.get_model("tournaments", "MatchComment")
+        comments = list(MatchComment.objects.filter(match=m).select_related("author__user"))
+    except Exception:
+        pass
+
+    return render(
+        request,
+        "tournaments/match_review.html",
+        {"match": m, "events": events, "dispute": dispute, "comments": comments},
+    )
 
 
 @login_required
@@ -205,6 +216,34 @@ def match_dispute_view(request, match_id):
         return redirect("tournaments:match_review", match_id=m.id)
 
     return render(request, "tournaments/dispute_form.html", {"match": m})
+
+
+@login_required
+@require_POST
+def match_comment_view(request, match_id):
+    m = get_object_or_404(Match, id=match_id)
+    actor = _ensure_profile(request.user)
+
+    # Only participants (or staff) can comment
+    if not _actor_is_participant(m, actor) and not request.user.is_staff:
+        return render(request, "tournaments/match_review.html", {"match": m, "error": "Not authorized."}, status=403)
+
+    body = (request.POST.get("body") or "").strip()
+    if not body:
+        return redirect("tournaments:match_review", match_id=m.id)
+
+    # Create comment
+    try:
+        MatchComment = apps.get_model("tournaments", "MatchComment")
+        MatchComment.objects.create(match=m, author=actor, body=body)
+    except Exception:
+        pass
+
+    # Optional: also add to timeline
+    _create_event("COMMENT", m, actor=actor, note=body[:300])
+
+    return redirect("tournaments:match_review", match_id=m.id)
+
 
 
 # ---------------------------------------------------------------------------

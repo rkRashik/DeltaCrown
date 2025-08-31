@@ -19,6 +19,7 @@ urlpatterns = [
     path("match/<int:match_id>/report/", views.report_match_view, name="match_report"),
     path("match/<int:match_id>/confirm/", views.match_confirm_view, name="match_confirm"),
     path("match/<int:match_id>/dispute/", views.match_dispute_view, name="match_dispute"),
+    path("match/<int:match_id>/comment/", views.match_comment_view, name="match_comment"),
 
     path("brackets/<slug:slug>/", views.bracket_view, name="bracket_view"),
 ]

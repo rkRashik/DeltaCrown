@@ -336,3 +336,18 @@ class MatchDispute(models.Model):
     def __str__(self):
         state = "OPEN" if self.is_open else "RESOLVED"
         return f"Dispute {state} for match #{getattr(self.match,'id',None)}"
+
+# --- Match comments -----------------------------------------------------------
+
+class MatchComment(models.Model):
+    match = models.ForeignKey("Match", on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey("user_profile.UserProfile", on_delete=models.SET_NULL, null=True, blank=True)
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [models.Index(fields=["match", "created_at"])]
+
+    def __str__(self):
+        return f"Comment by {getattr(self.author, 'id', None)} on match #{self.match_id}"

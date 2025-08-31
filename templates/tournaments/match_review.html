@@ -60,6 +60,45 @@
   </div>
 </div>
 
+<h3 class="mt-4">Comments</h3>
+<div class="card">
+  <div class="card-body">
+    {% if comments %}
+      <ul class="mb-3">
+        {% for c in comments %}
+          <li class="mb-2">
+            <strong>
+              {% if c.author and c.author.user %}
+                @{{ c.author.user.username }}
+              {% else %}
+                (deleted user)
+              {% endif %}
+            </strong>
+            <span class="muted"> · {{ c.created_at }}</span>
+            <div>{{ c.body|linebreaksbr }}</div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="muted mb-3">No comments yet.</div>
+    {% endif %}
+
+    {% if request.user.is_authenticated %}
+      <form method="post" action="{% url 'tournaments:match_comment' match.id %}">
+        {% csrf_token %}
+        <label for="c-body" class="form-label">Add a comment</label>
+        <textarea id="c-body" name="body" rows="3" class="form-control" placeholder="Be respectful and clear."></textarea>
+        <div class="mt-2">
+          <button class="btn btn-sm btn-primary" type="submit">Post</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="alert alert-info mb-0">Please sign in to comment.</div>
+    {% endif %}
+  </div>
+</div>
+
+
 {% if dispute %}
   <div class="alert alert-warning mt-3">
     <strong>Dispute open:</strong> {{ dispute.reason }}
