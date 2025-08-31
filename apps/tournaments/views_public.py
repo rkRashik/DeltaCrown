@@ -7,11 +7,63 @@ from .forms import SoloRegistrationForm, TeamRegistrationForm
 from apps.user_profile.models import UserProfile
 from django.utils import timezone
 from apps.notifications.services import send_payment_instructions_email
-
+from django.db.models import Q
+from django.core.paginator import Paginator
 
 def tournament_list(request):
-    qs = Tournament.objects.all().order_by("-created_at")
-    return render(request, "tournaments/list.html", {"tournaments": qs})
+    qs = Tournament.objects.all()
+
+    # --- Filters & search ---
+    q = (request.GET.get("q") or "").strip()
+    game = (request.GET.get("game") or "").strip().lower()           # valorant|efootball
+    status = (request.GET.get("status") or "").strip().lower()       # upcoming|ongoing|completed
+    entry = (request.GET.get("entry") or "").strip().lower()         # free|paid
+    sort = (request.GET.get("sort") or "new").strip().lower()        # new|date|name|popular
+
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(short_description__icontains=q))
+
+    if game:
+        # case-insensitive match, works even if DB has 'eFootball' or 'Valorant'
+        qs = qs.filter(game__iexact=game)
+
+    # status via dates (robust across Status choices)
+    now = timezone.now()
+    if status == "upcoming":
+        qs = qs.filter(start_at__gt=now)
+    elif status == "ongoing":
+        qs = qs.filter(start_at__lte=now, end_at__gte=now)
+    elif status == "completed":
+        qs = qs.filter(end_at__lt=now)
+
+    if entry == "free":
+        qs = qs.filter(Q(entry_fee_bdt__isnull=True) | Q(entry_fee_bdt=0))
+    elif entry == "paid":
+        qs = qs.filter(entry_fee_bdt__gt=0)
+
+    # Sorting
+    if sort == "date":
+        qs = qs.order_by("start_at")            # earliest first
+    elif sort == "name":
+        qs = qs.order_by("name")
+    elif sort == "popular":
+        qs = qs.order_by("-created_at")         # placeholder until you track views/regs
+    else:  # "new" (default)
+        qs = qs.order_by("-created_at")
+
+    # Pagination
+    paginator = Paginator(qs, 12)
+    page_obj = paginator.get_page(request.GET.get("page") or 1)
+
+    ctx = {
+        "tournaments": page_obj.object_list,
+        "page_obj": page_obj,
+        "is_paginated": page_obj.has_other_pages(),
+        # echo current filters back to template
+        "q": q, "f_game": game, "f_status": status, "f_entry": entry, "f_sort": sort,
+    }
+    return render(request, "tournaments/list.html", ctx)
+
 
 
 def tournament_detail(request, slug):

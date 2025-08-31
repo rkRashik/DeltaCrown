@@ -4,6 +4,58 @@
 {% block content %}
 <h1 class="mb-4">Tournaments</h1>
 
+<form method="get" class="card mb-4">
+  <div class="card-body row g-2 align-items-end">
+    <div class="col-12 col-md-4">
+      <label for="q" class="form-label">Search</label>
+      <input id="q" name="q" class="form-control" value="{{ q|default:'' }}" placeholder="Search by name or description">
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label for="game" class="form-label">Game</label>
+      <select id="game" name="game" class="form-select">
+        <option value="" {% if not f_game %}selected{% endif %}>All</option>
+        <option value="valorant" {% if f_game == 'valorant' %}selected{% endif %}>Valorant</option>
+        <option value="efootball" {% if f_game == 'efootball' %}selected{% endif %}>eFootball</option>
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label for="status" class="form-label">Status</label>
+      <select id="status" name="status" class="form-select">
+        <option value="" {% if not f_status %}selected{% endif %}>All</option>
+        <option value="upcoming" {% if f_status == 'upcoming' %}selected{% endif %}>Upcoming</option>
+        <option value="ongoing" {% if f_status == 'ongoing' %}selected{% endif %}>Ongoing</option>
+        <option value="completed" {% if f_status == 'completed' %}selected{% endif %}>Completed</option>
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label for="entry" class="form-label">Entry</label>
+      <select id="entry" name="entry" class="form-select">
+        <option value="" {% if not f_entry %}selected{% endif %}>All</option>
+        <option value="free" {% if f_entry == 'free' %}selected{% endif %}>Free</option>
+        <option value="paid" {% if f_entry == 'paid' %}selected{% endif %}>Paid</option>
+      </select>
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label for="sort" class="form-label">Sort</label>
+      <select id="sort" name="sort" class="form-select">
+        <option value="new" {% if f_sort == 'new' %}selected{% endif %}>Newest</option>
+        <option value="date" {% if f_sort == 'date' %}selected{% endif %}>Start date</option>
+        <option value="name" {% if f_sort == 'name' %}selected{% endif %}>Name</option>
+        <option value="popular" {% if f_sort == 'popular' %}selected{% endif %}>Popularity</option>
+      </select>
+    </div>
+
+    <div class="col-12 col-md-12 mt-2">
+      <button class="btn btn-sm btn-primary" type="submit">Apply</button>
+      <a class="btn btn-sm btn-outline" href="{% url 'tournaments:list' %}">Reset</a>
+    </div>
+  </div>
+</form>
+
 {% if tournaments %}
   <div class="row g-4">
     {% for t in tournaments %}
@@ -21,13 +73,13 @@
             {% endif %}
 
             <div class="small meta">
-              <div>Game: {{ t.get_game_display|default:"—" }}</div>
+              <div>Game: {{ t.game|default:"—" }}</div>
               <div>Starts: <strong>{{ t.start_at|date:"M d, Y H:i" }}</strong></div>
               <div>Slots: {{ t.slot_size }}</div>
               <div>
                 Type:
-                {% if t.entry_fee and t.entry_fee|floatformat:"-2" != "0" %}
-                  Paid ({{ t.entry_fee }})
+                {% if t.entry_fee_bdt and t.entry_fee_bdt|floatformat:"-2" != "0" %}
+                  Paid ({{ t.entry_fee_bdt }})
                 {% else %}
                   Free
                 {% endif %}
@@ -52,7 +104,7 @@
     <nav aria-label="Tournament pagination" class="mt-4">
       <ul class="pagination">
         {% if page_obj.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Prev</a></li>
+          <li class="page-item"><a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if f_game %}game={{ f_game }}&{% endif %}{% if f_status %}status={{ f_status }}&{% endif %}{% if f_entry %}entry={{ f_entry }}&{% endif %}sort={{ f_sort }}&page={{ page_obj.previous_page_number }}">Prev</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">Prev</span></li>
         {% endif %}
@@ -62,7 +114,7 @@
         </li>
 
         {% if page_obj.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+          <li class="page-item"><a class="page-link" href="?{% if q %}q={{ q }}&{% endif %}{% if f_game %}game={{ f_game }}&{% endif %}{% if f_status %}status={{ f_status }}&{% endif %}{% if f_entry %}entry={{ f_entry }}&{% endif %}sort={{ f_sort }}&page={{ page_obj.next_page_number }}">Next</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">Next</span></li>
         {% endif %}
