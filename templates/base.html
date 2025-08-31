@@ -1,4 +1,5 @@
 {% load static %}
+{% load notifications_nav %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -7,15 +8,12 @@
     <meta name="color-scheme" content="light dark" />
     <title>{% block title %}DeltaCrown{% endblock %}</title>
 
-    <!-- (Optional) Bootstrap grid/utilities only -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- Site-wide styles -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     {% block extra_css %}{% endblock %}
   </head>
   <body>
-    <!-- Custom, conflict-free navbar -->
     <header class="dc-navbar">
       <div class="dc-navbar-inner">
         <a class="dc-brand" href="/">
@@ -26,13 +24,10 @@
         <nav class="dc-nav">
           <a class="dc-link" href="{% url 'tournaments:list' %}">Tournaments</a>
           <a class="dc-link" href="{% url 'tournaments:my_matches' %}">My Matches</a>
+
           {% if request.user.is_authenticated %}
-            <a class="dc-link position-relative" href="{% url 'notifications:list' %}">
-              🔔 Notifications
-              {% if notif_unread %}
-                <span class="badge ms-1">{{ notif_unread }}</span>
-              {% endif %}
-            </a>
+            {% notifications_bell %}
+            <a class="dc-link" href="{% url 'user_profile:edit' %}">My Profile</a>
             <span class="dc-link">Hi, {{ request.user.username }}</span>
           {% else %}
             <a class="dc-link" href="{% url 'login' %}">Sign in</a>
@@ -54,7 +49,6 @@
       </div>
     </footer>
 
-    <!-- Minimal JS (Bootstrap optional) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script defer src="{% static 'js/theme.js' %}"></script>
     {% block extra_js %}{% endblock %}
