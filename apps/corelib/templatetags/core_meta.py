@@ -12,19 +12,25 @@ def _meta_pair(prop, content):
 @register.simple_tag(takes_context=True)
 def meta_tags(context, request, title=None, description=None, image=None, type="website"):
     """
-    Render canonical link + Open Graph meta tags (Facebook/WhatsApp/Instagram).
+    Render canonical link + Open Graph meta tags.
+
+    Open Graph is used by Facebook, WhatsApp, Instagram, and Discord.
+    (No Twitter/X or Gmail tags are emitted.)
+
     Usage:
         {% load core_meta %}
-        {% meta_tags request title="..." description="..." image=object.banner.url %}
+        {% meta_tags request title="DeltaCrown — Home" description="..." image=object.banner.url %}
     """
     req = request
     esc = conditional_escape
 
+    # Canonical
     try:
         canonical = req.build_absolute_uri()
     except Exception:
         canonical = ""
 
+    # Defaults
     site_name = "DeltaCrown"
     title = title or site_name
     description = description or "Esports tournaments, teams, and matches."
@@ -34,6 +40,7 @@ def meta_tags(context, request, title=None, description=None, image=None, type="
     if canonical:
         parts.append(format_html('<link rel="canonical" href="{}"/>', esc(canonical)))
 
+    # Open Graph
     parts.append(_meta_pair("og:site_name", site_name))
     parts.append(_meta_pair("og:type", og_type))
     parts.append(_meta_pair("og:title", title))

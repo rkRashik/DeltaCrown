@@ -33,41 +33,7 @@
   </header>
 
   {# Share actions (Bangladesh-favored) #}
-  <div class="d-flex align-items-center gap-2 my-3" aria-label="Share this page">
-    <span class="text-muted">Share:</span>
-
-    <!-- WhatsApp -->
-    <a
-      class="btn btn-sm btn-outline-secondary"
-      href="https://api.whatsapp.com/send?text={{ t.name|urlencode }}%20{{ request.build_absolute_uri|urlencode }}"
-      target="_blank" rel="noopener"
-    >WhatsApp</a>
-
-    <!-- Facebook -->
-    <a
-      class="btn btn-sm btn-outline-secondary"
-      href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|urlencode }}"
-      target="_blank" rel="noopener"
-    >Facebook</a>
-
-    <!-- Gmail (mailto) -->
-    <a
-      class="btn btn-sm btn-outline-secondary"
-      href="mailto:?subject={{ t.name|urlencode }}&body={{ request.build_absolute_uri|urlencode }}"
-    >Gmail</a>
-
-    <!-- Native share (mobile share sheet) -->
-    <button type="button" class="btn btn-sm btn-outline-secondary" id="native-share-btn"
-            data-title="{{ t.name }}" data-url="{{ request.build_absolute_uri }}">
-      Share…
-    </button>
-
-    <!-- Copy link -->
-    <button type="button" class="btn btn-sm btn-outline-secondary" id="copy-share-link"
-            data-url="{{ request.build_absolute_uri }}">
-      Copy link
-    </button>
-  </div>
+  {% include "partials/share_block_bd.html" with title=t.name %}
 
   {# Banner #}
   {% if t.banner %}

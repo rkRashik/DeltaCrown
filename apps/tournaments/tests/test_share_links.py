@@ -5,7 +5,7 @@ from apps.tournaments.models import Tournament
 
 pytestmark = pytest.mark.django_db
 
-def test_tournament_detail_has_share_links(client):
+def test_tournament_detail_has_bd_share_links(client):
     now = timezone.now()
     t = Tournament.objects.create(
         name="Shareable Cup",
@@ -19,15 +19,14 @@ def test_tournament_detail_has_share_links(client):
     assert r.status_code == 200
     html = r.content.decode()
 
-    # Bangladesh-favored share options:
-    assert "api.whatsapp.com/send?text=" in html
+    # Present: Facebook, WhatsApp, IG/Discord buttons, Copy
     assert "facebook.com/sharer/sharer.php" in html
-    assert "mailto:" in html
-    assert 'id="native-share-btn"' in html
-
-    # No Twitter/X anymore
-    assert "twitter.com/intent/tweet" not in html
-
-    # Page URL present & copy button
-    assert url in html or url.replace(":", "%3A").replace("/", "%2F") in html
+    assert "api.whatsapp.com/send?text=" in html
+    assert 'id="share-instagram"' in html
+    assert 'id="share-discord"' in html
     assert 'id="copy-share-link"' in html
+
+    # Absent: Gmail & Native Share & Twitter/X
+    assert "mailto:" not in html
+    assert 'id="native-share-btn"' not in html
+    assert "twitter.com/intent/tweet" not in html
