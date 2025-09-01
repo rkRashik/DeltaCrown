@@ -1,0 +1,19 @@
+<footer class="border-top mt-5 py-4" role="contentinfo" aria-label="Site footer">
+  <div class="container d-flex flex-column flex-md-row gap-2 justify-content-between align-items-start">
+    <div>
+      <div class="fw-semibold">DeltaCrown</div>
+      <small class="text-muted">© {% now "Y" %} DeltaCrown. All rights reserved.</small>
+    </div>
+
+    <nav aria-label="Footer links">
+      <ul class="list-unstyled d-flex flex-wrap gap-3 mb-0">
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <!-- These are simple anchors; safe even if not explicitly routed -->
+        <li><a href="/tournaments/">Tournaments</a></li>
+        <li><a href="/teams/">Teams</a></li>
+        <li><a href="/sitemap.xml">Sitemap</a></li>
+        <li><a href="/robots.txt">Robots</a></li>
+      </ul>
+    </nav>
+  </div>
+</footer>
