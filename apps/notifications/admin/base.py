@@ -1,9 +1,9 @@
-﻿from django.contrib import admin
+from django.contrib import admin
 from django.http import HttpResponse
 from django.utils import timezone
 import csv
 
-from .models import Notification
+from ..models import Notification
 
 
 # ---------- Helpers ----------
