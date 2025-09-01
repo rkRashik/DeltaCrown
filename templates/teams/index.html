@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Teams — DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-3">Teams</h1>
+
+  <form method="get" class="row g-2 mb-3" role="search" aria-label="Search teams">
+    <div class="col-auto">
+      <input class="form-control" type="search" name="q" value="{{ q }}" placeholder="Search teams by name/tag" />
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </div>
+  </form>
+
+  {% if teams %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+      {% for t in teams %}
+        <div class="col">
+          <div class="card h-100 p-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <h2 class="h5 mb-1">{{ t.name|default:t.tag|default:"Team" }}</h2>
+              <span class="badge bg-secondary">#{{ t.id }}</span>
+            </div>
+            {% if t.tag %}<div class="text-muted mb-2">@{{ t.tag }}</div>{% endif %}
+            <div class="mt-auto">
+              <a class="btn btn-sm btn-outline-primary" href="/teams/{{ t.id }}/">View</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">No teams found.</div>
+  {% endif %}
+</div>
+{% endblock %}

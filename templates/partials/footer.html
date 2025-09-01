@@ -8,11 +8,16 @@
     <nav aria-label="Footer links">
       <ul class="list-unstyled d-flex flex-wrap gap-3 mb-0">
         <li><a href="{% url 'home' %}">Home</a></li>
-        <!-- These are simple anchors; safe even if not explicitly routed -->
         <li><a href="/tournaments/">Tournaments</a></li>
         <li><a href="/teams/">Teams</a></li>
         <li><a href="/sitemap.xml">Sitemap</a></li>
         <li><a href="/robots.txt">Robots</a></li>
+
+        {% if request.user.is_authenticated %}
+          <li><a href="{% url 'logout' %}">Log out</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}?next={{ request.path }}">Sign in</a></li>
+        {% endif %}
       </ul>
     </nav>
   </div>

@@ -112,7 +112,14 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Dhaka"
 USE_I18N = True
 USE_TZ = True
+
+# -----------------------------------------------------------------------------
+# Auth redirects
+# -----------------------------------------------------------------------------
 LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "home"
+
 
 # -----------------------------------------------------------------------------
 # Static & Media

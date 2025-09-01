@@ -1,10 +1,13 @@
 from django.urls import path
 from . import views
 from . import views_actions  # tag-based actions (leave/transfer)
+from .views_public import team_list
 
 app_name = "teams"
 
 urlpatterns = [
+    path("", team_list, name="index"),
+
     # Static first
     path("invites/", views.my_invites, name="my_invites"),
     path("invites/<str:token>/accept/", views.accept_invite_view, name="accept_invite"),
