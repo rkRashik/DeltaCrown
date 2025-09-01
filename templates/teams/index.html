@@ -16,9 +16,9 @@
     </div>
   </form>
 
-  {% if teams %}
+  {% if teams_page %}
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-      {% for t in teams %}
+      {% for t in teams_page %}
         <div class="col">
           <div class="card h-100 p-3">
             <div class="d-flex align-items-center justify-content-between">
@@ -36,5 +36,7 @@
   {% else %}
     <div class="alert alert-info">No teams found.</div>
   {% endif %}
+
+  {% include "partials/pagination.html" %}
 </div>
 {% endblock %}
