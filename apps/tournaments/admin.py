@@ -9,7 +9,6 @@ from apps.game_valorant.models import ValorantConfig
 from .services.scheduling import auto_schedule_matches, clear_schedule
 
 from django.template.response import TemplateResponse
-from django.urls import path
 from .services.analytics import tournament_stats
 from apps.notifications.models import Notification
 from django.http import HttpResponse
@@ -454,3 +453,141 @@ def export_tournaments_csv(modeladmin, request, queryset):
 
 
 export_tournaments_csv.short_description = "Export selected tournaments to CSV"
+
+
+def _path_exists(model, path: str) -> bool:
+    """
+    Verify a select_related path exists on 'model', supporting spans like 'a__b'.
+    Only allows forward, non-M2M relations.
+    """
+    parts = path.split("__")
+    m = model
+    for p in parts:
+        try:
+            f = m._meta.get_field(p)
+        except Exception:
+            return False
+        # must be a forward relation and not m2m
+        if not getattr(f, "is_relation", False) or getattr(f, "many_to_many", False):
+            return False
+        m = f.remote_field.model
+    return True
+
+
+def _safe_select_related(qs, candidate_paths):
+    """
+    Apply select_related only for relation paths that actually exist on qs.model.
+    Returns qs unchanged if none are valid.
+    """
+    model = qs.model
+    valid = [p for p in candidate_paths if _path_exists(model, p)]
+    return qs.select_related(*valid) if valid else qs
+
+
+
+# =========================================
+# Admin Action: Export Disputes to CSV
+# (schema-agnostic; header-only works with empty queryset)
+# =========================================
+def export_disputes_csv(modeladmin, request, queryset):
+    """
+    Export selected Disputes as CSV.
+    Resilient to attribute/name differences and safe with an empty queryset.
+    """
+    ts = timezone.now().strftime("%Y%m%d-%H%M%S")
+    filename = f"disputes-{ts}.csv"
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "id",
+        "match_id",
+        "opened_by_username",
+        "resolver_username",
+        "status",
+        "reason",
+        "created_at",
+        "resolved_at",
+    ])
+
+    # Try to reduce joins if relations exist (safe to ignore failures)
+    queryset = _safe_select_related(
+        queryset,
+        [
+            "match",
+            "opened_by",
+            "resolver",
+            "opened_by__user",
+            "resolver__user",
+        ],
+    )
+
+    for d in queryset.order_by("id"):
+        match = getattr(d, "match", None)
+        match_id = getattr(match, "id", "")
+
+        opened_by = (
+            getattr(d, "opened_by", None)
+            or getattr(d, "created_by", None)
+            or getattr(d, "reporter", None)
+            or getattr(getattr(d, "opened_profile", None), "user", None)
+        )
+        opened_user = getattr(opened_by, "user", opened_by)
+        opened_username = getattr(opened_user, "username", "") if opened_user else ""
+
+        resolver = getattr(d, "resolver", None) or getattr(d, "resolved_by", None)
+        resolver_user = getattr(resolver, "user", resolver)
+        resolver_username = getattr(resolver_user, "username", "") if resolver_user else ""
+
+        status = getattr(d, "status", "") or getattr(d, "state", "") or ""
+        reason = getattr(d, "reason", None) or getattr(d, "message", None) or getattr(d, "note", None) or ""
+
+        created_at = (
+            getattr(d, "created_at", None)
+            or getattr(d, "created", None)
+            or getattr(d, "created_on", None)
+            or getattr(d, "timestamp", None)
+            or ""
+        )
+        resolved_at = getattr(d, "resolved_at", None) or getattr(d, "closed_at", None) or ""
+
+        writer.writerow([
+            getattr(d, "id", ""),
+            match_id,
+            opened_username,
+            resolver_username,
+            status,
+            reason,
+            created_at,
+            resolved_at,
+        ])
+
+    return response
+
+export_disputes_csv.short_description = "Export selected disputes to CSV"  # type: ignore[attr-defined]
+
+# ---- Attach the action to any existing Dispute admin, or register one if missing ----
+# Try the common model names
+DisputeModel = None
+try:
+    from .models import Dispute as _DisputeModel
+    DisputeModel = _DisputeModel
+except Exception:
+    try:
+        from .models import MatchDispute as _DisputeModel
+        DisputeModel = _DisputeModel
+    except Exception:
+        DisputeModel = None
+
+if DisputeModel is not None:
+    # If already registered, extend its actions; otherwise register a minimal admin
+    existing = admin.site._registry.get(DisputeModel)
+    if existing:
+        existing.actions = list(set((existing.actions or []) + [export_disputes_csv]))
+    else:
+        @admin.register(DisputeModel)
+        class DisputeAdmin(admin.ModelAdmin):
+            list_display = ("id",)
+            actions = [export_disputes_csv]
