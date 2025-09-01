@@ -1,3 +1,4 @@
+# apps/tournaments/tests/test_admin_package_exports.py
 def test_admin_package_exports():
     from apps.tournaments.admin import (
         TournamentAdmin,
@@ -10,7 +11,6 @@ def test_admin_package_exports():
         export_disputes_csv,
         export_matches_csv,
     )
-    # Sanity: just ensure they’re importable/callable
     assert TournamentAdmin
     assert RegistrationAdmin
     assert callable(action_generate_bracket)

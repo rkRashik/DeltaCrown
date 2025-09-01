@@ -1,3 +1,4 @@
+# apps/tournaments/tests/test_admin_registry.py
 import importlib
 from django.contrib import admin
 from apps.tournaments.models import Tournament, Registration
