@@ -1,3 +1,6 @@
+{% load teams_extras %}
+
+
 {% if request.user.is_authenticated and membership %}
   <div class="d-flex gap-2 my-3">
     {% if membership.role == "captain" %}
@@ -39,9 +42,9 @@
         {% csrf_token %}
         <label for="new_captain">New Captain: </label>
         <select id="new_captain" name="new_captain">
-            {% for member in team.memberships.exclude(user=team.captain.user) %}
-                <option value="{{ member.user.id }}">{{ member.user.display_name }}</option>
-            {% endfor %}
+                {% for member in team.memberships.all|exclude_captain:team %}
+                    <option value="{{ member.user.id }}">{{ member.user.display_name }}</option>
+                {% endfor %}
         </select>
         <button type="submit">Transfer Captain Role</button>
     </form>

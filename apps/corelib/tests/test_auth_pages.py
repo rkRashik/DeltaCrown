@@ -16,6 +16,6 @@ def test_login_logout_flow(client):
     r = client.post("/accounts/login/", {"username": "demo", "password": "pass12345"}, follow=True)
     assert r.status_code == 200  # redirected to home
 
-    # Logout works
-    r = client.get("/accounts/logout/", follow=True)
+    # Logout should be POST in Django 5+
+    r = client.post("/accounts/logout/", follow=True)
     assert r.status_code == 200
