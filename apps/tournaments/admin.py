@@ -568,6 +568,141 @@ def export_disputes_csv(modeladmin, request, queryset):
 
 export_disputes_csv.short_description = "Export selected disputes to CSV"  # type: ignore[attr-defined]
 
+
+# =========================================
+# Admin Action: Export Matches to CSV
+# (schema-agnostic; header-only works with empty queryset)
+# =========================================
+def export_matches_csv(modeladmin, request, queryset):
+    """
+    Export selected Matches as CSV.
+    Resilient to attribute/name differences and safe with an empty queryset.
+    """
+    ts = timezone.now().strftime("%Y%m%d-%H%M%S")
+    filename = f"matches-{ts}.csv"
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "id",
+        "tournament_id",
+        "tournament_name",
+        "round_no",
+        "state",
+        "participant_a",
+        "participant_b",
+        "scheduled_at",
+        "reported_score_a",
+        "reported_score_b",
+        "winner_id",
+        "created_at",
+    ])
+
+    # Use the safe helper if it exists in this file; otherwise skip silently.
+    try:
+        queryset = _safe_select_related(
+            queryset,
+            [
+                "tournament",
+                "user_a", "user_b",
+                "team_a", "team_b",
+                "winner",
+            ],
+        )
+    except Exception:
+        pass
+
+    for m in queryset.order_by("id"):
+        t = getattr(m, "tournament", None)
+        t_id = getattr(t, "id", "")
+        t_name = getattr(t, "name", "")
+
+        # Participants (solo or team)
+        ua = getattr(m, "user_a", None)
+        ub = getattr(m, "user_b", None)
+        ta = getattr(m, "team_a", None)
+        tb = getattr(m, "team_b", None)
+
+        def _name(obj, *candidates):
+            for c in candidates:
+                v = getattr(obj, c, None)
+                if v:
+                    return str(v)
+            return str(obj) if obj else ""
+
+        participant_a = _name(ua, "username", "display_name") if ua else _name(ta, "tag", "name")
+        participant_b = _name(ub, "username", "display_name") if ub else _name(tb, "tag", "name")
+
+        # State/status
+        state = getattr(m, "state", None) or getattr(m, "status", None) or ""
+
+        # Scheduling
+        scheduled_at = (
+            getattr(m, "scheduled_at", None)
+            or getattr(m, "start_at", None)
+            or getattr(m, "scheduled_time", None)
+            or ""
+        )
+
+        # Reported scores
+        score_a = getattr(m, "score_a", None) or getattr(m, "reported_score_a", None) or ""
+        score_b = getattr(m, "score_b", None) or getattr(m, "reported_score_b", None) or ""
+
+        # Winner (id if we can reach it)
+        winner = getattr(m, "winner", None)
+        winner_id = getattr(winner, "id", "") if winner else ""
+
+        # Created timestamp variants
+        created_at = (
+            getattr(m, "created_at", None)
+            or getattr(m, "created", None)
+            or getattr(m, "created_on", None)
+            or getattr(m, "timestamp", None)
+            or ""
+        )
+
+        writer.writerow([
+            getattr(m, "id", ""),
+            t_id,
+            t_name,
+            getattr(m, "round_no", ""),
+            state,
+            participant_a,
+            participant_b,
+            scheduled_at,
+            score_a,
+            score_b,
+            winner_id,
+            created_at,
+        ])
+
+    return response
+
+export_matches_csv.short_description = "Export selected matches to CSV"  # type: ignore[attr-defined]
+
+# Conditionally attach to an existing Match admin or register a minimal one
+MatchModel = None
+try:
+    from .models import Match as _MatchModel
+    MatchModel = _MatchModel
+except Exception:
+    MatchModel = None
+
+if MatchModel is not None:
+    existing = admin.site._registry.get(MatchModel)
+    if existing:
+        existing.actions = list(set((existing.actions or []) + [export_matches_csv]))
+    else:
+        @admin.register(MatchModel)
+        class MatchAdmin(admin.ModelAdmin):
+            list_display = ("id",)
+            actions = [export_matches_csv]
+
+
+
+
 # ---- Attach the action to any existing Dispute admin, or register one if missing ----
 # Try the common model names
 DisputeModel = None
