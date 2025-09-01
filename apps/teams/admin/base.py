@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.http import HttpResponse
 from django.utils import timezone
-from .models import Team, TeamMembership, TeamInvite
 import csv
+from ..models import Team, TeamMembership, TeamInvite
 
 
 # ---------- Admin Action: Export Teams to CSV ----------

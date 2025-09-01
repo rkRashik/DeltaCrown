@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 
 from apps.teams.models import Team
 from apps.user_profile.models import UserProfile
-from apps.teams.admin import export_teams_csv
+from apps.teams.admin.base import export_teams_csv
 
 pytestmark = pytest.mark.django_db
 
