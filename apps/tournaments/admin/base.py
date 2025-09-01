@@ -3,13 +3,13 @@ from django.shortcuts import redirect
 from django.urls import path
 from django.utils.html import format_html
 from django.utils import timezone
-from .models import Tournament, Registration, Bracket, Match, TournamentSettings
+from ..models import Tournament, Registration, Bracket, Match, TournamentSettings
 from apps.game_efootball.models import EfootballConfig
 from apps.game_valorant.models import ValorantConfig
-from .services.scheduling import auto_schedule_matches, clear_schedule
+from ..services.scheduling import auto_schedule_matches, clear_schedule
 
 from django.template.response import TemplateResponse
-from .services.analytics import tournament_stats
+from ..services.analytics import tournament_stats
 from apps.notifications.models import Notification
 from django.http import HttpResponse
 import csv
@@ -685,7 +685,7 @@ export_matches_csv.short_description = "Export selected matches to CSV"  # type:
 # Conditionally attach to an existing Match admin or register a minimal one
 MatchModel = None
 try:
-    from .models import Match as _MatchModel
+    from ..models import Match as _MatchModel
     MatchModel = _MatchModel
 except Exception:
     MatchModel = None
@@ -707,11 +707,11 @@ if MatchModel is not None:
 # Try the common model names
 DisputeModel = None
 try:
-    from .models import Dispute as _DisputeModel
+    from ..models import Dispute as _DisputeModel
     DisputeModel = _DisputeModel
 except Exception:
     try:
-        from .models import MatchDispute as _DisputeModel
+        from ..models import MatchDispute as _DisputeModel
         DisputeModel = _DisputeModel
     except Exception:
         DisputeModel = None
