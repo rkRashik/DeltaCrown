@@ -17,6 +17,9 @@ class TeamAdmin(admin.ModelAdmin):
     search_fields = ("name", "tag", "captain__display_name", "captain__user__username")
     list_filter = ()  # keep conservative unless you have explicit fields to filter
 
+    # Query perf for changelist: captain -> user in one hop
+    list_select_related = ("captain__user",)
+
     # Attach inlines (moved from legacy base.py)
     inlines = [TeamMembershipInline, TeamInviteInline]
 
@@ -69,6 +72,10 @@ class TeamMembershipAdmin(admin.ModelAdmin):
     list_filter = ("role", "team")
     search_fields = ("team__name", "team__tag", "user__display_name", "user__user__username")
 
+    # UX + perf: autocompletes on FKs; reduce joins on changelist
+    autocomplete_fields = ("team", "user")
+    list_select_related = ("team", "user")
+
 
 @admin.register(TeamInvite)
 class TeamInviteAdmin(admin.ModelAdmin):
@@ -76,3 +83,7 @@ class TeamInviteAdmin(admin.ModelAdmin):
     list_filter = ("status", "team")
     search_fields = ("team__name", "invited_user__user__username", "token")
     readonly_fields = ("token",)
+
+    # UX + perf: autocompletes on FKs; reduce joins on changelist
+    autocomplete_fields = ("team", "invited_user", "invited_by")
+    list_select_related = ("team", "invited_user", "invited_by")
