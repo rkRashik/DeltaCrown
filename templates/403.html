@@ -1,22 +1,42 @@
 {% extends "base.html" %}
-{% block title %}403 Forbidden — DeltaCrown{% endblock %}
+{% block title %}403 — Access Denied · DeltaCrown{% endblock %}
 
 {% block content %}
+{% meta_tags title="403 — Access Denied" description="You don’t have permission to access this page." %}
+
 <section class="container" aria-labelledby="h1">
-  <div class="card p-4" style="max-width:720px;margin:4rem auto">
-    <header class="mb-3">
-      <h1 id="h1" class="mb-1">403 — You don’t have permission</h1>
-      <p class="text-muted mb-0">Sorry, you’re not allowed to view this page.</p>
-    </header>
+  <header class="mb-3">
+    <h1 id="h1" class="mb-1">Access denied</h1>
+    <p class="text-muted mb-0">Error 403</p>
+  </header>
 
-    <div class="mb-4">
-      <p>If you believe this is a mistake, try signing in with the correct account or return to the previous page.</p>
-    </div>
+  <article class="card p-3">
+    <p class="mb-2">
+      You don’t have access to this page. If you think this is a mistake, try signing in with the correct account or contact an admin.
+    </p>
 
-    <div class="d-flex gap-2">
-      <a href="/" class="btn btn-primary">Go home</a>
-      <button class="btn btn-outline" onclick="history.back()">Go back</button>
+    {% if reason %}
+      <div class="alert alert-info mt-3">
+        <div class="fw-medium mb-1">Details</div>
+        <p class="mb-0">{{ reason }}</p>
+      </div>
+    {% endif %}
+
+    {% if csrf_token and reason %}
+      <div class="alert alert-info mt-3">
+        <div class="fw-medium mb-1">This may be a CSRF issue</div>
+        <ul class="mb-0">
+          <li>Refresh the page and try again.</li>
+          <li>Make sure cookies are enabled for this site.</li>
+          <li>If you use multiple tabs or devices, re-login and resubmit.</li>
+        </ul>
+      </div>
+    {% endif %}
+
+    <div class="d-flex gap-2 mt-3">
+      <a class="btn btn-primary" href="{% url 'home' %}">Go home</a>
+      <button class="btn btn-outline" type="button" onclick="history.back()">Go Back</button>
     </div>
-  </div>
+  </article>
 </section>
 {% endblock %}
