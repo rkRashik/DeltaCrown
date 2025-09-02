@@ -3,6 +3,7 @@ from django.db import models
 from .paths import rules_upload_path
 from .enums import BracketVisibility
 
+
 class TournamentSettings(models.Model):
     tournament = models.OneToOneField("Tournament", on_delete=models.CASCADE, related_name="settings")
 
@@ -19,11 +20,11 @@ class TournamentSettings(models.Model):
     )
     region_lock = models.CharField(max_length=32, blank=True, default="")  # free-form scope label
 
-    # Check-in window (mins) — defaults expected by tests
+    # Check-in window (mins) — defaults required by tests
     check_in_open_mins = models.PositiveIntegerField(default=60)
     check_in_close_mins = models.PositiveIntegerField(default=15)
 
-    # Scheduling defaults (mins) — used by auto scheduling tests/helpers
+    # Scheduling defaults (mins) — used by auto scheduling helpers/tests
     round_duration_mins = models.PositiveIntegerField(default=40)
     round_gap_mins = models.PositiveIntegerField(default=5)
 

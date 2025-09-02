@@ -1,4 +1,4 @@
-# apps/teams/views.py
+# apps/teams/views_dashboard_impl.py
 from uuid import uuid4
 
 from django.apps import apps

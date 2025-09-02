@@ -1,6 +1,7 @@
 # apps/tournaments/models/dispute.py
 from django.db import models
 
+
 class MatchDispute(models.Model):
     match = models.ForeignKey("Match", on_delete=models.CASCADE, related_name="disputes")
     opened_by = models.ForeignKey(
@@ -18,7 +19,7 @@ class MatchDispute(models.Model):
         related_name="disputes_resolved",
     )
 
-    # Status flag used in views/tests: filter(match=m, is_open=True)
+    # Flag used by views/tests: .filter(match=m, is_open=True)
     is_open = models.BooleanField(default=True)
 
     status = models.CharField(

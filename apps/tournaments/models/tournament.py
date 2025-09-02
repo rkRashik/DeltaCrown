@@ -1,11 +1,11 @@
 # apps/tournaments/models/tournament.py
 from django.db import models
 from django.utils.text import slugify
-from django.utils import timezone  # retained if used elsewhere
 
-from .paths import tournament_banner_path, rules_pdf_path
+from .paths import tournament_banner_path, rules_pdf_path  # rules_pdf_path kept for compat if used anywhere
 
-# Module-level enum avoids indentation issues inside the model class
+
+# Module-level enum to avoid indentation bleed inside the model class
 class TournamentStatus(models.TextChoices):
     DRAFT = "DRAFT", "Draft"
     PUBLISHED = "PUBLISHED", "Published"
@@ -18,19 +18,17 @@ class Tournament(models.Model):
         VALORANT = "valorant", "Valorant"
         EFOOTBALL = "efootball", "eFootball Mobile"
 
-    # Back-compat alias so external code can still reference Tournament.Status
+    # Back-compat alias so code can keep using Tournament.Status
     Status = TournamentStatus
 
     # Identity
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, max_length=255)
-    short_description = models.CharField(max_length=255, blank=True, default="")  # expected by tests
+    short_description = models.CharField(max_length=255, blank=True, default="")
 
     # Core config
     game = models.CharField(max_length=20, choices=Game.choices)
-    status = models.CharField(
-        max_length=16, choices=Status.choices, default=Status.DRAFT
-    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
     banner = models.ImageField(upload_to=tournament_banner_path, blank=True, null=True)
 
     # Scheduling/registration windows

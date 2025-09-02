@@ -1,4 +1,4 @@
-# deltacrown/views.py
+# deltacrown/views_dashboard_impl.py
 from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse
 from django.http import JsonResponse
