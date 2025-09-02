@@ -18,18 +18,18 @@ class MatchDisputeAdmin(admin.ModelAdmin):
     search_fields = (
         "match__tournament__name",
         "match__id",
-        "reported_by__display_name",
-        "reported_by__user__username",
+        "opened_by__display_name",
+        "opened_by__user__username",
         "description",
     )
     date_hierarchy = "created_at"
 
     # Changelist perf: follow common relations if present
-    list_select_related = ("match", "match__tournament", "reported_by", "reported_by__user")
+    list_select_related = ("match", "match__tournament", "opened_by", "opened_by__user")
 
     try:
         # If your model exposes these FK fields, autocomplete is a nice UX win
-        autocomplete_fields = ("match", "reported_by")
+        autocomplete_fields = ("match", "opened_by")
     except Exception:
         # Keep admin import resilient even if field names change
         pass
@@ -37,12 +37,13 @@ class MatchDisputeAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         # Be defensive: select_related where possible to avoid N+1 without breaking
-        for rel in ("match", "match__tournament", "reported_by", "reported_by__user"):
+        for rel in ("match", "match__tournament", "opened_by", "opened_by__user"):
             try:
                 qs = qs.select_related(rel)
             except Exception:
                 pass
         return qs
+
 
     # ---------- Safe display helpers ----------
 
@@ -59,13 +60,15 @@ class MatchDisputeAdmin(admin.ModelAdmin):
     match_link.short_description = "Match"
 
     def reported_by_display(self, obj):
-        p = getattr(obj, "reported_by", None)
+        # Prefer opened_by; fall back to reported_by if present in older schemas
+        p = getattr(obj, "opened_by", None) or getattr(obj, "reported_by", None)
         if not p:
             return "-"
         u = getattr(p, "user", None)
         if u and getattr(u, "username", None):
             return u.username
         return getattr(p, "display_name", None) or str(p) or "-"
+
 
     reported_by_display.short_description = "Reporter"
 

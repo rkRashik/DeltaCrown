@@ -1,12 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Security check failed (403 CSRF){% endblock %}
+{% block title %}CSRF verification failed — DeltaCrown{% endblock %}
+
 {% block content %}
-<main id="content" class="container py-4" role="main" aria-labelledby="page-title">
-  <h1 id="page-title" class="mb-3">Security check failed</h1>
-  <p class="text-muted">CSRF verification failed. Please refresh the page and try again.</p>
-  {% if reason %}
-    <p class="text-muted"><small>Reason: {{ reason }}</small></p>
-  {% endif %}
-  <a class="btn btn-primary mt-3" href="{% url 'home' %}">Go home</a>
-</main>
+<section class="container" aria-labelledby="h1">
+  <div class="card p-4" style="max-width:720px;margin:4rem auto">
+    <header class="mb-3">
+      <h1 id="h1" class="mb-1">CSRF verification failed</h1>
+      <p class="text-muted mb-0">
+        {% if reason %}{{ reason }}{% else %}Your session may have expired, or the request didn’t include a valid security token (CSRF).{% endif %}
+      </p>
+    </header>
+
+    <div class="mb-4">
+      <ul class="mb-3">
+        <li>Refresh the page and try again.</li>
+        <li>Make sure cookies are enabled in your browser.</li>
+        <li>If the issue persists, sign out and sign back in.</li>
+      </ul>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="/" class="btn btn-primary">Go home</a>
+      <a href="{% url 'login' %}" class="btn btn-outline">Sign in</a>
+    </div>
+  </div>
+</section>
 {% endblock %}

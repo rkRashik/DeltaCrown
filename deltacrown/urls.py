@@ -20,6 +20,9 @@ urlpatterns = [
     # Health check
     path("healthz/", project_views.healthz, name="healthz"),
 
+    # Styleguide
+    path("ui/styleguide/", TemplateView.as_view(template_name="ui/styleguide.html"), name="styleguide"),
+
     # Admin
     path("admin/", admin.site.urls),
 

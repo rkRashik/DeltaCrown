@@ -2,91 +2,59 @@
 {% block title %}Dashboard — DeltaCrown{% endblock %}
 
 {% block content %}
-<main id="content" class="container py-4" role="main" aria-labelledby="page-title">
+<section aria-labelledby="page-title">
   <h1 id="page-title" class="mb-3">Dashboard</h1>
-
   <p class="text-muted">Welcome back{% if request.user.is_authenticated %}, {{ request.user.username }}{% endif %}.</p>
 
   <div class="row g-3 mt-3">
-    <div class="col-12 col-md-6">
+    <div class="col-12 col-lg-6">
       <div class="card p-3 h-100">
-        <h2 class="h5 mb-2">Quick actions</h2>
-        <ul class="mb-0">
-          <li><a href="{% url 'home' %}">Browse tournaments</a></li>
-          <li><a href="{% url 'login' %}">Sign in/out</a> (account)</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="col-12 col-md-6">
-      <div class="card p-3 h-100">
-        <h2 class="h5 mb-2">What’s next</h2>
-        <p class="mb-0">We’ll add upcoming matches, registrations, and notifications here.</p>
-      </div>
-    </div>
-
-    <!-- NEW: Upcoming matches -->
-    <div class="col-12">
-      <div class="card p-3">
         <h2 class="h5 mb-3">Upcoming matches</h2>
-
         {% if upcoming_matches %}
-          <div class="table-responsive">
-            <table class="table table-sm align-middle">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Tournament</th>
-                  <th>Round</th>
-                  <th>Participants</th>
-                  <th>State</th>
-                </tr>
-              </thead>
-              <tbody>
-              {% for m in upcoming_matches %}
-                <tr>
-                  <td>#{{ m.id }}</td>
-                  <td>{{ m.tournament.name }}</td>
-                  <td>{{ m.round_no }}</td>
-                  <td>
+          <ul class="list-unstyled mb-0">
+            {% for m in upcoming_matches %}
+              <li class="mb-3 p-2 rounded border d-flex align-items-center justify-content-between">
+                <div>
+                  <div class="small text-muted">Round {{ m.round_no }}</div>
+                  <div class="fw-medium">
                     {% if m.is_solo_match %}
-                      {{ m.user_a.display_name }} vs {{ m.user_b.display_name }}
+                      {{ m.user_a.display_name|default:"—" }} vs {{ m.user_b.display_name|default:"—" }}
                     {% else %}
-                      {{ m.team_a.tag }} vs {{ m.team_b.tag }}
+                      {{ m.team_a.tag|default:"—" }} vs {{ m.team_b.tag|default:"—" }}
                     {% endif %}
-                  </td>
-                  <td>{{ m.state }}</td>
-                </tr>
-              {% endfor %}
-              </tbody>
-            </table>
-          </div>
+                  </div>
+                  <div class="small text-muted">
+                    {{ m.tournament.name }} ·
+                    <span>
+                      {% if m.scheduled_at %}{{ m.scheduled_at|date:"M d, Y h:i A" }}{% else %}Time: —{% endif %}
+                    </span>
+                  </div>
+                </div>
+                <div class="d-flex gap-2">
+                  <a class="btn btn-sm btn-outline" href="{% url 'tournaments:match_review' m.id %}">Review</a>
+                  <a class="btn btn-sm btn-primary" href="{% url 'tournaments:match_report' m.id %}">Report</a>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
         {% else %}
-          <div class="alert alert-info mb-0">No upcoming matches yet. Join a tournament to get started.</div>
+          <div class="alert alert-info mb-0">No upcoming matches</div>
         {% endif %}
       </div>
     </div>
 
-        <!-- NEW: Recent notifications -->
-    <div class="col-12">
-      <div class="card p-3">
+    <div class="col-12 col-lg-6">
+      <div class="card p-3 h-100">
         <h2 class="h5 mb-3">Recent notifications</h2>
-
         {% if recent_notifications %}
-          <ul class="list-unstyled mb-0">
+          <ul class="mb-0 list-unstyled">
             {% for n in recent_notifications %}
               <li class="mb-2">
-                <span class="d-block">
-                  {# Try common text fields; otherwise fallback to stringified object #}
-                  {{ n.text|default:n.message|default:n.title|default:n.verb|default:n }}
-                </span>
-                <small class="text-muted">
-                  {# Try common timestamp fields; otherwise hide #}
+                <div class="fw-medium">{{ n.title|default:n.subject|default:"Notification" }}</div>
+                <div class="small text-muted">
                   {% if n.created_at %}{{ n.created_at|date:"M d, Y h:i A" }}
-                  {% elif n.created %}{{ n.created|date:"M d, Y h:i A" }}
-                  {% elif n.created_on %}{{ n.created_on|date:"M d, Y h:i A" }}
                   {% elif n.timestamp %}{{ n.timestamp|date:"M d, Y h:i A" }}{% endif %}
-                </small>
+                </div>
               </li>
             {% endfor %}
           </ul>
@@ -95,7 +63,6 @@
         {% endif %}
       </div>
     </div>
-
   </div>
-</main>
+</section>
 {% endblock %}

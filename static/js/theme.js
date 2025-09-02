@@ -1,61 +1,58 @@
-// DeltaCrown Theme (no visible toggle)
-// Behavior:
-// 1) If URL has ?theme=light|dark|auto → persist to localStorage and apply.
-// 2) Else if localStorage 'dc-theme' exists → apply.
-// 3) Else → follow OS (prefers-color-scheme). No data-theme attribute set.
-//
-// You can override anytime by visiting /page?theme=dark or /page?theme=auto
-
+// static/js/theme.js
+// Theme toggle + persistence
 (function () {
-  const KEY = "dc-theme";
+  const KEY = "dc-theme"; // 'light' | 'dark' | 'auto'
   const root = document.documentElement;
-  const allowed = new Set(["light", "dark", "auto"]);
 
-  function setTheme(value) {
-    if (value === "auto" || !value) {
-      // Remove explicit override → let CSS media query handle it
-      root.removeAttribute("data-theme");
+  function apply(theme) {
+    if (!theme || theme === "auto") {
+      root.removeAttribute("data-theme"); // let prefers-color-scheme drive
       localStorage.setItem(KEY, "auto");
-      return "auto";
+      return;
     }
-    root.setAttribute("data-theme", value);
-    localStorage.setItem(KEY, value);
-    return value;
+    root.setAttribute("data-theme", theme);
+    localStorage.setItem(KEY, theme);
   }
 
-  // 1) URL param override (e.g., ?theme=dark)
-  try {
-    const url = new URL(window.location.href);
-    const q = url.searchParams.get("theme");
-    if (q && allowed.has(q)) {
-      setTheme(q);
-      // clean param from URL without reload
-      url.searchParams.delete("theme");
-      window.history.replaceState({}, "", url.toString());
-      return; // done for this load
-    }
-  } catch (_) {}
-
-  // 2) Stored preference
-  const stored = localStorage.getItem(KEY);
-  if (allowed.has(stored)) {
-    setTheme(stored);
-    return;
+  function get() {
+    return localStorage.getItem(KEY) || "auto";
   }
 
-  // 3) Default to auto (OS)
-  setTheme("auto");
+  // Initialize
+  apply(get());
 
-  // Optional: react to OS changes only when in auto
+  // Button binding
+  function nextTheme(current) {
+    // cycle: auto -> dark -> light -> auto
+    if (current === "auto") return "dark";
+    if (current === "dark") return "light";
+    return "auto";
+  }
+
+  function updateButtonVisual(btn, theme) {
+    if (!btn) return;
+    btn.setAttribute("data-theme", theme);
+    btn.title = "Theme: " + theme;
+  }
+
+  function bind() {
+    const btn = document.getElementById("theme-toggle");
+    if (!btn) return;
+    updateButtonVisual(btn, get());
+    btn.addEventListener("click", () => {
+      const n = nextTheme(get());
+      apply(n);
+      updateButtonVisual(btn, n);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", bind);
+
+  // React to OS changes when in auto
   try {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     media.addEventListener("change", () => {
-      if ((localStorage.getItem(KEY) || "auto") === "auto") {
-        setTheme("auto"); // ensures attribute is absent
-      }
+      if (get() === "auto") apply("auto");
     });
   } catch (_) {}
-
-  // Small helper for dev console: window.setTheme('light'|'dark'|'auto')
-  window.setTheme = setTheme;
 })();

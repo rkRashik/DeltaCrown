@@ -81,11 +81,11 @@ class RegistrationAdmin(admin.ModelAdmin):
     search_fields = ("payment_reference", "payment_sender")
     actions = [action_verify_payment, action_reject_payment]
 
-    list_select_related = ("tournament", "player", "player__user")  # 'player' could be a UserProfile
+    list_select_related = ("tournament", "user", "user__user")  # 'user' is a UserProfile FK
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        for rel in ("tournament", "player", "player__user", "team"):
+        for rel in ("tournament", "user", "user__user", "team"):
             try:
                 qs = qs.select_related(rel)
             except Exception:
@@ -94,7 +94,8 @@ class RegistrationAdmin(admin.ModelAdmin):
 
     # If you have raw_id_fields or autocomplete, keep them; otherwise:
     try:
-        autocomplete_fields = ("tournament", "player", "team")  # safe if fields exist
+        autocomplete_fields = ("tournament", "user", "team")  # align with models.Registration
     except Exception:
         pass
+
 

@@ -1,1 +1,22 @@
-{% include "errors/403.html" %}
+{% extends "base.html" %}
+{% block title %}403 Forbidden — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container" aria-labelledby="h1">
+  <div class="card p-4" style="max-width:720px;margin:4rem auto">
+    <header class="mb-3">
+      <h1 id="h1" class="mb-1">403 — You don’t have permission</h1>
+      <p class="text-muted mb-0">Sorry, you’re not allowed to view this page.</p>
+    </header>
+
+    <div class="mb-4">
+      <p>If you believe this is a mistake, try signing in with the correct account or return to the previous page.</p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="/" class="btn btn-primary">Go home</a>
+      <button class="btn btn-outline" onclick="history.back()">Go back</button>
+    </div>
+  </div>
+</section>
+{% endblock %}
