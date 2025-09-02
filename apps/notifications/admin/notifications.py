@@ -1,5 +1,6 @@
 # apps/notifications/admin/notifications.py
 from django.contrib import admin
+from apps.corelib.admin_utils import _path_exists
 
 from ..models import Notification
 from .exports import export_notifications_csv
@@ -20,6 +21,19 @@ class NotificationAdmin(admin.ModelAdmin):
     # No brittle filters/search fields unless you explicitly add fields in the model
     list_filter = ()
     search_fields = ()
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Try to avoid N+1 on a “user-like” relation in a schema-tolerant way.
+        for rel in ("user", "recipient", "to_user", "profile__user", "user_profile__user"):
+            try:
+                if _path_exists(Notification, rel):
+                    qs = qs.select_related(rel)
+            except Exception:
+                # Be defensive: ignore if an unexpected model tweak breaks a path
+                pass
+        return qs
+
 
     # ---- Query optimization (safe) ----
     def get_queryset(self, request):

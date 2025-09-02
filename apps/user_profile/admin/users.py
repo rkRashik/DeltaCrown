@@ -13,6 +13,18 @@ class UserProfileAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     actions = [export_userprofiles_csv]
 
+    # UX + perf
+    list_select_related = ("user",)
+    autocomplete_fields = ("user",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        try:
+            return qs.select_related("user")
+        except Exception:
+            return qs
+
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         # Optimize common relation; ignore if schema differs
