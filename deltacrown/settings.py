@@ -65,10 +65,13 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "apps.notifications.context_processors.notification_counts",
+                "apps.common.context.ui_settings",
+
 
             ],
             'builtins': [
                 'apps.common.templatetags.seo_tags',
+                'apps.common.templatetags.assets',
             ],
         },
     },

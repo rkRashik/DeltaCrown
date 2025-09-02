@@ -8,10 +8,10 @@
     <meta name="color-scheme" content="light dark" />
     <title>{% block title %}DeltaCrown{% endblock %}</title>
 
-    <!-- Design system CSS -->
-    <link rel="stylesheet" href="{% static 'src/css/tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'src/css/utilities.css' %}">
-    <link rel="stylesheet" href="{% static 'src/css/components.css' %}">
+    <!-- Design system CSS (via the asset tag for cache-busting and build switch) -->
+    <link rel="stylesheet" href="{% asset 'src/css/tokens.css' %}">
+    <link rel="stylesheet" href="{% asset 'src/css/utilities.css' %}">
+    <link rel="stylesheet" href="{% asset 'src/css/components.css' %}">
 
     <!-- Legacy/base CSS kept to avoid regressions -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
@@ -91,9 +91,9 @@
     </footer>
 
     <script defer src="{% static 'js/theme.js' %}"></script>
-    <script type="module" src="{% static 'src/js/toasts.js' %}"></script>
-    <script type="module" src="{% static 'src/js/helpers.js' %}"></script>
-    <script type="module" src="{% static 'src/js/forms.js' %}"></script>
+    <script type="module" src="{% asset 'src/js/toasts.js' %}"></script>
+    <script type="module" src="{% asset 'src/js/helpers.js' %}"></script>
+    <script type="module" src="{% asset 'src/js/forms.js' %}"></script>
     {% block extra_js %}{% endblock %}
 
     {% include "partials/footer.html" %}
