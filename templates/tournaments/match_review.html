@@ -4,6 +4,11 @@
 {% block content %}
 <h1 class="mb-3">Match Review</h1>
 
+{# Share actions (Bangladesh-favored), reuse the same partial as tournament detail #}
+{% with share_title=match.tournament.name|default:"Match Review" %}
+  {% include "partials/share_block_bd.html" with title=share_title %}
+{% endwith %}
+
 <div class="card mb-3">
   <div class="card-body">
     <div class="row">
