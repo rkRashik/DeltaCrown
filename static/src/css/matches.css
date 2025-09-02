@@ -1,0 +1,12 @@
+/* static/src/css/matches.css */
+/* Small, page-scoped tweaks for match pages */
+.match-header{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+.match-meta{font-size:.9rem;color:var(--muted)}
+.vs-wrap{display:flex;align-items:center;gap:.5rem;font-size:1.05rem}
+.vs-wrap strong{font-weight:700}
+.vs-dot{opacity:.5}
+.timeline{display:flex;flex-direction:column;gap:.5rem}
+.timeline-item{border:1px solid var(--border);border-radius:var(--radius-sm);padding:.5rem .75rem;background:var(--card)}
+.timeline-item .t{font-size:.8rem;color:var(--muted)}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+@media (max-width:640px){.report-grid{grid-template-columns:1fr}}
