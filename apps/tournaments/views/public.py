@@ -9,9 +9,23 @@ from django.utils import timezone
 from apps.notifications.services import send_payment_instructions_email
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.core.exceptions import FieldDoesNotExist
+from apps.corelib.admin_utils import _safe_select_related
+
 
 def tournament_list(request):
     qs = Tournament.objects.all()
+    # Performance: avoid N+1 on one-to-one settings; keep list payload light
+    qs = _safe_select_related(qs, "settings")
+
+    # Defer heavy field only if it exists on Tournament
+    try:
+        Tournament._meta.get_field("bank_instructions")
+    except FieldDoesNotExist:
+        pass
+    else:
+        qs = qs.defer("bank_instructions")
+
 
     # --- Filters & search ---
     q = (request.GET.get("q") or "").strip()
@@ -67,7 +81,14 @@ def tournament_list(request):
 
 
 def tournament_detail(request, slug):
-    t = get_object_or_404(Tournament, slug=slug)
+    qs = _safe_select_related(Tournament.objects.all(), "settings", "bracket")
+    try:
+        # Prefetch heavy relations if they exist; ignore if names differ
+        qs = qs.prefetch_related("registrations", "matches")
+    except Exception:
+        pass
+    t = get_object_or_404(qs, slug=slug)
+
     return render(request, "tournaments/detail.html", {"t": t})
 
 

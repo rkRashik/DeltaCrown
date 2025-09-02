@@ -46,7 +46,13 @@ def team_detail(request, team_id: int):
     """
     Overview page: roster + pending invites + captain tools.
     """
-    team = get_object_or_404(Team, pk=team_id)
+    team_qs = Team.objects.all()
+    try:
+        team_qs = team_qs.select_related("captain__user")
+    except Exception:
+        pass
+    team = get_object_or_404(team_qs, pk=team_id)
+
     memberships = (
         team.memberships.select_related("user__user")
         .all()
@@ -269,6 +275,12 @@ def team_list(request):
     q = (request.GET.get("q") or "").strip()
 
     qs = Team.objects.all()
+    # Performance: fetch captain->user in one query (safe if field exists)
+    try:
+        qs = qs.select_related("captain__user")
+    except Exception:
+        pass
+
     filters = Q()
     for field in ("name", "tag", "slug"):
         try:
