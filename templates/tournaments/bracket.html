@@ -1,144 +1,99 @@
 {% extends "base.html" %}
-{% block title %}{% if tournament %}{{ tournament.name }} — {% endif %}Bracket — DeltaCrown{% endblock %}
+{% block title %}Bracket — {{ tournament.name|default:"Tournament" }} · DeltaCrown{% endblock %}
 
 {% block content %}
-<section aria-labelledby="h1">
+{% meta_tags
+  title="Bracket — "|add:tournament.name|default:"Bracket"
+  description="Tournament bracket, rounds, and matches."
+%}
+
+<section aria-labelledby="h1" data-testid="tournament-bracket">
   <header class="d-flex align-items-center justify-content-between mb-3">
-    <h1 id="h1" class="mb-0">Tournament Bracket</h1>
+    <div>
+      <h1 id="h1" class="mb-1">Bracket</h1>
+      <p class="text-muted mb-0">
+        {{ tournament.name|default:"Tournament" }}
+        {% if tournament.game_name %} · {{ tournament.game_name }}{% endif %}
+      </p>
+    </div>
     <div class="d-flex gap-2">
-      {% if tournament %}
-        <a class="btn btn-outline" href="{% url 'tournaments:detail' tournament.slug %}">Back to tournament</a>
-      {% else %}
-        <a class="btn btn-outline" href="{% url 'tournaments:list' %}">All tournaments</a>
-      {% endif %}
+      <a class="btn btn-outline" href="{% url 'tournaments:detail' tournament.slug %}">Back to Tournament</a>
     </div>
   </header>
 
-  {# Defensive messaging if no data #}
-  {% if rounds or matches_by_round or bracket %}
-    <div class="bracket-scroll" role="region" aria-label="Tournament bracket">
+  {#
+    Expected context (defensive):
+      - rounds: iterable of round objects
+        round.title / round.name
+        round.matches -> iterable
+          match.round_no, match.scheduled_at
+          match.team_a{tag|name}/user_a{display_name|username}
+          match.team_b{tag|name}/user_b{display_name|username}
+          match.score_a, match.score_b
+          match.id (for review URL)
+          match.status (optional)
+  #}
+
+  {% with rs=rounds|default:bracket.rounds %}
+  <div class="bracket-scroll" role="region" aria-label="Bracket rounds">
+    {% if rs %}
       <div class="bracket-grid">
+        {% for r in rs %}
+          <section class="bracket-round" aria-labelledby="round-{{ forloop.counter }}">
+            <h2 id="round-{{ forloop.counter }}" class="bracket-round-header">
+              {{ r.title|default:r.name|default:"Round " }}{% if not r.title and not r.name %}{{ forloop.counter }}{% endif %}
+            </h2>
 
-        {# Case 1: rounds = [{name, matches:[...]}] #}
-        {% if rounds %}
-          {% for r in rounds %}
-            <div class="bracket-round">
-              <div class="bracket-round-header">{{ r.name|default:"Round "}}{{ r.number|default:forloop.counter }}</div>
+            {% if r.matches %}
               {% for m in r.matches %}
                 <article class="match-card">
                   <div class="match-meta">
-                    {% if m.scheduled_at %}{{ m.scheduled_at|date:"M d, Y h:i A" }} · {% endif %}
-                    {% if m.tournament %}{{ m.tournament.name }}{% elif tournament %}{{ tournament.name }}{% endif %}
-                    {% if m.round_no %} · R{{ m.round_no }}{% endif %}
+                    {% if m.round_no %}Round {{ m.round_no }} · {% endif %}
+                    {% if m.scheduled_at %}{{ m.scheduled_at|date:"M d, Y h:i A" }}{% else %}TBD{% endif %}
+                    {% if m.status %} · {{ m.status|title }}{% endif %}
                   </div>
-                  <div class="match-teams">
-                    <div class="match-team">
-                      <span>
-                        {{ m.team_a.tag|default:m.team_a_name|default:m.user_a.display_name|default:"TBD" }}
-                      </span>
-                      {% if m.score_a is not None %}<strong>{{ m.score_a }}</strong>{% endif %}
-                    </div>
-                    <div class="match-team">
-                      <span>
-                        {{ m.team_b.tag|default:m.team_b_name|default:m.user_b.display_name|default:"TBD" }}
-                      </span>
-                      {% if m.score_b is not None %}<strong>{{ m.score_b }}</strong>{% endif %}
-                    </div>
-                  </div>
-                  <div class="match-actions">
-                    {% if m.id %}
-                      <a class="btn btn-outline btn-sm" href="{% url 'tournaments:match_review' m.id %}">Review</a>
-                      <a class="btn btn-primary btn-sm" href="{% url 'tournaments:match_report' m.id %}">Report</a>
-                    {% endif %}
-                  </div>
-                </article>
-              {% empty %}
-                <div class="alert alert-info">No matches in this round.</div>
-              {% endfor %}
-            </div>
-          {% endfor %}
-        {% elif matches_by_round %}
-          {# Case 2: matches_by_round = {"Round 1":[...], ...} #}
-          {% for round_name, mm in matches_by_round.items %}
-            <div class="bracket-round">
-              <div class="bracket-round-header">{{ round_name }}</div>
-              {% for m in mm %}
-                <article class="match-card">
-                  <div class="match-meta">
-                    {% if m.scheduled_at %}{{ m.scheduled_at|date:"M d, Y h:i A" }} · {% endif %}
-                    {% if m.tournament %}{{ m.tournament.name }}{% elif tournament %}{{ tournament.name }}{% endif %}
-                    {% if m.round_no %} · R{{ m.round_no }}{% endif %}
-                  </div>
-                  <div class="match-teams">
-                    <div class="match-team">
-                      <span>
-                        {{ m.team_a.tag|default:m.team_a_name|default:m.user_a.display_name|default:"TBD" }}
-                      </span>
-                      {% if m.score_a is not None %}<strong>{{ m.score_a }}</strong>{% endif %}
-                    </div>
-                    <div class="match-team">
-                      <span>
-                        {{ m.team_b.tag|default:m.team_b_name|default:m.user_b.display_name|default:"TBD" }}
-                      </span>
-                      {% if m.score_b is not None %}<strong>{{ m.score_b }}</strong>{% endif %}
-                    </div>
-                  </div>
-                  <div class="match-actions">
-                    {% if m.id %}
-                      <a class="btn btn-outline btn-sm" href="{% url 'tournaments:match_review' m.id %}">Review</a>
-                      <a class="btn btn-primary btn-sm" href="{% url 'tournaments:match_report' m.id %}">Report</a>
-                    {% endif %}
-                  </div>
-                </article>
-              {% empty %}
-                <div class="alert alert-info">No matches in this round.</div>
-              {% endfor %}
-            </div>
-          {% endfor %}
-        {% elif bracket and bracket.rounds %}
-          {# Case 3: bracket.rounds accessor #}
-          {% for r in bracket.rounds %}
-            <div class="bracket-round">
-              <div class="bracket-round-header">{{ r.name|default:"Round "}}{{ r.number|default:forloop.counter }}</div>
-              {% for m in r.matches %}
-                <article class="match-card">
-                  <div class="match-meta">
-                    {% if m.scheduled_at %}{{ m.scheduled_at|date:"M d, Y h:i A" }} · {% endif %}
-                    {% if m.tournament %}{{ m.tournament.name }}{% elif tournament %}{{ tournament.name }}{% endif %}
-                    {% if m.round_no %} · R{{ m.round_no }}{% endif %}
-                  </div>
-                  <div class="match-teams">
-                    <div class="match-team">
-                      <span>
-                        {{ m.team_a.tag|default:m.team_a_name|default:m.user_a.display_name|default:"TBD" }}
-                      </span>
-                      {% if m.score_a is not None %}<strong>{{ m.score_a }}</strong>{% endif %}
-                    </div>
-                    <div class="match-team">
-                      <span>
-                        {{ m.team_b.tag|default:m.team_b_name|default:m.user_b.display_name|default:"TBD" }}
-                      </span>
-                      {% if m.score_b is not None %}<strong>{{ m.score_b }}</strong>{% endif %}
-                    </div>
-                  </div>
-                  <div class="match-actions">
-                    {% if m.id %}
-                      <a class="btn btn-outline btn-sm" href="{% url 'tournaments:match_review' m.id %}">Review</a>
-                      <a class="btn btn-primary btn-sm" href="{% url 'tournaments:match_report' m.id %}">Report</a>
-                    {% endif %}
-                  </div>
-                </article>
-              {% empty %}
-                <div class="alert alert-info">No matches in this round.</div>
-              {% endfor %}
-            </div>
-          {% endfor %}
-        {% endif %}
 
+                  <div class="match-teams">
+                    <div class="match-team">
+                      <span>
+                        {% firstof m.team_a.tag m.team_a.name m.user_a.display_name m.user_a.username "Team A" %}
+                      </span>
+                      <strong>{% if m.score_a is not None %}{{ m.score_a }}{% else %}—{% endif %}</strong>
+                    </div>
+                    <div class="match-team">
+                      <span>
+                        {% firstof m.team_b.tag m.team_b.name m.user_b.display_name m.user_b.username "Team B" %}
+                      </span>
+                      <strong>{% if m.score_b is not None %}{{ m.score_b }}{% else %}—{% endif %}</strong>
+                    </div>
+                  </div>
+
+                  <div class="match-actions">
+                    {% if m.url %}
+                      <a class="btn btn-outline btn-sm" href="{{ m.url }}">Open</a>
+                    {% elif m.id %}
+                      <a class="btn btn-outline btn-sm" href="{% url 'tournaments:match_review' m.id %}">Open</a>
+                    {% endif %}
+                  </div>
+                </article>
+              {% endfor %}
+            {% else %}
+              <div class="text-muted small">No matches in this round yet.</div>
+            {% endif %}
+          </section>
+        {% endfor %}
       </div>
-    </div>
-  {% else %}
-    <div class="alert alert-info">Bracket isn’t available yet.</div>
-  {% endif %}
+    {% else %}
+      <article class="card p-3">
+        <div class="fw-medium mb-1">No bracket rounds to display</div>
+        <p class="mb-0 text-muted">The bracket will appear once matches are generated.</p>
+      </article>
+    {% endif %}
+  </div>
+  {% endwith %}
+
+  <div class="mt-3">
+    {% include "partials/share_block_bd.html" with title="Bracket — "|add:tournament.name %}
+  </div>
 </section>
 {% endblock %}

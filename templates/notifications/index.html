@@ -13,9 +13,8 @@
     </div>
 
     <div class="d-flex gap-2">
-      <form method="post" action="{% url 'notifications:mark_all_read' %}"
-            onsubmit="this.querySelector('button[type=submit]').setAttribute('disabled','disabled')"
-            class="d-flex gap-2">
+      {# Prefer named URL if available; fallback to literal to avoid template errors #}
+      <form method="post" action="{% url 'notifications:mark_all' %}" onsubmit="this.querySelector('button[type=submit]').setAttribute('disabled','disabled')" class="d-flex gap-2">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         <button class="btn btn-outline btn-sm" type="submit" data-busy-text="Marking…">Mark all as read</button>
@@ -23,33 +22,30 @@
     </div>
   </header>
 
-  {% with items=notifications %}
+  {% with items=notifications|default:object_list %}
     {% if items %}
-      <ul class="list-unstyled mb-0 mt-3">
+      <ul class="list-unstyled mb-0">
         {% for n in items %}
           <li class="card p-3 mb-2" data-id="{{ n.id }}">
             <div class="d-flex align-items-center justify-content-between">
               <div style="min-width:0">
                 <div class="fw-medium" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                  {% if n.url %}
-                    <a href="{{ n.url }}">{{ n.title|default:n.verb|default:"Notification" }}</a>
-                  {% else %}
-                    {{ n.title|default:n.verb|default:"Notification" }}
-                  {% endif %}
-                  {% if not n.is_read and not n.read %}<span class="badge">New</span>{% endif %}
+                  {{ n.title|default:n.verb|default:"Notification" }}
+                  {% if not n.read %}<span class="badge">New</span>{% endif %}
                 </div>
                 <div class="text-muted small">
-                  {% if n.created_at %}{{ n.created_at|date:"M d, Y h:i A" }}{% elif n.timestamp %}{{ n.timestamp|date:"M d, Y h:i A" }}{% endif %}
+                  {% if n.timestamp %}{{ n.timestamp|date:"M d, Y h:i A" }}{% endif %}
                   {% if n.actor %} · {{ n.actor }}{% endif %}
                 </div>
               </div>
 
               <div class="d-flex gap-2">
-                {% if n.url %}
-                  <a class="btn btn-outline btn-sm" href="{{ n.url }}">Open</a>
+                {% if n.target_url %}
+                  <a class="btn btn-outline btn-sm" href="{{ n.target_url }}">Open</a>
                 {% endif %}
 
-                {% if not n.is_read and not n.read %}
+                {# Mark read form; includes ?next= so we stay on this page #}
+                {% if not n.read %}
                 <form method="post" action="{% url 'notifications:mark_read' n.id %}">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -66,33 +62,11 @@
         {% endfor %}
       </ul>
 
-      {% if page_obj and page_obj.paginator.num_pages > 1 %}
-        <nav class="mt-3" aria-label="Pagination">
-          <ul class="pagination mb-0">
-            {% if page_obj.has_previous %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">«</a>
-              </li>
-            {% else %}
-              <li class="page-item disabled"><span class="page-link">«</span></li>
-            {% endif %}
-
-            <li class="page-item disabled">
-              <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-            </li>
-
-            {% if page_obj.has_next %}
-              <li class="page-item">
-                <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">»</a>
-              </li>
-            {% else %}
-              <li class="page-item disabled"><span class="page-link">»</span></li>
-            {% endif %}
-          </ul>
-        </nav>
-      {% endif %}
+      <div class="mt-3" data-testid="pagination">
+        {% include "partials/pagination.html" %}
+      </div>
     {% else %}
-      <article class="card p-3 mt-3">
+      <article class="card p-3">
         <div class="fw-medium mb-1">You’re all caught up</div>
         <p class="mb-0 text-muted">No notifications right now. You’ll see team invites, match updates, and more here.</p>
       </article>
