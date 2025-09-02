@@ -8,13 +8,15 @@
     <meta name="color-scheme" content="light dark" />
     <title>{% block title %}DeltaCrown{% endblock %}</title>
 
-    {# Design system CSS (Theme A) #}
+    <!-- Design system CSS -->
     <link rel="stylesheet" href="{% static 'src/css/tokens.css' %}">
     <link rel="stylesheet" href="{% static 'src/css/utilities.css' %}">
-    {# Legacy/base CSS kept for now to avoid regressions #}
+    <link rel="stylesheet" href="{% static 'src/css/components.css' %}">
+
+    <!-- Legacy/base CSS kept to avoid regressions -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
-    {# Canonical + Open Graph live inside blocks so pages can override with {% meta_tags %} #}
+    <!-- Canonical + Open Graph defaults (pages can override) -->
     <link rel="canonical" href="{{ request.build_absolute_uri }}"/>
     {% block meta_og %}
       <meta property="og:site_name" content="DeltaCrown"/>

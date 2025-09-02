@@ -1,0 +1,68 @@
+/* static/src/css/components.css */
+
+/* Alerts (used in various places) */
+.alert{border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem}
+.alert-info{background:var(--bg-elevated)}
+
+/* Bracket layout */
+.bracket-scroll{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:var(--sp-3);
+}
+.bracket-grid{
+  display:flex;
+  align-items:stretch;
+  gap:var(--sp-5);
+  min-width:720px; /* ensures columns don’t crush on very small screens */
+  padding-bottom:var(--sp-3);
+}
+.bracket-round{
+  min-width:220px;
+  flex:0 0 auto;
+}
+.bracket-round-header{
+  font-weight:600;
+  margin-bottom:var(--sp-3);
+  opacity:.9;
+}
+.match-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-md);
+  box-shadow:var(--shadow-1);
+  padding:.75rem;
+  margin-bottom:var(--sp-3);
+}
+.match-meta{
+  font-size:.8rem;
+  color:var(--muted);
+  margin-bottom:.25rem;
+}
+.match-teams{
+  display:flex;
+  flex-direction:column;
+  gap:.25rem;
+  margin-bottom:.5rem;
+}
+.match-team{
+  display:flex;
+  justify-content:space-between;
+  gap:.5rem;
+}
+.match-actions{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+}
+.match-actions .btn{
+  padding:.35rem .6rem;
+  font-size:.85rem;
+}
+
+/* Small screens: a bit tighter */
+@media (max-width:640px){
+  .bracket-round{min-width:180px}
+  .match-card{padding:.6rem}
+  .match-actions .btn{font-size:.8rem}
+}
