@@ -46,4 +46,5 @@ def export_userprofiles_csv(modeladmin, request, queryset):
     return stream_csv("user-profiles", header, _rows())
 
 
+# Keep the admin action label
 export_userprofiles_csv.short_description = "Export selected user profiles to CSV"  # type: ignore[attr-defined]
