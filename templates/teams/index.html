@@ -30,9 +30,10 @@
       {% if items %}
         <div class="d-flex flex-wrap g-3">
           {% for team in items %}
+            {% with href=team.get_absolute_url|default:'/teams/'|add:team.tag|default:''|add:'/' %}
             <article class="card p-3" style="flex:1 1 320px;min-width:280px">
               <div class="fw-medium mb-1">
-                <a href="{{ team.get_absolute_url|default:'/teams/'|add:team.tag|default:''|add:'/' }}">{{ team.name|default:team.tag|default:"Team" }}</a>
+                <a href="{{ href }}">{{ team.name|default:team.tag|default:"Team" }}</a>
               </div>
               <div class="text-muted mb-2">
                 <span class="badge">{{ team.tag|default:"—" }}</span>
@@ -44,9 +45,13 @@
                 {% else %}—{% endif %}
               </div>
               {% if team.created_at %}
-                <div class="text-muted">Created {{ team.created_at|date:"M d, Y" }}</div>
+                <div class="text-muted mb-2">Created {{ team.created_at|date:"M d, Y" }}</div>
               {% endif %}
+              <div class="d-flex gap-2">
+                <a class="btn btn-outline btn-sm" href="{{ href }}">View</a>
+              </div>
             </article>
+            {% endwith %}
           {% endfor %}
         </div>
       {% else %}

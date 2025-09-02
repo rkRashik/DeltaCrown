@@ -1,107 +1,106 @@
 {% extends "base.html" %}
-{% load static %}
-{% load humanize %}
-{% load core_meta %}
-
-{# --------------------------------------------------------------------
-   SEO meta (canonical + Open Graph). No Twitter/X tags, BD-friendly.
-   -------------------------------------------------------------------- #}
-{% block meta_og %}
-  {% with title=t.name desc=t.short_description|default:"Tournament details and bracket." %}
-    {% if t.banner %}
-      {% meta_tags request title=title description=desc image=t.banner.url %}
-    {% else %}
-      {% meta_tags request title=title description=desc %}
-    {% endif %}
-  {% endwith %}
-{% endblock %}
-
-{% block title %}{{ t.name }} — DeltaCrown{% endblock %}
+{% block title %}{{ tournament.name|default:"Tournament" }} — DeltaCrown{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+{% meta_tags
+  title=tournament.name|default:"Tournament"
+  description=tournament.short_description|default:tournament.description|default:"Tournament details, rules, schedule, and bracket."
+%}
 
-  {# Header #}
-  <header class="mb-3">
-    <h1 class="mb-2">{{ t.name }}</h1>
-    <p class="text-muted mb-0">
-      {% if t.start_at %}Starts: {{ t.start_at|date:"M d, Y h:i A" }}{% endif %}
-      {% if t.end_at %} · Ends: {{ t.end_at|date:"M d, Y h:i A" }}{% endif %}
-      {% if t.slot_size %} · Slots: {{ t.slot_size|intcomma }}{% endif %}
-      {% if t.status %} · Status: <span class="badge bg-secondary">{{ t.status }}</span>{% endif %}
-    </p>
+<section aria-labelledby="h1" data-testid="tournament-detail">
+  <!-- Hero -->
+  <header class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h1 id="h1" class="mb-1">{{ tournament.name|default:"Tournament" }}</h1>
+      <p class="text-muted mb-0">
+        {% if tournament.game_name %}{{ tournament.game_name }}{% elif tournament.game %}{{ tournament.game }}{% else %}Game: —{% endif %}
+        {% if tournament.starts_at %} · Starts {{ tournament.starts_at|date:"M d, Y h:i A" }}{% endif %}
+      </p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-primary" href="/tournaments/{{ tournament.slug|urlencode }}/register/">Register</a>
+      <a class="btn btn-outline" href="/tournaments/{{ tournament.slug|urlencode }}/bracket/">View Bracket</a>
+    </div>
   </header>
 
-  {# Share actions (Bangladesh-favored) #}
-  {% include "partials/share_block_bd.html" with title=t.name %}
+  <!-- Key facts -->
+  <div class="d-flex flex-wrap g-3">
+    <article class="card p-3" style="flex:1 1 360px;min-width:280px">
+      <div class="fw-medium mb-2">Key Facts</div>
+      <div class="table-wrap">
+        <table class="table table-compact">
+          <tbody>
+            <tr>
+              <th>Format</th>
+              <td>
+                {% if tournament.format_name %}{{ tournament.format_name }}
+                {% elif tournament.format_type %}{{ tournament.format_type|title }}
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Slots</th>
+              <td>{% if tournament.slot_size %}{{ tournament.slot_size }}{% else %}—{% endif %}</td>
+            </tr>
+            <tr>
+              <th>Entry Fee</th>
+              <td>
+                {% if tournament.entry_fee %}৳ {{ tournament.entry_fee }}
+                {% else %}Free{% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>Prize Pool</th>
+              <td>{% if tournament.prize_pool %}৳ {{ tournament.prize_pool }}{% else %}—{% endif %}</td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>{% if tournament.status %}{{ tournament.status|title }}{% else %}—{% endif %}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
 
-  {# Banner #}
-  {% if t.banner %}
-    <div class="mb-3">
-      <img src="{{ t.banner.url }}" alt="{{ t.name }} banner" class="img-fluid rounded">
-    </div>
-  {% endif %}
-
-  <div class="row g-3">
-    <div class="col-12 col-lg-8">
-      <section class="card p-3 h-100">
-        <h2 class="h5 mb-2">About</h2>
-        {% if t.description %}
-          <div class="prose">
-            {{ t.description|safe }}
-          </div>
-        {% else %}
-          <p class="text-muted mb-0">No detailed description provided yet.</p>
-        {% endif %}
-      </section>
-    </div>
-
-    <div class="col-12 col-lg-4">
-      <aside class="card p-3 h-100">
-        <h2 class="h5 mb-2">Quick facts</h2>
-        <dl class="row mb-0">
-          {% if t.game_name %}<dt class="col-5">Game</dt><dd class="col-7">{{ t.game_name }}</dd>{% endif %}
-          {% if t.format_type %}<dt class="col-5">Format</dt><dd class="col-7">{{ t.format_type }}</dd>{% endif %}
-          {% if t.reg_open_at %}<dt class="col-5">Reg. opens</dt><dd class="col-7">{{ t.reg_open_at|date:"M d, Y h:i A" }}</dd>{% endif %}
-          {% if t.reg_close_at %}<dt class="col-5">Reg. closes</dt><dd class="col-7">{{ t.reg_close_at|date:"M d, Y h:i A" }}</dd>{% endif %}
-          {% if t.entry_fee is not None %}<dt class="col-5">Entry fee</dt><dd class="col-7">{{ t.entry_fee|default:"Free" }}</dd>{% endif %}
-          {% if t.prize_pool %}<dt class="col-5">Prize pool</dt><dd class="col-7">{{ t.prize_pool }}</dd>{% endif %}
-        </dl>
-      </aside>
-    </div>
+    <!-- Schedule / timeline (defensive) -->
+    <article class="card p-3" style="flex:2 1 480px;min-width:320px">
+      <div class="fw-medium mb-2">Schedule</div>
+      {% if schedule %}
+        <ul class="mb-0">
+          {% for s in schedule %}
+            <li class="mb-2">
+              <strong>{{ s.title|default:"Event" }}</strong>
+              {% if s.at %}<span class="text-muted"> · {{ s.at|date:"M d, Y h:i A" }}</span>{% endif %}
+              {% if s.desc %}<div class="text-muted">{{ s.desc }}</div>{% endif %}
+            </li>
+          {% empty %}
+            <li class="text-muted">No scheduled items yet.</li>
+          {% endfor %}
+        </ul>
+      {% elif tournament.schedule_json %}
+        {# if backend passes JSON-ish block in context #}
+        {{ tournament.schedule_json|safe }}
+      {% else %}
+        <p class="text-muted mb-0">No schedule provided yet.</p>
+      {% endif %}
+    </article>
   </div>
 
-</div>
+  <!-- Rules & FAQ -->
+  <article class="card p-3 mt-3">
+    <div class="fw-medium mb-2">Rules & FAQ</div>
+    {% if tournament.rules_html %}
+      <div>{{ tournament.rules_html|safe }}</div>
+    {% elif tournament.rules %}
+      <pre style="white-space:pre-wrap">{{ tournament.rules }}</pre>
+    {% else %}
+      <p class="text-muted mb-0">Rules will be announced soon.</p>
+    {% endif %}
+  </article>
 
-{# Small inline script for Share/Copy UX #}
-<script>
-(function() {
-  var copyBtn = document.getElementById('copy-share-link');
-  if (copyBtn) {
-    copyBtn.addEventListener('click', function() {
-      var url = copyBtn.getAttribute('data-url') || window.location.href;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function(){
-          copyBtn.textContent = 'Copied!';
-          setTimeout(function(){ copyBtn.textContent = 'Copy link'; }, 1500);
-        }).catch(function(){ window.prompt('Copy this URL:', url); });
-      } else {
-        window.prompt('Copy this URL:', url);
-      }
-    });
-  }
-
-  var shareBtn = document.getElementById('native-share-btn');
-  if (shareBtn && navigator.share) {
-    shareBtn.addEventListener('click', function() {
-      var url = shareBtn.getAttribute('data-url') || window.location.href;
-      var title = shareBtn.getAttribute('data-title') || document.title;
-      navigator.share({ title: title, url: url }).catch(function(){ /* user canceled */ });
-    });
-  } else if (shareBtn) {
-    // Hide the native share button if not supported
-    shareBtn.style.display = 'none';
-  }
-})();
-</script>
+  <!-- Share (BD-first) -->
+  <div class="mt-3">
+    {% include "partials/share_block_bd.html" with title=tournament.name|default:"Tournament" %}
+  </div>
+</section>
 {% endblock %}
