@@ -1,6 +1,7 @@
 from django.urls import path
-from . import views
-from . import views_public as public
+from .views import dashboard as views
+from .views import public as public
+
 
 app_name = "tournaments"
 

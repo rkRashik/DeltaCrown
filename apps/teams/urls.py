@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from .views import public as views
 from . import views_actions  # tag-based actions (leave/transfer)
 from .views_public import team_list
 
