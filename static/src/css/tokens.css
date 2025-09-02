@@ -1,50 +1,87 @@
 /* static/src/css/tokens.css */
-/* Theme tokens: colors, radii, spacing, shadows, transitions */
-:root[data-theme="light"], :root:not([data-theme]) {
-  --bg: #ffffff;
-  --bg-elevated: #f8fafc;
-  --text: #0f172a;
-  --muted: #475569;
-  --card: #ffffff;
+/* Design tokens: colors, scale, radii, shadows, motion */
 
-  --primary: #2563eb;
-  --accent: #8b5cf6;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger:  #dc2626;
+/* Base (scale-only; colors come from [data-theme]) */
+:root{
+  /* Typography scale */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  --fs-0: clamp(.88rem, .86rem + .2vw, .95rem);
+  --fs-1: clamp(1rem, .98rem + .25vw, 1.125rem);
+  --fs-2: clamp(1.125rem, 1.05rem + .35vw, 1.25rem);
+  --fs-3: clamp(1.35rem, 1.2rem + .6vw, 1.5rem);
+  --fs-4: clamp(1.65rem, 1.4rem + 1vw, 1.875rem);
 
-  --border: #e2e8f0;
-  --ring: rgba(37, 99, 235, 0.4);
+  /* Spacing */
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
 
+  /* Radii */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
+  /* Shadows */
   --shadow-1: 0 1px 2px rgba(0,0,0,.06);
-  --shadow-2: 0 10px 30px rgba(17,24,39,.08);
+  --shadow-2: 0 6px 18px rgba(0,0,0,.12);
 
-  --sp-1:.25rem; --sp-2:.5rem; --sp-3:.75rem; --sp-4:1rem; --sp-5:1.5rem; --sp-6:2rem;
+  /* Z-index */
+  --z-nav: 50;
+  --z-modal: 1000;
+
+  /* Motion */
+  --ease: cubic-bezier(.22,.61,.36,1);
+  --dur-1: 160ms;
 }
 
-:root[data-theme="dark"] {
-  --bg: #0f172a;
-  --bg-elevated: #111827;
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-  --card: #0b1220;
-
-  --primary: #60a5fa;
-  --accent: #a78bfa;
-  --success: #34d399;
+/* Color tokens — LIGHT */
+:root[data-theme="light"]{
+  --bg: #0f1318; /* base for <body>? we’ll invert via card/bg to feel modern */
+  --bg: #f7f8fb;
+  --bg-elevated: #ffffff;
+  --card: #ffffff;
+  --text: #0f1720;
+  --muted: #617082;
+  --primary: #2563eb;   /* BD-friendly blue */
+  --accent: #8b5cf6;
+  --success: #16a34a;
   --warning: #f59e0b;
-  --danger:  #f87171;
-
-  --border: #1f2937;
-  --ring: rgba(96, 165, 250, 0.45);
+  --danger: #dc2626;
+  --border: #e5e7eb;
+  --ring: #93c5fd;
 }
 
-:root {
-  --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-  --container: 1100px;
-  color-scheme: light dark;
+/* Color tokens — DARK */
+:root[data-theme="dark"]{
+  --bg: #0b0f14;
+  --bg-elevated: #0f141b;
+  --card: #111827;
+  --text: #e5e7eb;
+  --muted: #9aa4b2;
+  --primary: #3b82f6;
+  --accent: #a78bfa;
+  --success: #22c55e;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --border: #1f2937;
+  --ring: #60a5fa;
+}
+
+/* Global element resets that use tokens */
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-sans);
+  font-size:var(--fs-1);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important;scroll-behavior:auto !important}
 }

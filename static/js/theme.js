@@ -1,58 +1,56 @@
-// static/js/theme.js
-// Theme toggle + persistence
+// static/src/js/theme.js
+// Theme modes: 'light' | 'dark' | 'auto' (default)
+// Persists in localStorage('theme'); syncs with prefers-color-scheme when auto.
+
 (function () {
-  const KEY = "dc-theme"; // 'light' | 'dark' | 'auto'
-  const root = document.documentElement;
+  const ROOT = document.documentElement;
+  const STORAGE_KEY = 'theme';
 
-  function apply(theme) {
-    if (!theme || theme === "auto") {
-      root.removeAttribute("data-theme"); // let prefers-color-scheme drive
-      localStorage.setItem(KEY, "auto");
-      return;
+  function systemPrefersDark() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function apply(mode) {
+    // Compute effective theme
+    let effective = mode === 'auto' ? (systemPrefersDark() ? 'dark' : 'light') : mode;
+    ROOT.setAttribute('data-theme', effective);
+    ROOT.setAttribute('data-theme-mode', mode); // exposes whether we're in auto
+    // Update toggle aria-label (if present)
+    const btn = document.getElementById('theme-toggle');
+    if (btn) {
+      btn.setAttribute('aria-label', `Switch theme (current: ${effective}${mode==='auto' ? ' via auto' : ''})`);
+      btn.dataset.mode = mode;
     }
-    root.setAttribute("data-theme", theme);
-    localStorage.setItem(KEY, theme);
   }
 
-  function get() {
-    return localStorage.getItem(KEY) || "auto";
+  function setMode(mode) {
+    localStorage.setItem(STORAGE_KEY, mode);
+    apply(mode);
   }
 
-  // Initialize
-  apply(get());
-
-  // Button binding
-  function nextTheme(current) {
-    // cycle: auto -> dark -> light -> auto
-    if (current === "auto") return "dark";
-    if (current === "dark") return "light";
-    return "auto";
+  function cycle() {
+    const cur = localStorage.getItem(STORAGE_KEY) || 'auto';
+    const next = cur === 'light' ? 'dark' : cur === 'dark' ? 'auto' : 'light';
+    setMode(next);
   }
 
-  function updateButtonVisual(btn, theme) {
-    if (!btn) return;
-    btn.setAttribute("data-theme", theme);
-    btn.title = "Theme: " + theme;
-  }
+  // Init
+  const saved = localStorage.getItem(STORAGE_KEY) || 'auto';
+  apply(saved);
 
-  function bind() {
-    const btn = document.getElementById("theme-toggle");
-    if (!btn) return;
-    updateButtonVisual(btn, get());
-    btn.addEventListener("click", () => {
-      const n = nextTheme(get());
-      apply(n);
-      updateButtonVisual(btn, n);
+  // React to system changes in auto mode
+  if (window.matchMedia) {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    mq.addEventListener?.('change', () => {
+      if ((localStorage.getItem(STORAGE_KEY) || 'auto') === 'auto') apply('auto');
     });
   }
 
-  document.addEventListener("DOMContentLoaded", bind);
-
-  // React to OS changes when in auto
-  try {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    media.addEventListener("change", () => {
-      if (get() === "auto") apply("auto");
-    });
-  } catch (_) {}
+  // Button hookup
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('theme-toggle');
+    if (btn) {
+      btn.addEventListener('click', cycle);
+    }
+  });
 })();
