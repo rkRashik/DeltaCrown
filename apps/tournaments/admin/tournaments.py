@@ -22,6 +22,25 @@ class TournamentAdmin(admin.ModelAdmin):
     list_filter = ("status", HasEntryFeeFilter)
     search_fields = ("name", "slug")
 
+    # Changelist perf: follow stable one-to-one/FK paths if present
+    list_select_related = ("settings",)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Be defensive: settings is a OneToOne; may not exist in every schema variation.
+        try:
+            qs = qs.select_related("settings")
+        except Exception:
+            pass
+        # Optional: owner/created_by if you have it; harmless if missing.
+        for rel in ("owner", "created_by"):
+            try:
+                qs = qs.select_related(rel)
+            except Exception:
+                pass
+        return qs
+
+
     def analytics_link(self, obj):
         return format_html('<a href="{}">Analytics</a>', f"./{obj.pk}/analytics/")
     analytics_link.short_description = "Dashboard"

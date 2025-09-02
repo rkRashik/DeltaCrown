@@ -24,6 +24,23 @@ class MatchAdmin(admin.ModelAdmin):
         "team_b__name", "team_b__tag",
     )
 
+    list_select_related = ("tournament", "team_a", "team_b")
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        for rel in ("tournament", "team_a", "team_b"):
+            try:
+                qs = qs.select_related(rel)
+            except Exception:
+                pass
+        return qs
+
+    try:
+        autocomplete_fields = ("tournament", "team_a", "team_b")
+    except Exception:
+        pass
+
+
     def participant_a_name(self, obj):
         if obj.is_solo_match:
             return obj.user_a.display_name if obj.user_a else "—"

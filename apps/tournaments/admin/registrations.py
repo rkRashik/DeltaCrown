@@ -80,3 +80,21 @@ class RegistrationAdmin(admin.ModelAdmin):
     list_filter = ("payment_status", "payment_method", "status", "tournament")
     search_fields = ("payment_reference", "payment_sender")
     actions = [action_verify_payment, action_reject_payment]
+
+    list_select_related = ("tournament", "player", "player__user")  # 'player' could be a UserProfile
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        for rel in ("tournament", "player", "player__user", "team"):
+            try:
+                qs = qs.select_related(rel)
+            except Exception:
+                pass
+        return qs
+
+    # If you have raw_id_fields or autocomplete, keep them; otherwise:
+    try:
+        autocomplete_fields = ("tournament", "player", "team")  # safe if fields exist
+    except Exception:
+        pass
+
