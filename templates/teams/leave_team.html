@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Leave Team — {{ team.name }}{% endblock %}
+
+{% block content %}
+{% meta_tags title="Leave Team" description="Leave this team. You can rejoin via invite later." %}
+
+<section aria-labelledby="h1" data-testid="team-leave">
+  <h1 id="h1" class="mb-3">Leave Team</h1>
+
+  <article class="card p-3">
+    <p class="text-muted">You are about to leave <strong>{{ team.name }}</strong> (<span class="badge">{{ team.tag }}</span>).</p>
+    {% if is_captain %}
+      <p class="text-muted"><strong>Note:</strong> As captain, transfer captaincy before leaving.</p>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      {% if form %}{{ form.non_field_errors }}{% endif %}
+      <div class="d-flex gap-2">
+        <button class="btn btn-danger" type="submit" data-busy-text="Leaving…">Confirm Leave</button>
+        <a class="btn btn-outline" href="/teams/{{ team.tag|urlencode }}/">Cancel</a>
+      </div>
+    </form>
+  </article>
+</section>
+{% endblock %}

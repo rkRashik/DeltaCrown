@@ -26,29 +26,19 @@
     </div>
   </header>
 
-  <!-- Reporting form shell (non-behavioral; relies on existing view to bind/POST) -->
+  <!-- Reporting form (defensive) -->
   <article class="card p-3">
     <form method="post" class="report-grid">
       {% csrf_token %}
+
       {% if form %}
         {{ form.non_field_errors }}
-        <div class="form-field">
-          <label class="label" for="{{ form.score_a.id_for_label }}">Score — A</label>
-          {{ form.score_a }}
-          {% if form.score_a.errors %}<div class="error">{{ form.score_a.errors }}</div>{% endif %}
-        </div>
-        <div class="form-field">
-          <label class="label" for="{{ form.score_b.id_for_label }}">Score — B</label>
-          {{ form.score_b }}
-          {% if form.score_b.errors %}<div class="error">{{ form.score_b.errors }}</div>{% endif %}
-        </div>
-        {% if form.notes %}
-        <div class="form-field" style="grid-column:1/-1">
-          <label class="label" for="{{ form.notes.id_for_label }}">Notes (optional)</label>
-          {{ form.notes }}
-          {% if form.notes.errors %}<div class="error">{{ form.notes.errors }}</div>{% endif %}
-        </div>
-        {% endif %}
+
+        {# Use our component for consistent, accessible fields #}
+        {% if form.score_a %}{% include "components/form_field.html" with field=form.score_a %}{% endif %}
+        {% if form.score_b %}{% include "components/form_field.html" with field=form.score_b %}{% endif %}
+        {% if form.notes %}{% include "components/form_field.html" with field=form.notes %}{% endif %}
+
       {% else %}
         <div class="form-field">
           <label class="label" for="score_a">Score — A</label>
@@ -65,7 +55,7 @@
       {% endif %}
 
       <div style="grid-column:1/-1" class="d-flex gap-2">
-        <button class="btn btn-primary" type="submit">Submit Report</button>
+        <button class="btn btn-primary" type="submit" data-busy-text="Submitting…">Submit Report</button>
         {% if m.id %}
         <a class="btn btn-outline" href="{% url 'tournaments:match_review' m.id %}">Cancel</a>
         {% endif %}

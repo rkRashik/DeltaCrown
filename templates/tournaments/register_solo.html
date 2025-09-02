@@ -1,7 +1,35 @@
-<h1>Register: {{ tournament.name }} (Solo)</h1>
-<form method="post">
-  {% csrf_token %}
-  <p><strong>Your profile:</strong> {{ profile.display_name }}</p>
-  {{ form.as_p }}
-  <button type="submit">Submit Registration</button>
-</form>
+{% extends "base.html" %}
+{% block title %}Register: {{ tournament.name }} (Solo){% endblock %}
+
+{% block content %}
+{% meta_tags title="Register (Solo)" description="Register yourself for the tournament." %}
+
+<section aria-labelledby="h1" data-testid="tournament-register-solo">
+  <h1 id="h1" class="mb-3">Register: {{ tournament.name }} (Solo)</h1>
+
+  <article class="card p-3">
+    <form method="post">
+      {% csrf_token %}
+
+      <p class="text-muted mb-2"><strong>Your profile:</strong> {{ profile.display_name }}</p>
+
+      {% if form %}
+        {{ form.non_field_errors }}
+        {% for f in form.visible_fields %}
+          {% include "components/form_field.html" with field=f %}
+        {% endfor %}
+      {% else %}
+        <div class="form-field">
+          <label class="label" for="ign">In-game Name</label>
+          <input id="ign" name="ign" required placeholder="Your IGN">
+        </div>
+      {% endif %}
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary" type="submit" data-busy-text="Submitting…">Submit Registration</button>
+        <a class="btn btn-outline" href="{% url 'tournaments:detail' tournament.slug %}">Cancel</a>
+      </div>
+    </form>
+  </article>
+</section>
+{% endblock %}
