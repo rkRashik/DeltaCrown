@@ -3,21 +3,32 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.core.paginator import Paginator
 from django.urls import reverse
 from django.apps import apps
+from django.contrib import messages
 
 Notification = apps.get_model("notifications", "Notification")
 UserProfile = apps.get_model("user_profile", "UserProfile")
 
+
 def _profile(user):
+    """
+    Safe helper: return the user's profile, creating one if missing.
+    Note: all public views that call this are login_required.
+    """
     p = getattr(user, "profile", None) or getattr(user, "userprofile", None)
     if p:
         return p
+    # Fallback/create so views never crash if a profile is missing
     p, _ = UserProfile.objects.get_or_create(
         user=user, defaults={"display_name": getattr(user, "username", "Player")}
     )
     return p
 
+
 @login_required
 def list_view(request):
+    """
+    Show the user's notifications (paginated). Requires login.
+    """
     p = _profile(request.user)
     qs = Notification.objects.filter(recipient=p).order_by("-created_at")
 
@@ -30,18 +41,28 @@ def list_view(request):
         {"notifications": page_obj.object_list, "page_obj": page_obj},
     )
 
+
 @login_required
 def mark_all_read(request):
     p = _profile(request.user)
+    # Update unread notifications for this user
     Notification.objects.filter(recipient=p, is_read=False).update(is_read=True)
-    return redirect("notifications:list")
+
+    # Friendly toast + return to where the user came from
+    messages.success(request, "All notifications marked as read.")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
+    return redirect(next_url)
+
 
 @login_required
 def mark_read(request, pk):
     p = _profile(request.user)
     n = get_object_or_404(Notification, id=pk, recipient=p)
+
     if request.method == "POST" and not getattr(n, "is_read", False):
         n.is_read = True
         n.save(update_fields=["is_read"])
+        messages.success(request, "Notification marked as read.")
+
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
     return redirect(next_url)
