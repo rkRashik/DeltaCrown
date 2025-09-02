@@ -72,6 +72,7 @@ TEMPLATES = [
             'builtins': [
                 'apps.common.templatetags.seo_tags',
                 'apps.common.templatetags.assets',
+                'apps.common.templatetags.dashboard_widgets',
             ],
         },
     },
