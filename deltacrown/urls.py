@@ -10,6 +10,7 @@ from . import views as project_views
 from apps.user_profile import views as user_profile_views
 from .sitemaps import sitemaps
 
+
 urlpatterns = [
     # Home
     path("", project_views.home, name="home"),
@@ -19,6 +20,7 @@ urlpatterns = [
 
     # Health check
     path("healthz/", project_views.healthz, name="healthz"),
+
 
     # Styleguide
     path("ui/styleguide/", TemplateView.as_view(template_name="ui/styleguide.html"), name="styleguide"),
