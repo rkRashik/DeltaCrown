@@ -1,0 +1,12 @@
+{# templates/partials/toasts.html #}
+{% if messages %}
+<div id="toast-root" class="toast-root" role="region" aria-label="Notifications">
+  {% for message in messages %}
+  <div class="toast" data-level="{{ message.tags|default:'info' }}">
+    <span class="kind">{{ message.tags|title }}</span>
+    <span class="msg">{{ message }}</span>
+    <button class="close" aria-label="Dismiss">×</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

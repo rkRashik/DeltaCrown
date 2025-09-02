@@ -1,0 +1,12 @@
+{# templates/partials/breadcrumbs.html #}
+{% if crumbs %}
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  {% for title, url in crumbs %}
+    {% if not forloop.last %}
+      <a href="{{ url }}">{{ title }}</a><span class="sep">/</span>
+    {% else %}
+      <span aria-current="page">{{ title }}</span>
+    {% endif %}
+  {% endfor %}
+</nav>
+{% endif %}

@@ -16,7 +16,7 @@
     <!-- Legacy/base CSS kept to avoid regressions -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
-    <!-- Canonical + Open Graph defaults (pages can override) -->
+    <!-- Canonical + Open Graph defaults (pages can override or use {% meta_tags %}) -->
     <link rel="canonical" href="{{ request.build_absolute_uri }}"/>
     {% block meta_og %}
       <meta property="og:site_name" content="DeltaCrown"/>
@@ -57,6 +57,7 @@
     </header>
 
     {% include "partials/messages.html" %}
+    {% include "partials/toasts.html" %}
 
     <main id="content" class="container py-4">
       {% block content %}{% endblock %}
@@ -69,6 +70,8 @@
     </footer>
 
     <script defer src="{% static 'js/theme.js' %}"></script>
+    <script type="module" src="{% static 'src/js/toasts.js' %}"></script>
+    <script type="module" src="{% static 'src/js/helpers.js' %}"></script>
     {% block extra_js %}{% endblock %}
 
     {% include "partials/footer.html" %}

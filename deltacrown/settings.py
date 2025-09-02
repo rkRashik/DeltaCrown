@@ -67,6 +67,9 @@ TEMPLATES = [
                 "apps.notifications.context_processors.notification_counts",
 
             ],
+            'builtins': [
+                'apps.common.templatetags.seo_tags',
+            ],
         },
     },
 ]

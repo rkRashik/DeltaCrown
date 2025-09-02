@@ -1,0 +1,7 @@
+{# Usage:
+  {% include "components/card.html" with title="Card title" body="Text" %}
+#}
+<article class="card p-3">
+  {% if title %}<div class="fw-medium mb-2">{{ title }}</div>{% endif %}
+  {% if body %}<div>{{ body }}</div>{% else %}{% block card_body %}{% endblock %}{% endif %}
+</article>

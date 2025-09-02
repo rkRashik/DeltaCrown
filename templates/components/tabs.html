@@ -1,0 +1,9 @@
+{# Usage:
+  {% include "components/tabs.html" with tabs=tabs active="details" %}
+  tabs = [{"id":"details","label":"Details","url":"#"},{"id":"rules","label":"Rules","url":"#"}]
+#}
+<div class="tabs" role="tablist">
+  {% for t in tabs %}
+    <a class="tab" role="tab" aria-selected="{{ active == t.id }}" href="{{ t.url|default:'#' }}">{{ t.label }}</a>
+  {% endfor %}
+</div>

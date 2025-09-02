@@ -1,0 +1,13 @@
+{# Usage with a bound Django field:
+  {% include "components/form_field.html" with field=form.name help="Shown publicly" %}
+#}
+<div class="form-field">
+  {% if field.label %}<label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>{% endif %}
+  {{ field }}
+  {% if field.help_text or help %}<div class="help">{{ help|default:field.help_text }}</div>{% endif %}
+  {% if field.errors %}
+    <div class="error">
+      {% for e in field.errors %}{{ e }}{% if not forloop.last %}<br/>{% endif %}{% endfor %}
+    </div>
+  {% endif %}
+</div>

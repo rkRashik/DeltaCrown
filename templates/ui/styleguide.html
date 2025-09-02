@@ -3,42 +3,84 @@
 {% block content %}
 <section class="container" aria-labelledby="h1">
   <h1 id="h1" class="mb-3">UI Styleguide</h1>
-  <p class="text-muted">Preview of tokens, typography, buttons, badges, cards, tables, and form fields (light/dark).</p>
+  <p class="text-muted">Preview of tokens, components, and form patterns. Toggle the theme to see both light/dark.</p>
 
   <h2 class="h5 mt-4">Colors</h2>
-  <div class="d-flex flex-wrap gap-2">
+  <div class="d-flex flex-wrap g-3">
     {% for name in "bg,bg-elevated,text,muted,primary,accent,success,warning,danger,border,ring".split(",") %}
       <div class="card p-2" style="min-width:140px">
         <div class="small">{{ name }}</div>
-        <div style="height:32px;background:var(--{{ name }});border-radius:8px;"></div>
+        <div style="height:32px;background:var(--{{ name }});border-radius:8px;border:1px solid var(--border);"></div>
       </div>
     {% endfor %}
   </div>
 
   <h2 class="h5 mt-4">Buttons & Badges</h2>
-  <p>
+  <p class="d-flex gap-2">
     <button class="btn btn-primary">Primary</button>
     <button class="btn btn-outline">Outline</button>
     <span class="badge">Badge</span>
   </p>
 
   <h2 class="h5 mt-4">Cards & Table</h2>
-  <div class="card p-3 mb-3">
-    <div class="fw-medium mb-2">Card header</div>
-    <p class="mb-0">This is a card body with some sample text.</p>
-  </div>
-  <div class="table-wrap">
-    <table class="table">
+  {% include "components/card.html" with title="Card title" body="This is a card body with some sample text." %}
+  {% with head="Col A,Col B"|split:"," rows="One,Two|Three,Four"|cut:""|yesno:"" %}
+  <div class="table-wrap mt-3">
+    <table class="table table-striped">
       <thead><tr><th>Col A</th><th>Col B</th></tr></thead>
-      <tbody><tr><td>One</td><td>Two</td></tr></tbody>
+      <tbody><tr><td>One</td><td>Two</td></tr><tr><td>Three</td><td>Four</td></tr></tbody>
     </table>
   </div>
+  {% endwith %}
+
+  <h2 class="h5 mt-4">Tabs</h2>
+  {% with tabs=[
+    {"id":"details","label":"Details","url":"#"},
+    {"id":"rules","label":"Rules","url":"#"},
+    {"id":"schedule","label":"Schedule","url":"#"}
+  ] %}
+    {% include "components/tabs.html" with tabs=tabs active="details" %}
+  {% endwith %}
 
   <h2 class="h5 mt-4">Form Field</h2>
-  <form method="post" class="card p-3">
-    <label class="mb-1" for="ex">Label</label>
-    <input id="ex" class="form-control" placeholder="Example input"/>
-    <small class="text-muted">Help text goes here</small>
+  <form class="card p-3" onsubmit="return false">
+    {% include "components/form_field.html" with field=formless_input help="Help text goes here" %}
   </form>
+
+  <h2 class="h5 mt-4">Pagination & Breadcrumbs</h2>
+  {% include "partials/breadcrumbs.html" with crumbs=(
+    ('Home','/'),
+    ('Tournaments','/tournaments/'),
+    ('Delta Cup','#')
+  ) %}
+  <div class="mt-3">
+    <nav class="pagination">
+      <span aria-disabled="true">&laquo; Prev</span>
+      <a href="#">1</a><span class="current">2</span><a href="#">3</a>
+      <a href="#">Next &raquo;</a>
+    </nav>
+  </div>
+
+  <h2 class="h5 mt-4">Toasts</h2>
+  <p class="text-muted">Toasts appear automatically when Django messages exist. Trigger via your views using <code>messages.success</code>, etc.</p>
 </section>
+
+{% block extra_js %}
+<script>
+  // Fake field rendering for the styleguide (no backend form bound)
+  (function() {
+    const input = document.createElement('input');
+    input.className = 'form-control';
+    input.id = 'example';
+    input.placeholder = 'Example input';
+    const wrapper = document.querySelector('.form-field');
+    if (wrapper) wrapper.insertBefore(input, wrapper.children[1] || null);
+    const label = document.createElement('label');
+    label.className = 'label';
+    label.htmlFor = 'example';
+    label.textContent = 'Label';
+    if (wrapper) wrapper.insertBefore(label, wrapper.firstChild);
+  })();
+</script>
+{% endblock %}
 {% endblock %}
