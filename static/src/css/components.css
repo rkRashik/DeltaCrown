@@ -76,7 +76,7 @@
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:saturate(120%) blur(2px);z-index:900}
 .modal{position:fixed;inset:auto 0 0 0;margin:0 auto;max-width:720px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-2);z-index:1001;padding:1rem}
 
-/* ---- Bracket (from previous step) ---- */
+/* ---- Bracket (mobile polish) ---- */
 .bracket-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:.75rem}
 .bracket-grid{display:flex;align-items:stretch;gap:1.5rem;min-width:720px;padding-bottom:.75rem}
 .bracket-round{min-width:220px;flex:0 0 auto}
@@ -92,4 +92,11 @@
   .bracket-round{min-width:180px}
   .match-card{padding:.6rem}
   .match-actions .btn{font-size:.8rem}
+}
+
+/* ---- Nav active state ---- */
+.dc-link[aria-current="page"]{
+  font-weight:600;
+  border-bottom:2px solid var(--primary);
+  padding-bottom:.25rem;
 }

@@ -1,55 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Notifications · DeltaCrown{% endblock %}
+{% block title %}Notifications — DeltaCrown{% endblock %}
+
 {% block content %}
-  <div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 m-0">Notifications</h1>
-    <a class="btn btn-sm btn-outline-secondary" href="{% url 'notifications:mark_all_read' %}">Mark all read</a>
-  </div>
+{% meta_tags title="Notifications — DeltaCrown" description="Your recent activity and alerts." %}
 
-  <div class="list-group">
-    {% for n in notifications %}
-      <div class="list-group-item d-flex justify-content-between align-items-start">
-        <div class="me-3">
-          <div class="fw-semibold">
-            {% if n.url %}<a href="{{ n.url }}">{{ n.title|default:n.get_type_display }}</a>
-            {% else %}{{ n.title|default:n.get_type_display }}{% endif %}
-          </div>
-          {% if n.message %}<div class="small text-muted">{{ n.message }}</div>{% endif %}
-          <div><small class="text-muted">{{ n.created_at|date:"M d, Y H:i" }}</small></div>
-        </div>
+<section aria-labelledby="h1">
+  <header class="d-flex align-items-center justify-content-between mb-3">
+    <h1 id="h1" class="mb-0">Notifications</h1>
+  </header>
 
-        <div class="text-nowrap">
-          {% if not n.is_read %}
-            <form method="post" action="{% url 'notifications:mark_read' n.id %}" class="d-inline">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button class="btn btn-sm btn-primary" type="submit" title="Mark read">Mark read</button>
-            </form>
-          {% else %}
-            <span class="badge bg-secondary">Read</span>
-          {% endif %}
-        </div>
+  {% with items=object_list|default:notifications %}
+    {% if items %}
+      <div class="card p-3">
+        <ul class="list-unstyled mb-0">
+          {% for n in items %}
+            <li class="mb-3">
+              <div class="fw-medium">{{ n.title|default:n.subject|default:"Notification" }}</div>
+              <div class="text-muted">
+                {% if n.created_at %}{{ n.created_at|date:"M d, Y h:i A" }}
+                {% elif n.timestamp %}{{ n.timestamp|date:"M d, Y h:i A" }}{% endif %}
+              </div>
+              {% if n.body %}<div class="mt-3">{{ n.body|safe }}</div>{% endif %}
+            </li>
+            {% if not forloop.last %}<hr/>{% endif %}
+          {% endfor %}
+        </ul>
       </div>
-    {% empty %}
-      <div class="list-group-item"><em>No notifications</em></div>
-    {% endfor %}
+    {% else %}
+      <article class="card p-3">
+        <div class="fw-medium mb-1">Nothing here yet</div>
+        <p class="mb-0 text-muted">You’ll see invites, match updates, and results here.</p>
+      </article>
+    {% endif %}
+  {% endwith %}
+
+  <div class="mt-3">
+    {% include "partials/pagination.html" %}
   </div>
-
-  <nav class="mt-3">
-    <ul class="pagination mb-0">
-      {% if page_obj.has_previous %}
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">Previous</span></li>
-      {% endif %}
-
-      <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
-
-      {% if page_obj.has_next %}
-        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
-      {% else %}
-        <li class="page-item disabled"><span class="page-link">Next</span></li>
-      {% endif %}
-    </ul>
-  </nav>
+</section>
 {% endblock %}

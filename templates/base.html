@@ -16,7 +16,7 @@
     <!-- Legacy/base CSS kept to avoid regressions -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
 
-    <!-- Canonical + Open Graph defaults (pages can override or use {% meta_tags %}) -->
+    <!-- Canonical + Open Graph defaults; pages may also call {% meta_tags %} -->
     <link rel="canonical" href="{{ request.build_absolute_uri }}"/>
     {% block meta_og %}
       <meta property="og:site_name" content="DeltaCrown"/>
@@ -33,22 +33,42 @@
 
     <header class="dc-navbar">
       <div class="dc-navbar-inner container">
-        <a class="dc-brand" href="/">
+        <a class="dc-brand" href="{% url 'home' %}">
           <img src="{% static 'img/logo.png' %}" alt="DeltaCrown" onerror="this.style.display='none'">
           <span class="ms-1">DeltaCrown</span>
         </a>
 
+        {% with path=request.path %}
         <nav class="dc-nav" aria-label="Primary">
-          <a class="dc-link" href="{% url 'tournaments:list' %}">Tournaments</a>
-          <a class="dc-link" href="{% url 'tournaments:my_matches' %}">My Matches</a>
+          <a class="dc-link"
+             href="{% url 'tournaments:list' %}"
+             {% if path|slice:":12" == "/tournaments" %}aria-current="page"{% endif %}>
+            Tournaments
+          </a>
+
+          <a class="dc-link"
+             href="{% url 'tournaments:my_matches' %}"
+             {% if path|slice:":14" == "/my-matches" or "my_matches" in path %}aria-current="page"{% endif %}>
+            My Matches
+          </a>
+
           {% if request.user.is_authenticated %}
             {% notifications_bell %}
-            <a class="dc-link" href="{% url 'user_profile:edit' %}">My Profile</a>
+            <a class="dc-link"
+               href="{% url 'user_profile:edit' %}"
+               {% if "/profile" in path %}aria-current="page"{% endif %}>
+              My Profile
+            </a>
             <span class="dc-link">Hi, {{ request.user.username }}</span>
           {% else %}
-            <a class="dc-link" href="{% url 'login' %}">Sign in</a>
+            <a class="dc-link"
+               href="{% url 'login' %}"
+               {% if "/login" in path %}aria-current="page"{% endif %}>
+              Sign in
+            </a>
           {% endif %}
         </nav>
+        {% endwith %}
 
         <div class="dc-actions">
           {% include "partials/theme_toggle.html" %}
@@ -60,6 +80,7 @@
     {% include "partials/toasts.html" %}
 
     <main id="content" class="container py-4">
+      {% if crumbs %}{% include "partials/breadcrumbs.html" with crumbs=crumbs %}{% endif %}
       {% block content %}{% endblock %}
     </main>
 
