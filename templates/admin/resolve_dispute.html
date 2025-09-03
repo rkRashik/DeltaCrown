@@ -1,7 +1,0 @@
-<h1>Resolve Dispute - Match {{ match.id }}</h1>
-<p>{{ match.user_a.display_name }} vs {{ match.user_b.display_name }}</p>
-
-<form method="POST">
-    {% csrf_token %}
-    <button type="submit">Mark as Verified</button>
-</form>

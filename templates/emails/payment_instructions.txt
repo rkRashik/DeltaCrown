@@ -1,9 +1,0 @@
-Your registration for "{{ t.name }}" has been received.
-
-Entry fee: BDT {{ t.entry_fee_bdt|default:"0" }}
-
-If you selected bKash / Nagad / Rocket:
-1) Send Money to the organizer number shown on the tournament page.
-2) Enter your wallet/account number and TRX/Ref ID in the registration form.
-
-We’ll verify and send you a confirmation email once done.

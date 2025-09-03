@@ -1,2 +1,0 @@
-Good news! Your payment for "{{ t.name }}" has been verified.
-See you in the tournament!

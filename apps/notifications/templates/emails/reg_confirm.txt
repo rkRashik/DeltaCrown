@@ -1,7 +1,0 @@
-﻿Hi {{ profile.display_name|default:profile.user.username }},
-
-Your registration for "{{ t.name }}" is confirmed.
-
-Tournament page: https://your-domain.example/t/{{ t.slug }}/
-Good luck!
-— DeltaCrown

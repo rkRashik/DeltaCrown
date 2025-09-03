@@ -1,2 +1,0 @@
-We couldn't verify your payment for "{{ t.name }}".
-Please recheck your TRX/Ref ID and payer number, or contact the organizer.
