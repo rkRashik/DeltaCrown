@@ -1,32 +1,28 @@
+{% load static %}
 <header id="dc-header" class="sticky top-0 z-50 border-b dc-border bg-[color:var(--surface)]/70 backdrop-blur">
   <div class="max-w-7xl mx-auto px-4">
     <div class="flex items-center justify-between h-16">
-      <!-- Logo -->
-      <a href="/" class="flex items-center gap-2 group" aria-label="DeltaCrown, Home">
-        <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-brand-primary to-indigo-500"></div>
-        <span class="font-semibold tracking-tight text-lg group-hover:opacity-90">DeltaCrown</span>
+      <!-- Brand (animated mark + wordmark) -->
+      <a href="/" class="flex items-center gap-3 group" aria-label="DeltaCrown, Home">
+        <img src="{% static 'img/deltacrown-animated.svg' %}" alt="" class="h-8 w-8" width="32" height="32" decoding="async" />
+        <span class="dc-wordmark font-semibold tracking-tight text-lg group-hover:opacity-95">DeltaCrown</span>
       </a>
 
       <!-- Desktop Nav -->
       <nav class="hidden md:flex items-center gap-6">
-        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-           href="/">
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/">
           <span class="dc-navlink">Home</span>
         </a>
-        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-           href="/tournaments/">
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/tournaments/">
           <span class="dc-navlink">Tournaments</span>
         </a>
-        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-           href="/teams/">
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/teams/">
           <span class="dc-navlink">Teams</span>
         </a>
-        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-           href="/community/">
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/community/">
           <span class="dc-navlink">Community</span>
         </a>
-        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
-           href="/about/">
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/about/">
           <span class="dc-navlink">About</span>
         </a>
       </nav>
@@ -34,8 +30,90 @@
       <!-- Right controls -->
       <div class="flex items-center gap-2">
         {% include "partials/theme_toggle.html" %}
-        <a href="/accounts/login/"
-           class="hidden sm:inline-flex dc-btn px-3 py-2 rounded-xl font-medium bg-brand-primary text-black hover:opacity-90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">Login</a>
+
+        <!-- Notifications -->
+        <div class="relative">
+          <button id="dc-bell-btn"
+                  class="relative rounded-lg p-2 border dc-border hover:border-brand-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                  aria-haspopup="menu" aria-expanded="false" aria-controls="dc-bell-menu" aria-label="View notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" class="h-5 w-5">
+              <path d="M14.857 17.082a23.85 23.85 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.26 24.26 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {% if user.is_authenticated and unread_notifications_count|default:0 > 0 %}
+              <span class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-semibold text-white px-1">
+                {{ unread_notifications_count }}
+              </span>
+            {% endif %}
+          </button>
+
+          <!-- Notifications menu -->
+          <div id="dc-bell-menu"
+               class="hidden absolute right-0 mt-2 w-80 rounded-xl dc-card py-2 z-50"
+               role="menu" aria-label="Notifications">
+            <div class="px-3 pb-2">
+              <div class="text-sm font-semibold">Notifications</div>
+            </div>
+            {% if user.is_authenticated and notifications %}
+              <ul class="max-h-80 overflow-auto">
+                {% for n in notifications %}
+                  <li class="px-3 py-2 hover:bg-[color:var(--surface)]/70">
+                    <a href="{{ n.url|default:'#' }}" class="block">
+                      <div class="text-sm">{{ n.title }}</div>
+                      <div class="text-xs dc-muted">{{ n.time_ago }}</div>
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+              <div class="px-3 pt-2 border-t dc-border">
+                <a href="/notifications/" class="text-sm text-brand-primary hover:underline">View all</a>
+              </div>
+            {% else %}
+              <div class="px-3 py-2 text-sm dc-muted">No new notifications</div>
+              <div class="px-3 pt-2 border-t dc-border">
+                <a href="/notifications/" class="text-sm text-brand-primary hover:underline">Open notifications</a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Profile (avatar) -->
+        <div class="relative">
+          <button id="dc-prof-btn"
+                  class="relative flex rounded-full outline-none ring-1 ring-black/10 dark:ring-black/30 focus-visible:ring-2 focus-visible:ring-brand-primary"
+                  aria-haspopup="menu" aria-expanded="false" aria-controls="dc-prof-menu" aria-label="Open user menu">
+            {% if user.is_authenticated and user.profile and user.profile.avatar_url %}
+              <img src="{{ user.profile.avatar_url }}" alt="" class="h-8 w-8 rounded-full object-cover" />
+            {% else %}
+              <!-- Generic user circle -->
+              <span class="h-8 w-8 inline-flex items-center justify-center rounded-full bg-[color:var(--surface)] border dc-border">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="h-5 w-5">
+                  <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm7 9a7 7 0 1 0-14 0" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            {% endif %}
+          </button>
+
+          <!-- Profile menu -->
+          <div id="dc-prof-menu"
+               class="hidden absolute right-0 mt-2 w-56 rounded-xl dc-card py-1 z-50"
+               role="menu" aria-label="Account">
+            {% if user.is_authenticated %}
+              <div class="px-4 py-2">
+                <div class="text-sm font-semibold">{{ user.get_full_name|default:user.username }}</div>
+                <div class="text-xs dc-muted truncate">{{ user.email }}</div>
+              </div>
+              <div class="my-1 border-t dc-border"></div>
+              <a href="/user/" class="block px-4 py-2 text-sm hover:bg-[color:var(--surface)]/70" role="menuitem">Your profile</a>
+              <a href="/user/settings/" class="block px-4 py-2 text-sm hover:bg-[color:var(--surface)]/70" role="menuitem">Settings</a>
+              <a href="/notifications/" class="block px-4 py-2 text-sm hover:bg-[color:var(--surface)]/70" role="menuitem">Notifications</a>
+              <div class="my-1 border-t dc-border"></div>
+              <a href="/accounts/logout/" class="block px-4 py-2 text-sm hover:bg-[color:var(--surface)]/70" role="menuitem">Sign out</a>
+            {% else %}
+              <a href="/accounts/login/" class="block px-4 py-2 text-sm hover:bg-[color:var(--surface)]/70" role="menuitem">Sign in</a>
+              <a href="/accounts/signup/" class="block px-4 py-2 text-sm hover:bg-[color:var(--surface)]/70" role="menuitem">Create account</a>
+            {% endif %}
+          </div>
+        </div>
 
         <!-- Mobile menu button -->
         <button id="dc-menu-btn"
@@ -50,15 +128,13 @@
   </div>
 
   <!-- Mobile drawer -->
-  <div id="dc-mobile-drawer"
-       class="fixed inset-0 z-50 hidden"
-       aria-hidden="true">
+  <div id="dc-mobile-drawer" class="fixed inset-0 z-50 hidden" aria-hidden="true">
     <div class="absolute inset-0 bg-black/40" data-close="drawer"></div>
     <div class="absolute right-0 top-0 h-full w-[86%] sm:w-96 dc-bg dc-text border-l dc-border shadow-xl outline-none"
          role="dialog" aria-modal="true" aria-labelledby="dc-drawer-title" tabindex="-1">
       <div class="flex items-center justify-between p-4 border-b dc-border">
         <div class="flex items-center gap-2">
-          <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-brand-primary to-indigo-500"></div>
+          <img src="{% static 'img/deltacrown-animated.svg' %}" alt="" class="h-7 w-7" width="28" height="28" decoding="async" />
           <h2 id="dc-drawer-title" class="font-semibold">Menu</h2>
         </div>
         <button class="p-2 rounded-lg border dc-border hover:border-brand-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
@@ -77,11 +153,14 @@
         <a class="block rounded-lg px-3 py-2 hover:bg-[color:var(--surface)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/about/">About</a>
       </nav>
 
-      <div class="p-4 border-t dc-border">
-        <a href="/accounts/login/"
-           class="dc-btn w-full inline-flex justify-center px-3 py-2 rounded-xl font-medium bg-brand-primary text-black hover:opacity-90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">
-          Login
-        </a>
+      <div class="p-4 border-t dc-border grid gap-2">
+        {% if user.is_authenticated %}
+          <a href="/user/" class="px-3 py-2 rounded-xl border dc-border hover:border-brand-primary/60">Profile</a>
+          <a href="/accounts/logout/" class="px-3 py-2 rounded-xl bg-brand-primary text-black hover:opacity-90">Sign out</a>
+        {% else %}
+          <a href="/accounts/login/" class="px-3 py-2 rounded-xl border dc-border hover:border-brand-primary/60">Sign in</a>
+          <a href="/accounts/signup/" class="px-3 py-2 rounded-xl bg-brand-primary text-black hover:opacity-90">Create account</a>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -99,6 +178,17 @@
 }
 a:hover .dc-navlink::after,
 a:focus-visible .dc-navlink::after { transform: scaleX(1); }
+
+/* Wordmark gradient with fallback */
+.dc-wordmark {
+  color: var(--text);
+  background-image: linear-gradient(90deg, var(--brand-primary, #00C2FF), #8b5cf6, #fb7185);
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent;
+}
+@supports not (background-clip: text) {
+  .dc-wordmark { color: var(--text); }
+}
 
 /* Scroll shrink */
 #dc-header.is-shrunk { backdrop-filter: blur(10px); }
