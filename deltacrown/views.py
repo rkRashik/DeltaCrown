@@ -4,10 +4,9 @@ from django.shortcuts import render
 
 def home(request):
     """
-    Temporary homepage renderer.
-    Renders base.html so the site loads while we add homepage.html next.
+    Public homepage.
     """
-    return render(request, "base.html")
+    return render(request, "homepage.html")
 
 
 def healthz(request):

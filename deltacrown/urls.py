@@ -8,18 +8,16 @@ from django.conf.urls.static import static
 from . import views
 
 urlpatterns = [
-    # Root & health check
+    # Root & health
     path("", views.home, name="home"),
     path("healthz/", views.healthz, name="healthz"),
-
-    # Django Admin
     path("admin/", admin.site.urls),
 ]
 
 def _optional_include(prefix: str, module: str):
     """
     If `<module>.urls` exists, include it under `<prefix>/`.
-    Prevents ModuleNotFoundError when an app package isn't installed or present.
+    Prevents ModuleNotFoundError when an app isn't present.
     """
     try:
         import_module(f"{module}.urls")
@@ -39,6 +37,6 @@ for _prefix, _module in [
 ]:
     _optional_include(_prefix, _module)
 
-# Serve /static/ in development
+# Dev static
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

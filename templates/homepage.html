@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}DeltaCrown — Where Champions Rise{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="relative overflow-hidden">
+  <div class="absolute inset-0 -z-10 opacity-30">
+    <div class="pointer-events-none absolute -inset-1 bg-gradient-to-tr from-brand-primary via-indigo-500 to-fuchsia-500 blur-3xl opacity-30"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 py-16 md:py-24">
+    <div class="grid md:grid-cols-2 items-center gap-10">
+      <div>
+        <h1 class="text-4xl md:text-6xl font-extrabold leading-tight">
+          From the <span class="text-brand-primary">Delta</span> to the <span class="text-yellow-500">Crown</span>
+        </h1>
+        <p class="mt-4 text-lg dc-muted">
+          The esports platform for Bangladesh and beyond — tournaments, teams, and a thriving community.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/tournaments/"
+             class="px-5 py-3 rounded-2xl font-semibold bg-brand-primary text-black hover:opacity-90 transition">
+            Join a Tournament
+          </a>
+          <a href="/about/"
+             class="px-5 py-3 rounded-2xl border dc-border hover:border-brand-primary/60 transition">
+            Learn More
+          </a>
+        </div>
+      </div>
+
+      <div class="md:justify-self-end">
+        <div class="w-full max-w-md aspect-square rounded-3xl dc-card flex items-center justify-center">
+          <svg width="140" height="140" viewBox="0 0 100 100" aria-hidden="true" class="text-brand-primary">
+            <path d="M10 70 L35 30 L50 55 L65 30 L90 70 Z" fill="none" stroke="currentColor" stroke-width="6" />
+            <circle cx="50" cy="25" r="4" fill="currentColor"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="py-12 md:py-16 border-t dc-border" style="border-top-width:1px">
+  <div class="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6">
+    <div class="p-5 rounded-2xl dc-card text-center">
+      <div class="text-3xl font-bold">0+</div>
+      <div class="mt-1 text-sm dc-muted">Teams</div>
+    </div>
+    <div class="p-5 rounded-2xl dc-card text-center">
+      <div class="text-3xl font-bold">0+</div>
+      <div class="mt-1 text-sm dc-muted">Tournaments</div>
+    </div>
+    <div class="p-5 rounded-2xl dc-card text-center">
+      <div class="text-3xl font-bold">0+</div>
+      <div class="mt-1 text-sm dc-muted">Players</div>
+    </div>
+    <div class="p-5 rounded-2xl dc-card text-center">
+      <div class="text-3xl font-bold">BD First</div>
+      <div class="mt-1 text-sm dc-muted">Esports Superbrand</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURED TOURNAMENTS -->
+<section class="py-12 md:py-16">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex items-end justify-between mb-6">
+      <h2 class="text-2xl md:text-3xl font-semibold">Featured Tournaments</h2>
+      <a href="/tournaments/" class="text-brand-primary hover:underline">View all</a>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% if tournaments %}
+        {% for t in tournaments %}
+          <article class="rounded-2xl overflow-hidden dc-card hover:border-brand-primary/50 transition">
+            <div class="aspect-[16/9]" style="background: var(--surface); border-bottom: 1px solid var(--border)"></div>
+            <div class="p-4">
+              <div class="text-sm dc-muted">{{ t.game_name|default:"Esports" }}</div>
+              <h3 class="mt-1 text-lg font-semibold">{{ t.title }}</h3>
+              <div class="mt-3 flex justify-between items-center">
+                <a href="{{ t.get_absolute_url }}" class="text-brand-primary hover:underline">Details</a>
+                <span class="text-xs px-2 py-1 rounded dc-chip">{{ t.status|default:"Upcoming" }}</span>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      {% else %}
+        {% for i in "123"|make_list %}
+          <article class="rounded-2xl overflow-hidden dc-card">
+            <div class="aspect-[16/9]" style="background: var(--surface); border-bottom: 1px solid var(--border)"></div>
+            <div class="p-4">
+              <div class="text-sm dc-muted">Esports</div>
+              <h3 class="mt-1 text-lg font-semibold">Tournament Coming Soon</h3>
+              <div class="mt-3 flex justify-between items-center">
+                <span class="dc-muted text-sm">Stay tuned</span>
+                <span class="text-xs px-2 py-1 rounded dc-chip">Upcoming</span>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="py-12 md:py-16" style="background: color-mix(in oklab, var(--bg) 80%, var(--surface)); border-top:1px solid var(--border);">
+  <div class="max-w-7xl mx-auto px-4 grid md:grid-cols-2 gap-10">
+    <div>
+      <h2 class="text-2xl md:text-3xl font-semibold">About DeltaCrown</h2>
+      <p class="mt-4 dc-muted">
+        We’re building Bangladesh’s esports superbrand — tournaments, career growth, and a vibrant community for players and fans.
+      </p>
+      <div class="mt-6 flex gap-3">
+        <a href="/about/" class="px-5 py-3 rounded-2xl font-semibold bg-brand-primary text-black hover:opacity-90 transition">About Us</a>
+        <a href="/community/" class="px-5 py-3 rounded-2xl border dc-border transition hover:border-brand-primary/60">Community</a>
+      </div>
+    </div>
+
+    <ul class="grid sm:grid-cols-2 gap-4">
+      <li class="p-5 rounded-2xl dc-card">
+        <div class="font-semibold">Fair Play</div>
+        <p class="mt-1 text-sm dc-muted">Transparent rules, verified payouts, dispute resolution.</p>
+      </li>
+      <li class="p-5 rounded-2xl dc-card">
+        <div class="font-semibold">Local Payments</div>
+        <p class="mt-1 text-sm dc-muted">bKash, Nagad, Rocket — manual now, API later.</p>
+      </li>
+      <li class="p-5 rounded-2xl dc-card">
+        <div class="font-semibold">Mobile First</div>
+        <p class="mt-1 text-sm dc-muted">Fast, responsive, accessible on every device.</p>
+      </li>
+      <li class="p-5 rounded-2xl dc-card">
+        <div class="font-semibold">For Teams & Players</div>
+        <p class="mt-1 text-sm dc-muted">Profiles, badges, brackets, and more.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- COMMUNITY CTA -->
+<section class="py-12 md:py-16">
+  <div class="max-w-7xl mx-auto px-4 text-center">
+    <h2 class="text-2xl md:text-3xl font-semibold">Join the DeltaCrown community</h2>
+    <p class="mt-2 dc-muted">Discord, Instagram, Facebook — be part of the movement.</p>
+    <div class="mt-6 flex justify-center gap-3">
+      <a href="https://discord.com" class="px-5 py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-600 font-semibold text-white">Discord</a>
+      <a href="https://instagram.com" class="px-5 py-3 rounded-2xl border dc-border">Instagram</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
