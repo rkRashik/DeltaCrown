@@ -1,9 +1,0 @@
-{# Usage with Django forms or manual fields #}
-<div class="field">
-  {% if label %}<label for="{{ id|default:field.id_for_label }}" class="field-l">{{ label }}</label>{% endif %}
-  <div class="field-c">
-    {% block control %}{{ control|default_if_none:"" }}{% endblock %}
-  </div>
-  {% if help %}<p class="field-h">{{ help }}</p>{% endif %}
-  {% if error %}<p class="field-e" role="alert">{{ error }}</p>{% endif %}
-</div>

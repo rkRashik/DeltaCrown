@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="144" height="32" viewBox="0 0 144 32">
-  <rect width="144" height="32" rx="8" fill="#0B0D10"/>
-  <!-- Delta crown mark -->
-  <path d="M16 22l6-12 6 12h-4l-2-4-2 4h-4z" fill="#3B82F6"/>
-  <text x="40" y="21" fill="#E6E9EF" font-family="Inter,Segoe UI,Roboto,Arial" font-size="14" font-weight="700">
-    DeltaCrown
-  </text>
-</svg>

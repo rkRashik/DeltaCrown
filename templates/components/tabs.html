@@ -1,5 +1,0 @@
-<div class="tabs" role="tablist">
-  {% for t in tabs %}
-    <button class="tab{% if t.active %} is-active{% endif %}" role="tab" aria-selected="{{ t.active|yesno:'true,false' }}">{{ t.label }}</button>
-  {% endfor %}
-</div>

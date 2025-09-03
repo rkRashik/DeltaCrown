@@ -1,7 +1,0 @@
-<div class="card">
-  {% if title %}<div class="card-h">{{ title }}</div>{% endif %}
-  <div class="card-b">
-    {% block card_body %}{{ body|default_if_none:"" }}{% endblock %}
-  </div>
-  {% if footer %}<div class="card-f">{{ footer }}</div>{% endif %}
-</div>
