@@ -1,21 +1,106 @@
-<header class="sticky top-0 z-50 bg-neutral-900/80 backdrop-blur border-b border-neutral-800">
-  <div class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
-    <!-- Logo -->
-    <a href="/" class="text-xl font-bold text-indigo-400">DeltaCrown</a>
+<header id="dc-header" class="sticky top-0 z-50 border-b dc-border bg-[color:var(--surface)]/70 backdrop-blur">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex items-center justify-between h-16">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 group" aria-label="DeltaCrown, Home">
+        <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-brand-primary to-indigo-500"></div>
+        <span class="font-semibold tracking-tight text-lg group-hover:opacity-90">DeltaCrown</span>
+      </a>
 
-    <!-- Nav Links -->
-    <nav class="hidden md:flex gap-6 text-gray-300">
-      <a href="/" class="hover:text-white">Home</a>
-      <a href="/tournaments/" class="hover:text-white">Tournaments</a>
-      <a href="/teams/" class="hover:text-white">Teams</a>
-      <a href="/community/" class="hover:text-white">Community</a>
-      <a href="/about/" class="hover:text-white">About</a>
-    </nav>
+      <!-- Desktop Nav -->
+      <nav class="hidden md:flex items-center gap-6">
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+           href="/">
+          <span class="dc-navlink">Home</span>
+        </a>
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+           href="/tournaments/">
+          <span class="dc-navlink">Tournaments</span>
+        </a>
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+           href="/teams/">
+          <span class="dc-navlink">Teams</span>
+        </a>
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+           href="/community/">
+          <span class="dc-navlink">Community</span>
+        </a>
+        <a class="relative inline-block py-2 text-sm hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+           href="/about/">
+          <span class="dc-navlink">About</span>
+        </a>
+      </nav>
 
-    <!-- Right Section -->
-    <div class="flex items-center gap-4">
-      {% include "partials/theme_toggle.html" %}
-      <a href="/accounts/login/" class="px-3 py-1 rounded bg-indigo-500 hover:bg-indigo-600 text-white">Login</a>
+      <!-- Right controls -->
+      <div class="flex items-center gap-2">
+        {% include "partials/theme_toggle.html" %}
+        <a href="/accounts/login/"
+           class="hidden sm:inline-flex dc-btn px-3 py-2 rounded-xl font-medium bg-brand-primary text-black hover:opacity-90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">Login</a>
+
+        <!-- Mobile menu button -->
+        <button id="dc-menu-btn"
+                class="md:hidden p-2 rounded-lg border dc-border hover:border-brand-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                aria-label="Open menu" aria-controls="dc-mobile-drawer" aria-expanded="false">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="dc-text">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile drawer -->
+  <div id="dc-mobile-drawer"
+       class="fixed inset-0 z-50 hidden"
+       aria-hidden="true">
+    <div class="absolute inset-0 bg-black/40" data-close="drawer"></div>
+    <div class="absolute right-0 top-0 h-full w-[86%] sm:w-96 dc-bg dc-text border-l dc-border shadow-xl outline-none"
+         role="dialog" aria-modal="true" aria-labelledby="dc-drawer-title" tabindex="-1">
+      <div class="flex items-center justify-between p-4 border-b dc-border">
+        <div class="flex items-center gap-2">
+          <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-brand-primary to-indigo-500"></div>
+          <h2 id="dc-drawer-title" class="font-semibold">Menu</h2>
+        </div>
+        <button class="p-2 rounded-lg border dc-border hover:border-brand-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                data-close="drawer" aria-label="Close menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <nav class="p-4 grid gap-2">
+        <a class="block rounded-lg px-3 py-2 hover:bg-[color:var(--surface)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/">Home</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-[color:var(--surface)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/tournaments/">Tournaments</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-[color:var(--surface)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/teams/">Teams</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-[color:var(--surface)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/community/">Community</a>
+        <a class="block rounded-lg px-3 py-2 hover:bg-[color:var(--surface)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary" href="/about/">About</a>
+      </nav>
+
+      <div class="p-4 border-t dc-border">
+        <a href="/accounts/login/"
+           class="dc-btn w-full inline-flex justify-center px-3 py-2 rounded-xl font-medium bg-brand-primary text-black hover:opacity-90 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary">
+          Login
+        </a>
+      </div>
     </div>
   </div>
 </header>
+
+<style>
+/* Gradient underline for desktop links */
+.dc-navlink::after{
+  content:"";
+  position:absolute; left:0; right:0; bottom:-6px; height:2px;
+  background: linear-gradient(90deg, var(--brand-primary, #00C2FF), #8b5cf6, #fb7185);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 220ms ease;
+}
+a:hover .dc-navlink::after,
+a:focus-visible .dc-navlink::after { transform: scaleX(1); }
+
+/* Scroll shrink */
+#dc-header.is-shrunk { backdrop-filter: blur(10px); }
+#dc-header.is-shrunk .h-16 { height: 3.25rem; }
+</style>

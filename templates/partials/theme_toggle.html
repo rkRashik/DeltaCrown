@@ -1,5 +1,81 @@
-<button id="theme-toggle" class="p-2 rounded hover:bg-neutral-800 text-gray-300" aria-label="Toggle Theme">
-  <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <!-- Icon will switch via JS -->
-  </svg>
-</button>
+<div class="relative">
+  <button id="theme-toggle"
+          class="p-2 rounded-lg border dc-border hover:border-brand-primary/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+          aria-haspopup="menu" aria-expanded="false" aria-label="Toggle theme">
+    <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dc-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <!-- Icon replaced by JS -->
+    </svg>
+  </button>
+
+  <!-- menu -->
+  <div id="theme-menu"
+       class="hidden absolute right-0 mt-2 w-40 rounded-xl dc-card py-1 z-50"
+       role="menu" aria-label="Theme">
+    <button data-theme="light"  class="w-full text-left px-3 py-2 hover:bg-[color:var(--surface)]/70">Light</button>
+    <button data-theme="dark"   class="w-full text-left px-3 py-2 hover:bg-[color:var(--surface)]/70">Dark</button>
+    <button data-theme="system" class="w-full text-left px-3 py-2 hover:bg-[color:var(--surface)]/70">System</button>
+  </div>
+</div>
+
+<script>
+  (function(){
+    const btn = document.getElementById("theme-toggle");
+    const menu = document.getElementById("theme-menu");
+    const icon = document.getElementById("theme-icon");
+    let open = false;
+
+    function setIcon(mode){
+      icon.innerHTML =
+        mode === "light"
+          ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m8.66-9H21m-17 0H3m2.93-6.07L5.5 5.5m12.02 12.02l1.43 1.43m0-13.45l-1.43-1.43M6.93 17.07l-1.43 1.43"/>'
+          : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+    }
+
+    function currentTheme(){
+      return localStorage.getItem("theme") || "system";
+    }
+
+    function applyTheme(mode){
+      const root = document.documentElement;
+      if (mode === "light") root.dataset.theme = "light";
+      else if (mode === "dark") root.dataset.theme = "dark";
+      else {
+        delete root.dataset.theme;
+        if (window.matchMedia("(prefers-color-scheme: light)").matches) root.dataset.theme = "light";
+        else root.dataset.theme = "dark";
+      }
+      localStorage.setItem("theme", mode);
+      setIcon(root.dataset.theme);
+    }
+
+    // init
+    applyTheme(currentTheme());
+
+    // open/close
+    btn.addEventListener("click", () => {
+      open = !open;
+      menu.classList.toggle("hidden", !open);
+      btn.setAttribute("aria-expanded", String(open));
+    });
+
+    // click outside
+    document.addEventListener("click", (e) => {
+      if (open && !menu.contains(e.target) && !btn.contains(e.target)) {
+        open = false; menu.classList.add("hidden"); btn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    // menu actions
+    menu.querySelectorAll("[data-theme]").forEach(item => {
+      item.addEventListener("click", () => {
+        applyTheme(item.getAttribute("data-theme"));
+        open = false; menu.classList.add("hidden"); btn.setAttribute("aria-expanded", "false");
+      });
+    });
+
+    // watch system preference when in system mode
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+      if ((localStorage.getItem("theme") || "system") === "system") applyTheme("system");
+    });
+  })();
+</script>
