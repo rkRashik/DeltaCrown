@@ -1,0 +1,82 @@
+/* DeltaCrown motion & micro-interactions
+   All animations are guarded by prefers-reduced-motion.
+*/
+
+/* ---------- Animation Keyframes ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes dcGradientShift {
+    0%   { transform: translate3d(-10%, -10%, 0) scale(1.1); filter: hue-rotate(0deg) saturate(1.1); }
+    50%  { transform: translate3d(10%, 5%, 0) scale(1.2); filter: hue-rotate(25deg) saturate(1.25); }
+    100% { transform: translate3d(-10%, -10%, 0) scale(1.1); filter: hue-rotate(0deg) saturate(1.1); }
+  }
+
+  @keyframes dcFloat {
+    0%   { transform: translate3d(0, 0, 0); }
+    50%  { transform: translate3d(0, -6px, 0); }
+    100% { transform: translate3d(0, 0, 0); }
+  }
+
+  @keyframes dcReveal {
+    0%   { opacity: 0; transform: translate3d(0, 14px, 0); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+}
+
+/* ---------- Utilities ---------- */
+.dc-animate-gradient {
+  position: absolute;
+  inset: -15%;
+  z-index: -1;
+  opacity: 0.35;
+  background: radial-gradient(1200px 500px at 20% 10%, #00C2FF55, transparent 60%),
+              radial-gradient(1200px 650px at 80% 30%, #8b5cf655, transparent 60%),
+              radial-gradient(1200px 750px at 50% 80%, #fb718555, transparent 60%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dc-animate-gradient {
+    animation: dcGradientShift 18s ease-in-out infinite;
+  }
+}
+
+.dc-float {
+  will-change: transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dc-float { animation: dcFloat 6s ease-in-out infinite; }
+}
+
+/* Scroll reveal: initially hidden; becomes visible when .is-in is added by JS */
+.dc-reveal {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dc-reveal.is-in {
+    animation: dcReveal 600ms cubic-bezier(.2,.6,.2,1) forwards;
+  }
+}
+
+/* Cards micro-interactions */
+.dc-card-raise {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
+}
+.dc-card-raise:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 38px rgba(2,6,23,0.10);
+}
+
+/* Button sheen (subtle) */
+@media (prefers-reduced-motion: no-preference) {
+  .dc-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  .dc-btn::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
+    transform: translateX(-100%);
+  }
+  .dc-btn:hover::after { transform: translateX(100%); transition: transform 650ms ease; }
+}
