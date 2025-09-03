@@ -1,48 +1,44 @@
-# deltacrown/urls.py (Commit 1)
-from django.contrib import admin
-from django.urls import path, include
-from django.views.generic import TemplateView
-import importlib
+from importlib import import_module
 
-# Optional: attach /healthz if present in project views
-healthz_view = None
-try:
-    from . import views as project_views  # your project's views module
-    healthz_view = getattr(project_views, "healthz", None)
-except Exception:
-    healthz_view = None
+from django.contrib import admin
+from django.urls import include, path
+from django.conf import settings
+from django.conf.urls.static import static
+
+from . import views
 
 urlpatterns = [
-    # Styleguide (Commit 1)
-    path(
-        "ui/styleguide/",
-        TemplateView.as_view(template_name="ui/styleguide.html"),
-        name="ui_styleguide",
-    ),
+    # Root & health check
+    path("", views.home, name="home"),
+    path("healthz/", views.healthz, name="healthz"),
 
-    # Admin
+    # Django Admin
     path("admin/", admin.site.urls),
 ]
 
-# Optional routes — only included if the module exists
-def include_if_exists(prefix: str, module_path: str, namespace: str | None = None):
+def _optional_include(prefix: str, module: str):
+    """
+    If `<module>.urls` exists, include it under `<prefix>/`.
+    Prevents ModuleNotFoundError when an app package isn't installed or present.
+    """
     try:
-        importlib.import_module(module_path)
-    except ImportError:
+        import_module(f"{module}.urls")
+    except ModuleNotFoundError:
         return
-    if namespace:
-        urlpatterns.append(path(prefix, include((module_path, namespace))))
-    else:
-        urlpatterns.append(path(prefix, include(module_path)))
+    urlpatterns.append(path(f"{prefix}/", include(f"{module}.urls")))
 
-# Common app includes (adjust to your project layout if needed)
-include_if_exists("tournaments/", "tournaments.urls")
-include_if_exists("teams/", "teams.urls")
-include_if_exists("user/", "user_profile.urls")
-include_if_exists("notifications/", "notifications.urls")
-include_if_exists("store/", "ecommerce.urls")
-include_if_exists("", "common.urls")  # homepage or misc public routes if you have them
+# Try to include each app's urls only if present
+for _prefix, _module in [
+    ("tournaments", "apps.tournaments"),
+    ("teams", "apps.teams"),
+    ("user", "apps.user_profile"),
+    ("payment", "apps.payment"),
+    ("forums", "apps.forums"),
+    ("ecommerce", "apps.ecommerce"),
+    ("analytics", "apps.analytics"),
+]:
+    _optional_include(_prefix, _module)
 
-# Health check (only if available)
-if healthz_view:
-    urlpatterns.append(path("healthz", healthz_view, name="healthz"))
+# Serve /static/ in development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

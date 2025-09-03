@@ -1,0 +1,18 @@
+:root {
+  /* light */
+  --bg: #f8fafc;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --brand-primary: #00C2FF; /* Selecao teal/cyan */
+  --brand-secondary: #A3FF12; /* Selecao lime */
+  --brand-gold: #EAB308;
+}
+
+/* dark */
+:root[data-theme="dark"] {
+  --bg: #121417;          /* charcoal */
+  --fg: #f5f5f7;          /* soft white */
+  --muted: #a1a1aa;       /* muted gray */
+}
+
+html, body { background: var(--bg); color: var(--fg); }

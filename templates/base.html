@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}DeltaCrown{% endblock %}</title>
+
+  <!-- Primary SEO -->
+  <meta name="description" content="DeltaCrown — From the Delta to the Crown — Where Champions Rise." />
+  <meta name="theme-color" content="#0f172a" />
+
+  <!-- Tailwind (CDN) with config -->
+  <script>
+    // Tailwind config BEFORE loading the CDN script
+    tailwind = {}; /* guard for older browsers */
+    tailwind.config = {
+      darkMode: ['class', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#00C2FF',  /* Selecao teal/cyan */
+              secondary: '#A3FF12',/* Selecao lime accent */
+              gold: '#EAB308'
+            }
+          },
+          container: { center: true, padding: '1rem' }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Project tokens (safe even if empty for now) -->
+  <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+  <style>
+    /* Minimal base tweaks so page doesn't flash unstyled content */
+    html, body { height: 100%; }
+    [data-theme="dark"] body { background-color: #121417; }
+  </style>
+</head>
+
+<body class="min-h-screen text-gray-100 antialiased selection:bg-brand-primary/20">
+  <!-- Header / Nav -->
+  {% include "partials/nav.html" %}
+
+  <!-- Main content -->
+  <main id="content" class="flex-1">
+    {% block content %}
+    <section class="py-10">
+      <div class="container max-w-7xl">
+        <h1 class="text-3xl md:text-4xl font-semibold tracking-tight">
+          DeltaCrown
+        </h1>
+        <p class="mt-2 text-gray-300">
+          From the Delta to the Crown — Where Champions Rise.
+        </p>
+      </div>
+    </section>
+    {% endblock %}
+  </main>
+
+  <!-- Footer -->
+  {% include "partials/footer.html" %}
+
+  <!-- Toasts -->
+  {% include "partials/toasts.html" %}
+
+  <!-- Scripts -->
+  <script src="{% static 'js/theme.js' %}"></script>
+  <script src="{% static 'js/toasts.js' %}"></script>
+  <script src="{% static 'js/helpers.js' %}"></script>
+
+  <noscript>
+    <style>
+      /* Keep page readable if JS disabled */
+      body { background:#111827; color:#e5e7eb; }
+    </style>
+  </noscript>
+</body>
+</html>

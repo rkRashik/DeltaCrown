@@ -1,0 +1,21 @@
+<header class="sticky top-0 z-50 bg-neutral-900/80 backdrop-blur border-b border-neutral-800">
+  <div class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+    <!-- Logo -->
+    <a href="/" class="text-xl font-bold text-indigo-400">DeltaCrown</a>
+
+    <!-- Nav Links -->
+    <nav class="hidden md:flex gap-6 text-gray-300">
+      <a href="/" class="hover:text-white">Home</a>
+      <a href="/tournaments/" class="hover:text-white">Tournaments</a>
+      <a href="/teams/" class="hover:text-white">Teams</a>
+      <a href="/community/" class="hover:text-white">Community</a>
+      <a href="/about/" class="hover:text-white">About</a>
+    </nav>
+
+    <!-- Right Section -->
+    <div class="flex items-center gap-4">
+      {% include "partials/theme_toggle.html" %}
+      <a href="/accounts/login/" class="px-3 py-1 rounded bg-indigo-500 hover:bg-indigo-600 text-white">Login</a>
+    </div>
+  </div>
+</header>
