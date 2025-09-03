@@ -1,0 +1,15 @@
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "DeltaCrown",
+  "url": "{{ request.build_absolute_uri|default:'https://example.com' }}",
+  "logo": "{{ request.build_absolute_uri|default:'https://example.com' }}{% static 'img/logo-dark.svg' %}",
+  "sameAs": [
+    "https://facebook.com/DeltaCrown",
+    "https://instagram.com/DeltaCrown",
+    "https://discord.com/invite/DeltaCrown",
+    "https://youtube.com/@DeltaCrown"
+  ]
+}
+</script>

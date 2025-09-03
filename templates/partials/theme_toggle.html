@@ -1,0 +1,6 @@
+{% load static %}
+<button class="icon-btn" type="button" id="theme-toggle" aria-pressed="false">
+  <svg class="icon hidden dark:inline"><use href="{% static 'svg/sprite.svg' %}#sun"/></svg>
+  <svg class="icon dark:hidden"><use href="{% static 'svg/sprite.svg' %}#moon"/></svg>
+  <span class="sr-only">Toggle theme</span>
+</button>

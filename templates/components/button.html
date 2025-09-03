@@ -1,0 +1,8 @@
+{# Usage: {% include "components/button.html" with text="Save" variant="primary" href="/path" %} #}
+{% with v=variant|default:"primary" %}
+{% if href %}
+  <a href="{{ href }}" class="btn btn-{{ v }} {% if block %}w-full{% endif %}">{{ text }}</a>
+{% else %}
+  <button type="{{ type|default:'button' }}" class="btn btn-{{ v }} {% if block %}w-full{% endif %}">{{ text }}</button>
+{% endif %}
+{% endwith %}

@@ -64,12 +64,14 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+
                 "apps.notifications.context_processors.notification_counts",
                 "apps.common.context.ui_settings",
 
 
             ],
             'builtins': [
+                "django.templatetags.static",
                 'apps.common.templatetags.seo_tags',
                 'apps.common.templatetags.assets',
                 'apps.common.templatetags.dashboard_widgets',
@@ -131,11 +133,11 @@ LOGOUT_REDIRECT_URL = "home"
 # -----------------------------------------------------------------------------
 # Static & Media
 # -----------------------------------------------------------------------------
-STATIC_URL = "/static/"
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
-MEDIA_URL = "/media/"
+MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # -----------------------------------------------------------------------------

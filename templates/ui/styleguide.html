@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}UI • DeltaCrown{% endblock %}
+{% block content %}
+<section class="container mx-auto px-4 py-10 space-y-10">
+  <h1 class="text-3xl font-extrabold">DeltaCrown UI Styleguide</h1>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <div class="card">
+      <div class="card-h">Buttons</div>
+      <div class="card-b space-x-2">
+        {% include "components/button.html" with text="Primary" variant="primary" %}
+        {% include "components/button.html" with text="Secondary" variant="secondary" %}
+        {% include "components/button.html" with text="Ghost" variant="ghost" %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h">Badges & Status</div>
+      <div class="card-b space-x-2">
+        {% include "components/badge.html" with text="Open" tone="success" %}
+        {% include "components/badge.html" with text="Pending" tone="warning" %}
+        {% include "components/status_pill.html" with status="verified" label="Verified" %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">Modal</div>
+    <div class="card-b">
+      <button class="btn btn-primary" data-modal-open="#demo-modal">Open modal</button>
+      {% include "components/modal.html" with id="demo-modal" title="Hello" body="<p>This is a11y-ready.</p>" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

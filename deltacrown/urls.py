@@ -1,62 +1,48 @@
-# deltacrown/urls.py
+# deltacrown/urls.py (Commit 1)
 from django.contrib import admin
 from django.urls import path, include
-from django.conf import settings
-from django.conf.urls.static import static
 from django.views.generic import TemplateView
-from django.contrib.sitemaps.views import sitemap
+import importlib
 
-from . import views as project_views
-from apps.user_profile import views as user_profile_views
-from .sitemaps import sitemaps
-
+# Optional: attach /healthz if present in project views
+healthz_view = None
+try:
+    from . import views as project_views  # your project's views module
+    healthz_view = getattr(project_views, "healthz", None)
+except Exception:
+    healthz_view = None
 
 urlpatterns = [
-    # Home
-    path("", project_views.home, name="home"),
-
-    # Dashboard (login required at view level)
-    path("dashboard/", user_profile_views.dashboard, name="dashboard"),
-
-    # Health check
-    path("healthz/", project_views.healthz, name="healthz"),
-
-
-    # Styleguide
-    path("ui/styleguide/", TemplateView.as_view(template_name="ui/styleguide.html"), name="styleguide"),
+    # Styleguide (Commit 1)
+    path(
+        "ui/styleguide/",
+        TemplateView.as_view(template_name="ui/styleguide.html"),
+        name="ui_styleguide",
+    ),
 
     # Admin
     path("admin/", admin.site.urls),
+]
 
-    # Auth (built-in)
-    path("accounts/", include("django.contrib.auth.urls")),
+# Optional routes — only included if the module exists
+def include_if_exists(prefix: str, module_path: str, namespace: str | None = None):
+    try:
+        importlib.import_module(module_path)
+    except ImportError:
+        return
+    if namespace:
+        urlpatterns.append(path(prefix, include((module_path, namespace))))
+    else:
+        urlpatterns.append(path(prefix, include(module_path)))
 
-    # CKEditor-5 uploads
-    path("ckeditor5/", include("django_ckeditor_5.urls")),
+# Common app includes (adjust to your project layout if needed)
+include_if_exists("tournaments/", "tournaments.urls")
+include_if_exists("teams/", "teams.urls")
+include_if_exists("user/", "user_profile.urls")
+include_if_exists("notifications/", "notifications.urls")
+include_if_exists("store/", "ecommerce.urls")
+include_if_exists("", "common.urls")  # homepage or misc public routes if you have them
 
-    # SEO endpoints
-    path(
-        "robots.txt",
-        TemplateView.as_view(template_name="robots.txt", content_type="text/plain"),
-        name="robots_txt",
-    ),
-    path(
-        "sitemap.xml",
-        sitemap,
-        {"sitemaps": sitemaps},
-        name="sitemap",
-    ),
-
-    # Apps
-    path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
-    path("t/", include(("apps.tournaments.urls", "tournaments"), namespace="t")),
-    path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
-    path("profiles/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
-    path("notifications/", include("apps.notifications.urls", namespace="notifications")),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-
-# Error handlers (use fully-qualified dotted path or module attributes)
-handler404 = "deltacrown.views.page_not_found_view"
-handler500 = "deltacrown.views.server_error_view"
-handler403 = "deltacrown.views.permission_denied_view"
+# Health check (only if available)
+if healthz_view:
+    urlpatterns.append(path("healthz", healthz_view, name="healthz"))

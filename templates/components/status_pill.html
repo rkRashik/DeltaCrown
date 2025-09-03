@@ -1,0 +1,4 @@
+{# {% include "components/status_pill.html" with status="pending" %} #}
+{% with s=status|default:"neutral" %}
+<span class="status status-{{ s }}">{{ label|default:status|title }}</span>
+{% endwith %}

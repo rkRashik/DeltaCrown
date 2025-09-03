@@ -1,0 +1,9 @@
+{% load static %}
+<div class="empty">
+  <div class="empty-ico">
+    {% if icon %}<svg class="icon-2xl"><use href="{% static 'svg/sprite.svg' %}#{{ icon }}"/></svg>{% endif %}
+  </div>
+  <h3 class="empty-h">{{ title|default:"Nothing here yet" }}</h3>
+  {% if text %}<p class="empty-p">{{ text }}</p>{% endif %}
+  {% if cta_href %}{% include "components/button.html" with text=cta_text|default:"Create" variant="primary" href=cta_href %}{% endif %}
+</div>

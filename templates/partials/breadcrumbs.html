@@ -1,0 +1,11 @@
+<nav aria-label="Breadcrumb" class="container mx-auto px-4 py-3 text-sm text-dc-muted">
+  <ol class="flex items-center gap-2">
+    {% for item in crumbs %}
+      {% if not forloop.last %}
+        <li><a href="{{ item.url }}" class="link">{{ item.title }}</a><span class="mx-1">/</span></li>
+      {% else %}
+        <li aria-current="page">{{ item.title }}</li>
+      {% endif %}
+    {% endfor %}
+  </ol>
+</nav>
