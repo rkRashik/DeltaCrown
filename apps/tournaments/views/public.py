@@ -6,11 +6,16 @@ from ..models import Tournament, Registration
 from ..forms_registration import SoloRegistrationForm, TeamRegistrationForm
 from apps.user_profile.models import UserProfile
 from django.utils import timezone
-from apps.notifications.services import send_payment_instructions_email
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.core.exceptions import FieldDoesNotExist
 from apps.corelib.admin_utils import _safe_select_related
+
+# If your notifications service provides a helper for registrations, use it:
+try:
+    from apps.notifications.services import send_payment_instructions_for_registration
+except Exception:
+    send_payment_instructions_for_registration = None
 
 
 def tournament_list(request):
@@ -25,7 +30,6 @@ def tournament_list(request):
         pass
     else:
         qs = qs.defer("bank_instructions")
-
 
     # --- Filters & search ---
     q = (request.GET.get("q") or "").strip()
@@ -79,7 +83,6 @@ def tournament_list(request):
     return render(request, "tournaments/list.html", ctx)
 
 
-
 def tournament_detail(request, slug):
     qs = _safe_select_related(Tournament.objects.all(), "settings", "bracket")
     try:
@@ -94,12 +97,19 @@ def tournament_detail(request, slug):
 
 @login_required
 def register_view(request, slug):
+    """
+    Combined register endpoint used by the existing templates:
+    - If POST contains "team", treat as team registration (Valorant/team-based)
+    - Otherwise treat as solo registration (eFootball/solo path)
+    Payment verification remains manual; we send instructions/ack if service exists.
+    """
     t = get_object_or_404(Tournament, slug=slug)
 
-    # Respect registration window
+    # Respect registration window (if your model exposes these)
     now = timezone.now()
-    if not (t.reg_open_at <= now <= t.reg_close_at):
-        return render(request, "tournaments/register_closed.html", {"t": t})
+    if hasattr(t, "reg_open_at") and hasattr(t, "reg_close_at"):
+        if not (t.reg_open_at <= now <= t.reg_close_at):
+            return render(request, "tournaments/register_closed.html", {"t": t})
 
     # Get profile (support both attribute names)
     profile = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
@@ -107,110 +117,53 @@ def register_view(request, slug):
         messages.error(request, "Please complete your profile first.")
         return redirect("user_profile:edit")
 
-    # Always prepare both forms for the template
-    solo_form = SoloRegistrationForm(tournament=t, user_profile=profile)
-    team_form = TeamRegistrationForm(tournament=t, user_profile=profile)
+    # Prepare both forms for the template (pass request; the forms can pull user/files)
+    solo_form = SoloRegistrationForm(tournament=t, request=request)
+    team_form = TeamRegistrationForm(tournament=t, request=request)
 
     if request.method == "POST":
-        fee = float(t.entry_fee_bdt or 0)
+        fee = float(getattr(t, "entry_fee_bdt", 0) or 0)
 
         if "team" in request.POST:
-            # Team registration (paid or free) -> validate via form
-            team_form = TeamRegistrationForm(request.POST, tournament=t, user_profile=profile)
+            # Team registration (paid or free)
+            team_form = TeamRegistrationForm(request.POST, request.FILES, tournament=t, request=request)
             if team_form.is_valid():
                 reg = team_form.save()
-                try:
-                    from apps.notifications.services import send_payment_instructions_for_registration
-                    send_payment_instructions_for_registration(reg)
-                except Exception:
-                    pass
+                # Optional email/instructions
+                if send_payment_instructions_for_registration:
+                    try:
+                        send_payment_instructions_for_registration(reg)
+                    except Exception:
+                        pass
                 messages.success(request, "Registration submitted.")
                 return redirect("tournaments:register_success", slug=t.slug)
         else:
             # Solo registration
             if fee <= 0:
-                # Free solo path: allow empty POST and create a row directly
-                reg = Registration.objects.create(tournament=t, user=profile)
-                try:
-                    from apps.notifications.services import send_payment_instructions_for_registration
-                    send_payment_instructions_for_registration(reg)
-                except Exception:
-                    pass
-                messages.success(request, "Registration submitted.")
-                return redirect("tournaments:register_success", slug=t.slug)
-            else:
-                # Paid solo -> validate via form (requires method/ref, and sender for wallets)
-                solo_form = SoloRegistrationForm(request.POST, tournament=t, user_profile=profile)
-                if solo_form.is_valid():
-                    reg = solo_form.save()
+                # Free solo path: allow minimal POST and create a row directly
+                reg_kwargs = {"tournament": t}
+                if hasattr(Registration, "user"):
+                    reg_kwargs["user"] = request.user
+                elif hasattr(Registration, "user_profile"):
+                    reg_kwargs["user_profile"] = profile
+                reg = Registration.objects.create(**reg_kwargs)
+                if send_payment_instructions_for_registration:
                     try:
-                        from apps.notifications.services import send_payment_instructions_for_registration
                         send_payment_instructions_for_registration(reg)
                     except Exception:
                         pass
-                    messages.success(request, "Registration submitted.")
-                    return redirect("tournaments:register_success", slug=t.slug)
-
-    return render(
-        request,
-        "tournaments/register.html",
-        {"t": t, "solo_form": solo_form, "team_form": team_form},
-    )@login_required
-def register_view(request, slug):
-    t = get_object_or_404(Tournament, slug=slug)
-
-    # Respect registration window
-    now = timezone.now()
-    if not (t.reg_open_at <= now <= t.reg_close_at):
-        return render(request, "tournaments/register_closed.html", {"t": t})
-
-    # Get profile (support both attribute names)
-    profile = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
-    if not profile:
-        messages.error(request, "Please complete your profile first.")
-        return redirect("user_profile:edit")
-
-    # Always prepare both forms for the template
-    solo_form = SoloRegistrationForm(tournament=t, user_profile=profile)
-    team_form = TeamRegistrationForm(tournament=t, user_profile=profile)
-
-    if request.method == "POST":
-        fee = float(t.entry_fee_bdt or 0)
-
-        if "team" in request.POST:
-            # Team registration (paid or free) -> validate via form
-            team_form = TeamRegistrationForm(request.POST, tournament=t, user_profile=profile)
-            if team_form.is_valid():
-                reg = team_form.save()
-                try:
-                    from apps.notifications.services import send_payment_instructions_for_registration
-                    send_payment_instructions_for_registration(reg)
-                except Exception:
-                    pass
-                messages.success(request, "Registration submitted.")
-                return redirect("tournaments:register_success", slug=t.slug)
-        else:
-            # Solo registration
-            if fee <= 0:
-                # Free solo path: allow empty POST and create a row directly
-                reg = Registration.objects.create(tournament=t, user=profile)
-                try:
-                    from apps.notifications.services import send_payment_instructions_for_registration
-                    send_payment_instructions_for_registration(reg)
-                except Exception:
-                    pass
                 messages.success(request, "Registration submitted.")
                 return redirect("tournaments:register_success", slug=t.slug)
             else:
-                # Paid solo -> validate via form (requires method/ref, and sender for wallets)
-                solo_form = SoloRegistrationForm(request.POST, tournament=t, user_profile=profile)
+                # Paid solo -> validate via form
+                solo_form = SoloRegistrationForm(request.POST, request.FILES, tournament=t, request=request)
                 if solo_form.is_valid():
                     reg = solo_form.save()
-                    try:
-                        from apps.notifications.services import send_payment_instructions_for_registration
-                        send_payment_instructions_for_registration(reg)
-                    except Exception:
-                        pass
+                    if send_payment_instructions_for_registration:
+                        try:
+                            send_payment_instructions_for_registration(reg)
+                        except Exception:
+                            pass
                     messages.success(request, "Registration submitted.")
                     return redirect("tournaments:register_success", slug=t.slug)
 
@@ -225,6 +178,7 @@ def register_view(request, slug):
 def register_success(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
     return render(request, "tournaments/register_success.html", {"t": t})
+
 
 @login_required
 def my_matches_view(request):

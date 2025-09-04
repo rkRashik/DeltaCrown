@@ -1,14 +1,12 @@
 # apps/tournaments/admin/registrations.py
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List
 
 from django.apps import apps as django_apps
 from django.contrib import admin, messages
 from django.db import transaction
 
-
-# ---------- Model resolvers ----------
 
 def _get_model(app_label: str, model_name: str):
     try:
@@ -18,7 +16,6 @@ def _get_model(app_label: str, model_name: str):
 
 
 def _get_registration_model():
-    # Try common names used in this project
     for name in ("Registration", "TournamentRegistration"):
         m = _get_model("tournaments", name)
         if m:
@@ -29,22 +26,63 @@ def _get_registration_model():
 RegistrationModel = _get_registration_model()
 PaymentModel = _get_model("payment", "Payment")
 
+# Snapshot models (may or may not exist)
+EfootballSoloInfo = _get_model("game_efootball", "EfootballSoloInfo")
+EfootballDuoInfo = _get_model("game_efootball", "EfootballDuoInfo")
+ValorantTeamInfo = _get_model("game_valorant", "ValorantTeamInfo")
+ValorantPlayer = _get_model("game_valorant", "ValorantPlayer")
 
-# ---------- Payment helpers ----------
+
+# ---------- Inlines to show snapshots under a Registration ----------
+
+if EfootballSoloInfo:
+    class EfootballSoloInfoInline(admin.StackedInline):
+        model = EfootballSoloInfo
+        extra = 0
+        can_delete = False
+        readonly_fields = ()
+else:
+    class EfootballSoloInfoInline:  # type: ignore
+        pass
+
+
+if EfootballDuoInfo:
+    class EfootballDuoInfoInline(admin.StackedInline):
+        model = EfootballDuoInfo
+        extra = 0
+        can_delete = False
+        readonly_fields = ()
+else:
+    class EfootballDuoInfoInline:  # type: ignore
+        pass
+
+
+if ValorantTeamInfo and ValorantPlayer:
+    class ValorantPlayerInline(admin.TabularInline):
+        model = ValorantPlayer
+        extra = 0
+        can_delete = False
+
+    class ValorantTeamInfoInline(admin.StackedInline):
+        model = ValorantTeamInfo
+        extra = 0
+        can_delete = False
+        inlines = []  # nested inline not supported; we add player inline separately below
+else:
+    class ValorantPlayerInline:  # type: ignore
+        pass
+    class ValorantTeamInfoInline:  # type: ignore
+        pass
+
+
+# ---------- Payment helpers & actions ----------
 
 def _set_payment_status(obj, status: str, request_user=None) -> bool:
-    """
-    Set payment status on a Registration object.
-    If a Payment FK exists, set it there. Else fall back to local `payment_status`.
-    Returns True if an update was performed.
-    """
     updated = False
-
-    # Prefer FK to Payment if present (payment or payment_id)
     payment = getattr(obj, "payment", None)
-    if payment is None and hasattr(obj, "payment_id"):
+    if payment is None and hasattr(obj, "payment_id") and PaymentModel:
         pid = getattr(obj, "payment_id", None)
-        if pid and PaymentModel:
+        if pid:
             try:
                 payment = PaymentModel.objects.get(pk=pid)
             except Exception:
@@ -55,7 +93,6 @@ def _set_payment_status(obj, status: str, request_user=None) -> bool:
             payment.status = status
             updated = True
         if status.lower() == "verified":
-            # Optionally stamp verifier/verified_at if fields exist
             if hasattr(payment, "verified_by") and request_user is not None:
                 try:
                     payment.verified_by = request_user
@@ -72,7 +109,6 @@ def _set_payment_status(obj, status: str, request_user=None) -> bool:
         except Exception:
             pass
 
-    # Fall back to a local enum/string field on Registration (if it exists)
     if hasattr(obj, "payment_status"):
         try:
             setattr(obj, "payment_status", status)
@@ -80,11 +116,8 @@ def _set_payment_status(obj, status: str, request_user=None) -> bool:
             updated = True
         except Exception:
             pass
-
     return updated
 
-
-# ---------- Admin actions (names EXACTLY as base.py expects) ----------
 
 @admin.action(description="Mark payment VERIFIED")
 @transaction.atomic
@@ -116,23 +149,15 @@ def action_mark_pending(modeladmin, request, queryset):
     modeladmin.message_user(request, f"Marked {done} registration(s) payment PENDING.", level=messages.INFO)
 
 
-# ---------- Registration admin ----------
+# ---------- Registration admin (with inlines) ----------
 
 class RegistrationAdmin(admin.ModelAdmin):
-    """
-    Defensive Registration admin:
-    - Works whether registrant is a Team or a User/UserProfile.
-    - Avoids FieldError by only select_related() on existing relations.
-    - Exposes payment moderation actions (pending/verified/rejected).
-    """
     list_display = ("id", "tournament_name", "registrant", "payment_state", "created_ts")
-    list_filter = ()
     search_fields = ("tournament__name",)
     actions = [action_mark_pending, action_verify_payment, action_reject_payment]
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Follow only relations that exist on this model
         rels: List[str] = []
         try:
             get_field = self.model._meta.get_field
@@ -148,7 +173,21 @@ class RegistrationAdmin(admin.ModelAdmin):
                 pass
         return qs.select_related(*rels) if rels else qs
 
-    # ---- columns ----
+    def get_inlines(self, request, obj=None):
+        """Attach per-game snapshot inlines only when that row exists."""
+        inlines = []
+        if EfootballSoloInfo:
+            inlines.append(EfootballSoloInfoInline)
+        if EfootballDuoInfo:
+            inlines.append(EfootballDuoInfoInline)
+        if ValorantTeamInfo:
+            inlines.append(ValorantTeamInfoInline)
+            if ValorantPlayer:
+                # We add player inline under Registration via the TeamInfo relation
+                inlines.append(ValorantPlayerInline)
+        return inlines
+
+    # columns
     @admin.display(description="Tournament")
     def tournament_name(self, obj):
         t = getattr(obj, "tournament", None)
@@ -156,14 +195,11 @@ class RegistrationAdmin(admin.ModelAdmin):
 
     @admin.display(description="Registrant")
     def registrant(self, obj):
-        # Team?
         if hasattr(obj, "team") and getattr(obj, "team", None):
             team = obj.team
             return f"Team: {getattr(team, 'name', getattr(team, 'id', '—'))}"
-        # Direct user?
         if hasattr(obj, "user") and getattr(obj, "user", None):
             return f"User: {getattr(obj.user, 'username', obj.user_id)}"
-        # UserProfile?
         if hasattr(obj, "user_profile") and getattr(obj, "user_profile", None):
             prof = obj.user_profile
             u = getattr(prof, "user", None)
@@ -187,17 +223,7 @@ class RegistrationAdmin(admin.ModelAdmin):
         return "—"
 
 
-# Inline only if model is resolved
-if RegistrationModel:
-    class RegistrationInline(admin.TabularInline):
-        model = RegistrationModel
-        extra = 0
-else:
-    class RegistrationInline:  # type: ignore
-        pass
-
-
-# Register admin programmatically (avoid decorator timing issues)
+# Register Registration admin
 if RegistrationModel:
     try:
         admin.site.register(RegistrationModel, RegistrationAdmin)
@@ -205,11 +231,9 @@ if RegistrationModel:
         pass
 
 
-# Explicit exports for base.py imports
 __all__ = [
     "RegistrationAdmin",
-    "RegistrationInline",
     "action_verify_payment",
-    "action_reject_payment",   # <-- exact name expected by base.py
+    "action_reject_payment",
     "action_mark_pending",
 ]
