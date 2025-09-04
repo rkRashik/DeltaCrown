@@ -2,26 +2,15 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.core.validators import MinValueValidator, MaxValueValidator
-
-# CKEditor 5 rich text (your stack)
 from django_ckeditor_5.fields import CKEditor5Field
 
+# Prefer Postgres ArrayField when available; fall back to JSONField otherwise
 try:
-    from django.contrib.postgres.fields import ArrayField as _ArrayField  # PG only
+    from django.contrib.postgres.fields import ArrayField as _ArrayField  # available even if DB != PG
 except Exception:  # pragma: no cover
     _ArrayField = None
-
-VALORANT_BO = [
-    ("BO1", "Best of 1"),
-    ("BO3", "Best of 3"),
-    ("BO5", "Best of 5"),
-]
-
-DEFAULT_MAP_POOL = [
-    "Ascent", "Bind", "Haven", "Lotus", "Split", "Sunset", "Icebox"
-]
 
 
 def _using_postgres() -> bool:
@@ -31,10 +20,23 @@ def _using_postgres() -> bool:
         return False
 
 
+VALORANT_BO = [
+    ("BO1", "Best of 1"),
+    ("BO2", "Best of 2"),
+    ("BO3", "Best of 3"),
+    ("BO5", "Best of 5"),
+]
+
+DEFAULT_MAP_POOL = [
+    "Ascent", "Bind", "Haven", "Lotus", "Split", "Sunset", "Icebox", "Abyss", "Breeze",
+]
+
+
 class ValorantConfig(models.Model):
     """
-    Per-tournament Valorant rules & knobs.
+    Per-tournament Valorant rules.
     Uses ArrayField on PostgreSQL; JSON list elsewhere (MySQL-friendly).
+    Mutually exclusive with eFootball config on the same tournament.
     """
     tournament = models.OneToOneField(
         "tournaments.Tournament",
@@ -42,13 +44,12 @@ class ValorantConfig(models.Model):
         related_name="valorant_config",
     )
 
-    # Core match format
     best_of = models.CharField(max_length=3, choices=VALORANT_BO, default="BO3")
     rounds_per_match = models.PositiveIntegerField(
         default=13, validators=[MinValueValidator(11), MaxValueValidator(16)]
     )
 
-    # Map pool (PG ArrayField if available, else JSON list)
+    # Map pool (PG ArrayField if available + PG engine; else JSON list)
     if _ArrayField and _using_postgres():
         map_pool = _ArrayField(models.CharField(max_length=30), default=list, blank=True)
     else:
@@ -57,10 +58,10 @@ class ValorantConfig(models.Model):
     # Optional controls
     match_duration_limit = models.DurationField(null=True, blank=True)
     overtime_rules = models.CharField(
-        max_length=120, blank=True, help_text="Short text like ‘MR3 OT, win by 2’"
+        max_length=120, blank=True, help_text="e.g. ‘MR3 OT, win by 2’"
     )
 
-    # Long-form extras (rules, veto, evidence examples)
+    # Long-form extras (rules/veto/policies)
     additional_rules_richtext = CKEditor5Field("Additional rules", config_name="default", blank=True)
 
     # Advanced toggles (future-proof; all default off)
@@ -72,7 +73,7 @@ class ValorantConfig(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.map_pool:
-            self.map_pool = DEFAULT_MAP_POOL
+            self.map_pool = list(DEFAULT_MAP_POOL)
         super().save(*args, **kwargs)
 
     def clean(self):

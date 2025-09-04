@@ -17,8 +17,6 @@ def _only_existing(model, *names):
     return [n for n in names if n in fields]
 
 
-# ---------------- Inlines ----------------
-
 class EfootballConfigInline(admin.StackedInline):
     model = EfootballConfig
     can_delete = False
@@ -37,31 +35,30 @@ class ValorantConfigInline(admin.StackedInline):
 
 class TournamentSettingsInline(admin.StackedInline):
     """
-    Flexible inline that only shows fields that actually exist on your TournamentSettings model.
-    This avoids admin errors if some fields are not present yet.
+    Field-aware inline that only shows fields that actually exist,
+    so admin never crashes while you evolve models.
     """
     model = TournamentSettings
     can_delete = False
     extra = 0
     show_change_link = True
 
-    # Candidate buckets drawn from your docs; only present fields will render.
     _SCHEDULE = ("start_at", "end_at", "reg_open_at", "reg_close_at")
-    _ENTRY = ("min_team_size", "max_team_size", "entry_fee_bdt", "entry_fee",
+    _ENTRY = ("min_team_size", "max_team_size", "entry_fee_bdt",
               "prize_pool_bdt", "prize_type", "prize_distribution_text")
-    _CORE_TOGGLES = ("invite_only", "auto_check_in", "allow_substitutes",
-                     "custom_format_enabled", "automatic_scheduling_enabled",
+    _CORE_TOGGLES = ("invite_only", "auto_check_in", "auto_schedule",
                      "payment_gateway_enabled")
-    _VISIBILITY = ("bracket_visibility", "region_lock", "check_in_open_mins", "check_in_close_mins")
+    _VISIBILITY = ("bracket_visibility", "region_lock",
+                   "check_in_open_mins", "check_in_close_mins")
     _MEDIA = ("banner", "rules_pdf",
-              "facebook_stream_url", "stream_facebook_url",
-              "youtube_stream_url", "stream_youtube_url",
-              "discord_link", "discord_url")
-    _PAYMENT = ("bkash_receive_number", "nagad_receive_number",
-                "rocket_receive_number", "bank_instructions")
+              "stream_facebook_url", "stream_youtube_url", "discord_url")
+    _PAYMENT_TYPES = ("bkash_receive_type", "nagad_receive_type", "rocket_receive_type")
+    _PAYMENT = ("bkash_receive_number", "nagad_receive_number", "rocket_receive_number",
+                "bank_instructions")
 
     def get_fieldsets(self, request, obj=None):
         fsets = []
+
         def add(title, candidates):
             present = _only_existing(self.model, *candidates)
             if present:
@@ -72,11 +69,11 @@ class TournamentSettingsInline(admin.StackedInline):
         add("Core Toggles", self._CORE_TOGGLES)
         add("Visibility & Region", self._VISIBILITY)
         add("Rules & Media", self._MEDIA)
-        add("Payments (Manual)", self._PAYMENT)
+        add("Payment Receiving Types", self._PAYMENT_TYPES)
+        add("Receiving Accounts (Manual)", self._PAYMENT)
         return tuple(fsets) if fsets else None
 
 
-# Optional list filter used by TournamentAdmin
 class HasEntryFeeFilter(admin.SimpleListFilter):
     title = "Has entry fee"
     parameter_name = "has_fee"
@@ -88,15 +85,12 @@ class HasEntryFeeFilter(admin.SimpleListFilter):
         val = self.value()
         names = [f.name for f in Tournament._meta.get_fields()]
         if val == "yes":
-            # Prefer related settings
             try:
                 return queryset.filter(settings__entry_fee_bdt__gt=0)
             except Exception:
                 pass
             if "entry_fee_bdt" in names:
                 return queryset.filter(entry_fee_bdt__gt=0)
-            if "entry_fee" in names:
-                return queryset.filter(entry_fee__gt=0)
             return queryset.none()
 
         if val == "no":
@@ -106,8 +100,6 @@ class HasEntryFeeFilter(admin.SimpleListFilter):
                 pass
             if "entry_fee_bdt" in names:
                 return queryset.filter(entry_fee_bdt__isnull=True) | queryset.filter(entry_fee_bdt=0)
-            if "entry_fee" in names:
-                return queryset.filter(entry_fee__isnull=True) | queryset.filter(entry_fee=0)
             return queryset
 
         return queryset

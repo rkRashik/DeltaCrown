@@ -7,6 +7,8 @@ Ensure module side-effects happen at import time so ModelAdmins are registered.
 # Ensure side effects (registrations) run
 from . import base as _base  # noqa: F401
 from . import disputes as _disputes  # noqa: F401  # make sure MatchDispute is registered
+from .payment_verification import PaymentVerificationAdmin
+from .tournaments import TournamentAdmin
 
 # Explicit re-exports for stable imports
 from .tournaments import (  # noqa: F401

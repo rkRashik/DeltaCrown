@@ -126,3 +126,44 @@ def register_signals():
         )
     except LookupError:
         pass
+
+
+def _ensure_payment_verification_on_registration_save(sender, instance, created, **kwargs):
+    if not created:
+        return
+    try:
+        PaymentVerification = apps.get_model("tournaments", "PaymentVerification")
+        PaymentVerification.objects.get_or_create(registration=instance)
+    except Exception:
+        # If verification model not migrated yet, fail silent
+        pass
+
+
+def register_signals():
+    """
+    Called from AppConfig.ready() to attach signals.
+    """
+    Tournament = apps.get_model("tournaments", "Tournament")
+    post_save.connect(
+        _ensure_children_on_tournament_save,
+        sender=Tournament,
+        dispatch_uid="tournaments.ensure_children_on_tournament_save",
+    )
+
+    # Registration validators (already present from Part 1)
+    try:
+        Registration = apps.get_model("tournaments", "Registration")
+        pre_save.connect(
+            _validate_registration_on_save,
+            sender=Registration,
+            dispatch_uid="tournaments.validate_registration_on_save",
+        )
+        # NEW: auto-create PaymentVerification on Registration create
+        post_save.connect(
+            _ensure_payment_verification_on_registration_save,
+            sender=Registration,
+            dispatch_uid="tournaments.ensure_payment_verification_on_registration_save",
+        )
+    except LookupError:
+        pass
+
