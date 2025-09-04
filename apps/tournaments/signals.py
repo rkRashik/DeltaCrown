@@ -4,23 +4,19 @@ from __future__ import annotations
 from typing import Optional
 
 from django.apps import apps
-from django.core.exceptions import ValidationError
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+from django.core.exceptions import ValidationError
 
+
+# ---------------- helpers (used by registration validator) ----------------
 
 def _get_field(obj, *candidates) -> Optional[object]:
-    """
-    Return the first attribute that exists and is not None among candidates.
-    Example: _get_field(reg, 'user', 'user_profile')
-    """
     for name in candidates:
         if hasattr(obj, name):
             val = getattr(obj, name)
-            # also handle *_id style attributes (ForeignKey raw ID)
             if val is not None:
                 return val
-        # Try *_id explicitly if not yet returned
         id_name = f"{name}_id"
         if hasattr(obj, id_name):
             val = getattr(obj, id_name)
@@ -34,7 +30,6 @@ def _team_fk_present(reg) -> bool:
 
 
 def _user_fk_present(reg) -> bool:
-    # Support either `user` or `user_profile` style schemas
     present = _get_field(reg, "user")
     if present is not None:
         return True
@@ -43,14 +38,7 @@ def _user_fk_present(reg) -> bool:
 
 
 def _mode_for_tournament(tournament) -> str:
-    """
-    Determine registration mode for a tournament.
-    - 'team' if valorant_config exists
-    - 'solo' if efootball_config exists
-    - fallback to 'team' if game looks like 'valorant', else 'solo' if 'efootball'
-    default to 'solo' if unsure (safer for paid flows to require individual)
-    """
-    # Prefer explicit related configs if present on your model
+    # Prefer explicit related configs if present
     if hasattr(tournament, "valorant_config") and _get_field(tournament, "valorant_config"):
         return "team"
     if hasattr(tournament, "efootball_config") and _get_field(tournament, "efootball_config"):
@@ -65,58 +53,49 @@ def _mode_for_tournament(tournament) -> str:
         if "efootball" in g or "e-football" in g or "e football" in g:
             return "solo"
 
-    # Sensible default
     return "solo"
 
 
-def _valorant_expected_team_size(tournament) -> int:
-    """
-    Try to read per-tournament required team size from configs; fallback to 5.
-    This is best-effort and will not raise if fields are absent.
-    """
-    default = 5
-    cfg = getattr(tournament, "valorant_config", None)
-    if cfg:
-        for name in ("team_size", "roster_size", "required_players"):
-            if hasattr(cfg, name):
-                val = getattr(cfg, name)
-                if isinstance(val, int) and val > 0:
-                    return val
-    return default
+# ---------------- signal receivers ----------------
 
-
-def _count_team_players(team) -> Optional[int]:
+def _ensure_children_on_tournament_save(sender, instance, created, **kwargs):
     """
-    Try to count current team players if the Teams app exists.
-    Returns None if we cannot determine.
+    Make sure core/settings & game-specific configs exist after saving a Tournament.
     """
+    # Ensure TournamentSettings exists
     try:
-        TeamMembership = apps.get_model("teams", "TeamMembership")
+        TournamentSettings = apps.get_model("tournaments", "TournamentSettings")
+        if not hasattr(instance, "settings") or getattr(instance, "settings", None) is None:
+            TournamentSettings.objects.get_or_create(tournament=instance)
     except Exception:
-        return None
+        # Settings model may not exist in some branches yet
+        pass
 
-    # Try common role fields; fallback to all members count
+    # Ensure per-game config exists
+    game_value = (getattr(instance, "game", None) or "").strip().lower()
     try:
-        qs = TeamMembership.objects.filter(team=team)
-        # If role field exists and marks players/captains/subs, you can refine here.
-        return qs.count()
+        if "valorant" in game_value:
+            ValorantConfig = apps.get_model("game_valorant", "ValorantConfig")
+            ValorantConfig.objects.get_or_create(tournament=instance)
+        elif "efootball" in game_value:
+            EfootballConfig = apps.get_model("game_efootball", "EfootballConfig")
+            EfootballConfig.objects.get_or_create(tournament=instance)
     except Exception:
-        return None
+        # If the game app is disabled/missing, just skip
+        pass
 
 
-def _validate_registration_instance(reg) -> None:
+def _validate_registration_on_save(sender, instance, **kwargs):
     """
-    Core validator enforcing Valorant (team) vs eFootball (solo) semantics.
+    Enforce solo vs team semantics for registrations.
     """
-    tournament = getattr(reg, "tournament", None)
+    tournament = getattr(instance, "tournament", None)
     if not tournament:
-        # If tournament FK is missing, let model-level mandatory FK validation handle it.
         return
 
     mode = _mode_for_tournament(tournament)
-
-    team_present = _team_fk_present(reg)
-    user_present = _user_fk_present(reg)
+    team_present = _team_fk_present(instance)
+    user_present = _user_fk_present(instance)
 
     # Disallow both or neither
     if team_present and user_present:
@@ -124,46 +103,31 @@ def _validate_registration_instance(reg) -> None:
     if not team_present and not user_present:
         raise ValidationError("Registration must have either a team (team mode) or a user (solo mode).")
 
-    if mode == "team":
-        if not team_present:
-            raise ValidationError("This tournament requires team registration (Valorant).")
-        # Optional: best-effort team size check
-        team_obj = getattr(reg, "team", None)
-        if team_obj is not None:
-            expected = _valorant_expected_team_size(tournament)
-            count = _count_team_players(team_obj)
-            if isinstance(count, int) and count > 0 and count < expected:
-                raise ValidationError(f"Team must have at least {expected} players for Valorant.")
-        # Ensure solo fields are clear (if they exist)
-        for solo_name in ("user", "user_profile", "profile"):
-            if hasattr(reg, solo_name):
-                setattr(reg, solo_name, None)
-
-    elif mode == "solo":
-        if not user_present:
-            raise ValidationError("This tournament requires individual registration (eFootball).")
-        # Ensure team field is clear when in solo mode
-        if hasattr(reg, "team"):
-            setattr(reg, "team", None)
+    if mode == "team" and not team_present:
+        raise ValidationError("This tournament requires team registration (team is missing).")
+    if mode == "solo" and not user_present:
+        raise ValidationError("This tournament requires solo registration (user is missing).")
 
 
-@receiver(pre_save)
-def registration_pre_save(sender, instance, **kwargs):
+def register_signals():
     """
-    Global receiver: run only for the Registration model in tournaments app.
+    Called from AppConfig.ready() to attach signals using dynamic model lookups
+    (avoids import order issues).
     """
+    Tournament = apps.get_model("tournaments", "Tournament")
+    post_save.connect(
+        _ensure_children_on_tournament_save,
+        sender=Tournament,
+        dispatch_uid="tournaments.ensure_children_on_tournament_save",
+    )
+
+    # Hook Registration validator if model exists
     try:
         Registration = apps.get_model("tournaments", "Registration")
-    except Exception:
-        return
-
-    if sender is Registration:
-        _validate_registration_instance(instance)
-
-
-def connect() -> None:
-    """
-    Called by AppConfig.ready() to ensure signal module is imported.
-    Nothing to do here; using @receiver(pre_save) is sufficient.
-    """
-    return
+        pre_save.connect(
+            _validate_registration_on_save,
+            sender=Registration,
+            dispatch_uid="tournaments.validate_registration_on_save",
+        )
+    except LookupError:
+        pass

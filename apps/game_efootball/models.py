@@ -1,35 +1,47 @@
-from django.db import models
-from django_ckeditor_5.fields import CKEditor5Field
-from apps.tournaments.models import Tournament
+# apps/game_efootball/models.py
+from __future__ import annotations
 
-EFOOTBALL_FORMAT = [
-    ("BO1", "Best of 1"),
-    ("BO3", "Best of 3"),
-    ("BO5", "Best of 5"),
-]
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django_ckeditor_5.fields import CKEditor5Field
+
 
 class EfootballConfig(models.Model):
+    """
+    eFootball tournament knobs: BoX, duration, optional time limit & strength cap, plus rich rules.
+    """
+    class MatchFormat(models.TextChoices):
+        BO1 = "BO1", _("Best of 1")
+        BO3 = "BO3", _("Best of 3")
+        BO5 = "BO5", _("Best of 5")  # keep for flexibility; you can hide in admin if you don't plan to use
+
     tournament = models.OneToOneField(
-        Tournament, on_delete=models.CASCADE, related_name="efootball_config"
+        "tournaments.Tournament",
+        on_delete=models.CASCADE,
+        related_name="efootball_config",
     )
-    format_type = models.CharField(max_length=3, choices=EFOOTBALL_FORMAT, default="BO1")
-    match_duration_min = models.PositiveIntegerField(default=10)  # typical 8–12 mins
-    team_strength_cap = models.PositiveIntegerField(null=True, blank=True)  # e.g., 2700
+
+    # Core
+    format_type = models.CharField(max_length=3, choices=MatchFormat.choices, default=MatchFormat.BO1)
+    match_duration_min = models.PositiveIntegerField(default=10, help_text="Per match, e.g., 10 minutes")
+    match_time_limit = models.DurationField(null=True, blank=True)
+    team_strength_cap = models.PositiveIntegerField(null=True, blank=True, help_text="e.g., 2700–3000")
+
+    # Optional rules toggles
     allow_extra_time = models.BooleanField(default=False)
     allow_penalties = models.BooleanField(default=True)
 
-    # CKEditor-5 (replacement for classic ckeditor)
+    # Long-form extras
     additional_rules_richtext = CKEditor5Field("Additional rules", config_name="default", blank=True)
 
     def clean(self):
-        # Enforce single game config per tournament (ahead of Part 4 inline validation)
         from django.core.exceptions import ValidationError
         vconf = getattr(self.tournament, "valorant_config", None)
-        if vconf and vconf.pk:
+        if vconf and getattr(vconf, "pk", None):
             raise ValidationError("This tournament already has a Valorant config. Remove it first.")
 
     def __str__(self):
-        return f"eFootball Config for {self.tournament.name}"
+        return f"eFootball Config for {getattr(self.tournament, 'name', self.tournament_id)}"
 
     class Meta:
         verbose_name = "eFootball Config"
