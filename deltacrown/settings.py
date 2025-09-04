@@ -181,7 +181,11 @@ SERVER_EMAIL = "errors@deltacrown.local"
 # -----------------------------------------------------------------------------
 CKEDITOR_5_CONFIGS = {
     "default": {
-        "toolbar": "full",
+        "toolbar": [
+            "bold", "italic", "underline", "|",
+            "link", "bulletedList", "numberedList", "|",
+            "blockQuote", "insertTable", "undo", "redo",
+        ],
     }
 }
 CKEDITOR_5_CUSTOM_CSS = None

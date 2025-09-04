@@ -1,9 +1,24 @@
 # apps/tournaments/admin/utils.py
+from __future__ import annotations
 
-def _path_exists(model, path: str) -> bool:
+from typing import Iterable, List
+from django.contrib import messages
+from django.db import models
+
+
+def _is_forward_relation(field: models.Field) -> bool:
     """
-    Verify a select_related path exists on 'model', supporting spans like 'profile__user'.
-    Each segment must be a real field; for relation fields we walk to the related model.
+    True if this model field is a concrete forward relation suitable for select_related()
+    (i.e., ForeignKey / OneToOneField). Excludes M2M and reverse relations.
+    """
+    remote = getattr(field, "remote_field", None)
+    return bool(remote) and not getattr(field, "many_to_many", False)
+
+
+def _path_exists(model: type[models.Model], path: str) -> bool:
+    """
+    Verify that a select_related path exists (supports spans like 'a__b__c').
+    Walks forward relations only.
     """
     parts = path.split("__")
     m = model
@@ -12,27 +27,43 @@ def _path_exists(model, path: str) -> bool:
             f = m._meta.get_field(p)
         except Exception:
             return False
-        # If it's a relation, walk to the related model; otherwise keep current model
-        if hasattr(f, "related_model") and f.related_model:
-            m = f.related_model
+        if _is_forward_relation(f) and getattr(f, "remote_field", None):
+            m = f.remote_field.model  # follow to next model
+        else:
+            # Not a relation: only acceptable if this is the last segment.
+            if p != parts[-1]:
+                return False
     return True
 
 
-def _safe_select_related(qs, candidate_paths):
+def safe_select_related(qs, model: type[models.Model], names: Iterable[str]):
     """
-    Apply select_related only for paths that exist on the queryset's model.
-    Keeps admin list/export code resilient if models evolve.
+    Apply select_related() only for relation names/paths that truly exist on `model`.
+    Silently ignores bad names to avoid FieldError.
     """
-    model = qs.model
-    valid = [p for p in candidate_paths if _path_exists(model, p)]
+    if not names:
+        return qs
+    valid: List[str] = []
+    for name in names:
+        try:
+            if _path_exists(model, name):
+                valid.append(name)
+        except Exception:
+            # Be defensive: ignore anything unexpected.
+            continue
     return qs.select_related(*valid) if valid else qs
 
 
-def _safe_message(modeladmin, request, msg, level=None):
+# --- Backward compatibility alias (other modules import this name) ---
+# e.g., from .utils import _safe_select_related
+_safe_select_related = safe_select_related
+
+
+def _safe_message(modeladmin, request, msg: str, level=None):
     """
-    Call ModelAdmin.message_user safely (works in tests or when middleware is absent).
+    Call ModelAdmin.message_user safely (also works in tests when middleware may differ).
     """
     try:
-        modeladmin.message_user(request, msg, level=level)
+        modeladmin.message_user(request, msg, level=level or messages.INFO)
     except Exception:
         pass
