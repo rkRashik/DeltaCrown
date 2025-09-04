@@ -1,44 +1,31 @@
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import render
 
 
 def home(request):
     """
     Public homepage.
-
-    - Tries to import Tournament/Team/User profile models to populate dynamic
-      sections and counters, but NEVER crashes if those apps aren't present.
-    - If models are missing, we fall back to None/0 so the template shows
-      placeholders gracefully.
     """
+    # Try to pull dynamic stats/tournaments, but never crash
     tournaments_qs = None
     stats = {"teams": 0, "tournaments": 0, "players": 0}
 
-    # Try to fetch tournaments (limit 6), ordered by a reasonable field
     try:
         from apps.tournaments.models import Tournament  # type: ignore
-        # Prefer upcoming/ongoing; if no such field, just order by -id as fallback
         try:
-            tournaments_qs = (
-                Tournament.objects
-                .order_by("-created_at")[:6]
-            )
+            tournaments_qs = Tournament.objects.order_by("-created_at")[:6]
         except Exception:
             tournaments_qs = Tournament.objects.order_by("-id")[:6]
-
-        # Count tournaments
         stats["tournaments"] = Tournament.objects.count()
     except Exception:
-        tournaments_qs = None  # app not present or model not available
+        tournaments_qs = None
 
-    # Try to count teams
     try:
         from apps.teams.models import Team  # type: ignore
         stats["teams"] = Team.objects.count()
     except Exception:
         pass
 
-    # Try to count players/users
     try:
         from django.contrib.auth import get_user_model
         User = get_user_model()
@@ -56,3 +43,42 @@ def home(request):
 def healthz(request):
     """Simple health check endpoint."""
     return HttpResponse("OK")
+
+
+# --------------- Tournaments: List & Detail (safe optional) ---------------
+
+def tournaments_list(request):
+    """
+    List tournaments in a responsive grid.
+    If Tournament model isn't available, renders placeholders.
+    """
+    qs = None
+    try:
+        from apps.tournaments.models import Tournament  # type: ignore
+        try:
+            qs = Tournament.objects.order_by("-created_at")
+        except Exception:
+            qs = Tournament.objects.order_by("-id")
+    except Exception:
+        qs = None
+
+    return render(request, "tournaments/list.html", {"tournaments": qs})
+
+
+def tournament_detail(request, pk: int):
+    """
+    Show a single tournament with hero, meta, rules, schedule, and CTA.
+    Falls back to a placeholder page if model is unavailable or object missing.
+    """
+    tournament = None
+    try:
+        from apps.tournaments.models import Tournament  # type: ignore
+        try:
+            tournament = Tournament.objects.get(pk=pk)
+        except Tournament.DoesNotExist:  # type: ignore
+            raise Http404("Tournament not found")
+    except Exception:
+        # If the model itself is missing, we'll render a friendly placeholder
+        tournament = None
+
+    return render(request, "tournaments/detail.html", {"tournament": tournament})

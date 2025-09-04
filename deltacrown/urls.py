@@ -12,6 +12,10 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("healthz/", views.healthz, name="healthz"),
     path("admin/", admin.site.urls),
+
+    # New: Explore routes (non-conflicting)
+    path("explore/tournaments/", views.tournaments_list, name="explore_tournaments"),
+    path("explore/tournaments/<int:pk>/", views.tournament_detail, name="explore_tournament_detail"),
 ]
 
 def _optional_include(prefix: str, module: str):

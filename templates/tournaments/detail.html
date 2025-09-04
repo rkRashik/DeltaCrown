@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ tournament.title|default:"Tournament" }} — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="relative overflow-hidden">
+  <div class="dc-animate-gradient"></div>
+
+  <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
+    <!-- Hero -->
+    <header class="grid lg:grid-cols-3 gap-8 items-start">
+      <div class="lg:col-span-2">
+        <h1 class="text-3xl md:text-4xl font-extrabold leading-tight">
+          {{ tournament.title|default:"Tournament" }}
+        </h1>
+        <p class="mt-2 dc-muted">
+          {% if tournament.subtitle %}{{ tournament.subtitle }}{% else %}A competitive esports event hosted by DeltaCrown.{% endif %}
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="#" class="dc-btn px-5 py-3 rounded-2xl font-semibold bg-brand-primary text-black hover:opacity-90 transition">
+            Register
+          </a>
+          <a href="#rules" class="px-5 py-3 rounded-2xl border dc-border hover:border-brand-primary/60">Rules</a>
+          <a href="#schedule" class="px-5 py-3 rounded-2xl border dc-border hover:border-brand-primary/60">Schedule</a>
+          <a href="#bracket" class="px-5 py-3 rounded-2xl border dc-border hover:border-brand-primary/60">Bracket</a>
+        </div>
+      </div>
+
+      <!-- Meta card -->
+      <aside class="dc-card rounded-2xl p-5">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <div class="dc-muted">Game</div>
+            <div class="font-medium">{{ tournament.game_name|default:"Esports" }}</div>
+          </div>
+          <div>
+            <div class="dc-muted">Status</div>
+            <div class="font-medium">{{ tournament.status|default:"Upcoming" }}</div>
+          </div>
+          <div>
+            <div class="dc-muted">Start</div>
+            <div class="font-medium">
+              {% if tournament.start_date %}{{ tournament.start_date }}{% else %}TBA{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="dc-muted">Prize</div>
+            <div class="font-medium">
+              {% if tournament.prize_pool %}{{ tournament.prize_pool }}{% else %}TBA{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="dc-muted">Entry</div>
+            <div class="font-medium">
+              {% if tournament.entry_fee %}{{ tournament.entry_fee }}{% else %}Free/Varies{% endif %}
+            </div>
+          </div>
+          <div>
+            <div class="dc-muted">Teams/Players</div>
+            <div class="font-medium">
+              {% if tournament.max_participants %}Up to {{ tournament.max_participants }}{% else %}Limited{% endif %}
+            </div>
+          </div>
+        </div>
+      </aside>
+    </header>
+
+    <!-- Content -->
+    <div class="mt-12 grid lg:grid-cols-3 gap-8">
+      <article class="lg:col-span-2 space-y-10">
+        <!-- Overview -->
+        <section class="dc-reveal">
+          <h2 class="text-xl font-semibold">Overview</h2>
+          <p class="mt-2 dc-muted">
+            {% if tournament.description %}{{ tournament.description|linebreaks }}{% else %}
+              This tournament brings together top competitors in a fair, well-moderated environment. Match formats, anti-cheat, and dispute resolution are clearly defined to ensure a great experience.
+            {% endif %}
+          </p>
+        </section>
+
+        <!-- Rules -->
+        <section id="rules" class="dc-reveal" style="animation-delay:120ms">
+          <h2 class="text-xl font-semibold">Rules</h2>
+          <div class="mt-2 dc-muted text-sm">
+            {% if tournament.rules %}{{ tournament.rules|linebreaks }}{% else %}
+              — Follow the official game rules and referee instructions.<br/>
+              — Be on time for check-in and matches.<br/>
+              — Any cheating/toxicity results in disqualification.<br/>
+              — Admin decisions are final.
+            {% endif %}
+          </div>
+        </section>
+
+        <!-- Schedule -->
+        <section id="schedule" class="dc-reveal" style="animation-delay:180ms">
+          <h2 class="text-xl font-semibold">Schedule</h2>
+          <div class="mt-2 dc-muted text-sm">
+            {% if tournament.schedule %}{{ tournament.schedule|linebreaks }}{% else %}
+              Schedule will be announced with the bracket. Expect group stage followed by knockouts and a best-of series final.
+            {% endif %}
+          </div>
+        </section>
+
+        <!-- Bracket preview -->
+        <section id="bracket" class="dc-reveal" style="animation-delay:240ms">
+          <h2 class="text-xl font-semibold">Bracket (Preview)</h2>
+          <div class="mt-3 rounded-xl dc-card p-4 overflow-x-auto">
+            <div class="min-w-[640px] h-48 grid grid-cols-4 gap-4 text-sm">
+              <div class="space-y-3">
+                <div class="px-3 py-2 rounded-lg border dc-border">Team A</div>
+                <div class="px-3 py-2 rounded-lg border dc-border">Team B</div>
+                <div class="px-3 py-2 rounded-lg border dc-border">Team C</div>
+                <div class="px-3 py-2 rounded-lg border dc-border">Team D</div>
+              </div>
+              <div class="flex items-center justify-center">→</div>
+              <div class="space-y-3">
+                <div class="px-3 py-2 rounded-lg border dc-border">Semifinal 1</div>
+                <div class="px-3 py-2 rounded-lg border dc-border">Semifinal 2</div>
+              </div>
+              <div class="flex items-center justify-center">→ Final</div>
+            </div>
+          </div>
+          <p class="mt-2 dc-muted text-xs">Full interactive bracket coming soon.</p>
+        </section>
+      </article>
+
+      <!-- Sidebar -->
+      <aside class="space-y-6">
+        <div class="rounded-2xl dc-card p-5">
+          <h3 class="font-semibold">Get Updates</h3>
+          <p class="mt-1 dc-muted text-sm">Follow the tournament announcements and match results.</p>
+          <form class="mt-4 grid gap-2">
+            <input type="email" required placeholder="you@example.com"
+                   class="w-full px-3 py-2 rounded-xl border dc-border bg-[color:var(--surface)] outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"/>
+            <button class="dc-btn px-4 py-2 rounded-xl bg-brand-primary text-black font-semibold hover:opacity-90" type="submit">Subscribe</button>
+          </form>
+        </div>
+
+        <div class="rounded-2xl dc-card p-5">
+          <h3 class="font-semibold">Contact Admin</h3>
+          <p class="mt-1 dc-muted text-sm">Need help with registration or rules?</p>
+          <a href="/about/#contact" class="mt-3 inline-flex px-3 py-2 rounded-xl border dc-border hover:border-brand-primary/60">Contact</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+{% endblock %}
