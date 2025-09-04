@@ -1,17 +1,19 @@
 # apps/tournaments/views/public.py
+from __future__ import annotations
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
-from ..models import Tournament, Registration
-from ..forms_registration import SoloRegistrationForm, TeamRegistrationForm
-from apps.user_profile.models import UserProfile
-from django.utils import timezone
-from django.db.models import Q
-from django.core.paginator import Paginator
 from django.core.exceptions import FieldDoesNotExist
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+
+from ..forms_registration import SoloRegistrationForm, TeamRegistrationForm
+from ..models import Registration, Tournament
 from apps.corelib.admin_utils import _safe_select_related
 
-# If your notifications service provides a helper for registrations, use it:
+# Optional notifications service
 try:
     from apps.notifications.services import send_payment_instructions_for_registration
 except Exception:
@@ -19,8 +21,11 @@ except Exception:
 
 
 def tournament_list(request):
+    """
+    Public list: search, filter (game/status/entry), sort, paginate.
+    Keeps payload light by select_related on 1-1s and deferring heavy fields when present.
+    """
     qs = Tournament.objects.all()
-    # Performance: avoid N+1 on one-to-one settings; keep list payload light
     qs = _safe_select_related(qs, "settings")
 
     # Defer heavy field only if it exists on Tournament
@@ -42,10 +47,9 @@ def tournament_list(request):
         qs = qs.filter(Q(name__icontains=q) | Q(short_description__icontains=q))
 
     if game:
-        # case-insensitive match, works even if DB has 'eFootball' or 'Valorant'
         qs = qs.filter(game__iexact=game)
 
-    # status via dates (robust across Status choices)
+    # Status via dates
     now = timezone.now()
     if status == "upcoming":
         qs = qs.filter(start_at__gt=now)
@@ -59,7 +63,6 @@ def tournament_list(request):
     elif entry == "paid":
         qs = qs.filter(entry_fee_bdt__gt=0)
 
-    # Sorting
     if sort == "date":
         qs = qs.order_by("start_at")            # earliest first
     elif sort == "name":
@@ -69,7 +72,6 @@ def tournament_list(request):
     else:  # "new" (default)
         qs = qs.order_by("-created_at")
 
-    # Pagination
     paginator = Paginator(qs, 12)
     page_obj = paginator.get_page(request.GET.get("page") or 1)
 
@@ -84,40 +86,35 @@ def tournament_list(request):
 
 
 def tournament_detail(request, slug):
+    """
+    Public detail page. Prefetch related collections when available.
+    """
     qs = _safe_select_related(Tournament.objects.all(), "settings", "bracket")
     try:
-        # Prefetch heavy relations if they exist; ignore if names differ
         qs = qs.prefetch_related("registrations", "matches")
     except Exception:
         pass
     t = get_object_or_404(qs, slug=slug)
-
     return render(request, "tournaments/detail.html", {"t": t})
 
 
 @login_required
 def register_view(request, slug):
     """
-    Combined register endpoint used by the existing templates:
-    - If POST contains "team", treat as team registration (Valorant/team-based)
-    - Otherwise treat as solo registration (eFootball/solo path)
-    Payment verification remains manual; we send instructions/ack if service exists.
+    Unified register endpoint.
+    - Team (Valorant) -> POST contains 'team' => TeamRegistrationForm
+    - Solo (eFootball) -> otherwise => SoloRegistrationForm
+    Payment is recorded as pending; admins verify manually later.
     """
     t = get_object_or_404(Tournament, slug=slug)
 
-    # Respect registration window (if your model exposes these)
+    # Registration window (if fields exist)
     now = timezone.now()
     if hasattr(t, "reg_open_at") and hasattr(t, "reg_close_at"):
         if not (t.reg_open_at <= now <= t.reg_close_at):
             return render(request, "tournaments/register_closed.html", {"t": t})
 
-    # Get profile (support both attribute names)
-    profile = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
-    if not profile:
-        messages.error(request, "Please complete your profile first.")
-        return redirect("user_profile:edit")
-
-    # Prepare both forms for the template (pass request; the forms can pull user/files)
+    # Prepare forms for GET
     solo_form = SoloRegistrationForm(tournament=t, request=request)
     team_form = TeamRegistrationForm(tournament=t, request=request)
 
@@ -129,7 +126,6 @@ def register_view(request, slug):
             team_form = TeamRegistrationForm(request.POST, request.FILES, tournament=t, request=request)
             if team_form.is_valid():
                 reg = team_form.save()
-                # Optional email/instructions
                 if send_payment_instructions_for_registration:
                     try:
                         send_payment_instructions_for_registration(reg)
@@ -140,12 +136,16 @@ def register_view(request, slug):
         else:
             # Solo registration
             if fee <= 0:
-                # Free solo path: allow minimal POST and create a row directly
+                # Free solo path: minimal row
                 reg_kwargs = {"tournament": t}
+                # Prefer Registration.user if available; else user_profile
                 if hasattr(Registration, "user"):
                     reg_kwargs["user"] = request.user
                 elif hasattr(Registration, "user_profile"):
-                    reg_kwargs["user_profile"] = profile
+                    # try common profile attributes on request.user
+                    prof = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
+                    if prof:
+                        reg_kwargs["user_profile"] = prof
                 reg = Registration.objects.create(**reg_kwargs)
                 if send_payment_instructions_for_registration:
                     try:
@@ -167,11 +167,7 @@ def register_view(request, slug):
                     messages.success(request, "Registration submitted.")
                     return redirect("tournaments:register_success", slug=t.slug)
 
-    return render(
-        request,
-        "tournaments/register.html",
-        {"t": t, "solo_form": solo_form, "team_form": team_form},
-    )
+    return render(request, "tournaments/register.html", {"t": t, "solo_form": solo_form, "team_form": team_form})
 
 
 @login_required
@@ -183,14 +179,14 @@ def register_success(request, slug):
 @login_required
 def my_matches_view(request):
     """
-    Show matches for the logged-in user:
+    Matches for logged-in user:
     - Solo: user_a or user_b
-    - Team: matches where the user's team captaincy applies (team_a.captain or team_b.captain)
+    - Team: captain of team_a or team_b
     """
     from ..models import Match
+    # Be tolerant with profile attribute name
     p = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
     if p is None:
-        # No profile yet — nothing to show
         qs = Match.objects.none()
     else:
         qs = (

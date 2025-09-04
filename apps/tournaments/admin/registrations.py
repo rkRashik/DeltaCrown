@@ -67,7 +67,6 @@ if ValorantTeamInfo and ValorantPlayer:
         model = ValorantTeamInfo
         extra = 0
         can_delete = False
-        inlines = []  # nested inline not supported; we add player inline separately below
 else:
     class ValorantPlayerInline:  # type: ignore
         pass
@@ -149,10 +148,15 @@ def action_mark_pending(modeladmin, request, queryset):
     modeladmin.message_user(request, f"Marked {done} registration(s) payment PENDING.", level=messages.INFO)
 
 
-# ---------- Registration admin (with inlines) ----------
+# ---------- Registration admin (organized) ----------
 
 class RegistrationAdmin(admin.ModelAdmin):
     list_display = ("id", "tournament_name", "registrant", "payment_state", "created_ts")
+    list_filter = (
+        ("tournament", admin.RelatedOnlyFieldListFilter),
+        "created_at",
+    )
+    date_hierarchy = "created_at"
     search_fields = ("tournament__name",)
     actions = [action_mark_pending, action_verify_payment, action_reject_payment]
 
@@ -172,20 +176,6 @@ class RegistrationAdmin(admin.ModelAdmin):
             except Exception:
                 pass
         return qs.select_related(*rels) if rels else qs
-
-    def get_inlines(self, request, obj=None):
-        """Attach per-game snapshot inlines only when that row exists."""
-        inlines = []
-        if EfootballSoloInfo:
-            inlines.append(EfootballSoloInfoInline)
-        if EfootballDuoInfo:
-            inlines.append(EfootballDuoInfoInline)
-        if ValorantTeamInfo:
-            inlines.append(ValorantTeamInfoInline)
-            if ValorantPlayer:
-                # We add player inline under Registration via the TeamInfo relation
-                inlines.append(ValorantPlayerInline)
-        return inlines
 
     # columns
     @admin.display(description="Tournament")
