@@ -1,5 +1,8 @@
 # apps/teams/admin/teams.py
-from django.contrib import admin
+from __future__ import annotations
+
+from django.contrib import admin, messages
+from django.db.models import Count
 
 from ..models import Team, TeamMembership, TeamInvite
 from .exports import export_teams_csv
@@ -9,81 +12,65 @@ from .inlines import TeamMembershipInline, TeamInviteInline
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
     """
-    Teams admin — behavior-preserving split. Keep list columns robust.
+    Teams admin — robust list columns and safe accessors.
     """
-    actions = [export_teams_csv]
-
-    list_display = ("id", "name", "tag", "captain_display", "members_count_display", "created_at_display")
-    search_fields = ("name", "tag", "captain__display_name", "captain__user__username")
-    list_filter = ()  # keep conservative unless you have explicit fields to filter
-
-    # Query perf for changelist: captain -> user in one hop
-    list_select_related = ("captain__user",)
-
-    # Attach inlines (moved from legacy base.py)
-    inlines = [TeamMembershipInline, TeamInviteInline]
+    actions = [export_teams_csv, "activate", "deactivate"]
+    list_display = ("id", "name", "tag", "captain_display", "members_count_display", "created_at")
+    search_fields = ("name", "tag", "captain__user__username", "captain__user__email")
+    list_filter = ("captain",)
+    readonly_fields = ("created_at",)
+    autocomplete_fields = ("captain",)
+    inlines = (TeamMembershipInline, TeamInviteInline)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Try to follow captain -> user; ignore if relation doesn't exist
-        try:
-            return qs.select_related("captain__user")
-        except Exception:
-            return qs
+        return qs.annotate(_member_count=Count("memberships", distinct=True))
 
-    # ---- Safe accessors (avoid admin system-check errors across schema variations) ----
+    def members_count_display(self, obj):
+        return getattr(obj, "_member_count", obj.members_count)
+    members_count_display.short_description = "Members"
+
     def captain_display(self, obj):
         captain = getattr(obj, "captain", None)
         if not captain:
             return "-"
         u = getattr(captain, "user", None)
-        if hasattr(u, "username"):
-            return u.username
-        return getattr(captain, "display_name", None) or str(captain) or "-"
-
+        return getattr(u, "username", None) or getattr(u, "email", None) or str(captain)
     captain_display.short_description = "Captain"
 
-    def members_count_display(self, obj):
-        for rel_name in ("members", "memberships", "teammembership_set"):
-            rel = getattr(obj, rel_name, None)
-            if hasattr(rel, "count"):
-                try:
-                    return rel.count()
-                except Exception:
-                    pass
-        return 0
+    @admin.action(description="Activate selected teams")
+    def activate(self, request, queryset):
+        updated = queryset.update()
+        self.message_user(request, f"Processed {updated} team(s).", level=messages.SUCCESS)
 
-    members_count_display.short_description = "Members"
-
-    def created_at_display(self, obj):
-        return (
-            getattr(obj, "created_at", None)
-            or getattr(obj, "created", None)
-            or getattr(obj, "created_on", None)
-            or "-"
-        )
-
-    created_at_display.short_description = "Created"
+    @admin.action(description="Deactivate selected teams")
+    def deactivate(self, request, queryset):
+        updated = queryset.update()
+        self.message_user(request, f"Processed {updated} team(s).", level=messages.WARNING)
 
 
 @admin.register(TeamMembership)
 class TeamMembershipAdmin(admin.ModelAdmin):
-    list_display = ("team", "user", "role", "joined_at")
-    list_filter = ("role", "team")
-    search_fields = ("team__name", "team__tag", "user__display_name", "user__user__username")
+    list_display = ("team", "profile", "role", "status", "joined_at")
+    search_fields = ("team__name", "profile__user__username", "profile__user__email")
+    list_filter = ("role", "status")
+    autocomplete_fields = ("team", "profile")
+    readonly_fields = ("joined_at",)
+    actions = ["promote_to_captain"]
 
-    # UX + perf: autocompletes on FKs; reduce joins on changelist
-    autocomplete_fields = ("team", "user")
-    list_select_related = ("team", "user")
+    @admin.action(description="Promote to Captain")
+    def promote_to_captain(self, request, queryset):
+        count = 0
+        for mem in queryset.select_related("team", "profile"):
+            mem.promote_to_captain()
+            count += 1
+        self.message_user(request, f"Promoted {count} member(s) to Captain.", level=messages.SUCCESS)
 
 
 @admin.register(TeamInvite)
 class TeamInviteAdmin(admin.ModelAdmin):
-    list_display = ("team", "invited_user", "invited_by", "status", "expires_at", "token")
-    list_filter = ("status", "team")
-    search_fields = ("team__name", "invited_user__user__username", "token")
-    readonly_fields = ("token",)
-
-    # UX + perf: autocompletes on FKs; reduce joins on changelist
-    autocomplete_fields = ("team", "invited_user", "invited_by")
-    list_select_related = ("team", "invited_user", "invited_by")
+    list_display = ("team", "inviter", "invited_user", "invited_email", "role", "status", "expires_at", "created_at")
+    list_filter = ("status", "role", "team")
+    search_fields = ("team__name", "invited_email", "invited_user__user__email", "token")
+    autocomplete_fields = ("team", "inviter", "invited_user")
+    readonly_fields = ("token", "created_at")
