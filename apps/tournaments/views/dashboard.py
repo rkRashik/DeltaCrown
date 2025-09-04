@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.apps import apps
 
 from ..models import Tournament, Registration, Match, TournamentSettings
-from ..forms import SoloRegistrationForm, TeamRegistrationForm
+from ..forms_registration import SoloRegistrationForm, TeamRegistrationForm
 from apps.corelib.brackets import report_result, verify_and_apply
 
 

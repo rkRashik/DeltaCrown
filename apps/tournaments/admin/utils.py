@@ -18,7 +18,7 @@ def _is_forward_relation(field: models.Field) -> bool:
 def _path_exists(model: type[models.Model], path: str) -> bool:
     """
     Verify that a select_related path exists (supports spans like 'a__b__c').
-    Walks forward relations only.
+    Walks only forward relations.
     """
     parts = path.split("__")
     m = model
@@ -54,16 +54,23 @@ def safe_select_related(qs, model: type[models.Model], names: Iterable[str]):
     return qs.select_related(*valid) if valid else qs
 
 
-# --- Backward compatibility alias (other modules import this name) ---
-# e.g., from .utils import _safe_select_related
+# --- Backward compatibility alias (modules may import this name) ---
+# e.g. from .utils import _safe_select_related
 _safe_select_related = safe_select_related
 
 
 def _safe_message(modeladmin, request, msg: str, level=None):
     """
-    Call ModelAdmin.message_user safely (also works in tests when middleware may differ).
+    Call ModelAdmin.message_user safely (works in tests or slim middleware setups).
     """
     try:
         modeladmin.message_user(request, msg, level=level or messages.INFO)
     except Exception:
         pass
+
+
+__all__ = [
+    "safe_select_related",
+    "_safe_select_related",
+    "_safe_message",
+]

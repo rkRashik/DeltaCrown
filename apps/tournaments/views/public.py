@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from ..models import Tournament, Registration
-from ..forms import SoloRegistrationForm, TeamRegistrationForm
+from ..forms_registration import SoloRegistrationForm, TeamRegistrationForm
 from apps.user_profile.models import UserProfile
 from django.utils import timezone
 from apps.notifications.services import send_payment_instructions_email
