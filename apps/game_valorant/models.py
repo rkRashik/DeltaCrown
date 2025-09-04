@@ -5,12 +5,11 @@ from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-# CKEditor 5 rich text
+# CKEditor 5 rich text (your stack)
 from django_ckeditor_5.fields import CKEditor5Field
 
-# Prefer Postgres ArrayField when available; fall back to JSONField elsewhere
 try:
-    from django.contrib.postgres.fields import ArrayField as _ArrayField  # Django ships this even if DB != PG
+    from django.contrib.postgres.fields import ArrayField as _ArrayField  # PG only
 except Exception:  # pragma: no cover
     _ArrayField = None
 
@@ -35,8 +34,7 @@ def _using_postgres() -> bool:
 class ValorantConfig(models.Model):
     """
     Per-tournament Valorant rules & knobs.
-    Map pool supports Postgres ArrayField with a JSONField fallback to keep MySQL-compatible builds happy.
-    Based on your current model and docs (maps, BoX, rounds, optional duration + rich rules).
+    Uses ArrayField on PostgreSQL; JSON list elsewhere (MySQL-friendly).
     """
     tournament = models.OneToOneField(
         "tournaments.Tournament",
@@ -56,16 +54,16 @@ class ValorantConfig(models.Model):
     else:
         map_pool = models.JSONField(default=list, blank=True, help_text="List of selected maps")
 
-    # Optional time control + overtime text
+    # Optional controls
     match_duration_limit = models.DurationField(null=True, blank=True)
     overtime_rules = models.CharField(
         max_length=120, blank=True, help_text="Short text like ‘MR3 OT, win by 2’"
     )
 
-    # Long-form extras (rules, veto, evidence examples, etc.)
+    # Long-form extras (rules, veto, evidence examples)
     additional_rules_richtext = CKEditor5Field("Additional rules", config_name="default", blank=True)
 
-    # Future/advanced toggles (safe defaults)
+    # Advanced toggles (future-proof; all default off)
     regional_lock = models.BooleanField(default=False)
     live_scoreboard = models.BooleanField(default=False)
     sponsor_integration = models.BooleanField(default=False)
@@ -73,22 +71,19 @@ class ValorantConfig(models.Model):
     livestream_customization = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
-        # Default a sane pool if none set
         if not self.map_pool:
             self.map_pool = DEFAULT_MAP_POOL
         super().save(*args, **kwargs)
 
     def clean(self):
-        """
-        Keep configs mutually exclusive by tournament: either Valorant or eFootball.
-        """
         from django.core.exceptions import ValidationError
         econf = getattr(self.tournament, "efootball_config", None)
         if econf and getattr(econf, "pk", None):
             raise ValidationError("This tournament already has an eFootball config. Remove it first.")
 
     def __str__(self):
-        return f"Valorant Config for {getattr(self.tournament, 'name', self.tournament_id)}"
+        name = getattr(self.tournament, "name", None)
+        return f"Valorant Config for {name or self.tournament_id}"
 
     class Meta:
         verbose_name = "Valorant Config"

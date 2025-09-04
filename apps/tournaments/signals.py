@@ -5,11 +5,10 @@ from typing import Optional
 
 from django.apps import apps
 from django.db.models.signals import post_save, pre_save
-from django.dispatch import receiver
 from django.core.exceptions import ValidationError
 
 
-# ---------------- helpers (used by registration validator) ----------------
+# ---------- helpers ----------
 
 def _get_field(obj, *candidates) -> Optional[object]:
     for name in candidates:
@@ -56,23 +55,22 @@ def _mode_for_tournament(tournament) -> str:
     return "solo"
 
 
-# ---------------- signal receivers ----------------
+# ---------- receivers ----------
 
 def _ensure_children_on_tournament_save(sender, instance, created, **kwargs):
     """
-    Make sure core/settings & game-specific configs exist after saving a Tournament.
+    Ensure TournamentSettings exists, and create the correct per-game config.
     """
-    # Ensure TournamentSettings exists
+    # Core settings
     try:
         TournamentSettings = apps.get_model("tournaments", "TournamentSettings")
         if not hasattr(instance, "settings") or getattr(instance, "settings", None) is None:
             TournamentSettings.objects.get_or_create(tournament=instance)
     except Exception:
-        # Settings model may not exist in some branches yet
         pass
 
-    # Ensure per-game config exists
-    game_value = (getattr(instance, "game", None) or "").strip().lower()
+    # Per-game config
+    game_value = (getattr(instance, "game", "") or "").strip().lower()
     try:
         if "valorant" in game_value:
             ValorantConfig = apps.get_model("game_valorant", "ValorantConfig")
@@ -81,7 +79,6 @@ def _ensure_children_on_tournament_save(sender, instance, created, **kwargs):
             EfootballConfig = apps.get_model("game_efootball", "EfootballConfig")
             EfootballConfig.objects.get_or_create(tournament=instance)
     except Exception:
-        # If the game app is disabled/missing, just skip
         pass
 
 
@@ -97,7 +94,6 @@ def _validate_registration_on_save(sender, instance, **kwargs):
     team_present = _team_fk_present(instance)
     user_present = _user_fk_present(instance)
 
-    # Disallow both or neither
     if team_present and user_present:
         raise ValidationError("Registration cannot have both a team and a user; choose one.")
     if not team_present and not user_present:
@@ -121,7 +117,6 @@ def register_signals():
         dispatch_uid="tournaments.ensure_children_on_tournament_save",
     )
 
-    # Hook Registration validator if model exists
     try:
         Registration = apps.get_model("tournaments", "Registration")
         pre_save.connect(

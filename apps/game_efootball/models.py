@@ -13,7 +13,7 @@ class EfootballConfig(models.Model):
     class MatchFormat(models.TextChoices):
         BO1 = "BO1", _("Best of 1")
         BO3 = "BO3", _("Best of 3")
-        BO5 = "BO5", _("Best of 5")  # keep for flexibility; you can hide in admin if you don't plan to use
+        BO5 = "BO5", _("Best of 5")  # kept for flexibility
 
     tournament = models.OneToOneField(
         "tournaments.Tournament",
@@ -41,7 +41,8 @@ class EfootballConfig(models.Model):
             raise ValidationError("This tournament already has a Valorant config. Remove it first.")
 
     def __str__(self):
-        return f"eFootball Config for {getattr(self.tournament, 'name', self.tournament_id)}"
+        name = getattr(self.tournament, "name", None)
+        return f"eFootball Config for {name or self.tournament_id}"
 
     class Meta:
         verbose_name = "eFootball Config"

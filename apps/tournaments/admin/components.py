@@ -45,7 +45,7 @@ class TournamentSettingsInline(admin.StackedInline):
     extra = 0
     show_change_link = True
 
-    # Candidate buckets drawn from your current inline & docs. Only present fields will render.
+    # Candidate buckets drawn from your docs; only present fields will render.
     _SCHEDULE = ("start_at", "end_at", "reg_open_at", "reg_close_at")
     _ENTRY = ("min_team_size", "max_team_size", "entry_fee_bdt", "entry_fee",
               "prize_pool_bdt", "prize_type", "prize_distribution_text")
@@ -85,12 +85,10 @@ class HasEntryFeeFilter(admin.SimpleListFilter):
         return [("yes", "Yes"), ("no", "No")]
 
     def queryset(self, request, queryset):
-        # Try related settings(entry_fee_bdt) first; fall back to legacy fields on Tournament
-        yes, no = "yes", "no"
         val = self.value()
         names = [f.name for f in Tournament._meta.get_fields()]
-
-        if val == yes:
+        if val == "yes":
+            # Prefer related settings
             try:
                 return queryset.filter(settings__entry_fee_bdt__gt=0)
             except Exception:
@@ -101,7 +99,7 @@ class HasEntryFeeFilter(admin.SimpleListFilter):
                 return queryset.filter(entry_fee__gt=0)
             return queryset.none()
 
-        if val == no:
+        if val == "no":
             try:
                 return queryset.filter(settings__entry_fee_bdt__isnull=True) | queryset.filter(settings__entry_fee_bdt=0)
             except Exception:
