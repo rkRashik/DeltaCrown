@@ -4,14 +4,21 @@ from __future__ import annotations
 from typing import List, Tuple, Optional
 
 from django.contrib import admin, messages
-from django.forms.models import BaseInlineFormSet
-from django.utils.safestring import mark_safe
+from django.contrib.admin.sites import NotRegistered
 from django.urls import reverse, NoReverseMatch
+from django.utils.safestring import mark_safe
 
+# --- Idempotent registration guard (prevents AlreadyRegistered on re-imports)
 from ..models import Tournament
+try:
+    admin.site.unregister(Tournament)
+except NotRegistered:
+    pass
+
+# Local models
 from ..models_registration_policy import TournamentRegistrationPolicy
 
-# Optional inlines for one-to-one children
+# Optional inlines coming from components (if present in your project)
 try:
     from .components import (
         EfootballConfigInline,
@@ -23,8 +30,18 @@ except Exception:  # pragma: no cover
     EfootballConfigInline = ValorantConfigInline = TournamentSettingsInline = None
     HasEntryFeeFilter = None
 
+# Economy (coins) – keep imports optional/fault-tolerant
+try:
+    from apps.economy.admin import CoinPolicyInline
+    from apps.economy import services as coin_services
+    from apps.economy.models import DeltaCrownTransaction
+except Exception:  # pragma: no cover
+    CoinPolicyInline = None
+    coin_services = None
+    DeltaCrownTransaction = None
 
-# ---------- helpers ----------
+
+# ---------------- Helpers ----------------
 
 def _present_fields(model) -> set[str]:
     return {f.name for f in model._meta.get_fields()}
@@ -40,7 +57,7 @@ def _mode_choices_for_game(game_value: str | None) -> List[Tuple[str, str]]:
     Allowed registration modes by game.
     - Valorant: Team only
     - eFootball: Solo or Duo
-    - Others: allow all (can tighten later)
+    - Others: allow all (fallback to model definition)
     """
     if not game_value:
         return list(TournamentRegistrationPolicy.MODE_CHOICES)
@@ -74,75 +91,113 @@ class _DynamicFieldsInlineMixin:
 
 
 class RegistrationInline(_DynamicFieldsInlineMixin, admin.TabularInline):
-    """Show who registered for THIS tournament."""
+    """Show who registered for THIS tournament (read-only)."""
     extra = 0
     can_delete = False
     verbose_name_plural = "Registrations"
-    model = None  # set in get_inline_instances
-    _candidate_fields = [
-        "user", "user_profile", "team",
-        "payment_status", "payment",
-        "created_at", "created", "created_on",
-    ]
+    model = None  # set via dynamic subclass in get_inline_instances
 
+    # keep this list short and safe; no auto_now/auto_now_add fields here
+    _candidate_fields = ["user", "user_profile", "team", "payment_status"]
+
+    def get_fields(self, request, obj=None):
+        """
+        Only include editable fields. Excludes auto_now/add and PKs (non-editable),
+        which otherwise trigger FieldError in modelform_factory.
+        """
+        if not self.model:
+            return []
+        fields = []
+        for name in self._candidate_fields:
+            try:
+                f = self.model._meta.get_field(name)
+            except Exception:
+                continue
+            if getattr(f, "editable", True):
+                fields.append(name)
+        return fields
 
 class MatchInline(_DynamicFieldsInlineMixin, admin.TabularInline):
-    """Show matches for THIS tournament."""
+    """Show matches for THIS tournament (read-only)."""
     extra = 0
     can_delete = False
     verbose_name_plural = "Matches"
-    model = None  # set in get_inline_instances
+    model = None  # set via dynamic subclass in get_inline_instances
+
+    # exclude created_at/updated_at (non-editable)
     _candidate_fields = [
-        "round_number", "match_number",
-        "team1", "team2",
-        "scheduled_at", "result",
-        "created_at", "updated_at",
+        "round_no", "position",
+        "user_a", "user_b",
+        "team_a", "team_b",
+        "winner_user", "winner_team",
+        "scheduled_at",
     ]
 
+    def get_fields(self, request, obj=None):
+        if not self.model:
+            return []
+        fields = []
+        for name in self._candidate_fields:
+            try:
+                f = self.model._meta.get_field(name)
+            except Exception:
+                continue
+            if getattr(f, "editable", True):
+                fields.append(name)
+        return fields
 
-# ---------- actions (optional bracket helpers) ----------
 
-@admin.action(description="Generate bracket (single-elimination)")
-def action_generate_bracket(modeladmin, request, queryset):
-    """Calls apps.corelib.brackets.generate_bracket(tournament)."""
-    from apps.corelib.brackets import generate_bracket  # same function as mgmt command
-    done = 0
-    for t in queryset:
+class TournamentRegistrationPolicyInline(admin.StackedInline):
+    """
+    One-to-one registration policy shown on ADD & CHANGE.
+    The 'registration_mode' choices adapt to the Tournament.game.
+    """
+    model = TournamentRegistrationPolicy
+    can_delete = False
+    extra = 0
+    fk_name = "tournament"
+
+    def get_fields(self, request, obj=None):
+        # Show only fields that actually exist on your model
+        return _fields_if_exist(
+            self.model,
+            "registration_mode",
+            "max_slots",
+            "min_team_size",
+            "max_team_size",
+            "allow_substitutes",
+            "notes",
+        )
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        # Adapt registration_mode choices by game
         try:
-            generate_bracket(t)
-            done += 1
-        except Exception as e:
-            modeladmin.message_user(request, f"{t.name}: {e}", level=messages.ERROR)
-    modeladmin.message_user(request, f"Generated bracket for {done} tournament(s).")
+            base_fields = formset.form.base_fields
+            if "registration_mode" in base_fields:
+                base_fields["registration_mode"].choices = _mode_choices_for_game(
+                    getattr(obj, "game", None)
+                )
+        except Exception:
+            pass
+        return formset
 
 
-@admin.action(description="Lock bracket (prevent edits)")
-def action_lock_bracket(modeladmin, request, queryset):
-    try:
-        from ..models import Bracket
-    except Exception:
-        modeladmin.message_user(request, "No Bracket model found.", level=messages.WARNING)
-        return
-    updated = 0
-    for t in queryset:
-        b = getattr(t, "bracket", None)
-        if b:
-            b.is_locked = True
-            b.save(update_fields=["is_locked"])
-            updated += 1
-    modeladmin.message_user(request, f"Locked {updated} bracket(s).")
-
+# ---------------- Tournament Admin ----------------
 
 @admin.register(Tournament)
 class TournamentAdmin(admin.ModelAdmin):
     """
-    - No class-level 'fields'/'fieldsets'/'exclude' that can point at missing fields.
-    - Everything adapts to your actual Tournament schema.
-    - Shows Registration Policy inline on add/change.
-    - Shows per-tournament Registrations & Matches as read-only inlines.
+    Robust Tournament admin:
+      - No static 'fields/fieldsets' pointing to missing columns.
+      - Dynamic columns and fieldsets based on your actual schema.
+      - Safe, dynamic inlines (policy, settings, per-game configs, registrations, matches, coin policy).
+      - Admin actions for bracket helpers and coin awards.
     """
     save_on_top = True
     search_fields = ("name", "slug")
+
+    # ----- list view -----
 
     def get_list_display(self, request):
         fields = _present_fields(Tournament)
@@ -150,25 +205,15 @@ class TournamentAdmin(admin.ModelAdmin):
         if "game" in fields:
             cols.append("game")
         cols.append("status_column")
-        if "reg_open_at" in fields:
-            cols.append("reg_open_at")
-        if "reg_close_at" in fields:
-            cols.append("reg_close_at")
-        if "start_at" in fields:
-            cols.append("start_at")
-        if "end_at" in fields:
-            cols.append("end_at")
-        # works whether you have entry_fee_bdt or entry_fee
+        for name in ("reg_open_at", "reg_close_at", "start_at", "end_at"):
+            if name in fields:
+                cols.append(name)
         cols.append("fee_column")
         return tuple(cols)
 
     def get_list_filter(self, request):
         fields = _present_fields(Tournament)
-        lf = []
-        for name in ("game", "status", "start_at", "end_at"):
-            if name in fields:
-                lf.append(name)
-        # Optional "Has entry fee" filter if present
+        lf = [name for name in ("game", "status", "start_at", "end_at") if name in fields]
         if HasEntryFeeFilter:
             lf.append(HasEntryFeeFilter)
         return tuple(lf)
@@ -179,12 +224,14 @@ class TournamentAdmin(admin.ModelAdmin):
     def get_date_hierarchy(self, request):
         return "start_at" if "start_at" in _present_fields(Tournament) else None
 
-    # Dynamic fieldsets: compute from fields that actually exist on your model.
+    # ----- detail view -----
+
     def get_fieldsets(self, request, obj=None):
-        f = []
+        fsets = []
+
         basics = _fields_if_exist(Tournament, "name", "slug", "game", "short_description")
         if basics:
-            f.append(("Basics", {"fields": tuple(basics)}))
+            fsets.append(("Basics", {"fields": tuple(basics)}))
 
         sched_rows = []
         pair1 = _fields_if_exist(Tournament, "start_at", "end_at")
@@ -194,17 +241,16 @@ class TournamentAdmin(admin.ModelAdmin):
         if pair2:
             sched_rows.append(tuple(pair2))
         if sched_rows:
-            f.append(("Schedule", {"fields": tuple(sched_rows)}))
+            fsets.append(("Schedule", {"fields": tuple(sched_rows)}))
 
         entry = _fields_if_exist(Tournament, "entry_fee_bdt", "entry_fee", "bank_instructions")
         if entry:
-            f.append(("Entry & Bank", {
+            fsets.append(("Entry & Bank", {
                 "fields": tuple(entry),
                 "description": "Payments are manually verified from Registration rows.",
             }))
 
-        # SHOW LINKS ONLY ON CHANGE VIEW.
-        # Do NOT put reverse one-to-one relations in fields — they'll 500 on the ADD view.
+        # Links to related objects (change view only)
         if obj is not None:
             link_fields = []
             if hasattr(obj, "bracket"):
@@ -216,11 +262,10 @@ class TournamentAdmin(admin.ModelAdmin):
             if hasattr(obj, "efootball_config"):
                 link_fields.append("link_efootball_config")
             if link_fields:
-                f.append(("Advanced / Related", {"fields": tuple(link_fields)}))
+                fsets.append(("Advanced / Related", {"fields": tuple(link_fields)}))
 
-        return tuple(f)
+        return tuple(fsets)
 
-    # Read-only link presenters
     readonly_fields = ("link_bracket", "link_settings", "link_valorant_config", "link_efootball_config")
 
     def _admin_change_url(self, obj) -> Optional[str]:
@@ -235,8 +280,8 @@ class TournamentAdmin(admin.ModelAdmin):
         if not b:
             return "—"
         url = self._admin_change_url(b)
-        text = f"Bracket #{b.pk}"
-        return mark_safe(f'<a href="{url}">{text}</a>') if url else text
+        txt = f"Bracket #{b.pk}"
+        return mark_safe(f'<a href="{url}">{txt}</a>') if url else txt
 
     @admin.display(description="Settings")
     def link_settings(self, obj: Tournament):
@@ -244,8 +289,8 @@ class TournamentAdmin(admin.ModelAdmin):
         if not s:
             return "—"
         url = self._admin_change_url(s)
-        text = f"Settings #{s.pk}"
-        return mark_safe(f'<a href="{url}">{text}</a>') if url else text
+        txt = f"Settings #{s.pk}"
+        return mark_safe(f'<a href="{url}">{txt}</a>') if url else txt
 
     @admin.display(description="Valorant Config")
     def link_valorant_config(self, obj: Tournament):
@@ -253,8 +298,8 @@ class TournamentAdmin(admin.ModelAdmin):
         if not v:
             return "—"
         url = self._admin_change_url(v)
-        text = f"ValorantConfig #{v.pk}"
-        return mark_safe(f'<a href="{url}">{text}</a>') if url else text
+        txt = f"ValorantConfig #{v.pk}"
+        return mark_safe(f'<a href="{url}">{txt}</a>') if url else txt
 
     @admin.display(description="eFootball Config")
     def link_efootball_config(self, obj: Tournament):
@@ -262,34 +307,18 @@ class TournamentAdmin(admin.ModelAdmin):
         if not e:
             return "—"
         url = self._admin_change_url(e)
-        text = f"eFootballConfig #{e.pk}"
-        return mark_safe(f'<a href="{url}">{text}</a>') if url else text
+        txt = f"eFootballConfig #{e.pk}"
+        return mark_safe(f'<a href="{url}">{txt}</a>') if url else txt
 
-    # Policy inline appears on ADD & CHANGE
-    inlines = []
+    # ----- inlines -----
 
     def get_inline_instances(self, request, obj=None):
-        instances = super().get_inline_instances(request, obj)
+        instances = []
 
-        # Attach Registration inline using your real model at runtime
-        try:
-            from ..models import Registration as _Registration
-            reg_inline = RegistrationInline(self.model, self.admin_site)
-            reg_inline.model = _Registration
-            instances.append(reg_inline)
-        except Exception:
-            pass
+        # 1) Registration policy (always first)
+        instances.append(TournamentRegistrationPolicyInline(self.model, self.admin_site))
 
-        # Attach Match inline using your real model at runtime
-        try:
-            from ..models import Match as _Match
-            match_inline = MatchInline(self.model, self.admin_site)
-            match_inline.model = _Match
-            instances.append(match_inline)
-        except Exception:
-            pass
-
-        # Attach one-to-one config/settings inlines (optional)
+        # 2) TournamentSettings / Game configs (if present in your project)
         if TournamentSettingsInline:
             instances.append(TournamentSettingsInline(self.model, self.admin_site))
         if ValorantConfigInline:
@@ -297,27 +326,41 @@ class TournamentAdmin(admin.ModelAdmin):
         if EfootballConfigInline:
             instances.append(EfootballConfigInline(self.model, self.admin_site))
 
-        # Registration policy inline: adapt choices to game
+        # 3) Read-only related lists: Registrations
         try:
-            from .tournaments import TournamentRegistrationPolicyInline  # type: ignore
+            from ..models import Registration as _Registration
+            class _RegInline(RegistrationInline):
+                model = _Registration
+            instances.append(_RegInline(self.model, self.admin_site))
         except Exception:
-            TournamentRegistrationPolicyInline = None  # noqa: N806
-        if TournamentRegistrationPolicyInline:
-            instances.insert(0, TournamentRegistrationPolicyInline(self.model, self.admin_site))
+            pass
+
+        # 4) Read-only related lists: Matches
+        try:
+            from ..models import Match as _Match
+            class _MatchInline(MatchInline):
+                model = _Match
+            instances.append(_MatchInline(self.model, self.admin_site))
+        except Exception:
+            pass
+
+        # 5) Coin policy inline (optional app)
+        if CoinPolicyInline:
+            instances.append(CoinPolicyInline(self.model, self.admin_site))
 
         return instances
 
-    # ----- helpers for list columns -----
+    # ----- list columns helpers -----
 
     @admin.display(description="Status")
     def status_column(self, obj: Tournament):
-        # Show computed current status when not using a dedicated field
-        if hasattr(obj, "status") and obj.status:
+        # Prefer model field if it exists/has value
+        if hasattr(obj, "status") and getattr(obj, "status"):
             return obj.status
-        # else guess from dates
+        # Else infer from dates
         from django.utils import timezone
         now = timezone.now()
-        if obj.start_at and obj.end_at:
+        if getattr(obj, "start_at", None) and getattr(obj, "end_at", None):
             if obj.start_at <= now <= obj.end_at:
                 return "RUNNING"
             if obj.end_at < now:
@@ -332,5 +375,67 @@ class TournamentAdmin(admin.ModelAdmin):
             return getattr(obj, "entry_fee")
         return None
 
-    # local actions (your base.py may also add scheduling actions)
-    actions = [action_generate_bracket, action_lock_bracket]
+    # ----- actions (as methods on the class) -----
+
+    @admin.action(description="Generate bracket (single-elimination)")
+    def action_generate_bracket(self, request, queryset):
+        done = 0
+        for t in queryset:
+            try:
+                from apps.corelib.brackets import generate_bracket  # import lazily
+                generate_bracket(t)
+                done += 1
+            except Exception as e:
+                self.message_user(request, f"{t.name}: {e}", level=messages.ERROR)
+        self.message_user(request, f"Generated bracket for {done} tournament(s).", level=messages.SUCCESS)
+
+    @admin.action(description="Lock bracket (prevent edits)")
+    def action_lock_bracket(self, request, queryset):
+        updated = 0
+        for t in queryset:
+            b = getattr(t, "bracket", None)
+            if b:
+                try:
+                    b.is_locked = True
+                    b.save(update_fields=["is_locked"])
+                    updated += 1
+                except Exception as e:
+                    self.message_user(request, f"{t.name}: {e}", level=messages.ERROR)
+        self.message_user(request, f"Locked {updated} bracket(s).", level=messages.SUCCESS)
+
+    @admin.action(description="Award Coins: Participation (verified regs)")
+    def action_award_participation(self, request, queryset):
+        if not coin_services or not DeltaCrownTransaction:
+            self.message_user(request, "Economy app not installed.", level=messages.WARNING)
+            return
+        count = 0
+        for t in queryset:
+            regs = t.registration_set.all().select_related("payment_verification")
+            for r in regs:
+                pv = getattr(r, "payment_verification", None)
+                if pv and getattr(pv, "status", "") == "verified":
+                    tx = coin_services.award_participation_for_registration(r)
+                    if tx:
+                        count += 1 if isinstance(tx, DeltaCrownTransaction) else len(tx)
+        self.message_user(request, f"Awarded participation coins to {count} wallet(s).", level=messages.SUCCESS)
+
+    @admin.action(description="Award Coins: Placements (final + semis)")
+    def action_award_placements(self, request, queryset):
+        if not coin_services:
+            self.message_user(request, "Economy app not installed.", level=messages.WARNING)
+            return
+        total = 0
+        for t in queryset:
+            try:
+                awards = coin_services.award_placements(t)
+                total += len(awards)
+            except Exception as e:
+                self.message_user(request, f"{t.name}: {e}", level=messages.ERROR)
+        self.message_user(request, f"Created {total} placement transaction(s).", level=messages.SUCCESS)
+
+    actions = (
+        "action_generate_bracket",
+        "action_lock_bracket",
+        "action_award_participation",
+        "action_award_placements",
+    )

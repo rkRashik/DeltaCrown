@@ -1,73 +1,48 @@
 # apps/tournaments/admin/base.py
 from __future__ import annotations
+"""
+Safe, no-surprises admin extensions.
 
-import importlib
-from django.contrib import admin
+This module must NEVER:
+- append to tuple attributes directly,
+- import or rely on module-level action functions from other modules.
 
-# Import submodules (not symbols) so we don't crash if some names are missing.
-# Each submodule uses @admin.register on its ModelAdmins.
-_modules = {}
-for modname in (".tournaments", ".registrations", ".matches", ".exports", ".hooks"):
-    try:
-        _modules[modname] = importlib.import_module(modname, __package__)
-    except Exception:
-        _modules[modname] = None
+If you want to extend attributes later, use _extend_tuple_attr() and
+ONLY add method-name strings that exist on the admin class.
+"""
 
-tournaments_mod = _modules.get(".tournaments")
-registrations_mod = _modules.get(".registrations")
-matches_mod = _modules.get(".matches")
-exports_mod = _modules.get(".exports")
-hooks_mod = _modules.get(".hooks")
+from typing import Iterable
 
-# Pull classes/actions if they exist
-TournamentAdmin = getattr(tournaments_mod, "TournamentAdmin", None)
-action_generate_bracket = getattr(tournaments_mod, "action_generate_bracket", None)
-action_lock_bracket = getattr(tournaments_mod, "action_lock_bracket", None)
+def _extend_tuple_attr(admin_cls, name: str, additions: Iterable[str] | None):
+    """
+    Safely extend a ModelAdmin class attribute that may be a tuple or list.
 
-action_auto_schedule = getattr(matches_mod, "action_auto_schedule", None)
-action_clear_schedule = getattr(matches_mod, "action_clear_schedule", None)
+    We only support adding *strings* (method names) here, because your actions
+    are implemented as methods on TournamentAdmin. Avoid mixing callables.
+    """
+    if not admin_cls or not additions:
+        return
+    existing = getattr(admin_cls, name, ())
+    if isinstance(existing, tuple):
+        current = list(existing)
+    elif isinstance(existing, list):
+        current = existing[:]
+    else:
+        current = []
 
-RegistrationAdmin = getattr(registrations_mod, "RegistrationAdmin", None)
-action_verify_payment = getattr(registrations_mod, "action_verify_payment", None)
-action_reject_payment = getattr(registrations_mod, "action_reject_payment", None)
-action_mark_pending = getattr(registrations_mod, "action_mark_pending", None)
+    for item in additions:
+        if isinstance(item, str) and item and item not in current:
+            current.append(item)
 
-export_tournaments_csv = getattr(exports_mod, "export_tournaments_csv", None)
-export_disputes_csv = getattr(exports_mod, "export_disputes_csv", None)
-export_matches_csv = getattr(exports_mod, "export_matches_csv", None)
+    setattr(admin_cls, name, tuple(current))
 
-attach_match_export_action = getattr(hooks_mod, "attach_match_export_action", None)
-attach_dispute_export_action = getattr(hooks_mod, "attach_dispute_export_action", None)
 
-# Attach any actions that exist to the TournamentAdmin (idempotent)
-if TournamentAdmin:
-    existing = (getattr(TournamentAdmin, "actions", []) or [])
-    to_add = [
-        a for a in (
-            action_generate_bracket,
-            action_lock_bracket,
-            action_auto_schedule,
-            action_clear_schedule,
-        ) if callable(a)
-    ]
-    # dedupe while preserving existing
-    seen = set(existing)
-    for a in to_add:
-        if a not in seen:
-            existing.append(a)
-            seen.add(a)
-    TournamentAdmin.actions = existing  # type: ignore[attr-defined]
+# Try to load TournamentAdmin to optionally extend it (idempotent and safe).
+try:
+    from .tournaments import TournamentAdmin  # defines & registers admin
+except Exception:
+    TournamentAdmin = None  # pragma: no cover
 
-# Set helpful labels on CSV actions if present
-if export_tournaments_csv:
-    export_tournaments_csv.short_description = "Export selected tournaments to CSV"  # type: ignore[attr-defined]
-if export_disputes_csv:
-    export_disputes_csv.short_description = "Export selected disputes to CSV"  # type: ignore[attr-defined]
-if export_matches_csv:
-    export_matches_csv.short_description = "Export selected matches to CSV"  # type: ignore[attr-defined]
-
-# Attach CSV export hooks if present
-if attach_match_export_action:
-    attach_match_export_action(admin.site)  # type: ignore[misc]
-if attach_dispute_export_action:
-    attach_dispute_export_action(admin.site)  # type: ignore[misc]
+# If you ever need to tack on more method-based actions later, do it like this:
+# _extend_tuple_attr(TournamentAdmin, "actions", ("some_method_action_name",))
+# For now, do nothing to avoid conflicting with your current setup.

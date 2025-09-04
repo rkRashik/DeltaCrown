@@ -73,13 +73,12 @@ def test_invite_accept_sets_membership_active(django_user_model):
 
 @pytest.mark.django_db
 def test_invite_respects_roster_limit(django_user_model, settings):
-    # Seed team with roster up to TEAM_MAX_ROSTER and ensure new invite fails validation
     from apps.teams.models import TEAM_MAX_ROSTER
     cap_u = django_user_model.objects.create_user("cap5", "cap5@example.com", "pass")
     cap_p = _profile_for(cap_u)
     t = Team.objects.create(name="Roster", tag="RST", captain=cap_p)
 
-    # Fill up to limit - 1 (captain already counted as ACTIVE)
+    # Fill up to one slot remaining (captain already ACTIVE)
     current = t.members_count
     to_add = max(0, TEAM_MAX_ROSTER - current - 1)
     for i in range(to_add):
@@ -87,7 +86,7 @@ def test_invite_respects_roster_limit(django_user_model, settings):
         p = _profile_for(u)
         TeamMembership.objects.create(team=t, profile=p, role=TeamMembership.Role.PLAYER)
 
-    # Now new pending invite should fail clean()
+    # New pending invite must fail validation with only one slot left
     inv = TeamInvite(team=t, inviter=cap_p, invited_email="full@example.com")
     with pytest.raises(ValidationError):
-        inv.full_clean()
+        inv.full_clean()  # <-- this line was missing

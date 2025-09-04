@@ -1,49 +1,34 @@
 # apps/tournaments/admin/__init__.py
 """
-Aggregate Tournament-related admin registrations and re-export public names.
-Ensure module side-effects happen at import time so ModelAdmins are registered.
+Admin package loader for tournaments.
+
+Keep this file idempotent:
+- Import modules (not symbols) so we don't couple to their internal names.
+- Import order ensures TournamentAdmin is registered first.
 """
 
-# Ensure side effects (registrations) run
-from . import base as _base  # noqa: F401
-from . import disputes as _disputes  # noqa: F401  # make sure MatchDispute is registered
-from .payment_verification import PaymentVerificationAdmin
-from .tournaments import TournamentAdmin
+# 1) Main registrar: defines & registers TournamentAdmin (with its actions as methods)
+from . import tournaments as _tournaments  # noqa: F401
 
-# Explicit re-exports for stable imports
-from .tournaments import (  # noqa: F401
-    TournamentAdmin,
-    action_generate_bracket,
-    action_lock_bracket,
-)
-from .registrations import (  # noqa: F401
-    RegistrationAdmin,
-    action_verify_payment,
-    action_reject_payment,
-)
-from .matches import (  # noqa: F401
-    MatchAdmin,
-    action_auto_schedule,
-    action_clear_schedule,
-)
-from .disputes import (  # noqa: F401
-    MatchDisputeAdmin,
-)
-from .exports import (  # noqa: F401
-    export_tournaments_csv,
-    export_disputes_csv,
-    export_matches_csv,
-)
+# 2) Optional/related admin modules — load best-effort, never break startup
+for _mod in (
+    "components",            # inlines/filters (if you have them)
+    "registrations",         # Registration admin (optional in some trees)
+    "matches",               # Match admin (optional)
+    "disputes",              # MatchDispute admin (optional)
+    "exports",               # CSV export helpers (optional)
+    "payment_verification",  # PaymentVerification admin (optional)
+    "hooks",                 # any extra hook wiring you keep
+    "base",                  # safe extensions; must be last
+):
+    try:
+        __import__(f"{__package__}.{_mod}", fromlist=["*"])
+    except Exception:
+        # Never block admin import because of optional modules
+        pass
 
-__all__ = [
-    # Admins
-    "TournamentAdmin", "RegistrationAdmin", "MatchAdmin", "MatchDisputeAdmin",
-    # Tournament actions
-    "action_generate_bracket", "action_lock_bracket",
-    # Registration actions
-    "action_verify_payment", "action_reject_payment",
-    # Match/tournament scheduling actions
-    "action_auto_schedule", "action_clear_schedule",
-    # CSV exports
-    "export_tournaments_csv", "export_disputes_csv", "export_matches_csv",
-]
+# (Optional) Re-expose TournamentAdmin for convenience, but NOT the actions.
+try:
+    from .tournaments import TournamentAdmin  # noqa: F401
+except Exception:
+    pass

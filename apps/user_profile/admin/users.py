@@ -7,7 +7,7 @@ from .exports import export_userprofiles_csv
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "display_name", "created_at")
+    list_display = ("id", "user", "display_name", "coin_balance", "created_at")
     search_fields = ("user__username", "display_name", "user__email")
     list_filter = ()
     date_hierarchy = "created_at"
@@ -32,3 +32,9 @@ class UserProfileAdmin(admin.ModelAdmin):
             return qs.select_related("user")
         except Exception:
             return qs
+
+    def coin_balance(self, obj):
+        wallet = getattr(obj, "dc_wallet", None)
+        return wallet.cached_balance if wallet else 0
+
+    coin_balance.short_description = "ΔC Coins"

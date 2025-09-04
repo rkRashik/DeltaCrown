@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "apps.user_profile",
     "apps.notifications",
     "apps.ecommerce",
+    "apps.economy",
 
 ]
 
