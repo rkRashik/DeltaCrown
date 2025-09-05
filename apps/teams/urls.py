@@ -25,4 +25,20 @@ urlpatterns = [
     # --- Tag-based actions (keep for convenience, AFTER int routes) ---
     path("<str:tag>/leave/", manage_views.leave_team_view, name="leave"),
     path("<str:tag>/transfer/", manage_views.transfer_captain_view, name="transfer"),
+
+    # My invites + token actions
+    path("invites/", views.my_invites, name="my_invites"),
+    path("invites/<str:token>/accept/", token_views.accept_invite_view, name="accept_invite"),
+    path("invites/<str:token>/decline/", views.decline_invite_view, name="decline_invite"),
+
+    # Team detail / actions (ID-based)
+    path("<int:team_id>/", views.team_detail, name="team_detail"),
+    path("<int:team_id>/invite/", views.invite_member_view, name="invite_member"),
+    path("<int:team_id>/transfer/<int:user_id>/", views.transfer_captain_view, name="transfer_captain"),
+    path("<int:team_id>/leave/", leave_team_by_id, name="leave_team"),
+
+    # Optional: tag-based convenience routes (after int routes)
+    path("<str:tag>/leave/", manage_views.leave_team_view, name="leave"),
+    path("<str:tag>/transfer/", manage_views.transfer_captain_view, name="transfer"),
+
 ]

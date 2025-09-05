@@ -17,6 +17,7 @@ Additionally, we provide:
 # Explicit submodules so callers can do `from .views import public, manage`
 from . import public as public       # noqa: F401
 from . import manage as manage       # noqa: F401
+from .invites import my_invites, decline_invite_view
 
 def _export_all_from(mod):
     """Re-export names from a submodule into this package namespace."""
