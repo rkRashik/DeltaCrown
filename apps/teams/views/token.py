@@ -14,7 +14,7 @@ def _profile(user):
 
 
 def _team_detail_url(team_id: int) -> str:
-    # Prefer named route; fall back to a generic teams index if not wired
+    # Prefer named route; fall back to generic teams index if not wired
     try:
         return reverse("teams:team_detail", kwargs={"team_id": team_id})
     except Exception:
@@ -24,8 +24,8 @@ def _team_detail_url(team_id: int) -> str:
 @login_required
 def accept_invite_view(request: HttpRequest, token: str) -> HttpResponse:
     """
-    Accept a team invite by token with proper expiry checks and friendly errors.
-    This is idempotent: re-accepting does not duplicate membership.
+    Accept a team invite by token with expiry checks and friendly errors.
+    Idempotent: re-accepting does not duplicate membership.
     """
     TeamInvite = apps.get_model("teams", "TeamInvite")
     TeamMembership = apps.get_model("teams", "TeamMembership")
@@ -36,7 +36,7 @@ def accept_invite_view(request: HttpRequest, token: str) -> HttpResponse:
         .first()
     )
     if not invite:
-        # Friendly invalid page (404)
+        # Friendly invalid page
         return render(request, "teams/invite_invalid.html", status=404)
 
     me = _profile(request.user)
@@ -46,7 +46,6 @@ def accept_invite_view(request: HttpRequest, token: str) -> HttpResponse:
 
     # Expiry check (and sync status if needed)
     try:
-        # model may already provide this helper
         if hasattr(invite, "mark_expired_if_needed"):
             invite.mark_expired_if_needed()
     except Exception:
@@ -63,17 +62,11 @@ def accept_invite_view(request: HttpRequest, token: str) -> HttpResponse:
         return render(request, "teams/invite_invalid.html", status=400)
 
     # Idempotent join
-    # Field is `profile` in your TeamMembership model; keep a fallback to `user` for safety.
-    field_names = {f.name for f in TeamMembership._meta.get_fields() if hasattr(f, "name")}
-    mem_kwargs = {"team": invite.team}
-    if "profile" in field_names:
-        mem_kwargs["profile"] = me
-    else:
-        mem_kwargs["user"] = me
-
+    # Field is `profile` in TeamMembership
+    mem_kwargs = {"team": invite.team, "profile": me}
     TeamMembership.objects.get_or_create(
         **mem_kwargs,
-        defaults={"role": "PLAYER", "status": "ACTIVE"},
+        defaults={"role": "CAPTAIN" if invite.role == "CAPTAIN" else "PLAYER", "status": "ACTIVE"},
     )
 
     # Mark invite accepted (and bind invited_user if missing)
@@ -82,5 +75,5 @@ def accept_invite_view(request: HttpRequest, token: str) -> HttpResponse:
         updates["invited_user"] = me
     TeamInvite.objects.filter(pk=invite.pk).update(**updates)
 
-    # Redirect to team page (messages are already used elsewhere; keep UX consistent)
+    # Redirect to team page
     return HttpResponseRedirect(_team_detail_url(invite.team_id))

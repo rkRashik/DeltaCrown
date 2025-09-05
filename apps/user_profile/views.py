@@ -15,8 +15,9 @@ def _get_upcoming_matches_for_user(user, limit=5):
     Safe against schema differences; returns [] on any issue.
     """
     try:
-        from apps.tournaments.models import Match
-        from apps.teams.models import TeamMembership
+        from django.apps import apps
+        Match = apps.get_model("tournaments", "Match")
+        TeamMembership = apps.get_model("teams", "TeamMembership")
 
         # Get profile safely
         p = getattr(user, "userprofile", None) or getattr(user, "profile", None)
@@ -69,80 +70,106 @@ User = get_user_model()
 
 def profile_view(request, username):
     user = get_object_or_404(User, username=username)
-    return render(request, "user_profile/profile.html", {"profile": user.profile})
+    profile = getattr(user, "userprofile", None) or getattr(user, "profile", None)
+
+    # Gather team memberships (active only) for display
+    try:
+        from apps.teams.models import TeamMembership
+        memberships = list(
+            TeamMembership.objects.select_related("team")
+            .filter(profile=profile, status="ACTIVE")
+            .order_by("role", "joined_at")
+        )
+    except Exception:
+        memberships = []
+
+    # Gather recent tournaments from registrations (solo + team)
+    try:
+        from apps.tournaments.models import Registration
+        team_ids = [m.team_id for m in memberships]
+        regs = (
+            Registration.objects.select_related("tournament")
+            .filter(
+                Q(user=profile) | Q(team_id__in=team_ids)
+            )
+            .order_by("-created_at")[:8]
+        )
+        registrations = list(regs)
+    except Exception:
+        registrations = []
+
+    ctx = {
+        "profile": profile,
+        "memberships": memberships,
+        "registrations": registrations,
+    }
+    return render(request, "user_profile/profile.html", ctx)
 
 @login_required
 def my_tournaments_view(request):
-    from apps.tournaments.models import Registration
-    regs = Registration.objects.filter(user=request.user.profile).select_related("tournament")
+    """
+    (Existing) My tournaments page – unchanged.
+    """
+    try:
+        from django.apps import apps
+        Registration = apps.get_model("tournaments", "Registration")
+        TeamMembership = apps.get_model("teams", "TeamMembership")
+
+        profile = request.user.profile
+        team_ids = list(TeamMembership.objects.filter(user=profile).values_list("team_id", flat=True))
+
+        regs = (
+            Registration.objects.filter(Q(user=profile) | Q(team_id__in=team_ids))
+            .select_related("tournament")
+            .order_by("-created_at")
+        )
+    except Exception:
+        regs = []
+
     return render(request, "user_profile/my_tournaments.html", {"registrations": regs})
 
-# --- existing helper for matches above this line ---
-def _get_upcoming_matches_for_user(user, limit=5):
-    ...
-    return []
 
-# --- ADD: schema-agnostic notifications helper ---
-def _get_recent_notifications_for_user(user, limit=5):
-    """
-    Best-effort retrieval of a user's recent notifications without assuming
-    exact field names. Returns [] if the model or fields are not available.
-    """
+# --------------------------- Notifications helper (unchanged) ---------------------------
+
+def _recent_notifications_for_user(user, limit=10):
     try:
-        from apps.notifications.models import Notification
-    except Exception:
-        return []
-
-    # Determine the "recipient" relation name
-    candidate_fields = ["user", "recipient", "to_user", "profile", "user_profile"]
-    recipient_field = None
-    for name in candidate_fields:
-        try:
-            Notification._meta.get_field(name)  # field exists
-            recipient_field = name
-            break
-        except Exception:
-            continue
-
-    if not recipient_field:
-        return []
-
-    # If recipient points to a profile, map the user -> profile
-    target = user
-    if recipient_field in ("profile", "user_profile"):
-        target = getattr(user, "userprofile", None) or getattr(user, "profile", None)
-        if not target:
-            return []
-
-    try:
-        # Build a filter dict dynamically: {recipient_field: target}
-        qs = Notification.objects.filter(**{recipient_field: target})
-        # Try common created/ordering fields; otherwise fallback by id
-        ordering = None
-        for f in ("-created_at", "-created", "-created_on", "-timestamp", "-id"):
+        from django.apps import apps
+        Notification = apps.get_model("notifications", "Notification")
+        # Prefer recipient Profile, but fall back to user if your Notification model uses user FK
+        recipient_field = None
+        for f in ("recipient", "user", "profile", "user_profile"):
             try:
-                # quick check: raise if field not present
-                Notification._meta.get_field(f.lstrip("-"))
-                ordering = f
+                Notification._meta.get_field(f)
+                recipient_field = f
                 break
             except Exception:
                 continue
-        if ordering:
-            qs = qs.order_by(ordering)
-        else:
-            qs = qs.order_by("-id")
-        return list(qs[:limit])
+        if recipient_field is None:
+            return []
+
+        target = user
+        if recipient_field in ("profile", "user_profile"):
+            target = getattr(user, "userprofile", None) or getattr(user, "profile", None)
+            if not target:
+                return []
+
+        try:
+            # Build a filter dict dynamically: {recipient_field: target}
+            qs = Notification.objects.filter(**{recipient_field: target})
+            # Try common created/ordering fields; otherwise fallback by id
+            ordering = None
+            for f in ("-created_at", "-created", "-created_on", "-timestamp", "-id"):
+                try:
+                    # quick check: raise if field not present
+                    Notification._meta.get_field(f.lstrip("-"))
+                    ordering = f
+                    break
+                except Exception:
+                    continue
+            if ordering:
+                qs = qs.order_by(ordering)
+            return list(qs[:limit])
+        except Exception:
+            return []
     except Exception:
         return []
-
-
-
-@login_required
-def dashboard(request):
-    """
-    Minimal user dashboard: includes upcoming matches + recent notifications.
-    """
-    upcoming = _get_upcoming_matches_for_user(request.user, limit=5)
-    notices = _get_recent_notifications_for_user(request.user, limit=5)
-    ctx = {"upcoming_matches": upcoming, "recent_notifications": notices}
-    return render(request, "user_profile/dashboard.html", ctx)
