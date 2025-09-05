@@ -9,47 +9,22 @@ from ..models import PaymentVerification
 
 
 def _from_profile(obj):
-    """If obj is a UserProfile, return underlying auth user; else return obj."""
     return getattr(obj, "user", None) or obj
 
 
 def _registrant_email(reg) -> str | None:
-    """
-    Finds an email to contact the registrant.
-    Supports schemas where Registration.user is a UserProfile.
-    """
-    # user or user_profile stored on reg.user
-    user_or_profile = getattr(reg, "user", None)
-    if user_or_profile:
-        base_user = _from_profile(user_or_profile)
-        email = getattr(base_user, "email", None)
-        if email:
-            return email
-
-    # alternative field names
-    profile = getattr(reg, "user_profile", None) or getattr(reg, "profile", None)
-    if profile:
-        base_user = _from_profile(profile)
-        email = getattr(base_user, "email", None)
-        if email:
-            return email
-
-    # team captain fallback
+    uprof = getattr(reg, "user", None)
     team = getattr(reg, "team", None)
-    if team:
+    if uprof:
+        au = _from_profile(uprof)
+        return getattr(au, "email", None)
+    email = getattr(team, "contact_email", None) or getattr(team, "email", None)
+    if not email:
         captain = getattr(team, "captain", None)
-        captain = _from_profile(captain)
-        email = getattr(captain, "email", None)
-        if email:
-            return email
-    return None
-
-
-# ensure THIS admin class is the one registered (replace earlier registrations)
-try:
-    admin.site.unregister(PaymentVerification)
-except admin.sites.NotRegistered:
-    pass
+        if captain:
+            au = _from_profile(captain)
+            email = getattr(au, "email", None)
+    return email
 
 
 @admin.register(PaymentVerification)
@@ -65,50 +40,89 @@ class PaymentVerificationAdmin(admin.ModelAdmin):
         "status",
         "verified_by",
         "verified_at",
+        "reject_reason",
         "created_at",
     )
-    list_filter = ("status", "method", ("registration__tournament", admin.RelatedOnlyFieldListFilter))
-    search_fields = ("transaction_id", "payer_account_number")
-    autocomplete_fields = ("verified_by",)
+    list_filter = ("status", "method", "verified_by")
+    search_fields = (
+        "registration__tournament__name",
+        "registration__user__user__username",
+        "registration__user__user__email",
+        "registration__team__name",
+        "transaction_id",
+        "payer_account_number",
+    )
     readonly_fields = ("created_at", "updated_at")
 
-    actions = ("action_verify", "action_reject", "action_email_registrant")
+    # ensure actions are always discoverable
+    actions = ["action_verify", "action_reject", "action_email_registrant"]
 
-    # -------- list columns --------
-    def tournament_col(self, obj: PaymentVerification):
-        t = getattr(obj.registration, "tournament", None)
-        return getattr(t, "name", None) or getattr(t, "id", None)
-    tournament_col.short_description = "Tournament"
-
-    def registrant_col(self, obj: PaymentVerification):
-        reg = obj.registration
-        user_or_profile = getattr(reg, "user", None)
-        label = None
-        if user_or_profile:
-            base_user = _from_profile(user_or_profile)
-            label = getattr(base_user, "username", None) or getattr(base_user, "email", None)
-        if not label:
-            team = getattr(reg, "team", None)
-            if team:
-                label = getattr(team, "name", None)
-        if not label:
-            label = f"Reg #{getattr(reg, 'id', '')}"
-
-        badge = format_html(
-            '<span style="padding:2px 6px;border-radius:6px;background:#eee;font-size:11px;">{}</span>',
-            obj.status,
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related(
+            "registration",
+            "registration__tournament",
+            "registration__user__user",
+            "registration__team",
+            "verified_by",
         )
-        return format_html("{} {}", label, badge)
-    registrant_col.short_description = "Registrant"
+
+    def get_readonly_fields(self, request, obj=None):
+        ro = list(super().get_readonly_fields(request, obj))
+        if obj and getattr(obj, "status", None) != PaymentVerification.Status.PENDING:
+            ro.extend(["method", "payer_account_number", "transaction_id", "amount_bdt"])
+        # dedupe
+        seen, ordered = set(), []
+        for f in ro:
+            if f not in seen:
+                seen.add(f); ordered.append(f)
+        return tuple(ordered)
+
+    @admin.display(description="Tournament")
+    def tournament_col(self, pv: PaymentVerification):
+        t = getattr(pv.registration, "tournament", None)
+        return getattr(t, "name", None) or f"Tournament #{getattr(t, 'id', '')}"
+
+    @admin.display(description="Registrant")
+    def registrant_col(self, pv: PaymentVerification):
+        reg = getattr(pv, "registration", None)
+        user = getattr(reg, "user", None)
+        team = getattr(reg, "team", None)
+        if team:
+            return format_html("<b>Team</b>: {}", getattr(team, "name", f"#{getattr(team, 'id', '')}"))
+        if user:
+            au = _from_profile(user)
+            return format_html("<b>Player</b>: {}", getattr(au, "username", f"#{getattr(user, 'id', '')}"))
+        return "–"
 
     # -------- actions --------
     @admin.action(description="Verify selected payments")
     def action_verify(self, request, queryset):
-        count = 0
+        count = skipped = 0
         for pv in queryset:
+            tx = getattr(pv, "transaction_id", None)
+            if tx:
+                dup = (
+                    PaymentVerification.objects.filter(
+                        transaction_id=tx, status=PaymentVerification.Status.VERIFIED
+                    )
+                    .exclude(pk=pv.pk)
+                    .exists()
+                )
+                if dup:
+                    skipped += 1
+                    self.message_user(
+                        request,
+                        f"Skipped reg #{getattr(pv.registration, 'id', '')}: duplicate Transaction ID '{tx}' already verified.",
+                        level=messages.WARNING,
+                    )
+                    continue
             pv.mark_verified(request.user)
             count += 1
-        self.message_user(request, f"Verified {count} payment(s).", level=messages.SUCCESS)
+        if count:
+            self.message_user(request, f"Verified {count} payment(s).", level=messages.SUCCESS)
+        if skipped:
+            self.message_user(request, f"Skipped {skipped} duplicate(s).", level=messages.WARNING)
 
     @admin.action(description="Reject selected payments (no email)")
     def action_reject(self, request, queryset):
@@ -118,24 +132,25 @@ class PaymentVerificationAdmin(admin.ModelAdmin):
             count += 1
         self.message_user(request, f"Rejected {count} payment(s).", level=messages.WARNING)
 
-    @admin.action(description="Email registrant (payment issue)")
+    @admin.action(description="Email registrant(s) – payment received & pending manual verification")
     def action_email_registrant(self, request, queryset):
-        sent = 0
-        failed = 0
+        sent = failed = 0
         for pv in queryset:
-            reg = pv.registration
+            reg = getattr(pv, "registration", None)
             email = _registrant_email(reg)
             if not email:
                 failed += 1
                 continue
-            subject = f"Payment for {self._tournament_name(pv)}"
+            subject = f"[DeltaCrown] We received your payment – {self._tournament_name(pv)}"
             body = (
-                f"Hello,\n\n"
-                f"We could not verify your payment for the tournament '{self._tournament_name(pv)}'.\n"
-                f"Transaction ID: {pv.transaction_id or '(not provided)'}\n"
-                f"Payer Account: {pv.payer_account_number or '(not provided)'}\n\n"
-                f"Please reply with a valid transaction ID and a clear screenshot of the payment.\n\n"
-                f"— Finance Team"
+                "Hi,\n\n"
+                "We received your payment details and your registration is in the manual verification queue.\n\n"
+                f"• Method: {pv.method}\n"
+                f"• Transaction ID: {pv.transaction_id or '—'}\n"
+                f"• Payer Account: {pv.payer_account_number or '—'}\n"
+                f"• Amount (BDT): {pv.amount_bdt or '—'}\n\n"
+                "We'll notify you once the verification is complete.\n\n"
+                "— DeltaCrown Finance"
             )
             try:
                 send_mail(subject, body, None, [email], fail_silently=False)
@@ -147,7 +162,6 @@ class PaymentVerificationAdmin(admin.ModelAdmin):
         if failed:
             self.message_user(request, f"Could not email {failed} registrant(s).", level=messages.ERROR)
 
-    # -------- helpers --------
     def _tournament_name(self, pv: PaymentVerification) -> str:
         t = getattr(pv.registration, "tournament", None)
         return getattr(t, "name", None) or f"Tournament #{getattr(t, 'id', '')}"

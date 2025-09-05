@@ -8,6 +8,7 @@ from django import forms
 from django.apps import apps
 from django.core.exceptions import ValidationError
 
+# --- helpers --------------------------------------------------------
 
 def _get_model(app_label: str, model_name: str):
     try:
@@ -15,21 +16,18 @@ def _get_model(app_label: str, model_name: str):
     except Exception:
         return None
 
-
 Tournament = _get_model("tournaments", "Tournament")
 Team = _get_model("teams", "Team")
 
-# Optional models, used defensively
-User = _get_model("auth", "User")
-
-# Use service layer so all business rules live in one place
-from apps.tournaments.services.registration import (  # noqa: E402
+# services
+from apps.tournaments.services.registration import (  # type: ignore
     register_valorant_team,
     register_efootball_player,
     TeamRegistrationInput,
     SoloRegistrationInput,
 )
 
+# Keep choices aligned with PV.Method (bkash/nagad/rocket/bank)
 PAYMENT_METHOD_CHOICES = (
     ("bkash", "bKash"),
     ("nagad", "Nagad"),
@@ -37,6 +35,7 @@ PAYMENT_METHOD_CHOICES = (
     ("bank", "Bank Transfer"),
 )
 
+# --- base form ------------------------------------------------------
 
 class BaseRegistrationForm(forms.Form):
     """
@@ -49,6 +48,9 @@ class BaseRegistrationForm(forms.Form):
     payment_reference = forms.CharField(
         max_length=128, required=False, help_text="Transaction ID / Reference (optional)"
     )
+    payer_account_number = forms.CharField(
+        max_length=32, required=False, help_text="Your bKash/Nagad/Rocket number (optional)"
+    )
     amount_bdt = forms.DecimalField(
         required=False, max_digits=10, decimal_places=2, help_text="Amount paid (optional)"
     )
@@ -59,27 +61,25 @@ class BaseRegistrationForm(forms.Form):
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
 
-        if not self.tournament or (Tournament and not isinstance(self.tournament, Tournament)):
-            raise ValueError("BaseRegistrationForm requires a `tournament` instance.")
-
-    def _normalized_amount(self) -> Optional[Decimal]:
-        amt = self.cleaned_data.get("amount_bdt")
-        if amt in (None, ""):
-            return None
-        try:
-            return Decimal(amt)
-        except Exception:
-            return None
-
-    # Useful helpers shared by subclasses
     def _created_by_user_id(self) -> Optional[int]:
-        if self.request and hasattr(self.request, "user") and getattr(self.request.user, "is_authenticated", False):
-            try:
-                return int(self.request.user.id)
-            except Exception:
-                return None
+        u = getattr(self.request, "user", None)
+        return getattr(u, "id", None) if getattr(u, "is_authenticated", False) else None
+
+    def _normalized_amount(self) -> Optional[float]:
+        amt = self.cleaned_data.get("amount_bdt")
+        if isinstance(amt, Decimal):
+            return float(amt)
+        if isinstance(amt, (int, float)):
+            return float(amt)
         return None
 
+    def clean(self):
+        cleaned = super().clean()
+        if not self.tournament or not isinstance(self.tournament, Tournament):
+            raise ValidationError("Tournament context is required.")
+        return cleaned
+
+# --- team (Valorant) ------------------------------------------------
 
 class TeamRegistrationForm(BaseRegistrationForm):
     """
@@ -94,16 +94,13 @@ class TeamRegistrationForm(BaseRegistrationForm):
     def clean(self):
         cleaned = super().clean()
 
-        # Determine mode from tournament – Valorant = team mode
-        # If eFootball config exists (solo), block team registration here.
         t = self.tournament
 
-        # Prefer explicit config relations if present
+        # Prefer explicit config relations
         is_valorant = bool(getattr(t, "valorant_config", None))
         is_efootball = bool(getattr(t, "efootball_config", None))
 
         if not (is_valorant or is_efootball):
-            # Fallback to textual game field if relations are missing
             g = getattr(t, "game", None)
             if isinstance(g, str):
                 gl = g.lower()
@@ -111,7 +108,7 @@ class TeamRegistrationForm(BaseRegistrationForm):
                 is_efootball = ("efootball" in gl) or ("e-football" in gl) or ("e football" in gl)
 
         if is_efootball and not is_valorant:
-            raise ValidationError("This tournament requires individual (solo) registration, not team.")
+            raise ValidationError("This tournament requires solo registration, not team.")
 
         # Ensure team provided
         if Team and not cleaned.get("team"):
@@ -122,13 +119,8 @@ class TeamRegistrationForm(BaseRegistrationForm):
         return cleaned
 
     def save(self):
-        """
-        Create a Valorant team registration via service layer.
-        Payment (if provided) is created with status='pending'.
-        """
         if Team:
-            team_obj = self.cleaned_data["team"]
-            team_id = int(team_obj.id)
+            team_id = int(self.cleaned_data["team"].id)
         else:
             team_id = int(self.cleaned_data["team_id"])
 
@@ -139,17 +131,17 @@ class TeamRegistrationForm(BaseRegistrationForm):
                 created_by_user_id=self._created_by_user_id(),
                 payment_method=self.cleaned_data.get("payment_method") or None,
                 payment_reference=self.cleaned_data.get("payment_reference") or None,
+                payer_account_number=self.cleaned_data.get("payer_account_number") or None,
                 amount_bdt=self._normalized_amount(),
             )
         )
 
+# --- solo (eFootball) -----------------------------------------------
 
 class SoloRegistrationForm(BaseRegistrationForm):
     """
     For solo-based tournaments (eFootball).
-    Uses the current authenticated user by default; can accept `user_id` when no request context.
     """
-    user_id = forms.IntegerField(required=False, min_value=1, help_text="Optional; will use request.user if missing")
 
     def clean(self):
         cleaned = super().clean()
@@ -168,46 +160,31 @@ class SoloRegistrationForm(BaseRegistrationForm):
                 is_efootball = ("efootball" in gl) or ("e-football" in gl) or ("e football" in gl)
 
         if is_valorant and not is_efootball:
-            raise ValidationError("This tournament requires team registration (Valorant).")
+            raise ValidationError("This tournament requires team registration, not solo.")
 
-        # Determine user id: prefer request.user; else require user_id field
-        uid = None
-        if self.request and getattr(self.request, "user", None) and getattr(self.request.user, "is_authenticated", False):
-            try:
-                uid = int(self.request.user.id)
-            except Exception:
-                uid = None
-        if uid is None:
-            uid = self.cleaned_data.get("user_id")
-            if not uid:
-                raise ValidationError("User not specified. Please sign in or provide user_id.")
+        # Ensure there is an effective user id
+        req_user = getattr(self.request, "user", None)
+        if not getattr(req_user, "is_authenticated", False):
+            raise ValidationError("You must be logged in to register.")
 
-        # Validate user existence if possible
-        if uid and User:
-            try:
-                User.objects.only("id").get(pk=uid)
-            except Exception:
-                raise ValidationError("User account not found.")
-
-        self.cleaned_data["_effective_user_id"] = uid
         return cleaned
 
     def save(self):
-        """
-        Create an eFootball solo registration via service layer.
-        Payment (if provided) is created with status='pending'.
-        """
-        uid = int(self.cleaned_data["_effective_user_id"])
+        # Expect a view to set `_effective_user_id` or use request.user
+        uid = getattr(self.request.user, "id", None)
+        if "_effective_user_id" in self.cleaned_data:
+            uid = int(self.cleaned_data["_effective_user_id"])
+
         return register_efootball_player(
             SoloRegistrationInput(
                 tournament_id=int(self.tournament.id),
-                user_id=uid,
+                user_id=int(uid),
                 created_by_user_id=self._created_by_user_id(),
                 payment_method=self.cleaned_data.get("payment_method") or None,
                 payment_reference=self.cleaned_data.get("payment_reference") or None,
+                payer_account_number=self.cleaned_data.get("payer_account_number") or None,
                 amount_bdt=self._normalized_amount(),
             )
         )
-
 
 __all__ = ["SoloRegistrationForm", "TeamRegistrationForm"]
