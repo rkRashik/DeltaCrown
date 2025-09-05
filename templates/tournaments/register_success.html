@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registration Submitted — {{ t.name }} | DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="relative overflow-hidden">
+  <div class="dc-animate-gradient"></div>
+  <div class="max-w-3xl mx-auto px-4 py-16 text-center">
+    <h1 class="text-3xl md:text-4xl font-extrabold">Registration submitted ✅</h1>
+    <p class="mt-4 dc-muted">
+      We’ve received your details. If you provided payment information, it is now in the manual verification queue.
+      You’ll be notified when it’s verified.
+    </p>
+    <div class="mt-8">
+      <a href="{% url 'tournaments:detail' slug=t.slug %}" class="dc-btn px-6 py-3 rounded-2xl font-semibold bg-brand-primary text-black">Back to tournament</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
