@@ -1,11 +1,4 @@
 # apps/tournaments/admin/__init__.py
-"""
-Admin package loader for tournaments.
-
-Keep this file idempotent:
-- Import modules (not symbols) so we don't couple to their internal names.
-- Import order ensures TournamentAdmin is registered first.
-"""
 
 # 1) Main registrar: defines & registers TournamentAdmin (with its actions as methods)
 from . import tournaments as _tournaments  # noqa: F401
@@ -27,8 +20,8 @@ for _mod in (
         # Never block admin import because of optional modules
         pass
 
-# (Optional) Re-expose TournamentAdmin for convenience, but NOT the actions.
-try:
-    from .tournaments import TournamentAdmin  # noqa: F401
-except Exception:
-    pass
+
+
+from .tournaments import TournamentAdmin
+from .matches import MatchAdmin
+from .brackets import BracketAdmin
