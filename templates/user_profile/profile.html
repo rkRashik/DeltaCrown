@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ profile.display_name|default:profile.user.username }} • Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:ui-sans-serif,system-ui;max-width:980px;margin:32px auto;padding:0 16px;color:#111}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:900px){.grid{grid-template-columns:2fr 1fr}}
+    .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+    h2{margin:0 0 8px 0}
+    ul{margin:0;padding-left:18px}
+    .muted{color:#6b7280}
+  </style>
+</head>
+<body>
+  <h1>{{ profile.display_name|default:profile.user.username }}</h1>
+  <p class="muted">{{ profile.region }}</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Recent tournaments</h2>
+      {% with regs=registrations %}
+        {% if regs %}
+          <ul>
+            {% for r in regs %}
+              <li>{{ r.tournament.name }} — {{ r.status }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">No recent tournaments.</p>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <div class="card">
+      <h2>Teams & roles</h2>
+      {% if memberships %}
+        <ul>
+          {% for m in memberships %}
+            <li>{{ m.team.name }} — {{ m.role }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">Not in any teams yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>Wallet</h2>
+    <p>View your coin balance and history.</p>
+    <p><a href="/wallet/">Open my wallet →</a></p>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from .views import manage as manage_views  # tag-based actions (leave/transfer)
 from .views.public import team_list, leave_team_view as leave_team_by_id
+from .views import token as token_views
 
 app_name = "teams"
 
@@ -10,7 +11,7 @@ urlpatterns = [
 
     # Static first
     path("invites/", views.my_invites, name="my_invites"),
-    path("invites/<str:token>/accept/", views.accept_invite_view, name="accept_invite"),
+    path("invites/<str:token>/accept/", token_views.accept_invite_view, name="accept_invite"),
     path("invites/<str:token>/decline/", views.decline_invite_view, name="decline_invite"),
     path("create-quick/", views.create_team_quick, name="create_quick"),
 
