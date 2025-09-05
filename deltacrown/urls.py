@@ -13,9 +13,11 @@ urlpatterns = [
     path("healthz/", views.healthz, name="healthz"),
     path("admin/", admin.site.urls),
     path("notifications/", include("apps.notifications.urls")),
+    path("", include("apps.economy.urls")),
 
     # CKEditor 5 endpoints (upload, browse, etc.)
     path("ckeditor5/", include("django_ckeditor_5.urls")),
+
 
     # New: Explore routes (non-conflicting)
     path("explore/tournaments/", views.tournaments_list, name="explore_tournaments"),
