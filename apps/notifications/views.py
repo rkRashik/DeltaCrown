@@ -10,59 +10,37 @@ UserProfile = apps.get_model("user_profile", "UserProfile")
 
 
 def _profile(user):
-    """
-    Safe helper: return the user's profile, creating one if missing.
-    Note: all public views that call this are login_required.
-    """
+    # safe: return the user's profile, creating one if missing
     p = getattr(user, "profile", None) or getattr(user, "userprofile", None)
     if p:
         return p
-    # Fallback/create so views never crash if a profile is missing
-    p, _ = UserProfile.objects.get_or_create(
-        user=user, defaults={"display_name": getattr(user, "username", "Player")}
-    )
-    return p
+    return UserProfile.objects.create(user=user, display_name=getattr(user, "username", "Player"))
 
 
 @login_required
 def list_view(request):
-    """
-    Show the user's notifications (paginated). Requires login.
-    """
     p = _profile(request.user)
     qs = Notification.objects.filter(recipient=p).order_by("-created_at")
-
-    paginator = Paginator(qs, 15)  # 15 per page
-    page_obj = paginator.get_page(request.GET.get("page"))
-
-    return render(
-        request,
-        "notifications/list.html",
-        {"notifications": page_obj.object_list, "page_obj": page_obj},
-    )
+    page = Paginator(qs, 15).get_page(request.GET.get("page"))
+    return render(request, "notifications/list.html", {"page": page})
 
 
 @login_required
 def mark_all_read(request):
     p = _profile(request.user)
-    # Update unread notifications for this user
-    Notification.objects.filter(recipient=p, is_read=False).update(is_read=True)
-
-    # Friendly toast + return to where the user came from
-    messages.success(request, "All notifications marked as read.")
-    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
-    return redirect(next_url)
+    if request.method == "POST":
+        Notification.objects.filter(recipient=p, is_read=False).update(is_read=True)
+        messages.success(request, "All notifications marked as read.")
+    return redirect(request.META.get("HTTP_REFERER") or reverse("notifications:list"))
 
 
 @login_required
 def mark_read(request, pk):
     p = _profile(request.user)
     n = get_object_or_404(Notification, id=pk, recipient=p)
-
     if request.method == "POST" and not getattr(n, "is_read", False):
         n.is_read = True
         n.save(update_fields=["is_read"])
         messages.success(request, "Notification marked as read.")
-
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("notifications:list")
     return redirect(next_url)

@@ -1,85 +1,73 @@
 # apps/notifications/admin/notifications.py
 from django.contrib import admin
-from apps.corelib.admin_utils import _path_exists
 
 from ..models import Notification
-from .exports import export_notifications_csv
-from apps.corelib.admin_utils import _safe_select_related
+
+try:
+    from apps.corelib.admin_utils import _safe_select_related
+except Exception:
+    def _safe_select_related(qs, *fields):
+        try:
+            return qs.select_related(*fields)
+        except Exception:
+            return qs
+
+try:
+    from .exports import export_notifications_csv
+except Exception:
+    def export_notifications_csv(modeladmin, request, queryset):
+        modeladmin.message_user(request, "CSV export unavailable.", level=20)  # INFO
 
 
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     """
-    Notifications admin that is tolerant of small schema variations.
-    We keep accessors defensive to avoid admin system-check errors.
+    Read-only notifications admin with CSV export.
     """
     actions = [export_notifications_csv]
-
-    # Keep list_display conservative and use safe accessors
-    list_display = ("id", "recipient_display", "is_read_display", "created_at_display")
-
-    # No brittle filters/search fields unless you explicitly add fields in the model
-    list_filter = ()
-    search_fields = ()
+    list_display = (
+        "id",
+        "recipient_display",
+        "type",
+        "title",
+        "is_read_display",
+        "created_at_display",
+        "tournament_display",
+        "match_display",
+    )
+    list_filter = ("type", "is_read", "created_at")
+    search_fields = ("title", "body", "recipient__user__username", "recipient__display_name")
+    readonly_fields = ("recipient", "type", "title", "body", "url", "is_read", "created_at", "tournament", "match")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Try to avoid N+1 on a “user-like” relation in a schema-tolerant way.
-        for rel in ("user", "recipient", "to_user", "profile__user", "user_profile__user"):
-            try:
-                if _path_exists(Notification, rel):
-                    qs = qs.select_related(rel)
-            except Exception:
-                # Be defensive: ignore if an unexpected model tweak breaks a path
-                pass
-        return qs
+        return _safe_select_related(qs, "recipient__user", "tournament", "match")
 
-
-    # ---- Query optimization (safe) ----
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        # Try common user-like relations if they exist; ignore missing ones.
-        return _safe_select_related(
-            qs,
-            "user",
-            "recipient",
-            "to_user",
-            "profile__user",
-            "user_profile__user",
-        )
-
-    # ---- Safe accessors ----
+    # ---- safe accessors ----
     def recipient_display(self, obj):
-        u = (
-            getattr(obj, "user", None)
-            or getattr(obj, "recipient", None)
-            or getattr(obj, "to_user", None)
-            or getattr(getattr(obj, "profile", None), "user", None)
-            or getattr(getattr(obj, "user_profile", None), "user", None)
-        )
-        # If user-like, prefer username
-        if hasattr(u, "username"):
-            return u.username
-        # Fallback to readable string or dash
-        return str(u) if u else "-"
-
+        p = getattr(obj, "recipient", None)
+        if not p:
+            return "-"
+        username = getattr(getattr(p, "user", None), "username", None)
+        return username or getattr(p, "display_name", None) or f"Profile#{p.pk}"
     recipient_display.short_description = "Recipient"
 
     def is_read_display(self, obj):
-        val = getattr(obj, "is_read", None)
-        if val is None:
-            val = getattr(obj, "read", None)
-        return val if val is not None else "-"
-
+        return "✔" if getattr(obj, "is_read", False) else "—"
     is_read_display.short_description = "Read?"
 
     def created_at_display(self, obj):
-        val = (
-            getattr(obj, "created_at", None)
-            or getattr(obj, "created", None)
-            or getattr(obj, "created_on", None)
-            or getattr(obj, "timestamp", None)
-        )
-        return val or "-"
-
+        return getattr(obj, "created_at", None) or "-"
     created_at_display.short_description = "Created"
+
+    def tournament_display(self, obj):
+        t = getattr(obj, "tournament", None)
+        return getattr(t, "name", None) or "—"
+    tournament_display.short_description = "Tournament"
+
+    def match_display(self, obj):
+        m = getattr(obj, "match", None)
+        if not m:
+            return "—"
+        return f"R{getattr(m, 'round_no', '-')}-P{getattr(m, 'position', '-')}"
+    match_display.short_description = "Match"

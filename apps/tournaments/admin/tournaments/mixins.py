@@ -1,4 +1,3 @@
-# apps/tournaments/admin/tournaments/mixins.py
 from __future__ import annotations
 
 from typing import Optional
@@ -27,6 +26,12 @@ except Exception:
     coin_services = None
     DeltaCrownTransaction = None
 
+# Notifications
+try:
+    from apps.notifications.services import emit as notify_emit
+except Exception:  # pragma: no cover
+    notify_emit = None
+
 
 class AdminLinkMixin:
     @staticmethod
@@ -35,8 +40,6 @@ class AdminLinkMixin:
             return reverse(f"admin:{obj._meta.app_label}_{obj._meta.model_name}_change", args=[obj.pk])
         except NoReverseMatch:
             return None
-
-    # ---- helper links used in fieldsets/readonly_fields ----
 
     @admin.display(description="Bracket")
     def link_bracket(self, obj: Tournament):
@@ -90,7 +93,6 @@ class AdminLinkMixin:
 
     @admin.display(description="Bracket JSON (preview)")
     def bracket_json_preview(self, obj: Tournament):
-        # Small, truncated JSON preview for quick inspection
         matches = (
             Match.objects.filter(tournament=obj)
             .select_related("user_a__user", "user_b__user", "team_a", "team_b", "winner_user__user", "winner_team")
@@ -171,9 +173,6 @@ class ExportBracketMixin:
         return JsonResponse(payload, json_dumps_params={"ensure_ascii": False, "indent": 2})
 
     def view_force_regenerate_confirm(self, request: HttpRequest, pk: int) -> HttpResponse:
-        """
-        Simple confirmation page (no template file required). POST triggers generate.
-        """
         from apps.corelib.brackets import generate_bracket
 
         try:
@@ -187,12 +186,10 @@ class ExportBracketMixin:
                 messages.success(request, f"Force regenerated bracket for '{t.name}'.")
             except Exception as e:
                 messages.error(request, f"{t.name}: {e}")
-            # Redirect back to tournament change page
             url = reverse(f"admin:{t._meta.app_label}_{t._meta.model_name}_change", args=[t.pk])
             from django.shortcuts import redirect
             return redirect(url)
 
-        # GET → show confirm page
         html = f"""
         <html><body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,sans-serif;padding:24px">
           <h2>Force regenerate bracket</h2>
@@ -235,7 +232,6 @@ class ActionsMixin:
         if fail:
             messages.error(request, f"{fail} tournament(s) failed.")
 
-    # ✅ restored for backward compatibility + tests
     @admin.action(description="Force regenerate bracket (dangerous)")
     @transaction.atomic
     def action_force_regenerate_bracket(self, request, queryset):
@@ -262,6 +258,19 @@ class ActionsMixin:
                 b.is_locked = True
                 b.save(update_fields=["is_locked"])
                 updated += 1
+                # notify registrants
+                if notify_emit:
+                    recips = []
+                    for r in t.registration_set.all().select_related("user__user"):
+                        up = getattr(r, "user", None)
+                        if up and getattr(up, "user", None):
+                            recips.append(up.user)
+                    if recips:
+                        fp = f"bracket_locked:{t.id}"
+                        notify_emit(recips, event="bracket_locked",
+                                    title=f"Bracket locked · {t.name}",
+                                    body="The bracket has been locked by organizers.",
+                                    fingerprint=fp)
         messages.success(request, f"Locked {updated} bracket(s).")
 
     @admin.action(description="Unlock bracket")
@@ -273,6 +282,19 @@ class ActionsMixin:
                 b.is_locked = False
                 b.save(update_fields=["is_locked"])
                 updated += 1
+                # notify registrants
+                if notify_emit:
+                    recips = []
+                    for r in t.registration_set.all().select_related("user__user"):
+                        up = getattr(r, "user", None)
+                        if up and getattr(up, "user", None):
+                            recips.append(up.user)
+                    if recips:
+                        fp = f"bracket_unlocked:{t.id}"
+                        notify_emit(recips, event="bracket_unlocked",
+                                    title=f"Bracket unlocked · {t.name}",
+                                    body="The bracket has been unlocked by organizers.",
+                                    fingerprint=fp)
         messages.success(request, f"Unlocked {updated} bracket(s).")
 
     @admin.action(description="Auto-schedule matches")

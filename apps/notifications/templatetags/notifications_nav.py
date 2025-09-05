@@ -3,6 +3,7 @@ from django.apps import apps
 
 register = template.Library()
 
+
 @register.inclusion_tag("notifications/_bell.html", takes_context=True)
 def notifications_bell(context, limit=6):
     request = context.get("request")

@@ -209,3 +209,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 TEST_RUNNER = 'deltacrown.test_runner.CustomTestRunner'
+
+# notifications
+NOTIFICATIONS_EMAIL_ENABLED = False  # set True to email in addition to in-app

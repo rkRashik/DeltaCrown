@@ -1,20 +1,27 @@
-# apps/tournaments/admin/matches.py
 from __future__ import annotations
 
 from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import path, reverse
 from django.utils.html import format_html
+from django.contrib.auth import get_user_model
 
 from ..models import Match
 
+User = get_user_model()
 
-# Winner propagation helper (already in your codebase)
+# Winner propagation helper
 try:
     from apps.corelib.brackets import admin_set_winner
 except Exception:  # pragma: no cover
     def admin_set_winner(*args, **kwargs):
         raise RuntimeError("Winner propagation helper not available")
+
+# Notifications
+try:
+    from apps.notifications.services import emit as notify_emit
+except Exception:  # pragma: no cover
+    notify_emit = None
 
 
 @admin.register(Match)
@@ -24,7 +31,7 @@ class MatchAdmin(admin.ModelAdmin):
     """
     list_display = (
         "tournament",
-        "bracket_lock_badge",          # NEW: quick lock visibility
+        "bracket_lock_badge",
         "round_no",
         "position",
         "participant_a_name",
@@ -52,7 +59,6 @@ class MatchAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        # Pull common relations to avoid N+1 in list_display
         qs = qs.select_related(
             "tournament",
             "tournament__bracket",
@@ -76,7 +82,6 @@ class MatchAdmin(admin.ModelAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         ro = list(super().get_readonly_fields(request, obj))
-        # When locked, prevent editing scores and winners directly
         if obj and self._is_locked(obj):
             for name in ("score_a", "score_b", "winner_user", "winner_team"):
                 if name not in ro:
@@ -84,7 +89,6 @@ class MatchAdmin(admin.ModelAdmin):
         return tuple(ro)
 
     def has_change_permission(self, request, obj=None):
-        # Keep change permission, but fields are read-only when locked.
         return super().has_change_permission(request, obj)
 
     # ------------ display helpers ------------
@@ -152,7 +156,6 @@ class MatchAdmin(admin.ModelAdmin):
     def set_winner_link(self, obj: Match):
         if obj.winner_user_id or obj.winner_team_id:
             return "—"
-        # If locked, avoid offering buttons
         if self._is_locked(obj):
             return format_html('<span style="color:#999">Locked</span>')
         links = []
@@ -175,6 +178,23 @@ class MatchAdmin(admin.ModelAdmin):
         return format_html(" | ".join(links))
     set_winner_link.short_description = "Resolve"
 
+    def _emit_match_result_notifications(self, match: Match):
+        if not notify_emit:
+            return
+        # Try to find recipient users from user profiles
+        recips = []
+        if match.user_a_id and getattr(match.user_a, "user", None):
+            recips.append(match.user_a.user)
+        if match.user_b_id and getattr(match.user_b, "user", None):
+            recips.append(match.user_b.user)
+        if not recips:
+            return
+        title = f"Match result updated · {match.tournament.name}"
+        body = f"Round {match.round_no}, Position {match.position} — winner set."
+        url = ""  # fill with your match detail URL if available
+        fp = f"match_result:{match.id}:{match.winner_user_id or match.winner_team_id or 'na'}"
+        notify_emit(recips, event="match_result", title=title, body=body, url=url, fingerprint=fp)
+
     def set_winner_view(self, request, match_id, who):
         m = Match.objects.get(id=match_id)
         if self._is_locked(m):
@@ -182,6 +202,7 @@ class MatchAdmin(admin.ModelAdmin):
             return redirect(request.META.get("HTTP_REFERER", "/admin/"))
         try:
             admin_set_winner(m, who=who)
+            self._emit_match_result_notifications(m)
             self.message_user(request, "Winner set and progression applied.")
         except Exception as e:
             self.message_user(request, str(e), level=messages.ERROR)
@@ -205,6 +226,7 @@ class MatchAdmin(admin.ModelAdmin):
                 continue
             try:
                 admin_set_winner(m, who=who)
+                self._emit_match_result_notifications(m)
                 done += 1
             except Exception as e:
                 self.message_user(request, f"Match #{m.id}: {e}", level=messages.ERROR)

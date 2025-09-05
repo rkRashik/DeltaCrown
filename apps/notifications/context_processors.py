@@ -1,34 +1,26 @@
 from django.apps import apps
 
 
-def _get_profile(user):
-    return getattr(user, "profile", None) or getattr(user, "userprofile", None)
-
-
-def _get_unread_count(profile) -> int:
-    if not profile:
+def _get_unread_count_for_user(user) -> int:
+    """
+    Your Notification.recipient FK points to auth.User (not UserProfile),
+    so count by the authenticated request.user directly.
+    """
+    if not user or not getattr(user, "is_authenticated", False):
         return 0
     Notification = apps.get_model("notifications", "Notification")
-    return Notification.objects.filter(recipient=profile, is_read=False).count()
+    return Notification.objects.filter(recipient=user, is_read=False).count()
 
 
 def notification_counts(request):
     """
-    Preferred context processor.
-    Provides both `notif_unread` (new) and `unread_notifications_count` (legacy) keys.
+    Provides: notif_unread, unread_notifications_count
     """
-    if not getattr(request, "user", None) or not request.user.is_authenticated:
-        return {"notif_unread": 0, "unread_notifications_count": 0}
-
-    profile = _get_profile(request.user)
-    count = _get_unread_count(profile)
+    user = getattr(request, "user", None)
+    count = _get_unread_count_for_user(user)
     return {"notif_unread": count, "unread_notifications_count": count}
 
 
-# ---- Backwards-compat shim ----
+# Back-compat shim (legacy setting name)
 def unread_notifications(request):
-    """
-    Kept for compatibility with existing settings.py entries:
-    'apps.notifications.context_processors.unread_notifications'
-    """
     return notification_counts(request)

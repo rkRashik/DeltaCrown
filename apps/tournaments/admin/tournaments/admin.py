@@ -1,14 +1,13 @@
-# apps/tournaments/admin/tournaments/admin.py
 from __future__ import annotations
 
 from typing import List
 
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.contrib.admin.sites import NotRegistered
 
 from ...models import Tournament
 
-# idempotent unregister to prevent AlreadyRegistered
+# idempotent unregister
 try:
     admin.site.unregister(Tournament)
 except NotRegistered:
@@ -25,9 +24,6 @@ from .mixins import AdminLinkMixin, ExportBracketMixin, ActionsMixin
 
 @admin.register(Tournament)
 class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.ModelAdmin):
-    """
-    Tournament admin split into mixins & inlines for maintainability.
-    """
     save_on_top = True
     search_fields = ("name", "slug")
     readonly_fields = (
@@ -36,11 +32,9 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         "link_valorant_config",
         "link_efootball_config",
         "link_export_bracket",
-        "link_force_regenerate",   # confirm page
-        "bracket_json_preview",    # quick preview
+        "link_force_regenerate",
+        "bracket_json_preview",
     )
-
-    # ----- list view -----
 
     def get_list_display(self, request):
         fields = _present_fields(Tournament)
@@ -71,8 +65,6 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
 
     def get_date_hierarchy(self, request):
         return "start_at" if "start_at" in _present_fields(Tournament) else None
-
-    # ----- detail view -----
 
     def get_fieldsets(self, request, obj=None):
         fsets = []
@@ -107,8 +99,6 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
                 links.append("link_efootball_config")
         fsets.append(("Advanced / Related", {"fields": tuple(links)}))
         return tuple(fsets)
-
-    # ----- inlines -----
 
     def get_inline_instances(self, request, obj=None):
         instances = []
@@ -146,8 +136,6 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
 
         return instances
 
-    # ----- list columns helpers -----
-
     @admin.display(description="Status")
     def status_column(self, obj: Tournament):
         if hasattr(obj, "status") and getattr(obj, "status"):
@@ -176,10 +164,9 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
             return getattr(obj, "entry_fee")
         return None
 
-    # ----- actions -----
     actions = (
         "action_generate_bracket_safe",
-        "action_force_regenerate_bracket",  # restored for UI + tests
+        "action_force_regenerate_bracket",
         "action_lock_bracket",
         "action_unlock_bracket",
         "action_auto_schedule",

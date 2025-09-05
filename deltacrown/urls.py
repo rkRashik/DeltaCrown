@@ -12,6 +12,7 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("healthz/", views.healthz, name="healthz"),
     path("admin/", admin.site.urls),
+    path("notifications/", include("apps.notifications.urls")),
 
     # CKEditor 5 endpoints (upload, browse, etc.)
     path("ckeditor5/", include("django_ckeditor_5.urls")),
