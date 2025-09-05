@@ -1,19 +1,60 @@
 # apps/economy/services.py
 from __future__ import annotations
 
-from typing import List
+from typing import Iterable, List, Optional
 
 from django.apps import apps
-from django.db.models import Max
+from django.db import transaction
 
-from .models import DeltaCrownWallet, DeltaCrownTransaction, CoinPolicy
+from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet
 
+
+# Public API of this module
+__all__ = [
+    "wallet_for",
+    "award",
+    "award_participation_for_registration",
+    "award_placements",
+    "backfill_participation_for_verified_payments",
+    "manual_adjust",
+]
+
+# ---- Wallet helpers ---------------------------------------------------------
 
 def wallet_for(profile) -> DeltaCrownWallet:
     w, _ = DeltaCrownWallet.objects.get_or_create(profile=profile)
     return w
 
 
+def _profiles_from_team(team) -> Iterable:
+    """
+    Return all profiles on a team, including captain.
+    We resolve models lazily to avoid circular imports.
+    """
+    if not team:
+        return []
+    Membership = apps.get_model("teams", "TeamMembership")
+    qs = Membership.objects.filter(team=team)
+    return [m.profile for m in qs.select_related("profile")]
+
+
+# ---- Ledger primitives ------------------------------------------------------
+
+def _mk_idem_key(kind: str, **parts) -> str:
+    """
+    Build a deterministic idempotency key like:
+      participation:reg:123:w:45
+      winner:t:10:w:45
+      runner_up:t:10:w:46
+      top4:match:77:w:90
+    """
+    bits = [kind]
+    for k in sorted(parts.keys()):
+        bits.append(f"{k}:{parts[k]}")
+    return ":".join(bits)
+
+
+@transaction.atomic
 def award(
     *,
     profile,
@@ -23,172 +64,194 @@ def award(
     registration=None,
     match=None,
     note: str = "",
-    metadata: dict | None = None,
+    created_by=None,
+    idempotency_key: Optional[str] = None,
 ) -> DeltaCrownTransaction:
+    """
+    Create a credit (amount>0) or debit (amount<0) transaction for profile's wallet.
+    Idempotent by (idempotency_key); if provided and exists, returns existing row.
+    """
     w = wallet_for(profile)
+    idem = idempotency_key
+    if not idem:
+        # sensible default schemes
+        if reason == DeltaCrownTransaction.Reason.PARTICIPATION and registration:
+            idem = _mk_idem_key("participation", reg=registration.id, w=w.id)
+        elif reason in (
+            DeltaCrownTransaction.Reason.WINNER,
+            DeltaCrownTransaction.Reason.RUNNER_UP,
+            DeltaCrownTransaction.Reason.TOP4,
+        ) and tournament:
+            # one per (tournament, wallet, reason)
+            idem = _mk_idem_key(reason, t=tournament.id, w=w.id)
+        elif match:
+            idem = _mk_idem_key(reason, match=match.id, w=w.id)
+
+    # Double-check guard
+    if idem:
+        existing = DeltaCrownTransaction.objects.filter(idempotency_key=idem).first()
+        if existing:
+            return existing
+
     tx = DeltaCrownTransaction.objects.create(
         wallet=w,
         amount=int(amount),
         reason=reason,
-        note=note or "",
         tournament=tournament,
         registration=registration,
         match=match,
-        metadata=metadata or {},
+        note=note,
+        created_by=created_by,
+        idempotency_key=idem,
     )
     return tx
 
 
-def award_participation_for_registration(registration):
+# ---- Awarding routines ------------------------------------------------------
+
+def award_participation_for_registration(reg) -> List[DeltaCrownTransaction]:
     """
-    Award participation coins when a registration is confirmed/paid.
-
-    Idempotent:
-      - If ANY participation transaction exists for this registration, do nothing.
-        (Prevents duplicate award when both a signal and a manual call happen.)
-    Team tournaments:
-      - With the constraint updated to include wallet, we can award one per member.
+    Award participation coins to the registrant (solo) or all team members (team),
+    according to the tournament's CoinPolicy. Idempotent via idempotency_key.
     """
-    # Idempotency guard: if already awarded once for this registration, stop.
-    if DeltaCrownTransaction.objects.filter(
-        registration=registration,
-        reason=DeltaCrownTransaction.Reason.PARTICIPATION,
-    ).exists():
-        return None
-
-    Tournament = apps.get_model("tournaments", "Tournament")
-    CoinPolicy = apps.get_model("economy", "CoinPolicy")
-
-    t = registration.tournament
-    policy, _ = CoinPolicy.objects.get_or_create(tournament=t, defaults={})
-    if not policy.enabled or policy.participation <= 0:
-        return None
-
-    game = (getattr(t, "game", "") or "").lower()
-
-    if game == "valorant":
-        team = getattr(registration, "team", None)
-        if not team:
-            return None
-        awards = []
-        active_members = team.memberships.filter(status="ACTIVE").select_related("profile")
-        for mem in active_members:
-            awards.append(
-                award(
-                    profile=mem.profile,
-                    amount=policy.participation,
-                    reason=DeltaCrownTransaction.Reason.PARTICIPATION,
-                    tournament=t,
-                    registration=registration,
-                    note="Participation",
-                    metadata={"team_id": team.id},
-                )
-            )
-        return awards or None
-
-    # default: solo
-    profile = getattr(registration, "user", None)
-    if not profile:
-        return None
-    return award(
-        profile=profile,
-        amount=policy.participation,
-        reason=DeltaCrownTransaction.Reason.PARTICIPATION,
-        tournament=t,
-        registration=registration,
-        note="Participation",
-        metadata={},
-    )
-
-
-def _profiles_from_team(team) -> List:
-    return [m.profile for m in team.memberships.filter(status="ACTIVE").select_related("profile")]
-
-
-def _final_and_semis(tournament):
-    Match = apps.get_model("tournaments", "Match")
-    qs = Match.objects.filter(tournament=tournament)
-    if not qs.exists():
-        return None, []
-    max_round = qs.aggregate(m=Max("round_no")).get("m") or 0
-    final_qs = list(qs.filter(round_no=max_round).order_by("position"))
-    semi_qs = list(qs.filter(round_no=max_round - 1).order_by("position")) if max_round >= 2 else []
-    return (final_qs[0] if final_qs else None), semi_qs
-
-
-def award_placements(tournament):
-    policy, _ = CoinPolicy.objects.get_or_create(tournament=tournament, defaults={})
-    if not policy.enabled:
+    policy = getattr(reg.tournament, "coin_policy", None)
+    if not policy or not policy.enabled or policy.participation <= 0:
         return []
 
-    game = (getattr(tournament, "game", "") or "").lower()
-    final, semis = _final_and_semis(tournament)
+    awards: List[DeltaCrownTransaction] = []
+
+    if getattr(reg, "user_id", None):
+        profile = reg.user
+        awards.append(
+            award(
+                profile=profile,
+                amount=policy.participation,
+                reason=DeltaCrownTransaction.Reason.PARTICIPATION,
+                tournament=reg.tournament,
+                registration=reg,
+                note="Participation",
+            )
+        )
+    elif getattr(reg, "team_id", None):
+        for p in _profiles_from_team(reg.team):
+            awards.append(
+                award(
+                    profile=p,
+                    amount=policy.participation,
+                    reason=DeltaCrownTransaction.Reason.PARTICIPATION,
+                    tournament=reg.tournament,
+                    registration=reg,
+                    note="Participation",
+                )
+            )
+    return awards
+
+
+def award_placements(tournament) -> List[DeltaCrownTransaction]:
+    """
+    Award placements (winner, runner_up, optional top4).
+    Supports TEAM brackets (team_a/team_b/winner_team) and SOLO brackets (user_a/user_b/winner_user).
+    TEAM policy: award to CAPTAINS (avoid double-counting rosters).
+    SOLO policy: award directly to users.
+    """
+    policy = getattr(tournament, "coin_policy", None)
+    if not policy or not policy.enabled:
+        return []
+
+    Match = apps.get_model("tournaments", "Match")
+    Membership = apps.get_model("teams", "TeamMembership")
+
+    def captain_profile(team):
+        cap = (
+            Membership.objects.filter(team=team, role__iexact="CAPTAIN")
+            .select_related("profile")
+            .first()
+        )
+        return cap.profile if cap else None
+
+    # Final = highest round, position 1
+    final = (
+        Match.objects.filter(tournament=tournament, position=1)
+        .order_by("-round_no")
+        .first()
+    )
     if not final:
         return []
 
-    awards = []
+    awards: List[DeltaCrownTransaction] = []
 
-    if game == "valorant":
+    is_team_final = bool(getattr(final, "winner_team_id", None))
+    is_solo_final = bool(getattr(final, "winner_user_id", None))
+
+    # ---------- TEAM BRACKET ----------
+    if is_team_final and getattr(final, "team_a_id", None) and getattr(final, "team_b_id", None):
         winner_team = final.winner_team
-        finalist_teams = [final.team_a, final.team_b]
-        runner_team = [tm for tm in finalist_teams if tm and tm != winner_team][0] if winner_team else None
+        runner_team = final.team_a if final.winner_team_id == final.team_b_id else final.team_b
 
-        if winner_team and policy.winner > 0:
-            for p in _profiles_from_team(winner_team):
+        # Winner
+        if policy.winner > 0:
+            cp = captain_profile(winner_team)
+            if cp:
                 awards.append(
                     award(
-                        profile=p,
+                        profile=cp,
                         amount=policy.winner,
                         reason=DeltaCrownTransaction.Reason.WINNER,
                         tournament=tournament,
                         match=final,
                         note="Winner",
-                        metadata={"team_id": winner_team.id},
                     )
                 )
-
-        if runner_team and policy.runner_up > 0:
-            for p in _profiles_from_team(runner_team):
+        # Runner-up
+        if policy.runner_up > 0:
+            cp = captain_profile(runner_team)
+            if cp:
                 awards.append(
                     award(
-                        profile=p,
+                        profile=cp,
                         amount=policy.runner_up,
                         reason=DeltaCrownTransaction.Reason.RUNNER_UP,
                         tournament=tournament,
                         match=final,
                         note="Runner-up",
-                        metadata={"team_id": runner_team.id},
                     )
                 )
 
-        if policy.top4 > 0 and semis:
+        # Top4 (losers of semifinals)
+        if policy.top4 > 0 and getattr(final, "round_no", None):
+            semis = (
+                Match.objects.filter(tournament=tournament, round_no=final.round_no - 1, position__in=[1, 2])
+                .select_related("team_a", "team_b", "winner_team")
+                .all()
+            )
             for m in semis:
-                loser_team = None
-                if m.winner_team:
-                    other = m.team_a if m.winner_team == m.team_b else m.team_b
-                    loser_team = other
-                for p in _profiles_from_team(loser_team) if loser_team else []:
+                if not (m.team_a_id and m.team_b_id and m.winner_team_id):
+                    continue
+                loser_team = m.team_b if m.winner_team_id == m.team_a_id else m.team_a
+                cp = captain_profile(loser_team)
+                if cp:
                     awards.append(
                         award(
-                            profile=p,
+                            profile=cp,
                             amount=policy.top4,
                             reason=DeltaCrownTransaction.Reason.TOP4,
                             tournament=tournament,
                             match=m,
                             note="Top 4",
-                            metadata={"team_id": getattr(loser_team, "id", None)},
                         )
                     )
+        return awards
 
-    else:
-        winner_profile = getattr(final, "winner_user", None)
-        finalist_users = [final.user_a, final.user_b]
-        runner_profile = [u for u in finalist_users if u and u != winner_profile][0] if winner_profile else None
+    # ---------- SOLO BRACKET ----------
+    if is_solo_final and getattr(final, "user_a_id", None) and getattr(final, "user_b_id", None):
+        winner_user = final.winner_user
+        runner_user = final.user_a if final.winner_user_id == final.user_b_id else final.user_b
 
-        if winner_profile and policy.winner > 0:
+        # Winner
+        if policy.winner > 0 and winner_user:
             awards.append(
                 award(
-                    profile=winner_profile,
+                    profile=winner_user,
                     amount=policy.winner,
                     reason=DeltaCrownTransaction.Reason.WINNER,
                     tournament=tournament,
@@ -197,10 +260,11 @@ def award_placements(tournament):
                 )
             )
 
-        if runner_profile and policy.runner_up > 0:
+        # Runner-up
+        if policy.runner_up > 0 and runner_user:
             awards.append(
                 award(
-                    profile=runner_profile,
+                    profile=runner_user,
                     amount=policy.runner_up,
                     reason=DeltaCrownTransaction.Reason.RUNNER_UP,
                     tournament=tournament,
@@ -209,24 +273,64 @@ def award_placements(tournament):
                 )
             )
 
-        if policy.top4 > 0 and semis:
+        # Top4: losers of semifinals (solo)
+        if policy.top4 > 0 and getattr(final, "round_no", None):
+            semis = (
+                Match.objects.filter(tournament=tournament, round_no=final.round_no - 1, position__in=[1, 2])
+                .select_related("user_a", "user_b", "winner_user")
+                .all()
+            )
             for m in semis:
-                loser = None
-                if m.winner_user:
-                    loser = m.user_a if m.winner_user == m.user_b else m.user_b
-                if loser:
-                    awards.append(
-                        award(
-                            profile=loser,
-                            amount=policy.top4,
-                            reason=DeltaCrownTransaction.Reason.TOP4,
-                            tournament=tournament,
-                            match=m,
-                            note="Top 4",
-                        )
+                if not (m.user_a_id and m.user_b_id and m.winner_user_id):
+                    continue
+                loser_user = m.user_b if m.winner_user_id == m.user_a_id else m.user_a
+                awards.append(
+                    award(
+                        profile=loser_user,
+                        amount=policy.top4,
+                        reason=DeltaCrownTransaction.Reason.TOP4,
+                        tournament=tournament,
+                        match=m,
+                        note="Top 4",
                     )
+                )
+        return awards
 
-    # refresh wallet cache
-    for tx in awards:
-        tx.wallet.recalc_and_save()
-    return awards
+    # If neither shape is satisfied, nothing to do
+    return []
+
+
+def backfill_participation_for_verified_payments() -> int:
+    """
+    Iterate over already-VERIFIED payment verifications and ensure participation is awarded.
+    Returns count of registrations processed (creates are idempotent).
+    """
+    PV = apps.get_model("tournaments", "PaymentVerification")
+    Reg = apps.get_model("tournaments", "Registration")
+
+    reg_ids = (
+        PV.objects.filter(status="verified")
+        .values_list("registration_id", flat=True)
+        .distinct()
+    )
+
+    processed = 0
+    for reg in Reg.objects.filter(id__in=list(reg_ids)).select_related("tournament", "user", "team"):
+        award_participation_for_registration(reg)
+        processed += 1
+    return processed
+
+
+# ---- Manual adjustments -----------------------------------------------------
+
+def manual_adjust(wallet: DeltaCrownWallet, amount: int, *, note: str = "", created_by=None) -> DeltaCrownTransaction:
+    """
+    Adjust balance by creating a MANUAL_ADJUST transaction (positive or negative).
+    """
+    return DeltaCrownTransaction.objects.create(
+        wallet=wallet,
+        amount=int(amount),
+        reason=DeltaCrownTransaction.Reason.MANUAL_ADJUST,
+        note=note or "Manual adjustment",
+        created_by=created_by,
+    )

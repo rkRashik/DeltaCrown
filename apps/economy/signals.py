@@ -1,10 +1,10 @@
+# apps/economy/signals.py
 from __future__ import annotations
 
 from django.apps import apps
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from .models import DeltaCrownTransaction
 from .services import award_participation_for_registration
 
 
@@ -12,10 +12,10 @@ from .services import award_participation_for_registration
 def award_on_payment_verified(sender, instance, created, **kwargs):
     """
     When PaymentVerification flips to VERIFIED, award participation coin(s).
-    We resolve the PaymentVerification model dynamically so import order won't break.
+    Resolve model dynamically so import order won't break.
     """
-    PaymentVerification = apps.get_model("tournaments", "PaymentVerification")
-    if sender is not PaymentVerification:
+    PV = apps.get_model("tournaments", "PaymentVerification")
+    if not PV or sender is not PV:
         return
 
     # Only award when status is VERIFIED
@@ -26,7 +26,6 @@ def award_on_payment_verified(sender, instance, created, **kwargs):
     if not reg:
         return
 
-    # get_or_create uniqueness is enforced on (registration, reason='participation')
     try:
         award_participation_for_registration(reg)
     except Exception:

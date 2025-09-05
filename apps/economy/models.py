@@ -1,11 +1,17 @@
 # apps/economy/models.py
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import models
+from django.db.models import Sum
 from django.utils import timezone
 
 
 class DeltaCrownWallet(models.Model):
+    """
+    One wallet per user profile.
+    cached_balance is a derived value from the immutable transaction ledger.
+    """
     profile = models.OneToOneField(
         "user_profile.UserProfile",
         on_delete=models.CASCADE,
@@ -16,78 +22,96 @@ class DeltaCrownWallet(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def recalc_and_save(self):
-        total = self.transactions.aggregate(s=models.Sum("amount")).get("s") or 0
-        if total != self.cached_balance:
-            self.cached_balance = total
+    class Meta:
+        indexes = [
+            models.Index(fields=["profile"]),
+        ]
+        verbose_name = "DeltaCrown Wallet"
+
+    def __str__(self) -> str:
+        return f"Wallet<{getattr(self.profile, 'id', None)}>: {self.cached_balance}"
+
+    def recalc_and_save(self) -> int:
+        total = self.transactions.aggregate(s=Sum("amount"))["s"] or 0
+        if self.cached_balance != total:
+            self.cached_balance = int(total)
             self.save(update_fields=["cached_balance", "updated_at"])
-        return total
-
-    @property
-    def balance(self) -> int:
         return self.cached_balance
-
-    def __str__(self):
-        u = getattr(self.profile, "user", None)
-        return f"Wallet({getattr(u, 'username', self.profile_id)})"
 
 
 class DeltaCrownTransaction(models.Model):
+    """
+    Immutable coin ledger line. Positive amounts = credit, negative = debit.
+    NEVER mutate amount after creation; use compensating transactions.
+    """
     class Reason(models.TextChoices):
         PARTICIPATION = "participation", "Participation"
         TOP4 = "top4", "Top 4"
         RUNNER_UP = "runner_up", "Runner-up"
         WINNER = "winner", "Winner"
-        BONUS = "bonus", "Bonus"
-        ADJUSTMENT = "adjustment", "Adjustment"
+        ENTRY_FEE_DEBIT = "entry_fee_debit", "Entry fee (debit)"
+        REFUND = "refund", "Refund"
+        MANUAL_ADJUST = "manual_adjust", "Manual adjust"
+        CORRECTION = "correction", "Correction"
 
     wallet = models.ForeignKey(
-        DeltaCrownWallet, on_delete=models.CASCADE, related_name="transactions"
+        DeltaCrownWallet,
+        on_delete=models.PROTECT,
+        related_name="transactions",
     )
-    amount = models.IntegerField()  # positive or negative
+    amount = models.IntegerField(help_text="Positive for credit, negative for debit")
     reason = models.CharField(max_length=32, choices=Reason.choices)
-    note = models.CharField(max_length=255, blank=True)
 
+    # Context (optional but helps audit)
     tournament = models.ForeignKey(
-        "tournaments.Tournament", on_delete=models.SET_NULL, null=True, blank=True, related_name="coin_transactions"
+        "tournaments.Tournament", on_delete=models.PROTECT, null=True, blank=True, related_name="coin_transactions"
     )
     registration = models.ForeignKey(
-        "tournaments.Registration", on_delete=models.SET_NULL, null=True, blank=True, related_name="coin_transactions"
+        "tournaments.Registration", on_delete=models.PROTECT, null=True, blank=True, related_name="coin_transactions"
     )
     match = models.ForeignKey(
-        "tournaments.Match", on_delete=models.SET_NULL, null=True, blank=True, related_name="coin_transactions"
+        "tournaments.Match", on_delete=models.PROTECT, null=True, blank=True, related_name="coin_transactions"
     )
-    metadata = models.JSONField(null=True, blank=True)
 
-    created_at = models.DateTimeField(default=timezone.now)
+    note = models.CharField(max_length=255, blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="coin_transactions_created"
+    )
+
+    # Idempotency guard: unique across the whole table (nullable). Services must set this.
+    idempotency_key = models.CharField(max_length=64, blank=True, null=True, unique=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        ordering = ("-created_at", "id")
         indexes = [
             models.Index(fields=["reason", "created_at"]),
             models.Index(fields=["tournament", "created_at"]),
+            models.Index(fields=["registration"]),
+            models.Index(fields=["wallet"]),
         ]
-        constraints = [
-            # Allow multiple participation awards per registration but only one per (registration, wallet)
-            models.UniqueConstraint(
-                fields=["registration", "wallet", "reason"],
-                condition=models.Q(reason="participation"),
-                name="uq_participation_once_per_registration_wallet",
-            )
-        ]
-        ordering = ("-created_at", "id")
+        verbose_name = "DeltaCrown Transaction"
 
-    def __str__(self):
-        return f"{self.amount} for {self.get_reason_display()}"
+    def __str__(self) -> str:
+        return f"Tx[{self.id}] {self.amount} for {self.get_reason_display()} (wallet={self.wallet_id})"
 
     def save(self, *args, **kwargs):
-        creating = self._state.adding
+        is_create = self._state.adding
         super().save(*args, **kwargs)
-        if creating:
-            self.wallet.cached_balance = (self.wallet.cached_balance or 0) + int(self.amount)
-            self.wallet.save(update_fields=["cached_balance", "updated_at"])
+        # maintain cached balance on create only
+        if is_create:
+            try:
+                self.wallet.recalc_and_save()
+            except Exception:
+                # never block writes to ledger even if recalc fails – ops can rebuild later
+                pass
 
 
 class CoinPolicy(models.Model):
+    """
+    Per-tournament coin policy. Enabled by default.
+    """
     tournament = models.OneToOneField(
         "tournaments.Tournament",
         on_delete=models.CASCADE,
