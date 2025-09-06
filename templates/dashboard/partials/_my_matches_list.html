@@ -29,15 +29,41 @@
         {% if m.game %}<span>• Game: {{ m.game }}</span>{% endif %}
       </div>
 
-      {% if m.tournament_id %}
-      <div class="mt-2">
-        <form method="post" action="{% url 'tournaments:my_matches_toggle_pin' m.tournament_id %}">{% csrf_token %}
+      <div class="mt-3 flex flex-wrap gap-2">
+        {# Attendance quick toggles #}
+        <form method="post" action="{% url 'tournaments:match_attendance_toggle' m.id 'confirm' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-emerald-600/20">I’m in</button>
+        </form>
+        <form method="post" action="{% url 'tournaments:match_attendance_toggle' m.id 'decline' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-rose-600/20">Can’t</button>
+        </form>
+        <form method="post" action="{% url 'tournaments:match_attendance_toggle' m.id 'late' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-amber-600/20">Late</button>
+        </form>
+
+        {# Organizer / player quick actions (stubbed; safe now) #}
+        <form method="post" action="{% url 'tournaments:match_quick_action' m.id 'remind_team' %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-blue-600/20">Remind my team</button>
+        </form>
+
+        {# Pin toggle if tournament_id exists #}
+        {% if m.tournament_id %}
+        <form method="post" action="{% url 'tournaments:my_matches_toggle_pin' m.tournament_id %}">
+          {% csrf_token %}
           <button class="text-xs px-2 py-1 rounded-2xl border dc-border" title="Pin/Unpin">
             {% if pins_ids and m.tournament_id in pins_ids %}★ Pinned{% else %}☆ Pin{% endif %}
           </button>
         </form>
+        {% endif %}
       </div>
-      {% endif %}
     </li>
   {% endfor %}
 </ul>

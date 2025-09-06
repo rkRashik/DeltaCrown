@@ -45,3 +45,4 @@ except Exception:
 
 from .userprefs import *  # noqa
 
+from .attendance import *  # noqa
