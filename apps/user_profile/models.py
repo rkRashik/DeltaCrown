@@ -29,6 +29,24 @@ class UserProfile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    is_private = models.BooleanField(
+        default=False,
+        help_text="Hide entire profile from public.",
+    )
+    show_email = models.BooleanField(
+        default=False,
+        help_text="Allow showing my email on public profile.",
+    )
+    show_phone = models.BooleanField(
+        default=False,
+        help_text="Allow showing my phone on public profile.",
+    )
+    show_socials = models.BooleanField(
+        default=True,
+        help_text="Allow showing my social links/IDs on public profile.",
+    )
+
+
     class Meta:
         indexes = [models.Index(fields=["region"])]
         verbose_name = "User Profile"

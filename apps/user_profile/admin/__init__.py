@@ -13,3 +13,5 @@ Importing this package triggers registrations at import time so that
 # Ensure ModelAdmin registration and actions load at import-time
 from .users import *    # noqa: F401,F403
 from .exports import *  # noqa: F401,F403
+from .privacy import *  # noqa
+
