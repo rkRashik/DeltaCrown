@@ -1,0 +1,24 @@
+{# templates/tournaments/_groups.html #}
+{% if groups %}
+<section id="bracket" class="mt-8">
+  <h2 class="text-2xl font-bold mb-4">Group Stage</h2>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for g in groups %}
+      <div class="rounded-2xl border dc-border p-4 bg-white/5">
+        <h3 class="font-semibold mb-3">{{ g.name }}</h3>
+        <ul class="space-y-2">
+          {% for team in g.teams %}
+            <li class="flex items-center gap-2">
+              {% if team.logo %}<img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-6 h-6 rounded">{% endif %}
+              <span>{{ team.name }}</span>
+              {% if team.tag %}<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-white/10 dc-muted">#{{ team.tag }}</span>{% endif %}
+            </li>
+          {% empty %}
+            <li class="dc-muted">No teams yet.</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
