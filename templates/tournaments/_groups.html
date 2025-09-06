@@ -1,4 +1,5 @@
 {# templates/tournaments/_groups.html #}
+{% load dict_utils tournament_extras %}
 {% if groups %}
 <section id="bracket" class="mt-8">
   <h2 class="text-2xl font-bold mb-4">Group Stage</h2>
@@ -6,17 +7,47 @@
     {% for g in groups %}
       <div class="rounded-2xl border dc-border p-4 bg-white/5">
         <h3 class="font-semibold mb-3">{{ g.name }}</h3>
-        <ul class="space-y-2">
-          {% for team in g.teams %}
-            <li class="flex items-center gap-2">
-              {% if team.logo %}<img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-6 h-6 rounded">{% endif %}
-              <span>{{ team.name }}</span>
-              {% if team.tag %}<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-white/10 dc-muted">#{{ team.tag }}</span>{% endif %}
-            </li>
-          {% empty %}
-            <li class="dc-muted">No teams yet.</li>
-          {% endfor %}
-        </ul>
+        {% if g.stats %}
+          <table class="w-full text-sm mb-3">
+            <thead>
+              <tr class="text-left dc-muted">
+                <th class="py-1">Team</th>
+                <th class="py-1 text-center">W</th>
+                <th class="py-1 text-center">L</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for team in g.teams %}
+                {% if team %}
+                  {% with st=g.stats|get_item:team.id %}
+                    <tr>
+                      <td class="py-1">
+                        {% team_public_url team as url %}
+                        {% if url %}<a href="{{ url }}" class="hover:underline">{{ team.name }}</a>{% else %}{{ team.name }}{% endif %}
+                        {% if team.tag %}<span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-white/10 dc-muted">#{{ team.tag }}</span>{% endif %}
+                      </td>
+                      <td class="py-1 text-center">{{ st.w|default:0 }}</td>
+                      <td class="py-1 text-center">{{ st.l|default:0 }}</td>
+                    </tr>
+                  {% endwith %}
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <ul class="space-y-2">
+            {% for team in g.teams %}
+              {% if team %}
+                <li class="flex items-center gap-2">
+                  {% if team.logo %}<img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-6 h-6 rounded">{% endif %}
+                  {% team_public_url team as url %}
+                  {% if url %}<a href="{{ url }}" class="hover:underline">{{ team.name }}</a>{% else %}<span>{{ team.name }}</span>{% endif %}
+                  {% if team.tag %}<span class="ml-auto text-xs px-2 py-0.5 rounded-full bg-white/10 dc-muted">#{{ team.tag }}</span>{% endif %}
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        {% endif %}
       </div>
     {% endfor %}
   </div>

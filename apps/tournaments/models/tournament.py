@@ -46,6 +46,11 @@ class Tournament(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    groups_published = models.BooleanField(
+        default=False,
+        help_text="Show bracket groups on public page when enabled."
+    )
+
     class Meta:
         ordering = ["-created_at"]
         indexes = [

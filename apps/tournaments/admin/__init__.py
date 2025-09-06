@@ -34,4 +34,13 @@ try:
     from .payments_extras import *  # noqa: F401,F403
 except Exception:
     pass
+try:
+    from .brackets import *  # noqa: F401,F403
+except Exception:
+    pass
+try:
+    from .tournaments_extras import *  # noqa: F401,F403
+except Exception:
+    pass
+
 

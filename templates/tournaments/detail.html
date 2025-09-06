@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load tournament_extras %}
+{% load dict_utils %}
 
 {% block title %}{{ tournament.title|default:"Tournament" }} — DeltaCrown{% endblock %}
 
@@ -34,45 +35,32 @@
     </header>
 
     <div class="grid lg:grid-cols-3 gap-8 mt-10">
-      <!-- Main column -->
       <div class="lg:col-span-2 space-y-8">
-        <!-- Overview -->
         <section id="overview" class="rounded-2xl border dc-border p-6 bg-black/10">
           <h2 class="text-xl font-semibold mb-3">Overview</h2>
           <p class="dc-muted">Details about format, rules, and schedule appear here.</p>
         </section>
 
-        <!-- Rules -->
         <section id="rules" class="rounded-2xl border dc-border p-6 bg-black/10">
           <h2 class="text-xl font-semibold mb-3">Rules</h2>
           <p class="dc-muted">Upload PDF rules or inline rules in your admin.</p>
         </section>
 
-        <!-- Schedule -->
         <section id="schedule" class="rounded-2xl border dc-border p-6 bg-black/10">
           <h2 class="text-xl font-semibold mb-3">Schedule</h2>
           <p class="dc-muted">Match schedule, check-in window, and time blocks go here.</p>
-          {# Example usage if you pass a match instance:
-             {% match_checkin_window match as win %}
-             {% if win.0 and win.1 %}
-               <div class="text-sm mt-2">
-                 Check-in: {{ win.0 }} — {{ win.1 }}
-               </div>
-             {% endif %}
-          #}
         </section>
 
-        <!-- Bracket (Groups) -->
         <section id="bracket" class="rounded-2xl border dc-border p-6 bg-black/10">
           <h2 class="text-xl font-semibold mb-4">Bracket</h2>
-          {% render_groups tournament %}
-          {% if not groups %}
+          {% if tournament.groups_published %}
+            {% render_groups tournament %}
+          {% else %}
             <div class="dc-muted text-sm">Groups haven’t been published yet.</div>
           {% endif %}
         </section>
       </div>
 
-      <!-- Sidebar -->
       <aside class="space-y-6">
         <div class="rounded-2xl border dc-border p-6 bg-black/10">
           <h3 class="font-semibold mb-3">How to pay</h3>
