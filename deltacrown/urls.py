@@ -19,6 +19,7 @@ urlpatterns = [
     path("explore/tournaments/<int:pk>/", views.tournament_detail, name="explore_tournament_detail"),
     # NEW: Captain console (profile routes for teams)
     path("profile/teams/", include("apps.teams.urls_profile")),
+    path("", include("apps.dashboard.urls"))
 ]
 
 def _optional_include(prefix: str, module: str):

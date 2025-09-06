@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Matches — DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-4">My Matches</h1>
+
+  <form method="get" class="rounded-2xl border dc-border p-4 bg-black/10 mb-6">
+    <div class="grid md:grid-cols-6 gap-3">
+      <div>
+        <label class="text-sm font-medium">Game</label>
+        {{ form.game }}
+      </div>
+      <div class="md:col-span-2">
+        <label class="text-sm font-medium">Tournament</label>
+        {{ form.tournament }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">From</label>
+        {{ form.date_from }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">To</label>
+        {{ form.date_to }}
+      </div>
+      <div>
+        <label class="text-sm font-medium">Status</label>
+        {{ form.status }}
+      </div>
+      <div class="md:col-span-3">
+        <label class="text-sm font-medium">Search</label>
+        {{ form.q }}
+      </div>
+    </div>
+    <div class="mt-4 flex gap-2">
+      <button class="px-4 py-2 rounded-2xl bg-brand-primary text-black font-semibold">Apply</button>
+      <a href="." class="px-4 py-2 rounded-2xl border dc-border">Reset</a>
+    </div>
+  </form>
+
+  {% if matches %}
+    <ul class="space-y-3">
+      {% for m in matches %}
+        <li class="rounded-2xl border dc-border bg-black/10 p-4">
+          <div class="flex items-center gap-3">
+            <div class="text-xs uppercase tracking-wide dc-muted">
+              {% if m.scheduled_at %}{{ m.scheduled_at }}
+              {% elif m.start_time %}{{ m.start_time }}
+              {% elif m.starts_at %}{{ m.starts_at }}
+              {% endif %}
+            </div>
+            <div class="ml-auto text-xs px-2 py-1 rounded bg-white/10">
+              {% with st=m.state|default:m.status %}
+                {{ st|default:"UPCOMING" }}
+              {% endwith %}
+            </div>
+          </div>
+
+          {# Keep this robust: rely on __str__ of Match rather than guessing team field names #}
+          <div class="mt-2 font-semibold">
+            {{ m }}
+          </div>
+
+          <div class="text-sm dc-muted">
+            {% if m.tournament %}Tournament: {{ m.tournament.name|default:m.tournament }}{% endif %}
+            {% if m.game %} • Game: {{ m.game }}{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="rounded-2xl border dc-border bg-black/10 p-6">
+      <div class="font-semibold mb-1">No matches found</div>
+      <div class="text-sm dc-muted">Update your filters or join a team to see upcoming matches here.</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
