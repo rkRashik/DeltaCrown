@@ -1,9 +1,6 @@
 from django.apps import AppConfig
 
-
 class CorelibConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    # This MUST be the full dotted path to the app package
+    default_auto_field = "django.db.models.AutoField"
     name = "apps.corelib"
-    # Optional stable label used internally by Django (no dots)
-    label = "corelib"
+    verbose_name = "Core Library"

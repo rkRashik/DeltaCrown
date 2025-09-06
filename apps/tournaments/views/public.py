@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_http_methods
 
 from ..models import Tournament
 from apps.corelib.admin_utils import _safe_select_related
@@ -53,7 +54,9 @@ def tournament_list(request):
 
     paginator = Paginator(qs.order_by("-start_at"), 12)
     page = paginator.get_page(request.GET.get("page"))
-    return render(request, "tournaments/list.html", {"page": page, "q": q, "game": game, "status": status, "entry": entry})
+    return render(request, "tournaments/list.html", {
+        "page": page, "q": q, "game": game, "status": status, "entry": entry
+    })
 
 
 def tournament_detail(request, slug):
@@ -71,6 +74,7 @@ def _entry_fee(t: Tournament) -> float:
     return float(getattr(settings, "entry_fee_bdt", 0) or 0)
 
 
+@require_http_methods(["GET", "POST"])
 def register_view(request, slug):
     """
     Unified register endpoint.
@@ -78,7 +82,7 @@ def register_view(request, slug):
     """
     t = get_object_or_404(Tournament, slug=slug)
 
-    # Registration window
+    # Registration window (gracefully ignore if fields absent)
     now = timezone.now()
     if hasattr(t, "reg_open_at") and hasattr(t, "reg_close_at"):
         try:
@@ -141,7 +145,9 @@ def register_view(request, slug):
         solo_form = solo_form or GenericSoloForm(None, None, tournament=t, request=request)
         team_form = team_form or GenericTeamForm(None, None, tournament=t, request=request)
 
-    return render(request, "tournaments/register.html", {"t": t, "tournament": t, "solo_form": solo_form, "team_form": team_form})
+    return render(request, "tournaments/register.html", {
+        "t": t, "tournament": t, "solo_form": solo_form, "team_form": team_form
+    })
 
 
 def register_success(request, slug):
@@ -151,4 +157,5 @@ def register_success(request, slug):
 
 @login_required
 def my_matches_view(request):
-    return render(request, "tournaments/my_matches.html", {})
+    # Use your template location: templates/dashboard/my_matches.html
+    return render(request, "dashboard/my_matches.html", {})
