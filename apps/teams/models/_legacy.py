@@ -39,6 +39,15 @@ class Team(models.Model):
     name = models.CharField(max_length=100, unique=True)
     tag = models.CharField(max_length=10, unique=True)
     logo = models.ImageField(upload_to=team_logo_path, blank=True, null=True)
+    # Game association (Part A)
+    GAME_CHOICES = (
+        ('efootball', 'eFootball'),
+        ('valorant', 'Valorant'),
+    )
+    game = models.CharField(
+        max_length=20, choices=GAME_CHOICES, blank=True, default='',
+        help_text='Which game this team competes in (blank for legacy teams).'
+    )
 
     # Use your existing UserProfile
     captain = models.ForeignKey(
@@ -123,6 +132,25 @@ class TeamMembership(models.Model):
         # Captain membership must be ACTIVE
         if self.role == self.Role.CAPTAIN and self.status != self.Status.ACTIVE:
             raise ValidationError({"status": "Captain membership must be ACTIVE."})
+        # Enforce: one ACTIVE team per GAME per profile (Part A)
+        try:
+            team = getattr(self, 'team', None)
+            prof = getattr(self, 'profile', None)
+            status = getattr(self, 'status', None)
+            if team and getattr(team, 'game', '') and status == self.Status.ACTIVE and prof:
+                conflict = (
+                    TeamMembership.objects
+                    .filter(profile=prof, status=self.Status.ACTIVE, team__game=team.game)
+                    .exclude(team_id=getattr(team, 'id', None))
+                    .first()
+                )
+                if conflict:
+                    from django.core.exceptions import ValidationError as _VE
+                    raise _VE({'team': f"You already have an active team for '{team.game}'. Only one active team per game is allowed."})
+        except Exception:
+            # Fail-soft
+            pass
+
 
     def promote_to_captain(self):
         """

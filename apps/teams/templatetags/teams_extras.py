@@ -36,3 +36,13 @@ def exclude_captain(memberships, team):
             return list(memberships)
         except Exception:
             return []
+
+
+@register.simple_tag
+def get_active_team(profile, game):
+    """Template helper: returns the ACTIVE team for a profile+game, or None."""
+    try:
+        from apps.teams.utils import get_active_team as _gat
+        return _gat(profile, game)
+    except Exception:
+        return None

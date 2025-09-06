@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from django.apps import apps
 
 from .models_registration import ValorantTeamInfo, ValorantPlayer
+from apps.teams.utils import get_active_team
 
 Tournament = apps.get_model("tournaments", "Tournament")
 Registration = apps.get_model("tournaments", "Registration")
@@ -65,9 +66,23 @@ class ValorantTeamForm(forms.Form):
         self.tournament = kwargs.pop("tournament")
         self.request = kwargs.pop("request", None)
         self.entry_fee_bdt = kwargs.pop("entry_fee_bdt", _entry_fee_bdt(self.tournament))
-        super().__init__(*args, **kwargs)
 
-        # Require payment if fee > 0
+        # Part A: auto-select active team for ValorantTeamForm
+        try:
+            u = getattr(self, "request", None) and getattr(self.request, "user", None)
+            if u and hasattr(u, "is_authenticated") and u.is_authenticated:
+                from django.apps import apps
+                UserProfile = apps.get_model("user_profile", "UserProfile")
+                prof = UserProfile.objects.filter(user=u).first()
+                if prof:
+                    from apps.teams.utils import get_active_team
+                    _active = get_active_team(prof, "valorant")
+                    if _active and "team" in self.fields:
+                        self.fields["team"].initial = str(_active.id)
+        except Exception:
+            pass
+
+# Require payment if fee > 0
         required = self.entry_fee_bdt > 0
         for f in ("payment_method", "payer_account_number", "payment_reference", "amount_bdt", "payment_proof"):
             self.fields[f].required = required

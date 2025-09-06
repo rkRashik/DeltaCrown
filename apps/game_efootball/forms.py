@@ -8,6 +8,7 @@ from django.apps import apps
 from django.core.exceptions import ValidationError
 
 from .models_registration import EfootballSoloInfo, EfootballDuoInfo
+from apps.teams.utils import get_active_team
 
 Tournament = apps.get_model("tournaments", "Tournament")
 Registration = apps.get_model("tournaments", "Registration")
@@ -26,6 +27,7 @@ PAYMENT_METHOD_CHOICES = (
     ("rocket", "Rocket"),
     ("bank", "Bank Transfer"),
 )
+
 
 def _entry_fee_bdt(tournament) -> float:
     settings = getattr(tournament, "settings", None)
@@ -161,9 +163,19 @@ class EfootballDuoForm(forms.ModelForm):
         if getattr(u, "is_authenticated", False) and Team and TeamMembership and UserProfile:
             prof = UserProfile.objects.filter(user=u).first()
             if prof:
+
+                # Part A: auto-select active eFootball team
+                try:
+                    _active = get_active_team(prof, 'efootball')
+                    if _active:
+                        self.fields['use_team_id'].initial = str(_active.id)
+                except Exception:
+                    pass
                 # captain memberships
-                cap_memberships = TeamMembership.objects.filter(profile=prof, role="CAPTAIN", status="ACTIVE").select_related("team")
-                self.fields["use_team_id"].choices = [("", "—")] + [(m.team_id, f"{m.team.name} ({m.team.tag})") for m in cap_memberships]
+                cap_memberships = TeamMembership.objects.filter(profile=prof, role="CAPTAIN",
+                                                                status="ACTIVE").select_related("team")
+                self.fields["use_team_id"].choices = [("", "—")] + [(m.team_id, f"{m.team.name} ({m.team.tag})") for m
+                                                                    in cap_memberships]
 
                 # Prefill captain info from profile
                 self.fields["captain_full_name"].initial = prof.display_name or (u.get_full_name() or u.username)
@@ -200,7 +212,8 @@ class EfootballDuoForm(forms.ModelForm):
             if not prof:
                 raise ValidationError("Profile not found.")
             # Ensure the user is the captain of that team
-            is_captain = TeamMembership.objects.filter(team=team, profile=prof, role="CAPTAIN", status="ACTIVE").exists()
+            is_captain = TeamMembership.objects.filter(team=team, profile=prof, role="CAPTAIN",
+                                                       status="ACTIVE").exists()
             if not is_captain:
                 raise ValidationError("Only the team captain can register this team.")
 
@@ -208,7 +221,8 @@ class EfootballDuoForm(forms.ModelForm):
             data["team_name"] = data.get("team_name") or team.name
             data["team_logo"] = data.get("team_logo") or getattr(team, "logo", None)
             # Find any teammate
-            mate_m = TeamMembership.objects.filter(team=team, status="ACTIVE").exclude(role="CAPTAIN").select_related("profile").first()
+            mate_m = TeamMembership.objects.filter(team=team, status="ACTIVE").exclude(role="CAPTAIN").select_related(
+                "profile").first()
             if mate_m:
                 mate_p = mate_m.profile
                 data["mate_full_name"] = data.get("mate_full_name") or (mate_p.display_name or mate_p.user.username)
@@ -221,17 +235,21 @@ class EfootballDuoForm(forms.ModelForm):
         mate_ign = (data.get("mate_ign") or "").strip()
 
         if Registration and EfootballSoloInfo:
-            if cap_ign and EfootballSoloInfo.objects.filter(registration__tournament=self.tournament, ign__iexact=cap_ign).exists():
+            if cap_ign and EfootballSoloInfo.objects.filter(registration__tournament=self.tournament,
+                                                            ign__iexact=cap_ign).exists():
                 raise ValidationError("Captain IGN is already registered in this tournament (solo).")
-            if mate_ign and EfootballSoloInfo.objects.filter(registration__tournament=self.tournament, ign__iexact=mate_ign).exists():
+            if mate_ign and EfootballSoloInfo.objects.filter(registration__tournament=self.tournament,
+                                                             ign__iexact=mate_ign).exists():
                 raise ValidationError("Teammate IGN is already registered in this tournament (solo).")
 
         if Registration and EfootballDuoInfo:
             q = EfootballDuoInfo.objects.filter(registration__tournament=self.tournament)
             from django.db import models
-            if cap_ign and q.filter(models.Q(captain_ign__iexact=cap_ign) | models.Q(mate_ign__iexact=cap_ign)).exists():
+            if cap_ign and q.filter(
+                    models.Q(captain_ign__iexact=cap_ign) | models.Q(mate_ign__iexact=cap_ign)).exists():
                 raise ValidationError("Captain IGN already appears on another team in this tournament.")
-            if mate_ign and q.filter(models.Q(captain_ign__iexact=mate_ign) | models.Q(mate_ign__iexact=mate_ign)).exists():
+            if mate_ign and q.filter(
+                    models.Q(captain_ign__iexact=mate_ign) | models.Q(mate_ign__iexact=mate_ign)).exists():
                 raise ValidationError("Teammate IGN already appears on another team in this tournament.")
 
         return data
@@ -254,8 +272,17 @@ class EfootballDuoForm(forms.ModelForm):
             prof = UserProfile.objects.filter(user_id=uid).first() if UserProfile else None
             if not prof:
                 raise ValidationError("Profile not found for captain.")
-            team_obj = Team.objects.create(name=self.cleaned_data["team_name"], tag=self.cleaned_data["team_name"][:10].upper(), captain=prof)
-            # teammate membership may be added later in admin or via invites
+            team_obj = Team.objects.create(name=self.cleaned_data["team_name"],
+                                           tag=self.cleaned_data["team_name"][:10].upper(), captain=prof)
+
+            # Part A: set team.game
+            try:
+                if hasattr(team_obj, 'game'):
+                    team_obj.game = 'efootball'
+                    team_obj.save(update_fields=['game'])
+            except Exception:
+                pass
+        # teammate membership may be added later in admin or via invites
 
         # Registration + PV via service (team flow so payer acct is persisted)
         reg = register_valorant_team(
