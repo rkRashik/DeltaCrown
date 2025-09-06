@@ -42,3 +42,10 @@ urlpatterns = [
     path("<str:tag>/transfer/", manage_views.transfer_captain_view, name="transfer"),
 
 ]
+
+
+from .views import presets as presets_views
+urlpatterns += [
+    path("presets/", presets_views.my_presets, name="my_presets"),
+    path("presets/<str:kind>/<int:preset_id>/delete/", presets_views.delete_preset, name="delete_preset"),
+]

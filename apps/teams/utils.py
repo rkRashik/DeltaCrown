@@ -12,3 +12,18 @@ def get_active_team(profile, game: str) -> Optional[object]:
         return cap_first.team
     any_active = qs.select_related('team').first()
     return any_active.team if any_active else None
+
+
+def get_latest_preset(profile, game: str):
+    """
+    Returns the most recent team preset for the given profile+game.
+    """
+    if not profile or not game:
+        return None
+    if game == "efootball":
+        Model = apps.get_model("teams", "EfootballTeamPreset")
+    elif game == "valorant":
+        Model = apps.get_model("teams", "ValorantTeamPreset")
+    else:
+        return None
+    return Model.objects.filter(profile=profile).order_by("-created_at").first()

@@ -21,9 +21,9 @@ from typing import Optional
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Q
 from django.utils import timezone
-
+from django.utils.text import slugify
 
 # Global roster ceiling (captain + players + subs)
 TEAM_MAX_ROSTER = 8
@@ -36,30 +36,59 @@ def team_logo_path(instance, filename):
 
 
 class Team(models.Model):
+    # Basics
     name = models.CharField(max_length=100, unique=True)
     tag = models.CharField(max_length=10, unique=True)
     logo = models.ImageField(upload_to=team_logo_path, blank=True, null=True)
-    # Game association (Part A)
-    GAME_CHOICES = (
-        ('efootball', 'eFootball'),
-        ('valorant', 'Valorant'),
-    )
-    game = models.CharField(
-        max_length=20, choices=GAME_CHOICES, blank=True, default='',
-        help_text='Which game this team competes in (blank for legacy teams).'
-    )
 
-    # Use your existing UserProfile
+    # Core
     captain = models.ForeignKey(
         "user_profile.UserProfile",
-        on_delete=models.CASCADE,
-        related_name="captain_of",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="captain_teams",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Game association (Part A)
+    GAME_CHOICES = (
+        ("efootball", "eFootball"),
+        ("valorant", "Valorant"),
+    )
+    game = models.CharField(
+        max_length=20,
+        choices=GAME_CHOICES,
+        blank=True,
+        default="",
+        help_text="Which game this team competes in (blank for legacy teams).",
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    # --- Media & Socials (Part B) ---
+    banner_image = models.ImageField(upload_to="teams/banners/", blank=True, null=True)
+    roster_image = models.ImageField(upload_to="teams/rosters/", blank=True, null=True)
+    region = models.CharField(max_length=48, blank=True, default="")
+
+    # Social links (optional)
+    twitter = models.URLField(blank=True, default="")
+    instagram = models.URLField(blank=True, default="")
+    discord = models.URLField(blank=True, default="")
+    youtube = models.URLField(blank=True, default="")
+    twitch = models.URLField(blank=True, default="")
+    linktree = models.URLField(blank=True, default="")
+
+    # Slug per game (optional but recommended)
+    slug = models.SlugField(max_length=64, blank=True, default="", help_text="Unique per game")
 
     class Meta:
         ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["game", "slug"],
+                name="uniq_team_slug_per_game",
+                condition=~Q(slug=""),
+            ),
+        ]
 
     def __str__(self) -> str:
         try:
@@ -67,20 +96,35 @@ class Team(models.Model):
         except Exception:
             return self.name
 
-    # ---- convenience ----
     @property
     def members_count(self) -> int:
         return self.memberships.filter(status=TeamMembership.Status.ACTIVE).count()
 
     def has_member(self, profile) -> bool:
-        return self.memberships.filter(profile=profile, status=TeamMembership.Status.ACTIVE).exists()
+        return self.memberships.filter(
+            profile=profile, status=TeamMembership.Status.ACTIVE
+        ).exists()
 
     def ensure_captain_membership(self):
-        TeamMembership.objects.get_or_create(
-            team=self,
-            profile=self.captain,
-            defaults={"role": TeamMembership.Role.CAPTAIN, "status": TeamMembership.Status.ACTIVE},
-        )
+        if self.captain:
+            TeamMembership.objects.get_or_create(
+                team=self,
+                profile=self.captain,
+                defaults={
+                    "role": TeamMembership.Role.CAPTAIN,
+                    "status": TeamMembership.Status.ACTIVE,
+                },
+            )
+
+    def clean(self):
+        # Auto-slug per game if blank
+        try:
+            if not getattr(self, "slug", "") and getattr(self, "name", ""):
+                base = slugify(self.name)[:60]
+                self.slug = base
+        except Exception:
+            # Fail-soft
+            pass
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -118,7 +162,7 @@ class TeamMembership(models.Model):
         unique_together = (("team", "profile"),)
         constraints = [
             # At most one ACTIVE CAPTAIN per team
-            UniqueConstraint(
+            models.UniqueConstraint(
                 fields=("team",),
                 condition=Q(role="CAPTAIN", status="ACTIVE"),
                 name="uq_one_active_captain_per_team",
@@ -132,25 +176,32 @@ class TeamMembership(models.Model):
         # Captain membership must be ACTIVE
         if self.role == self.Role.CAPTAIN and self.status != self.Status.ACTIVE:
             raise ValidationError({"status": "Captain membership must be ACTIVE."})
+
         # Enforce: one ACTIVE team per GAME per profile (Part A)
         try:
-            team = getattr(self, 'team', None)
-            prof = getattr(self, 'profile', None)
-            status = getattr(self, 'status', None)
-            if team and getattr(team, 'game', '') and status == self.Status.ACTIVE and prof:
+            team = getattr(self, "team", None)
+            prof = getattr(self, "profile", None)
+            status = getattr(self, "status", None)
+            if team and getattr(team, "game", "") and status == self.Status.ACTIVE and prof:
                 conflict = (
-                    TeamMembership.objects
-                    .filter(profile=prof, status=self.Status.ACTIVE, team__game=team.game)
-                    .exclude(team_id=getattr(team, 'id', None))
+                    TeamMembership.objects.filter(
+                        profile=prof, status=self.Status.ACTIVE, team__game=team.game
+                    )
+                    .exclude(team_id=getattr(team, "id", None))
                     .first()
                 )
                 if conflict:
-                    from django.core.exceptions import ValidationError as _VE
-                    raise _VE({'team': f"You already have an active team for '{team.game}'. Only one active team per game is allowed."})
+                    raise ValidationError(
+                        {
+                            "team": f"You already have an active team for '{team.game}'. "
+                                    f"Only one active team per game is allowed."
+                        }
+                    )
+        except ValidationError:
+            raise
         except Exception:
-            # Fail-soft
+            # Fail-soft on unexpected issues
             pass
-
 
     def promote_to_captain(self):
         """
@@ -202,12 +253,16 @@ class TeamInvite(models.Model):
     # Fallback when inviting by email (pre-registration)
     invited_email = models.EmailField(blank=True)
 
-    role = models.CharField(max_length=16, choices=TeamMembership.Role.choices, default=TeamMembership.Role.PLAYER)
+    role = models.CharField(
+        max_length=16,
+        choices=TeamMembership.Role.choices,
+        default=TeamMembership.Role.PLAYER,
+    )
 
     token = models.CharField(
         max_length=36,
         unique=True,
-        default=uuid.uuid4,   # serializable callable (avoid lambda)
+        default=uuid.uuid4,  # serializable callable (avoid lambda)
         editable=False,
     )
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="PENDING")
