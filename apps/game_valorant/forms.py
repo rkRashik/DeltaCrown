@@ -9,11 +9,16 @@ from django.apps import apps
 from .models_registration import ValorantTeamInfo, ValorantPlayer
 from apps.teams.utils import get_active_team
 
+# Core models via apps registry (avoids circular imports during startup)
 Tournament = apps.get_model("tournaments", "Tournament")
 Registration = apps.get_model("tournaments", "Registration")
 UserProfile = apps.get_model("user_profile", "UserProfile")
 Team = apps.get_model("teams", "Team")
 TeamMembership = apps.get_model("teams", "TeamMembership")
+
+# Preset models (optional: behave if missing)
+ValorantTeamPreset = apps.get_model("teams", "ValorantTeamPreset")
+ValorantPlayerPreset = apps.get_model("teams", "ValorantPlayerPreset")
 
 from apps.tournaments.services.registration import (  # type: ignore
     TeamRegistrationInput, register_valorant_team,
@@ -30,12 +35,13 @@ def _entry_fee_bdt(tournament) -> float:
     settings = getattr(tournament, "settings", None)
     return float(getattr(settings, "entry_fee_bdt", 0) or 0)
 
+
 class PlayerChunk(forms.Form):
     full_name = forms.CharField(max_length=120)
     riot_id = forms.CharField(max_length=32, help_text="Without tagline (e.g., DeltaCrownPro)")
     riot_tagline = forms.CharField(max_length=16, help_text="e.g., #APAC")
     discord = forms.CharField(max_length=64)
-    role = forms.ChoiceField(choices=(("starter","Starter"),("sub","Substitute")))
+    role = forms.ChoiceField(choices=(("starter", "Starter"), ("sub", "Substitute")))
 
 
 class ValorantTeamForm(forms.Form):
@@ -59,46 +65,77 @@ class ValorantTeamForm(forms.Form):
     amount_bdt = forms.DecimalField(required=False, max_digits=10, decimal_places=2)
     payment_proof = forms.ImageField(required=False)
 
-    # Nested roster
-    players: List[PlayerChunk] = []  # for typing
+    # Preset
+    save_as_preset = forms.BooleanField(required=False, initial=False, label="Save as my Valorant Team")
+
+    # Nested roster (for typing only)
+    players: List[PlayerChunk] = []
 
     def __init__(self, *args, **kwargs):
         self.tournament = kwargs.pop("tournament")
         self.request = kwargs.pop("request", None)
         self.entry_fee_bdt = kwargs.pop("entry_fee_bdt", _entry_fee_bdt(self.tournament))
+        super().__init__(*args, **kwargs)
 
-        # Part A: auto-select active team for ValorantTeamForm
+        # UI polish placeholders
+        for fld, ph in [
+            ("team_name", "e.g., Phantom Squad"),
+            ("team_tag", "e.g., PHAN"),
+            ("region", "e.g., SEA (optional)"),
+        ]:
+            if fld in self.fields:
+                self.fields[fld].widget.attrs.update(placeholder=ph)
+
+        # Part A: auto-select active team
+        _active = None
         try:
             u = getattr(self, "request", None) and getattr(self.request, "user", None)
             if u and hasattr(u, "is_authenticated") and u.is_authenticated:
-                from django.apps import apps
-                UserProfile = apps.get_model("user_profile", "UserProfile")
-                prof = UserProfile.objects.filter(user=u).first()
+                prof = UserProfile.objects.filter(user=u).first() if UserProfile else None
                 if prof:
-                    from apps.teams.utils import get_active_team
                     _active = get_active_team(prof, "valorant")
                     if _active and "team" in self.fields:
                         self.fields["team"].initial = str(_active.id)
         except Exception:
             pass
 
-# Require payment if fee > 0
+        # Require payment if fee > 0
         required = self.entry_fee_bdt > 0
         for f in ("payment_method", "payer_account_number", "payment_reference", "amount_bdt", "payment_proof"):
             self.fields[f].required = required
 
-        # captain's teams
+        # Captain's teams (choices)
         u = getattr(self.request, "user", None)
         choices = [("", "—")]
         if getattr(u, "is_authenticated", False) and Team and TeamMembership and UserProfile:
             prof = UserProfile.objects.filter(user=u).first()
             if prof:
-                caps = TeamMembership.objects.filter(profile=prof, role="CAPTAIN", status="ACTIVE").select_related("team")
+                caps = TeamMembership.objects.filter(
+                    profile=prof, role="CAPTAIN", status="ACTIVE"
+                ).select_related("team")
                 choices += [(m.team_id, f"{m.team.name} ({m.team.tag})") for m in caps]
         self.fields["team"].choices = choices
 
-        # Build 7 player forms (max); UI can ignore extras
-        self.players = [PlayerChunk(prefix=f"p{i}", data=self.data or None, files=self.files or None) for i in range(7)]
+        # Prefill from latest preset if no active team
+        try:
+            if not _active and ValorantTeamPreset and getattr(u, "is_authenticated", False):
+                prof = UserProfile.objects.filter(user=u).first()
+                if prof:
+                    vp = ValorantTeamPreset.objects.filter(profile=prof).order_by("-created_at").first()
+                    if vp:
+                        if not self.fields["team_name"].initial:
+                            self.fields["team_name"].initial = vp.team_name or ""
+                        if not self.fields["team_tag"].initial:
+                            self.fields["team_tag"].initial = vp.team_tag or ""
+                        if not self.fields["region"].initial:
+                            self.fields["region"].initial = vp.region or ""
+        except Exception:
+            pass
+
+        # Build 7 player forms (UI can ignore extras)
+        self.players = [
+            PlayerChunk(prefix=f"p{i}", data=self.data or None, files=self.files or None) for i in range(7)
+        ]
 
     def clean(self):
         cleaned = super().clean()
@@ -121,16 +158,20 @@ class ValorantTeamForm(forms.Form):
         # Captain-only check
         if team_obj and TeamMembership and UserProfile:
             prof = UserProfile.objects.filter(user=u).first()
-            if not prof or not TeamMembership.objects.filter(team=team_obj, profile=prof, role="CAPTAIN", status="ACTIVE").exists():
+            is_captain = (
+                prof
+                and TeamMembership.objects.filter(
+                    team=team_obj, profile=prof, role="CAPTAIN", status="ACTIVE"
+                ).exists()
+            )
+            if not is_captain:
                 raise ValidationError("Only the team captain can register for Valorant.")
 
         # Players validation
         valid_chunks: List[Dict[str, Any]] = []
         starters = subs = 0
         for chunk in self.players:
-            if not chunk.is_bound:
-                continue
-            if not any(chunk.data.get(f"{chunk.prefix}-{fld}") for fld in ("full_name","riot_id","discord","role")):
+            if not any(chunk.data.get(f"{chunk.prefix}-{fld}") for fld in ("full_name", "riot_id", "discord", "role")):
                 continue  # empty row
             if not chunk.is_valid():
                 raise ValidationError(f"Player block error: {chunk.errors.as_text()}")
@@ -209,4 +250,34 @@ class ValorantTeamForm(forms.Form):
                 discord=d["discord"],
                 role=d["role"],
             )
+
+        # Optionally persist/update user's Valorant preset
+        try:
+            if self.cleaned_data.get("save_as_preset") and prof and ValorantTeamPreset:
+                vp, _ = ValorantTeamPreset.objects.get_or_create(profile=prof, name="My Valorant Team")
+                # copy team info
+                vp.team_name = self.cleaned_data.get("team_name") or getattr(team_obj, "name", "") or ""
+                vp.team_tag = self.cleaned_data.get("team_tag") or getattr(team_obj, "tag", "") or ""
+                vp.region = self.cleaned_data.get("region") or ""
+                vp.save()
+                # replace players on the preset
+                if ValorantPlayerPreset:
+                    ValorantPlayerPreset.objects.filter(preset=vp).delete()
+                    for d in self.cleaned_data["players"]:
+                        role = "PLAYER" if d.get("role") == "starter" else "SUB"
+                        riot_combo = f"{d.get('riot_id','')}".strip()
+                        tagline = d.get("riot_tagline", "").strip()
+                        if tagline:
+                            riot_combo = f"{riot_combo}#{tagline}"
+                        ValorantPlayerPreset.objects.create(
+                            preset=vp,
+                            in_game_name=d.get("full_name", "") or "",
+                            riot_id=riot_combo,
+                            discord=d.get("discord", "") or "",
+                            role=role,
+                        )
+        except Exception:
+            # Never block a successful registration if preset save fails
+            pass
+
         return reg
