@@ -25,3 +25,13 @@ for _mod in (
 from .tournaments import TournamentAdmin
 from .matches import MatchAdmin
 from .brackets import BracketAdmin
+
+try:
+    from .payments import *      # noqa: F401,F403
+except Exception:
+    pass
+try:
+    from .payments_extras import *  # noqa: F401,F403
+except Exception:
+    pass
+
