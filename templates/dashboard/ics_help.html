@@ -1,0 +1,13 @@
+<!doctype html>
+<html class="dark">
+<head><meta charset="utf-8"><title>ICS Feed</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<body class="bg-[#0b0e16] text-slate-100">
+  <main class="max-w-3xl mx-auto p-6">
+    <h1 class="text-xl font-semibold mb-2">My Matches — Calendar Feed</h1>
+    <p class="text-sm text-slate-300 mb-4">Use the link below to subscribe in Google/Apple Calendar. Keep this link private.</p>
+    <div class="rounded bg-slate-900/60 p-4 break-all font-mono text-xs">
+      {{ request.scheme }}://{{ request.get_host }}{% url 'tournaments:my_matches_ics' token %}?game=&state=
+    </div>
+  </main>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{% load tournament_extras %}
+<ul class="space-y-3">
+  {% for m in matches %}
+    <li class="rounded-2xl border dc-border bg-black/10 p-4">
+      <div class="flex items-center gap-3">
+        <div class="text-xs uppercase tracking-wide dc-muted">
+          {% if m.scheduled_at %}{{ m.scheduled_at|date:"M d, H:i" }}
+          {% elif m.start_time %}{{ m.start_time|date:"M d, H:i" }}
+          {% elif m.starts_at %}{{ m.starts_at|date:"M d, H:i" }}
+          {% elif m.start_at %}{{ m.start_at|date:"M d, H:i" }}
+          {% endif %}
+        </div>
+        <div class="ml-auto text-xs px-2 py-1 rounded bg-white/10">
+          {% with st=m.state|default:m.status %}{{ st|default:"UPCOMING" }}{% endwith %}
+        </div>
+      </div>
+
+      <div class="mt-2 font-semibold">
+        {{ m }}
+      </div>
+
+      <div class="text-sm dc-muted flex flex-wrap items-center gap-2 mt-1">
+        {% if m.tournament %}
+          <span>Tournament:</span>
+          <a class="underline" href="{% url 'tournaments:detail' m.tournament.slug|default:m.tournament.id %}">
+            {{ m.tournament.name|default:m.tournament }}
+          </a>
+        {% endif %}
+        {% if m.game %}<span>• Game: {{ m.game }}</span>{% endif %}
+      </div>
+
+      {% if m.tournament_id %}
+      <div class="mt-2">
+        <form method="post" action="{% url 'tournaments:my_matches_toggle_pin' m.tournament_id %}">{% csrf_token %}
+          <button class="text-xs px-2 py-1 rounded-2xl border dc-border" title="Pin/Unpin">
+            {% if pins_ids and m.tournament_id in pins_ids %}★ Pinned{% else %}☆ Pin{% endif %}
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>

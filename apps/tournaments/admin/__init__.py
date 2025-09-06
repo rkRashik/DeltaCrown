@@ -43,4 +43,5 @@ try:
 except Exception:
     pass
 
+from .userprefs import *  # noqa
 
