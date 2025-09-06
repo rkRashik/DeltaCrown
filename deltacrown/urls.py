@@ -14,21 +14,14 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("notifications/", include("apps.notifications.urls")),
     path("", include("apps.economy.urls")),
-
-    # CKEditor 5 endpoints (upload, browse, etc.)
     path("ckeditor5/", include("django_ckeditor_5.urls")),
-
-
-    # New: Explore routes (non-conflicting)
     path("explore/tournaments/", views.tournaments_list, name="explore_tournaments"),
     path("explore/tournaments/<int:pk>/", views.tournament_detail, name="explore_tournament_detail"),
+    # NEW: Captain console (profile routes for teams)
+    path("profile/teams/", include("apps.teams.urls_profile")),
 ]
 
 def _optional_include(prefix: str, module: str):
-    """
-    If `<module>.urls` exists, include it under `<prefix>/`.
-    Prevents ModuleNotFoundError when an app isn't present.
-    """
     try:
         import_module(f"{module}.urls")
     except ModuleNotFoundError:
@@ -47,6 +40,5 @@ for _prefix, _module in [
 ]:
     _optional_include(_prefix, _module)
 
-# Dev static
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

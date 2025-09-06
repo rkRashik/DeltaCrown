@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Manage Team — {{ team.name }}{% endblock %}
+{% block content %}
+<section class="container mx-auto py-6">
+  <h1 class="text-2xl font-bold mb-4">Manage Team — {{ team.name }}</h1>
+
+  <form method="post" enctype="multipart/form-data" class="rounded-2xl p-4 shadow bg-base-100">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="mt-4 flex gap-3">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <button name="rebuild_stats" value="1" class="btn">Rebuild stats</button>
+    </div>
+  </form>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+    <div class="rounded-2xl p-4 shadow bg-base-100">
+      <h2 class="font-semibold text-lg mb-3">Latest Stats</h2>
+      {% if latest_stats %}
+      <ul class="text-sm space-y-1">
+        <li>Played: {{ latest_stats.matches_played }}</li>
+        <li>Wins: {{ latest_stats.wins }}</li>
+        <li>Losses: {{ latest_stats.losses }}</li>
+        <li>Win Rate: {{ latest_stats.win_rate }}%</li>
+        <li>Streak: {{ latest_stats.streak }}</li>
+        <li>Updated: {{ latest_stats.updated_at|date:"M d, H:i" }}</li>
+      </ul>
+      {% else %}<p class="opacity-70">No stats yet.</p>{% endif %}
+    </div>
+
+    <div class="rounded-2xl p-4 shadow bg-base-100">
+      <h2 class="font-semibold text-lg mb-3">Add Achievement</h2>
+      <form method="post">
+        {% csrf_token %}
+        {{ aform.as_p }}
+        <button class="btn btn-secondary">Add</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="rounded-2xl p-4 shadow bg-base-100 mt-6">
+    <h2 class="font-semibold text-lg mb-3">Achievements</h2>
+    {% if achievements %}
+    <ul class="space-y-2">
+      {% for a in achievements %}
+      <li class="flex items-center justify-between border-b pb-2">
+        <div>
+          <strong>{{ a.title }}</strong> — {{ a.get_placement_display }}
+          {% if a.year %} ({{ a.year }}){% endif %}
+        </div>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="delete_achievement_id" value="{{ a.id }}">
+          <button class="btn btn-error btn-sm">Delete</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="opacity-70">No achievements yet.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}

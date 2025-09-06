@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}{{ team.name }} — {{ team.get_game_display|default:team.game|title }} | DeltaCrown{% endblock %}
+{% block content %}
+<section class="container mx-auto py-6">
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div class="lg:col-span-3 space-y-4">
+      <div class="rounded-2xl overflow-hidden shadow">
+        {% if team.banner_image %}
+          <img src="{{ team.banner_image.url }}" alt="{{ team.name }} banner" class="w-full h-48 object-cover">
+        {% endif %}
+        <div class="p-4 bg-base-200">
+          <div class="flex items-center gap-4">
+            {% if team.logo %}<img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="w-16 h-16 rounded-xl">{% endif %}
+            <div>
+              <h1 class="text-2xl font-bold">{{ team.name }} <span class="text-primary">[{{ team.tag }}]</span></h1>
+              <p class="text-sm opacity-75">{{ team.region }}</p>
+            </div>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-3 text-sm">
+            {% if team.twitter %}<a href="{{ team.twitter }}" class="link">Twitter</a>{% endif %}
+            {% if team.instagram %}<a href="{{ team.instagram }}" class="link">Instagram</a>{% endif %}
+            {% if team.discord %}<a href="{{ team.discord }}" class="link">Discord</a>{% endif %}
+            {% if team.youtube %}<a href="{{ team.youtube }}" class="link">YouTube</a>{% endif %}
+            {% if team.twitch %}<a href="{{ team.twitch }}" class="link">Twitch</a>{% endif %}
+            {% if team.linktree %}<a href="{{ team.linktree }}" class="link">Linktree</a>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl p-4 shadow bg-base-100">
+        <h2 class="font-semibold text-xl mb-3">Current Roster</h2>
+        {% if roster %}
+          <ul class="space-y-2">
+            {% for m in roster %}
+              <li class="flex items-center justify-between border-b pb-2">
+                <span>{{ m.profile.display_name|default:m.profile.user.username }}</span>
+                <span class="badge">{{ m.role }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="opacity-70">No active members yet.</p>
+        {% endif %}
+      </div>
+
+      <div class="rounded-2xl p-4 shadow bg-base-100">
+        <h2 class="font-semibold text-xl mb-3">Recent Results</h2>
+        {% if recent %}
+          <ul>
+          {% for match in recent %}
+            <li class="py-2 border-b text-sm">
+              Match #{{ match.id }} — {{ match.start_at|date:"M d, H:i" }} — State: {{ match.state }}
+            </li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          <p class="opacity-70">No recent verified matches.</p>
+        {% endif %}
+      </div>
+
+      <div class="rounded-2xl p-4 shadow bg-base-100">
+        <h2 class="font-semibold text-xl mb-3">Upcoming</h2>
+        {% if upcoming %}
+          <ul>
+          {% for match in upcoming %}
+            <li class="py-2 border-b text-sm">
+              Match #{{ match.id }} — {{ match.start_at|date:"M d, H:i" }}
+            </li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          <p class="opacity-70">No scheduled matches.</p>
+        {% endif %}
+      </div>
+
+      <div class="rounded-2xl p-4 shadow bg-base-100">
+        <h2 class="font-semibold text-xl mb-3">Achievements</h2>
+        {% if achievements %}
+          <ul class="space-y-2">
+            {% for a in achievements %}
+              <li class="border-b pb-2">
+                <div class="flex items-center justify-between">
+                  <strong>{{ a.title }}</strong>
+                  <span class="badge">{{ a.get_placement_display }}</span>
+                </div>
+                <div class="text-sm opacity-80">
+                  {% if a.year %}{{ a.year }} • {% endif %}{{ a.notes }}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="opacity-70">No achievements yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <aside class="lg:col-span-1 space-y-4">
+      <div class="rounded-2xl p-4 shadow bg-base-100">
+        <h3 class="font-semibold mb-2">Stats</h3>
+        {% if stats %}
+          <ul class="text-sm space-y-1">
+            <li>Played: {{ stats.matches_played }}</li>
+            <li>Wins: {{ stats.wins }}</li>
+            <li>Losses: {{ stats.losses }}</li>
+            <li>Win Rate: {{ stats.win_rate }}%</li>
+            <li>Streak: {{ stats.streak }}</li>
+          </ul>
+        {% else %}
+          <p class="opacity-70">No stats yet.</p>
+        {% endif %}
+      </div>
+
+      {% if team.roster_image %}
+      <div class="rounded-2xl overflow-hidden shadow">
+        <img src="{{ team.roster_image.url }}" alt="Roster poster">
+      </div>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+{% endblock %}
