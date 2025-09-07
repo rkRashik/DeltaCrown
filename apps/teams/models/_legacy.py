@@ -37,9 +37,12 @@ def team_logo_path(instance, filename):
 
 class Team(models.Model):
     # Basics
-    name = models.CharField(max_length=100, unique=True)
-    tag = models.CharField(max_length=10, unique=True)
-    logo = models.ImageField(upload_to=team_logo_path, blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    tag = models.CharField(max_length=255, blank=True, null=True)
+    game = models.CharField(max_length=64, blank=True, null=True)
+
+    name_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    tag_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
 
     # Core
     captain = models.ForeignKey(
@@ -81,6 +84,7 @@ class Team(models.Model):
     slug = models.SlugField(max_length=64, blank=True, default="", help_text="Unique per game")
 
     class Meta:
+        db_table = "teams_team"
         ordering = ("name",)
         constraints = [
             models.UniqueConstraint(

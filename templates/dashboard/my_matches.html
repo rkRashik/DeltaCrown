@@ -10,7 +10,7 @@
 
     <!-- Grouping control -->
     <form method="get" class="flex items-center gap-2">
-      {# Keep current filters intact #}
+      {# preserve current filters #}
       <input type="hidden" name="game" value="{{ params.game }}">
       <input type="hidden" name="state" value="{{ params.state }}">
       <input type="hidden" name="tournament_id" value="{{ params.tournament_id }}">
@@ -42,9 +42,10 @@
     </div>
   </div>
 
-  {# Group headers are emitted inside the list partial using {% ifchanged %} #}
+  {# Render list (keeps bulk form & headers inside) #}
   {% include "dashboard/partials/_my_matches_list.html" with matches=page_obj.object_list group_by=group_by %}
 
+  {# Pager #}
   {% include "dashboard/partials/_pager.html" with page_obj=page_obj %}
 </div>
 {% endblock %}

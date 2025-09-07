@@ -4,6 +4,7 @@ from .views import public as public
 from .views import my_matches as vm
 from .views import attendance as va
 from .views import my_matches as my_matches_views
+from .views import attendance as attendance_views
 
 app_name = "tournaments"
 
@@ -46,4 +47,21 @@ urlpatterns = [
 
     # Detail
     path("<slug:slug>/", public.tournament_detail, name="detail"),
+
+    # Dashboard
+    path("my-matches/", my_matches_views.my_matches, name="my_matches"),
+    path("my-matches/save-default/", my_matches_views.save_default_filter, name="my_matches_save_default"),
+    path("my-matches/bulk/", my_matches_views.my_matches_bulk, name="my_matches_bulk"),
+
+    # Export/Calendar
+    path("my-matches/csv/", my_matches_views.my_matches_csv, name="my_matches_csv"),
+    path("my-matches/ics-link/", my_matches_views.my_matches_ics_link, name="my_matches_ics_link"),
+    path("my-matches/ics-regen/", my_matches_views.my_matches_ics_regen, name="my_matches_ics_regen"),
+    path("my-matches/ics/<str:token>/", my_matches_views.my_matches_ics, name="my_matches_ics"),
+
+    # Pins / Attendance / Quick actions
+    path("my-matches/toggle-pin/<int:tournament_id>/", my_matches_views.toggle_pin, name="my_matches_toggle_pin"),
+    path("match/<int:match_id>/attendance/<str:action>/", attendance_views.toggle_attendance,
+         name="match_attendance_toggle"),
+    path("match/<int:match_id>/quick/<str:action>/", attendance_views.quick_action, name="match_quick_action"),
 ]

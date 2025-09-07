@@ -8,16 +8,31 @@ from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+
+Team = apps.get_model("teams", "Team")
+
 class TeamEditForm(forms.ModelForm):
     class Meta:
-        model = apps.get_model("teams", "Team")
-        fields = ["name", "tag", "logo", "slug", "region",
-                  "twitter", "instagram", "discord", "youtube", "twitch", "linktree",
-                  "banner_image", "roster_image"]
-        widgets = {
-            "slug": forms.TextInput(attrs={"placeholder": "unique-per-game"}),
-            "region": forms.TextInput(attrs={"placeholder": "e.g., Bangladesh"}),
-        }
+        model = Team
+        # Do NOT enumerate a 'logo' field that doesn't exist on Team.
+        # Use 'exclude' to avoid referencing unknown fields and to hide CI shadows.
+        exclude = ("name_ci", "tag_ci")
+
+    # Optional: if you previously referenced a logo upload, keep a placeholder
+    # non-model field so templates don't break when they render {{ form.logo }}.
+    # You can remove this if your template doesn't use it.
+    logo = forms.ImageField(required=False)
+
+@login_required
+def manage_team_by_game(request):
+    # Minimal stub to keep existing includes working (adapt to your actual logic)
+    if request.method == "POST":
+        form = TeamEditForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+    else:
+        form = TeamEditForm()
+    return render(request, "teams/manage_console.html", {"form": form})
 
 class AchievementForm(forms.ModelForm):
     class Meta:
