@@ -1,69 +1,117 @@
-{% load tournament_extras %}
-<ul class="space-y-3">
-  {% for m in matches %}
-    <li class="rounded-2xl border dc-border bg-black/10 p-4">
-      <div class="flex items-center gap-3">
-        <div class="text-xs uppercase tracking-wide dc-muted">
-          {% if m.scheduled_at %}{{ m.scheduled_at|date:"M d, H:i" }}
-          {% elif m.start_time %}{{ m.start_time|date:"M d, H:i" }}
-          {% elif m.starts_at %}{{ m.starts_at|date:"M d, H:i" }}
-          {% elif m.start_at %}{{ m.start_at|date:"M d, H:i" }}
-          {% endif %}
-        </div>
-        <div class="ml-auto text-xs px-2 py-1 rounded bg-white/10">
-          {% with st=m.state|default:m.status %}{{ st|default:"UPCOMING" }}{% endwith %}
-        </div>
-      </div>
+{% load tz tournament_extras %}
 
-      <div class="mt-2 font-semibold">
-        {{ m }}
-      </div>
+<form method="post" action="{% url 'tournaments:my_matches_bulk' %}" id="bulk-form">
+  {% csrf_token %}
 
-      <div class="text-sm dc-muted flex flex-wrap items-center gap-2 mt-1">
-        {% if m.tournament %}
-          <span>Tournament:</span>
-          <a class="underline" href="{% url 'tournaments:detail' m.tournament.slug|default:m.tournament.id %}">
-            {{ m.tournament.name|default:m.tournament }}
-          </a>
-        {% endif %}
-        {% if m.game %}<span>• Game: {{ m.game }}</span>{% endif %}
-      </div>
+  {# Sticky bulk action bar #}
+  <div class="sticky top-0 z-30 bg-black/70 backdrop-blur px-3 py-2 flex items-center gap-3 border-b border-white/10">
+    <div class="flex items-center gap-2">
+      <input id="check-all" type="checkbox" class="form-checkbox h-4 w-4" aria-label="Select all matches">
+      <label for="check-all" class="text-sm select-none">Select all</label>
+    </div>
 
-      <div class="mt-3 flex flex-wrap gap-2">
-        {# Attendance quick toggles #}
-        <form method="post" action="{% url 'tournaments:match_attendance_toggle' m.id 'confirm' %}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-emerald-600/20">I’m in</button>
-        </form>
-        <form method="post" action="{% url 'tournaments:match_attendance_toggle' m.id 'decline' %}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-rose-600/20">Can’t</button>
-        </form>
-        <form method="post" action="{% url 'tournaments:match_attendance_toggle' m.id 'late' %}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-amber-600/20">Late</button>
-        </form>
+    <div class="ml-auto flex items-center gap-2">
+      <button type="submit" name="action" value="confirm" class="btn btn-success btn-sm" aria-label="Confirm selected">
+        Confirm selected
+      </button>
+      <button type="submit" name="action" value="decline" class="btn btn-secondary btn-sm" aria-label="Decline selected">
+        Decline selected
+      </button>
+    </div>
+  </div>
 
-        {# Organizer / player quick actions (stubbed; safe now) #}
-        <form method="post" action="{% url 'tournaments:match_quick_action' m.id 'remind_team' %}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button class="text-xs px-2 py-1 rounded-2xl border dc-border hover:bg-blue-600/20">Remind my team</button>
-        </form>
+  {% if matches and matches|length %}
+    <ul class="space-y-3">
+      {% for m in matches %}
+        <li class="rounded-2xl border dc-border bg-black/10 p-4">
+          <div class="flex items-center gap-3">
 
-        {# Pin toggle if tournament_id exists #}
-        {% if m.tournament_id %}
-        <form method="post" action="{% url 'tournaments:my_matches_toggle_pin' m.tournament_id %}">
-          {% csrf_token %}
-          <button class="text-xs px-2 py-1 rounded-2xl border dc-border" title="Pin/Unpin">
-            {% if pins_ids and m.tournament_id in pins_ids %}★ Pinned{% else %}☆ Pin{% endif %}
-          </button>
-        </form>
-        {% endif %}
-      </div>
-    </li>
-  {% endfor %}
-</ul>
+            {# Row checkbox #}
+            <div class="pt-1">
+              <input
+                type="checkbox"
+                class="form-checkbox h-4 w-4 match-check"
+                name="match_ids"
+                value="{{ m.id }}"
+                aria-label="Select match {{ m.id }}"
+              >
+            </div>
+
+            {# Main content #}
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2 text-sm">
+                <span class="font-semibold truncate">{{ m.tournament.name }}</span>
+                <span class="text-white/50">#{{ m.id }}</span>
+
+                {% if m.state %}
+                  <span class="px-2 py-0.5 rounded text-xs border border-white/20 uppercase tracking-wide">
+                    {{ m.state }}
+                  </span>
+                {% endif %}
+              </div>
+
+              <div class="text-white/80 text-sm mt-1">
+                {% if m.start_at %}
+                  Starts: {{ m.start_at|localtime }}
+                {% else %}
+                  Starts: <span class="text-white/50">TBD</span>
+                {% endif %}
+                · Round {{ m.round_no }} · BO{{ m.best_of }}
+              </div>
+
+              <div class="text-white/60 text-sm mt-1">
+                {% if m.team_a %}
+                  {{ m.team_a.name }}
+                {% elif m.user_a %}
+                  {{ m.user_a.display_name|default:"Player A" }}
+                {% else %}
+                  TBD
+                {% endif %}
+                <span class="mx-1">vs</span>
+                {% if m.team_b %}
+                  {{ m.team_b.name }}
+                {% elif m.user_b %}
+                  {{ m.user_b.display_name|default:"Player B" }}
+                {% else %}
+                  TBD
+                {% endif %}
+              </div>
+            </div>
+
+            {# Quick actions #}
+            <div class="shrink-0 flex items-center gap-2">
+              <a href="{% url 'tournaments:match_quick_action' m.id 'remind_team' %}"
+                 class="btn btn-outline btn-xs"
+                 aria-label="Remind team for match {{ m.id }}">Remind</a>
+
+              <a href="{% url 'tournaments:match_attendance_toggle' m.id 'confirm' %}"
+                 class="btn btn-outline btn-xs"
+                 aria-label="Confirm attendance for match {{ m.id }}">Confirm</a>
+
+              <a href="{% url 'tournaments:match_attendance_toggle' m.id 'decline' %}"
+                 class="btn btn-outline btn-xs"
+                 aria-label="Decline attendance for match {{ m.id }}">Decline</a>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="p-6 text-center text-white/70">
+      <p>No matches found for your current filters.</p>
+      <p class="text-sm mt-1">Try adjusting date/status filters above, or check again later.</p>
+    </div>
+  {% endif %}
+</form>
+
+<script>
+  (function () {
+    const all = document.getElementById('check-all');
+    const checks = () => Array.from(document.querySelectorAll('.match-check'));
+    if (all) {
+      all.addEventListener('change', () => {
+        checks().forEach(cb => { cb.checked = all.checked; });
+      });
+    }
+  }());
+</script>
