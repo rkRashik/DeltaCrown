@@ -1,3 +1,4 @@
+# apps/user_profile/views.py
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import UpdateView
@@ -6,6 +7,7 @@ from django import forms
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+
 from .models import UserProfile
 
 
@@ -25,7 +27,7 @@ def _get_upcoming_matches_for_user(user, limit=5):
             return []
 
         team_ids = list(
-            TeamMembership.objects.filter(user=p).values_list("team_id", flat=True)
+            TeamMembership.objects.filter(profile=p, status="ACTIVE").values_list("team_id", flat=True)
         )
 
         qs = (
@@ -43,9 +45,18 @@ def _get_upcoming_matches_for_user(user, limit=5):
 
 
 class ProfileForm(forms.ModelForm):
+    """
+    Profile edit form with privacy toggles included.
+    """
     class Meta:
         model = UserProfile
-        fields = ["display_name", "region", "avatar", "bio", "discord_id", "riot_id", "efootball_id"]
+        fields = [
+            # Basic profile
+            "display_name", "region", "avatar", "bio",
+            "discord_id", "riot_id", "efootball_id",
+            # Privacy toggles
+            "is_private", "show_email", "show_phone", "show_socials",
+        ]
         widgets = {
             "display_name": forms.TextInput(attrs={"class": "form-control"}),
             "region": forms.Select(attrs={"class": "form-select"}),
@@ -55,6 +66,14 @@ class ProfileForm(forms.ModelForm):
             "riot_id": forms.TextInput(attrs={"class": "form-control", "placeholder": "Name#TAG"}),
             "efootball_id": forms.TextInput(attrs={"class": "form-control"}),
         }
+
+        help_texts = {
+            "is_private": "Hide your entire profile from public.",
+            "show_email": "Allow showing your email on your public profile.",
+            "show_phone": "Allow showing your phone on your public profile.",
+            "show_socials": "Allow showing your linked social IDs on your public profile.",
+        }
+
 
 class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = UserProfile
@@ -66,57 +85,45 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
         # Always edit your own profile
         return self.request.user.profile
 
+
 User = get_user_model()
+
 
 def profile_view(request, username):
     user = get_object_or_404(User, username=username)
     profile = getattr(user, "userprofile", None) or getattr(user, "profile", None)
 
-    # Gather team memberships (active only) for display
-    try:
-        from apps.teams.models import TeamMembership
-        memberships = list(
-            TeamMembership.objects.select_related("team")
-            .filter(profile=profile, status="ACTIVE")
-            .order_by("role", "joined_at")
-        )
-    except Exception:
-        memberships = []
+    # Try showing user's upcoming matches widget on their private dashboard/profile page
+    upcoming = _get_upcoming_matches_for_user(user, limit=5)
 
-    # Gather recent tournaments from registrations (solo + team)
-    try:
-        from apps.tournaments.models import Registration
-        team_ids = [m.team_id for m in memberships]
-        regs = (
-            Registration.objects.select_related("tournament")
-            .filter(
-                Q(user=profile) | Q(team_id__in=team_ids)
-            )
-            .order_by("-created_at")[:8]
-        )
-        registrations = list(regs)
-    except Exception:
-        registrations = []
+    return render(
+        request,
+        "user_profile/profile.html",
+        {
+            "profile_user": user,
+            "profile": profile,
+            "upcoming_matches": upcoming,
+        },
+    )
 
-    ctx = {
-        "profile": profile,
-        "memberships": memberships,
-        "registrations": registrations,
-    }
-    return render(request, "user_profile/profile.html", ctx)
 
 @login_required
 def my_tournaments_view(request):
     """
-    (Existing) My tournaments page – unchanged.
+    Shows tournaments the current user is registered in (either solo or via teams).
     """
     try:
         from django.apps import apps
         Registration = apps.get_model("tournaments", "Registration")
         TeamMembership = apps.get_model("teams", "TeamMembership")
 
-        profile = request.user.profile
-        team_ids = list(TeamMembership.objects.filter(user=profile).values_list("team_id", flat=True))
+        profile = getattr(request.user, "userprofile", None) or getattr(request.user, "profile", None)
+        if not profile:
+            return render(request, "user_profile/my_tournaments.html", {"registrations": []})
+
+        team_ids = list(
+            TeamMembership.objects.filter(profile=profile, status="ACTIVE").values_list("team_id", flat=True)
+        )
 
         regs = (
             Registration.objects.filter(Q(user=profile) | Q(team_id__in=team_ids))
