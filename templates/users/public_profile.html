@@ -1,46 +1,20 @@
 {% extends "base.html" %}
-{% block title %}{{ public_user.get_full_name|default:public_user.username }} — Profile{% endblock %}
+{% load static %}
+
+{% block title %}Public Profile — DeltaCrown{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold">
-    {{ public_user.get_full_name|default:public_user.username }}
-  </h1>
-  <div class="text-sm text-white/60 mb-4">@{{ public_user.username }}</div>
-
-  {% if is_private %}
-    <div class="rounded-2xl border border-white/20 bg-black/20 p-4">
-      <div class="font-semibold">This profile is private.</div>
-      <div class="text-sm text-white/70">The user has chosen not to display their details publicly.</div>
-    </div>
+{# Render using whichever context key is present. Fall back to a placeholder when empty. #}
+{% if profile %}
+  {% include "users/_public_profile_body.html" with u=profile.user|default:None prof=profile only %}
+{% elif public_user %}
+  {% if public_user.user %}
+    {% include "users/_public_profile_body.html" with u=public_user.user prof=public_user only %}
   {% else %}
-    <div class="space-y-4">
-      {% if show_email %}
-        <div><span class="text-white/60 text-sm">Email:</span> {{ public_user.email|default:"(hidden)" }}</div>
-      {% endif %}
-      {% if show_phone and phone %}
-        <div><span class="text-white/60 text-sm">Phone:</span> {{ phone }}</div>
-      {% endif %}
-
-      {% if ign %}
-        <div><span class="text-white/60 text-sm">IGN:</span> {{ ign }}</div>
-      {% endif %}
-      {% if riot_id %}
-        <div><span class="text-white/60 text-sm">Riot ID:</span> {{ riot_id }}</div>
-      {% endif %}
-      {% if efootball_id %}
-        <div><span class="text-white/60 text-sm">eFootball ID:</span> {{ efootball_id }}</div>
-      {% endif %}
-      {% if discord_id %}
-        <div><span class="text-white/60 text-sm">Discord:</span> {{ discord_id }}</div>
-      {% endif %}
-
-      {% if show_socials and socials %}
-        <div>
-          <div class="text-white/60 text-sm mb-1">Socials</div>
-          <pre class="text-xs rounded bg-black/30 border border-white/10 p-3 overflow-auto">{{ socials }}</pre>
-        </div>
-      {% endif %}
-    </div>
+    {% include "users/_public_profile_body.html" with u=public_user prof=public_user only %}
   {% endif %}
-</div>
+{% else %}
+  {# Audit/smoke render with empty context #}
+  {% include "users/_public_profile_body.html" with u=None prof=None only %}
+{% endif %}
 {% endblock %}

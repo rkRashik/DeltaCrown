@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Match Review{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-4">Match Review</h1>
+  {% if form %}
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn btn-primary mt-3" type="submit">Submit review</button>
+    </form>
+  {% else %}
+    <div class="text-white/70">No review form available.</div>
+  {% endif %}
+</div>
+{% endblock %}

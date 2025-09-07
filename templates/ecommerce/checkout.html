@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Checkout — DeltaCrown{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-4">Checkout</h1>
+  {% if cart %}
+    <div class="mb-4 text-white/80 text-sm">Items: {{ cart.items|length }}</div>
+  {% endif %}
+  {% if form %}
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn btn-primary mt-3" type="submit">Pay</button>
+    </form>
+  {% else %}
+    <p class="text-white/70">Nothing to checkout.</p>
+  {% endif %}
+</div>
+{% endblock %}
