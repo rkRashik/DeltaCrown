@@ -18,4 +18,12 @@ urlpatterns = [
 
     # Existing private/owner-facing profile
     path("<str:username>/", profile_view, name="profile"),
+
+    # /user/u/<username>/
+    path("u/<str:username>/", public_profile, name="public_profile"),
+
+    # /user/me/edit/
+    path("me/edit/", MyProfileUpdateView.as_view(), name="edit"),
+
+
 ]

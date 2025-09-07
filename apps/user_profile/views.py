@@ -1,10 +1,12 @@
 # apps/user_profile/views.py
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+
 from django.views.generic import UpdateView
 from django.urls import reverse_lazy
 from django import forms
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
@@ -45,34 +47,38 @@ def _get_upcoming_matches_for_user(user, limit=5):
 
 
 class ProfileForm(forms.ModelForm):
-    """
-    Profile edit form with privacy toggles included.
-    """
     class Meta:
+        from .models import UserProfile  # local import keeps file order flexible
         model = UserProfile
         fields = [
-            # Basic profile
+            # existing profile fields you already had:
             "display_name", "region", "avatar", "bio",
             "discord_id", "riot_id", "efootball_id",
-            # Privacy toggles
+            # NEW: privacy flags (these exist per your migrations)
             "is_private", "show_email", "show_phone", "show_socials",
         ]
         widgets = {
             "display_name": forms.TextInput(attrs={"class": "form-control"}),
             "region": forms.Select(attrs={"class": "form-select"}),
             "avatar": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "bio": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Short bio"}),
-            "discord_id": forms.TextInput(attrs={"class": "form-control", "placeholder": "yourname#1234"}),
+            "bio": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "discord_id": forms.TextInput(attrs={"class": "form-control"}),
             "riot_id": forms.TextInput(attrs={"class": "form-control", "placeholder": "Name#TAG"}),
             "efootball_id": forms.TextInput(attrs={"class": "form-control"}),
+
+            # Accessible checkboxes for privacy flags
+            "is_private": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
+            "show_email": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
+            "show_phone": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
+            "show_socials": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
+        }
+        help_texts = {
+            "is_private": "Hide entire profile from public.",
+            "show_email": "Allow showing my email on public profile.",
+            "show_phone": "Allow showing my phone on public profile.",
+            "show_socials": "Allow showing my social links/IDs on public profile.",
         }
 
-        help_texts = {
-            "is_private": "Hide your entire profile from public.",
-            "show_email": "Allow showing your email on your public profile.",
-            "show_phone": "Allow showing your phone on your public profile.",
-            "show_socials": "Allow showing your linked social IDs on your public profile.",
-        }
 
 
 class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
@@ -81,9 +87,48 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "user_profile/profile_edit.html"
     success_url = reverse_lazy("user_profile:edit")  # stay on the edit page
 
+    class Meta:
+        model = UserProfile
+        fields = [
+            "display_name", "region", "avatar", "bio",
+            "discord_id", "riot_id", "efootball_id",
+            # add privacy flags:
+            "is_private", "show_email", "show_phone", "show_socials",
+        ]
+
     def get_object(self, queryset=None):
         # Always edit your own profile
         return self.request.user.profile
+
+    def post(self, request, *args, **kwargs):
+        """
+        If this POST only includes the 4 privacy flags, update them directly and skip
+        the form (which requires other profile fields). Otherwise, fall back to the
+        standard UpdateView form handling for full profile edits.
+        """
+        privacy_keys = {"is_private", "show_email", "show_phone", "show_socials"}
+        posted_keys = set(k for k in request.POST.keys() if k != "csrfmiddlewaretoken")
+
+        # If it's purely a privacy toggle POST, persist flags directly.
+        if posted_keys and posted_keys.issubset(privacy_keys):
+            is_private = bool(request.POST.get("is_private"))
+            show_email = bool(request.POST.get("show_email"))
+            show_phone = bool(request.POST.get("show_phone"))
+            show_socials = bool(request.POST.get("show_socials"))
+
+            # Write via the user relation to avoid any pk/instance drift
+            UserProfile.objects.filter(user_id=request.user.id).update(
+                is_private=is_private,
+                show_email=show_email,
+                show_phone=show_phone,
+                show_socials=show_socials,
+            )
+
+            messages.success(request, "Your privacy settings have been saved.")
+            return redirect(self.success_url)
+
+        # Otherwise, proceed with normal form-driven update (full profile edits)
+        return super().post(request, *args, **kwargs)
 
 
 User = get_user_model()

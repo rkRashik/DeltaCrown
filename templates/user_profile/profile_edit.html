@@ -1,92 +1,59 @@
-<!-- templates/user_profile/profile_edit.html -->
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Edit Profile — DeltaCrown{% endblock %}
+
+{% block title %}Privacy Settings — DeltaCrown{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-4">Edit Profile</h1>
+<div class="max-w-2xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-4">Privacy Settings</h1>
 
-  <form method="post" enctype="multipart/form-data" aria-describedby="form-help">
+  <form method="post" class="space-y-5" aria-describedby="privacy-help">
     {% csrf_token %}
+    <p id="privacy-help" class="text-sm text-white/60">
+      Control what other users can see on your public profile at
+      <code class="text-white/70">/user/u/&lt;username&gt;/</code>.
+    </p>
 
-    <div class="grid gap-4">
-      <!-- Basic profile fields -->
-      <div>
-        <label class="block text-sm font-semibold">Display name</label>
-        {{ form.display_name }}
-        {% if form.display_name.errors %}<div class="text-red-500 text-sm">{{ form.display_name.errors }}</div>{% endif %}
-      </div>
-
-      <div>
-        <label class="block text-sm font-semibold">Region</label>
-        {{ form.region }}
-        {% if form.region.errors %}<div class="text-red-500 text-sm">{{ form.region.errors }}</div>{% endif %}
-      </div>
-
-      <div>
-        <label class="block text-sm font-semibold">Avatar</label>
-        {{ form.avatar }}
-        {% if form.avatar.errors %}<div class="text-red-500 text-sm">{{ form.avatar.errors }}</div>{% endif %}
-      </div>
-
-      <div>
-        <label class="block text-sm font-semibold">Bio</label>
-        {{ form.bio }}
-        {% if form.bio.errors %}<div class="text-red-500 text-sm">{{ form.bio.errors }}</div>{% endif %}
-      </div>
-
-      <div class="grid sm:grid-cols-3 gap-4">
+    <div class="rounded-2xl border border-white/10 bg-black/20 p-4 space-y-4">
+      <label class="flex items-start gap-3">
+        {{ form.is_private }}
         <div>
-          <label class="block text-sm font-semibold">Discord ID</label>
-          {{ form.discord_id }}
-          {% if form.discord_id.errors %}<div class="text-red-500 text-sm">{{ form.discord_id.errors }}</div>{% endif %}
+          <div class="font-medium">Private profile</div>
+          <div class="text-xs text-white/60">{{ form.is_private.help_text }}</div>
         </div>
+      </label>
+
+      <label class="flex items-start gap-3">
+        {{ form.show_email }}
         <div>
-          <label class="block text-sm font-semibold">Riot ID</label>
-          {{ form.riot_id }}
-          {% if form.riot_id.errors %}<div class="text-red-500 text-sm">{{ form.riot_id.errors }}</div>{% endif %}
+          <div class="font-medium">Show email</div>
+          <div class="text-xs text-white/60">{{ form.show_email.help_text }}</div>
         </div>
+      </label>
+
+      <label class="flex items-start gap-3">
+        {{ form.show_phone }}
         <div>
-          <label class="block text-sm font-semibold">eFootball ID</label>
-          {{ form.efootball_id }}
-          {% if form.efootball_id.errors %}<div class="text-red-500 text-sm">{{ form.efootball_id.errors }}</div>{% endif %}
+          <div class="font-medium">Show phone</div>
+          <div class="text-xs text-white/60">{{ form.show_phone.help_text }}</div>
         </div>
-      </div>
+      </label>
 
-      <hr class="my-2 border-white/10" />
-
-      <!-- Privacy toggles -->
-      <fieldset>
-        <legend class="text-lg font-semibold mb-2">Privacy</legend>
-
-        <label class="flex items-center gap-2 mb-2">
-          {{ form.is_private }} <span>Hide my entire profile from public</span>
-        </label>
-        {% if form.is_private.help_text %}<p class="text-sm text-white/60">{{ form.is_private.help_text }}</p>{% endif %}
-
-        <div class="mt-3">
-          <label class="flex items-center gap-2 mb-1">
-            {{ form.show_email }} <span>Show email on public profile</span>
-          </label>
-          <label class="flex items-center gap-2 mb-1">
-            {{ form.show_phone }} <span>Show phone on public profile</span>
-          </label>
-          <label class="flex items-center gap-2 mb-1">
-            {{ form.show_socials }} <span>Show social IDs on public profile</span>
-          </label>
+      <label class="flex items-start gap-3">
+        {{ form.show_socials }}
+        <div>
+          <div class="font-medium">Show socials</div>
+          <div class="text-xs text-white/60">{{ form.show_socials.help_text }}</div>
         </div>
-      </fieldset>
-
-      <div>
-        <button class="btn btn-primary" type="submit" aria-label="Save profile changes">
-          Save changes
-        </button>
-      </div>
+      </label>
     </div>
 
-    <p id="form-help" class="text-sm text-white/60 mt-4">
-      Changes take effect immediately. You can revisit here anytime from your avatar menu → “Edit Profile”.
-    </p>
+    <div class="flex items-center gap-3">
+      <button class="btn btn-primary" type="submit">Save changes</button>
+      <a class="btn btn-secondary" href="{% url 'user_profile:public_profile' request.user.username %}">
+        View public profile
+      </a>
+    </div>
   </form>
 </div>
 {% endblock %}
