@@ -1,6 +1,6 @@
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
-
+from django.http import JsonResponse
 
 def home(request):
     """
@@ -41,9 +41,11 @@ def home(request):
 
 
 def healthz(request):
-    """Simple health check endpoint."""
-    return HttpResponse("OK")
-
+    """
+    Lightweight health endpoint for uptime checks and load balancers.
+    Returns HTTP 200 with a tiny JSON body.
+    """
+    return JsonResponse({"status": "ok"})
 
 # --------------- Tournaments: List & Detail (safe optional) ---------------
 

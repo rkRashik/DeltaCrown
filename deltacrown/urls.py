@@ -6,11 +6,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from . import views
+from .views import healthz
+
 
 urlpatterns = [
     # Root & health
     path("", views.home, name="home"),
-    path("healthz/", views.healthz, name="healthz"),
+    path("healthz/", healthz, name="healthz"),
     path("admin/", admin.site.urls),
 
     # App mounts (explicit)
