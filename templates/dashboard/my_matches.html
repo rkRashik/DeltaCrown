@@ -1,155 +1,50 @@
 {% extends "base.html" %}
 {% load static %}
-{# keep if you have this tag lib; safe even if unused #}
-{% load tournament_extras %}
 
 {% block title %}My Matches — DeltaCrown{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-4">My Matches</h1>
+<div class="max-w-6xl mx-auto px-4 py-6">
+  <div class="flex items-center justify-between gap-3 mb-4">
+    <h1 class="text-2xl font-bold">My Matches</h1>
 
-  {# --- Counters (render only if provided by the view) --- #}
-  {% if counters %}
+    <!-- Grouping control -->
+    <form method="get" class="flex items-center gap-2">
+      {# Keep current filters intact #}
+      <input type="hidden" name="game" value="{{ params.game }}">
+      <input type="hidden" name="state" value="{{ params.state }}">
+      <input type="hidden" name="tournament_id" value="{{ params.tournament_id }}">
+      <input type="hidden" name="start_date" value="{{ params.start_date }}">
+      <input type="hidden" name="end_date" value="{{ params.end_date }}">
+      <label for="group" class="text-sm">Group by</label>
+      <select id="group" name="group" class="form-select text-sm">
+        <option value="" {% if not group_by %}selected{% endif %}>None</option>
+        <option value="tournament" {% if group_by == "tournament" %}selected{% endif %}>Tournament</option>
+        <option value="date" {% if group_by == "date" %}selected{% endif %}>Date</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+    </form>
+  </div>
+
+  <!-- Counters -->
   <div class="grid grid-cols-3 gap-3 mb-4">
-    <div class="rounded-2xl bg-black/10 border dc-border p-3">
-      <div class="text-xs dc-muted">Upcoming</div>
+    <div class="rounded-xl border border-white/10 p-3">
+      <div class="text-sm text-white/60">Upcoming</div>
       <div class="text-2xl font-bold">{{ counters.upcoming }}</div>
     </div>
-    <div class="rounded-2xl bg-black/10 border dc-border p-3">
-      <div class="text-xs dc-muted">Live now</div>
+    <div class="rounded-xl border border-white/10 p-3">
+      <div class="text-sm text-white/60">Live</div>
       <div class="text-2xl font-bold">{{ counters.live }}</div>
     </div>
-    <div class="rounded-2xl bg-black/10 border dc-border p-3">
-      <div class="text-xs dc-muted">Completed</div>
+    <div class="rounded-xl border border-white/10 p-3">
+      <div class="text-sm text-white/60">Completed</div>
       <div class="text-2xl font-bold">{{ counters.completed }}</div>
     </div>
   </div>
-  {% endif %}
 
-  {# --- Simple 14-day heat bars (if provided) --- #}
-  {% if heat_map %}
-  <div class="mb-6">
-    <div class="text-xs dc-muted mb-1">Next 14 days — match volume</div>
-    <div class="flex gap-1">
-      {% for d,c in heat_map.items %}
-        <div class="h-6 rounded bg-white/10" style="width: {{ c|add:1 }}rem" title="{{ d }}: {{ c }}"></div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
+  {# Group headers are emitted inside the list partial using {% ifchanged %} #}
+  {% include "dashboard/partials/_my_matches_list.html" with matches=page_obj.object_list group_by=group_by %}
 
-  {# --- Filters: support old (form) or new (params) contexts --- #}
-  <form method="get" class="rounded-2xl border dc-border p-4 bg-black/10 mb-6" aria-label="My Matches Filters">
-    {% if form %}
-      <div class="grid md:grid-cols-6 gap-3">
-        <div><label class="text-sm font-medium">Game</label>{{ form.game }}</div>
-        <div class="md:col-span-2"><label class="text-sm font-medium">Tournament</label>{{ form.tournament }}</div>
-        <div><label class="text-sm font-medium">From</label>{{ form.date_from }}</div>
-        <div><label class="text-sm font-medium">To</label>{{ form.date_to }}</div>
-        <div><label class="text-sm font-medium">Status</label>{{ form.status }}</div>
-        <div class="md:col-span-3"><label class="text-sm font-medium">Search</label>{{ form.q }}</div>
-      </div>
-      <div class="mt-4 flex flex-wrap gap-2 items-center">
-        <button class="px-4 py-2 rounded-2xl bg-brand-primary text-black font-semibold">Apply</button>
-        <a href="." class="px-4 py-2 rounded-2xl border dc-border">Reset</a>
-      </div>
-    {% else %}
-      <div class="grid md:grid-cols-6 gap-3">
-        <div>
-          <label class="text-sm font-medium" for="game">Game</label>
-          <select id="game" name="game" class="w-full rounded-2xl bg-black/20 border dc-border p-2">
-            <option value="" {% if not params or not params.game %}selected{% endif %}>Any</option>
-            <option value="efootball" {% if params and params.game == 'efootball' %}selected{% endif %}>eFootball</option>
-            <option value="valorant" {% if params and params.game == 'valorant' %}selected{% endif %}>Valorant</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium" for="state">Status</label>
-          <select id="state" name="state" class="w-full rounded-2xl bg-black/20 border dc-border p-2">
-            <option value="" {% if not params or not params.state %}selected{% endif %}>Any</option>
-            <option value="scheduled" {% if params and params.state == 'scheduled' %}selected{% endif %}>Scheduled</option>
-            <option value="live" {% if params and params.state == 'live' %}selected{% endif %}>Live</option>
-            <option value="reported" {% if params and params.state == 'reported' %}selected{% endif %}>Reported</option>
-            <option value="verified" {% if params and params.state == 'verified' %}selected{% endif %}>Verified</option>
-            <option value="completed" {% if params and params.state == 'completed' %}selected{% endif %}>Completed</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-sm font-medium" for="tid">Tournament ID</label>
-          <input id="tid" type="number" inputmode="numeric" name="tournament_id" value="{{ params.tournament_id }}"
-                 class="w-full rounded-2xl bg-black/20 border dc-border p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium" for="from">From</label>
-          <input id="from" type="date" name="start_date" value="{{ params.start_date }}"
-                 class="w-full rounded-2xl bg-black/20 border dc-border p-2" />
-        </div>
-        <div>
-          <label class="text-sm font-medium" for="to">To</label>
-          <input id="to" type="date" name="end_date" value="{{ params.end_date }}"
-                 class="w-full rounded-2xl bg-black/20 border dc-border p-2" />
-        </div>
-        <div class="md:col-span-1 flex items-end gap-2">
-          <button class="px-4 py-2 rounded-2xl bg-brand-primary text-black font-semibold">Apply</button>
-          <a href="?use_default=1" class="px-4 py-2 rounded-2xl border dc-border">Reset</a>
-        </div>
-      </div>
-
-      <div class="mt-3 flex flex-wrap gap-3 items-center">
-        <a class="text-sm underline" href="{% url 'tournaments:my_matches_csv' %}?game={{ params.game }}&state={{ params.state }}&tournament_id={{ params.tournament_id }}&start_date={{ params.start_date }}&end_date={{ params.end_date }}">Export CSV</a>
-        {% if ics_token %}
-          <a class="text-sm underline" href="{% url 'tournaments:my_matches_ics' ics_token %}?game={{ params.game }}&state={{ params.state }}&tournament_id={{ params.tournament_id }}&start_date={{ params.start_date }}&end_date={{ params.end_date }}">ICS feed</a>
-        {% else %}
-          <a class="text-sm underline" href="{% url 'tournaments:my_matches_ics_link' %}">Get ICS link</a>
-        {% endif %}
-        <form method="post" action="{% url 'tournaments:my_matches_save_default' %}" class="inline-flex gap-2 items-center">{% csrf_token %}
-          <input type="hidden" name="game" value="{{ params.game }}">
-          <input type="hidden" name="state" value="{{ params.state }}">
-          <input type="hidden" name="tournament_id" value="{{ params.tournament_id }}">
-          <input type="hidden" name="start_date" value="{{ params.start_date }}">
-          <input type="hidden" name="end_date" value="{{ params.end_date }}">
-          <button class="text-sm px-3 py-2 rounded-2xl border dc-border" title="Save as my default filter">💾 Save default</button>
-        </form>
-      </div>
-    {% endif %}
-  </form>
-
-  {# --- Pinned tournaments --- #}
-  {% if pinned %}
-    <div class="mb-4">
-      <div class="text-sm dc-muted mb-2">Pinned tournaments</div>
-      <div class="flex flex-wrap gap-2">
-        {% for t in pinned %}
-          <a href="{% url 'tournaments:detail' t.slug|default:t.id %}" class="px-3 py-1 rounded-full bg-black/10 border dc-border hover:bg-black/20">{{ t.name }}</a>
-        {% endfor %}
-      </div>
-    </div>
-  {% endif %}
-
-  {# --- List (supports page_obj or matches) --- #}
-  {% if page_obj %}
-    {% with matches_list=page_obj.object_list %}
-      {% include "dashboard/partials/_my_matches_list.html" with matches=matches_list pins_ids=pins_ids only %}
-      <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
-        <div class="text-xs dc-muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
-        <div class="flex gap-2">
-          {% if page_obj.has_previous %}
-            <a class="px-3 py-1 rounded-2xl border dc-border" href="?page={{ page_obj.previous_page_number }}&game={{ params.game }}&state={{ params.state }}&tournament_id={{ params.tournament_id }}&start_date={{ params.start_date }}&end_date={{ params.end_date }}">Previous</a>
-          {% endif %}
-          {% if page_obj.has_next %}
-            <a class="px-3 py-1 rounded-2xl border dc-border" href="?page={{ page_obj.next_page_number }}&game={{ params.game }}&state={{ params.state }}&tournament_id={{ params.tournament_id }}&start_date={{ params.start_date }}&end_date={{ params.end_date }}">Next</a>
-          {% endif %}
-        </div>
-      </nav>
-    {% endwith %}
-  {% elif matches %}
-    {% include "dashboard/partials/_my_matches_list.html" with matches=matches pins_ids=pins_ids only %}
-  {% else %}
-    <div class="rounded-2xl border dc-border bg-black/10 p-6">
-      <div class="font-semibold mb-1">No matches found</div>
-      <div class="text-sm dc-muted">Update your filters or join a team to see upcoming matches here.</div>
-    </div>
-  {% endif %}
+  {% include "dashboard/partials/_pager.html" with page_obj=page_obj %}
 </div>
 {% endblock %}

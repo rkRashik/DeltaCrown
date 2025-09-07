@@ -1,0 +1,22 @@
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+  <nav class="mt-6 flex items-center justify-center gap-2 text-sm" aria-label="Pagination">
+    {% with q=request.GET.urlencode %}
+      <a class="btn btn-xs {% if not page_obj.has_previous %}btn-disabled{% endif %}"
+         href="{% if page_obj.has_previous %}?{{ q }}&page=1{% else %}#{% endif %}" aria-label="First page">« First</a>
+
+      <a class="btn btn-xs {% if not page_obj.has_previous %}btn-disabled{% endif %}"
+         href="{% if page_obj.has_previous %}?{{ q }}&page={{ page_obj.previous_page_number }}{% else %}#{% endif %}"
+         aria-label="Previous page">‹ Prev</a>
+
+      <span class="px-2">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      <a class="btn btn-xs {% if not page_obj.has_next %}btn-disabled{% endif %}"
+         href="{% if page_obj.has_next %}?{{ q }}&page={{ page_obj.next_page_number }}{% else %}#{% endif %}"
+         aria-label="Next page">Next ›</a>
+
+      <a class="btn btn-xs {% if not page_obj.has_next %}btn-disabled{% endif %}"
+         href="{% if page_obj.has_next %}?{{ q }}&page={{ page_obj.paginator.num_pages }}{% else %}#{% endif %}"
+         aria-label="Last page">Last »</a>
+    {% endwith %}
+  </nav>
+{% endif %}

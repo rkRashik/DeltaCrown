@@ -4,7 +4,6 @@ from __future__ import annotations
 import csv
 import io
 from datetime import timedelta
-from io import StringIO
 from typing import List
 
 from django.contrib import messages
@@ -12,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, Http404
+from django.http import HttpResponse, HttpResponseBadRequest, Http404
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -59,9 +58,6 @@ def _user_match_qs(django_user):
     Scope matches to the current user, adapting to either:
       - Match.user_a/user_b -> auth.User
       - Match.user_a/user_b -> UserProfile (with .user O2O to auth.User)
-
-    NOTE: Team membership lookups are intentionally omitted here (matching your original),
-    so we don't change what's shown in the dashboard.
     """
     select_fields = ["tournament"]
     for f in ("team_a", "team_b", "user_a", "user_b"):
@@ -71,31 +67,19 @@ def _user_match_qs(django_user):
     qs = Match.objects.select_related(*select_fields).order_by("-start_at")
 
     lookups: List[str] = []
-    # user_a
     if _has_field(Match, "user_a"):
         target = _remote_model(Match, "user_a")
-        if target is User:
-            lookups.append("user_a")
-        else:
-            # likely UserProfile with .user
-            lookups.append("user_a__user")
-    # user_b
+        lookups.append("user_a" if target is User else "user_a__user")
     if _has_field(Match, "user_b"):
         target = _remote_model(Match, "user_b")
-        if target is User:
-            lookups.append("user_b")
-        else:
-            lookups.append("user_b__user")
+        lookups.append("user_b" if target is User else "user_b__user")
 
     q = Q()
     for lp in lookups:
         if _valid_lookup(qs, lp, django_user):
             q |= Q(**{lp: django_user})
-
-    # If nothing matched (no user_a/user_b), fall back to empty (no scoping).
     if q:
         qs = qs.filter(q).distinct()
-
     return qs
 
 
@@ -119,23 +103,13 @@ def _apply_filters(qs, params):
     return qs
 
 
-def _attendance_subject_for(request: HttpRequest):
-    """
-    Return the object to store in MatchAttendance.user, matching that FK's model.
-    Works whether it is auth.User or UserProfile.
-    """
+def _attendance_subject_for(request):
     rel_model = MatchAttendance._meta.get_field("user").remote_field.model
-
-    # If the rel model is the auth user, use request.user
     if isinstance(request.user, rel_model):
         return request.user
-
-    # Otherwise try the attached profile (support both names)
     prof = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
     if prof and isinstance(prof, rel_model):
         return prof
-
-    # Fallbacks
     label = getattr(rel_model._meta, "label_lower", "")
     if label in ("auth.user", "users.user"):
         return request.user
@@ -174,6 +148,10 @@ def my_matches(request):
     }
     qs = _apply_filters(qs, params)
 
+    group_by = request.GET.get("group") or ""
+    if group_by not in ("tournament", "date", ""):
+        group_by = ""
+
     now = timezone.now()
     counters = {
         "upcoming": _apply_filters(_user_match_qs(request.user), params).filter(start_at__gte=now).count(),
@@ -189,7 +167,6 @@ def my_matches(request):
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get("page", 1))
 
-    # 14-day heat counts
     heat_qs = _apply_filters(_user_match_qs(request.user), params)
     heat_counts = (
         heat_qs.filter(start_at__date__gte=now.date(), start_at__date__lte=(now + timedelta(days=14)).date())
@@ -211,6 +188,7 @@ def my_matches(request):
             "pins_ids": set(pin_ids),
             "heat_map": heat_map,
             "ics_token": token.token,
+            "group_by": group_by,
         },
     )
 
@@ -241,92 +219,61 @@ def toggle_pin(request, tournament_id: int):
 
 
 # -------------------------
-# Bulk actions (FIXED)
+# Bulk actions
 # -------------------------
 
 @login_required
-def my_matches_bulk(request: HttpRequest) -> HttpResponse:
-    """
-    Bulk actions for My Matches. POST only.
-    Accepts:
-      - action: 'confirm' | 'decline'
-      - match_ids: repeated ints
-    Only applies to matches visible to the current user (via _user_match_qs).
-    """
+def my_matches_bulk(request):
     if request.method != "POST":
         raise Http404()
-
     action = request.POST.get("action")
     if action not in {"confirm", "decline"}:
         return HttpResponseBadRequest("Unknown bulk action.")
-
     try:
         match_ids = [int(m) for m in request.POST.getlist("match_ids")]
     except ValueError:
         return HttpResponseBadRequest("Invalid match IDs.")
-
     if not match_ids:
         messages.info(request, "No matches selected.")
         return redirect(reverse("tournaments:my_matches"))
 
-    # Restrict to matches the user already sees; pull IDs only to avoid select_related/only conflicts.
     scoped_ids = list(_user_match_qs(request.user).filter(id__in=match_ids).values_list("id", flat=True))
-
-    status_map = {"confirm": "confirmed", "decline": "declined"}
-    status = status_map[action]
+    status = {"confirm": "confirmed", "decline": "declined"}[action]
     subject = _attendance_subject_for(request)
-
-    updated = 0
     for mid in scoped_ids:
-        MatchAttendance.objects.update_or_create(
-            user=subject,
-            match_id=mid,  # use FK id directly; no need to fetch Match rows
-            defaults={"status": status},
-        )
-        updated += 1
-
-    if updated:
-        messages.success(request, f"{updated} match(es) marked “{status}”.")
-    else:
-        messages.info(request, "No eligible matches were updated.")
-
+        MatchAttendance.objects.update_or_create(user=subject, match_id=mid, defaults={"status": status})
+    messages.success(request, f"{len(scoped_ids)} match(es) marked “{status}”.")
     return redirect(reverse("tournaments:my_matches"))
 
 
 # -------------------------
-# CSV / ICS (preserve originals)
+# CSV / ICS
 # -------------------------
 
 @login_required
 def my_matches_csv(request):
     qs = _apply_filters(_user_match_qs(request.user), request.GET)
-
     buffer = io.StringIO()
     w = csv.writer(buffer)
     w.writerow(["Match ID", "Tournament", "Game", "Starts At", "State", "Side A", "Side B", "Score"])
     for m in qs[:5000]:
         side_a = getattr(
-            m,
-            "team_a_name",
+            m, "team_a_name",
             getattr(getattr(m, "team_a", None), "name", getattr(getattr(m, "user_a", None), "username", "")),
         )
         side_b = getattr(
-            m,
-            "team_b_name",
+            m, "team_b_name",
             getattr(getattr(m, "team_b", None), "name", getattr(getattr(m, "user_b", None), "username", "")),
         )
-        w.writerow(
-            [
-                m.id,
-                getattr(m.tournament, "name", ""),
-                getattr(m.tournament, "game", ""),
-                m.start_at.isoformat() if m.start_at else "",
-                getattr(m, "state", ""),
-                side_a,
-                side_b,
-                getattr(m, "score_text", ""),
-            ]
-        )
+        w.writerow([
+            m.id,
+            getattr(m.tournament, "name", ""),
+            getattr(m.tournament, "game", ""),
+            m.start_at.isoformat() if m.start_at else "",
+            getattr(m, "state", ""),
+            side_a, side_b,
+            getattr(m, "score_text", ""),
+        ])
     resp = HttpResponse(buffer.getvalue(), content_type="text/csv")
     resp["Content-Disposition"] = 'attachment; filename="my_matches.csv"'
     return resp
@@ -346,8 +293,30 @@ def _ics_escape(text: str) -> str:
 
 @login_required
 def my_matches_ics_link(request):
-    tok = CalendarFeedToken.issue_for(request.user).token
-    return render(request, "dashboard/ics_help.html", {"token": tok})
+    # show help page; token already created/ensured in my_matches()
+    return render(request, "dashboard/ics_help.html", {
+        "token": CalendarFeedToken.issue_for(request.user).token,
+        "params": {
+            "game": request.GET.get("game", ""),
+            "state": request.GET.get("state", ""),
+            "tournament_id": request.GET.get("tournament_id", ""),
+            "start_date": request.GET.get("start_date", ""),
+            "end_date": request.GET.get("end_date", ""),
+        }
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def my_matches_ics_regen(request):
+    """
+    Rotate (regenerate) the user's ICS token: delete old, issue new.
+    Existing subscriptions will stop working; user must re-subscribe.
+    """
+    CalendarFeedToken.objects.filter(user=request.user).delete()
+    new_tok = CalendarFeedToken.issue_for(request.user).token
+    messages.success(request, "Your calendar link was regenerated.")
+    return redirect(reverse("tournaments:my_matches_ics_link"))
 
 
 def my_matches_ics(request, token: str):
@@ -365,10 +334,12 @@ def my_matches_ics(request, token: str):
         start = (m.start_at or timezone.now()).astimezone(timezone.utc)
         end = start + timedelta(minutes=getattr(m, "duration_minutes", 60))
         title_a = getattr(
-            m, "team_a_name", getattr(getattr(m, "team_a", None), "name", getattr(getattr(m, "user_a", None), "username", ""))
+            m, "team_a_name",
+            getattr(getattr(m, "team_a", None), "name", getattr(getattr(m, "user_a", None), "username", "")),
         )
         title_b = getattr(
-            m, "team_b_name", getattr(getattr(m, "team_b", None), "name", getattr(getattr(m, "user_b", None), "username", ""))
+            m, "team_b_name",
+            getattr(getattr(m, "team_b", None), "name", getattr(getattr(m, "user_b", None), "username", "")),
         )
         summary = f"{getattr(m.tournament, 'name','')} — {title_a} vs {title_b}"
         uid = f"deltacrown-match-{m.id}@deltacrown"

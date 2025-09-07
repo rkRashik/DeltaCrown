@@ -26,21 +26,15 @@ def _redirect_back(request: HttpRequest, default="tournaments:my_matches") -> Ht
 
 def _attendance_subject_for(request: HttpRequest):
     """
-    Return the object to store in MatchAttendance.user, matching the field's rel model.
-    Some deployments use auth.User, others use UserProfile. We resolve dynamically.
+    Return the object to store in MatchAttendance.user, matching the FK's model.
+    Works whether it's auth.User or UserProfile.
     """
     rel_model = MatchAttendance._meta.get_field("user").remote_field.model
-
-    # If the rel model is the auth user, use request.user
     if isinstance(request.user, rel_model):
         return request.user
-
-    # Otherwise try the attached profile (support both names)
     prof = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
     if prof and isinstance(prof, rel_model):
         return prof
-
-    # Fall back sensibly: prefer request.user if types mismatch but model is auth.User
     label = getattr(rel_model._meta, "label_lower", "")
     if label in ("auth.user", "users.user"):
         return request.user
@@ -70,7 +64,6 @@ def toggle_attendance(request: HttpRequest, match_id: int, action: str) -> HttpR
 
     attendee = _attendance_subject_for(request)
 
-    # Upsert attendance keyed by (user, match)
     MatchAttendance.objects.update_or_create(
         user=attendee,
         match=match,
@@ -107,7 +100,6 @@ def quick_action(request: HttpRequest, match_id: int, action: str) -> HttpRespon
     try:
         from apps.teams.models import TeamMembership
         profile = getattr(request.user, "profile", None) or getattr(request.user, "userprofile", None)
-
         recipients_users = []
 
         if match.team_a_id or match.team_b_id:

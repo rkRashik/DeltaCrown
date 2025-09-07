@@ -2,7 +2,7 @@ from django.urls import path
 from .views import dashboard as views
 from .views import public as public
 from .views import my_matches as vm
-from .views import attendance as va  # NEW
+from .views import attendance as va
 from .views import my_matches as my_matches_views
 
 app_name = "tournaments"
@@ -24,6 +24,10 @@ urlpatterns = [
 
     # bulk actions for selected matches
     path("my-matches/bulk/", my_matches_views.my_matches_bulk, name="my_matches_bulk"),
+
+    # regenerate (rotate) a user's ICS token
+    path("my-matches/ics-regen/", my_matches_views.my_matches_ics_regen, name="my_matches_ics_regen"),
+
 
     # My Matches suite
     path("my-matches/", vm.my_matches, name="my_matches"),
