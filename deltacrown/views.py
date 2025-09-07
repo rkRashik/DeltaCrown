@@ -2,6 +2,18 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from django.http import JsonResponse
 
+
+
+def homepage(request):
+    # Lightweight context; safe with or without real data
+    ctx = {
+        "stats": {"teams": 0, "tournaments": 0, "players": 0},
+        "tournaments": [],
+    }
+    return render(request, "homepage.html", ctx)
+
+
+
 def home(request):
     """
     Public homepage.

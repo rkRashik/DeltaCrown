@@ -2,36 +2,29 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-
-<link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
-<style>
-  .dc-wordmark {
-    font-family: 'Russo One', sans-serif;
-    font-size: 1.5rem; /* adjust size to fit navbar */
-    letter-spacing: 0.5px;
-    background-image: linear-gradient(90deg, #00C2FF, #A3FF12, #7C3AED);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    transition: opacity 0.2s ease;
-  }
-  .dc-wordmark:hover {
-    opacity: 0.9;
-  }
-</style>
-
-
-
-
-
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}DeltaCrown{% endblock %}</title>
-
   <meta name="description" content="DeltaCrown — From the Delta to the Crown — Where Champions Rise." />
   <meta name="theme-color" content="#0f172a" />
 
-  <!-- Tailwind CDN -->
+  <!-- Brand wordmark font -->
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+  <style>
+    .dc-wordmark {
+      font-family: 'Russo One', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.5px;
+      background-image: linear-gradient(90deg, #00C2FF, #A3FF12, #7C3AED);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      transition: opacity 0.2s ease;
+    }
+    .dc-wordmark:hover { opacity: 0.9; }
+  </style>
+
+  <!-- Tailwind CDN (same config as before) -->
   <script>
     tailwind = {};
     tailwind.config = {
@@ -39,11 +32,7 @@
       theme: {
         extend: {
           colors: {
-            brand: {
-              primary: '#00C2FF',
-              secondary: '#A3FF12',
-              gold: '#EAB308',
-            }
+            brand: { primary: '#00C2FF', secondary: '#A3FF12', gold: '#EAB308' }
           },
           container: { center: true, padding: '1rem' },
           borderRadius: { xl: '0.875rem', '2xl': '1.25rem' }
@@ -59,13 +48,39 @@
 </head>
 
 <body class="min-h-screen antialiased dc-bg dc-text">
-  {% include "partials/nav.html" %}
+  <!-- Skip link for accessibility -->
+  <a href="#content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-black/80 text-white px-3 py-2 rounded">
+    Skip to content
+  </a>
 
-  <main id="content" class="flex-1">
+  <!-- Global navigation -->
+  <header role="banner" aria-label="Global">
+    {% include "partials/nav.html" %}
+  </header>
+
+  <!-- Messages (Django contrib.messages) -->
+  <div aria-live="polite" aria-atomic="true" class="container mx-auto px-4 pt-3">
+    {% if messages %}
+      <ul class="space-y-2">
+        {% for message in messages %}
+          <li class="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm">
+            {{ message }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+
+  <!-- Main content -->
+  <main id="content" role="main" class="flex-1">
     {% block content %}{% endblock %}
   </main>
 
-  {% include "partials/footer.html" %}
+  <!-- Footer -->
+  <footer role="contentinfo" aria-label="Site footer">
+    {% include "partials/footer.html" %}
+  </footer>
+
   {% include "partials/toasts.html" %}
 
   <script src="{% static 'js/theme.js' %}"></script>

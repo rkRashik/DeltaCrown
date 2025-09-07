@@ -16,17 +16,11 @@
           {{ tournament.title|default:tournament.name }}
         </h1>
         <p class="mt-2 dc-muted">
-          {% if tournament.subtitle %}
-            {{ tournament.subtitle }}
-          {% else %}
-            A competitive esports event hosted by DeltaCrown.
-          {% endif %}
+          {% if tournament.subtitle %}{{ tournament.subtitle }}{% else %}A competitive esports event hosted by DeltaCrown.{% endif %}
         </p>
         <div class="mt-6 flex flex-wrap gap-3">
           <a href="{% url 'tournaments:register' slug=tournament.slug %}"
-             class="px-5 py-3 rounded-2xl font-semibold bg-brand-primary text-black hover:opacity-90 transition">
-            Register
-          </a>
+             class="px-5 py-3 rounded-2xl font-semibold bg-brand-primary text-black hover:opacity-90 transition">Register</a>
           <a href="#rules" class="px-5 py-3 rounded-2xl border dc-border hover:border-brand-primary/60">Rules</a>
           <a href="#schedule" class="px-5 py-3 rounded-2xl border dc-border hover:border-brand-primary/60">Schedule</a>
           <a href="#bracket" class="px-5 py-3 rounded-2xl border dc-border hover:border-brand-primary/60">Bracket</a>
@@ -68,23 +62,17 @@
             <ul class="space-y-2 text-sm">
               {% if tournament.settings.bkash_receive_number %}
                 <li>• <b>bKash:</b> {{ tournament.settings.bkash_receive_number }}
-                  {% if tournament.settings.bkash_receive_type %}
-                    <span class="dc-muted">({{ tournament.settings.bkash_receive_type }})</span>
-                  {% endif %}
+                  {% if tournament.settings.bkash_receive_type %}<span class="dc-muted">({{ tournament.settings.bkash_receive_type }})</span>{% endif %}
                 </li>
               {% endif %}
               {% if tournament.settings.nagad_receive_number %}
                 <li>• <b>Nagad:</b> {{ tournament.settings.nagad_receive_number }}
-                  {% if tournament.settings.nagad_receive_type %}
-                    <span class="dc-muted">({{ tournament.settings.nagad_receive_type }})</span>
-                  {% endif %}
+                  {% if tournament.settings.nagad_receive_type %}<span class="dc-muted">({{ tournament.settings.nagad_receive_type }})</span>{% endif %}
                 </li>
               {% endif %}
               {% if tournament.settings.rocket_receive_number %}
                 <li>• <b>Rocket:</b> {{ tournament.settings.rocket_receive_number }}
-                  {% if tournament.settings.rocket_receive_type %}
-                    <span class="dc-muted">({{ tournament.settings.rocket_receive_type }})</span>
-                  {% endif %}
+                  {% if tournament.settings.rocket_receive_type %}<span class="dc-muted">({{ tournament.settings.rocket_receive_type }})</span>{% endif %}
                 </li>
               {% endif %}
             </ul>
