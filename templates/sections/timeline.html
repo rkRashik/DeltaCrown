@@ -1,22 +1,23 @@
-<section class="py-10" data-reveal>
-<section class="py-10">
+<section aria-labelledby="timeline-heading" class="py-10">
   <div class="container mx-auto px-4">
-    <h2 class="text-xl font-bold mb-4">Timeline</h2>
-    {% if SITE.timeline and SITE.timeline|length %}
-      <ol class="relative border-s border-line ml-4 space-y-6">
-        {% for item in SITE.timeline %}
+    <h2 id="timeline-heading" class="text-xl md:text-2xl font-semibold mb-4">Timeline</h2>
+
+    {% if timeline_entries %}
+      <ol class="relative border-s border-line ps-4 space-y-6" aria-label="Recent activity">
+        {% for e in timeline_entries %}
           <li class="ms-4">
-            <div class="absolute -start-1.5 mt-1.5 h-3 w-3 rounded-full bg-elev border border-line"></div>
-            <div class="bg-surface border border-line rounded-xl p-4">
-              <div class="text-sm text-muted">{{ item.date }}</div>
-              <div class="font-semibold">{{ item.title }}</div>
-              {% if item.desc %}<p class="text-sm mt-1 text-muted">{{ item.desc }}</p>{% endif %}
+            <div class="absolute w-2 h-2 rounded-full bg-amber-400 -start-[5px] mt-2"></div>
+            <time datetime="{{ e.date_iso|default:'' }}" class="text-xs text-muted">{{ e.date_iso|default:'' }}</time>
+            <div>
+              <a href="{{ e.href|default:'/' }}" class="block hover:underline">{{ e.label }}</a>
             </div>
           </li>
         {% endfor %}
       </ol>
     {% else %}
-      <p class="text-muted">More milestones coming soon.</p>
+      <div class="bg-surface border border-line rounded-2xl p-6">
+        <p class="text-muted">No events yet.</p>
+      </div>
     {% endif %}
   </div>
 </section>

@@ -1,36 +1,28 @@
-<section class="py-10" data-reveal>
-<section class="py-10">
+<section aria-labelledby="spotlight-heading" class="py-10">
   <div class="container mx-auto px-4">
-    <h2 class="text-xl font-bold mb-4">Spotlight</h2>
+    <h2 id="spotlight-heading" class="text-xl md:text-2xl font-semibold mb-4">Spotlight</h2>
 
-    {% if SITE.spotlight %}
-      <div class="bg-surface border border-line rounded-2xl p-6 grid md:grid-cols-3 gap-6">
-        <div class="md:col-span-2">
-          <h3 class="text-lg font-semibold">{{ SITE.spotlight.name }}</h3>
-          <p class="text-muted mt-1">
-            {{ SITE.spotlight.summary|default:"Featured tournament" }}
-          </p>
-          <div class="mt-4 flex gap-3">
-            {% include "components/button.html" with label="View" variant="outline" href=SITE.spotlight.url|default:"/tournaments/" %}
-            {% if SITE.spotlight.register_url %}
-              {% include "components/button.html" with label="Register" variant="primary" href=SITE.spotlight.register_url %}
-            {% endif %}
-          </div>
-        </div>
-        <div class="bg-elev rounded-xl border border-line p-4">
-          <div class="text-sm text-muted">When</div>
-          <div class="font-semibold">{{ SITE.spotlight.when|default:"TBA" }}</div>
-          <div class="text-sm text-muted mt-3">Game</div>
-          <div class="font-semibold">{{ SITE.spotlight.game|default:"Multiple" }}</div>
-        </div>
+    {% if spotlight_items %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for it in spotlight_items %}
+          <article class="bg-surface border border-line rounded-2xl overflow-hidden">
+            <a href="{{ it.href|default:'/' }}" class="block">
+              {% if it.image %}
+                <img src="{{ it.image }}" alt="{{ it.title }}" class="w-full aspect-[16/9] object-cover" loading="lazy">
+              {% endif %}
+              <div class="p-4">
+                {% if it.kicker %}<p class="text-xs text-muted mb-1">{{ it.kicker }}</p>{% endif %}
+                <h3 class="text-lg font-semibold leading-snug">{{ it.title }}</h3>
+                {% if it.excerpt %}<p class="text-sm text-muted mt-2 line-clamp-2">{{ it.excerpt }}</p>{% endif %}
+                {% if it.badge %}<span class="mt-3 inline-block text-xs px-2 py-0.5 rounded bg-elev border border-line">{{ it.badge }}</span>{% endif %}
+              </div>
+            </a>
+          </article>
+        {% endfor %}
       </div>
     {% else %}
       <div class="bg-surface border border-line rounded-2xl p-6">
-        <div class="font-semibold">No spotlight—discover tournaments</div>
-        <p class="text-muted mt-1">Check out all events and find your bracket.</p>
-        <div class="mt-4">
-          {% include "components/button.html" with label="Browse Tournaments" variant="primary" href="/tournaments/" %}
-        </div>
+        <p class="text-muted">No highlights yet — check back soon.</p>
       </div>
     {% endif %}
   </div>
