@@ -1,0 +1,36 @@
+<section class="py-10">
+  <div class="container mx-auto px-4">
+    <h2 class="text-xl font-bold mb-4">Spotlight</h2>
+
+    {% if SITE.spotlight %}
+      <div class="bg-surface border border-line rounded-2xl p-6 grid md:grid-cols-3 gap-6">
+        <div class="md:col-span-2">
+          <h3 class="text-lg font-semibold">{{ SITE.spotlight.name }}</h3>
+          <p class="text-muted mt-1">
+            {{ SITE.spotlight.summary|default:"Featured tournament" }}
+          </p>
+          <div class="mt-4 flex gap-3">
+            {% include "components/button.html" with label="View" variant="outline" href=SITE.spotlight.url|default:"/tournaments/" %}
+            {% if SITE.spotlight.register_url %}
+              {% include "components/button.html" with label="Register" variant="primary" href=SITE.spotlight.register_url %}
+            {% endif %}
+          </div>
+        </div>
+        <div class="bg-elev rounded-xl border border-line p-4">
+          <div class="text-sm text-muted">When</div>
+          <div class="font-semibold">{{ SITE.spotlight.when|default:"TBA" }}</div>
+          <div class="text-sm text-muted mt-3">Game</div>
+          <div class="font-semibold">{{ SITE.spotlight.game|default:"Multiple" }}</div>
+        </div>
+      </div>
+    {% else %}
+      <div class="bg-surface border border-line rounded-2xl p-6">
+        <div class="font-semibold">No spotlight—discover tournaments</div>
+        <p class="text-muted mt-1">Check out all events and find your bracket.</p>
+        <div class="mt-4">
+          {% include "components/button.html" with label="Browse Tournaments" variant="primary" href="/tournaments/" %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>

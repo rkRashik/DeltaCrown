@@ -13,12 +13,19 @@ SITE_CONTENT = {
             "closed": "See All Events",
         },
     },
+    # NEW: Timeline (render if any)
+    "timeline": [
+        {"date": "2023", "title": "First Community Cup", "desc": "Kicked off with 64 players."},
+        {"date": "2024", "title": "Regional Expansion", "desc": "Valorant & eFootball circuits."},
+        {"date": "2025", "title": "DeltaCrown Series", "desc": "Bigger stages, bigger prizes."},
+    ],
     "stats": {
         "players": 5000,
         "prize_bdt": 2000000,
         "payout_accuracy_pct": 98,
     },
-    "spotlight": None,  # will render a default card
+    # Spotlight: can be None or a dict; template is safe either way
+    "spotlight": None,
     "social": {
         "facebook": "https://facebook.com/DeltaCrown",
         "youtube": "https://youtube.com/@DeltaCrown",
