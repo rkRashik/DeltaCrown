@@ -6,6 +6,8 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from .views import healthz
+from django.views.generic import TemplateView
+
 
 urlpatterns = [
     # Root + health
@@ -14,6 +16,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
 
+    # Crawlers / SEO
+    path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
+    path("sitemap.xml", TemplateView.as_view(template_name="sitemap.xml", content_type="application/xml")),
 
 
     # Core apps (explicit)
