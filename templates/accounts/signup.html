@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Create account — DeltaCrown{% endblock %}
+{% block content %}
+<section class="py-12">
+  <div class="container mx-auto px-4 max-w-md">
+    <h1 class="text-2xl font-bold mb-4">Create your account</h1>
+    <form method="post" class="space-y-4 bg-surface border border-line rounded-2xl p-6">
+      {% csrf_token %}
+      {% for field in form %}
+        <div>
+          <label for="{{ field.id_for_label }}" class="block text-sm font-medium">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="text-xs text-muted">{{ field.help_text }}</p>{% endif %}
+          {% for e in field.errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      {% for e in form.non_field_errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+      <button class="btn btn-primary w-full" type="submit">Sign up</button>
+      <div class="text-sm text-muted mt-3">
+        Already have an account? <a class="hover:underline" href="{% url 'accounts:login' %}">Sign in</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

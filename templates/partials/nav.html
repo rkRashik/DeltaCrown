@@ -9,6 +9,12 @@
       <a href="/about/" class="hover:underline">About</a>
       <a href="/community/" class="hover:underline">Community</a>
       {% include "partials/theme_toggle.html" %}
+      {% if request.user.is_authenticated %}
+        <a href="{% url 'accounts:profile' %}" class="hover:underline">Profile</a>
+        <a href="{% url 'accounts:logout' %}" class="hover:underline">Logout</a>
+      {% else %}
+        <a href="{% url 'accounts:login' %}" class="hover:underline">Sign in</a>
+      {% endif %}
     </nav>
 
     <!-- Mobile button -->

@@ -12,6 +12,9 @@ urlpatterns = [
     path("", include("apps.siteui.urls")),
     path("healthz/", healthz, name="healthz"),
     path("admin/", admin.site.urls),
+    path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
+
+
 
     # Core apps (explicit)
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),

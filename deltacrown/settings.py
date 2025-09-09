@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.ecommerce",
     "apps.economy",
     "apps.siteui",
+    "apps.accounts",
 
 ]
 
@@ -173,9 +174,15 @@ REST_FRAMEWORK = {
 # Email (dev-safe)
 # -----------------------------------------------------------------------------
 # Print emails to the console during development.
+# Auth redirects
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/accounts/profile/"
+LOGOUT_REDIRECT_URL = "/"
+
+# Dev email backend (password reset prints to console)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "DeltaCrown <no-reply@deltacrown.local>"
-SERVER_EMAIL = "errors@deltacrown.local"
+DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
+
 
 
 

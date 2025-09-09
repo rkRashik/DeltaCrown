@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Your profile — DeltaCrown{% endblock %}
+{% block content %}
+<section class="py-12">
+  <div class="container mx-auto px-4 max-w-2xl">
+    <h1 class="text-2xl font-bold mb-4">Profile</h1>
+    <div class="bg-surface border border-line rounded-2xl p-6">
+      <p class="text-muted">Signed in as <strong>{{ request.user.username }}</strong></p>
+      <div class="mt-4 flex gap-3">
+        <a class="btn border-line" href="/">Go home</a>
+        <a class="btn border-line" href="{% url 'accounts:logout' %}">Log out</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
