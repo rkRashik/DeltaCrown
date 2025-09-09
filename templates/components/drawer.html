@@ -1,0 +1,14 @@
+{# Props: id, title, body (safe) #}
+<div id="{{ id }}" data-drawer role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title"
+     class="fixed inset-0 z-50" aria-hidden="true" hidden>
+  <div data-drawer-overlay class="absolute inset-0 bg-black/50"></div>
+  <aside data-drawer-panel class="absolute inset-y-0 left-0 w-80 bg-surface border-r border-line p-6 transition -translate-x-full">
+    <div class="flex items-center justify-between">
+      <h2 id="{{ id }}-title" class="text-lg font-semibold">{{ title }}</h2>
+      <button class="btn border-line" data-close-drawer="{{ id }}" aria-label="Close menu">✕</button>
+    </div>
+    <div class="mt-4 prose prose-invert max-w-none">
+      {{ body|safe }}
+    </div>
+  </aside>
+</div>

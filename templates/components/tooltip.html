@@ -1,0 +1,9 @@
+{# Props: text, position='top'|'bottom'|'left'|'right' #}
+<span class="relative inline-flex" data-tooltip>
+  <slot></slot>
+  <span role="tooltip" hidden
+        class="absolute px-2 py-1 rounded bg-elev border border-line text-xs"
+        style="{% if position == 'bottom' %}top:100%;left:50%;transform:translate(-50%,.25rem);{% elif position == 'left' %}top:50%;right:100%;transform:translate(-.25rem,-50%);{% elif position == 'right' %}top:50%;left:100%;transform:translate(.25rem,-50%);{% else %}bottom:100%;left:50%;transform:translate(-50%,-.25rem);{% endif %}">
+    {{ text }}
+  </span>
+</span>

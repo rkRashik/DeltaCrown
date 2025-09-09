@@ -1,0 +1,15 @@
+{# Props: id, label, name, checked=bool, help_text, errors #}
+<div class="space-y-1">
+  <div class="flex items-start gap-2">
+    <input id="{{ id }}" name="{{ name }}" type="checkbox" {% if checked %}checked{% endif %}
+           class="mt-1 bg-elev border border-line rounded"
+           aria-describedby="{% if help_text %}{{ id }}-help{% endif %}{% if errors %} {{ id }}-err{% endif %}">
+    <label for="{{ id }}" class="text-sm">{{ label }}</label>
+  </div>
+  {% if help_text %}<p id="{{ id }}-help" class="text-xs text-muted">{{ help_text }}</p>{% endif %}
+  {% if errors %}
+    <ul id="{{ id }}-err" class="text-sm text-red-400 list-disc ml-5">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>

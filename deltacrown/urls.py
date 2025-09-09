@@ -5,12 +5,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from apps.siteui.views import home
 from .views import healthz
 
 urlpatterns = [
     # Root + health
-    path("", home, name="homepage"),
+    path("", include("apps.siteui.urls")),
     path("healthz/", healthz, name="healthz"),
     path("admin/", admin.site.urls),
 

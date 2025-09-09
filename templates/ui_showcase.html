@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}UI Showcase — DeltaCrown{% endblock %}
+{% block content %}
+<section class="py-10">
+  <div class="container mx-auto px-4 space-y-10">
+    <h1 class="text-2xl font-bold">UI Showcase</h1>
+
+    <!-- Buttons -->
+    <div class="space-y-3">
+      <h2 class="font-semibold">Buttons</h2>
+      {% include "components/button.html" with label="Primary" variant="primary" %}
+      {% include "components/button.html" with label="Outline" variant="outline" %}
+      {% include "components/button.html" with label="Ghost" variant="ghost" %}
+    </div>
+
+    <!-- Card -->
+    <div class="space-y-3">
+      <h2 class="font-semibold">Card</h2>
+      {% include "components/card.html" with title="Card title" body_html="<p>This is card content using <strong>body_html</strong>.</p>" %}
+    </div>
+
+    <!-- Form Fields -->
+    <div class="grid md:grid-cols-2 gap-6">
+      {% include "components/form_field.html" with id="email" name="email" label="Email" type="email" help_text="We never share your email." %}
+      {% include "components/select.html" with id="game" name="game" label="Game" options=game_opts %}
+      {% include "components/checkbox.html" with id="agree" name="agree" label="I agree to the rules" %}
+      {% include "components/radio.html" with name="mode" label="Mode" options=radio_opts %}
+    </div>
+
+    <!-- Tooltip -->
+    <div class="space-y-2">
+      <h2 class="font-semibold">Tooltip</h2>
+      <span class="relative inline-flex" data-tooltip>
+        <button class="btn border-line" aria-describedby="tt1">Hover or focus me</button>
+        <span id="tt1" role="tooltip" hidden class="absolute px-2 py-1 rounded bg-elev border border-line text-xs"
+              style="bottom:100%;left:50%;transform:translate(-50%,-.25rem);">
+          Helpful hint appears here.
+        </span>
+      </span>
+    </div>
+
+    <!-- Modal -->
+    <div class="space-y-2">
+      <h2 class="font-semibold">Modal</h2>
+      <button class="btn btn-primary" data-open-modal="demo-modal">Open modal</button>
+      {% include "components/modal.html" with id="demo-modal" title="Demo modal" body="<p>Hello from modal!</p>" on_primary=True %}
+    </div>
+
+    <!-- Drawer -->
+    <div class="space-y-2">
+      <h2 class="font-semibold">Drawer</h2>
+      <button class="btn border-line" data-open-drawer="demo-drawer">Open drawer</button>
+      {% include "components/drawer.html" with id="demo-drawer" title="Menu" body="<ul><li><a href='/tournaments/'>Tournaments</a></li><li><a href='/teams/'>Teams</a></li></ul>" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

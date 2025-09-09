@@ -1,0 +1,19 @@
+{# Props: name, options=[(id,value,label,checked_bool)], help_text, errors #}
+<fieldset class="space-y-1">
+  <legend class="text-sm font-medium">{{ label|default:"Options" }}</legend>
+  <div class="flex flex-col gap-2">
+    {% for opt in options %}
+      <label class="inline-flex items-center gap-2">
+        <input id="{{ opt.0 }}" type="radio" name="{{ name }}" value="{{ opt.1 }}" {% if opt.3 %}checked{% endif %}
+               class="bg-elev border border-line rounded-full">
+        <span>{{ opt.2 }}</span>
+      </label>
+    {% endfor %}
+  </div>
+  {% if help_text %}<p class="text-xs text-muted">{{ help_text }}</p>{% endif %}
+  {% if errors %}
+    <ul class="text-sm text-red-400 list-disc ml-5">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</fieldset>

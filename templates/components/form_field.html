@@ -1,0 +1,18 @@
+{# Props: id, label, name, type='text', value, help_text, errors (list), required=bool, placeholder #}
+<div class="space-y-1">
+  <label for="{{ id }}" class="block text-sm font-medium">{{ label }}{% if required %} <span class="text-red-500">*</span>{% endif %}</label>
+  <input id="{{ id }}" name="{{ name }}" type="{{ type|default:'text' }}"
+         value="{{ value|default:'' }}" placeholder="{{ placeholder|default:'' }}"
+         class="w-full bg-elev border border-line rounded-lg px-3 py-2"
+         {% if required %}required{% endif %}
+         aria-describedby="{% if help_text %}{{ id }}-help{% endif %}{% if errors %} {{ id }}-err{% endif %}"
+         aria-invalid="{% if errors %}true{% else %}false{% endif %}">
+  {% if help_text %}
+    <p id="{{ id }}-help" class="text-xs text-muted">{{ help_text }}</p>
+  {% endif %}
+  {% if errors %}
+    <ul id="{{ id }}-err" class="text-sm text-red-400 list-disc ml-5">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>

@@ -1,0 +1,17 @@
+{# Props: id, label, name, options=[(value,label,selected_bool)], help_text, errors #}
+<div class="space-y-1">
+  <label for="{{ id }}" class="block text-sm font-medium">{{ label }}</label>
+  <select id="{{ id }}" name="{{ name }}" class="w-full bg-elev border border-line rounded-lg px-3 py-2"
+          aria-describedby="{% if help_text %}{{ id }}-help{% endif %}{% if errors %} {{ id }}-err{% endif %}"
+          aria-invalid="{% if errors %}true{% else %}false{% endif %}">
+    {% for opt in options %}
+      <option value="{{ opt.0 }}"{% if opt.2 %} selected{% endif %}>{{ opt.1 }}</option>
+    {% endfor %}
+  </select>
+  {% if help_text %}<p id="{{ id }}-help" class="text-xs text-muted">{{ help_text }}</p>{% endif %}
+  {% if errors %}
+    <ul id="{{ id }}-err" class="text-sm text-red-400 list-disc ml-5">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>
