@@ -13,7 +13,9 @@ SITE_CONTENT = {
             "closed": "See All Events",
         },
     },
-    # NEW: Timeline (render if any)
+    # Optional: countdown target for next showcase tournament (ISO8601, local or Z)
+    "next_event_iso": "2025-12-01T18:00:00+06:00",
+
     "timeline": [
         {"date": "2023", "title": "First Community Cup", "desc": "Kicked off with 64 players."},
         {"date": "2024", "title": "Regional Expansion", "desc": "Valorant & eFootball circuits."},
@@ -24,7 +26,6 @@ SITE_CONTENT = {
         "prize_bdt": 2000000,
         "payout_accuracy_pct": 98,
     },
-    # Spotlight: can be None or a dict; template is safe either way
     "spotlight": None,
     "social": {
         "facebook": "https://facebook.com/DeltaCrown",

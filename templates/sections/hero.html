@@ -1,6 +1,7 @@
-<section class="py-16">
+<section class="py-16" data-reveal>
   <div class="container mx-auto px-4">
-    <div class="bg-surface rounded-2xl border border-line p-8 md:p-12">
+    <div class="bg-surface rounded-2xl border border-line p-8 md:p-12 relative overflow-hidden" data-shine
+         style="background:radial-gradient(600px circle at var(--mx, 0px) var(--my, 0px), rgba(245,158,11,.10), transparent 40%);">
       <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight">
         {{ SITE.brand.tagline }}
       </h1>
@@ -8,8 +9,13 @@
         {{ SITE.brand.subtext }}
       </p>
 
+      {% if SITE.next_event_iso %}
+        <p class="mt-4 text-sm">
+          Next event begins in: <strong data-countdown-to="{{ SITE.next_event_iso }}">loading…</strong>
+        </p>
+      {% endif %}
+
       <div class="mt-8 flex flex-wrap gap-3">
-        {# Featured CTA logic (safe if featured is None) #}
         {% with labels=SITE.hero.cta_labels %}
           {% if featured and featured.status %}
             {% if featured.status == "open" %}
@@ -23,7 +29,6 @@
             {% include "components/button.html" with label="See All Events" variant="primary" href=SITE.hero.fallback_cta_url %}
           {% endif %}
         {% endwith %}
-
         {% include "components/button.html" with label="Join Discord" variant="outline" href=SITE.social.discord %}
       </div>
     </div>

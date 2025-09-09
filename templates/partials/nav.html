@@ -1,6 +1,8 @@
 <header class="border-b border-line">
   <div class="container mx-auto px-4 h-14 flex items-center justify-between">
     <a href="/" class="font-bold">DeltaCrown</a>
+
+    <!-- Desktop nav -->
     <nav class="hidden md:flex items-center gap-6">
       <a href="/tournaments/" class="hover:underline">Tournaments</a>
       <a href="/teams/" class="hover:underline">Teams</a>
@@ -8,6 +10,11 @@
       <a href="/community/" class="hover:underline">Community</a>
       {% include "partials/theme_toggle.html" %}
     </nav>
-    <!-- Mobile: we’ll add a drawer in Step 5 -->
+
+    <!-- Mobile button -->
+    <button class="md:hidden btn border-line" data-open-drawer="main-drawer" aria-label="Open menu">☰</button>
   </div>
+
+  {# Drawer markup #}
+  {% include "components/drawer.html" with id="main-drawer" title="Menu" body="<ul class='space-y-2'><li><a href='/tournaments/'>Tournaments</a></li><li><a href='/teams/'>Teams</a></li><li><a href='/about/'>About</a></li><li><a href='/community/'>Community</a></li></ul>" %}
 </header>

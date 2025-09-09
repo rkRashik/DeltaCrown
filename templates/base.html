@@ -38,6 +38,10 @@
 
     <!-- 2) Semantic tokens (light/dark via [data-theme]) -->
     <style>
+      /* Reveal animation */
+[data-reveal]{opacity:0; transform:translateY(12px); transition:opacity .45s ease, transform .45s ease;}
+.dc-revealed{opacity:1; transform:none;}
+
       :root{
         /* neutrals */
         --bg: #0b0b0c; --surface:#121214; --elev:#16161a;
@@ -77,10 +81,13 @@
     <main id="main">{% block content %}{% endblock %}</main>
     {% include "partials/footer.html" %}
     {% include "partials/messages.html" %}
+    {% include "partials/toasts.html" %}
 
     <!-- 3) Theme controller (toggle + system sync) -->
     <script src="{% static 'siteui/theme.js' %}"></script>
     <!-- 4) Component interactions -->
     <script src="{% static 'siteui/components.js' %}"></script>
+    <!-- 5) Motion & micro-interactions -->
+    <script src="{% static 'siteui/motion.js' %}"></script>
   </body>
 </html>

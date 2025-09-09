@@ -1,19 +1,22 @@
 {% load humanize %}
-<section class="py-10">
+<section class="py-10" data-reveal>
   <div class="container mx-auto px-4">
     <h2 class="text-xl font-bold mb-4">Stats</h2>
     {% with s=SITE.stats %}
     <div class="grid gap-4 sm:grid-cols-3">
       <div class="bg-surface border border-line rounded-2xl p-6 text-center">
-        <div class="text-3xl font-extrabold">{{ s.players|default:0|intcomma }}</div>
+        <div class="text-3xl font-extrabold"
+             data-count-from="0" data-count-to="{{ s.players|default:0 }}"> {{ s.players|default:0|intcomma }}</div>
         <div class="text-muted">Registered Players</div>
       </div>
       <div class="bg-surface border border-line rounded-2xl p-6 text-center">
-        <div class="text-3xl font-extrabold">৳{{ s.prize_bdt|default:0|intcomma }}</div>
+        <div class="text-3xl font-extrabold"
+             data-count-from="0" data-count-to="{{ s.prize_bdt|default:0 }}"> ৳{{ s.prize_bdt|default:0|intcomma }}</div>
         <div class="text-muted">Total Prize Pool</div>
       </div>
       <div class="bg-surface border border-line rounded-2xl p-6 text-center">
-        <div class="text-3xl font-extrabold">{{ s.payout_accuracy_pct|default:0 }}%</div>
+        <div class="text-3xl font-extrabold"
+             data-count-from="0" data-count-to="{{ s.payout_accuracy_pct|default:0 }}"> {{ s.payout_accuracy_pct|default:0 }}%</div>
         <div class="text-muted">Payout Accuracy</div>
       </div>
     </div>
