@@ -18,6 +18,8 @@ ALLOWED_HOSTS = [
     ".ngrok-free.app",
     # optional:
     "766cd7c77fe7.ngrok-free.app",
+    # For tests and qa_smoke:
+    "testserver",
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",

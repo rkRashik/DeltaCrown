@@ -11,7 +11,7 @@ from django.views.generic import FormView
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
-
+import urllib.error
 from .forms import SignUpForm, VerifyEmailForm
 from .models import EmailOTP
 from .emails import send_otp_email
@@ -90,11 +90,23 @@ class ResendOTPView(View):
 class GoogleLoginStart(View):
     def get(self, request):
         client_id = settings.GOOGLE_OAUTH_CLIENT_ID
-        redirect_uri = settings.SITE_URL.rstrip("/") + reverse("accounts:google_callback")
+        redirect_uri = _build_google_redirect_uri(request)  # <— same as callback
         state = get_random_string(24)
         request.session["google_oauth_state"] = state
         url = oauth.build_auth_url(client_id, redirect_uri, state)
         return HttpResponseRedirect(url)
+
+
+def _build_google_redirect_uri(request):
+    host = request.get_host()  # e.g., localhost:8000 or 766c...ngrok-free.app
+    path = reverse("accounts:google_callback")
+    if host.endswith(".ngrok-free.app") or host.endswith(".trycloudflare.com"):
+        return f"https://{host}{path}"
+    if host.startswith("localhost") or host.startswith("127.0.0.1"):
+        return f"http://{host}{path}"
+    # Fallback: settings.SITE_URL if you ever front this elsewhere
+    base = (getattr(settings, "SITE_URL", "") or "").rstrip("/")
+    return base + path if base else f"http://{host}{path}"
 
 class GoogleCallback(View):
     def get(self, request):
@@ -102,12 +114,23 @@ class GoogleCallback(View):
         code = request.GET.get("code")
         if not state or state != request.session.get("google_oauth_state"):
             return HttpResponseBadRequest("Bad OAuth state")
+
         client_id = settings.GOOGLE_OAUTH_CLIENT_ID
         client_secret = settings.GOOGLE_OAUTH_CLIENT_SECRET
-        redirect_uri = settings.SITE_URL.rstrip("/") + reverse("accounts:google_callback")
-        info = oauth.exchange_code_for_userinfo(
-            code=code, client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri
-        )
+        redirect_uri = _build_google_redirect_uri(request)
+
+        try:
+            info = oauth.exchange_code_for_userinfo(
+                code=code,
+                client_id=client_id,
+                client_secret=client_secret,
+                redirect_uri=redirect_uri,
+            )
+        except urllib.error.HTTPError as e:
+            # Helpful error surface for debugging (keeps in dev only)
+            detail = e.read().decode(errors="ignore")
+            return HttpResponseBadRequest(f"Google token exchange failed ({e.code}). {detail}")
+
         email = info.get("email")
         sub = info.get("sub")
         name = info.get("name") or (email.split("@")[0] if email else f"user-{sub[:6]}")
@@ -116,13 +139,21 @@ class GoogleCallback(View):
 
         user, created = User.objects.get_or_create(
             email=email,
-            defaults={"username": unique_username_from(name), "is_active": True},
+            defaults={"username": _unique_username_from(name), "is_active": True},
         )
         if created:
             messages.success(request, "Welcome with Google!")
         login(request, user)
         request.session.pop("google_oauth_state", None)
         return redirect("accounts:profile")
+
+def _unique_username_from(base: str) -> str:
+    base = slugify(base) or "user"
+    i, candidate = 0, base
+    while User.objects.filter(username__iexact=candidate).exists():
+        i += 1
+        candidate = f"{base}{i}"
+    return candidate
 
 def unique_username_from(base: str) -> str:
     base = slugify(base) or "user"

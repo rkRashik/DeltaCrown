@@ -26,10 +26,10 @@ def test_signup_creates_user_and_redirects(client):
     assert resp.status_code == 200
     assert User.objects.filter(username="testuser").exists()
 
-    # redirect_chain is list of (url, status)
+    # With OTP gating, we should land on /accounts/verify/ (not profile yet)
     chain_urls = [u for (u, s) in resp.redirect_chain]
-    # either we hit /accounts/profile/ or we landed on Profile page content
-    assert any("/accounts/profile/" in u for u in chain_urls) or "Profile" in resp.content.decode()
+    html = resp.content.decode()
+    assert any("/accounts/verify/" in u for u in chain_urls) or "Verify your email" in html
 
 
 @pytest.mark.django_db
