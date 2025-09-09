@@ -1,0 +1,9 @@
+{% if messages %}
+<div class="container mx-auto px-4 mt-4">
+  <ul class="space-y-2">
+    {% for message in messages %}
+      <li class="bg-surface border border-line rounded p-3">{{ message }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

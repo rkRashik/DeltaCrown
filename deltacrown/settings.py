@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.ecommerce",
     "apps.economy",
+    "apps.siteui",
 
 ]
 
@@ -68,6 +69,7 @@ TEMPLATES = [
 
                 "apps.notifications.context_processors.notification_counts",
                 "apps.common.context.ui_settings",
+                "apps.siteui.context.site",
 
 
             ],

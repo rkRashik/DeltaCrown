@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}DeltaCrown — Where Champions Rise{% endblock %}
+{% block content %}
+<section class="py-16">
+  <div class="container mx-auto px-4">
+    <div class="bg-surface rounded-2xl border border-line p-8 md:p-12">
+      <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight">
+        {{ SITE.brand.tagline }}
+      </h1>
+      <p class="mt-3 text-muted max-w-prose">
+        {{ SITE.brand.subtext }}
+      </p>
+
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="{{ SITE.final_cta.events_url }}" class="btn btn-primary">See All Events</a>
+        <a href="{{ SITE.social.discord }}" class="btn border-line">Join Discord</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

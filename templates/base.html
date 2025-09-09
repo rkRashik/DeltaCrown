@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="system">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% include "partials/seo_meta.html" %}
+    <title>{% block title %}DeltaCrown — Bangladesh’s Esports Superbrand{% endblock %}</title>
+    <!-- Tailwind CDN (no build tools) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Minimal Tailwind config (can be extended in Step 2)
+      tailwind.config = {
+        theme: { extend: {} }
+      };
+    </script>
+    <style>
+      /* Semantic tokens (Step 2 will expand) */
+      :root{
+        --bg: #0b0b0c; --surface: #121214; --text: #e9e9ef; --muted:#a1a1aa;
+        --brand-delta:#22d3ee; --brand-crown:#f59e0b; --line:#26262b;
+      }
+      html[data-theme="light"]{
+        --bg:#f7f7fb; --surface:#ffffff; --text:#111827; --muted:#4b5563; --line:#e5e7eb;
+      }
+      body{background:var(--bg); color:var(--text);}
+      .bg-surface{background:var(--surface);}
+      .text-muted{color:var(--muted);}
+      .border-line{border-color:var(--line);}
+      .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.625rem 1rem;border-radius:.75rem;border:1px solid var(--line)}
+      .btn-primary{background:linear-gradient(90deg,var(--brand-delta),var(--brand-crown)); color:#0b0b0c;font-weight:600}
+      .container{max-width:1200px}
+      a:focus,button:focus{outline:2px solid var(--brand-crown);outline-offset:2px}
+    </style>
+  </head>
+  <body class="min-h-screen antialiased">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:m-2 focus:px-3 focus:py-2 focus:bg-surface focus:rounded">Skip to main content</a>
+    {% include "partials/nav.html" %}
+    <main id="main">{% block content %}{% endblock %}</main>
+    {% include "partials/footer.html" %}
+    {% include "partials/messages.html" %}
+  </body>
+</html>
