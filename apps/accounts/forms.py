@@ -4,18 +4,17 @@ from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
-
 class SignUpForm(forms.Form):
     username = forms.CharField(label="Username", max_length=150)
-    email = forms.EmailField(label="Email", required=False)
+    email = forms.EmailField(label="Email", required=True)  # now required for OTP
     password1 = forms.CharField(label="Password", widget=forms.PasswordInput)
     password2 = forms.CharField(label="Confirm password", widget=forms.PasswordInput)
 
     def clean_username(self):
-        username = self.cleaned_data["username"]
-        if User.objects.filter(username__iexact=username).exists():
+        u = self.cleaned_data["username"]
+        if User.objects.filter(username__iexact=u).exists():
             raise forms.ValidationError("This username is already taken.")
-        return username
+        return u
 
     def clean(self):
         cleaned = super().clean()
@@ -31,7 +30,11 @@ class SignUpForm(forms.Form):
         data = self.cleaned_data
         user = User.objects.create_user(
             username=data["username"],
-            email=data.get("email") or "",
+            email=data["email"],
             password=data["password1"],
+            is_active=False,  # gated by OTP
         )
         return user
+
+class VerifyEmailForm(forms.Form):
+    code = forms.CharField(label="Verification code", min_length=6, max_length=6)

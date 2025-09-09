@@ -175,6 +175,7 @@ REST_FRAMEWORK = {
 # -----------------------------------------------------------------------------
 # Print emails to the console during development.
 # Auth redirects
+
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/accounts/profile/"
 LOGOUT_REDIRECT_URL = "/"
@@ -182,6 +183,13 @@ LOGOUT_REDIRECT_URL = "/"
 # Dev email backend (password reset prints to console)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
+
+
+# Where your site runs (used to build OAuth redirect URI)
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
+# Google OAuth Client (set these in your environment)
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
 
 
 

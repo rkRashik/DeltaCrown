@@ -4,6 +4,13 @@
 <section class="py-12">
   <div class="container mx-auto px-4 max-w-md">
     <h1 class="text-2xl font-bold mb-4">Create your account</h1>
+
+    <a class="btn border-line w-full" href="{% url 'accounts:google_login' %}" aria-label="Continue with Google">
+      <span>Continue with Google</span>
+    </a>
+
+    <div class="text-muted text-sm my-4 text-center">or sign up with email</div>
+
     <form method="post" class="space-y-4 bg-surface border border-line rounded-2xl p-6">
       {% csrf_token %}
       {% for field in form %}
@@ -16,9 +23,7 @@
       {% endfor %}
       {% for e in form.non_field_errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
       <button class="btn btn-primary w-full" type="submit">Sign up</button>
-      <div class="text-sm text-muted mt-3">
-        Already have an account? <a class="hover:underline" href="{% url 'accounts:login' %}">Sign in</a>
-      </div>
+      <p class="text-xs text-muted mt-2">We’ll send a 6-digit code to verify your email.</p>
     </form>
   </div>
 </section>

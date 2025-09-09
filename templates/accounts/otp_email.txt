@@ -1,0 +1,9 @@
+Hi {{ user.username }},
+
+Your DeltaCrown verification code is: {{ code }}
+
+This code expires in 10 minutes.
+
+If you didn’t request this, you can ignore this email.
+
+— DeltaCrown

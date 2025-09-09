@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Verify your email — DeltaCrown{% endblock %}
+{% block content %}
+<section class="py-12">
+  <div class="container mx-auto px-4 max-w-md">
+    <h1 class="text-2xl font-bold mb-4">Verify your email</h1>
+    <form method="post" class="space-y-4 bg-surface border border-line rounded-2xl p-6">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <label for="id_code" class="block text-sm font-medium">Enter 6-digit code</label>
+      {{ form.code }}
+      <button class="btn btn-primary w-full" type="submit">Verify</button>
+    </form>
+    <form method="post" action="{% url 'accounts:resend_otp' %}" class="mt-3">
+      {% csrf_token %}
+      <button class="btn border-line w-full" type="submit">Resend code</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
