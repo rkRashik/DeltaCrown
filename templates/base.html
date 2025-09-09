@@ -5,89 +5,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- 1) Early theme bootstrap to avoid FOUC -->
-    <script>
-      (function () {
-        try {
-          var STORAGE_KEY = 'dc.theme.v1';
-          var saved = localStorage.getItem(STORAGE_KEY); // 'light' | 'dark' | 'system' | null
-          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-          var theme = saved || 'system';
-          var applied = (theme === 'dark') ? 'dark' : (theme === 'light') ? 'light' : (prefersDark ? 'dark' : 'light');
-          document.documentElement.setAttribute('data-theme', applied);
-          document.documentElement.setAttribute('data-theme-mode', theme); // remember the 'system' setting too
-        } catch (e) {}
-      })();
-    </script>
-
     {% include "partials/seo_meta.html" %}
     <title>{% block title %}DeltaCrown — Bangladesh’s Esports Superbrand{% endblock %}</title>
 
-    <!-- Tailwind CDN (no build tools) -->
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: { display: ['Inter', 'ui-sans-serif', 'system-ui'] },
-          }
-        }
-      };
-    </script>
-
-    <!-- 2) Semantic tokens (light/dark via [data-theme]) -->
-    <style>
-      /* Reveal animation */
-[data-reveal]{opacity:0; transform:translateY(12px); transition:opacity .45s ease, transform .45s ease;}
-.dc-revealed{opacity:1; transform:none;}
-
-      :root{
-        /* neutrals */
-        --bg: #0b0b0c; --surface:#121214; --elev:#16161a;
-        --text:#e9e9ef; --muted:#a1a1aa; --line:#26262b;
-
-        /* brand */
-        --brand-1:#22d3ee; /* delta */
-        --brand-2:#f59e0b; /* crown */
-
-        /* states */
-        --ok:#16a34a; --warn:#f59e0b; --err:#ef4444;
-
-        /* focus ring */
-        --ring:#f59e0b;
-      }
-      html[data-theme="light"]{
-        --bg:#f7f7fb; --surface:#ffffff; --elev:#fbfbfe;
-        --text:#111827; --muted:#4b5563; --line:#e5e7eb;
-      }
-
-      body{background:var(--bg); color:var(--text);}
-      .bg-surface{background:var(--surface);}
-      .bg-elev{background:var(--elev);}
-      .text-muted{color:var(--muted);}
-      .border-line{border-color:var(--line);}
-
-      .btn{display:inline-flex;align-items:center;gap:.5rem;padding:.625rem 1rem;border-radius:.75rem;border:1px solid var(--line)}
-      .btn-primary{background:linear-gradient(90deg,var(--brand-1),var(--brand-2)); color:#0b0b0c;font-weight:600}
-      .container{max-width:1200px}
-      a:focus,button:focus{outline:2px solid var(--ring);outline-offset:2px}
-    </style>
-
+    <!-- External CSS -->
+    <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'siteui/css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'siteui/css/components.css' %}">
   </head>
   <body class="min-h-screen antialiased">
-    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:m-2 focus:px-3 focus:py-2 focus:bg-surface focus:rounded">Skip to main content</a>
+    <a href="#main" class="sr-only focus:not-sr-only">Skip to main</a>
     {% include "partials/nav.html" %}
     <main id="main">{% block content %}{% endblock %}</main>
     {% include "partials/footer.html" %}
     {% include "partials/messages.html" %}
     {% include "partials/toasts.html" %}
 
-    <!-- 3) Theme controller (toggle + system sync) -->
-    <script src="{% static 'siteui/theme.js' %}"></script>
-    <!-- 4) Component interactions -->
-    <script src="{% static 'siteui/components.js' %}"></script>
-    <!-- 5) Motion & micro-interactions -->
-    <script src="{% static 'siteui/motion.js' %}"></script>
+    <!-- External JS -->
+    <script src="{% static 'siteui/js/theme.js' %}"></script>
+    <script src="{% static 'siteui/js/components.js' %}"></script>
+    <script src="{% static 'siteui/js/motion.js' %}"></script>
   </body>
 </html>

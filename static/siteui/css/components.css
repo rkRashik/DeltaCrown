@@ -1,0 +1,9 @@
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.625rem 1rem;
+  border-radius:.75rem;border:1px solid var(--line)}
+.btn-primary{background:linear-gradient(90deg,var(--brand-1),var(--brand-2));
+  color:#0b0b0c;font-weight:600}
+.container{max-width:1200px}
+.bg-surface{background:var(--surface);}
+.bg-elev{background:var(--elev);}
+.text-muted{color:var(--muted);}
+.border-line{border-color:var(--line);}
