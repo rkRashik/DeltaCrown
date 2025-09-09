@@ -9,7 +9,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-insecure-secret-key-change-me")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,192.168.68.108").split(",")
+
+# --- ALLOWED_HOSTS / CSRF (add your LAN IP here) ---
+ALLOWED_HOSTS = [
+    "localhost", "127.0.0.1",
+    "192.168.68.100",
+    # ngrok rotates:
+    ".ngrok-free.app",
+    # optional:
+    "766cd7c77fe7.ngrok-free.app",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://192.168.68.100:8000",
+    # CSRF origins MUST include scheme; allow all ngrok subdomains:
+    "https://*.ngrok-free.app",
+    # optional: (not required if using wildcard)
+    "https://766cd7c77fe7.ngrok-free.app",
+]
 
 # -----------------------------------------------------------------------------
 # Applications
@@ -158,24 +176,6 @@ REST_FRAMEWORK = {
 }
 
 
-# -----------------------------------------------------------------------------
-# Email config (settings)
-# -----------------------------------------------------------------------------
-
-# DEFAULT_FROM_EMAIL = os.getenv("DeltaCrownEmail", "deltacrownhq@gmail.com")
-# EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-# EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-# EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", DEFAULT_FROM_EMAIL)
-# EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword", "")  # Use a Gmail App Password
-
-# -----------------------------------------------------------------------------
-# Email (dev-safe)
-# -----------------------------------------------------------------------------
-# Print emails to the console during development.
-# Auth redirects
-
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/accounts/profile/"
 LOGOUT_REDIRECT_URL = "/"
@@ -185,29 +185,31 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
 
 
-# Where your site runs (used to build OAuth redirect URI)
-SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
-# Google OAuth Client (set these in your environment)
-GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
-GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "")
+# Where your site runs
+# SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")
+SITE_URL = os.getenv("SITE_URL", "http://192.168.68.100:8000")
+
+# Google OAuth Client
+GOOGLE_OAUTH_CLIENT_ID = os.getenv("DeltaCrown_OAUTH_CLIENT_ID", "")
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv("DeltaCrown_OAUTH_CLIENT_SECRET", "")
 
 
+# --- Email (Gmail SMTP) ---
+# Use console backend in tests, SMTP in dev/lan when creds present.
+if os.getenv("DeltaCrownEmailAppPassword"):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.gmail.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "deltacrownhq@gmail.com")
+    EMAIL_HOST_PASSWORD = os.getenv("DeltaCrownEmailAppPassword")
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+else:
+    # fallback (CI/tests)
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = "no-reply@deltacrown.local"
 
 
-# -----------------------------------------------------------------------------
-# CKEditor 5 (keep it quiet/harmless in tests)
-# -----------------------------------------------------------------------------
-CKEDITOR_5_CONFIGS = {
-    "default": {
-        "toolbar": [
-            "bold", "italic", "underline", "|",
-            "link", "bulletedList", "numberedList", "|",
-            "blockQuote", "insertTable", "undo", "redo",
-        ],
-    }
-}
-CKEDITOR_5_CUSTOM_CSS = None
-CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff"
 
 # -----------------------------------------------------------------------------
 # Email (in-memory for tests)
@@ -229,3 +231,20 @@ TEST_RUNNER = 'deltacrown.test_runner.CustomTestRunner'
 
 # notifications
 NOTIFICATIONS_EMAIL_ENABLED = False  # set True to email in addition to in-app
+
+
+
+# -----------------------------------------------------------------------------
+# CKEditor 5 (keep it quiet/harmless in tests)
+# -----------------------------------------------------------------------------
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": [
+            "bold", "italic", "underline", "|",
+            "link", "bulletedList", "numberedList", "|",
+            "blockQuote", "insertTable", "undo", "redo",
+        ],
+    }
+}
+CKEDITOR_5_CUSTOM_CSS = None
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff"
