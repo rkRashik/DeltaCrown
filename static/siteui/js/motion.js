@@ -64,3 +64,45 @@
   }
   document.querySelectorAll("[data-countdown]").forEach(render);
 })();
+
+
+// Countdown (expects ISO string in data-deadline)
+(function () {
+  function init(el) {
+    const iso = el.getAttribute("data-deadline");
+    const digits = el.querySelector("[data-countdown-digits]");
+    const label = el.querySelector("[data-countdown-label]");
+    if (!iso || !digits) return;
+
+    const end = new Date(iso).getTime();
+    if (Number.isNaN(end)) { digits.textContent = "—"; return; }
+
+    function tick() {
+      const now = Date.now();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        if (label) label.textContent = "Status";
+        digits.textContent = "Live Now";
+        return; // stop ticking
+      }
+
+      let remaining = diff;
+      const days = Math.floor(remaining / 86400000); remaining %= 86400000;
+      const hh = String(Math.floor(remaining / 3600000)).padStart(2, "0");
+      remaining %= 3600000;
+      const mm = String(Math.floor(remaining / 60000)).padStart(2, "0");
+      remaining %= 60000;
+      const ss = String(Math.floor(remaining / 1000)).padStart(2, "0");
+
+      digits.textContent = (days > 0 ? days + "d " : "") + `${hh}:${mm}:${ss}`;
+    }
+
+    tick();
+    const id = setInterval(tick, 1000);
+    // Optional: clear on page unload
+    window.addEventListener("beforeunload", () => clearInterval(id), { once: true });
+  }
+
+  document.querySelectorAll("[data-countdown]").forEach(init);
+})();

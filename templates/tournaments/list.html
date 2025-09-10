@@ -1,32 +1,120 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block title %}Tournaments — DeltaCrown{% endblock %}
 
 {% block content %}
-<section class="container py-10">
-  <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
-    <div>
-      <h1 class="sec-h">Tournaments</h1>
-      <p class="text-muted">Find your next challenge. Fair brackets, verified payouts.</p>
+<section class="container py-6">
+  <!-- Featured banner -->
+  {% if tournaments and tournaments.0 %}
+    {% with ft=tournaments.0 %}
+    <div class="glass rounded-2xl overflow-hidden mb-6 t-feature">
+      <div class="t-feature__media">
+        {% if ft.banner_url %}
+          <img src="{{ ft.banner_url }}" alt="" class="t-feature__img" loading="eager">
+        {% elif ft.banner and ft.banner.url %}
+          <img src="{{ ft.banner.url }}" alt="" class="t-feature__img" loading="eager">
+        {% else %}
+          <div class="t-feature__ph" aria-hidden="true"></div>
+        {% endif %}
+        <div class="t-feature__scrim" aria-hidden="true"></div>
+      </div>
+      <div class="t-feature__body">
+        <div class="t-feature__kicker">Featured</div>
+        <h1 class="t-feature__title crown-text">{% firstof ft.name ft.title "Tournament" %}</h1>
+        <p class="t-feature__sub text-muted">
+          {% firstof ft.game_name ft.game "—" %} •
+          {% if ft.start_at %}{{ ft.start_at|date:"M d, Y H:i" }}{% elif ft.start_time %}{{ ft.start_time|date:"M d, Y H:i" }}{% else %}TBA{% endif %}
+          • {% if ft.entry_fee %}{{ ft.entry_fee }}{% else %}Free{% endif %}
+        </p>
+        <div class="t-feature__ctas">
+          {% if ft.slug %}
+            <a class="btn-primary" href="/tournaments/{{ ft.slug }}/">View Details</a>
+            {% if ft.registration_open %}
+              <a class="btn-secondary" href="/tournaments/{{ ft.slug }}/register/">Register</a>
+            {% endif %}
+          {% elif ft.detail_url %}
+            <a class="btn-primary" href="{{ ft.detail_url }}">View Details</a>
+          {% else %}
+            <a class="btn-primary" href="/tournaments/">View Details</a>
+          {% endif %}
+        </div>
+      </div>
     </div>
-    <div class="flex gap-2">
-      <a href="/tournaments/?status=open" class="btn-secondary">Open</a>
-      <a href="/tournaments/?status=ongoing" class="btn-secondary">Ongoing</a>
-      <a href="/tournaments/?status=finished" class="btn-secondary">Finished</a>
-    </div>
-  </header>
+    {% endwith %}
+  {% endif %}
 
+  <!-- Filter bar -->
+  <form id="t-filter" class="filter-bar glass rounded-2xl p-4" method="get" action="">
+    <div class="filter-bar__row">
+      <div class="filter-field">
+        <label class="filter-label">Search</label>
+        <input type="search" name="q" value="{{ q }}" class="filter-input" placeholder="Search tournaments…">
+      </div>
+
+      <div class="filter-field">
+        <label class="filter-label">Game</label>
+        <select name="game" class="filter-select" id="filter-game">
+          <option value="">All games</option>
+          {% if games %}
+            {% for g in games %}
+              <option value="{{ g.slug|default_if_none:g.name }}">{{ g.name }}</option>
+            {% endfor %}
+          {% endif %}
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label class="filter-label">Status</label>
+        <div class="chipset" id="filter-status">
+          <label class="chip is-on"><input type="radio" name="status" value="">Any</label>
+          <label class="chip"><input type="radio" name="status" value="open">Open</label>
+          <label class="chip"><input type="radio" name="status" value="ongoing">Ongoing</label>
+          <label class="chip"><input type="radio" name="status" value="finished">Finished</label>
+        </div>
+      </div>
+
+      <div class="filter-field">
+        <label class="filter-label">Sort by</label>
+        <select name="sort" class="filter-select" id="filter-sort">
+          <option value="">Default</option>
+          <option value="start">Start date</option>
+          <option value="prize">Prize</option>
+          <option value="entry">Entry fee</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn-secondary" type="submit">Apply</button>
+        <a class="btn-ghost" href="/tournaments/">Reset</a>
+      </div>
+    </div>
+  </form>
+
+  <!-- Grid -->
   {% if tournaments %}
-    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div id="t-grid" class="t-grid mt-6">
       {% for t in tournaments %}
         {% include "tournaments/partials/_card.html" with t=t %}
       {% endfor %}
     </div>
+  {% elif events %}
+    <div id="t-grid" class="t-grid mt-6">
+      {% for t in events %}
+        {% include "tournaments/partials/_card.html" with t=t %}
+      {% endfor %}
+    </div>
+  {% elif objects %}
+    <div id="t-grid" class="t-grid mt-6">
+      {% for t in objects %}
+        {% include "tournaments/partials/_card.html" with t=t %}
+      {% endfor %}
+    </div>
   {% else %}
-    <div class="glass p-8 rounded-2xl">
-      <h3 class="text-xl font-semibold">No tournaments right now</h3>
-      <p class="text-muted mt-1">Check back soon or join our Discord to get notified.</p>
-      <a class="btn-primary mt-4 inline-flex" href="https://discord.com/" rel="noopener">Join Discord</a>
+    <div class="glass p-8 rounded-2xl mt-6">
+      <h3 class="text-xl font-semibold">No tournaments available</h3>
+      <p class="text-muted mt-1">Try again later or clear filters.</p>
+      <a class="btn-primary mt-4 inline-flex" href="/tournaments/">Clear Filters</a>
     </div>
   {% endif %}
 </section>
