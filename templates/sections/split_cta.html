@@ -1,19 +1,18 @@
-<section class="py-12" data-reveal>
-<section class="py-12">
-  <div class="container mx-auto px-4 grid md:grid-cols-2 gap-6">
-    <div class="bg-surface border border-line rounded-2xl p-6">
-      <h3 class="text-lg font-semibold">Compete & Win</h3>
-      <p class="text-muted mt-1">Browse open brackets, register, and climb.</p>
-      <div class="mt-4">
-        {% include "components/button.html" with label="See Tournaments" variant="primary" href=SITE.final_cta.events_url %}
+<section class="container py-16">
+  <div class="grid md:grid-cols-2 gap-6 items-stretch">
+    <div class="glass p-8 rounded-2xl flex flex-col justify-between" data-reveal>
+      <div>
+        <h3 class="text-2xl font-semibold">Ready to Compete?</h3>
+        <p class="text-muted mt-2">Browse all upcoming tournaments and find your next challenge.</p>
       </div>
+      <a class="btn-primary mt-6" href="/tournaments/">See All Events</a>
     </div>
-    <div class="bg-surface border border-line rounded-2xl p-6">
-      <h3 class="text-lg font-semibold">Join the Community</h3>
-      <p class="text-muted mt-1">Chat, scrim, and form teams with fellow players.</p>
-      <div class="mt-4">
-        {% include "components/button.html" with label="Join Discord" variant="outline" href=SITE.final_cta.discord_url %}
+    <div class="glass p-8 rounded-2xl flex flex-col justify-between" data-reveal data-reveal-delay="80">
+      <div>
+        <h3 class="text-2xl font-semibold">Here to Watch?</h3>
+        <p class="text-muted mt-2">Join our community on Discord, follow the stories, and watch the best plays.</p>
       </div>
+      <a class="btn-secondary mt-6" href="https://discord.com/" rel="noopener">Join Our Discord</a>
     </div>
   </div>
 </section>

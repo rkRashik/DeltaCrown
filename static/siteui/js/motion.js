@@ -1,127 +1,66 @@
-(function(){
-  var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // ---------- Reveal on scroll ----------
-  function initReveal(){
-    var els = document.querySelectorAll('[data-reveal]');
-    if (!els.length) return;
-    if (prefersReduced) {
-      els.forEach(function(el){ el.removeAttribute('data-reveal'); });
-      return;
-    }
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if (e.isIntersecting){
-          e.target.classList.add('dc-revealed');
-          io.unobserve(e.target);
-        }
-      });
-    }, {threshold: 0.12});
-    els.forEach(function(el){ io.observe(el); });
+// Reveal on scroll (respects reduced motion)
+(function () {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.querySelectorAll("[data-reveal]").forEach(n => n.classList.add("is-shown"));
+    return;
   }
-
-  // ---------- Count-up ----------
-  function initCountUp(){
-    if (prefersReduced) return;
-    var els = document.querySelectorAll('[data-count-to]');
-    els.forEach(function(el){
-      var to = parseInt(el.getAttribute('data-count-to'), 10);
-      if (isNaN(to)) return;
-
-      var from = parseInt(el.getAttribute('data-count-from') || '0', 10);
-      var dur = parseInt(el.getAttribute('data-count-duration') || '1200', 10);
-      var start = null;
-
-      function step(ts){
-        if (!start) start = ts;
-        var t = Math.min(1, (ts - start) / dur);
-        var val = Math.floor(from + (to - from) * t);
-        el.textContent = toLocaleInt(val);
-        if (t < 1) requestAnimationFrame(step);
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting) {
+        const delay = +e.target.getAttribute("data-reveal-delay") || 0;
+        setTimeout(() => e.target.classList.add("is-shown"), delay);
+        io.unobserve(e.target);
       }
-      requestAnimationFrame(step);
     });
-  }
+  }, { rootMargin: "0px 0px -10% 0px" });
+  document.querySelectorAll("[data-reveal]").forEach(n => io.observe(n));
+})();
 
-  function toLocaleInt(n){
-    try { return n.toLocaleString(); } catch (_) { return String(n); }
-  }
+// Count up (tests expect data-count-to)
+(function () {
+  const els = document.querySelectorAll("[data-count-to]");
+  if (!els.length) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const target = +el.getAttribute("data-count-to");
+      const prefix = el.getAttribute("data-prefix") || "";
+      const suffix = el.getAttribute("data-suffix") || "";
+      const start = performance.now();
+      const duration = 1200;
 
-  // ---------- Countdown ----------
-  function initCountdown(){
-    var el = document.querySelector('[data-countdown-to]');
-    if (!el) return;
-    var iso = el.getAttribute('data-countdown-to');
+      function tick(now) {
+        const p = Math.min(1, (now - start) / duration);
+        const val = Math.floor(target * p);
+        el.textContent = prefix + val.toLocaleString() + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      io.unobserve(el);
+    });
+  }, { threshold: .4 });
+  els.forEach(el => io.observe(el));
+})();
+
+// Countdown (expects ISO string in data-deadline)
+(function () {
+  function render(el) {
+    const iso = el.getAttribute("data-deadline");
     if (!iso) return;
-    var end = new Date(iso);
-    if (isNaN(end.getTime())) return;
-
-    function tick(){
-      var now = new Date();
-      var diff = end - now;
-      if (diff <= 0){
-        el.textContent = 'Starting soon';
-        return;
-      }
-      // compute parts
-      var sec = Math.floor(diff / 1000);
-      var days = Math.floor(sec / 86400); sec -= days * 86400;
-      var hrs = Math.floor(sec / 3600); sec -= hrs * 3600;
-      var mins = Math.floor(sec / 60); sec -= mins * 60;
-      el.textContent = days + 'd ' + pad(hrs) + 'h ' + pad(mins) + 'm ' + pad(sec) + 's';
-      setTimeout(tick, 1000);
+    const digits = el.querySelector("[data-countdown-digits]");
+    const end = new Date(iso).getTime();
+    function fmt() {
+      if (isNaN(end)) return "—";
+      const d = Math.max(0, end - Date.now());
+      const hh = String(Math.floor(d / 3600000)).padStart(2, "0");
+      const mm = String(Math.floor((d % 3600000) / 60000)).padStart(2, "0");
+      const ss = String(Math.floor((d % 60000) / 1000)).padStart(2, "0");
+      return `${hh}:${mm}:${ss}`;
     }
-    function pad(n){ return (n < 10 ? '0' : '') + n; }
+    function tick() { if (digits) digits.textContent = fmt(); }
     tick();
+    setInterval(tick, 1000);
   }
-
-  // ---------- Shine effect (subtle) ----------
-  function initShine(){
-    if (prefersReduced) return;
-    document.querySelectorAll('[data-shine]').forEach(function(card){
-      card.addEventListener('pointermove', function(e){
-        var rect = card.getBoundingClientRect();
-        var x = e.clientX - rect.left;
-        var y = e.clientY - rect.top;
-        card.style.setProperty('--mx', x + 'px');
-        card.style.setProperty('--my', y + 'px');
-      });
-      card.addEventListener('pointerleave', function(){
-        card.style.removeProperty('--mx'); card.style.removeProperty('--my');
-      });
-    });
-  }
-
-  // ---------- Toasts ----------
-  function initToasts(){
-    window.DCToast = function(msg, kind){
-      var root = document.getElementById('dc-toasts');
-      if (!root) return alert(msg);
-      var item = document.createElement('div');
-      item.className = 'dc-toast';
-      item.setAttribute('role','status');
-      item.textContent = msg;
-      if (kind) item.dataset.kind = kind;
-      root.appendChild(item);
-      setTimeout(function(){ item.classList.add('show'); }, 10);
-      setTimeout(function(){
-        item.classList.remove('show');
-        setTimeout(function(){ item.remove(); }, 300);
-      }, 3800);
-    };
-  }
-
-  function init(){
-    initReveal();
-    initCountUp();
-    initCountdown();
-    initShine();
-    initToasts();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  document.querySelectorAll("[data-countdown]").forEach(render);
 })();

@@ -1,30 +1,40 @@
 {% load static %}
 <!doctype html>
-<html lang="en" data-theme="system">
+<html lang="en" data-theme="system" class="h-full">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-
     {% include "partials/seo_meta.html" %}
     <title>{% block title %}DeltaCrown — Bangladesh’s Esports Superbrand{% endblock %}</title>
 
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: { extend: { container: { center: true, padding: '1rem' } } }
+      }
+    </script>
 
-    <!-- External CSS -->
-    <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
-    <link rel="stylesheet" href="{% static 'siteui/css/base.css' %}">
-    <link rel="stylesheet" href="{% static 'siteui/css/components.css' %}">
+    <!-- Site CSS -->
+    <link rel="preload" href="{% static 'siteui/css/tokens.css' %}" as="style" />
+    <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/base.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/components.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/effects.css' %}" />
   </head>
-  <body class="min-h-screen antialiased">
-    <a href="#main" class="sr-only focus:not-sr-only">Skip to main content</a>
+  <body class="min-h-full bg-body text-body antialiased">
+    <a href="#main" class="skip-link">Skip to main content</a>
+
     {% include "partials/nav.html" %}
-    <main id="main">{% block content %}{% endblock %}</main>
+
+    <main id="main" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+
     {% include "partials/footer.html" %}
-    {% include "partials/messages.html" %}
     {% include "partials/toasts.html" %}
 
-    <!-- External JS -->
+    <!-- Site JS -->
     <script src="{% static 'siteui/js/theme.js' %}"></script>
     <script src="{% static 'siteui/js/components.js' %}"></script>
     <script src="{% static 'siteui/js/motion.js' %}"></script>

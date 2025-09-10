@@ -1,25 +1,40 @@
-<footer class="mt-12 border-t border-line">
-  <div class="container mx-auto px-4 py-10 grid md:grid-cols-3 gap-8">
-    <div>
-      <div class="font-semibold">DeltaCrown</div>
-      <p class="text-muted mt-2">{{ SITE.brand.subtext }}</p>
+{% load static %}
+<footer class="mt-20 border-t border-border bg-surface/60 backdrop-blur-sm">
+  <div class="container py-10 grid md:grid-cols-4 gap-8">
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center gap-2">
+        <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" class="h-7 w-7" alt="DeltaCrown" />
+        <div class="font-semibold">DeltaCrown</div>
+      </div>
+      <p class="text-muted text-sm">From the Delta to the Crown — Where Champions Rise.</p>
     </div>
     <div>
-      <div class="font-semibold mb-2">Quick Links</div>
-      <ul class="space-y-1">
-        <li><a href="/tournaments/" class="hover:underline">Tournaments</a></li>
-        <li><a href="/teams/" class="hover:underline">Teams</a></li>
-        <li><a href="/rules/" class="hover:underline">Rules</a></li>
-        <li><a href="/contact/" class="hover:underline">Contact</a></li>
+      <div class="foot-h">Explore</div>
+      <ul class="foot-list">
+        <li><a href="/tournaments/">Tournaments</a></li>
+        <li><a href="/teams/">Teams</a></li>
+        <li><a href="/pages/about/">About</a></li>
+        <li><a href="/pages/community/">Community</a></li>
       </ul>
     </div>
     <div>
-      <div class="font-semibold mb-2">Social</div>
-      <ul class="space-y-1">
-        <li><a href="{{ SITE.social.facebook }}" target="_blank" rel="noopener" class="hover:underline">Facebook</a></li>
-        <li><a href="{{ SITE.social.youtube }}" target="_blank" rel="noopener" class="hover:underline">YouTube</a></li>
-        <li><a href="{{ SITE.social.discord }}" target="_blank" rel="noopener" class="hover:underline">Discord</a></li>
+      <div class="foot-h">Trust</div>
+      <ul class="foot-list">
+        <li>Secure Payments</li>
+        <li>Verified Tournaments</li>
+        <li>Fair Brackets</li>
       </ul>
     </div>
+    <div>
+      <div class="foot-h">Social</div>
+      <ul class="foot-list">
+        <li><a href="https://facebook.com/" rel="noopener">Facebook</a></li>
+        <li><a href="https://youtube.com/" rel="noopener">YouTube</a></li>
+        <li><a href="https://discord.com/" rel="noopener">Discord</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container py-6 text-xs text-muted border-t border-border">
+    © {{ now|default:2025 }} DeltaCrown. All rights reserved. · <a href="/legal/privacy/">Privacy</a> · <a href="/legal/terms/">Terms</a>
   </div>
 </footer>

@@ -1,0 +1,15 @@
+/* Animated gradient for hero (GPU cheap) */
+.hero-gradient {
+  position:absolute; inset:0;
+  background: radial-gradient(1200px 600px at 20% 20%, rgba(34,211,238,.25), transparent 60%),
+              radial-gradient(900px 500px at 80% 30%, rgba(250,204,21,.20), transparent 60%),
+              radial-gradient(800px 500px at 50% 80%, rgba(99,102,241,.15), transparent 60%);
+  filter: blur(30px);
+  animation: grad-move 20s ease-in-out infinite alternate;
+}
+@keyframes grad-move { 0% { transform: translateY(0px); } 100% { transform: translateY(-20px); } }
+@keyframes shine { 0% { transform: translateX(-100%) rotate(15deg); } 100% { transform: translateX(100%) rotate(15deg); } }
+
+/* Reveal */
+[data-reveal] { opacity: 0; transform: translateY(12px); transition: opacity .4s ease, transform .4s ease; }
+[data-reveal].is-shown { opacity: 1; transform: translateY(0); }

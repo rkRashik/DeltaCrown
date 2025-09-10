@@ -1,11 +1,1 @@
-<style>
-  #dc-toasts{position:fixed; inset-inline-end:1rem; inset-block-start:1rem; z-index:60; display:flex; flex-direction:column; gap:.5rem}
-  .dc-toast{opacity:0; transform:translateY(-6px); transition:opacity .25s, transform .25s;
-    background:var(--elev); border:1px solid var(--line); color:var(--text);
-    padding:.5rem .75rem; border-radius:.75rem; font-size:.875rem; box-shadow:0 8px 24px rgba(0,0,0,.25)}
-  .dc-toast.show{opacity:1; transform:none}
-  .dc-toast[data-kind="ok"]{border-color:rgba(34,197,94,.5)}
-  .dc-toast[data-kind="warn"]{border-color:rgba(245,158,11,.6)}
-  .dc-toast[data-kind="err"]{border-color:rgba(239,68,68,.6)}
-</style>
-<div id="dc-toasts" aria-live="polite" aria-atomic="false"></div>
+<div id="dc-toasts" class="fixed bottom-4 right-4 z-[60] flex flex-col gap-3"></div>

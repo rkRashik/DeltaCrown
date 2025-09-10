@@ -1,25 +1,13 @@
-{% load humanize %}
-<section class="py-10" data-reveal>
-  <div class="container mx-auto px-4">
-    <h2 class="text-xl font-bold mb-4">Stats</h2>
-    {% with s=SITE.stats %}
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div class="bg-surface border border-line rounded-2xl p-6 text-center">
-        <div class="text-3xl font-extrabold"
-             data-count-from="0" data-count-to="{{ s.players|default:0 }}"> {{ s.players|default:0|intcomma }}</div>
-        <div class="text-muted">Registered Players</div>
-      </div>
-      <div class="bg-surface border border-line rounded-2xl p-6 text-center">
-        <div class="text-3xl font-extrabold"
-             data-count-from="0" data-count-to="{{ s.prize_bdt|default:0 }}"> ৳{{ s.prize_bdt|default:0|intcomma }}</div>
-        <div class="text-muted">Total Prize Pool</div>
-      </div>
-      <div class="bg-surface border border-line rounded-2xl p-6 text-center">
-        <div class="text-3xl font-extrabold"
-             data-count-from="0" data-count-to="{{ s.payout_accuracy_pct|default:0 }}"> {{ s.payout_accuracy_pct|default:0 }}%</div>
-        <div class="text-muted">Payout Accuracy</div>
-      </div>
-    </div>
-    {% endwith %}
+<section class="container py-14">
+  <h2 class="sec-h">Our Community’s Impact</h2>
+  <div class="grid sm:grid-cols-3 gap-6">
+    <div class="stat" data-count-to="5000">0</div>
+    <div class="stat" data-count-to="2000000" data-prefix="৳">0</div>
+    <div class="stat" data-count-to="98" data-suffix="%">0</div>
+  </div>
+  <div class="grid sm:grid-cols-3 gap-6 text-muted text-sm mt-2">
+    <div>Registered Players</div>
+    <div>Prizes Awarded</div>
+    <div>Payout Accuracy</div>
   </div>
 </section>

@@ -1,54 +1,8 @@
-{% load static %}
-{% with site_name="DeltaCrown" %}
-  <meta name="description" content="{{ SITE.brand.subtext|default:'Bangladesh-born, globally-driven esports.' }}">
-  <link rel="canonical" href="{{ request.build_absolute_uri }}">
-
-  <!-- Social (Open Graph / Twitter) -->
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="{{ site_name }}">
-  <meta property="og:title" content="{{ site_name }} — Where Champions Rise">
-  <meta property="og:description" content="{{ SITE.brand.subtext|default:'Bangladesh-born, globally-driven esports.' }}">
-  <meta property="og:url" content="{{ request.build_absolute_uri }}">
-  <meta property="og:image" content="{% static 'siteui/img/og-default.png' %}">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="{{ site_name }} — Where Champions Rise">
-  <meta name="twitter:description" content="{{ SITE.brand.subtext|default:'Bangladesh-born, globally-driven esports.' }}">
-  <meta name="twitter:image" content="{% static 'siteui/img/og-default.png' %}">
-
-  <!-- PWA-ish niceties -->
-  <meta name="theme-color" content="#f59e0b">
-  <link rel="icon" href="{% static 'siteui/img/og-default.png' %}">
-
-  <!-- JSON-LD: Organization -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"Organization",
-    "@id":"{{ request.scheme }}://{{ request.get_host }}/#org",
-    "name":"DeltaCrown",
-    "url":"{{ request.scheme }}://{{ request.get_host }}/",
-    "logo":"{{ request.scheme }}://{{ request.get_host }}{% static 'siteui/img/og-default.png' %}",
-    "sameAs":[
-      "{{ SITE.social.facebook|default:'' }}",
-      "{{ SITE.social.youtube|default:'' }}",
-      "{{ SITE.social.discord|default:'' }}"
-    ]
-  }
-  </script>
-
-  <!-- JSON-LD: WebSite -->
-  <script type="application/ld+json">
-  {
-    "@context":"https://schema.org",
-    "@type":"WebSite",
-    "@id":"{{ request.scheme }}://{{ request.get_host }}/#website",
-    "url":"{{ request.scheme }}://{{ request.get_host }}/",
-    "name":"DeltaCrown",
-    "potentialAction":{
-      "@type":"SearchAction",
-      "target":"{{ request.scheme }}://{{ request.get_host }}/?q={search_term_string}",
-      "query-input":"required name=search_term_string"
-    }
-  }
-  </script>
-{% endwith %}
+{% comment %}Basic SEO + JSON-LD hooks (extend as needed){% endcomment %}
+<meta name="description" content="DeltaCrown — Bangladesh’s premier esports ecosystem. Tournaments, community, media, and commerce where champions rise." />
+<link rel="icon" href="{% static 'siteui/svg/logo-deltacrown.svg' %}">
+<meta property="og:title" content="DeltaCrown — Where Champions Rise" />
+<meta property="og:description" content="Fair tournaments, real payouts, vibrant community." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="{% static 'siteui/svg/logo-deltacrown.svg' %}" />
+<meta name="theme-color" content="#0b0e14" />

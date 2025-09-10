@@ -1,23 +1,30 @@
-<section aria-labelledby="timeline-heading" class="py-10">
-  <div class="container mx-auto px-4">
-    <h2 id="timeline-heading" class="text-xl md:text-2xl font-semibold mb-4">Timeline</h2>
+<section class="container py-14">
+  <h2 class="sec-h">Timeline</h2>
+  <div class="timeline">
+    <div class="timeline-line" aria-hidden="true"></div>
 
-    {% if timeline_entries %}
-      <ol class="relative border-s border-line ps-4 space-y-6" aria-label="Recent activity">
-        {% for e in timeline_entries %}
-          <li class="ms-4">
-            <div class="absolute w-2 h-2 rounded-full bg-amber-400 -start-[5px] mt-2"></div>
-            <time datetime="{{ e.date_iso|default:'' }}" class="text-xs text-muted">{{ e.date_iso|default:'' }}</time>
-            <div>
-              <a href="{{ e.href|default:'/' }}" class="block hover:underline">{{ e.label }}</a>
-            </div>
-          </li>
-        {% endfor %}
-      </ol>
-    {% else %}
-      <div class="bg-surface border border-line rounded-2xl p-6">
-        <p class="text-muted">No events yet.</p>
+    <div class="timeline-item" data-reveal>
+      <div class="timeline-icon">{% include 'sections/svg_profile.html' %}</div>
+      <div class="timeline-body">
+        <h3>Register & Verify</h3>
+        <p>Sign up and confirm your payment securely.</p>
       </div>
-    {% endif %}
+    </div>
+
+    <div class="timeline-item" data-reveal data-reveal-delay="80">
+      <div class="timeline-icon">{% include 'sections/svg_bracket.html' %}</div>
+      <div class="timeline-body">
+        <h3>Compete & Win</h3>
+        <p>Climb fair brackets with live updates.</p>
+      </div>
+    </div>
+
+    <div class="timeline-item" data-reveal data-reveal-delay="160">
+      <div class="timeline-icon">{% include 'sections/svg_wallet.html' %}</div>
+      <div class="timeline-body">
+        <h3>Get Paid</h3>
+        <p>Verified payouts with audit trails.</p>
+      </div>
+    </div>
   </div>
 </section>

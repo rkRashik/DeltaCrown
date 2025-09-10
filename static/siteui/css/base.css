@@ -1,4 +1,58 @@
-body { background:var(--bg); color:var(--text); }
-a:focus,button:focus{outline:2px solid var(--ring);outline-offset:2px}
-[data-reveal]{opacity:0;transform:translateY(12px);transition:opacity .45s,transform .45s}
-.dc-revealed{opacity:1;transform:none}
+/* Base + utilities aligned with Tailwind utilities */
+.bg-body { background-color: var(--bg); }
+.text-body { color: var(--text); }
+.text-muted { color: var(--muted); }
+.border-border { border-color: var(--border); }
+
+.crown-text {
+  background: linear-gradient(90deg, var(--brand-delta), var(--brand-crown));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+}
+
+.link-nav { color: var(--text); opacity: .9; }
+.link-nav:hover { opacity: 1; }
+
+.btn-primary, .btn-secondary, .btn-ghost {
+  display:inline-flex; align-items:center; justify-content:center;
+  gap:.5rem; font-weight:600; border-radius: .8rem; padding:.6rem 1rem;
+  border:1px solid var(--border);
+}
+.btn-primary { background: linear-gradient(90deg, var(--brand-delta), var(--brand-crown)); color:#0b0e14; }
+.btn-secondary { background: transparent; color: var(--text); }
+.btn-ghost { background: transparent; color: var(--text); border-color: transparent; }
+
+.sec-h { font-size: clamp(1.5rem, 1vw + 1.5rem, 2rem); font-weight: 800; margin-bottom: 1rem; }
+
+.card { padding:1.25rem; border-radius:1.25rem; }
+.card-title { font-weight:700; margin-top:.75rem; }
+.card-text { color:var(--muted); }
+.icon-wrap { height: 2.25rem; width: 2.25rem; color: var(--brand-delta); }
+
+.stat {
+  font-size: clamp(2rem, 3vw + 1rem, 3rem);
+  font-weight: 800;
+  text-align:center;
+  background: var(--surface);
+  border:1px solid var(--border);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+}
+
+.foot-h { font-weight:700; margin-bottom:.5rem; }
+.foot-list { display:grid; gap:.4rem; color:var(--muted); }
+
+/* Skip link */
+.skip-link {
+  position: absolute; left: 0; top: 0; transform: translateY(-120%);
+  background: var(--surface); color: var(--text);
+  padding: .5rem .75rem; border: 1px solid var(--border); border-radius: .5rem;
+}
+.skip-link:focus { transform: translateY(0); outline: 2px solid var(--brand-crown); outline-offset: 2px; }

@@ -1,29 +1,13 @@
-<section aria-labelledby="spotlight-heading" class="py-10">
-  <div class="container mx-auto px-4">
-    <h2 id="spotlight-heading" class="text-xl md:text-2xl font-semibold mb-4">Spotlight</h2>
-
-    {% if spotlight_items %}
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for it in spotlight_items %}
-          <article class="bg-surface border border-line rounded-2xl overflow-hidden">
-            <a href="{{ it.href|default:'/' }}" class="block">
-              {% if it.image %}
-                <img src="{{ it.image }}" alt="{{ it.title }}" class="w-full aspect-[16/9] object-cover" loading="lazy">
-              {% endif %}
-              <div class="p-4">
-                {% if it.kicker %}<p class="text-xs text-muted mb-1">{{ it.kicker }}</p>{% endif %}
-                <h3 class="text-lg font-semibold leading-snug">{{ it.title }}</h3>
-                {% if it.excerpt %}<p class="text-sm text-muted mt-2 line-clamp-2">{{ it.excerpt }}</p>{% endif %}
-                {% if it.badge %}<span class="mt-3 inline-block text-xs px-2 py-0.5 rounded bg-elev border border-line">{{ it.badge }}</span>{% endif %}
-              </div>
-            </a>
-          </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="bg-surface border border-line rounded-2xl p-6">
-        <p class="text-muted">No highlights yet — check back soon.</p>
-      </div>
-    {% endif %}
-  </div>
+<section class="container py-14">
+  <h2 class="sec-h">Champions of the Week</h2>
+  <article class="spotlight-card glass relative overflow-hidden" data-reveal>
+    <div class="shine" aria-hidden="true"></div>
+    <div class="flex flex-col sm:flex-row items-center gap-6">
+      <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" alt="" class="h-16 w-16 opacity-80">
+      <blockquote class="text-lg sm:text-xl leading-relaxed">
+        “DeltaCrown’s fair brackets are the only reason we made it to the finals.”
+        <span class="block text-sm text-muted mt-2">— Team Phoenix</span>
+      </blockquote>
+    </div>
+  </article>
 </section>
