@@ -32,3 +32,55 @@
 @media (prefers-reduced-motion: reduce){ .shine{ display:none; } }
 
 /* Sections spacing helpers are handled via Tailwind */
+
+
+/* Pills (status) */
+.pill {
+  font-size: .75rem; line-height: 1;
+  padding: .35rem .55rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.pill--open { color:#072; border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); }
+.pill--live { color:#7a1; border-color: rgba(250,204,21,.35); background: rgba(250,204,21,.10); }
+.pill--done { color:#2680eb; border-color: rgba(37,99,235,.35); background: rgba(37,99,235,.10); }
+.pill--tba  { color:var(--muted); }
+
+/* Bracket grid */
+.grid-bracket {
+  display: grid; gap: 1rem;
+  grid-auto-flow: column; grid-auto-columns: minmax(16rem, 18rem);
+}
+.bracket-round { display:flex; flex-direction:column; gap:.75rem; }
+.bracket-round__title { font-weight:700; }
+.bracket-round__matches { display:grid; gap:.75rem; }
+.match-card { padding: .85rem; }
+
+/* Premium site nav */
+.site-nav {
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(10px);
+  background: color-mix(in oklab, var(--bg) 78%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner { display:flex; align-items:center; justify-content:space-between; padding-block: .65rem; }
+.brand { display:flex; align-items:center; gap:.55rem; font-weight:700; letter-spacing:.2px; }
+.nav-links { display:none; gap:1.1rem; align-items:center; }
+.nav-cta { display:none; gap:.5rem; align-items:center; }
+
+@media (min-width: 768px) {
+  .nav-links, .nav-cta { display:flex; }
+}
+
+/* Hover underline with gradient */
+.link-nav {
+  position: relative; padding-bottom: .25rem;
+}
+.link-nav::after {
+  content: ""; position: absolute; left: 0; bottom: -2px; height: 2px; width: 0%;
+  background: linear-gradient(90deg, var(--brand-delta), var(--brand-crown));
+  transition: width .22s ease;
+}
+.link-nav:hover::after { width: 100%; }
+
+/* Mobile drawer close button */
+.close-x { position:absolute; right:.75rem; top:.75rem; }

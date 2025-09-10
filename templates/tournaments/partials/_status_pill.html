@@ -1,0 +1,9 @@
+{% if status %}
+  {% with s=status %}
+    <span class="pill {% if s == 'open' %}pill--open{% elif s == 'ongoing' %}pill--live{% elif s == 'finished' %}pill--done{% else %}pill--tba{% endif %}">
+      {{ s|title }}
+    </span>
+  {% endwith %}
+{% else %}
+  <span class="pill pill--tba">TBA</span>
+{% endif %}

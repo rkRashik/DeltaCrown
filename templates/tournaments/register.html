@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Register — {% firstof tournament.name "Tournament" %}{% endblock %}
+
+{% block content %}
+<section class="container py-10">
+  <div class="grid lg:grid-cols-3 gap-6">
+    <article class="glass p-6 rounded-2xl lg:col-span-2">
+      <h1 class="sec-h">Register</h1>
+      {% if form %}
+        <form method="post" enctype="multipart/form-data" class="grid gap-4">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+          {% for field in form %}
+            <div>
+              <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
+              {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+          <button type="submit" class="btn-primary">Submit Registration</button>
+        </form>
+      {% else %}
+        <p class="text-muted">Registration form not available.</p>
+      {% endif %}
+    </article>
+
+    <aside class="glass p-6 rounded-2xl">
+      <h3 class="font-semibold mb-3">Payment & Verification</h3>
+      <ul class="list-disc pl-5 text-sm text-muted space-y-1">
+        <li>Send entry fee to organizer’s bKash/Nagad/Rocket number (shown on next step).</li>
+        <li>Provide your Sender Number and Transaction ID.</li>
+        <li>Finance team manually verifies and confirms your slot.</li>
+      </ul>
+      <div class="mt-4 text-xs text-muted">Transparent audit trail & refund policy apply.</div>
+    </aside>
+  </div>
+</section>
+{% endblock %}

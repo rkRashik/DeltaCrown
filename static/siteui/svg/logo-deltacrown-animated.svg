@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="DeltaCrown (animated)">
+  <defs>
+    <linearGradient id="dc-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#facc15"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Delta outline -->
+  <path d="M32 6 L56 54 H8 Z"
+        fill="none" stroke="url(#dc-grad)" stroke-width="2.6" stroke-linejoin="round"
+        stroke-linecap="round" stroke-dasharray="180" stroke-dashoffset="180">
+    <animate attributeName="stroke-dashoffset" values="180;0" dur="1.2s" fill="freeze" begin="0.1s"/>
+  </path>
+
+  <!-- Crown linework -->
+  <path d="M18 38 L24 28 L32 36 L40 28 L46 38"
+        fill="none" stroke="url(#dc-grad)" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round"
+        stroke-dasharray="80" stroke-dashoffset="80">
+    <animate attributeName="stroke-dashoffset" values="80;0" dur="0.9s" fill="freeze" begin="0.35s"/>
+  </path>
+
+  <!-- Subtle periodic sheen across crown (very light) -->
+  <rect x="8" y="6" width="48" height="48" fill="none">
+    <animate attributeName="opacity" values="0;0.15;0" dur="3.2s" repeatCount="indefinite" begin="1.4s"/>
+  </rect>
+</svg>

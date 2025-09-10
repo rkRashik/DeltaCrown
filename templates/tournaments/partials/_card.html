@@ -1,0 +1,34 @@
+<article class="card glass rounded-2xl flex flex-col">
+  <div class="flex items-start justify-between">
+    <h3 class="font-semibold text-lg">{% firstof t.name "Untitled Tournament" %}</h3>
+    {% include "tournaments/partials/_status_pill.html" with status=t.status %}
+  </div>
+  <div class="text-sm text-muted mt-1">{% firstof t.game_name "Game" %}</div>
+  <dl class="grid grid-cols-2 gap-2 text-sm mt-3">
+    <div><dt class="text-muted">Start</dt><dd>{% if t.start_at %}{{ t.start_at|date:"M d, Y H:i" }}{% else %}TBA{% endif %}</dd></div>
+    <div><dt class="text-muted">Entry</dt><dd>{% if t.entry_fee %}{{ t.entry_fee }}{% else %}Free{% endif %}</dd></div>
+  </dl>
+  <div class="mt-4 flex gap-2">
+    {% if t.detail_url %}
+      <a class="btn-secondary" href="{{ t.detail_url }}">Details</a>
+    {% elif t.slug %}
+      <a class="btn-secondary" href="/tournaments/{{ t.slug }}/">Details</a>
+    {% else %}
+      <a class="btn-secondary" href="/tournaments/">Details</a>
+    {% endif %}
+
+    {% if t.registration_open %}
+      {% if t.register_url %}
+        <a class="btn-primary" href="{{ t.register_url }}">Register</a>
+      {% elif t.slug %}
+        <a class="btn-primary" href="/tournaments/{{ t.slug }}/register/">Register</a>
+      {% endif %}
+    {% else %}
+      {% if t.bracket_url %}
+        <a class="btn-secondary" href="{{ t.bracket_url }}">Bracket</a>
+      {% elif t.slug %}
+        <a class="btn-secondary" href="/tournaments/{{ t.slug }}/bracket/">Bracket</a>
+      {% endif %}
+    {% endif %}
+  </div>
+</article>

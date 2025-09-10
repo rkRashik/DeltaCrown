@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% firstof tournament.name "Tournament" %} — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl">
+    <div class="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
+      <div class="flex-1">
+        <h1 class="text-2xl sm:text-3xl font-extrabold crown-text">{% firstof tournament.name "Tournament" %}</h1>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          {% include "tournaments/partials/_status_pill.html" with status=tournament.status %}
+          <span class="text-muted text-sm">Game: {% firstof tournament.game_name "—" %}</span>
+          <span class="text-muted text-sm">Start:
+            {% if tournament.start_at %}{{ tournament.start_at|date:"M d, Y H:i" }}{% else %}TBA{% endif %}
+          </span>
+          <span class="text-muted text-sm">Entry:
+            {% if tournament.entry_fee %}{{ tournament.entry_fee }}{% else %}Free{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        {% if tournament and tournament.registration_open %}
+          {% if tournament.register_url %}
+            <a class="btn-primary" href="{{ tournament.register_url }}">Register</a>
+          {% elif tournament.slug %}
+            <a class="btn-primary" href="/tournaments/{{ tournament.slug }}/register/">Register</a>
+          {% else %}
+            <a class="btn-secondary" href="/tournaments/">Browse All</a>
+          {% endif %}
+        {% elif tournament and tournament.is_live %}
+          <a class="btn-primary" href="{% firstof tournament.stream_url '/tournaments/' %}">Watch Live</a>
+        {% else %}
+          <a class="btn-secondary" href="/tournaments/">Browse All</a>
+        {% endif %}
+
+        {% if tournament and tournament.bracket_url %}
+          <a class="btn-secondary" href="{{ tournament.bracket_url }}">View Bracket</a>
+        {% elif tournament and tournament.slug %}
+          <a class="btn-secondary" href="/tournaments/{{ tournament.slug }}/bracket/">View Bracket</a>
+        {% else %}
+          <a class="btn-secondary" href="/tournaments/">View Bracket</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-3 gap-6 mt-6">
+    <aside class="glass p-6 rounded-2xl order-2 lg:order-1">
+      <h3 class="font-semibold mb-3">Event Info</h3>
+      {% include "tournaments/partials/_meta.html" with title="Format" value=tournament.format %}
+      {% include "tournaments/partials/_meta.html" with title="Slots" value=tournament.slots_text %}
+      {% include "tournaments/partials/_meta.html" with title="Check-in" value=tournament.checkin_window %}
+      {% include "tournaments/partials/_meta.html" with title="Prize" value=tournament.prize_pool %}
+      {% include "tournaments/partials/_meta.html" with title="Contact" value=tournament.contact %}
+    </aside>
+
+    <article class="glass p-6 rounded-2xl lg:col-span-2 order-1 lg:order-2">
+      <nav class="flex flex-wrap gap-2 text-sm border-b border-border pb-2 mb-4">
+        <a href="#overview" class="link-nav">Overview</a>
+        <a href="#rules" class="link-nav">Rules</a>
+        <a href="#prizes" class="link-nav">Prizes</a>
+      </nav>
+
+      <section id="overview" class="prose prose-invert max-w-none">
+        {% if tournament.description %}{{ tournament.description|safe }}{% else %}<p>Details coming soon.</p>{% endif %}
+      </section>
+
+      <section id="rules" class="prose prose-invert max-w-none mt-8">
+        <h3>Rules</h3>
+        {% if tournament.rules_html %}{{ tournament.rules_html|safe }}{% else %}<p>Published rules will appear here.</p>{% endif %}
+      </section>
+
+      <section id="prizes" class="prose prose-invert max-w-none mt-8">
+        <h3>Prizes</h3>
+        {% if tournament.prizes_html %}{{ tournament.prizes_html|safe }}{% else %}<p>Prize structure coming soon.</p>{% endif %}
+      </section>
+    </article>
+  </div>
+</section>
+{% endblock %}

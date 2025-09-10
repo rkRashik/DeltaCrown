@@ -1,0 +1,6 @@
+{% if title %}
+  <div class="flex items-center justify-between py-2 border-b border-border last:border-b-0">
+    <div class="text-muted text-sm">{{ title }}</div>
+    <div class="text-sm">{% if value %}{{ value }}{% else %}—{% endif %}</div>
+  </div>
+{% endif %}

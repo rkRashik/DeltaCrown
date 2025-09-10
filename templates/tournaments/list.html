@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Tournaments — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container py-10">
+  <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+    <div>
+      <h1 class="sec-h">Tournaments</h1>
+      <p class="text-muted">Find your next challenge. Fair brackets, verified payouts.</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="/tournaments/?status=open" class="btn-secondary">Open</a>
+      <a href="/tournaments/?status=ongoing" class="btn-secondary">Ongoing</a>
+      <a href="/tournaments/?status=finished" class="btn-secondary">Finished</a>
+    </div>
+  </header>
+
+  {% if tournaments %}
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for t in tournaments %}
+        {% include "tournaments/partials/_card.html" with t=t %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="glass p-8 rounded-2xl">
+      <h3 class="text-xl font-semibold">No tournaments right now</h3>
+      <p class="text-muted mt-1">Check back soon or join our Discord to get notified.</p>
+      <a class="btn-primary mt-4 inline-flex" href="https://discord.com/" rel="noopener">Join Discord</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

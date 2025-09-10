@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Open Dispute — {% firstof tournament.name "Tournament" %}{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl max-w-3xl">
+    <h1 class="sec-h">Open Dispute</h1>
+    <p class="text-muted text-sm mb-4">Provide evidence (screenshots, VOD links) and a clear description. Referees will review under the dispute SLA.</p>
+    {% if form %}
+      <form method="post" enctype="multipart/form-data" class="grid gap-4">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+          <div>
+            <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
+            {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn-primary">Submit Dispute</button>
+      </form>
+    {% else %}
+      <p class="text-muted">Dispute form unavailable.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
