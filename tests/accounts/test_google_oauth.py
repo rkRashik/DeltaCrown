@@ -23,7 +23,7 @@ def test_google_oauth_creates_user_and_logs_in(client, settings, monkeypatch):
     monkeypatch.setattr(oauth, "exchange_code_for_userinfo", fake_exchange)
 
     # Call callback with state + code
-    resp = client.get(reverse("accounts:google_callback"), {"state": "abc123", "code": "dummy"})
+    resp = client.get(reverse("account:google_callback"), {"state": "abc123", "code": "dummy"})
     assert resp.status_code in (302, 301)
-    assert resp.url.endswith("/accounts/profile/")
+    assert resp.url.endswith("/account/profile/")
     assert User.objects.filter(email="guser@example.com").exists()

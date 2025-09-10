@@ -8,7 +8,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from ..models import Tournament
+from ..models import Tournament, TournamentSettings
+from django.core.exceptions import ObjectDoesNotExist
 from apps.corelib.admin_utils import _safe_select_related
 
 # Generic fallback forms
@@ -42,9 +43,10 @@ def tournament_list(request):
 
     # Filters
     q = (request.GET.get("q") or "").strip()
-    game = (request.GET.get("game") or "").strip()
-    status = (request.GET.get("status") or "").strip()
-    entry = (request.GET.get("entry") or "").strip()
+    game = (request.GET.get("game") or "").strip().lower()
+    status = (request.GET.get("status") or "").strip().lower()
+    entry = (request.GET.get("entry") or "").strip().lower()
+    sort = (request.GET.get("sort") or "").strip().lower()
 
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(slug__icontains=q))
@@ -52,40 +54,63 @@ def tournament_list(request):
         qs = qs.filter(game__iexact=game)
 
     now = timezone.now()
-    # be tolerant to either start_at/end_at (datetime) or start_date/end_date (date)
+    # Support common UI statuses: open | ongoing | finished (and tolerate older: upcoming/live/completed)
     if status:
-        start_at = getattr(Tournament, "start_at", None)
-        end_at = getattr(Tournament, "end_at", None)
-        start_date = getattr(Tournament, "start_date", None)
-        end_date = getattr(Tournament, "end_date", None)
-
-        if status == "upcoming":
-            if start_at:
-                qs = qs.filter(start_at__gt=now)
-            elif start_date:
-                qs = qs.filter(start_date__gt=now.date())
-        elif status in ("live", "ongoing"):
-            if start_at and end_at:
-                qs = qs.filter(start_at__lte=now, end_at__gte=now)
-            elif start_date and end_date:
-                qs = qs.filter(start_date__lte=now.date(), end_date__gte=now.date())
+        if status in ("open",):
+            qs = qs.filter(
+                Q(settings__reg_open_at__lte=now, settings__reg_close_at__gte=now)
+            )
+        elif status in ("ongoing", "live"):
+            qs = qs.filter(
+                Q(settings__start_at__lte=now, settings__end_at__gte=now)
+            )
         elif status in ("finished", "completed"):
-            if end_at:
-                qs = qs.filter(end_at__lt=now)
-            elif end_date:
-                qs = qs.filter(end_date__lt=now.date())
+            qs = qs.filter(Q(settings__end_at__lt=now))
+        elif status in ("upcoming",):
+            qs = qs.filter(Q(settings__start_at__gt=now))
 
     if entry == "paid":
         qs = qs.filter(settings__entry_fee_bdt__gt=0)
 
-    paginator = Paginator(qs.order_by("-id"), 12)
+    # Sorting
+    if sort == "start":
+        qs = qs.order_by("settings__start_at", "id")
+    elif sort == "prize":
+        # Desc by prize pool
+        if hasattr(Tournament, "prize_pool_bdt"):
+            qs = qs.order_by("-prize_pool_bdt", "-id")
+        else:
+            qs = qs.order_by("-id")
+    elif sort == "entry":
+        if hasattr(Tournament, "entry_fee_bdt"):
+            qs = qs.order_by("entry_fee_bdt", "id")
+        else:
+            qs = qs.order_by("id")
+    else:
+        qs = qs.order_by("-id")
+
+    paginator = Paginator(qs, 12)
     page = paginator.get_page(request.GET.get("page"))
 
-    return render(
-        request,
-        "tournaments/list.html",
-        {"page": page, "tournaments": page.object_list, "q": q, "game": game, "status": status, "entry": entry},
-    )
+    # Games list for filter select (slug + name)
+    games = [{"slug": key, "name": label} for key, label in getattr(Tournament.Game, "choices", [])]
+
+    context = {
+        "page": page,
+        "tournaments": page.object_list,
+        "q": q,
+        "game": game,
+        "status": status,
+        "entry": entry,
+        "sort": sort,
+        "games": games,
+    }
+
+    # Partial rendering for AJAX grid updates
+    if (request.GET.get("partial") or "").strip().lower() == "grid":
+        return render(request, "tournaments/partials/_grid.html", context)
+
+    return render(request, "tournaments/list.html", context)
 
 
 def tournament_detail(request, slug: str):
@@ -98,7 +123,19 @@ def tournament_detail(request, slug: str):
     except Exception:
         pass
     t = get_object_or_404(qs, slug=slug)
-    return render(request, "tournaments/detail.html", {"tournament": t, "t": t})
+
+    # Ensure settings exists (or create a blank one) so template access is safe
+    try:
+        _ = t.settings  # may raise if missing
+    except ObjectDoesNotExist:
+        try:
+            TournamentSettings.objects.get_or_create(tournament=t)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+    return render(request, "tournaments/detail.html", {"tournament": t})
 
 
 # -------------------------
@@ -115,7 +152,7 @@ def register_view(request, slug):
     Unified register endpoint.
     Selects game-specific forms when available, else falls back to generic.
     """
-    t = get_object_or_404(Tournament, slug=slug)
+    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
 
     # Optional registration window guard
     now = timezone.now()
@@ -176,13 +213,82 @@ def register_view(request, slug):
         solo_form = solo_form or GenericSoloForm(None, None, tournament=t, request=request)
         team_form = team_form or GenericTeamForm(None, None, tournament=t, request=request)
 
+    # Sidebar/context wiring (no schema change)
+    # User teams (captain or active member)
+    user_teams = []
+    try:
+        Profile = apps.get_model("user_profile", "UserProfile")
+        Team = apps.get_model("teams", "Team")
+        TeamMembership = apps.get_model("teams", "TeamMembership")
+        prof = getattr(request.user, "profile", None)
+        if not prof and Profile and request.user.is_authenticated:
+            prof = Profile.objects.filter(user=request.user).first()
+        if prof and Team:
+            qs = Team.objects.filter(models.Q(captain=prof) | models.Q(memberships__profile=prof, memberships__status="ACTIVE")).distinct()
+            user_teams = list(qs.values("id", "name", "slug"))
+    except Exception:
+        user_teams = []
+
+    # Entry fee + payment channels
+    entry_fee_bdt = None
+    try:
+        if getattr(t, "settings", None) and getattr(t.settings, "entry_fee_bdt", None):
+            entry_fee_bdt = int(t.settings.entry_fee_bdt or 0)
+        elif getattr(t, "entry_fee_bdt", None):
+            entry_fee_bdt = int(t.entry_fee_bdt or 0)
+    except Exception:
+        entry_fee_bdt = None
+
+    payment_channels = {
+        "bkash": getattr(getattr(t, "settings", None), "bkash_receive_number", ""),
+        "nagad": getattr(getattr(t, "settings", None), "nagad_receive_number", ""),
+    }
+
+    prefill = {}
+    try:
+        prof = getattr(request.user, "profile", None)
+        if prof:
+            prefill = {"display_name": getattr(prof, "display_name", ""), "phone": getattr(prof, "phone", "")}
+    except Exception:
+        prefill = {}
+
     return render(
         request,
         "tournaments/register.html",
-        {"tournament": t, "t": t, "solo_form": solo_form, "team_form": team_form},
+        {
+            "tournament": t,
+            "t": t,
+            "solo_form": solo_form,
+            "team_form": team_form,
+            "user_teams": user_teams,
+            "entry_fee_bdt": entry_fee_bdt,
+            "payment_channels": payment_channels,
+            "prefill": prefill,
+        },
     )
 
 
 def register_success(request, slug):
     t = get_object_or_404(Tournament, slug=slug)
     return render(request, "tournaments/register_success.html", {"t": t, "tournament": t})
+
+
+def watch(request, slug):
+    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
+    return render(request, "tournaments/watch.html", {"tournament": t, "t": t})
+
+
+def registration_receipt(request, slug):
+    t = get_object_or_404(Tournament, slug=slug)
+    reg = None
+    try:
+        Profile = apps.get_model("user_profile", "UserProfile")
+        prof = getattr(request.user, "profile", None)
+        if not prof and Profile and request.user.is_authenticated:
+            prof = Profile.objects.filter(user=request.user).first()
+        if prof:
+            Registration = apps.get_model("tournaments", "Registration")
+            reg = Registration.objects.filter(tournament=t).filter(models.Q(user=prof) | models.Q(team__captain=prof)).order_by("-created_at").first()
+    except Exception:
+        reg = None
+    return render(request, "tournaments/registration_receipt.html", {"tournament": t, "reg": reg})

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container py-8">
+  <h1 class="sec-h">Welcome{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
+
+  <div class="grid lg:grid-cols-3 gap-6 mt-2">
+    <!-- Registrations -->
+    <article class="glass p-6 rounded-2xl">
+      <h3 class="font-semibold mb-3">My Registrations</h3>
+      {% if registrations %}
+        <ul class="grid gap-2 text-sm">
+          {% for r in registrations %}
+            <li class="flex items-center justify-between">
+              <a class="link-nav" href="/tournaments/{{ r.tournament.slug }}/">{{ r.tournament.name }}</a>
+              <span class="text-muted">{% if r.status %}{{ r.status|title }}{% else %}—{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted text-sm">No registrations yet.</p>
+      {% endif %}
+    </article>
+
+    <!-- Upcoming Matches -->
+    <article class="glass p-6 rounded-2xl">
+      <h3 class="font-semibold mb-3">Upcoming Matches</h3>
+      {% if matches %}
+        <ul class="grid gap-2 text-sm">
+          {% for m in matches %}
+            <li class="flex items-center justify-between">
+              <span>{% firstof m.tournament.name "Tournament" %}</span>
+              <span class="text-muted">{% if m.when %}{{ m.when|date:"M d, H:i" }}{% else %}TBA{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted text-sm">No upcoming matches.</p>
+      {% endif %}
+    </article>
+
+    <!-- Payouts -->
+    <article class="glass p-6 rounded-2xl">
+      <h3 class="font-semibold mb-3">Payouts</h3>
+      {% if payouts %}
+        <ul class="grid gap-2 text-sm">
+          {% for p in payouts %}
+            <li class="flex items-center justify-between">
+              <span>{% firstof p.tournament.name "Tournament" %}</span>
+              <span class="text-muted">{% if p.amount_bdt %}৳{{ p.amount_bdt }}{% else %}—{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted text-sm">No payouts yet.</p>
+      {% endif %}
+    </article>
+  </div>
+</section>
+{% endblock %}

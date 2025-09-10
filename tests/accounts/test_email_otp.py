@@ -8,7 +8,7 @@ User = get_user_model()
 @pytest.mark.django_db
 def test_email_signup_and_verify_flow(client):
     # Sign up (creates inactive user + sends code)
-    resp = client.post(reverse("accounts:signup"), {
+    resp = client.post(reverse("account:signup"), {
         "username": "otpuser",
         "email": "otp@example.com",
         "password1": "S3curePassw0rd!",
@@ -25,7 +25,7 @@ def test_email_signup_and_verify_flow(client):
     assert otp is not None
 
     # Verify
-    resp2 = client.post(reverse("accounts:verify_email"), {"code": otp.code}, follow=True)
+    resp2 = client.post(reverse("account:verify_email"), {"code": otp.code}, follow=True)
     assert resp2.status_code == 200
     u.refresh_from_db()
     assert u.is_active

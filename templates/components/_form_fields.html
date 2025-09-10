@@ -1,0 +1,13 @@
+{# expects 'form' in context #}
+{% if form.non_field_errors %}
+  <div class="form-err">{{ form.non_field_errors }}</div>
+{% endif %}
+
+{% for field in form %}
+  <div class="form-row">
+    <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if field.help_text %}<div class="form-help">{{ field.help_text }}</div>{% endif %}
+    {% for e in field.errors %}<div class="form-err">{{ e }}</div>{% endfor %}
+  </div>
+{% endfor %}

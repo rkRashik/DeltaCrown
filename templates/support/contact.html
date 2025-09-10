@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Contact — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <h1 class="sec-h">Contact / Support</h1>
+  <div class="glass p-6 rounded-2xl max-w-2xl">
+    <form method="post" class="grid gap-3">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off" />
+      {% for field in form %}
+        {% if field.name != 'website' %}
+        <div>
+          <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+          {{ field }}
+          {% for e in field.errors %}<p class="text-xs text-red-400">{{ e }}</p>{% endfor %}
+        </div>
+        {% endif %}
+      {% endfor %}
+      <button class="btn-primary" type="submit">Send</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+

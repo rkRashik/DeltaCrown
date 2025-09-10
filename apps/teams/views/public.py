@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django import forms
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from urllib.parse import urlencode
@@ -46,6 +47,8 @@ def team_list(request):
     Public teams index with ?q= search and pagination.
     """
     q = (request.GET.get("q") or "").strip()
+    game = (request.GET.get("game") or "").strip()
+    open_to_join = (request.GET.get("open") or "").strip()
 
     qs = Team.objects.all()
     try:
@@ -64,6 +67,13 @@ def team_list(request):
     if q and filters:
         qs = qs.filter(filters)
 
+    # Optional filters
+    if game:
+        try:
+            qs = qs.filter(game=game)
+        except Exception:
+            pass
+
     qs = qs.order_by("id")
 
     # Build base_qs without page
@@ -80,40 +90,127 @@ def team_list(request):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
-    ctx = {"teams_page": page_obj.object_list, "page_obj": page_obj, "q": q, "base_qs": base_qs}
-    return render(request, "teams/index.html", ctx)
+    ctx = {
+        "teams": page_obj.object_list,
+        "page_obj": page_obj,
+        "q": q,
+        "game": game,
+        "open": open_to_join,
+        "base_qs": base_qs,
+    }
+    return render(request, "teams/list.html", ctx)
 
 
 # -------------------------
-# Team detail + captain ops
+# Team detail (public)
 # -------------------------
-@login_required
-def team_detail(request, team_id: int):
+def team_detail(request, slug: str):
     team_qs = Team.objects.all()
     try:
         team_qs = team_qs.select_related("captain__user")
     except Exception:
         pass
-    team = get_object_or_404(team_qs, pk=team_id)
+    team = team_qs.filter(slug=slug).first() or get_object_or_404(team_qs, slug=slug)
 
-    memberships = team.memberships.select_related("user__user").all().order_by("role", "joined_at")
-    invites = team.invites.filter(status="PENDING").select_related("invited_user__user")
+    memberships = team.memberships.select_related("profile__user").all().order_by("role", "joined_at")
+    roster = [m.profile for m in memberships if getattr(m, "status", "ACTIVE") == "ACTIVE"]
+
+    # Upcoming and recent results (best effort)
+    try:
+        from apps.tournaments.models import Match
+        from django.db import models
+        now = timezone.now()
+        upcoming = (
+            Match.objects.filter(models.Q(team_a=team) | models.Q(team_b=team), start_at__gt=now)
+            .order_by("start_at")[:5]
+        )
+        results = (
+            Match.objects.filter(models.Q(team_a=team) | models.Q(team_b=team), state__in=["REPORTED", "VERIFIED"])  # type: ignore
+            .order_by("-created_at")[:5]
+        )
+    except Exception:
+        upcoming, results = [], []
+
     is_captain = _is_captain(_get_profile(request.user), team)
 
-    ctx = {"team": team, "memberships": memberships, "invites": invites, "is_captain": is_captain}
-    return render(request, "teams/team_detail.html", ctx)
+    ctx = {"team": team, "roster": roster, "results": results, "upcoming": upcoming, "is_captain": is_captain}
+    return render(request, "teams/detail.html", ctx)
+
+
+# -------------------------
+# Create team (public, auth)
+# -------------------------
+class TeamCreateForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        exclude = ("name_ci", "tag_ci", "captain")
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
-def invite_member_view(request, team_id: int):
-    team = get_object_or_404(Team, pk=team_id)
+def create_team_view(request):
+    profile = _ensure_profile(request.user)
+
+    if request.method == "POST":
+        form = TeamCreateForm(request.POST, request.FILES)
+        if form.is_valid():
+            team = form.save(commit=False)
+            team.captain = profile
+            team.save()
+            messages.success(request, "Team created successfully.")
+            return redirect("teams:detail", slug=team.slug or team.id)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = TeamCreateForm()
+
+    return render(request, "teams/create.html", {"form": form})
+
+
+# -------------------------
+# Manage team (captain only)
+# -------------------------
+class TeamEditForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        exclude = ("name_ci", "tag_ci")
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def manage_team_view(request, slug: str):
+    team = get_object_or_404(Team.objects.select_related("captain__user"), slug=slug)
+    profile = _ensure_profile(request.user)
+    if not _is_captain(profile, team):
+        messages.error(request, "Only the captain can manage the team.")
+        return redirect("teams:detail", slug=team.slug)
+
+    if request.method == "POST":
+        form = TeamEditForm(request.POST, request.FILES, instance=team)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Team updated.")
+            return redirect("teams:manage", slug=team.slug)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = TeamEditForm(instance=team)
+
+    pending_invites = team.invites.filter(status="PENDING").select_related("invited_user__user")
+
+    return render(request, "teams/manage.html", {"team": team, "form": form, "pending_invites": pending_invites})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def invite_member_view(request, slug: str):
+    team = get_object_or_404(Team, slug=slug)
 
     if request.method == "POST":
         actor = _ensure_profile(request.user)
         if not _is_captain(actor, team):
             messages.error(request, "Only the team captain can invite members.")
-            return redirect(reverse("teams:detail", kwargs={"team_id": team.id}))
+            return redirect(reverse("teams:detail", kwargs={"slug": team.slug}))
 
         username = (request.POST.get("username") or "").strip()
         email = (request.POST.get("email") or "").strip()
@@ -128,7 +225,7 @@ def invite_member_view(request, team_id: int):
 
         if not target_user:
             messages.error(request, "User not found by username/email.")
-            return redirect(reverse("teams:invite_member", kwargs={"team_id": team.id}))
+            return redirect(reverse("teams:invite_member", kwargs={"slug": team.slug}))
 
         target_profile = _ensure_profile(target_user)
 
@@ -142,7 +239,7 @@ def invite_member_view(request, team_id: int):
             invite.save(update_fields=["token"])
 
         messages.success(request, f"Invite sent to {target_user.username}.")
-        return redirect(reverse("teams:detail", kwargs={"team_id": team.id}))
+        return redirect(reverse("teams:detail", kwargs={"slug": team.slug}))
 
     return render(request, "teams/invite_member.html", {"team": team})
 

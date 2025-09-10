@@ -18,9 +18,15 @@
           {{ ft.name|default:"Upcoming Tournament" }}
         </div>
 
-        <div class="mt-2 text-sm" data-countdown data-deadline="{{ ft.start_iso|default:'' }}">
-          Starts in: <span data-countdown-digits>—</span>
-        </div>
+        {% if ft and ft.start_iso %}
+          <div class="mt-2 text-sm" data-countdown data-deadline="{{ ft.start_iso }}">
+            <span data-countdown-label>Starts in</span>: <span data-countdown-digits>—</span>
+          </div>
+        {% elif ft and ft.is_live %}
+          <div class="mt-2 text-sm"><span class="font-semibold">Live Now</span></div>
+        {% else %}
+          <div class="mt-2 text-sm text-muted">Start date TBA</div>
+        {% endif %}
 
         {% if ft and ft.registration_open %}
           <a href="{{ ft.register_url }}" class="btn-primary mt-4">Enter the {{ ft.name }}</a>
@@ -33,3 +39,4 @@
     {% endwith %}
   </div>
 </section>
+

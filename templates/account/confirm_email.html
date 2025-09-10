@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Confirm email — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl auth-card text-center">
+    <h1 class="sec-h">Confirm email</h1>
+    {% if confirmation %}
+      <p class="text-muted">Email: {{ confirmation.email_address.email }}</p>
+      <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+        {% csrf_token %}
+        <button class="btn-primary mt-3" type="submit">Confirm</button>
+      </form>
+    {% else %}
+      <p class="text-muted">This confirmation link is invalid.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

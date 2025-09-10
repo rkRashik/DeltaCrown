@@ -1,7 +1,14 @@
 {% if status %}
-  {% with s=status %}
-    <span class="pill {% if s == 'open' %}pill--open{% elif s == 'ongoing' %}pill--live{% elif s == 'finished' %}pill--done{% else %}pill--tba{% endif %}">
-      {{ s|title }}
+  {% with raw=status|lower %}
+    <span class="pill
+      {% if raw == 'open' or raw == 'published' %}pill--open
+      {% elif raw == 'ongoing' or raw == 'running' %}pill--live
+      {% elif raw == 'finished' or raw == 'completed' %}pill--done
+      {% else %}pill--tba{% endif %}">
+      {% if raw == 'published' %}Open
+      {% elif raw == 'running' %}Ongoing
+      {% elif raw == 'completed' %}Finished
+      {% else %}{{ raw|title }}{% endif %}
     </span>
   {% endwith %}
 {% else %}

@@ -1,94 +1,72 @@
-{# Robust field access across variants. No risky defaults in {% if %}. #}
-<article
-  class="t-card glass rounded-2xl"
-  data-game="{% firstof t.game_slug t.game_key t.game_name 'unknown' %}"
-  data-status="{% firstof t.status t.state 'tba' %}"
-  {% if t.start_at %}data-start="{{ t.start_at|date:'c' }}"{% elif t.starts_at %}data-start="{{ t.starts_at|date:'c' }}"{% elif t.start_time %}data-start="{{ t.start_time|date:'c' }}"{% endif %}
-  {% if t.prize_pool %}data-prize="{{ t.prize_pool|floatformat:0 }}"{% elif t.prize %}data-prize="{{ t.prize|floatformat:0 }}"{% endif %}
-  {% if t.entry_fee %}data-entry="{{ t.entry_fee|floatformat:0 }}"{% endif %}
->
+{% load humanize %}
+<article class="t-card glass rounded-2xl"
+         data-game="{{ tournament.get_game_display|default_if_none:'' }}"
+         data-status="{{ tournament.get_status_display|default_if_none:'' }}"
+         {% if tournament.start_at %}data-start="{{ tournament.start_at|date:'c' }}"
+         {% elif tournament.settings and tournament.settings.start_at %}data-start="{{ tournament.settings.start_at|date:'c' }}"{% endif %}
+         {% if tournament.settings and tournament.settings.prize_pool_bdt %}data-prize="{{ tournament.settings.prize_pool_bdt|floatformat:0 }}"
+         {% elif tournament.prize_pool_bdt %}data-prize="{{ tournament.prize_pool_bdt|floatformat:0 }}"{% endif %}
+         {% if tournament.settings and tournament.settings.entry_fee_bdt %}data-entry="{{ tournament.settings.entry_fee_bdt|floatformat:0 }}"
+         {% elif tournament.entry_fee_bdt %}data-entry="{{ tournament.entry_fee_bdt|floatformat:0 }}"{% endif %}>
+
   <div class="t-card__media">
-    {% if t.banner_url %}
-      <img src="{{ t.banner_url }}" alt="" class="t-card__img" loading="lazy">
-    {% elif t.banner and t.banner.url %}
-      <img src="{{ t.banner.url }}" alt="" class="t-card__img" loading="lazy">
-    {% elif t.cover_url %}
-      <img src="{{ t.cover_url }}" alt="" class="t-card__img" loading="lazy">
+    {% if tournament.banner %}
+      <img src="{{ tournament.banner.url }}" alt="" class="t-card__img" loading="lazy">
+    {% elif tournament.settings and tournament.settings.banner %}
+      <img src="{{ tournament.settings.banner.url }}" alt="" class="t-card__img" loading="lazy">
     {% else %}
       <div class="t-card__ph" aria-hidden="true"></div>
     {% endif %}
     <div class="t-card__scrim" aria-hidden="true"></div>
     <div class="t-card__status">
-      {% include "tournaments/partials/_status_pill.html" with status=t.status %}
+      {% include "tournaments/partials/_status_pill.html" with status=tournament.status %}
     </div>
   </div>
 
   <div class="t-card__body">
-    <h3 class="t-card__title">{% firstof t.name t.title t.tournament_name "Untitled Tournament" %}</h3>
-    <div class="t-card__sub text-muted">{% firstof t.game_name t.game "Game" %}</div>
+    <h3 class="t-card__title">{% firstof tournament.name tournament.title "Tournament" %}</h3>
+    <div class="t-card__sub text-muted">
+      {% if tournament.get_game_display %}{{ tournament.get_game_display }}{% else %}Esports{% endif %}
+    </div>
 
     <dl class="t-card__meta">
-      <div>
-        <dt>Start</dt>
-        <dd>
-          {% if t.start_at %}{{ t.start_at|date:"M d, Y H:i" }}
-          {% elif t.starts_at %}{{ t.starts_at|date:"M d, Y H:i" }}
-          {% elif t.start_time %}{{ t.start_time|date:"M d, Y H:i" }}
-          {% else %}TBA{% endif %}
-        </dd>
-      </div>
-      <div>
-        <dt>Entry</dt>
-        <dd>{% if t.entry_fee %}{{ t.entry_fee }}{% else %}Free{% endif %}</dd>
-      </div>
-      <div>
-        <dt>Prize</dt>
-        <dd>{% firstof t.prize_pool t.prize "TBA" %}</dd>
-      </div>
+      <div><dt>Start</dt><dd>
+        {% if tournament.start_at %}{{ tournament.start_at|date:"M d, Y H:i" }}
+        {% elif tournament.settings and tournament.settings.start_at %}{{ tournament.settings.start_at|date:"M d, Y H:i" }}
+        {% else %}TBA{% endif %}
+      </dd></div>
+      <div><dt>Entry</dt><dd>
+        {% if tournament.settings and tournament.settings.entry_fee_bdt %}
+          ৳{{ tournament.settings.entry_fee_bdt|floatformat:0|intcomma }}
+        {% elif tournament.entry_fee_bdt %}
+          ৳{{ tournament.entry_fee_bdt|floatformat:0|intcomma }}
+        {% else %}Free{% endif %}
+      </dd></div>
+      <div><dt>Prize</dt><dd>
+        {% if tournament.settings and tournament.settings.prize_pool_bdt %}
+          ৳{{ tournament.settings.prize_pool_bdt|floatformat:0|intcomma }}
+        {% elif tournament.prize_pool_bdt %}
+          ৳{{ tournament.prize_pool_bdt|floatformat:0|intcomma }}
+        {% else %}TBA{% endif %}
+      </dd></div>
     </dl>
 
-    {% if t.slots_total or t.slots_text %}
-      <div class="t-card__slots">
-        <div class="progress"
-             {% if t.slots_total %}data-slots-total="{{ t.slots_total }}"{% endif %}
-             {% if t.slots_taken %}data-slots-taken="{{ t.slots_taken }}"{% endif %}>
-          <div class="progress__bar"></div>
-        </div>
-        <div class="t-card__slots-text text-muted text-xs">
-          {% if t.slots_text %}
-            {{ t.slots_text }}
-          {% elif t.slots_total %}
-            {% if t.slots_taken %}{{ t.slots_taken }}{% else %}0{% endif %}/{{ t.slots_total }} slots
-          {% else %}
-            &nbsp;
-          {% endif %}
-        </div>
-      </div>
-    {% endif %}
-
     <div class="t-card__actions">
-      {% if t.detail_url %}
-        <a class="btn-secondary" href="{{ t.detail_url }}">Details</a>
-      {% elif t.get_absolute_url %}
-        <a class="btn-secondary" href="{{ t.get_absolute_url }}">Details</a>
-      {% elif t.slug %}
-        <a class="btn-secondary" href="/tournaments/{{ t.slug }}/">Details</a>
-      {% else %}
-        <a class="btn-secondary" href="/tournaments/">Details</a>
-      {% endif %}
-
-      {% if t.registration_open or t.is_registration_open or t.reg_open %}
-        {% if t.register_url %}
-          <a class="btn-primary" href="{{ t.register_url }}">Register</a>
-        {% elif t.slug %}
-          <a class="btn-primary" href="/tournaments/{{ t.slug }}/register/">Register</a>
+      {% if tournament.slug %}
+        {% if tournament.registration_open %}
+          <a class="btn-primary" href="{% url 'tournaments:register' slug=tournament.slug %}">Register</a>
+          <a class="btn-secondary" href="{% url 'tournaments:detail' slug=tournament.slug %}">Details</a>
+        {% elif tournament.is_live and tournament.settings and tournament.settings.stream_youtube_url %}
+          <a class="btn-primary" href="{% url 'tournaments:watch' slug=tournament.slug %}">Watch Live</a>
+          <a class="btn-secondary" href="{% url 'tournaments:detail' slug=tournament.slug %}">Details</a>
+        {% elif tournament.is_live and tournament.settings and tournament.settings.stream_facebook_url %}
+          <a class="btn-primary" href="{% url 'tournaments:watch' slug=tournament.slug %}">Watch Live</a>
+          <a class="btn-secondary" href="{% url 'tournaments:detail' slug=tournament.slug %}">Details</a>
+        {% else %}
+          <a class="btn-secondary" href="{% url 'tournaments:detail' slug=tournament.slug %}">Details</a>
         {% endif %}
       {% else %}
-        {% if t.bracket_url %}
-          <a class="btn-secondary" href="{{ t.bracket_url }}">Bracket</a>
-        {% elif t.slug %}
-          <a class="btn-secondary" href="/tournaments/brackets/{{ t.slug }}/">Bracket</a>
-        {% endif %}
+        <a class="btn-secondary" href="{% url 'tournaments:list' %}">Details</a>
       {% endif %}
     </div>
   </div>

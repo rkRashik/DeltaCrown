@@ -1,0 +1,35 @@
+<div class="space-y-4">
+  <h3 class="font-semibold">Payment Instructions</h3>
+  <p class="text-sm text-muted">Send your entry fee to one of the numbers below and keep the Transaction ID. You will enter it in the form for verification.</p>
+
+  <div class="glass p-4 rounded-xl">
+    <div class="flex items-center justify-between mb-2">
+      <div class="font-semibold">bKash</div>
+      {% if tournament.settings.bkash_receive_number %}
+        <button class="btn-secondary btn-sm" data-copy="#bkash-number">Copy</button>
+      {% endif %}
+    </div>
+    {% if tournament.settings.bkash_receive_number %}
+      <input id="bkash-number" type="text" readonly class="filter-input w-full" value="{{ tournament.settings.bkash_receive_number }}">
+    {% else %}
+      <div class="text-xs text-muted">Not available</div>
+    {% endif %}
+    <div class="text-xs text-muted mt-2">Reference example: <code>TXID 8L3A4C9PQ</code></div>
+  </div>
+
+  <div class="glass p-4 rounded-xl">
+    <div class="flex items-center justify-between mb-2">
+      <div class="font-semibold">Nagad</div>
+      {% if tournament.settings.nagad_receive_number %}
+        <button class="btn-secondary btn-sm" data-copy="#nagad-number">Copy</button>
+      {% endif %}
+    </div>
+    {% if tournament.settings.nagad_receive_number %}
+      <input id="nagad-number" type="text" readonly class="filter-input w-full" value="{{ tournament.settings.nagad_receive_number }}">
+    {% else %}
+      <div class="text-xs text-muted">Not available</div>
+    {% endif %}
+    <div class="text-xs text-muted mt-2">Reference example: <code>TXID N9Q5Z1AB2</code></div>
+  </div>
+</div>
+

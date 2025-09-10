@@ -32,33 +32,113 @@ def get_featured() -> Optional[Dict[str, Any]]:
 
     try:
         qs = model.objects.all()
-        # Prefer "featured" flag if it exists, else pick an open or latest ongoing
+        # Prefer explicitly featured if available
         if hasattr(model, "featured"):
-            qs = qs.filter(featured=True) or model.objects.all()
-        obj = (
-            qs.filter(status__in=["open", "ongoing"]).order_by("-id").first()
-            or qs.order_by("-id").first()
-        )
+            try:
+                featured_qs = qs.filter(featured=True)
+                if featured_qs.exists():
+                    qs = featured_qs
+            except Exception:
+                pass
+
+        # Pick best candidate: live now > nearest upcoming > latest
+        obj = None
+        try:
+            from django.utils import timezone
+            now = timezone.now()
+            obj = qs.filter(settings__start_at__lte=now, settings__end_at__gte=now).order_by("settings__start_at").first()
+        except Exception:
+            pass
+        if not obj:
+            try:
+                from django.utils import timezone
+                now = timezone.now()
+                obj = qs.filter(settings__start_at__gt=now).order_by("settings__start_at").first()
+            except Exception:
+                pass
+        if not obj:
+            try:
+                obj = qs.order_by("-id").first()
+            except Exception:
+                obj = None
         if not obj:
             return None
 
         # Extract fields defensively
         name = getattr(obj, "name", None) or getattr(obj, "title", None) or "Tournament"
+
         # status mapping
         status = getattr(obj, "status", None)
         if status not in {"open", "ongoing", "closed"}:
-            # try to infer from booleans/dates if present
             if getattr(obj, "is_live", False):
                 status = "ongoing"
             elif getattr(obj, "is_open", False):
                 status = "open"
             else:
                 status = "closed"
+
         # links
         register_url = getattr(obj, "register_url", None) or getattr(obj, "registration_url", None) or "/tournaments/"
         stream_url = getattr(obj, "stream_url", None) or getattr(obj, "live_url", None) or "/tournaments/"
 
-        return {"name": str(name), "status": status, "register_url": register_url, "stream_url": stream_url}
+        # start time (ISO for countdown)
+        start_dt = (
+            getattr(obj, "start_at", None)
+            or getattr(getattr(obj, "settings", None) or object(), "start_at", None)
+            or getattr(obj, "starts_at", None)
+            or getattr(obj, "start_time", None)
+        )
+        try:
+            start_iso = start_dt.isoformat() if start_dt else ""
+        except Exception:
+            start_iso = ""
+
+        # registration window
+        reg_open = (
+            getattr(getattr(obj, "settings", None) or object(), "reg_open_at", None)
+            or getattr(obj, "reg_open_at", None)
+        )
+        reg_close = (
+            getattr(getattr(obj, "settings", None) or object(), "reg_close_at", None)
+            or getattr(obj, "reg_close_at", None)
+        )
+        registration_open = False
+        if reg_open and reg_close:
+            try:
+                from django.utils import timezone
+                now = timezone.now()
+                registration_open = reg_open <= now <= reg_close
+            except Exception:
+                registration_open = False
+
+        # live window
+        start = (
+            getattr(obj, "start_at", None)
+            or getattr(getattr(obj, "settings", None) or object(), "start_at", None)
+        )
+        end = (
+            getattr(obj, "end_at", None)
+            or getattr(getattr(obj, "settings", None) or object(), "end_at", None)
+        )
+        is_live = False
+        if start and end:
+            try:
+                from django.utils import timezone
+                now = timezone.now()
+                is_live = start <= now <= end
+            except Exception:
+                is_live = False
+        is_live = bool(getattr(obj, "is_live", is_live))
+
+        return {
+            "name": str(name),
+            "status": status,
+            "register_url": register_url,
+            "stream_url": stream_url,
+            "start_iso": start_iso,
+            "registration_open": registration_open,
+            "is_live": is_live,
+        }
     except Exception:
         return None
 

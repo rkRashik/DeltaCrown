@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Help Center — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <h1 class="sec-h">Help Center</h1>
+  <div class="glass p-6 rounded-2xl mt-4">
+    {% for group, qa in faqs %}
+      <h3 id="{{ group|slugify }}" class="font-semibold mt-4">{{ group }}</h3>
+      <div class="divide-y divide-border">
+        {% for q,a in qa %}
+        <details id="{{ q|slugify }}" class="py-2">
+          <summary class="cursor-pointer font-semibold">{{ q }}</summary>
+          <div class="text-sm text-muted mt-1">{{ a }}</div>
+        </details>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+

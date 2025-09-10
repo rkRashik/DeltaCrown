@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Team — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container py-8">
+  <header class="mb-4">
+    <h1 class="sec-h">Create Team</h1>
+    <p class="text-muted">Set up your roster and start competing.</p>
+  </header>
+
+  <div class="glass p-6 rounded-2xl">
+    <form method="post" enctype="multipart/form-data" class="grid gap-4">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {% for field in form %}
+          <div class="flex flex-col">
+            <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
+            {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="flex gap-2 mt-2">
+        <button type="submit" class="btn-primary">Create Team</button>
+        <a href="/teams/" class="btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+

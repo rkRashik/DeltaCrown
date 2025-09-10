@@ -1,0 +1,20 @@
+{% comment %}Social Share Component{% endcomment %}
+{% with title=title|default:request.path url=url|default:request.build_absolute_uri %}
+<div class="flex gap-2">
+  <a class="btn-ghost" href="https://www.facebook.com/sharer/sharer.php?u={{ url|urlencode }}" target="_blank" rel="noopener">Facebook</a>
+  <a class="btn-ghost" href="https://twitter.com/intent/tweet?text={{ title|urlencode }}&url={{ url|urlencode }}" target="_blank" rel="noopener">X</a>
+  <button class="btn-secondary" type="button" data-copy-link="{{ url }}">Copy Link</button>
+</div>
+<script>(function(){
+  document.addEventListener('click', function(e){
+    const b = e.target.closest('[data-copy-link]'); if(!b) return;
+    const u = b.getAttribute('data-copy-link')||''; if(!u) return;
+    navigator.clipboard.writeText(u).then(()=>{
+      const t=document.getElementById('dc-toasts'); if(!t) return;
+      const n=document.createElement('div'); n.className='glass rounded-xl px-3 py-2 text-sm'; n.textContent='Link copied';
+      t.appendChild(n); setTimeout(()=>n.remove(),2000);
+    });
+  });
+})();</script>
+{% endwith %}
+

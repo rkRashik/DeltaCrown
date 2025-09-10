@@ -1,0 +1,28 @@
+{% if tournaments %}
+  <div id="t-grid" class="t-grid mt-6">
+    {% for t in tournaments %}
+      {% include "tournaments/partials/_card.html" with t=t %}
+    {% endfor %}
+  </div>
+{% elif events %}
+  <div id="t-grid" class="t-grid mt-6">
+    {% for t in events %}
+      {% include "tournaments/partials/_card.html" with t=t %}
+    {% endfor %}
+  </div>
+{% elif objects %}
+  <div id="t-grid" class="t-grid mt-6">
+    {% for t in objects %}
+      {% include "tournaments/partials/_card.html" with t=t %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div id="t-grid" class="t-grid mt-6">
+    <div class="glass p-8 rounded-2xl mt-6">
+      <h3 class="text-xl font-semibold">No tournaments available</h3>
+      <p class="text-muted mt-1">Try again later or clear filters.</p>
+      <a class="btn-primary mt-4 inline-flex" href="/tournaments/">Clear Filters</a>
+    </div>
+  </div>
+{% endif %}
+

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Watch Live — {% firstof tournament.name t.name "Tournament" %}{% endblock %}
+{% block og_title %}Watch Live — {% firstof tournament.name t.name "Tournament" %}{% endblock %}
+{% block og_image %}{% if tournament.settings.banner %}{{ tournament.settings.banner.url }}{% elif tournament.banner %}{{ tournament.banner.url }}{% else %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endif %}{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ request.build_absolute_uri }}" />{% endblock %}
+
+{% block content %}
+<section class="container py-10 grid lg:grid-cols-3 gap-6">
+  {% include "components/_breadcrumbs.html" with items=[{"label":"Tournaments","href":"/tournaments/"},{"label":tournament.name},{"label":"Watch"}] %}
+  <article class="glass p-4 rounded-2xl lg:col-span-2">
+    <h1 class="sec-h">{% firstof tournament.name t.name "Tournament" %}</h1>
+    {% if tournament.settings.stream_youtube_url or tournament.settings.stream_facebook_url %}
+      <div class="aspect-video w-full rounded-xl overflow-hidden mt-3">
+        {% if tournament.settings.stream_youtube_url %}
+          <iframe width="560" height="315" src="{{ tournament.settings.stream_youtube_url|safe }}" title="Live Stream" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        {% else %}
+          <iframe width="560" height="315" src="{{ tournament.settings.stream_facebook_url|safe }}" title="Live Stream" frameborder="0" allowfullscreen></iframe>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="glass p-6 rounded-xl mt-3 text-center">
+        <h3 class="font-semibold">Not Live</h3>
+        <p class="text-muted">No live stream is configured for this tournament.</p>
+      </div>
+    {% endif %}
+  </article>
+
+  <aside class="space-y-6">
+    <div class="glass p-6 rounded-2xl">
+      <div class="mb-2">Status</div>
+      {% include "tournaments/partials/_status_pill.html" with status=tournament.status %}
+      <div class="mt-3 text-sm text-muted">
+        {% if tournament.start_at %}Starts {{ tournament.start_at|date:"M d, Y H:i" }}{% else %}Schedule TBA{% endif %}
+      </div>
+      <div class="mt-4 grid grid-cols-2 gap-2">
+        <a class="btn-secondary" href="/tournaments/brackets/{{ tournament.slug }}/">Bracket</a>
+        <a class="btn-secondary" href="/tournaments/{{ tournament.slug }}/">Rules</a>
+      </div>
+    </div>
+
+    <div class="glass p-6 rounded-2xl">
+      <h3 class="font-semibold mb-2">Join the Community</h3>
+      {% if tournament.settings.discord_url %}
+        <a class="btn-primary w-full" href="{{ tournament.settings.discord_url }}">Open Discord</a>
+      {% else %}
+        <a class="btn-primary w-full" href="/pages/community/">Community Hub</a>
+      {% endif %}
+    </div>
+  </aside>
+</section>
+{% endblock %}

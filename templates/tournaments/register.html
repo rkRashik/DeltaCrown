@@ -1,40 +1,205 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Register — {% firstof tournament.name "Tournament" %}{% endblock %}
+{% block title %}Register — {% firstof tournament.name t.name "Tournament" %}{% endblock %}
 
 {% block content %}
+
+{# --- Compact Hero with Banner + Quick Facts --- #}
+<section class="t-hero">
+  <div class="t-hero__media">
+    {% if tournament.banner_url %}
+      <img src="{{ tournament.banner_url }}" alt="" class="t-hero__img" loading="eager" />
+    {% elif tournament.banner %}
+      <img src="{{ tournament.banner.url }}" alt="" class="t-hero__img" loading="eager" />
+    {% else %}
+      <div class="t-hero__placeholder" aria-hidden="true"></div>
+    {% endif %}
+    <div class="t-hero__scrim" aria-hidden="true"></div>
+  </div>
+
+  <div class="container t-hero__body">
+    <div class="t-hero__meta">
+      <a href="/tournaments/" class="crumb link-nav">← All Tournaments</a>
+      <h1 class="t-hero__title crown-text">Register — {% firstof tournament.name t.name "Tournament" %}</h1>
+      <ul class="t-hero__chips">
+        <li>{% include "tournaments/partials/_status_pill.html" with status=tournament.status %}</li>
+        <li class="chip"><span class="chip__k">Game</span><span class="chip__v">{{ tournament.game_name }}</span></li>
+        <li class="chip"><span class="chip__k">Entry</span><span class="chip__v">{% if tournament.entry_fee %}{{ tournament.entry_fee }}{% else %}Free{% endif %}</span></li>
+        <li class="chip"><span class="chip__k">Prize</span><span class="chip__v">{% firstof tournament.prize_pool "TBA" %}</span></li>
+        <li class="chip"><span class="chip__k">Starts</span><span class="chip__v">{% if tournament.start_at %}{{ tournament.start_at|date:"M d, Y H:i" }}{% else %}TBA{% endif %}</span></li>
+      </ul>
+    </div>
+
+    <aside class="t-hero__cta glass">
+      <div class="t-hero__cta-top">
+        <div class="t-countdown" data-countdown {% if tournament.start_at %}data-deadline="{{ tournament.start_at|date:'c' }}"{% endif %}>
+          <div class="t-countdown__label" data-countdown-label>Starts in</div>
+          <div class="t-countdown__digits" data-countdown-digits>—</div>
+        </div>
+        <dl class="t-quick grid">
+          <div><dt>Format</dt><dd>{% firstof tournament.format "TBA" %}</dd></div>
+          <div><dt>Slots</dt><dd>{% if tournament.slots_text %}{{ tournament.slots_text }}{% else %}TBA{% endif %}</dd></div>
+          <div><dt>Check-in</dt><dd>{% firstof tournament.checkin_window "TBA" %}</dd></div>
+        </dl>
+      </div>
+      <div class="t-hero__cta-actions">
+        {% if tournament.registration_open %}
+          <span class="t-badge">Registration Open</span>
+        {% else %}
+          <span class="t-badge">Pre‑Registration</span>
+        {% endif %}
+        <div class="t-trust">
+          <span class="t-badge">Secure Payments</span>
+          <span class="t-badge">Verified Brackets</span>
+          <span class="t-badge">Fast Payouts</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
 <section class="container py-10">
   <div class="grid lg:grid-cols-3 gap-6">
     <article class="glass p-6 rounded-2xl lg:col-span-2">
-      <h1 class="sec-h">Register</h1>
-      {% if form %}
-        <form method="post" enctype="multipart/form-data" class="grid gap-4">
-          {% csrf_token %}
-          {{ form.non_field_errors }}
-          {% for field in form %}
-            <div>
-              <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
-              {{ field }}
-              {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
-              {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+      <h2 class="font-bold text-xl mb-2">Complete Your Registration</h2>
+      <ol class="list-decimal pl-5 text-sm text-muted mb-4">
+        <li>Fill in your details (Solo or Team).</li>
+        <li>Send entry fee via bKash/Nagad and save the Transaction ID.</li>
+        <li>Submit — we verify and confirm your slot.</li>
+      </ol>
+      {% if not request.user.is_authenticated %}
+        <p class="text-sm text-muted mb-3">Tip: <a class="link-nav" href="/accounts/login/?next={{ request.path }}">Log in</a> to autofill your details.</p>
+      {% endif %}
+
+      {% if solo_form or team_form %}
+        {% if solo_form and team_form %}
+          <div class="t-tabs border-b border-border mb-4">
+            <a href="#" class="t-tab is-active" data-tab="#solo-form">Solo</a>
+            <a href="#" class="t-tab" data-tab="#team-form">Team</a>
+          </div>
+        {% endif %}
+
+        {% if solo_form %}
+          <form id="solo-form" method="post" enctype="multipart/form-data" class="grid gap-4" data-wizard>
+            {% csrf_token %}
+            {{ solo_form.non_field_errors }}
+
+            <div class="flex items-center gap-3" role="tablist" aria-label="Registration steps">
+              <button class="t-tab is-active" data-step="1" role="tab" aria-selected="true">1. Player</button>
+              <button class="t-tab" data-step="2" role="tab" aria-selected="false">2. Payment</button>
+              <button class="t-tab" data-step="3" role="tab" aria-selected="false">3. Review</button>
             </div>
-          {% endfor %}
-          <button type="submit" class="btn-primary">Submit Registration</button>
-        </form>
+
+            <div id="aria-live" class="sr-only" aria-live="polite"></div>
+
+            <section data-step-panel="1" class="grid gap-4"></section>
+            <section data-step-panel="2" class="grid gap-4" hidden></section>
+            <section data-step-panel="3" class="grid gap-4" hidden>
+              <div id="review-summary" class="glass p-4 rounded-xl text-sm"></div>
+              <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_rules"> <span>I agree to the <a target="_blank" href="/rules/">rules</a>.</span></label>
+              <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_fair"> <span>I agree to fair play enforcement.</span></label>
+              <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_payouts"> <span>I agree to the payout policy.</span></label>
+            </section>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 all-fields" hidden>
+            {% for field in solo_form %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
+                {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+            {% endfor %}
+            </div>
+
+            <div class="flex items-center justify-between mt-2">
+              <button class="btn-ghost" type="button" data-back disabled>Back</button>
+              <div class="flex gap-2">
+                <button class="btn-secondary" type="button" data-next>Next</button>
+                <button class="btn-primary" type="submit" data-submit disabled>Submit Registration</button>
+              </div>
+            </div>
+          </form>
+        {% endif %}
+
+        {% if team_form %}
+          <form id="team-form" method="post" enctype="multipart/form-data" class="grid gap-4" data-wizard {% if solo_form and team_form %}hidden{% endif %}>
+            {% csrf_token %}
+            <input type="hidden" name="__team_flow" value="1" />
+            {{ team_form.non_field_errors }}
+
+            <div class="flex items-center gap-3" role="tablist" aria-label="Registration steps">
+              <button class="t-tab is-active" data-step="1" role="tab" aria-selected="true">1. Team</button>
+              <button class="t-tab" data-step="2" role="tab" aria-selected="false">2. Payment</button>
+              <button class="t-tab" data-step="3" role="tab" aria-selected="false">3. Review</button>
+            </div>
+
+            <div id="t-aria-live" class="sr-only" aria-live="polite"></div>
+
+            <section data-step-panel="1" class="grid gap-4"></section>
+            <section data-step-panel="2" class="grid gap-4" hidden></section>
+            <section data-step-panel="3" class="grid gap-4" hidden>
+              <div id="t-review-summary" class="glass p-4 rounded-xl text-sm"></div>
+              <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_rules"> <span>I agree to the <a target="_blank" href="/rules/">rules</a>.</span></label>
+              <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_fair"> <span>I agree to fair play enforcement.</span></label>
+              <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_payouts"> <span>I agree to the payout policy.</span></label>
+            </section>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 all-fields" hidden>
+            {% for field in team_form %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
+                {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+            {% endfor %}
+            </div>
+
+            <div class="flex items-center justify-between mt-2">
+              <button class="btn-ghost" type="button" data-back disabled>Back</button>
+              <div class="flex gap-2">
+                <button class="btn-secondary" type="button" data-next>Next</button>
+                <button class="btn-primary" type="submit" data-submit disabled>Submit Team Registration</button>
+              </div>
+            </div>
+          </form>
+        {% endif %}
+
+        {% if solo_form and team_form %}
+        <script>
+          (function(){
+            const tabs = document.querySelectorAll('[data-tab]');
+            tabs.forEach(t => t.addEventListener('click', (e) => {
+              e.preventDefault();
+              tabs.forEach(x => x.classList.remove('is-active'));
+              t.classList.add('is-active');
+              const target = t.getAttribute('data-tab');
+              document.getElementById('solo-form')?.setAttribute('style', target === '#solo-form' ? '' : 'display:none');
+              document.getElementById('team-form')?.setAttribute('style', target === '#team-form' ? '' : 'display:none');
+            }));
+          })();
+        </script>
+        {% endif %}
+
       {% else %}
         <p class="text-muted">Registration form not available.</p>
       {% endif %}
     </article>
 
     <aside class="glass p-6 rounded-2xl">
-      <h3 class="font-semibold mb-3">Payment & Verification</h3>
-      <ul class="list-disc pl-5 text-sm text-muted space-y-1">
-        <li>Send entry fee to organizer’s bKash/Nagad/Rocket number (shown on next step).</li>
-        <li>Provide your Sender Number and Transaction ID.</li>
-        <li>Finance team manually verifies and confirms your slot.</li>
-      </ul>
-      <div class="mt-4 text-xs text-muted">Transparent audit trail & refund policy apply.</div>
+      <h3 class="font-semibold mb-3">Event Info</h3>
+      {% include "tournaments/partials/_meta.html" with title="Tournament" value=tournament.name %}
+      {% include "tournaments/partials/_meta.html" with title="Game" value=tournament.game_name %}
+      {% include "tournaments/partials/_meta.html" with title="Entry" value=tournament.entry_fee %}
+      {% include "tournaments/partials/_meta.html" with title="Prize" value=tournament.prize_pool %}
+      {% include "tournaments/partials/_meta.html" with title="Starts" value=tournament.start_at %}
+
+      <h3 class="font-semibold mt-6 mb-3">Payment</h3>
+      {% include "tournaments/partials/_payment_instructions.html" %}
+      <div class="mt-4 text-xs text-muted">After sending payment, include your number and Transaction ID in the form. Manual verification applies.</div>
     </aside>
   </div>
+  
 </section>
 {% endblock %}

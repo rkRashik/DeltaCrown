@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Standings — {% firstof tournament.name "Tournament" %}{% endblock %}
+{% block content %}
+<section class="container py-10">
+  {% include "components/_breadcrumbs.html" with items=[{"label":"Tournaments","href":"/tournaments/"},{"label":tournament.name},{"label":"Standings"}] %}
+  <header class="flex items-end justify-between mb-4">
+    <div>
+      <h1 class="sec-h">Standings</h1>
+      <p class="text-muted">{% firstof tournament.name "Tournament" %}</p>
+    </div>
+    <div class="flex gap-2">
+      <a class="btn-secondary" href="/tournaments/{{ tournament.slug }}/">Details</a>
+      <a class="btn-secondary" href="/tournaments/brackets/{{ tournament.slug }}/">Bracket</a>
+    </div>
+  </header>
+
+  {% if standings %}
+    <div class="glass p-4 rounded-2xl overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left text-muted">
+            <th class="py-2 pr-4">#</th>
+            <th class="py-2 pr-4">Team</th>
+            <th class="py-2 pr-4">W</th>
+            <th class="py-2 pr-4">L</th>
+            <th class="py-2 pr-4">Prize</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in standings %}
+            <tr>
+              <td class="py-2 pr-4">{{ forloop.counter }}</td>
+              <td class="py-2 pr-4">{% if row.team %}{{ row.team.name }}{% else %}—{% endif %}</td>
+              <td class="py-2 pr-4">{% firstof row.wins 0 %}</td>
+              <td class="py-2 pr-4">{% firstof row.losses 0 %}</td>
+              <td class="py-2 pr-4">{% firstof row.prize "—" %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="glass p-8 rounded-2xl">
+      <h3 class="font-semibold text-xl">Standings not available</h3>
+      <p class="text-muted">Results will be published after matches conclude.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

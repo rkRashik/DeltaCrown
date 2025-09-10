@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Manage Team — {% firstof team.name "Team" %}{% endblock %}
+
+{% block content %}
+<section class="container py-8">
+  <header class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      {% if team.logo %}<img src="{{ team.logo.url }}" class="h-9 w-9 rounded-full border border-border" alt="">{% endif %}
+      <h1 class="sec-h">{% firstof team.name "Team" %} — Manage</h1>
+    </div>
+    <a class="btn-secondary" href="/teams/{% if team.slug %}{{ team.slug }}{% endif %}/">Back to Team</a>
+  </header>
+
+  <div class="grid lg:grid-cols-3 gap-6">
+    <article class="glass p-6 rounded-2xl lg:col-span-2">
+      <h3 class="font-semibold mb-3">Invites</h3>
+      <div class="flex flex-wrap items-center gap-2">
+        {% if team.slug %}
+          <input type="text" readonly class="filter-input w-full sm:w-auto" value="{{ request.build_absolute_uri }}/teams/{{ team.slug }}/invite/" id="invite-url">
+          <button class="btn-primary" data-copy="#invite-url">Copy</button>
+        {% else %}
+          <p class="text-muted">Save the team first to generate an invite link.</p>
+        {% endif %}
+      </div>
+
+      {% if pending_invites %}
+        <h4 class="font-semibold mt-6 mb-2">Pending</h4>
+        <ul class="grid gap-2 text-sm">
+          {% for inv in pending_invites %}
+            <li class="flex items-center justify-between">
+              <span>{% firstof inv.invited_email inv.invited_user.user.username inv.invited_user.display_name "Invitee" %}</span>
+              <span class="text-muted">{% if inv.created_at %}{{ inv.created_at|date:"M d, H:i" }}{% endif %}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </article>
+
+    <aside class="glass p-6 rounded-2xl">
+      <h3 class="font-semibold mb-3">Settings</h3>
+      <form method="post" enctype="multipart/form-data" class="grid gap-3">
+        {% csrf_token %}
+        {% if form %}
+          {{ form.non_field_errors }}
+          {% for field in form %}
+            <div>
+              <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<p class="text-xs text-muted">{{ field.help_text }}</p>{% endif %}
+              {% for e in field.errors %}<p class="text-xs text-red-400">{{ e }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted text-sm">Form unavailable.</p>
+        {% endif %}
+        <button class="btn-primary" type="submit">Save</button>
+      </form>
+    </aside>
+  </div>
+</section>
+{% endblock %}

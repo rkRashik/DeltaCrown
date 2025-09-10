@@ -1,8 +1,10 @@
 {% comment %}Basic SEO + JSON-LD hooks (extend as needed){% endcomment %}
 <meta name="description" content="DeltaCrown — Bangladesh’s premier esports ecosystem. Tournaments, community, media, and commerce where champions rise." />
 <link rel="icon" href="{% static 'siteui/svg/logo-deltacrown.svg' %}">
-<meta property="og:title" content="DeltaCrown — Where Champions Rise" />
-<meta property="og:description" content="Fair tournaments, real payouts, vibrant community." />
-<meta property="og:type" content="website" />
-<meta property="og:image" content="{% static 'siteui/svg/logo-deltacrown.svg' %}" />
-<meta name="theme-color" content="#0b0e14" />
+<meta property="og:title" content="{% block og_title %}DeltaCrown — Where Champions Rise{% endblock %}">
+<meta property="og:description" content="Fair tournaments, real payouts, vibrant community.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="{% block og_image %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endblock %}">
+<meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}">
+{% block canonical %}{% endblock %}
+<meta name="theme-color" content="#0b0e14">

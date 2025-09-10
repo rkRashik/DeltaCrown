@@ -1,0 +1,13 @@
+<nav aria-label="Breadcrumb" class="text-sm mb-2">
+  <ol class="flex items-center gap-2 text-muted">
+    {% for item in items %}
+      {% if not forloop.first %}<span>/</span>{% endif %}
+      {% if item.href and not forloop.last %}
+        <li><a class="link-nav" href="{{ item.href }}">{{ item.label }}</a></li>
+      {% else %}
+        <li aria-current="page" class="text-body">{{ item.label }}</li>
+      {% endif %}
+    {% endfor %}
+  </ol>
+</nav>
+

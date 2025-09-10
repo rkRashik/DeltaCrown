@@ -29,7 +29,7 @@ class DCLogoutView(LogoutView):
 class SignUpView(FormView):
     template_name = "accounts/signup.html"
     form_class = SignUpForm
-    success_url = reverse_lazy("accounts:verify_email")
+    success_url = reverse_lazy("account:verify_email")
 
     def form_valid(self, form):
         user = form.save()  # is_active = False
@@ -47,11 +47,11 @@ def profile_view(request: HttpRequest) -> HttpResponse:
 class VerifyEmailView(FormView):
     template_name = "accounts/verify_email.html"
     form_class = VerifyEmailForm
-    success_url = reverse_lazy("accounts:profile")
+    success_url = reverse_lazy("account:profile")
 
     def dispatch(self, request, *args, **kwargs):
         if not request.session.get("pending_user_id"):
-            return redirect("accounts:login")
+            return redirect("account:login")
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
@@ -75,16 +75,16 @@ class ResendOTPView(View):
         user_id = request.session.get("pending_user_id")
         user = User.objects.filter(id=user_id).first()
         if not user:
-            return redirect("accounts:login")
+            return redirect("account:login")
         last = EmailOTP.objects.filter(user=user).order_by("-created_at").first()
         from django.utils import timezone
         if last and (timezone.now() - last.created_at).total_seconds() < 60:
             messages.info(request, "Please wait a minute before requesting a new code.")
-            return redirect("accounts:verify_email")
+            return redirect("account:verify_email")
         otp = EmailOTP.create_for_user(user)
         send_otp_email(user, otp.code)
         messages.success(request, "A new code has been sent.")
-        return redirect("accounts:verify_email")
+        return redirect("account:verify_email")
 
 # ---------- Google OAuth ----------
 class GoogleLoginStart(View):
@@ -99,7 +99,7 @@ class GoogleLoginStart(View):
 
 def _build_google_redirect_uri(request):
     host = request.get_host()  # e.g., localhost:8000 or 766c...ngrok-free.app
-    path = reverse("accounts:google_callback")
+    path = reverse("account:google_callback")
     if host.endswith(".ngrok-free.app") or host.endswith(".trycloudflare.com"):
         return f"https://{host}{path}"
     if host.startswith("localhost") or host.startswith("127.0.0.1"):
@@ -145,7 +145,7 @@ class GoogleCallback(View):
             messages.success(request, "Welcome with Google!")
         login(request, user)
         request.session.pop("google_oauth_state", None)
-        return redirect("accounts:profile")
+        return redirect("account:profile")
 
 def _unique_username_from(base: str) -> str:
     base = slugify(base) or "user"

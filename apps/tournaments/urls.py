@@ -3,7 +3,8 @@ from django.urls import path
 from .views import dashboard as dashboard_views
 from .views import my_matches as my_matches_views
 from .views import attendance as attendance_views
-from .views.public import tournament_list, tournament_detail, register_view, register_success
+from .views import public as public
+from .views.public import tournament_list, tournament_detail, register_view, register_success, watch
 
 app_name = "tournaments"
 
@@ -13,11 +14,14 @@ urlpatterns = [
     path("<slug:slug>/", tournament_detail, name="detail"),
 
     # Registration
-    path("<slug:slug>/register/", register_view, name="register"),
-    path("<slug:slug>/register/success/", register_success, name="register_success"),
+    path("<slug:slug>/register/", public.register_view, name="register"),
+    path("<slug:slug>/register/success/", public.register_success, name="register_success"),
+    path("<slug:slug>/register/receipt/", public.registration_receipt, name="registration_receipt"),
+    path("<slug:slug>/watch/", public.watch, name="watch"),
 
     # Brackets (public or staff)
     path("brackets/<slug:slug>/", dashboard_views.bracket_view, name="bracket_view"),
+    path("<slug:slug>/standings/", dashboard_views.standings_view, name="standings"),
 
     # Dashboard: My Matches suite (routing invariants)
     path("my-matches/", my_matches_views.my_matches, name="my_matches"),

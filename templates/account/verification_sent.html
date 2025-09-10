@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Verify your email — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl auth-card text-center">
+    <h1 class="sec-h">Verify your email</h1>
+    <p class="text-muted mt-2">We sent a confirmation link. Please check your inbox.</p>
+    <a class="btn-secondary mt-4" href="{% url 'account_login' %}">Back to sign in</a>
+  </div>
+</section>
+{% endblock %}

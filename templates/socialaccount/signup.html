@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Complete signup — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl auth-card">
+    <h1 class="sec-h text-center">Complete your profile</h1>
+    <p class="text-muted text-center mb-4">We pulled your basic details from Google. Add anything missing.</p>
+    <form method="post" action="{% url 'socialaccount_signup' %}" class="form-wrap">
+      {% csrf_token %}
+      {% include "components/_form_fields.html" with form=form %}
+      <button class="btn-primary w-full" type="submit">Finish</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

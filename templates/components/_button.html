@@ -1,0 +1,3 @@
+{% comment %}Usage: include with label/href or type=submit{% endcomment %}
+<a {% if href %}href="{{ href }}"{% endif %} class="btn-{{ kind|default:'primary' }}" {% if id %}id="{{ id }}"{% endif %}>{{ label }}</a>
+

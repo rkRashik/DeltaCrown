@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Registration Receipt — {% firstof tournament.name "Tournament" %}{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl max-w-3xl mx-auto">
+    <h1 class="sec-h">Registration Receipt</h1>
+    {% if reg %}
+      <dl class="grid sm:grid-cols-2 gap-3 mt-4">
+        <div><dt class="text-muted text-sm">Tournament</dt><dd>{% firstof tournament.name "Tournament" %}</dd></div>
+        <div><dt class="text-muted text-sm">Submitted At</dt><dd>{{ reg.created_at|date:"M d, Y H:i" }}</dd></div>
+        <div><dt class="text-muted text-sm">Registrant</dt><dd>{% firstof reg.user.display_name reg.team.name "Player/Team" %}</dd></div>
+        <div><dt class="text-muted text-sm">Payment Method</dt><dd>{% firstof reg.payment_method "—" %}</dd></div>
+        <div><dt class="text-muted text-sm">Sender Number</dt><dd>{% firstof reg.payment_sender "—" %}</dd></div>
+        <div><dt class="text-muted text-sm">Transaction ID</dt><dd>{% firstof reg.payment_reference "—" %}</dd></div>
+        <div><dt class="text-muted text-sm">Status</dt><dd>{% firstof reg.payment_status "pending" %}</dd></div>
+      </dl>
+      <div class="mt-6">
+        <button class="btn-secondary" onclick="window.print()">Print</button>
+        <a class="btn-primary" href="/tournaments/{{ tournament.slug }}/">Back to Tournament</a>
+      </div>
+    {% else %}
+      <p class="text-muted">No registration found for your account.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+

@@ -1,0 +1,41 @@
+{% load static %}
+<footer class="mt-20 border-t border-border bg-surface/60 backdrop-blur-sm">
+  <div class="container py-10 grid md:grid-cols-4 gap-8">
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center gap-2">
+        <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" class="h-7 w-7" alt="DeltaCrown" />
+        <div class="font-semibold">DeltaCrown</div>
+      </div>
+      <p class="text-muted text-sm">From the Delta to the Crown — Where Champions Rise.</p>
+    </div>
+    <div>
+      <div class="foot-h">Explore</div>
+      <ul class="foot-list">
+        <li><a href="/tournaments/">Tournaments</a></li>
+        <li><a href="/teams/">Teams</a></li>
+        <li><a href="/pages/about/">About</a></li>
+        <li><a href="/pages/community/">Community</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="foot-h">Trust</div>
+      <ul class="foot-list">
+        <li>Secure Payments</li>
+        <li>Verified Tournaments</li>
+        <li>Fair Brackets</li>
+      </ul>
+    </div>
+    <div>
+      <div class="foot-h">Support</div>
+      <ul class="foot-list">
+        <li><a href="/contact/">Contact</a></li>
+        <li><a href="/privacy/">Privacy</a></li>
+        <li><a href="/terms/">Terms</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container py-6 text-xs text-muted border-t border-border">
+    © {{ now|default:2025 }} DeltaCrown. All rights reserved.
+  </div>
+</footer>
+

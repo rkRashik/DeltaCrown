@@ -251,10 +251,36 @@ def match_comment_view(request, match_id):
 # ---------------------------------------------------------------------------
 
 def bracket_view(request, slug):
-    t = get_object_or_404(Tournament, slug=slug)
+    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
     rounds = t.matches.aggregate(Max("round_no"))["round_no__max"] or 0
     rows = [t.matches.filter(round_no=r).order_by("position") for r in range(1, rounds + 1)]
-    return render(request, "tournaments/bracket.html", {"t": t, "rounds": rows})
+    return render(request, "tournaments/bracket.html", {"t": t, "tournament": t, "rounds": rows})
+
+
+def standings_view(request, slug):
+    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
+    standings = []
+    # Best-effort: compute wins from matches if present
+    try:
+        qs = t.matches.select_related("team_a", "team_b")
+        wins = {}
+        for m in qs:
+            if getattr(m, "winner_team_id", None):
+                wins[m.winner_team_id] = wins.get(m.winner_team_id, 0) + 1
+        # Build list of (team, wins)
+        teams = set([m.team_a for m in qs if m.team_a_id] + [m.team_b for m in qs if m.team_b_id])
+        for tm in teams:
+            standings.append({
+                "team": tm,
+                "wins": wins.get(getattr(tm, "id", None), 0),
+                "losses": 0,  # omitted for now
+                "prize": None,
+            })
+        standings.sort(key=lambda x: x.get("wins", 0), reverse=True)
+    except Exception:
+        standings = []
+
+    return render(request, "tournaments/standings.html", {"tournament": t, "standings": standings})
 
 
 def tournament_detail(request, slug):

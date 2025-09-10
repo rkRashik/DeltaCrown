@@ -46,9 +46,9 @@ class Command(BaseCommand):
             pass  # status=200 is enough
 
         check("/", home_checks)
-        check("/accounts/login/", simple_ok)
-        check("/accounts/signup/", simple_ok)
-        check("/accounts/profile/", lambda r: None)  # anonymous redirects—ignore content
+        check("/account/login/", simple_ok)
+        check("/account/signup/", simple_ok)
+        check("/account/profile/", lambda r: None)  # anonymous redirects—ignore content
         check("/robots.txt", simple_ok)
         check("/sitemap.xml", simple_ok)
 

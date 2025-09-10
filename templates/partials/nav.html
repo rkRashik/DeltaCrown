@@ -1,7 +1,7 @@
 {% load static %}
-<header class="site-nav">
+<header class="site-nav" role="navigation">
   <nav class="container nav-inner">
-    <a href="/" class="brand">
+    <a href="/" class="brand" aria-label="Home">
       <img src="{% static 'siteui/svg/logo-deltacrown-animated.svg' %}" alt="DeltaCrown" class="h-7 w-7" />
       <span class="hidden sm:inline">DeltaCrown</span>
     </a>
@@ -11,44 +11,47 @@
       <svg class="h-6 w-6" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
     </button>
 
-    <ul class="nav-links">
-      <li><a class="link-nav" href="/tournaments/">Tournaments</a></li>
-      <li><a class="link-nav" href="/teams/">Teams</a></li>
-      <li><a class="link-nav" href="/pages/about/">About</a></li>
-      <li><a class="link-nav" href="/pages/community/">Community</a></li>
+    <form class="hidden md:block" action="/search/" method="get" style="flex:1; max-width:420px; margin: 0 1rem;">
+      <input class="filter-input w-full" type="search" name="q" placeholder="Search…" value="{{ request.GET.q }}" aria-label="Search">
+    </form>
+    <ul class="nav-links" role="menubar" aria-label="Primary">
+      <li role="none"><a role="menuitem" class="link-nav" href="/tournaments/">Tournaments</a></li>
+      <li role="none"><a role="menuitem" class="link-nav" href="/teams/">Teams</a></li>
+      <li role="none"><a role="menuitem" class="link-nav" href="{% firstof '/watch/' '/tournaments/' %}">Watch{% if nav_live %} <span class="pill pill--live">Live</span>{% endif %}</a></li>
+      <li role="none"><a role="menuitem" class="link-nav" href="/pages/community/">Community</a></li>
+      <li role="none"><a role="menuitem" class="link-nav" href="/pages/about/">About</a></li>
     </ul>
 
     <div class="nav-cta">
-      <button class="btn-secondary" id="theme-toggle" data-theme-toggle aria-label="Toggle theme">Theme</button>
+      <button class="btn-secondary" id="theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="false">Theme</button>
       {% if request.user.is_authenticated %}
-        <a class="btn-primary" href="/dashboard/">Dashboard</a>
+        {% if nav_user_can_create_event %}
+          <div class="relative">
+            <button class="btn-secondary" data-menu-toggle aria-haspopup="true" aria-expanded="false">Create ▾</button>
+            <div class="glass rounded-xl p-2 absolute right-0 mt-2" hidden data-menu role="menu">
+              <a role="menuitem" class="link-nav block py-1 px-2" href="/teams/create/">New Team</a>
+              <a role="menuitem" class="link-nav block py-1 px-2" href="/admin/tournaments/tournament/add/">New Event</a>
+            </div>
+          </div>
+        {% endif %}
+        <a class="btn-ghost" href="/notifications/" aria-label="Notifications"><span class="bell">🔔</span><span id="notif-badge" class="pill">{% if nav_unread_count %}{{ nav_unread_count }}{% endif %}</span></a>
+        <div class="relative">
+          <button class="btn-primary" data-avatar-toggle aria-haspopup="true" aria-expanded="false">Account ▾</button>
+          <div class="glass rounded-xl p-2 absolute right-0 mt-2" hidden data-avatar-menu role="menu">
+            <a role="menuitem" class="link-nav block py-1 px-2" href="/dashboard/">Dashboard</a>
+            <a role="menuitem" class="link-nav block py-1 px-2" href="/teams/">My Teams</a>
+            <a role="menuitem" class="link-nav block py-1 px-2" href="/dashboard/">My Registrations</a>
+            <a role="menuitem" class="link-nav block py-1 px-2" href="/dashboard/">Payouts</a>
+            <a role="menuitem" class="link-nav block py-1 px-2" href="/profile/">Profile</a>
+            <a role="menuitem" class="link-nav block py-1 px-2" href="/settings/">Settings</a>
+            <a role="menuitem" class="link-nav block py-1 px-2" href="/accounts/logout/">Sign out</a>
+          </div>
+        </div>
       {% else %}
+        <a class="btn-secondary" href="/accounts/signup/">Create account</a>
         <a class="btn-primary" href="/accounts/login/">Sign in</a>
       {% endif %}
     </div>
   </nav>
-
-  <!-- Mobile drawer -->
-  <div id="main-drawer" class="mobile-drawer" hidden>
-    <div class="mobile-drawer__panel">
-      <button class="btn-ghost close-x" data-close-drawer aria-label="Close menu">
-        <svg class="h-6 w-6" viewBox="0 0 24 24"><path fill="currentColor" d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.29 9.17 12 2.88 5.71 4.29 4.29 10.59 10.6 16.89 4.29z"/></svg>
-      </button>
-      <ul class="drawer-links">
-        <li><a class="link-nav" href="/tournaments/">Tournaments</a></li>
-        <li><a class="link-nav" href="/teams/">Teams</a></li>
-        <li><a class="link-nav" href="/pages/about/">About</a></li>
-        <li><a class="link-nav" href="/pages/community/">Community</a></li>
-        <li class="pt-2 border-t border-border">
-          {% if request.user.is_authenticated %}
-            <a class="btn-primary w-full" href="/dashboard/">Dashboard</a>
-          {% else %}
-            <a class="btn-primary w-full" href="/accounts/login/">Sign in</a>
-          {% endif %}
-        </li>
-        <li><button class="btn-secondary w-full" data-theme-toggle id="theme-toggle-mobile">Theme</button></li>
-      </ul>
-    </div>
-    <button class="mobile-drawer__scrim" data-close-drawer aria-label="Close"></button>
-  </div>
+  {% include "partials/mobile_nav.html" %}
 </header>

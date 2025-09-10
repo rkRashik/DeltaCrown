@@ -1,0 +1,10 @@
+<li class="team-member">
+  <div class="flex items-center gap-3">
+    {% if m.avatar %}<img src="{{ m.avatar.url }}" class="h-8 w-8 rounded-full border border-border" alt="">{% endif %}
+    <div>
+      <div class="font-semibold">{% firstof m.display_name m.user.get_full_name m.user.username "Player" %}</div>
+      <div class="text-xs text-muted">{% firstof m.role m.position "Member" %}</div>
+    </div>
+  </div>
+  <div class="text-xs text-muted">{% if m.joined_at %}Joined {{ m.joined_at|date:"M d, Y" }}{% endif %}</div>
+</li>

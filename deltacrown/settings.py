@@ -43,11 +43,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.humanize",
+    "django.contrib.sites",
 
     # Third-party
     "django.contrib.sitemaps",
     "rest_framework",
     "django_ckeditor_5",
+    # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 
     # Local apps
     "apps.corelib",
@@ -91,6 +93,7 @@ TEMPLATES = [
                 "apps.notifications.context_processors.notification_counts",
                 "apps.common.context.ui_settings",
                 "apps.siteui.context.site_settings",
+                "apps.siteui.nav_context.nav_context",
 
 
             ],
@@ -161,7 +164,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # -----------------------------------------------------------------------------
@@ -178,8 +181,8 @@ REST_FRAMEWORK = {
 }
 
 
-LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/accounts/profile/"
+LOGIN_URL = "/account/login/"
+LOGIN_REDIRECT_URL = "/account/profile/"
 LOGOUT_REDIRECT_URL = "/"
 
 # Dev email backend (password reset prints to console)
@@ -250,3 +253,37 @@ CKEDITOR_5_CONFIGS = {
 }
 CKEDITOR_5_CUSTOM_CSS = None
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff"
+# Sites framework (required for allauth)
+SITE_ID = int(os.getenv("SITE_ID", "1"))
+
+# Allauth authentication backends
+AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
+
+# Optional: django-allauth wiring (guarded to avoid ImportError in dev without package)
+if os.getenv("ENABLE_ALLAUTH", "0") == "1":
+    INSTALLED_APPS += [
+        "allauth",
+        "allauth.account",
+        "allauth.socialaccount",
+        "allauth.socialaccount.providers.google",
+    ]
+    AUTHENTICATION_BACKENDS = (
+        "django.contrib.auth.backends.ModelBackend",
+        "allauth.account.auth_backends.AuthenticationBackend",
+    )
+    ACCOUNT_AUTHENTICATION_METHOD = "username_email"
+    ACCOUNT_EMAIL_REQUIRED = True
+    ACCOUNT_EMAIL_VERIFICATION = os.getenv("ACCOUNT_EMAIL_VERIFICATION", "optional")
+    ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+    ACCOUNT_USERNAME_REQUIRED = True
+    ACCOUNT_ADAPTER = os.getenv("ACCOUNT_ADAPTER", "allauth.account.adapter.DefaultAccountAdapter")
+    SOCIALACCOUNT_ADAPTER = os.getenv("SOCIALACCOUNT_ADAPTER", "allauth.socialaccount.adapter.DefaultSocialAccountAdapter")
+    SOCIALACCOUNT_PROVIDERS = {
+        "google": {
+            "APP": {
+                "client_id": os.getenv("GOOGLE_CLIENT_ID", ""),
+                "secret": os.getenv("GOOGLE_CLIENT_SECRET", ""),
+                "key": "",
+            }
+        }
+    }

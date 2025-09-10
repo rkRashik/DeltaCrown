@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Sign out — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl auth-card text-center">
+    <h1 class="sec-h">Sign out</h1>
+    <p class="text-muted mt-2">Are you sure you want to sign out?</p>
+    <form method="post" action="{% url 'account_logout' %}">
+      {% csrf_token %}
+      <button class="btn-primary mt-3" type="submit">Sign out</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

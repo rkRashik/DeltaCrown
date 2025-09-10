@@ -231,14 +231,90 @@ def my_matches_view(request: HttpRequest) -> HttpResponse:
 
     if not matches:
         context = {"form": form, "matches": [], "team_fields": [], "tchoices": []}
-        return render(request, "dashboard/my_matches.html", context)
+        return render(request, "dashboard/matches.html", context)
 
     form.set_tournament_choices(tchoices or [])
     team_fields = _team_fields_on_match(Match) if Match else []
 
+    # Map to simple dicts expected by template
+    mapped = []
+    for m in matches:
+        when = (
+            getattr(m, "scheduled_at", None)
+            or getattr(m, "start_time", None)
+            or getattr(m, "starts_at", None)
+            or getattr(m, "start_at", None)
+            or getattr(m, "created_at", None)
+        )
+        team1 = None
+        team2 = None
+        if hasattr(m, "team_a") or hasattr(m, "team_b"):
+            team1 = getattr(getattr(m, "team_a", None), "name", None)
+            team2 = getattr(getattr(m, "team_b", None), "name", None)
+        elif hasattr(m, "user_a") or hasattr(m, "user_b"):
+            team1 = getattr(getattr(m, "user_a", None), "display_name", None)
+            team2 = getattr(getattr(m, "user_b", None), "display_name", None)
+        mapped.append({
+            "id": getattr(m, "id", None),
+            "when": when,
+            "team1_name": team1,
+            "team2_name": team2,
+            "score1": getattr(m, "score_a", None),
+            "score2": getattr(m, "score_b", None),
+            "tournament": getattr(m, "tournament", None),
+        })
+
     context = {
         "form": form,
-        "matches": matches,
+        "matches": mapped,
         "team_fields": team_fields,
     }
-    return render(request, "dashboard/my_matches.html", context)
+    return render(request, "dashboard/matches.html", context)
+from django.contrib.auth.decorators import login_required
+
+
+
+@login_required
+def dashboard_index(request: HttpRequest) -> HttpResponse:
+    """Simple dashboard landing with recent registrations and matches."""
+    Registration = _get_model("tournaments.Registration")
+    Match = _get_model("tournaments.Match") or _get_model("brackets.Match")
+
+    regs = []
+    try:
+        prof = _get_user_profile(request.user)
+        if Registration and prof:
+            regs = (
+                Registration.objects.filter(user=prof)
+                .select_related("tournament")
+                .order_by("-created_at")[:8]
+            )
+    except Exception:
+        regs = []
+
+    matches = []
+    try:
+        form = MyMatchesFilterForm({})
+        form.is_valid()
+        _, mlist, _ = _filter_matches_for_user(request.user, form)
+        # Map minimal fields for index
+        mapped = []
+        for m in mlist[:8]:
+            when = (
+                getattr(m, "scheduled_at", None)
+                or getattr(m, "start_time", None)
+                or getattr(m, "starts_at", None)
+                or getattr(m, "start_at", None)
+                or getattr(m, "created_at", None)
+            )
+            mapped.append({"tournament": getattr(m, "tournament", None), "when": when})
+        matches = mapped
+    except Exception:
+        matches = []
+
+    context = {
+        "registrations": regs,
+        "matches": matches,
+        "payouts": [],
+    }
+    return render(request, "dashboard/index.html", context)

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Sign in — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl auth-card">
+    <h1 class="sec-h text-center">Welcome back</h1>
+    <p class="text-muted text-center mb-4">Sign in to compete, track brackets, and get payouts.</p>
+
+    <div class="grid gap-2">
+      <a class="btn-primary w-full" href="{% url 'socialaccount_login' %}?process=login&provider=google">
+        Continue with Google
+      </a>
+      <div class="auth-alt"><span class="rule"></span><span class="text-xs text-muted">or</span><span class="rule"></span></div>
+    </div>
+
+    <form method="post" action="{% url 'account_login' %}" class="form-wrap mt-4">
+      {% csrf_token %}
+      {% include "components/_form_fields.html" with form=form %}
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+      {% endif %}
+
+      <div class="flex items-center justify-between">
+        <a class="link-nav text-sm" href="{% url 'account_reset_password' %}">Forgot password?</a>
+        <button type="submit" class="btn-primary">Sign in</button>
+      </div>
+    </form>
+
+    <p class="text-sm text-muted mt-4 text-center">
+      New here?
+      <a class="link-nav" href="{% url 'account_signup' %}">Create an account</a>
+    </p>
+  </div>
+</section>
+{% endblock %}

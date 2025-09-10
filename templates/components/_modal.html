@@ -1,0 +1,12 @@
+<div class="modal" {% if open %}open{% endif %} {% if id %}id="{{ id }}"{% endif %} role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title">
+  <div class="modal__scrim" data-close-modal></div>
+  <div class="modal__panel" tabindex="-1">
+    <header class="modal__head">
+      <h3 id="{{ id }}-title">{{ title }}</h3>
+      <button class="btn-ghost" data-close-modal aria-label="Close">×</button>
+    </header>
+    <div class="modal__body">{% block content %}{% endblock %}</div>
+    {% if actions %}<footer class="modal__foot">{{ actions }}</footer>{% endif %}
+  </div>
+</div>
+

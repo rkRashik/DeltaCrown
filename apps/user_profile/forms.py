@@ -22,5 +22,5 @@ class PrivacySettingsForm(forms.ModelForm):
             "is_private": "If enabled, your public profile is hidden (404) unless explicitly shared with staff.",
             "show_email": "Show your email on the public profile page.",
             "show_phone": "Show your phone on the public profile page.",
-            "show_socials": "Show your linked social accounts on the public profile page.",
+            "show_socials": "Show your linked social account on the public profile page.",
         }

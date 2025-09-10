@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}My Profile — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container py-8">
+  <h1 class="sec-h">My Profile</h1>
+  <div class="grid lg:grid-cols-3 gap-6 mt-2">
+    <article class="glass p-6 rounded-2xl lg:col-span-2">
+      <h3 class="font-semibold mb-3">Account</h3>
+      {% if form %}
+        <form method="post" enctype="multipart/form-data" class="form-wrap">
+          {% csrf_token %}
+          {% include "components/_form_fields.html" with form=form %}
+          <button class="btn-primary" type="submit">Save</button>
+        </form>
+      {% else %}
+        <p class="text-muted">No editable fields.</p>
+      {% endif %}
+    </article>
+    <aside class="glass p-6 rounded-2xl">
+      <h3 class="font-semibold mb-3">Security</h3>
+      <div class="grid gap-2">
+        <a class="btn-secondary" href="{% url 'account_change_password' %}">Change password</a>
+        <a class="btn-secondary" href="{% url 'account_email' %}">Manage emails</a>
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}

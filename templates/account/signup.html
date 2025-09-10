@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Create account — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container py-10">
+  <div class="glass p-6 rounded-2xl auth-card">
+    <h1 class="sec-h text-center">Create your account</h1>
+    <p class="text-muted text-center mb-4">One account for tournaments, teams, and payouts.</p>
+
+    <div class="grid gap-2">
+      <a class="btn-primary w-full" href="{% url 'socialaccount_login' %}?process=signup&provider=google">
+        Continue with Google
+      </a>
+      <div class="auth-alt"><span class="rule"></span><span class="text-xs text-muted">or</span><span class="rule"></span></div>
+    </div>
+
+    <form method="post" action="{% url 'account_signup' %}" class="form-wrap mt-4">
+      {% csrf_token %}
+      {% include "components/_form_fields.html" with form=form %}
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+      {% endif %}
+      <button type="submit" class="btn-primary w-full">Create account</button>
+    </form>
+
+    <p class="text-sm text-muted mt-4 text-center">
+      Already have an account? <a class="link-nav" href="{% url 'account_login' %}">Sign in</a>
+    </p>
+  </div>
+</section>
+{% endblock %}
