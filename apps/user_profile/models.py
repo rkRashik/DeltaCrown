@@ -22,7 +22,7 @@ class UserProfile(models.Model):
     # Social / game IDs (nullable)
     youtube_link = models.URLField(blank=True)
     twitch_link = models.URLField(blank=True)
-    preferred_games = models.JSONField(default=list, blank=True)
+    preferred_games = models.JSONField(default=list, blank=True, null=True)
     discord_id = models.CharField(max_length=64, blank=True)
     riot_id = models.CharField(max_length=100, blank=True)        # Valorant (later)
     efootball_id = models.CharField(max_length=100, blank=True)   # eFootball (later)

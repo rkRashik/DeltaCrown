@@ -32,6 +32,7 @@ from .match import Match
 from .tournament_settings import TournamentSettings
 from .events import MatchEvent, MatchComment
 from .dispute import MatchDispute
+from .evidence import MatchDisputeEvidence
 from .payment_verification import PaymentVerification
 
 # Explicit public API (prevents accidental leaks and makes static analyzers happy)
@@ -54,4 +55,5 @@ __all__ = [
     "MatchEvent",
     "MatchComment",
     "MatchDispute",
+    "MatchDisputeEvidence",
 ]

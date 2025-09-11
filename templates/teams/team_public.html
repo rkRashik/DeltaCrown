@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Team — {{ team.name|default:team.tag }}{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/teams/">Teams</a> / <span>{{ team.name|default:team.tag }}</span>
+  </nav>
+
+  <header class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold">{{ team.name|default:team.tag }}</h1>
+    <button class="btn-secondary" disabled title="Coming soon">Request to join</button>
+  </header>
+
+  <section class="glass rounded-2xl p-6 mt-4">
+    <ul class="t-hero__chips">
+      <li class="chip"><span class="chip__k">Game</span><span class="chip__v">{% firstof team.get_game_display team.game "—" %}</span></li>
+      <li class="chip"><span class="chip__k">Region</span><span class="chip__v">{% firstof team.region "BD" %}</span></li>
+      <li class="chip"><span class="chip__k">Founded</span><span class="chip__v">{% if team.created_at %}{{ team.created_at|date:"M d, Y" }}{% else %}—{% endif %}</span></li>
+    </ul>
+
+    <div class="mt-4">
+      {% if team.bio %}
+        <p>{{ team.bio|linebreaks }}</p>
+      {% else %}
+        <p class="text-muted">This team hasn't added a bio yet.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="glass rounded-2xl p-6 mt-6">
+    <h2 class="font-semibold mb-3">Roster</h2>
+    {% if roster %}
+      <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {% for m in roster %}
+          <div class="text-center text-muted">
+            {% if m.profile.avatar %}
+              <img class="mx-auto mb-3 w-24 h-24 rounded-full object-cover border border-border" src="{{ m.profile.avatar.url }}" alt="{{ m.profile.display_name }}">
+            {% else %}
+              <img class="mx-auto mb-3 w-24 h-24 rounded-full object-cover border border-border" src="{% static 'siteui/img/avatar-default.png' %}" alt="{{ m.profile.display_name }}">
+            {% endif %}
+            <div class="font-semibold text-body">{% firstof m.profile.display_name m.profile.user.get_full_name m.profile.user.username 'Member' %}</div>
+            <div class="text-xs mt-1">
+              {% if team.captain_id and m.profile.id == team.captain_id %}
+                <span class="pill">Captain</span>
+              {% else %}
+                <span class="text-muted">Member</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">No members yet.</p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

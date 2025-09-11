@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <header class="site-nav" role="navigation">
   <nav class="container nav-inner">
     <a href="/" class="brand" aria-label="Home">
@@ -11,9 +11,6 @@
       <svg class="h-6 w-6" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
     </button>
 
-    <form class="hidden md:block" action="/search/" method="get" style="flex:1; max-width:420px; margin: 0 1rem;">
-      <input class="filter-input w-full" type="search" name="q" placeholder="Search…" value="{{ request.GET.q }}" aria-label="Search">
-    </form>
     <ul class="nav-links" role="menubar" aria-label="Primary">
       <li role="none"><a role="menuitem" class="link-nav" href="/tournaments/">Tournaments</a></li>
       <li role="none"><a role="menuitem" class="link-nav" href="/teams/">Teams</a></li>
@@ -23,7 +20,7 @@
     </ul>
 
     <div class="nav-cta">
-      <button class="btn-secondary" id="theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="false">Theme</button>
+      <button class="btn-secondary flex items-center gap-2" id="theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.64 13A9 9 0 0 1 11 2.36a1 1 0 0 0-1.15 1.45A7 7 0 1 0 20.19 14.15 1 1 0 0 0 21.64 13Z"/></svg><span data-theme-label class="text-sm">system</span></button>
       {% if request.user.is_authenticated %}
         {% if nav_user_can_create_event %}
           <div class="relative">
@@ -34,24 +31,29 @@
             </div>
           </div>
         {% endif %}
-        <a class="btn-ghost" href="/notifications/" aria-label="Notifications"><span class="bell">🔔</span><span id="notif-badge" class="pill">{% if nav_unread_count %}{{ nav_unread_count }}{% endif %}</span></a>
+        <a class="btn-ghost notif-btn" href="/notifications/" aria-label="Notifications"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1Z"/></svg><span id="notif-badge" class="notif-badge pill">{% if nav_unread_count %}{{ nav_unread_count }}{% endif %}</span></a>
         <div class="relative">
           <button class="btn-primary" data-avatar-toggle aria-haspopup="true" aria-expanded="false">Account ▾</button>
           <div class="glass rounded-xl p-2 absolute right-0 mt-2" hidden data-avatar-menu role="menu">
-            <a role="menuitem" class="link-nav block py-1 px-2" href="/dashboard/">Dashboard</a>
-            <a role="menuitem" class="link-nav block py-1 px-2" href="/teams/">My Teams</a>
-            <a role="menuitem" class="link-nav block py-1 px-2" href="/dashboard/">My Registrations</a>
-            <a role="menuitem" class="link-nav block py-1 px-2" href="/dashboard/">Payouts</a>
-            <a role="menuitem" class="link-nav block py-1 px-2" href="/profile/">Profile</a>
-            <a role="menuitem" class="link-nav block py-1 px-2" href="/settings/">Settings</a>
-            <a role="menuitem" class="link-nav block py-1 px-2" href="/accounts/logout/">Sign out</a>
+            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/dashboard/">My Dashboard / Registrations</a>
+            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/teams/">My Teams</a>
+            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/dashboard/matches/">My Matches</a>
+            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/dashboard/">Payouts</a>
+            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/user/u/{{ request.user.username }}/">Profile</a>
+            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/user/me/edit/">Settings</a>
+            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/accounts/logout/">Sign out</a>
           </div>
         </div>
       {% else %}
-        <a class="btn-secondary" href="/accounts/signup/">Create account</a>
+        <a class="btn-secondary" href="/accounts/signup/">Create ▾</button>
         <a class="btn-primary" href="/accounts/login/">Sign in</a>
       {% endif %}
     </div>
   </nav>
   {% include "partials/mobile_nav.html" %}
 </header>
+
+
+
+
+

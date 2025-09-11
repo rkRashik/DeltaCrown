@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from django.contrib import messages
+from django.db.models import Count, Prefetch
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -40,6 +41,13 @@ def tournament_list(request):
     """
     qs = Tournament.objects.all()
     qs = _safe_select_related(qs, "settings")
+    # Best-effort: prefetch registrations and expose a reg_count annotation for UI badges
+    try:
+        qs = qs.prefetch_related(Prefetch("registrations"))
+        qs = qs.annotate(reg_count=Count("registrations"))
+    except Exception:
+        # Schema variations tolerated (older DBs may not have the relation yet)
+        pass
 
     # Filters
     q = (request.GET.get("q") or "").strip()
@@ -118,8 +126,12 @@ def tournament_detail(request, slug: str):
     Public tournament detail (slug).
     """
     qs = _safe_select_related(Tournament.objects.all(), "settings", "bracket")
+    # Also pull common owner field if present
+    qs = _safe_select_related(qs, "owner")
     try:
+        # Prefetch collections used across pages and annotate registration count for badges
         qs = qs.prefetch_related("registrations", "matches")
+        qs = qs.annotate(reg_count=Count("registrations"))
     except Exception:
         pass
     t = get_object_or_404(qs, slug=slug)

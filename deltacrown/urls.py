@@ -1,4 +1,4 @@
-# deltacrown/urls.py
+﻿# deltacrown/urls.py
 from importlib import import_module
 
 from django.conf import settings
@@ -30,12 +30,13 @@ urlpatterns = [
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
 
-    # User profile — include ONCE with namespace & prefix invariant
+    # User profile â€” include ONCE with namespace & prefix invariant
     path("user/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
 
     # Optional extras mounted if present
     path("notifications/", include("apps.notifications.urls")) if import_module else None,
     path("", include("apps.dashboard.urls")),
+    path("ecommerce/", include(("apps.ecommerce.urls", "ecommerce"), namespace="ecommerce")),
     path("", include("apps.economy.urls")),
     path("ckeditor5/", include("django_ckeditor_5.urls")),
     path("players/<str:username>/", player_views.player_detail, name="player_detail"),

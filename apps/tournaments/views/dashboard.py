@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.db.models import Max
 from django.core.exceptions import ValidationError
 from django.views.decorators.http import require_POST
+from django.core.files.uploadedfile import UploadedFile
 from django.urls import reverse
 from django.utils import timezone
 from django.apps import apps
@@ -202,20 +203,49 @@ def match_dispute_view(request, match_id):
 
     # Existing open dispute?
     existing = MatchDispute.objects.filter(match=m, is_open=True).first()
-    if existing:
-        return render(request, "tournaments/dispute_form.html", {"match": m, "dispute": existing})
 
+    from ..models import MatchDisputeEvidence
+    error = None
     if request.method == "POST":
         reason = (request.POST.get("reason") or "").strip()
-        if not reason:
-            return render(request, "tournaments/dispute_form.html", {"match": m, "error": "Please enter a reason."})
+        file: UploadedFile | None = request.FILES.get("evidence")
+        if not existing:
+            if not reason:
+                return render(request, "tournaments/dispute_form.html", {"match": m, "error": "Please enter a reason."})
+            existing = MatchDispute.objects.create(match=m, opened_by=actor, reason=reason, is_open=True)
+            _create_event("DISPUTE_OPENED", m, actor=actor, note=reason)
 
-        MatchDispute.objects.create(match=m, opened_by=actor, reason=reason, is_open=True)
-        _create_event("DISPUTE_OPENED", m, actor=actor, note=reason)
+        if file is not None:
+            ct = (getattr(file, "content_type", "") or "").lower()
+            size = int(getattr(file, "size", 0) or 0)
+            allowed = ct.startswith("image/") or ct == "video/mp4"
+            max_size = 10 * 1024 * 1024
+            if not allowed:
+                error = "Unsupported file type. Please upload images or MP4 videos."
+            elif size > max_size:
+                error = "File too large. Max 10MB allowed."
+            else:
+                ev = MatchDisputeEvidence.objects.create(
+                    dispute=existing,
+                    file=file,
+                    content_type=ct,
+                    size=size,
+                    uploaded_by=getattr(request, "user", None),
+                )
+                _create_event("DISPUTE_EVIDENCE", m, actor=actor, note=f"evidence_id={ev.id}")
 
-        return redirect("tournaments:match_review", match_id=m.id)
+        if error is None and reason and existing and existing.reason != reason:
+            existing.reason = reason
+            existing.save(update_fields=["reason"])
 
-    return render(request, "tournaments/dispute_form.html", {"match": m})
+        if error is None:
+            return redirect("tournaments:match_review", match_id=m.id)
+
+    from ..utils.signed_urls import evidence_signed_url
+    evid_qs = getattr(existing, "evidence", None)
+    evid = list(evid_qs.all()) if evid_qs is not None else []
+    items = [{"id": e.id, "url": evidence_signed_url(e.id, 300), "content_type": e.content_type, "size": e.size} for e in evid]
+    return render(request, "tournaments/dispute_form.html", {"match": m, "dispute": existing, "error": error, "evidence": items})
 
 
 @login_required

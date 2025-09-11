@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 import csv
 from io import StringIO
 from django import forms
@@ -13,7 +13,7 @@ class PaymentVerificationInline(admin.StackedInline):
     model = apps.get_model("tournaments", "PaymentVerification")
     extra = 0
     can_delete = False
-    fields = ("transaction_id", "payer_phone", "state", "verified_at")
+    fields = ("transaction_id", "payer_account_number", "status", "verified_at")
     readonly_fields = ()
     fk_name = "registration"  # expected name; Django will raise if different
 
@@ -54,11 +54,9 @@ def record_manual_payment(modeladmin, request, queryset):
         pv, created = PV.objects.get_or_create(registration=reg, defaults={})
         if txn and hasattr(pv, "transaction_id"):
             pv.transaction_id = txn
-        if phone and hasattr(pv, "payer_phone"):
-            pv.payer_phone = phone
-        for attr in ("state", "status"):
-            if hasattr(pv, attr):
-                setattr(pv, attr, "VERIFIED")
+        if phone and hasattr(pv, "payer_account_number"):
+            pv.payer_account_number = phone
+        pv.status = PV.Status.VERIFIED
         if hasattr(pv, "verified_at"):
             pv.verified_at = now
         pv.save()
@@ -93,3 +91,4 @@ try:
     _augment_registration_admin()
 except Exception:
     pass
+

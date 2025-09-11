@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Resolve Dispute — DeltaCrown{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/">Home</a> / <a class="link-nav" href="/admin/">Admin</a> / <span>Resolve Dispute</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">Resolve Dispute</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4">
+    {% if match %}
+      <div class="grid gap-2">
+        <div><span class="text-muted">Match:</span> #{{ match.id }}</div>
+        <div><span class="text-muted">Tournament:</span> {{ match.tournament.name|default:"Tournament" }}</div>
+      </div>
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary">Keep reported result</button>
+      </form>
+    {% else %}
+      <p class="text-muted">Match not found.</p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

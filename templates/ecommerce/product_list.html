@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Store — DeltaCrown{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/">Home</a> / <span>Store</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">Store</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4">
+    {% if products %}
+      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {% for p in products %}
+          <li class="card">
+            <div class="card-body">
+              <div class="card-title">{{ p.name }}</div>
+              <p class="text-muted mb-2">{{ p.description|default:"" }}</p>
+              <div class="flex items-center justify-between mt-2">
+                <span class="font-semibold">{{ p.price }} DCC</span>
+                {% if p.id %}
+                  <a class="btn-primary" href="/ecommerce/add/{{ p.id }}/">Add to cart</a>
+                {% endif %}
+              </div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="text-center">
+        <img src="{% static 'siteui/svg/empty/empty-products.svg' %}" alt="No products" class="mx-auto mb-3 opacity-80" width="220" height="150">
+        <p class="text-muted">No products available yet.</p>
+      </div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

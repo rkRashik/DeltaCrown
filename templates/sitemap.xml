@@ -1,7 +1,6 @@
 {% autoescape off %}<?xml version="1.0" encoding="UTF-8"?>{% endautoescape %}
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>{{ request.scheme }}://{{ request.get_host }}/</loc></url>
-  <url><loc>{{ request.scheme }}://{{ request.get_host }}/accounts/login/</loc></url>
-  <url><loc>{{ request.scheme }}://{{ request.get_host }}/accounts/signup/</loc></url>
-  <url><loc>{{ request.scheme }}://{{ request.get_host }}/accounts/profile/</loc></url>
+  <url><loc>{{ request.scheme }}://{{ request.get_host }}/tournaments/</loc></url>
+  <url><loc>{{ request.scheme }}://{{ request.get_host }}/teams/</loc></url>
 </urlset>

@@ -62,11 +62,10 @@
         {% include "tournaments/partials/_card.html" with tournament=t %}
       {% endfor %}
     {% else %}
-      <div class="glass p-8 rounded-2xl text-center">
-        <img src="{% static 'siteui/svg/empty/empty-tournaments.svg' %}" alt="No tournaments" class="mx-auto mb-3 opacity-80" width="240" height="160">
-        <h3 class="text-xl font-semibold">No tournaments found</h3>
-        <p class="text-muted mt-1">Try different filters.</p>
-      </div>
+      {% include "components/empty.html" with 
+         title="No tournaments found" 
+         subtitle="Try different filters." 
+         icon=static('siteui/svg/empty/empty-tournaments.svg') %}
     {% endif %}
   </div>
 

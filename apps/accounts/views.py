@@ -42,7 +42,7 @@ class SignUpView(FormView):
 
 @login_required
 def profile_view(request: HttpRequest) -> HttpResponse:
-    return render(request, "accounts/profile.html", {})
+    return render(request, "account/profile.html", {})
 
 # ---------- Email OTP ----------
 class VerifyEmailView(FormView):

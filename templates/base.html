@@ -69,6 +69,10 @@
     <script src="{% static 'siteui/js/reg_wizard.js' %}"></script>
     <script src="{% static 'siteui/js/teams.js' %}"></script>
     <script src="{% static 'siteui/js/auth.js' %}"></script>
-    <div id="dc-toasts" aria-live="polite" aria-atomic="true"></div>
+    {% if messages %}
+    <script id="dj-messages" type="application/json">[
+      {% for message in messages %}{"level":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}
+    ]</script>
+    {% endif %}
   </body>
 </html>

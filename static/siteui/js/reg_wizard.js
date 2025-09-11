@@ -26,9 +26,15 @@
     // Bind navigation and validation
     bindNav(form);
 
-    // Start at hash step or 1
-    const n = readHashStep() || 1;
+    // If server returned errors, prefer the step that contains them
+    const errStep = detectServerErrorStep(form);
+    // Start at hash step, error step, or 1
+    const n = readHashStep() || errStep || 1;
     goToStep(form, n, /*announce*/false);
+    if (errStep){
+      const panel = form.querySelector(`[data-step-panel="${errStep}"]`) || form.querySelector(`[data-step="${errStep}"]`);
+      try { panel && panel.scrollIntoView({behavior:'smooth', block:'start'}); } catch(e){}
+    }
   }
 
   // ---------- Step containers ----------
@@ -296,5 +302,16 @@
   }
   function currentStepFromHash(){ return readHashStep() || 1; }
 
-})();
+  function detectServerErrorStep(form){
+    const panels = [1,2,3].map(i=>({i, el: form.querySelector(`[data-step-panel="${i}"]`) || form.querySelector(`[data-step="${i}"]`)}));
+    const hasErr = (root)=> !!(root && (root.querySelector('.form-errors, .form-err, .errorlist, .text-red-400, [aria-invalid="true"]')));
+    for (const p of panels){ if (hasErr(p.el)) return p.i; }
+    // Also check summary level errors at top but try to infer by common field names
+    if (form.querySelector('.form-errors, .form-err-list')){
+      // default to step 1 when unknown
+      return 1;
+    }
+    return null;
+  }
 
+})();

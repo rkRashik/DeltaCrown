@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Profile Settings — DeltaCrown{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/">Home</a> / <a class="link-nav" href="/user/u/{{ request.user.username }}/">Profile</a> / <span>Settings</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">Profile Settings</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4">
+    {% if form %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="grid gap-4 md:grid-cols-2">
+          {% for field in form %}
+            <div>
+              <label class="label-text" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}<div class="text-sm text-muted mt-1">{{ field.help_text }}</div>{% endif %}
+              {{ field.errors }}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="mt-4">
+          <button class="btn-primary" type="submit">Save changes</button>
+        </div>
+      </form>
+    {% else %}
+      <div class="text-center">
+        <p class="text-muted">Settings form is not available.</p>
+      </div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

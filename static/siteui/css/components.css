@@ -130,6 +130,11 @@
   outline-offset: 2px;
 }
 .btn { display:inline-flex; align-items:center; gap:.4rem; font-weight:600; border-radius:.7rem; padding:.55rem .9rem; border:1px solid var(--border); }
+.btn, .btn-primary, .btn-secondary, .btn-ghost { border-radius: var(--radius-lg); padding: .55rem .9rem; }
+.btn:focus-visible, .btn-primary:focus-visible, .btn-secondary:focus-visible, .btn-ghost:focus-visible,
+.link-nav:focus-visible, [data-menu] a:focus-visible, [data-avatar-menu] a:focus-visible { outline: 2px solid color-mix(in oklab, var(--brand-crown), transparent 40%); outline-offset: 2px; }
+.btn-secondary { background: color-mix(in oklab, var(--surface) 85%, transparent); border:1px solid var(--border); color: var(--text); }
+.btn-secondary:hover { background: color-mix(in oklab, var(--surface) 70%, transparent); }
 .btn-secondary.btn-soft { background: transparent; color: var(--text); border-color: var(--border); opacity:.9; }
 .btn-secondary.btn-soft:hover { opacity: 1; }
 .error-message { display:none; color:#f87171; font-size:.8rem; margin-top:.25rem; }
@@ -194,9 +199,16 @@
 
 /* DeltaGlass v2 tweaks */
 .glass { border-radius: 1.1rem; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
-.btn-primary { background: linear-gradient(90deg, var(--brand-delta), var(--brand-crown)); border:none; }
+.btn-primary { background: linear-gradient(90deg, var(--brand-delta), var(--brand-crown)); border:none; color:#0b1220; }
 .btn-primary:hover { transform: translateY(-1px); }
 .btn-primary:active { transform: translateY(0); }
+
+/* Cards */
+.card { border:1px solid var(--border); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-md); }
+.card-body { padding: var(--space-4); }
+
+/* Pills / Chips */
+.pill { font-size: .8rem; line-height: 1; padding: .35rem .6rem; border-radius: 999px; border: 1px solid var(--border); background: color-mix(in oklab, var(--surface) 90%, transparent); }
 
 /* ---------- Cards & Grid ---------- */
 .t-grid { display:grid; gap:1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-top:1rem; }
@@ -345,3 +357,8 @@
 .btn.btn-soft { background: color-mix(in oklab, var(--btn-color, var(--text)) 12%, transparent); color: var(--btn-color, var(--text)); border-color: color-mix(in oklab, var(--btn-color, var(--border)) 40%, var(--border)); }
 .btn.btn-outline { background: transparent; color: var(--btn-color, var(--text)); border-color: var(--btn-color, var(--border)); }
 .btn.btn-text { background: transparent; color: var(--btn-color, var(--text)); border-color: transparent; }
+
+/* Icons and notification badge */
+.icon { width: 1.1rem; height: 1.1rem; display:inline-block; }
+.notif-btn { position: relative; }
+.notif-btn .notif-badge { position:absolute; top:-.35rem; right:-.35rem; font-size:.7rem; padding:.2rem .35rem; }

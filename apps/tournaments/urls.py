@@ -2,6 +2,7 @@
 from django.urls import path
 from .views import dashboard as dashboard_views
 from .views import my_matches as my_matches_views
+from .views import evidence as evidence_views
 from .views import attendance as attendance_views
 from .views import public as public
 from .views.public import tournament_list, tournament_detail, register_view, register_success, watch
@@ -45,4 +46,6 @@ urlpatterns = [
     path("match/<int:match_id>/confirm/", dashboard_views.match_confirm_view, name="match_confirm"),
     path("match/<int:match_id>/dispute/", dashboard_views.match_dispute_view, name="match_dispute"),
     path("staff/match/<int:match_id>/resolve/", dashboard_views.match_dispute_resolve_view, name="match_dispute_resolve"),
+    # Signed evidence downloads
+    path("evidence/<int:evidence_id>/", evidence_views.evidence_download, name="evidence_download"),
 ]

@@ -53,24 +53,30 @@ class PaymentVerification(models.Model):
     )
     verified_at = models.DateTimeField(null=True, blank=True)
     reject_reason = models.TextField(blank=True)
+    # Audit trail for last action taken (approve/deny)
+    last_action_reason = models.CharField(max_length=200, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     # ---- helpers ----
-    def mark_verified(self, user):
+    def mark_verified(self, user, reason: str = ""):
         self.status = self.Status.VERIFIED
         self.verified_by = user
         self.verified_at = timezone.now()
         self.reject_reason = ""
-        self.save(update_fields=["status", "verified_by", "verified_at", "reject_reason", "updated_at"])
+        if hasattr(self, "last_action_reason"):
+            self.last_action_reason = reason or "Manual verify via admin"
+        self.save(update_fields=["status", "verified_by", "verified_at", "reject_reason", "last_action_reason", "updated_at"]) if hasattr(self, "last_action_reason") else self.save(update_fields=["status", "verified_by", "verified_at", "reject_reason", "updated_at"])
 
     def mark_rejected(self, user, reason: str = ""):
         self.status = self.Status.REJECTED
         self.verified_by = user
         self.verified_at = timezone.now()
         self.reject_reason = reason or "Rejected by staff"
-        self.save(update_fields=["status", "verified_by", "verified_at", "reject_reason", "updated_at"])
+        if hasattr(self, "last_action_reason"):
+            self.last_action_reason = reason or "Manual reject via admin"
+        self.save(update_fields=["status", "verified_by", "verified_at", "reject_reason", "last_action_reason", "updated_at"]) if hasattr(self, "last_action_reason") else self.save(update_fields=["status", "verified_by", "verified_at", "reject_reason", "updated_at"])
 
     def __str__(self):
         rid = getattr(self.registration, "id", None)

@@ -1,4 +1,4 @@
-// Drawer open/close via data-open-drawer="TARGET_ID" and [data-close-drawer]
+﻿// Drawer open/close via data-open-drawer="TARGET_ID" and [data-close-drawer]
 (function () {
   document.addEventListener("click", (e) => {
     const openBtn = e.target.closest("[data-open-drawer]");
@@ -63,5 +63,23 @@
   }
   document.addEventListener('click', (e)=>{
     const t = e.target.closest('[data-collapse]'); if(t){ e.preventDefault(); toggle(t); }
+  });
+})();
+
+// Django messages -> toasts
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    try{
+      const el = document.getElementById('dj-messages');
+      if(!el) return;
+      const data = JSON.parse(el.textContent || '[]');
+      if (!Array.isArray(data)) return;
+      data.forEach(m=>{
+        if (window.DC && DC.toast){
+          const title = (m.level||'info').replace(/\b\w/g, c=>c.toUpperCase());
+          DC.toast({ title: title, message: m.text||'', timeout: 5000 });
+        }
+      });
+    }catch(e){ /* no-op */ }
   });
 })();

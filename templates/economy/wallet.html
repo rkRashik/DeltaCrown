@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Wallet — DeltaCrown{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/">Home</a> / <span>Wallet</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">Wallet</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4">
+    {% if wallet %}
+      <div class="grid gap-2">
+        <div><span class="text-muted">Balance:</span> <strong>{{ wallet.cached_balance|default:0 }}</strong> DCC</div>
+      </div>
+    {% else %}
+      <div class="text-center">
+        <p class="text-muted">No wallet found yet.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="glass rounded-2xl p-6 mt-6">
+    <h2 class="font-semibold mb-3">Transactions</h2>
+
+    <form method="get" class="grid gap-3 md:grid-cols-4 mb-4">
+      <select name="reason" class="select">
+        {% for k,label in reason_choices %}
+          <option value="{{ k }}" {% if k == reason %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input class="input" type="date" name="start" value="{{ start }}" placeholder="Start date">
+      <input class="input" type="date" name="end" value="{{ end }}" placeholder="End date">
+      <div class="flex gap-2">
+        <button class="btn-primary" type="submit">Filter</button>
+        <a class="btn-secondary" href="?format=csv">Export CSV</a>
+      </div>
+    </form>
+
+    {% if page_obj and page_obj.object_list %}
+      <div class="grid gap-2">
+        {% for tx in page_obj.object_list %}
+          <div class="border border-line rounded-xl p-3 flex items-center justify-between">
+            <div class="grid">
+              <div class="text-sm text-muted">{{ tx.created_at|date:"Y-m-d H:i" }}</div>
+              <div class="font-semibold">{{ tx.get_reason_display|default:tx.reason }}</div>
+              {% if tx.note %}<div class="text-sm text-muted">{{ tx.note }}</div>{% endif %}
+            </div>
+            <div class="font-bold {% if tx.amount < 0 %}text-red-500{% else %}text-green-500{% endif %}">{{ tx.amount }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center">
+        <img src="{% static 'siteui/svg/empty/empty-wallet.svg' %}" alt="No transactions" class="mx-auto mb-3 opacity-80" width="220" height="150">
+        <p class="text-muted">No transactions found for this filter.</p>
+      </div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

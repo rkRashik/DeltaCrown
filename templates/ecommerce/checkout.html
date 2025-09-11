@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Checkout — DeltaCrown{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/">Home</a> / <a class="link-nav" href="/ecommerce/">Store</a> / <span>Checkout</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">Checkout</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4">
+    {% if order %}
+      {% if error %}
+        <div class="rounded-xl border border-line p-3 mb-3 text-red-400">{{ error }}</div>
+      {% endif %}
+      <h2 class="font-semibold mb-2">Order Summary</h2>
+      <ul class="grid gap-2">
+        {% for item in order.items.all %}
+          <li class="flex items-center justify-between border border-line rounded-xl p-3">
+            <span>{{ item.product.name }} × {{ item.quantity }}</span>
+            <span class="font-semibold">{{ item.price }} DCC</span>
+          </li>
+        {% empty %}
+          <li class="text-muted">No items in cart.</li>
+        {% endfor %}
+      </ul>
+      <div class="flex items-center justify-between mt-4">
+        <span class="text-muted">Total</span>
+        <span class="font-bold">{{ order.total_price|default:0 }} DCC</span>
+      </div>
+
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <button class="btn-primary" type="submit">Pay with Coins</button>
+      </form>
+    {% else %}
+      <div class="text-center">
+        <img src="{% static 'siteui/svg/empty/empty-cart.svg' %}" alt="No order" class="mx-auto mb-3 opacity-80" width="220" height="150">
+        <p class="text-muted">No pending order. Visit the store to add items.</p>
+        <a class="btn-secondary mt-3" href="/ecommerce/">Go to Store</a>
+      </div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

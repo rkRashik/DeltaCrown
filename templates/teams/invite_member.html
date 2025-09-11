@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Invite Member — Teams{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/teams/">Teams</a> / <span>Invite Member</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">Invite Member</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4 max-w-2xl">
+    <form method="post" class="grid gap-4">
+      {% csrf_token %}
+      <div>
+        <label class="label-text" for="username">Username</label>
+        <input class="input" type="text" id="username" name="username" placeholder="alice" value="{{ request.POST.username }}">
+        <p class="text-xs text-muted mt-1">Enter a username or an email below.</p>
+        {% if form and form.errors.username %}<div class="error-message">{{ form.errors.username }}</div>{% endif %}
+      </div>
+      <div>
+        <label class="label-text" for="email">Email</label>
+        <input class="input" type="email" id="email" name="email" placeholder="user@example.com" value="{{ request.POST.email }}">
+        {% if form and form.errors.email %}<div class="error-message">{{ form.errors.email }}</div>{% endif %}
+      </div>
+      <div>
+        <label class="label-text" for="message">Message (optional)</label>
+        <textarea class="textarea" id="message" name="message" rows="3" placeholder="Hey, join our team!">{{ request.POST.message }}</textarea>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-primary" type="submit">Send Invite</button>
+        <a class="btn-ghost" href="{% if team and team.slug %}/teams/{{ team.slug }}/{% else %}/teams/{% endif %}">Back to Team</a>
+      </div>
+    </form>
+  </section>
+</main>
+{% endblock %}
+

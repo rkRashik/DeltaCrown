@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Access Denied — DeltaCrown{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-3xl py-16 text-center">
+  <div class="glass rounded-2xl p-8">
+    <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" alt="DeltaCrown" class="mx-auto mb-4 opacity-90" width="64" height="64">
+    <h1 class="text-3xl font-extrabold mb-2">Access denied</h1>
+    <p class="text-muted mb-6">You don’t have permission to view this page.</p>
+    <div class="flex items-center justify-center gap-3">
+      <a class="btn-primary" href="/">Go home</a>
+      <a class="btn-secondary" href="/contact/">Report an issue</a>
+    </div>
+  </div>
+</main>
+{% endblock %}
+

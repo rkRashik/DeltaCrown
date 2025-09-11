@@ -100,6 +100,10 @@ class PaymentVerificationAdmin(admin.ModelAdmin):
     def action_verify(self, request, queryset):
         count = skipped = 0
         for pv in queryset:
+            # Skip already terminal states
+            if pv.status in (PaymentVerification.Status.VERIFIED, PaymentVerification.Status.REJECTED):
+                skipped += 1
+                continue
             tx = getattr(pv, "transaction_id", None)
             if tx:
                 dup = (
@@ -117,7 +121,7 @@ class PaymentVerificationAdmin(admin.ModelAdmin):
                         level=messages.WARNING,
                     )
                     continue
-            pv.mark_verified(request.user)
+            pv.mark_verified(request.user, reason="Manual verify via admin")
             count += 1
         if count:
             self.message_user(request, f"Verified {count} payment(s).", level=messages.SUCCESS)
@@ -126,11 +130,17 @@ class PaymentVerificationAdmin(admin.ModelAdmin):
 
     @admin.action(description="Reject selected payments (no email)")
     def action_reject(self, request, queryset):
-        count = 0
+        count = skipped = 0
         for pv in queryset:
-            pv.mark_rejected(request.user)
+            if pv.status in (PaymentVerification.Status.VERIFIED, PaymentVerification.Status.REJECTED):
+                skipped += 1
+                continue
+            pv.mark_rejected(request.user, reason="Manual reject via admin")
             count += 1
-        self.message_user(request, f"Rejected {count} payment(s).", level=messages.WARNING)
+        if count:
+            self.message_user(request, f"Rejected {count} payment(s).", level=messages.WARNING)
+        if skipped:
+            self.message_user(request, f"Skipped {skipped} already processed.", level=messages.WARNING)
 
     @admin.action(description="Email registrant(s) – payment received & pending manual verification")
     def action_email_registrant(self, request, queryset):

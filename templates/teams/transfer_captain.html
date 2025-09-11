@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Transfer Captaincy — Teams{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/teams/">Teams</a> / <span>Transfer Captaincy</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">Transfer Captaincy{% if team %} — {{ team.name|default:team.tag }}{% endif %}</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4 max-w-xl">
+    <form method="post" class="grid gap-4">
+      {% csrf_token %}
+      <div>
+        <label class="label-text" for="new_captain_id">Select new captain</label>
+        <select class="select" id="new_captain_id" name="new_captain_id" required>
+          <option value="">Choose a member…</option>
+          {% for m in options %}
+            <option value="{{ m.id }}">{% firstof m.user.display_name m.user.user.get_full_name m.user.user.username 'Member' %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn-primary" type="submit">Transfer</button>
+        <a class="btn-ghost" href="{% if team and team.id %}/teams/{{ team.id }}/{% else %}/teams/{% endif %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+</main>
+{% endblock %}
+

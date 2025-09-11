@@ -97,6 +97,14 @@
             <div id="aria-live" class="sr-only" aria-live="polite"></div>
 
             <section data-step-panel="1" class="grid gap-4">
+              {% if solo_form.errors %}
+              <div class="form-errors">
+                {% for field, errors in solo_form.errors.items %}
+                  {% for e in errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+                {% endfor %}
+                {{ solo_form.non_field_errors }}
+              </div>
+              {% endif %}
               {% if solo_form.display_name %}
               <div class="flex flex-col" data-fieldwrap>
                 <label class="block text-sm font-semibold mb-1" for="{{ solo_form.display_name.id_for_label }}">{{ solo_form.display_name.label }}</label>
@@ -107,6 +115,14 @@
               {% endif %}
             </section>
             <section data-step-panel="2" class="grid gap-4" hidden>
+              {% if solo_form.errors %}
+              <div class="form-errors">
+                {% for field, errors in solo_form.errors.items %}
+                  {% for e in errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+                {% endfor %}
+                {{ solo_form.non_field_errors }}
+              </div>
+              {% endif %}
               {% if entry_fee_bdt and entry_fee_bdt|floatformat:0|add:'0' > '0' %}
                 <div class="text-sm text-muted">Entry fee: <strong>{{ entry_fee_bdt }}</strong> BDT</div>
               {% else %}
@@ -150,6 +166,14 @@
               {% endif %}
             </section>
             <section data-step-panel="3" class="grid gap-4" hidden>
+              {% if solo_form.errors %}
+              <div class="form-errors">
+                {% for field, errors in solo_form.errors.items %}
+                  {% for e in errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+                {% endfor %}
+                {{ solo_form.non_field_errors }}
+              </div>
+              {% endif %}
               <div id="review-summary" class="glass p-4 rounded-xl text-sm"></div>
               <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_rules"> <span>I agree to the <a target="_blank" href="/rules/">rules</a>.</span></label>
               <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_fair"> <span>I agree to fair play enforcement.</span></label>
@@ -192,6 +216,14 @@
             <div id="t-aria-live" class="sr-only" aria-live="polite"></div>
 
             <section data-step-panel="1" class="grid gap-4">
+              {% if team_form.errors %}
+              <div class="form-errors">
+                {% for field, errors in team_form.errors.items %}
+                  {% for e in errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+                {% endfor %}
+                {{ team_form.non_field_errors }}
+              </div>
+              {% endif %}
               {% if team_form.team %}
               <div class="flex flex-col" data-fieldwrap>
                 <label class="block text-sm font-semibold mb-1" for="{{ team_form.team.id_for_label }}">{{ team_form.team.label|default:"Team" }}</label>
@@ -202,6 +234,14 @@
               {% endif %}
             </section>
             <section data-step-panel="2" class="grid gap-4" hidden>
+              {% if team_form.errors %}
+              <div class="form-errors">
+                {% for field, errors in team_form.errors.items %}
+                  {% for e in errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+                {% endfor %}
+                {{ team_form.non_field_errors }}
+              </div>
+              {% endif %}
               {% if entry_fee_bdt and entry_fee_bdt|floatformat:0|add:'0' > '0' %}
                 <div class="text-sm text-muted">Entry fee: <strong>{{ entry_fee_bdt }}</strong> BDT</div>
               {% else %}
@@ -245,6 +285,14 @@
               {% endif %}
             </section>
             <section data-step-panel="3" class="grid gap-4" hidden>
+              {% if team_form.errors %}
+              <div class="form-errors">
+                {% for field, errors in team_form.errors.items %}
+                  {% for e in errors %}<p class="text-red-400 text-sm">{{ e }}</p>{% endfor %}
+                {% endfor %}
+                {{ team_form.non_field_errors }}
+              </div>
+              {% endif %}
               <div id="t-review-summary" class="glass p-4 rounded-xl text-sm"></div>
               <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_rules"> <span>I agree to the <a target="_blank" href="/rules/">rules</a>.</span></label>
               <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_fair"> <span>I agree to fair play enforcement.</span></label>

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Public Profile — DeltaCrown{% endblock %}
+
+{% block content %}
+<main class="container mx-auto px-4 max-w-7xl py-8">
+  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
+    <a class="link-nav" href="/">Home</a> / <span>Profile</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold">{{ public_user.username|default:"User" }}</h1>
+
+  <section class="glass rounded-2xl p-6 mt-4">
+    {% if is_private %}
+      <p class="text-muted">This profile is private.</p>
+    {% else %}
+      <div class="grid gap-3">
+        {% if show_email and public_user.email %}
+          <div><span class="text-muted">Email:</span> {{ public_user.email }}</div>
+        {% endif %}
+        {% if show_phone and phone %}
+          <div><span class="text-muted">Phone:</span> {{ phone }}</div>
+        {% endif %}
+        {% if show_socials %}
+          {% if ign %}<div><span class="text-muted">IGN:</span> {{ ign }}</div>{% endif %}
+          {% if riot_id %}<div><span class="text-muted">Riot ID:</span> {{ riot_id }}</div>{% endif %}
+          {% if efootball_id %}<div><span class="text-muted">eFootball ID:</span> {{ efootball_id }}</div>{% endif %}
+          {% if discord_id %}<div><span class="text-muted">Discord:</span> {{ discord_id }}</div>{% endif %}
+        {% endif %}
+      </div>
+      {% if not show_email and not show_phone and not show_socials %}
+        <p class="text-muted">No public details are shared.</p>
+      {% endif %}
+    {% endif %}
+  </section>
+</main>
+{% endblock %}
+

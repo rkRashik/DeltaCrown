@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from django.contrib import admin, messages
 from django.contrib.admin.sites import AlreadyRegistered
 from django.apps import apps
@@ -84,7 +84,7 @@ def action_send_payment_reminders(modeladmin, request, queryset):
         body = "\n".join([ln for ln in lines if ln])
         try:
             send_mail(
-                subject="Payment reminder — complete your DeltaCrown registration",
+                subject="Payment reminder â€” complete your DeltaCrown registration",
                 message=body,
                 from_email=None,
                 recipient_list=[email],
@@ -151,11 +151,13 @@ class _RegistrationAdmin(admin.ModelAdmin):
     list_display = ("id", "tournament", "created_at")
     list_filter = ("tournament",)
     date_hierarchy = "created_at"
+    # Required for autocomplete_fields referencing Registration in other admins
+    search_fields = ("id", "tournament__name")
     actions = [action_send_payment_reminders, action_mark_paid]
 
 class _PaymentVerificationAdmin(admin.ModelAdmin):
-    list_display = ("id", "registration", "transaction_id", "state", "verified_at")
-    list_filter = ("state", "verified_at")
+    list_display = ("id", "registration", "transaction_id", "status", "verified_at")
+    list_filter = ("status", "verified_at")
     search_fields = ("transaction_id", "registration__id")
     actions = [action_verify_selected, action_reject_selected]
 

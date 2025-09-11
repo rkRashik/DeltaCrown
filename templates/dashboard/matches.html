@@ -33,10 +33,10 @@
         {% endfor %}
       </ul>
     {% else %}
-      <div class="text-center">
-        <img src="{% static 'siteui/svg/empty/empty-matches.svg' %}" alt="No matches" class="mx-auto mb-3 opacity-80" width="240" height="160">
-        <p class="text-muted">No matches.</p>
-      </div>
+      {% include "components/empty.html" with 
+         title="No matches" 
+         subtitle="You have no matches scheduled." 
+         icon=static('siteui/svg/empty/empty-matches.svg') %}
     {% endif %}
   </div>
 </section>
