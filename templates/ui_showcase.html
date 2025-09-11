@@ -52,6 +52,58 @@
       <button class="btn border-line" data-open-drawer="demo-drawer">Open drawer</button>
       {% include "components/drawer.html" with id="demo-drawer" title="Menu" body="<ul><li><a href='/tournaments/'>Tournaments</a></li><li><a href='/teams/'>Teams</a></li></ul>" %}
     </div>
+    <!-- Sidebar (overlay) -->
+    <div class="space-y-2">
+      <h2 class="font-semibold">Sidebar</h2>
+      <button type="button" class="btn btn-text" aria-haspopup="dialog" aria-expanded="false" aria-controls="dc-sidebar" data-overlay="#dc-sidebar">Open sidebar</button>
+      {% include "components/sidebar.html" %}
+    </div>
+
+    <!-- Avatars -->
+    <div class="space-y-2">
+      <h2 class="font-semibold">Avatars</h2>
+      <div class="flex items-center gap-3">
+        <div class="avatar"><div class="size-6 rounded-full"><img src="{% static 'siteui/img/avatar-default.png' %}" alt="avatar"></div></div>
+        <div class="avatar"><div class="size-10 rounded-full"><img src="{% static 'siteui/img/avatar-default.png' %}" alt="avatar"></div></div>
+        <div class="avatar"><div class="size-14 rounded-full"><img src="{% static 'siteui/img/avatar-default.png' %}" alt="avatar"></div></div>
+        <div class="avatar"><div class="size-16 rounded-full"><img src="{% static 'siteui/img/avatar-default.png' %}" alt="avatar"></div></div>
+      </div>
+      <div class="avatar-group mt-2">
+        <div class="avatar"><div class="w-13 rounded-full"><img src="{% static 'siteui/img/avatar-default.png' %}" alt="avatar"></div></div>
+        <div class="avatar"><div class="w-13 rounded-full"><img src="{% static 'siteui/img/avatar-default.png' %}" alt="avatar"></div></div>
+        <div class="avatar"><div class="w-13 rounded-full"><img src="{% static 'siteui/img/avatar-default.png' %}" alt="avatar"></div></div>
+        <div class="avatar"><div class="w-13 rounded-full bg-surface border border-border"><span>+9</span></div></div>
+      </div>
+    </div>
+
+    <!-- Social buttons -->
+    <div class="space-y-3">
+      <h2 class="font-semibold">Social Buttons</h2>
+      <div class="flex w-full flex-wrap gap-2">
+        <button class="btn" style="--btn-color:#1877F2; color:#fff">Facebook</button>
+        <button class="btn" style="--btn-color:#000; color:#fff">Twitter</button>
+        <button class="btn" style="--btn-color:#0a66c2; color:#fff">LinkedIn</button>
+        <button class="btn" style="--btn-color:#2b3137; color:#fff">Github</button>
+      </div>
+      <div class="flex w-full flex-wrap gap-2">
+        <button class="btn btn-soft" style="--btn-color:#1877F2">Facebook</button>
+        <button class="btn btn-soft" style="--btn-color:#000">Twitter</button>
+        <button class="btn btn-soft" style="--btn-color:#0a66c2">LinkedIn</button>
+        <button class="btn btn-soft" style="--btn-color:#2b3137">Github</button>
+      </div>
+      <div class="flex w-full flex-wrap gap-2">
+        <button class="btn btn-outline" style="--btn-color:#1877F2">Facebook</button>
+        <button class="btn btn-outline" style="--btn-color:#000">Twitter</button>
+        <button class="btn btn-outline" style="--btn-color:#0a66c2">LinkedIn</button>
+        <button class="btn btn-outline" style="--btn-color:#2b3137">Github</button>
+      </div>
+      <div class="flex w-full flex-wrap gap-2">
+        <button class="btn btn-text" style="--btn-color:#1877F2">Facebook</button>
+        <button class="btn btn-text" style="--btn-color:#000">Twitter</button>
+        <button class="btn btn-text" style="--btn-color:#0a66c2">LinkedIn</button>
+        <button class="btn btn-text" style="--btn-color:#2b3137">Github</button>
+      </div>
+    </div>
   </div>
 </section>
 {% endblock %}

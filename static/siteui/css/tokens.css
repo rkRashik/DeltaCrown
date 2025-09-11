@@ -14,6 +14,19 @@
   --success: #22c55e;
   --warning: #f59e0b;
   --danger:  #ef4444;
+
+  /* Radii */
+  --radius-md: .6rem;
+  --radius-lg: .9rem;
+  --radius-xl: 1.25rem;
+
+  /* Shadows */
+  --shadow-sm: 0 6px 14px rgba(0,0,0,.18);
+  --shadow-md: 0 10px 24px rgba(0,0,0,.25);
+  --shadow-lg: 0 18px 48px rgba(0,0,0,.35);
+
+  /* Overlays */
+  --overlay: rgba(2,6,23,.55);
 }
 
 /* Light mode */
@@ -23,6 +36,10 @@
   --border: rgba(15,23,42,0.1);
   --text: #0b1220;
   --muted: #475569;
+
+  --shadow-sm: 0 6px 14px rgba(2,6,23,.08);
+  --shadow-md: 0 10px 24px rgba(2,6,23,.12);
+  --shadow-lg: 0 18px 48px rgba(2,6,23,.18);
 }
 
 /* System: follow prefers-color-scheme if data-theme="system" */
@@ -33,5 +50,8 @@
     --border: rgba(15,23,42,0.1);
     --text: #0b1220;
     --muted: #475569;
+    --shadow-sm: 0 6px 14px rgba(2,6,23,.08);
+    --shadow-md: 0 10px 24px rgba(2,6,23,.12);
+    --shadow-lg: 0 18px 48px rgba(2,6,23,.18);
   }
 }

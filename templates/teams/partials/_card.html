@@ -30,3 +30,39 @@
     </div>
   </div>
 </article>
+{% load static %}
+<article class="t-card glass rounded-2xl"
+         data-game="{% firstof team.get_game_display team.game 'unknown' %}">
+  <div class="t-card__media">
+    {% if team.banner_image %}
+      <img src="{{ team.banner_image.url }}" class="t-card__img" alt="" loading="lazy">
+    {% elif team.roster_image %}
+      <img src="{{ team.roster_image.url }}" class="t-card__img" alt="" loading="lazy">
+    {% else %}
+      <div class="t-card__ph" aria-hidden="true"></div>
+    {% endif %}
+    <div class="t-card__scrim" aria-hidden="true"></div>
+    <div class="t-card__status">
+      <span class="pill">{% firstof team.get_game_display team.game "Game" %}</span>
+    </div>
+  </div>
+
+  <div class="t-card__body">
+    <h3 class="t-card__title">{% firstof team.name team.title "Team" %}</h3>
+    <div class="t-card__sub text-muted">{% if team.bio %}{{ team.bio|truncatechars:80 }}{% else %}—{% endif %}</div>
+
+    <dl class="t-card__meta">
+      <div><dt>Members</dt><dd>{% if team.members_count %}{{ team.members_count }}{% else %}—{% endif %}</dd></div>
+      <div><dt>Wins</dt><dd>{% if team.wins %}{{ team.wins }}{% else %}0{% endif %}</dd></div>
+      <div><dt>Region</dt><dd>{% if team.region %}{{ team.region }}{% else %}BD{% endif %}</dd></div>
+    </dl>
+
+    <div class="t-card__actions">
+      {% if team.slug %}
+        <a class="btn-secondary" href="/teams/{{ team.slug }}/">View</a>
+      {% else %}
+        <a class="btn-secondary" href="/teams/">View</a>
+      {% endif %}
+    </div>
+  </div>
+</article>

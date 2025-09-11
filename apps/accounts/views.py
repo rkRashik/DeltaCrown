@@ -21,13 +21,14 @@ User = get_user_model()
 
 # ---------- Classic auth ----------
 class DCLoginView(LoginView):
-    template_name = "accounts/login.html"
+    # Use singular 'account/' to match template directory
+    template_name = "account/login.html"
 
 class DCLogoutView(LogoutView):
     next_page = reverse_lazy("homepage")
 
 class SignUpView(FormView):
-    template_name = "accounts/signup.html"
+    template_name = "account/signup.html"
     form_class = SignUpForm
     success_url = reverse_lazy("account:verify_email")
 
@@ -45,7 +46,7 @@ def profile_view(request: HttpRequest) -> HttpResponse:
 
 # ---------- Email OTP ----------
 class VerifyEmailView(FormView):
-    template_name = "accounts/verify_email.html"
+    template_name = "account/verify_email.html"
     form_class = VerifyEmailForm
     success_url = reverse_lazy("account:profile")
 

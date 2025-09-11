@@ -39,7 +39,6 @@ class Team(models.Model):
     # Basics
     name = models.CharField(max_length=255, blank=True, null=True)
     tag = models.CharField(max_length=255, blank=True, null=True)
-    game = models.CharField(max_length=64, blank=True, null=True)
 
     name_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     tag_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
@@ -358,3 +357,4 @@ class TeamInvite(models.Model):
         if self.status in ("PENDING", "DECLINED"):
             self.status = "CANCELLED"
             self.save(update_fields=["status"])
+

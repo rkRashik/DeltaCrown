@@ -1,19 +1,19 @@
 {% if tournaments %}
   <div id="t-grid" class="t-grid mt-6">
     {% for t in tournaments %}
-      {% include "tournaments/partials/_card.html" with t=t %}
+      {% include "tournaments/partials/_card.html" with tournament=t %}
     {% endfor %}
   </div>
 {% elif events %}
   <div id="t-grid" class="t-grid mt-6">
     {% for t in events %}
-      {% include "tournaments/partials/_card.html" with t=t %}
+      {% include "tournaments/partials/_card.html" with tournament=t %}
     {% endfor %}
   </div>
 {% elif objects %}
   <div id="t-grid" class="t-grid mt-6">
     {% for t in objects %}
-      {% include "tournaments/partials/_card.html" with t=t %}
+      {% include "tournaments/partials/_card.html" with tournament=t %}
     {% endfor %}
   </div>
 {% else %}
@@ -25,4 +25,3 @@
     </div>
   </div>
 {% endif %}
-

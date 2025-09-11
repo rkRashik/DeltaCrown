@@ -4,21 +4,16 @@
 
 {% block title %}{% firstof tournament.name t.name tournament.title "Tournament" %} — DeltaCrown{% endblock %}
 {% block og_title %}{% firstof tournament.name t.name tournament.title "Tournament" %} — DeltaCrown{% endblock %}
-{% block og_image %}{% if tournament.settings and tournament.settings.banner %}{{ tournament.settings.banner.url }}{% elif tournament.banner %}{{ tournament.banner.url }}{% else %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endif %}{% endblock %}
+{% block og_image %}{% if tournament.banner_url %}{{ tournament.banner_url }}{% else %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endif %}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ request.build_absolute_uri }}" />{% endblock %}
 
 {% block content %}
 <section class="t-hero">
   <div class="t-hero__media">
-    {# Banner from Tournament or Settings #}
-    {% if tournament and tournament.banner %}
-      <img src="{{ tournament.banner.url }}" alt="" class="t-hero__img" loading="eager">
-    {% elif tournament and tournament.settings and tournament.settings.banner %}
-      <img src="{{ tournament.settings.banner.url }}" alt="" class="t-hero__img" loading="eager">
-    {% elif t and t.banner %}
-      <img src="{{ t.banner.url }}" alt="" class="t-hero__img" loading="eager">
-    {% elif t and t.settings and t.settings.banner %}
-      <img src="{{ t.settings.banner.url }}" alt="" class="t-hero__img" loading="eager">
+    {% if tournament.banner_url %}
+      <img src="{{ tournament.banner_url }}" alt="" class="t-hero__img" loading="eager">
+    {% elif t and t.banner_url %}
+      <img src="{{ t.banner_url }}" alt="" class="t-hero__img" loading="eager">
     {% else %}
       <div class="t-hero__placeholder" aria-hidden="true"></div>
     {% endif %}

@@ -1,0 +1,30 @@
+{# Reusable sidebar / drawer component inspired by the sample #}
+{# Usage: include this partial anywhere and trigger with a button:
+   <button class="btn btn-text sm:hidden" aria-haspopup="dialog" aria-expanded="false"
+           aria-controls="dc-sidebar" data-overlay="#dc-sidebar">
+     ☰
+   </button>
+ #}
+
+<aside id="dc-sidebar" class="overlay" tabindex="-1" aria-hidden="true">
+  <div class="drawer drawer-start">
+    <div class="drawer-body px-2 pt-4">
+      <button class="btn btn-text" data-close-overlay aria-label="Close">✕</button>
+      <ul class="menu space-y-0.5 p-0 mt-2">
+        <li><a href="/">Home</a></li>
+        <li class="space-y-0.5">
+          <a class="collapse-toggle" id="menu-app" data-collapse="#menu-app-collapse">Apps ▾</a>
+          <ul id="menu-app-collapse" class="collapse hidden w-auto space-y-0.5" aria-labelledby="menu-app">
+            <li><a href="/tournaments/">Tournaments</a></li>
+            <li><a href="/teams/">Teams</a></li>
+          </ul>
+        </li>
+        <li><a href="/settings/">Settings</a></li>
+        <div class="divider text-muted py-4 after:border-0">Account</div>
+        <li><a href="/accounts/login/">Sign In</a></li>
+        <li><a href="/accounts/logout/">Sign Out</a></li>
+      </ul>
+    </div>
+  </div>
+</aside>
+

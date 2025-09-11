@@ -4,6 +4,10 @@
 
 {% block content %}
 
+  <script>
+    window.DC_ENTRY_AMOUNT = {{ entry_fee_bdt|default:0|floatformat:0 }};
+  </script>
+
 {# --- Compact Hero with Banner + Quick Facts --- #}
 <section class="t-hero">
   <div class="t-hero__media">
@@ -92,8 +96,59 @@
 
             <div id="aria-live" class="sr-only" aria-live="polite"></div>
 
-            <section data-step-panel="1" class="grid gap-4"></section>
-            <section data-step-panel="2" class="grid gap-4" hidden></section>
+            <section data-step-panel="1" class="grid gap-4">
+              {% if solo_form.display_name %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ solo_form.display_name.id_for_label }}">{{ solo_form.display_name.label }}</label>
+                {{ solo_form.display_name }}
+                {% if solo_form.display_name.help_text %}<p class="text-muted text-xs mt-1">{{ solo_form.display_name.help_text }}</p>{% endif %}
+                {% for e in solo_form.display_name.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+            </section>
+            <section data-step-panel="2" class="grid gap-4" hidden>
+              {% if entry_fee_bdt and entry_fee_bdt|floatformat:0|add:'0' > '0' %}
+                <div class="text-sm text-muted">Entry fee: <strong>{{ entry_fee_bdt }}</strong> BDT</div>
+              {% else %}
+                <div class="text-sm text-muted">This event is free. Payment step is optional.</div>
+              {% endif %}
+
+              {% if solo_form.payment_method %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ solo_form.payment_method.id_for_label }}">{{ solo_form.payment_method.label|default:"Payment Method" }}</label>
+                {{ solo_form.payment_method }}
+                {% if solo_form.payment_method.help_text %}<p class="text-muted text-xs mt-1">{{ solo_form.payment_method.help_text }}</p>{% endif %}
+                {% for e in solo_form.payment_method.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+
+              {% if solo_form.payer_account_number %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ solo_form.payer_account_number.id_for_label }}">{{ solo_form.payer_account_number.label|default:"Sender Number" }}</label>
+                {{ solo_form.payer_account_number }}
+                <p class="text-muted text-xs mt-1">Use your bKash/Nagad/Rocket number (BD format: 01XXXXXXXXX)</p>
+                {% for e in solo_form.payer_account_number.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+
+              {% if solo_form.payment_reference %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ solo_form.payment_reference.id_for_label }}">{{ solo_form.payment_reference.label|default:"Transaction ID" }}</label>
+                {{ solo_form.payment_reference }}
+                {% if solo_form.payment_reference.help_text %}<p class="text-muted text-xs mt-1">{{ solo_form.payment_reference.help_text }}</p>{% endif %}
+                {% for e in solo_form.payment_reference.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+
+              {% if solo_form.amount_bdt %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ solo_form.amount_bdt.id_for_label }}">{{ solo_form.amount_bdt.label|default:"Amount (BDT)" }}</label>
+                {{ solo_form.amount_bdt }}
+                {% if entry_fee_bdt %}<p class="text-muted text-xs mt-1">Suggested: {{ entry_fee_bdt }} BDT</p>{% endif %}
+                {% for e in solo_form.amount_bdt.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+            </section>
             <section data-step-panel="3" class="grid gap-4" hidden>
               <div id="review-summary" class="glass p-4 rounded-xl text-sm"></div>
               <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_rules"> <span>I agree to the <a target="_blank" href="/rules/">rules</a>.</span></label>
@@ -136,8 +191,59 @@
 
             <div id="t-aria-live" class="sr-only" aria-live="polite"></div>
 
-            <section data-step-panel="1" class="grid gap-4"></section>
-            <section data-step-panel="2" class="grid gap-4" hidden></section>
+            <section data-step-panel="1" class="grid gap-4">
+              {% if team_form.team %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ team_form.team.id_for_label }}">{{ team_form.team.label|default:"Team" }}</label>
+                {{ team_form.team }}
+                {% if team_form.team.help_text %}<p class="text-muted text-xs mt-1">{{ team_form.team.help_text }}</p>{% endif %}
+                {% for e in team_form.team.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+            </section>
+            <section data-step-panel="2" class="grid gap-4" hidden>
+              {% if entry_fee_bdt and entry_fee_bdt|floatformat:0|add:'0' > '0' %}
+                <div class="text-sm text-muted">Entry fee: <strong>{{ entry_fee_bdt }}</strong> BDT</div>
+              {% else %}
+                <div class="text-sm text-muted">This event is free. Payment step is optional.</div>
+              {% endif %}
+
+              {% if team_form.payment_method %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ team_form.payment_method.id_for_label }}">{{ team_form.payment_method.label|default:"Payment Method" }}</label>
+                {{ team_form.payment_method }}
+                {% if team_form.payment_method.help_text %}<p class="text-muted text-xs mt-1">{{ team_form.payment_method.help_text }}</p>{% endif %}
+                {% for e in team_form.payment_method.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+
+              {% if team_form.payer_account_number %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ team_form.payer_account_number.id_for_label }}">{{ team_form.payer_account_number.label|default:"Sender Number" }}</label>
+                {{ team_form.payer_account_number }}
+                <p class="text-muted text-xs mt-1">Use your bKash/Nagad/Rocket number (BD format: 01XXXXXXXXX)</p>
+                {% for e in team_form.payer_account_number.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+
+              {% if team_form.payment_reference %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ team_form.payment_reference.id_for_label }}">{{ team_form.payment_reference.label|default:"Transaction ID" }}</label>
+                {{ team_form.payment_reference }}
+                {% if team_form.payment_reference.help_text %}<p class="text-muted text-xs mt-1">{{ team_form.payment_reference.help_text }}</p>{% endif %}
+                {% for e in team_form.payment_reference.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+
+              {% if team_form.amount_bdt %}
+              <div class="flex flex-col" data-fieldwrap>
+                <label class="block text-sm font-semibold mb-1" for="{{ team_form.amount_bdt.id_for_label }}">{{ team_form.amount_bdt.label|default:"Amount (BDT)" }}</label>
+                {{ team_form.amount_bdt }}
+                {% if entry_fee_bdt %}<p class="text-muted text-xs mt-1">Suggested: {{ entry_fee_bdt }} BDT</p>{% endif %}
+                {% for e in team_form.amount_bdt.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
+              </div>
+              {% endif %}
+            </section>
             <section data-step-panel="3" class="grid gap-4" hidden>
               <div id="t-review-summary" class="glass p-4 rounded-xl text-sm"></div>
               <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_rules"> <span>I agree to the <a target="_blank" href="/rules/">rules</a>.</span></label>
@@ -145,15 +251,10 @@
               <label class="flex items-start gap-2"><input type="checkbox" data-consent name="consent_payouts"> <span>I agree to the payout policy.</span></label>
             </section>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 all-fields" hidden>
-            {% for field in team_form %}
-              <div class="flex flex-col" data-fieldwrap>
-                <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
+            <div class="all-fields" hidden>
+              {% for field in team_form.hidden_fields %}
                 {{ field }}
-                {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
-                {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
-              </div>
-            {% endfor %}
+              {% endfor %}
             </div>
 
             <div class="flex items-center justify-between mt-2">

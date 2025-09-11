@@ -1,6 +1,12 @@
 <li class="team-member">
   <div class="flex items-center gap-3">
-    {% if m.avatar %}<img src="{{ m.avatar.url }}" class="h-8 w-8 rounded-full border border-border" alt="">{% endif %}
+    {% load static %}
+    {% static 'siteui/img/avatar-default.png' as default_avatar %}
+    {% if m.avatar %}
+      <img src="{{ m.avatar.url }}" class="h-8 w-8 rounded-full border border-border object-cover" alt="" onerror="this.onerror=null;this.src='{{ default_avatar }}'">
+    {% else %}
+      <img src="{{ default_avatar }}" class="h-8 w-8 rounded-full border border-border object-cover" alt="">
+    {% endif %}
     <div>
       <div class="font-semibold">{% firstof m.display_name m.user.get_full_name m.user.username "Player" %}</div>
       <div class="text-xs text-muted">{% firstof m.role m.position "Member" %}</div>

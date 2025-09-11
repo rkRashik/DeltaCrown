@@ -26,3 +26,8 @@
 
 .split-cta { display:block; padding:1.2rem; border-radius:1rem; }
 
+/* Ensure hero text stays readable in light theme */
+:root[data-theme="light"] .home-hero {
+  --text: #e5e7eb;   /* slate-200 */
+  --muted: #94a3b8;  /* slate-400 */
+}

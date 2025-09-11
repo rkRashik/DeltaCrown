@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django import forms
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
 from urllib.parse import urlencode
 
 from ..models import Team, TeamMembership, TeamInvite
@@ -50,7 +51,7 @@ def team_list(request):
     game = (request.GET.get("game") or "").strip()
     open_to_join = (request.GET.get("open") or "").strip()
 
-    qs = Team.objects.all()
+    qs = Team.objects.all().distinct()
     try:
         qs = qs.select_related("captain__user")
     except Exception:
@@ -133,7 +134,7 @@ def team_detail(request, slug: str):
 
     is_captain = _is_captain(_get_profile(request.user), team)
 
-    ctx = {"team": team, "roster": roster, "results": results, "upcoming": upcoming, "is_captain": is_captain}
+    ctx = {"team": team, "roster": roster, "roster_memberships": memberships, "results": results, "upcoming": upcoming, "is_captain": is_captain}
     return render(request, "teams/detail.html", ctx)
 
 
@@ -260,7 +261,7 @@ def accept_invite_view(request, token: str):
         messages.error(request, "This invite cannot be accepted.")
         return redirect(reverse("teams:my_invites"))
 
-    TeamMembership.objects.get_or_create(team=invite.team, user=profile, defaults={"role": "player"})
+    TeamMembership.objects.get_or_create(team=invite.team, profile=profile, defaults={"role": TeamMembership.Role.PLAYER})
     invite.status = "ACCEPTED"
     invite.save(update_fields=["status"])
     messages.success(request, f"You joined {invite.team.tag}.")
@@ -292,6 +293,6 @@ def leave_team_view(request, team_id: int):
         messages.error(request, "Captain must transfer captaincy before leaving the team.")
         return redirect(reverse("teams:detail", kwargs={"team_id": team.id}))
 
-    TeamMembership.objects.filter(team=team, user=profile).delete()
+    TeamMembership.objects.filter(team=team, profile=profile).delete()
     messages.success(request, "You left the team.")
     return redirect(reverse("teams:detail", kwargs={"team_id": team.id}))

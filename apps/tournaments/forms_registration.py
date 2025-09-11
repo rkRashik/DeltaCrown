@@ -87,6 +87,22 @@ class BaseRegistrationForm(IdempotentAutofillMixin, forms.Form):
         self.request = request
         # IMPORTANT: pass request to mixin so it can seed autofill + idempotency
         super().__init__(*args, request=request, **kwargs)
+        # Apply UI classes so forms match the requested design
+        for name, field in self.fields.items():
+            w = field.widget
+            try:
+                base = w.attrs.get("class", "").strip()
+                if getattr(w, "input_type", "") in ("text", "email", "password", "number", "file"):
+                    cls = "input"
+                elif w.__class__.__name__.lower().find("select") >= 0:
+                    cls = "select"
+                elif w.__class__.__name__.lower().find("textarea") >= 0:
+                    cls = "textarea"
+                else:
+                    cls = "input"
+                w.attrs["class"] = (base + " " + cls).strip()
+            except Exception:
+                pass
 
     def _created_by_user_id(self) -> Optional[int]:
         u = getattr(self.request, "user", None)
@@ -166,6 +182,28 @@ class TeamRegistrationForm(BaseRegistrationForm):
                 amount_bdt=self._normalized_amount(),
             )
         )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Narrow team choices to user-related teams and same game when possible
+        try:
+            if Team and "team" in self.fields:
+                qs = Team.objects.all()
+                req = getattr(self, "request", None) or getattr(self, "_request", None)
+                user = getattr(req, "user", None)
+                prof = getattr(user, "profile", None)
+                if prof:
+                    from django.db.models import Q
+                    qs = qs.filter(Q(captain=prof) | Q(memberships__profile=prof, memberships__status="ACTIVE")).distinct()
+                # Filter by tournament game if available
+                t = getattr(self, "tournament", None)
+                g = (getattr(t, "game", None) or "").lower()
+                if g:
+                    qs = qs.filter(game__iexact=g)
+                self.fields["team"].queryset = qs.order_by("name")
+        except Exception:
+            # Fail-soft: keep default queryset
+            pass
 
 
 # --- solo (eFootball) -----------------------------------------------

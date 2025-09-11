@@ -5,6 +5,7 @@
 
 {% block content %}
 <section class="container py-8">
+  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' current_label='Create' %}
   <header class="mb-4">
     <h1 class="sec-h">Create Team</h1>
     <p class="text-muted">Set up your roster and start competing.</p>
@@ -34,4 +35,3 @@
   </div>
 </section>
 {% endblock %}
-

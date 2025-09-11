@@ -82,6 +82,62 @@
 }
 .link-nav:hover::after { width: 100%; }
 
+/* ---------- Dropdown (HeadlessUI-inspired) ---------- */
+.dd-btn {
+  display:inline-flex; align-items:center; gap:.5rem;
+  border:1px solid var(--border); border-radius:.6rem;
+  padding:.4rem .75rem; font-weight:600; color:var(--text);
+  background: color-mix(in oklab, var(--surface) 85%, transparent);
+}
+.dd-btn:hover { background: color-mix(in oklab, var(--surface) 70%, transparent); }
+.dd-menu, [data-menu], [data-avatar-menu] {
+  position:absolute; right:0; margin-top:.4rem; width: 13rem;
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  border:1px solid var(--border); border-radius:.8rem; padding:.35rem;
+  box-shadow: 0 16px 40px rgba(0,0,0,.35);
+  transform-origin: top right; transform: scale(.98); opacity:0;
+  transition: transform .12s ease-out, opacity .12s ease-out;
+}
+.dd-menu[data-open="true"], [data-menu][data-open="true"], [data-avatar-menu][data-open="true"] { transform: scale(1); opacity:1; }
+.dd-item, [data-menu] a, [data-menu] button, [data-avatar-menu] a, [data-avatar-menu] button {
+  display:flex; align-items:center; gap:.5rem; width:100%;
+  padding:.5rem .6rem; border-radius:.6rem; color:var(--text);
+}
+.dd-item:hover, .dd-item:focus, [data-menu] a:hover, [data-menu] a:focus, [data-menu] button:hover, [data-menu] button:focus,
+[data-avatar-menu] a:hover, [data-avatar-menu] a:focus, [data-avatar-menu] button:hover, [data-avatar-menu] button:focus {
+  background: color-mix(in oklab, var(--surface) 60%, transparent); outline: none;
+}
+.dd-sep { height:1px; margin:.25rem .25rem; background: var(--border); }
+
+/* ---------- Card (FlyonUI-like) ---------- */
+.card { border:1px solid var(--border); border-radius: 1rem; overflow:hidden; background: var(--surface); }
+.card figure { display:block; }
+.card figure img { width:100%; height:auto; display:block; object-fit: cover; }
+.card-body { padding: 1rem; }
+.card-title { font-weight: 800; font-size: 1.1rem; }
+.card-actions { display:flex; gap:.5rem; flex-wrap:wrap; }
+
+/* ---------- Form (FlyonUI-like) ---------- */
+.label-text { display:block; font-size:.9rem; font-weight:600; margin-bottom:.35rem; color: var(--text); }
+.input, .select, .textarea, .form-input, .form-select, .form-textarea {
+  width:100%; background: var(--surface); color: var(--text);
+  border:1px solid var(--border); border-radius:.6rem; padding:.55rem .7rem;
+}
+.textarea, .form-textarea { min-height: 5rem; resize: vertical; }
+.input:focus, .select:focus, .textarea:focus,
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: 2px solid color-mix(in oklab, var(--brand-crown), transparent 50%);
+  outline-offset: 2px;
+}
+.btn { display:inline-flex; align-items:center; gap:.4rem; font-weight:600; border-radius:.7rem; padding:.55rem .9rem; border:1px solid var(--border); }
+.btn-secondary.btn-soft { background: transparent; color: var(--text); border-color: var(--border); opacity:.9; }
+.btn-secondary.btn-soft:hover { opacity: 1; }
+.error-message { display:none; color:#f87171; font-size:.8rem; margin-top:.25rem; }
+.success-message { display:none; color:#22c55e; font-size:.8rem; margin-top:.25rem; }
+.input[aria-invalid="true"] ~ .error-message,
+.select[aria-invalid="true"] ~ .error-message,
+.textarea[aria-invalid="true"] ~ .error-message { display:block; }
+
 /* Mobile drawer close button */
 .close-x { position:absolute; right:.75rem; top:.75rem; }
 
@@ -154,6 +210,8 @@
 }
 .t-card__scrim { position:absolute; inset:0; background: linear-gradient(180deg, rgba(2,6,23,0) 0%, rgba(2,6,23,.8) 85%); }
 .t-card__status { position:absolute; left:.6rem; bottom:.6rem; }
+/* top-right badge (entry fee / free) */
+.t-card__badge { position:absolute; right:.6rem; top:.6rem; }
 
 .t-card__body { padding: .9rem; display:grid; gap:.6rem; }
 .t-card__title { font-weight:800; line-height:1.2; }
@@ -235,6 +293,55 @@
 .auth-alt .rule { flex:1; height:1px; background: var(--border); }
 
 /* Toasts */
-#dc-toasts { position: fixed; right: 1rem; bottom: 1rem; display: grid; gap:.5rem; z-index: 60; }
+#dc-toasts { position: fixed; right: 1rem; bottom: 1rem; display: grid; gap:.6rem; z-index: 60; }
 .toast { background: color-mix(in oklab, var(--surface) 85%, black 5%);
   border:1px solid var(--border); border-radius: .9rem; padding: .6rem .8rem; }
+
+/* Rich toast (image + text + close) */
+.toast-card { position: relative; display:flex; align-items:center; gap:.9rem; max-width: 420px;
+  background: var(--surface); border:1px solid var(--border); border-radius:.9rem; padding:.7rem .9rem;
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+  transform: translateY(10px); opacity:0; transition: transform .18s ease, opacity .18s ease; }
+.toast-card[data-show="true"] { transform: translateY(0); opacity:1; }
+.toast-img { width:54px; height:54px; border-radius:999px; overflow:hidden; flex:0 0 54px; }
+.toast-img img { width:100%; height:100%; object-fit:cover; display:block; }
+.toast-body { display:flex; gap:.15rem; flex:1; min-width:0; }
+.toast-title { font-weight:600; color: var(--text); }
+.toast-msg { color: var(--text); opacity:.9; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.toast-meta { margin-left:auto; font-size:.75rem; color: var(--muted); }
+.toast-close { position:absolute; right:.45rem; top:.45rem; color: var(--muted); }
+.toast-close:hover { color: var(--danger, #ef4444); }
+
+/* ---- Overlay Drawer + Menu (for sidebar) ---- */
+.overlay { position: fixed; inset: 0; z-index: 60; display: none; }
+.overlay[data-open="true"] { display:flex; }
+.overlay::before { content:""; position:absolute; inset:0; background: rgba(0,0,0,.5); }
+.drawer { position: relative; z-index: 1; background: var(--bg); border-right:1px solid var(--border); width: min(16rem, 84vw); transform: translateX(-100%); transition: transform .2s ease; }
+.drawer.drawer-start { align-self: stretch; }
+.overlay[data-open="true"] .drawer { transform: translateX(0); }
+.drawer-body { height: 100%; overflow:auto; }
+.menu { list-style:none; margin:0; padding:.25rem; display:grid; gap:.25rem; }
+.menu a { display:flex; align-items:center; gap:.6rem; padding:.55rem .6rem; border-radius:.6rem; color: var(--text); }
+.menu a:hover { background: color-mix(in oklab, var(--surface) 60%, transparent); }
+.collapse { overflow:hidden; }
+.divider { text-align:center; border-top: 1px solid var(--border); position: relative; margin:.5rem 0; }
+.divider::after { content:""; display:block; }
+
+/* ---- Avatars & Avatar Groups ---- */
+.avatar { display:inline-grid; place-items:center; }
+.avatar > div { display:grid; place-items:center; overflow:hidden; border:1px solid var(--border); }
+.avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+.avatar-group { display:flex; align-items:center; }
+.avatar-group .avatar { margin-left:-1rem; }
+.avatar-group .avatar:first-child { margin-left:0; }
+.size-6 { width:1.5rem; height:1.5rem; }
+.size-10 { width:2.5rem; height:2.5rem; }
+.size-14 { width:3.5rem; height:3.5rem; }
+.size-16 { width:4rem; height:4rem; }
+.w-13 { width:3.25rem; height:3.25rem; }
+
+/* ---- Social button variants (color via --btn-color) ---- */
+.btn { background: var(--btn-color, var(--surface)); color: var(--text); }
+.btn.btn-soft { background: color-mix(in oklab, var(--btn-color, var(--text)) 12%, transparent); color: var(--btn-color, var(--text)); border-color: color-mix(in oklab, var(--btn-color, var(--border)) 40%, var(--border)); }
+.btn.btn-outline { background: transparent; color: var(--btn-color, var(--text)); border-color: var(--btn-color, var(--border)); }
+.btn.btn-text { background: transparent; color: var(--btn-color, var(--text)); border-color: transparent; }

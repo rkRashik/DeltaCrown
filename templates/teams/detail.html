@@ -9,23 +9,31 @@
 {% block content %}
 <section class="t-hero">
   <div class="t-hero__media">
-    {% if team.banner %}<img src="{{ team.banner.url }}" class="t-hero__img" alt="" loading="eager">
-    {% elif team.cover %}<img src="{{ team.cover.url }}" class="t-hero__img" alt="" loading="eager">
-    {% else %}<div class="t-hero__placeholder" aria-hidden="true"></div>{% endif %}
+    {% if team.banner_image %}
+      <img src="{{ team.banner_image.url }}" class="t-hero__img" alt="" loading="eager">
+    {% elif team.roster_image %}
+      <img src="{{ team.roster_image.url }}" class="t-hero__img" alt="" loading="eager">
+    {% else %}
+      <div class="t-hero__placeholder" aria-hidden="true"></div>
+    {% endif %}
     <div class="t-hero__scrim" aria-hidden="true"></div>
   </div>
 
   <div class="container t-hero__body">
     <div class="t-hero__meta">
-      {% include "components/_breadcrumbs.html" with items=[{"label":"Teams","href":"/teams/"},{"label":team.name|default:'Team'}] %}
+      <nav aria-label="Breadcrumb" class="text-sm mb-2">
+        <ol class="flex items-center gap-2 text-muted">
+          <li><a class="link-nav" href="/teams/">Teams</a></li>
+          <span>/</span>
+          <li aria-current="page" class="text-body">{{ team.name }}</li>
+        </ol>
+      </nav>
       <div class="flex items-center gap-3 mt-1">
-        {% if team.logo %}<img src="{{ team.logo.url }}" class="h-10 w-10 rounded-full border border-border" alt="">{% endif %}
         <h1 class="t-hero__title crown-text">{% firstof team.name team.title "Team" %}</h1>
       </div>
       <ul class="t-hero__chips">
-        <li class="chip"><span class="chip__k">Game</span><span class="chip__v">{% firstof team.get_game_display team.game_name "—" %}</span></li>
+        <li class="chip"><span class="chip__k">Game</span><span class="chip__v">{% firstof team.get_game_display team.game "—" %}</span></li>
         <li class="chip"><span class="chip__k">Founded</span><span class="chip__v">{% if team.created_at %}{{ team.created_at|date:"M d, Y" }}{% else %}—{% endif %}</span></li>
-        <li class="chip"><span class="chip__k">Recruiting</span><span class="chip__v">{% if team.open_to_join %}Yes{% else %}No{% endif %}</span></li>
       </ul>
       <div class="mt-3">
         {% include "components/_share.html" with title=team.name %}
@@ -55,9 +63,6 @@
         {% else %}
           <a class="btn-secondary w-full" href="/accounts/login/">Sign in to join</a>
         {% endif %}
-        {% if team.slug and team.open_to_join %}
-          <button class="btn-secondary w-full" data-copy-invite data-invite-url="/teams/{{ team.slug }}/invite/">Copy Invite Link</button>
-        {% endif %}
       </div>
     </aside>
   </div>
@@ -75,18 +80,26 @@
       {% if team.bio %}
         <p>{{ team.bio|linebreaks }}</p>
       {% else %}
-        <p class="text-muted">This team hasn’t added a bio yet.</p>
+        <p class="text-muted">This team hasn't added a bio yet.</p>
       {% endif %}
     </section>
 
     <section id="roster" class="t-section mt-10">
       <h3 class="font-semibold mb-3">Roster</h3>
       {% if roster %}
-        <ul class="team-roster">
-          {% for m in roster %}
-            {% include "teams/partials/_member.html" with m=m %}
+        <div class="grid gap-8 lg:gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {% for p in roster %}
+          <div class="text-center text-muted">
+            {% if p.avatar %}
+              <img class="mx-auto mb-3 w-28 h-28 rounded-full object-cover border border-border" src="{{ p.avatar.url }}" alt="{{ p.display_name }}">
+            {% else %}
+              <img class="mx-auto mb-3 w-28 h-28 rounded-full object-cover border border-border" src="{% static 'siteui/img/avatar-default.png' %}" alt="{{ p.display_name }}">
+            {% endif %}
+            <h3 class="mb-1 text-xl font-bold text-body">{% firstof p.display_name p.user.get_full_name p.user.username 'Player' %}</h3>
+            <p>Member</p>
+          </div>
           {% endfor %}
-        </ul>
+        </div>
       {% else %}
         <p class="text-muted">No members to show.</p>
       {% endif %}

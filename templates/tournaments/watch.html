@@ -3,12 +3,12 @@
 
 {% block title %}Watch Live — {% firstof tournament.name t.name "Tournament" %}{% endblock %}
 {% block og_title %}Watch Live — {% firstof tournament.name t.name "Tournament" %}{% endblock %}
-{% block og_image %}{% if tournament.settings.banner %}{{ tournament.settings.banner.url }}{% elif tournament.banner %}{{ tournament.banner.url }}{% else %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endif %}{% endblock %}
+{% block og_image %}{% if tournament.banner_url %}{{ tournament.banner_url }}{% else %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endif %}{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ request.build_absolute_uri }}" />{% endblock %}
 
 {% block content %}
 <section class="container py-10 grid lg:grid-cols-3 gap-6">
-  {% include "components/_breadcrumbs.html" with items=[{"label":"Tournaments","href":"/tournaments/"},{"label":tournament.name},{"label":"Watch"}] %}
+  {% include 'components/breadcrumbs.html' with root_label='Tournaments' root_href='/tournaments/' parent_label=tournament.name parent_href='/tournaments/' current_label='Watch' %}
   <article class="glass p-4 rounded-2xl lg:col-span-2">
     <h1 class="sec-h">{% firstof tournament.name t.name "Tournament" %}</h1>
     {% if tournament.settings.stream_youtube_url or tournament.settings.stream_facebook_url %}

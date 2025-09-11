@@ -1,0 +1,51 @@
+{# Generic Breadcrumb component styled per request
+   Usage examples:
+   - With explicit labels:
+     {% include 'components/breadcrumbs.html' with root_label='Home' root_href='/' parent_label='Teams' parent_href='/teams/' current_label=team.name %}
+   - With items list from the view: items=[{'label': 'Teams', 'href':'/teams/'}, {'label': team.name}]
+ #}
+<div class="container py-4">
+  <div class="border-b border-border py-3">
+    <ul class="flex items-center">
+      {# Use a unique var name to avoid collisions with context 'items' #}
+      {% if bc_items %}
+        {% for it in bc_items %}
+          <li class="flex items-center">
+            {% if it.href and not forloop.last %}
+              <a href="{{ it.href }}" class="flex items-center text-sm font-medium text-body hover:text-accent">{{ it.label }}</a>
+              <span class="px-3 text-muted" aria-hidden="true">
+                <svg width="7" height="12" viewBox="0 0 7 12" class="fill-current"><path d="M0.879 11.435c-.07 0-.158-.035-.211-.088-.123-.124-.123-.318-.017-.441L5.098 6.175c.088-.088.088-.247 0-.353L0.651 1.091A.312.312 0 01.667.65c.124-.124.318-.106.442.017l4.448 4.73c.3.335.3.865 0 1.183L1.108 11.33c-.07.07-.141.106-.229.106Z"/></svg>
+              </span>
+            {% else %}
+              <span class="text-sm font-medium text-body">{{ it.label }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      {% else %}
+        {% if root_label and root_href %}
+          <li class="flex items-center">
+            <a href="{{ root_href }}" class="flex items-center text-sm font-medium text-body hover:text-accent">{{ root_label }}</a>
+            {% if parent_label or current_label %}
+            <span class="px-3 text-muted" aria-hidden="true">
+              <svg width="7" height="12" viewBox="0 0 7 12" class="fill-current"><path d="M0.879 11.435c-.07 0-.158-.035-.211-.088-.123-.124-.123-.318-.017-.441L5.098 6.175c.088-.088.088-.247 0-.353L0.651 1.091A.312.312 0 01.667.65c.124-.124.318-.106.442.017l4.448 4.73c.3.335.3.865 0 1.183L1.108 11.33c-.07.07-.141.106-.229.106Z"/></svg>
+            </span>
+            {% endif %}
+          </li>
+        {% endif %}
+        {% if parent_label and parent_href %}
+          <li class="flex items-center">
+            <a href="{{ parent_href }}" class="text-sm font-medium text-body hover:text-accent">{{ parent_label }}</a>
+            {% if current_label %}
+            <span class="px-3 text-muted" aria-hidden="true">
+              <svg width="7" height="12" viewBox="0 0 7 12" class="fill-current"><path d="M0.879 11.435c-.07 0-.158-.035-.211-.088-.123-.124-.123-.318-.017-.441L5.098 6.175c.088-.088.088-.247 0-.353L0.651 1.091A.312.312 0 01.667.65c.124-.124.318-.106.442.017l4.448 4.73c.3.335.3.865 0 1.183L1.108 11.33c-.07.07-.141.106-.229.106Z"/></svg>
+            </span>
+            {% endif %}
+          </li>
+        {% endif %}
+        {% if current_label %}
+          <li class="text-sm font-medium text-body">{{ current_label }}</li>
+        {% endif %}
+      {% endif %}
+    </ul>
+  </div>
+  </div>

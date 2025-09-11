@@ -1,5 +1,6 @@
 {% load humanize %}
-<article class="t-card glass rounded-2xl"
+{% load static %}
+<article class="t-card glass rounded-2xl card"
          data-game="{{ tournament.get_game_display|default_if_none:'' }}"
          data-status="{{ tournament.get_status_display|default_if_none:'' }}"
          {% if tournament.start_at %}data-start="{{ tournament.start_at|date:'c' }}"
@@ -10,10 +11,9 @@
          {% elif tournament.entry_fee_bdt %}data-entry="{{ tournament.entry_fee_bdt|floatformat:0 }}"{% endif %}>
 
   <div class="t-card__media">
-    {% if tournament.banner %}
-      <img src="{{ tournament.banner.url }}" alt="" class="t-card__img" loading="lazy">
-    {% elif tournament.settings and tournament.settings.banner %}
-      <img src="{{ tournament.settings.banner.url }}" alt="" class="t-card__img" loading="lazy">
+    {% if tournament.banner_url %}
+      {% static 'siteui/svg/logo-deltacrown.svg' as dc_ph %}
+      <img src="{{ tournament.banner_url }}" alt="" class="t-card__img" loading="lazy" onerror="this.onerror=null;this.src='{{ dc_ph }}'">
     {% else %}
       <div class="t-card__ph" aria-hidden="true"></div>
     {% endif %}
@@ -21,10 +21,19 @@
     <div class="t-card__status">
       {% include "tournaments/partials/_status_pill.html" with status=tournament.status %}
     </div>
+    <div class="t-card__badge">
+      {% if tournament.settings and tournament.settings.entry_fee_bdt %}
+        <span class="pill">৳{{ tournament.settings.entry_fee_bdt|floatformat:0|intcomma }}</span>
+      {% elif tournament.entry_fee_bdt %}
+        <span class="pill">৳{{ tournament.entry_fee_bdt|floatformat:0|intcomma }}</span>
+      {% else %}
+        <span class="pill pill--open">Free</span>
+      {% endif %}
+    </div>
   </div>
 
-  <div class="t-card__body">
-    <h3 class="t-card__title">{% firstof tournament.name tournament.title "Tournament" %}</h3>
+  <div class="t-card__body card-body space-y-3">
+    <h3 class="t-card__title card-title">{% firstof tournament.name tournament.title "Tournament" %}</h3>
     <div class="t-card__sub text-muted">
       {% if tournament.get_game_display %}{{ tournament.get_game_display }}{% else %}Esports{% endif %}
     </div>
@@ -51,7 +60,7 @@
       </dd></div>
     </dl>
 
-    <div class="t-card__actions">
+    <div class="t-card__actions card-actions">
       {% if tournament.slug %}
         {% if tournament.registration_open %}
           <a class="btn-primary" href="{% url 'tournaments:register' slug=tournament.slug %}">Register</a>

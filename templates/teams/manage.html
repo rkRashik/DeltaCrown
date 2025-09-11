@@ -5,10 +5,10 @@
 
 {% block content %}
 <section class="container py-8">
+  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' current_label='Manage' %}
   <header class="flex items-center justify-between mb-4">
     <div class="flex items-center gap-3">
-      {% if team.logo %}<img src="{{ team.logo.url }}" class="h-9 w-9 rounded-full border border-border" alt="">{% endif %}
-      <h1 class="sec-h">{% firstof team.name "Team" %} â€” Manage</h1>
+      <h1 class="sec-h">{% firstof team.name "Team" %} — Manage</h1>
     </div>
     <a class="btn-secondary" href="/teams/{% if team.slug %}{{ team.slug }}{% endif %}/">Back to Team</a>
   </header>
@@ -61,3 +61,4 @@
   </div>
 </section>
 {% endblock %}
+

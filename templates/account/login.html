@@ -3,35 +3,44 @@
 {% block title %}Sign in — DeltaCrown{% endblock %}
 
 {% block content %}
-<section class="container py-10">
-  <div class="glass p-6 rounded-2xl auth-card">
-    <h1 class="sec-h text-center">Welcome back</h1>
-    <p class="text-muted text-center mb-4">Sign in to compete, track brackets, and get payouts.</p>
-
-    <div class="grid gap-2">
-      <a class="btn-primary w-full" href="{% url 'socialaccount_login' %}?process=login&provider=google">
-        Continue with Google
-      </a>
-      <div class="auth-alt"><span class="rule"></span><span class="text-xs text-muted">or</span><span class="rule"></span></div>
-    </div>
-
-    <form method="post" action="{% url 'account_login' %}" class="form-wrap mt-4">
-      {% csrf_token %}
-      {% include "components/_form_fields.html" with form=form %}
-      {% if redirect_field_value %}
-        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
-      {% endif %}
-
-      <div class="flex items-center justify-between">
-        <a class="link-nav text-sm" href="{% url 'account_reset_password' %}">Forgot password?</a>
-        <button type="submit" class="btn-primary">Sign in</button>
-      </div>
-    </form>
-
-    <p class="text-sm text-muted mt-4 text-center">
-      New here?
-      <a class="link-nav" href="{% url 'account_signup' %}">Create an account</a>
-    </p>
+<section class="isolate bg-white px-6 py-24 sm:py-32 lg:px-8 dark:bg-gray-900">
+  <div aria-hidden="true" class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
+    <div style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)" class="relative left-1/2 -z-10 aspect-1155/678 w-144.5 max-w-none -translate-x-1/2 rotate-30 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-40rem)] sm:w-288.75 dark:opacity-20"></div>
   </div>
-</section>
+  <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+    <a href="/" class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
+      <img class="w-8 h-8 mr-2" src="{% static 'siteui/svg/logo-deltacrown-static.svg' %}" alt="logo">DeltaCrown
+    </a>
+    <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+      <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
+        <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">Sign in</h1>
+        <form method="post" action="{% url 'account:login' %}" class="space-y-4 md:space-y-6">
+          {% csrf_token %}
+          {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+          {% endif %}
+          {% if form.non_field_errors %}
+            <div class="text-red-500 text-sm">{{ form.non_field_errors }}</div>
+          {% endif %}
+          {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+          <div>
+            <label for="id_username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Username</label>
+            <input type="text" name="username" id="id_username" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" required
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
+            {% if form.username.errors %}<div class="text-red-500 text-xs mt-1">{{ form.username.errors|join:', ' }}</div>{% endif %}
+          </div>
+          <div>
+            <label for="id_password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+            <input type="password" name="password" id="id_password" autocomplete="current-password" required
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" />
+            {% if form.password.errors %}<div class="text-red-500 text-xs mt-1">{{ form.password.errors|join:', ' }}</div>{% endif %}
+          </div>
+          <button type="submit" class="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Sign In</button>
+        </form>
+        <p class="text-sm font-light text-gray-500 dark:text-gray-400">Forgot password? <a href="{% url 'account:password_reset' %}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Reset here</a></p>
+        <p class="text-sm font-light text-gray-500 dark:text-gray-400">Not a member? <a href="{% url 'account:signup' %}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Create account</a></p>
+      </div>
+    </div>
+  </div>
+  </section>
 {% endblock %}

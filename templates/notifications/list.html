@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block og_title %}Notifications — DeltaCrown{% endblock %}
+{% block content %}
+<section class="container my-8">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-semibold">Notifications</h1>
+    <form action="{% url 'notifications:mark_all_read' %}" method="post">{% csrf_token %}
+      <button class="btn-secondary">Mark all read</button>
+    </form>
+  </div>
+  <div class="glass rounded-2xl divide-y divide-border">
+    {% if page and page.object_list %}
+      {% for n in page.object_list %}
+        <div class="p-4 flex items-start justify-between gap-4">
+          <div>
+            <div class="font-medium">{{ n.title|default:"Notification" }}</div>
+            <div class="text-sm text-muted">{{ n.body|default:n.message }}</div>
+            <div class="text-xs text-muted mt-1">{{ n.created_at }}</div>
+          </div>
+          <form action="{% url 'notifications:mark_read' n.id %}" method="post">{% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}"/>
+            {% if not n.is_read %}<button class="btn-primary">Mark read</button>{% endif %}
+          </form>
+        </div>
+      {% endfor %}
+      <div class="p-4 flex items-center justify-between">
+        {% if page.has_previous %}<a class="link-nav" href="?page={{ page.previous_page_number }}">← Prev</a>{% endif %}
+        <span class="text-muted text-sm">Page {{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a class="link-nav" href="?page={{ page.next_page_number }}">Next →</a>{% endif %}
+      </div>
+    {% else %}
+      <div class="p-8 text-center text-muted">No notifications yet.</div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

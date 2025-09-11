@@ -2,7 +2,7 @@
 {% block title %}Standings — {% firstof tournament.name "Tournament" %}{% endblock %}
 {% block content %}
 <section class="container py-10">
-  {% include "components/_breadcrumbs.html" with items=[{"label":"Tournaments","href":"/tournaments/"},{"label":tournament.name},{"label":"Standings"}] %}
+  {% include 'components/breadcrumbs.html' with root_label='Tournaments' root_href='/tournaments/' parent_label=tournament.name parent_href='/tournaments/' current_label='Standings' %}
   <header class="flex items-end justify-between mb-4">
     <div>
       <h1 class="sec-h">Standings</h1>
