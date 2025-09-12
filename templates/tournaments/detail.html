@@ -1,205 +1,135 @@
 {% extends "base.html" %}
 {% load static %}
-{% load humanize %}
-
-{% block title %}{% firstof tournament.name t.name tournament.title "Tournament" %} — DeltaCrown{% endblock %}
-{% block og_title %}{% firstof tournament.name t.name tournament.title "Tournament" %} — DeltaCrown{% endblock %}
-{% block og_image %}{% if tournament.banner_url %}{{ tournament.banner_url }}{% else %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endif %}{% endblock %}
-{% block canonical %}<link rel="canonical" href="{{ request.build_absolute_uri }}" />{% endblock %}
+{% block title %}{{ tournament.title|default:"Tournament" }} - Tournament | DeltaCrown{% endblock %}
 
 {% block content %}
-<section class="t-hero">
-  <div class="t-hero__media">
-    {% if tournament.banner_url %}
-      <img src="{{ tournament.banner_url }}" alt="" class="t-hero__img" loading="eager">
-    {% elif t and t.banner_url %}
-      <img src="{{ t.banner_url }}" alt="" class="t-hero__img" loading="eager">
+<main id="tournament-detail" class="min-h-screen">
+  <!-- Hero Banner -->
+  <section class="relative overflow-hidden">
+    {% if tournament.banner %}
+      <div class="h-60 sm:h-72 w-full bg-cover bg-center" style="background-image: url('{{ tournament.banner.url }}');"></div>
+    {% elif tournament.banner_url %}
+      <div class="h-60 sm:h-72 w-full bg-cover bg-center" style="background-image: url('{{ tournament.banner_url }}');"></div>
     {% else %}
-      <div class="t-hero__placeholder" aria-hidden="true"></div>
+      <div class="h-60 sm:h-72 w-full bg-cover bg-center" style="background-image: url('{% static 'siteui/svg/hero/hero-grid.svg' %}');"></div>
     {% endif %}
-    <div class="t-hero__scrim" aria-hidden="true"></div>
-  </div>
-
-  <div class="container t-hero__body">
-    <div class="t-hero__meta">
-      <a href="{% url 'tournaments:list' %}" class="crumb link-nav">← All Tournaments</a>
-
-      <h1 class="t-hero__title crown-text">
-        {% firstof tournament.name t.name tournament.title "Tournament" %}
-      </h1>
-
-      <ul class="t-hero__chips">
-        <li class="chip"><span class="chip__k">Game</span>
-          <span class="chip__v">
-            {% if tournament and tournament.get_game_display %}{{ tournament.get_game_display }}
-            {% elif t and t.get_game_display %}{{ t.get_game_display }}
-            {% else %}—{% endif %}
-          </span>
-        </li>
-
-        <li class="chip"><span class="chip__k">Status</span>
-          <span class="chip__v">
-            {% if tournament and tournament.get_status_display %}{{ tournament.get_status_display }}
-            {% elif t and t.get_status_display %}{{ t.get_status_display }}
-            {% else %}—{% endif %}
-          </span>
-        </li>
-
-        <li class="chip"><span class="chip__k">Entry</span>
-          <span class="chip__v">
-            {% if tournament.settings and tournament.settings.entry_fee_bdt %}
-              ৳{{ tournament.settings.entry_fee_bdt|floatformat:0|intcomma }}
-            {% elif tournament.entry_fee_bdt %}
-              ৳{{ tournament.entry_fee_bdt|floatformat:0|intcomma }}
-            {% else %}Free{% endif %}
-          </span>
-        </li>
-
-        <li class="chip"><span class="chip__k">Prize</span>
-          <span class="chip__v">
-            {% if tournament.settings and tournament.settings.prize_pool_bdt %}
-              ৳{{ tournament.settings.prize_pool_bdt|floatformat:0|intcomma }}
-            {% elif tournament.prize_pool_bdt %}
-              ৳{{ tournament.prize_pool_bdt|floatformat:0|intcomma }}
-            {% else %}TBA{% endif %}
-          </span>
-        </li>
-
-        <li class="chip"><span class="chip__k">Starts</span>
-          <span class="chip__v">
-            {% if tournament.start_at %}{{ tournament.start_at|date:"M d, Y H:i" }}
-            {% elif tournament.settings and tournament.settings.start_at %}{{ tournament.settings.start_at|date:"M d, Y H:i" }}
-            {% else %}TBA{% endif %}
-          </span>
-        </li>
-      </ul>
-      <div class="mt-3">
-        {% include "components/_share.html" with title=tournament.name %}
-      </div>
-    </div>
-
-    <aside class="t-hero__cta glass">
-      <div class="t-hero__cta-top">
-        <div class="t-countdown" data-countdown
-             {% if tournament.start_at %}data-deadline="{{ tournament.start_at|date:'c' }}"
-             {% elif tournament.settings and tournament.settings.start_at %}data-deadline="{{ tournament.settings.start_at|date:'c' }}"
-             {% endif %}>
-          <div class="t-countdown__label" data-countdown-label>Starts in</div>
-          <div class="t-countdown__digits" data-countdown-digits>—</div>
-        </div>
-
-        <dl class="t-quick grid">
-          <div><dt>Format</dt><dd>
-            {% if tournament.settings and tournament.settings.get_tournament_type_display %}
-              {{ tournament.settings.get_tournament_type_display }}
-            {% else %}TBA{% endif %}
-          </dd></div>
-          <div><dt>Slots</dt><dd>
-            {% if tournament.slot_size %}{{ tournament.slot_size }}{% else %}TBA{% endif %}
-          </dd></div>
-          <div><dt>Check-in</dt><dd>
-            {% if tournament.reg_open_at and tournament.reg_close_at %}
-              {{ tournament.reg_open_at|date:"M d, H:i" }} → {{ tournament.reg_close_at|date:"M d, H:i" }}
-            {% else %}TBA{% endif %}
-          </dd></div>
-        </dl>
-      </div>
-
-      <div class="t-hero__cta-actions">
-        {# Always route through the register view; it will show closed UI if needed #}
-        {% if tournament.slug %}
-          <a class="btn-primary w-full" href="{% url 'tournaments:register' slug=tournament.slug %}">Register</a>
-        {% else %}
-          <a class="btn-primary w-full" href="{% url 'tournaments:list' %}">Register</a>
-        {% endif %}
-
-        <div class="t-trust">
-          <span class="t-badge">Secure Payments</span>
-          <span class="t-badge">Verified Brackets</span>
-          <span class="t-badge">Fast Payouts</span>
+    <div class="bg-gradient-to-b from-black/60 to-transparent h-8 -mt-8"></div>
+    <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 -mt-16 relative">
+      <div class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-5 backdrop-blur">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">{{ tournament.name|default:tournament.slug|default:"Tournament" }}</h1>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              <span class="chip">{{ tournament.game_name|default:tournament.game }}</span>
+              <span class="chip">{{ tournament.status|capfirst }}</span>
+              {% if tournament.format %}<span class="chip">{{ tournament.format }}</span>{% endif %}
+              {% if tournament.entry_fee %}<span class="chip">Entry: {{ tournament.entry_fee }}</span>{% endif %}
+              {% if tournament.reg_count %}<span class="chip">{{ tournament.reg_count }} registered</span>{% endif %}
+            </div>
+          </div>
+          <div class="flex gap-2">
+            {% if tournament.status in 'upcoming,open,registration' or can_register %}
+              <a href="/tournaments/{{ tournament.slug }}/register/" class="btn btn-primary">Register</a>
+            {% endif %}
+            {% if tournament.bracket_url %}<a href="{{ tournament.bracket_url }}" class="btn btn-ghost">Bracket</a>{% endif %}
+            <button id="btn-copy" class="btn btn-ghost">Copy link</button>
+          </div>
         </div>
       </div>
-    </aside>
-  </div>
-</section>
-
-<section class="container py-10 grid lg:grid-cols-3 gap-6">
-  <article class="glass p-6 rounded-2xl lg:col-span-2">
-    <nav class="t-tabs border-b border-border mb-6">
-      <a href="#overview" class="t-tab is-active" data-tab>Overview</a>
-      <a href="#rules" class="t-tab" data-tab>Rules</a>
-      <a href="#prizes" class="t-tab" data-tab>Prizes</a>
-    </nav>
-
-    <section id="overview" class="t-section">
-      {% if tournament.settings and tournament.settings.description %}
-        <p>{{ tournament.settings.description|linebreaks }}</p>
-      {% else %}
-        <p class="text-muted">Details coming soon.</p>
-      {% endif %}
-    </section>
-
-    <section id="rules" class="t-section mt-10">
-      <h3 class="font-semibold mb-2">Rules</h3>
-      {% if tournament.settings and tournament.settings.rules_pdf %}
-        <p class="text-sm">
-          <a class="link-nav" href="{{ tournament.settings.rules_pdf.url }}" target="_blank" rel="noopener">Download Rules (PDF)</a>
-        </p>
-      {% else %}
-        <p class="text-muted">Published rules will appear here.</p>
-      {% endif %}
-    </section>
-
-    <section id="prizes" class="t-section mt-10">
-      <h3 class="font-semibold mb-2">Prizes</h3>
-      {% if tournament.settings and tournament.settings.prize_distribution_text %}
-        <p>{{ tournament.settings.prize_distribution_text|linebreaks }}</p>
-      {% elif tournament.settings and tournament.settings.prize_pool_bdt %}
-        <p>Total Prize: ৳{{ tournament.settings.prize_pool_bdt|floatformat:0|intcomma }}</p>
-      {% elif tournament.prize_pool_bdt %}
-        <p>Total Prize: ৳{{ tournament.prize_pool_bdt|floatformat:0|intcomma }}</p>
-      {% else %}
-        <p class="text-muted">Prize structure coming soon.</p>
-      {% endif %}
-    </section>
-  </article>
-
-  <aside class="space-y-6">
-    <div class="glass p-6 rounded-2xl">
-      <h3 class="font-semibold mb-3">Event Info</h3>
-      {% include "tournaments/partials/_meta.html" with title="Game" value=tournament.get_game_display %}
-      {% include "tournaments/partials/_meta.html" with title="Status" value=tournament.get_status_display %}
-      {% include "tournaments/partials/_meta.html" with title="Format" value=tournament.settings.get_tournament_type_display %}
-      {% include "tournaments/partials/_meta.html" with title="Entry Fee" value=tournament.settings.entry_fee_bdt %}
-      {% include "tournaments/partials/_meta.html" with title="Prize Pool" value=tournament.settings.prize_pool_bdt %}
-      {% include "tournaments/partials/_meta.html" with title="Start" value=tournament.start_at %}
-      {% include "tournaments/partials/_meta.html" with title="Reg Window" value=None %}
-      <div class="mt-4 grid grid-cols-2 gap-2">
-        {% if tournament.slug %}
-          <a class="btn-secondary" href="{% url 'tournaments:bracket_view' slug=tournament.slug %}">Bracket</a>
-        {% else %}
-          <a class="btn-secondary" href="{% url 'tournaments:list' %}">Bracket</a>
-        {% endif %}
-        <a class="btn-secondary" href="/pages/community/">Discord</a>
-      </div>
     </div>
+  </section>
 
-    <div class="glass p-6 rounded-2xl">
-      <h3 class="font-semibold mb-3">Registration</h3>
-      <ol class="list-decimal pl-5 text-sm text-muted space-y-1">
-        <li>Fill the registration form.</li>
-        <li>Pay via bKash/Nagad as instructed.</li>
-        <li>Provide sender number & TXN ID.</li>
-        <li>We verify and confirm your slot.</li>
-      </ol>
-      <div class="mt-4">
-        {% if tournament.slug %}
-          <a class="btn-primary w-full" href="{% url 'tournaments:register' slug=tournament.slug %}">Register</a>
-        {% else %}
-          <a class="btn-primary w-full" href="{% url 'tournaments:list' %}">Register</a>
-        {% endif %}
+  <!-- Main content -->
+  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid gap-6 lg:grid-cols-3">
+      <!-- Left: Overview / Schedule / Prizes -->
+      <div class="lg:col-span-2 space-y-6">
+        <article class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-6">
+          <h2 class="text-xl font-semibold text-white">Overview</h2>
+          <p class="mt-2 text-white/80">{{ tournament.overview|linebreaksbr|default:"Organizer will add an overview soon." }}</p>
+        </article>
+
+        <article class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-6">
+          <h2 class="text-xl font-semibold text-white">Schedule</h2>
+          <ul class="mt-2 list-disc pl-5 text-white/80">
+            {% for item in schedule|default:'' %}
+            <li>{{ item.when|date:"M j, g:i A" }} - {{ item.text }}</li>
+            {% empty %}
+            <li>Schedule will be published soon.</li>
+            {% endfor %}
+          </ul>
+        </article>
+
+        <article class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-6">
+          <h2 class="text-xl font-semibold text-white">Prizes</h2>
+          <ul class="mt-2 list-disc pl-5 text-white/80">
+            {% for p in prizes|default:'' %}
+            <li>{{ p.place }} - {{ p.amount }}</li>
+            {% empty %}
+            <li>Prize pool TBA.</li>
+            {% endfor %}
+          </ul>
+        </article>
+
+        <article class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-6">
+          <h2 class="text-xl font-semibold text-white">Bracket</h2>
+          {% if tournament.bracket_embed_html %}
+            <div class="mt-3">{{ tournament.bracket_embed_html|safe }}</div>
+          {% elif tournament.bracket_url %}
+            <p class="mt-3"><a class="btn btn-ghost" href="{{ tournament.bracket_url }}">Open bracket</a></p>
+          {% else %}
+            <p class="mt-3 text-white/80">Bracket will appear when available.</p>
+          {% endif %}
+        </article>
       </div>
+
+      <!-- Right: Meta / Quick info -->
+      <aside class="space-y-6">
+        <div class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-6">
+          <h3 class="text-lg font-semibold text-white">Event Info</h3>
+          <dl class="mt-3 space-y-2 text-white/80">
+            <div class="flex justify-between gap-6">
+              <dt class="text-white/60">Starts</dt>
+              <dd>{% if tournament.start_at %}{{ tournament.start_at|date:"M j, g:i A" }}{% elif tournament.settings and tournament.settings.start_at %}{{ tournament.settings.start_at|date:"M j, g:i A" }}{% else %}TBA{% endif %}</dd>
+            </div>
+            <div class="flex justify-between gap-6">
+              <dt class="text-white/60">Location</dt>
+              <dd>{{ tournament.location|default:"Online" }}</dd>
+            </div>
+            {% if tournament.entry_fee %}
+            <div class="flex justify-between gap-6">
+              <dt class="text-white/60">Entry fee</dt>
+              <dd>{{ tournament.entry_fee }}</dd>
+            </div>
+            {% endif %}
+          </dl>
+        </div>
+
+        <div class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-6">
+          <h3 class="text-lg font-semibold text-white">Registrations</h3>
+          <div class="mt-3 overflow-x-auto">
+            <table class="min-w-full text-left text-sm text-white/80">
+              <thead class="text-white/70">
+                <tr><th class="py-2 pr-6">Team/Player</th><th class="py-2 pr-6">Status</th><th class="py-2 pr-6">Time</th></tr>
+              </thead>
+              <tbody class="divide-y divide-white/10">
+                {% for r in registrations|default:'' %}
+                <tr>
+                  <td class="py-2 pr-6">{{ r.name }}</td>
+                  <td class="py-2 pr-6"><span class="chip">{{ r.status|capfirst }}</span></td>
+                  <td class="py-2 pr-6">{{ r.created_at|date:"M j, g:i A" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="py-6 text-white/70">No registrations yet.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </aside>
     </div>
-  </aside>
-</section>
+  </section>
+</main>
+
+<script defer src="{% static 'siteui/js/tournaments.js' %}"></script>
 {% endblock %}

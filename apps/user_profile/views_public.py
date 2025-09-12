@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Optional
 
 from django.contrib.auth import get_user_model
+from django.db.models import Q, Count
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 
@@ -50,7 +51,53 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     efootball_id = getattr(profile, "efootball_id", None)
     discord_id = getattr(profile, "discord_id", None)
 
-    return render(request, "users/public_profile.html", {
+    # Aggregate basic player stats from tournaments.Match if available
+    stats = None
+    match_history = []
+    try:
+        from apps.tournaments.models.match import Match
+        if profile:
+            qs = Match.objects.filter(
+                Q(user_a=profile) | Q(user_b=profile)
+            ).order_by("-created_at")
+            total = qs.count()
+            wins = qs.filter(winner_user=profile).count()
+            win_rate = round((wins / total) * 100) if total else 0
+            stats = {
+                "matches": total,
+                "win_rate": win_rate,
+                "rank": None,
+            }
+
+            # shape minimal history for the template
+            for m in qs[:6]:
+                match_history.append({
+                    "tournament_name": getattr(m.tournament, "name", "Tournament"),
+                    "result": ("Win" if getattr(m, "winner_user_id", None) == profile.id else ("Loss" if m.winner_user_id else "-")),
+                    "game": getattr(m.tournament, "game", None) or "—",
+                    "played_at": getattr(m, "created_at", None),
+                    "url": f"/tournaments/{getattr(m.tournament, 'id', '')}/matches/{m.id}/" if getattr(m, 'id', None) else "#",
+                    "summary": "",
+                })
+    except Exception:
+        pass
+
+    # Social links from profile fields → list of dicts expected by template
+    social = []
+    if profile and show_socials:
+        try:
+            if getattr(profile, "youtube_link", ""):
+                social.append({"platform": "YouTube", "handle": "", "url": profile.youtube_link})
+            if getattr(profile, "twitch_link", ""):
+                social.append({"platform": "Twitch", "handle": "", "url": profile.twitch_link})
+            if getattr(profile, "discord_id", ""):
+                discord_handle = profile.discord_id
+                social.append({"platform": "Discord", "handle": discord_handle, "url": f"https://discord.com/users/{discord_handle}"})
+        except Exception:
+            # Be resilient to any unexpected data
+            social = []
+
+    context = {
         "public_user": user,
         "profile": profile,
         "is_private": False,
@@ -63,4 +110,14 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         "riot_id": riot_id,
         "efootball_id": efootball_id,
         "discord_id": discord_id,
-    })
+        # added pipeline data
+        "stats": stats,
+        "match_history": match_history,
+        "activity": [],
+        "teams": [],
+        "highlights": [],
+        "achievements": [],
+        "social": social,
+    }
+
+    return render(request, "users/public_profile.html", context)

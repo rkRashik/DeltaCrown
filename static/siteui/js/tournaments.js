@@ -1,24 +1,27 @@
-// Tabs: activate on click + highlight
-(function(){
-  const tabs = document.querySelectorAll(".t-tab");
-  if (!tabs.length) return;
-  function activate(link){
-    tabs.forEach(t => t.classList.remove("is-active"));
-    link.classList.add("is-active");
-  }
-  tabs.forEach(t => t.addEventListener("click", (e) => {
-    activate(t);
-  }));
-})();
+(function () {
+  const $ = (s, c=document) => c.querySelector(s);
+  const $$ = (s, c=document) => Array.from(c.querySelectorAll(s));
 
-// Filter bar: auto-submit on change (progressive enhancement)
-(function(){
-  const form = document.getElementById("t-filter");
-  if (!form) return;
-  form.addEventListener("change", (e) => {
-    const target = e.target;
-    if (target.matches("select") || target.matches("input[type=radio]")) {
-      form.requestSubmit ? form.requestSubmit() : form.submit();
+  // Copy link on detail
+  const copy = $('#btn-copy');
+  if (copy) {
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(location.href); copy.textContent = 'Link copied!'; setTimeout(()=>copy.textContent='Copy link', 1800); } catch {}
+    });
+  }
+
+  // Highlight active subnav as you scroll
+  const sub = $('#subnav');
+  const links = $$('#subnav .sub-link');
+  const secs = ['overview','schedule','prizes','rules','registrations','bracket'].map(id => $('#'+id)).filter(Boolean);
+  function onScroll() {
+    if (!secs.length) return;
+    let active = secs[0].id;
+    const fromTop = window.scrollY + (sub ? sub.offsetHeight + 24 : 24);
+    for (const s of secs) {
+      if (s.offsetTop <= fromTop) active = s.id;
     }
-  });
+    links.forEach(a => a.classList.toggle('bg-white/10', a.getAttribute('href') === '#'+active));
+  }
+  onScroll(); window.addEventListener('scroll', onScroll, { passive:true });
 })();

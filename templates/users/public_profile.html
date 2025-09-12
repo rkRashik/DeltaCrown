@@ -1,38 +1,300 @@
-{% extends "base.html" %}
-
-{% block title %}Public Profile — DeltaCrown{% endblock %}
+﻿{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ public_user.username|default:user.username|default:"Player" }} - Profile | DeltaCrown{% endblock %}
 
 {% block content %}
-<main class="container mx-auto px-4 max-w-7xl py-8">
-  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
-    <a class="link-nav" href="/">Home</a> / <span>Profile</span>
-  </nav>
+<main id="profile" class="min-h-screen">
 
-  <h1 class="text-2xl font-bold">{{ public_user.username|default:"User" }}</h1>
+  <!-- ===== HERO / BANNER ===== -->
+  <section class="relative overflow-hidden">
+    <!-- gradient blooms -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 opacity-70">
+      <div class="absolute -top-28 left-1/2 -translate-x-1/2 h-[36rem] w-[36rem] rounded-full blur-3xl"
+           style="background: radial-gradient(closest-side, rgba(99,102,241,.28), transparent 70%);"></div>
+      <div class="absolute -bottom-36 left-1/3 h-[28rem] w-[28rem] rounded-full blur-3xl"
+           style="background: radial-gradient(closest-side, rgba(56,189,248,.22), transparent 70%);"></div>
+      <div class="absolute -bottom-16 right-0 h-[30rem] w-[30rem] rounded-full blur-3xl"
+           style="background: radial-gradient(closest-side, rgba(16,185,129,.18), transparent 70%);"></div>
+    </div>
 
-  <section class="glass rounded-2xl p-6 mt-4">
-    {% if is_private %}
-      <p class="text-muted">This profile is private.</p>
-    {% else %}
-      <div class="grid gap-3">
-        {% if show_email and public_user.email %}
-          <div><span class="text-muted">Email:</span> {{ public_user.email }}</div>
-        {% endif %}
-        {% if show_phone and phone %}
-          <div><span class="text-muted">Phone:</span> {{ phone }}</div>
-        {% endif %}
-        {% if show_socials %}
-          {% if ign %}<div><span class="text-muted">IGN:</span> {{ ign }}</div>{% endif %}
-          {% if riot_id %}<div><span class="text-muted">Riot ID:</span> {{ riot_id }}</div>{% endif %}
-          {% if efootball_id %}<div><span class="text-muted">eFootball ID:</span> {{ efootball_id }}</div>{% endif %}
-          {% if discord_id %}<div><span class="text-muted">Discord:</span> {{ discord_id }}</div>{% endif %}
-        {% endif %}
+    <div class="relative container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-10">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+        <!-- Avatar + identity -->
+        <div class="flex items-center gap-4">
+          <img
+            src="{% if profile and profile.avatar %}{{ profile.avatar.url }}{% else %}/static/siteui/svg/logo-deltacrown.svg{% endif %}"
+            alt=""
+            class="h-20 w-20 rounded-2xl object-cover ring-1 ring-white/10 bg-white/5" />
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                {{ profile.display_name|default:public_user.get_full_name|default:public_user.username|default:"Player" }}
+              </h1>
+            </div>
+            <p class="mt-1 text-white/70">
+              {{ profile.bio|default:"Competitive gamer on DeltaCrown" }}
+            </p>
+            <p class="mt-1 text-white/60 text-sm">
+              Joined {{ public_user.date_joined|date:"M Y" }}
+              {% if profile and profile.region %} - {{ profile.get_region_display|default:profile.region }}{% endif %}
+            </p>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-wrap items-center gap-3">
+          {% if request.user.is_authenticated and request.user.username != public_user.username %}
+            <button id="btn-follow" class="btn btn-primary"
+                    data-following="false">Follow</button>
+            <a href="/messages/new/?to={{ public_user.username|default:user.username }}" class="btn btn-secondary">Message</a>
+          {% endif %}
+          <button id="btn-copy" class="btn btn-ghost">Copy profile link</button>
+          <a href="/user/me/edit/" class="btn btn-ghost">Edit profile</a>
+        </div>
       </div>
-      {% if not show_email and not show_phone and not show_socials %}
-        <p class="text-muted">No public details are shared.</p>
-      {% endif %}
-    {% endif %}
+    </div>
+  </section>
+
+  <!-- ===== STATS STRIP ===== -->
+  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="card bg-white/5 ring-1 ring-white/10">
+        <div class="p-5">
+          <p class="text-xs uppercase tracking-wide text-white/60">Matches</p>
+          <p class="mt-1 text-3xl font-extrabold text-white">{% if stats and stats.matches %}{{ stats.matches }}{% else %}-{% endif %}</p>
+        </div>
+      </div>
+      <div class="card bg-white/5 ring-1 ring-white/10">
+        <div class="p-5">
+          <p class="text-xs uppercase tracking-wide text-white/60">Win rate</p>
+          <p class="mt-1 text-3xl font-extrabold text-white">
+            {% if stats and stats.win_rate %}{{ stats.win_rate }}%{% else %}-{% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="card bg-white/5 ring-1 ring-white/10">
+        <div class="p-5">
+          <p class="text-xs uppercase tracking-wide text-white/60">Rank</p>
+          <p class="mt-1 text-3xl font-extrabold text-white">{% if stats and stats.rank %}{{ stats.rank }}{% else %}-{% endif %}</p>
+        </div>
+      </div>
+      <div class="card bg-white/5 ring-1 ring-white/10">
+        <div class="p-5">
+          <p class="text-xs uppercase tracking-wide text-white/60">Achievements</p>
+          <p class="mt-1 text-3xl font-extrabold text-white">{{ achievements|length|default:"0" }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== TABS ===== -->
+  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+    <div class="card bg-white/5 ring-1 ring-white/10">
+      <div class="p-4 border-b border-white/10">
+        <nav class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Profile sections">
+          <button class="tab-btn" role="tab" aria-selected="true" data-tab="overview">Overview</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="matches">Matches</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="teams">Teams</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="highlights">Highlights</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="achievements">Achievements</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="social">Social</button>
+        </nav>
+      </div>
+
+      <!-- === OVERVIEW === -->
+      <section id="tab-overview" role="tabpanel" class="p-5 sm:p-6">
+        <div class="grid gap-6 lg:grid-cols-3">
+          <!-- About -->
+          <article class="lg:col-span-2 card bg-white/5 ring-1 ring-white/10">
+            <div class="p-6">
+              <h3 class="text-lg font-semibold text-white">About</h3>
+              <p class="mt-2 text-white/80">
+                {{ profile.bio|default:"This player hasn't added a bio yet." }}
+              </p>
+            </div>
+          </article>
+
+          <!-- Quick meta -->
+          <aside class="card bg-white/5 ring-1 ring-white/10">
+            <div class="p-6">
+              <h3 class="text-lg font-semibold text-white">Quick info</h3>
+              <dl class="mt-3 space-y-2 text-white/80">
+                <div class="flex justify-between gap-6">
+                  <dt class="text-white/60">Main game</dt>
+                  <dd>-</dd>
+                </div>
+                <div class="flex justify-between gap-6">
+                  <dt class="text-white/60">Region</dt>
+                  <dd>{% if profile %}{{ profile.get_region_display|default:profile.region|default:"BD" }}{% else %}-{% endif %}</dd>
+                </div>
+                <div class="flex justify-between gap-6">
+                  <dt class="text-white/60">Playstyle</dt>
+                  <dd>-</dd>
+                </div>
+                <div class="flex justify-between gap-6">
+                  <dt class="text-white/60">Member since</dt>
+                  <dd>{{ public_user.date_joined|date:"M j, Y" }}</dd>
+                </div>
+              </dl>
+            </div>
+          </aside>
+
+          <!-- Recent activity -->
+          <article class="lg:col-span-3 card bg-white/5 ring-1 ring-white/10">
+            <div class="p-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white">Recent activity</h3>
+                <a href="/user/u/{{ public_user.username|default:user.username }}/?tab=matches"
+                   class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">See all</a>
+              </div>
+              <div class="mt-4 grid gap-4 md:grid-cols-2">
+                {% for act in activity|default:'' %}
+                <div class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-4">
+                  <p class="text-white/80">
+                    {{ act.text }}
+                  </p>
+                  <p class="text-xs text-white/50 mt-1">{{ act.ts|date:"M j, g:i A" }}</p>
+                </div>
+                {% empty %}
+                <div class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-4 text-white/80">
+                  No recent activity yet.
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- === MATCHES === -->
+      <section id="tab-matches" role="tabpanel" class="hidden p-5 sm:p-6">
+        <h3 class="text-lg font-semibold text-white">Match history</h3>
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+          {% for m in match_history|default:'' %}
+          <article class="card bg-white/5 ring-1 ring-white/10">
+            <div class="p-5">
+              <div class="flex items-center justify-between">
+                <h4 class="text-white font-medium">{{ m.tournament_name|default:"Tournament" }}</h4>
+                <span class="chip">{{ m.result|default:"-" }}</span>
+              </div>
+              <p class="text-white/70 text-sm mt-1">{{ m.game|default:"-" }} &bull; {{ m.played_at|date:"M j, g:i A" }}</p>
+              <p class="text-white/80 mt-2 line-clamp-2">{{ m.summary|default:"" }}</p>
+              <div class="mt-3 flex gap-3">
+                <a class="btn btn-ghost" href="{{ m.url|default:'#' }}">Details</a>
+                {% if m.vod_url %}<a class="btn btn-secondary" href="{{ m.vod_url }}" target="_blank" rel="noopener">Watch</a>{% endif %}
+              </div>
+            </div>
+          </article>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            No matches yet.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- === TEAMS === -->
+      <section id="tab-teams" role="tabpanel" class="hidden p-5 sm:p-6">
+        <div class="flex items-end justify-between">
+          <h3 class="text-lg font-semibold text-white">Teams</h3>
+          <a class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4" href="/teams/">Browse teams</a>
+        </div>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {% for t in teams|default:'' %}
+          <a href="{{ t.url|default:'#' }}" class="card bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition block">
+            <div class="p-5">
+              <div class="flex items-center gap-3">
+                <img src="{{ t.logo_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" alt="" class="h-10 w-10 rounded-xl ring-1 ring-white/10 object-cover">
+                <div>
+                  <h4 class="text-white font-medium">{{ t.name }}</h4>
+                  <p class="text-white/60 text-sm">{{ t.role|default:"Member" }}</p>
+                </div>
+              </div>
+              <div class="mt-3 text-white/70 text-sm">{{ t.members_count|default:"-" }} members</div>
+            </div>
+          </a>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            Not on any teams yet.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- === HIGHLIGHTS === -->
+      <section id="tab-highlights" role="tabpanel" class="hidden p-5 sm:p-6">
+        <h3 class="text-lg font-semibold text-white">Highlights</h3>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {% for h in highlights|default:'' %}
+          <article class="card bg-white/5 ring-1 ring-white/10 overflow-hidden">
+            {% if h.thumb_url %}
+              <img src="{{ h.thumb_url }}" alt="" class="w-full h-40 object-cover">
+            {% endif %}
+            <div class="p-5">
+              <h4 class="text-white font-medium">{{ h.title|default:"Highlight" }}</h4>
+              <p class="text-white/70 text-sm mt-1 line-clamp-2">{{ h.summary|default:"" }}</p>
+              <div class="mt-3 flex gap-3">
+                {% if h.url %}<a class="btn btn-primary" href="{{ h.url }}" target="_blank" rel="noopener">Watch</a>{% endif %}
+                {% if h.forum_url %}<a class="btn btn-ghost" href="{{ h.forum_url }}">Discuss</a>{% endif %}
+              </div>
+            </div>
+          </article>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            No highlights yet.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- === ACHIEVEMENTS === -->
+      <section id="tab-achievements" role="tabpanel" class="hidden p-5 sm:p-6">
+        <h3 class="text-lg font-semibold text-white">Achievements</h3>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {% for a in achievements|default:'' %}
+          <article class="card bg-white/5 ring-1 ring-white/10">
+            <div class="p-5">
+              <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-xl bg-amber-400/20 grid place-items-center ring-1 ring-white/10">
+                  <!-- medal -->
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="text-amber-200"><path d="M12 2 7 7h3v6h4V7h3zM12 15a5 5 0 1 0 5 5 5 5 0 0 0-5-5Z"/></svg>
+                </div>
+                <h4 class="text-white font-medium">{{ a.title }}</h4>
+              </div>
+              <p class="text-white/70 text-sm mt-2">{{ a.description|default:"" }}</p>
+              <p class="text-white/50 text-xs mt-1">Earned {{ a.earned_at|date:"M j, Y" }}</p>
+            </div>
+          </article>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            No achievements yet.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- === SOCIAL === -->
+      <section id="tab-social" role="tabpanel" class="hidden p-5 sm:p-6">
+        <h3 class="text-lg font-semibold text-white">Social links</h3>
+        <div class="mt-4 grid gap-4 md:grid-cols-2">
+          {% for s in social|default:'' %}
+          <a href="{{ s.url }}" target="_blank" rel="noopener" class="card bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition block">
+            <div class="p-5">
+              <h4 class="text-white font-medium">{{ s.platform }}</h4>
+              <p class="text-white/70 text-sm mt-1">{{ s.handle }}</p>
+            </div>
+          </a>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            No social links added.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
   </section>
 </main>
-{% endblock %}
 
+<!-- Page script -->
+<script defer src="{% static 'siteui/js/profile.js' %}"></script>
+{% endblock %}

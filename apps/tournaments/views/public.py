@@ -32,6 +32,171 @@ except Exception:  # pragma: no cover
     ValorantTeamForm = None
 
 
+from django.db.models import Count
+from django.core.paginator import Paginator
+from django.shortcuts import render, get_object_or_404
+
+
+def hub(request):
+    """Games hub: curated list with counts and cover images."""
+    curated = [
+        {"slug": "efootball", "name": "eFootball", "image": "img/efootball.jpeg"},
+        {"slug": "valorant", "name": "Valorant", "image": "img/Valorant.jpg"},
+        {"slug": "fc26", "name": "FC 26", "image": "img/FC26.jpg"},
+        {"slug": "pubg", "name": "PUBG Mobile", "image": "img/PUBG.jpeg"},
+        {"slug": "mlbb", "name": "Mobile Legend", "image": "img/MobileLegend.jpg"},
+        {"slug": "cs2", "name": "CS2", "image": "img/CS2.jpg"},
+    ]
+    counts = {row["game"]: row["count"] for row in Tournament.objects.values("game").annotate(count=Count("id"))}
+    games = [{**g, "count": int(counts.get(g["slug"], 0))} for g in curated]
+    return render(request, "tournaments/hub.html", {"games": games})
+
+
+def by_game(request, game_slug: str):
+    """List tournaments for a given game code with search/sort/filters."""
+    qs = Tournament.objects.filter(game=game_slug).select_related("settings")
+
+    # Best-effort: registrations count
+    try:
+        qs = qs.annotate(reg_count=Count("registrations"))
+    except Exception:
+        pass
+
+    # Query params
+    q = (request.GET.get("q") or "").strip()
+    status = (request.GET.get("status") or "").strip().lower()
+    entry = (request.GET.get("entry") or "").strip().lower()  # 'paid'
+    sort = (request.GET.get("sort") or "").strip().lower()    # 'start'|'prize'|'entry'|'new'
+
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(slug__icontains=q))
+
+    # Status windows via TournamentSettings when available
+    now = timezone.now()
+    if status in ("open",):
+        qs = qs.filter(Q(settings__reg_open_at__lte=now, settings__reg_close_at__gte=now))
+    elif status in ("ongoing", "live"):
+        qs = qs.filter(Q(settings__start_at__lte=now, settings__end_at__gte=now))
+    elif status in ("finished", "completed", "past"):
+        qs = qs.filter(Q(settings__end_at__lt=now))
+    elif status in ("upcoming",):
+        qs = qs.filter(Q(settings__start_at__gt=now))
+
+    if entry == "paid":
+        # Prefer settings entry fee, else fallback to model field if present
+        if hasattr(Tournament, "entry_fee_bdt"):
+            qs = qs.filter(Q(settings__entry_fee_bdt__gt=0) | Q(entry_fee_bdt__gt=0))
+        else:
+            qs = qs.filter(settings__entry_fee_bdt__gt=0)
+
+    if sort == "start":
+        qs = qs.order_by("settings__start_at", "id")
+    elif sort == "prize":
+        qs = qs.order_by("-prize_pool_bdt", "-id") if hasattr(Tournament, "prize_pool_bdt") else qs.order_by("-id")
+    elif sort == "entry":
+        qs = qs.order_by("settings__entry_fee_bdt", "id") if hasattr(Tournament, "entry_fee_bdt") else qs.order_by("id")
+    else:
+        # newest first
+        qs = qs.order_by("-id")
+
+    choices = dict(getattr(Tournament.Game, "choices", []))
+    game_name = choices.get(game_slug, (game_slug or "").replace("-", " ").title())
+
+    paginator = Paginator(qs, 9)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+
+    context = {
+        "game_name": game_name,
+        "tournaments": list(page_obj.object_list),
+        "page_obj": page_obj,
+        "q": q,
+        "status": status,
+        "entry": entry,
+        "sort": sort,
+    }
+
+    if (request.GET.get("partial") or "").strip().lower() == "grid":
+        return render(request, "tournaments/partials/_grid.html", context)
+
+    return render(request, "tournaments/list.html", context)
+
+
+def upcoming(request, game_slug: str):
+    """Upcoming tournaments page filtered by game."""
+    now = timezone.now()
+    qs = (
+        Tournament.objects.filter(game=game_slug)
+        .select_related("settings")
+        .filter(
+            (
+                Q(settings__start_at__gt=now)
+                | Q(start_at__gt=now)
+            )
+        )
+        .order_by("settings__start_at", "start_at", "id")
+    )
+    try:
+        qs = qs.annotate(reg_count=Count("registrations"))
+    except Exception:
+        pass
+
+    choices = dict(getattr(Tournament.Game, "choices", []))
+    game_name = choices.get(game_slug, (game_slug or "").replace("-", " ").title())
+
+    paginator = Paginator(qs, 9)
+    page_obj = paginator.get_page(request.GET.get("page", 1))
+
+    context = {
+        "game_name": f"{game_name} Upcoming",
+        "tournaments": list(page_obj.object_list),
+        "page_obj": page_obj,
+        "status": "upcoming",
+    }
+
+    if (request.GET.get("partial") or "").strip().lower() == "grid":
+        return render(request, "tournaments/partials/_grid.html", context)
+
+    return render(request, "tournaments/list.html", context)
+
+def detail(request, slug: str):
+    """Public tournament detail page (read-only)."""
+    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
+    # Try explicit models if present, else tolerant attributes
+    schedule = getattr(t, "schedule_items", [])
+    prizes = getattr(t, "prize_items", [])
+    try:
+        from django.apps import apps as dj_apps
+        SItem = dj_apps.get_model("tournaments", "ScheduleItem")
+        if SItem:
+            schedule = list(SItem.objects.filter(tournament=t).order_by("when").values("when", "text"))
+    except Exception:
+        pass
+    try:
+        PItem = dj_apps.get_model("tournaments", "PrizeItem")
+        if PItem:
+            prizes = list(PItem.objects.filter(tournament=t).order_by("place").values("place", "amount"))
+    except Exception:
+        pass
+    try:
+        regs = list(getattr(t, "registrations", []).all()) if hasattr(t, "registrations") else []
+    except Exception:
+        regs = []
+
+    try:
+        _ = t.game_name  # ensure property available
+    except Exception:
+        pass
+
+    ctx = {
+        "tournament": t,
+        "can_register": t.status in ("upcoming", "open", "registration") if getattr(t, "status", None) else False,
+        "schedule": schedule,
+        "prizes": prizes,
+        "registrations": regs,
+        "game_slug": getattr(t, "game", ""),
+    }
+    return render(request, "tournaments/detail.html", ctx)
+
 # --------------------
 # Public list / detail
 # --------------------

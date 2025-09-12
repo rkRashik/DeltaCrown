@@ -56,12 +56,21 @@ def home(request):
         "prizes_bdt": raw_stats.get("prize_bdt", 0),
         "payout_accuracy": 98,  # default showcase value
     }
+    games_strip = [
+        {"slug": "efootball", "name": "eFootball", "image": "img/efootball.jpeg"},
+        {"slug": "valorant", "name": "Valorant", "image": "img/Valorant.jpg"},
+        {"slug": "fc26", "name": "FC 26", "image": "img/FC26.jpg"},
+        {"slug": "pubg", "name": "PUBG Mobile", "image": "img/PUBG.jpeg"},
+        {"slug": "mlbb", "name": "Mobile Legend", "image": "img/MobileLegend.jpg"},
+        {"slug": "cs2", "name": "CS2", "image": "img/CS2.jpg"},
+    ]
 
     ctx = {
         "featured_tournament": ft,
         "community_stats": community_stats,
         "spotlight": get_spotlight(3),
         "timeline": get_timeline(6),
+        "games_strip": games_strip,
     }
     return render(request, "home.html", ctx)
 
@@ -85,3 +94,20 @@ def ui_showcase(request):
         ("mode-squad", "squad", "Squad", False),
     ]
     return render(request, "ui_showcase.html", {"game_opts": game_opts, "radio_opts": radio_opts})
+
+def about(request):
+    # Optionally compute stats here
+    stats = {
+        "players": None,
+        "matches": None,
+        "prize_paid": None,
+        "streams": None,
+    }
+    return render(request, "about.html", {"stats": stats})
+
+def community(request):
+    # Optionally fetch forum categories / events
+    return render(request, "community.html", {
+        "forum_categories": [],
+        "upcoming_events": [],
+    })

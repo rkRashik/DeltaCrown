@@ -1,4 +1,4 @@
-# apps/tournaments/models/tournament.py
+﻿# apps/tournaments/models/tournament.py
 from django.db import models
 from django.utils.text import slugify
 from django.urls import reverse
@@ -224,50 +224,9 @@ class Tournament(models.Model):
             pass
         return None
 
-    # Common field aliases expected by templates
-    @property
-    def start_at(self):
-        val = getattr(self, "__dict__", {}).get("start_at", None)
-        if val:
-            return val
-        try:
-            settings = getattr(self, "settings", None)
-            return getattr(settings, "start_at", None) if settings else None
-        except Exception:
-            return None
-
-    @property
-    def end_at(self):
-        val = getattr(self, "__dict__", {}).get("end_at", None)
-        if val:
-            return val
-        try:
-            settings = getattr(self, "settings", None)
-            return getattr(settings, "end_at", None) if settings else None
-        except Exception:
-            return None
-
-    @property
-    def reg_open_at(self):
-        val = getattr(self, "__dict__", {}).get("reg_open_at", None)
-        if val:
-            return val
-        try:
-            settings = getattr(self, "settings", None)
-            return getattr(settings, "reg_open_at", None) if settings else None
-        except Exception:
-            return None
-
-    @property
-    def reg_close_at(self):
-        val = getattr(self, "__dict__", {}).get("reg_close_at", None)
-        if val:
-            return val
-        try:
-            settings = getattr(self, "settings", None)
-            return getattr(settings, "reg_close_at", None) if settings else None
-        except Exception:
-            return None
+    # NOTE: Avoid shadowing DB fields (start_at, end_at, reg_open_at, reg_close_at)
+    # with @property of the same name â€” it breaks ORM assignments. Use explicit
+    # fallbacks in templates/views instead, e.g. tournament.start_at|default:tournament.settings.start_at.
 
     @property
     def checkin_window(self) -> str | None:
@@ -280,7 +239,7 @@ class Tournament(models.Model):
             if open_m or close_m:
                 open_txt = f"{open_m}m" if open_m else "?"
                 close_txt = f"{close_m}m" if close_m else "?"
-                return f"Opens {open_txt} • Closes {close_txt} before"
+                return f"Opens {open_txt} â€¢ Closes {close_txt} before"
         except Exception:
             pass
         return None

@@ -123,6 +123,21 @@
     </div>
   </section>
 
+  <!-- Browse by Game -->
+  <section class="container py-12">
+    <h2 class="sec-h" data-reveal>Browse by Game</h2>
+    <div class="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mt-4">
+      {% for g in games_strip %}
+      <a href="/tournaments/game/{{ g.slug }}/" class="block rounded-2xl ring-1 ring-white/10 bg-white/5 overflow-hidden hover:ring-white/20 transition" data-reveal>
+        <div class="aspect-[16/9] bg-white/5">
+          <img src="{% static g.image %}" alt="{{ g.name }}" class="w-full h-full object-cover" />
+        </div>
+        <div class="p-3 text-center text-white/90">{{ g.name }}</div>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+
   <!-- Trust Badges -->
   <section class="container py-12">
     <div class="flex flex-wrap items-center gap-3">

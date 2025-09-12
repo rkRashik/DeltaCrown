@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Community — DeltaCrown{% endblock %}
+
+{% block content %}
+<main id="community" class="min-h-screen">
+
+  <!-- ===== HERO ===== -->
+  <section class="relative overflow-hidden">
+    <!-- gradient blooms -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 opacity-70">
+      <div class="absolute -top-28 left-1/2 -translate-x-1/2 h-[36rem] w-[36rem] rounded-full blur-3xl"
+           style="background: radial-gradient(closest-side, rgba(99,102,241,.35), transparent 70%);"></div>
+      <div class="absolute -bottom-36 left-1/3 h-[28rem] w-[28rem] rounded-full blur-3xl"
+           style="background: radial-gradient(closest-side, rgba(16,185,129,.25), transparent 70%);"></div>
+      <div class="absolute -bottom-16 right-0 h-[30rem] w-[30rem] rounded-full blur-3xl"
+           style="background: radial-gradient(closest-side, rgba(56,189,248,.25), transparent 70%);"></div>
+    </div>
+
+    <div class="relative container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-10">
+      <div class="text-center">
+        <span class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium tracking-wide ring-1 ring-white/10 text-white/80">
+          Play • Learn • Create • Belong
+        </span>
+        <h1 class="mt-6 text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
+          Bangladesh’s most vibrant esports community
+        </h1>
+        <p class="mx-auto mt-4 max-w-2xl text-white/75">
+          Find teammates, join scrims, follow announcements, share highlights, and grow your scene—safely and fairly.
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <a href="https://discord.gg/deltacrown" target="_blank" rel="noopener" class="btn btn-primary">Join Discord</a>
+          <a href="/forums/" class="btn btn-secondary">Open Forums</a>
+          <a href="/tournaments/" class="btn btn-ghost">Browse Tournaments</a>
+          {% if request.user.is_authenticated %}
+            <a href="/forums/new/" class="btn btn-primary">Create Post</a>
+          {% else %}
+            <a href="/accounts/login/?next=/forums/new/" class="btn btn-primary">Sign in to Post</a>
+          {% endif %}
+        </div>
+
+        <div class="mt-6 flex items-center justify-center gap-4 text-white/70 text-sm">
+          <button id="btn-share" class="inline-flex items-center gap-2 hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7.02-4.11A3 3 0 1 0 15 5a3 3 0 0 0 .04.49L8 9.6a3 3 0 1 0 0 4.8l7.06 4.12c-.03.16-.06.33-.06.48a3 3 0 1 0 3-3Z"/></svg>
+            Share community link
+          </button>
+          <span class="hidden sm:inline">•</span>
+          <a class="hover:text-white" href="#guidelines">Read guidelines</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== QUICK ACTIONS / TRENDS ===== -->
+  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-4">
+    <div class="grid gap-6 lg:grid-cols-3">
+      <!-- Quick actions -->
+      <div class="lg:col-span-2 card bg-white/5 ring-1 ring-white/10">
+        <div class="p-6">
+          <h2 class="text-xl font-semibold text-white">Quick actions</h2>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <a href="/forums/new/?category=lft" class="btn btn-secondary w-full">Find Team (LFT)</a>
+            <a href="/forums/new/?category=lfp" class="btn btn-secondary w-full">Find Player (LFP)</a>
+            <a href="/forums/new/?category=trading" class="btn btn-secondary w-full">Marketplace / Trading</a>
+            <a href="/forums/new/?category=highlights" class="btn btn-ghost w-full">Post Highlights</a>
+            <a href="/support/" class="btn btn-ghost w-full">Contact Mods</a>
+            <a href="/notifications/" class="btn btn-ghost w-full">Notifications</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trending tags -->
+      <aside class="card bg-white/5 ring-1 ring-white/10">
+        <div class="p-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-white">Trending</h2>
+            <button id="btn-reset-tags" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">Reset</button>
+          </div>
+          <div id="tag-cloud" class="mt-4 flex flex-wrap gap-2">
+            {% for tag in trending_tags|default:"valorant,efootball,pubg,freefire,bdt-100,streams,coaching,discord"|cut:"," %}
+              <button class="chip data-chip" data-filter="{{ tag|trim }}">{{ tag|trim }}</button>
+            {% endfor %}
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== TABS ===== -->
+  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+    <div class="card bg-white/5 ring-1 ring-white/10">
+      <div class="p-4 border-b border-white/10">
+        <nav class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Community sections">
+          <button class="tab-btn" role="tab" aria-selected="true" data-tab="feed">Feed</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="events">Events</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="scrims">Scrims</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="creators">Creators</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="leaderboard">Leaderboard</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="polls">Polls</button>
+        </nav>
+      </div>
+
+      <!-- === FEED === -->
+      <section id="tab-feed" role="tabpanel" class="p-4 sm:p-6">
+        <div class="grid gap-6 lg:grid-cols-3">
+          <!-- Announcements -->
+          <div class="lg:col-span-2">
+            <h3 class="text-lg font-semibold text-white">Announcements</h3>
+            <div id="announcements" class="mt-3 space-y-3">
+              {% for a in announcements|default:'' %}
+              <article class="card bg-white/5 ring-1 ring-white/10">
+                <a href="{{ a.url }}" class="block p-5 hover:bg-white/5 rounded-2xl transition">
+                  <h4 class="text-white font-semibold">{{ a.title }}</h4>
+                  <p class="mt-1 text-white/70 line-clamp-2">{{ a.summary }}</p>
+                  <p class="mt-2 text-sm text-white/50">{{ a.created_at|date:"M j, g:i A" }}</p>
+                </a>
+              </article>
+              {% empty %}
+              <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-5 text-white/80">
+                Nothing yet—follow our <a class="underline" href="https://facebook.com/DeltaCrown" target="_blank" rel="noopener">Facebook</a> for updates.
+              </div></div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Discussions -->
+          <div>
+            <h3 class="text-lg font-semibold text-white flex items-center justify-between">
+              Discussions
+              <a href="/forums/" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">View all</a>
+            </h3>
+            <div id="discussions" class="mt-3 space-y-3">
+              {% for p in posts|default:'' %}
+              <article class="card bg-white/5 ring-1 ring-white/10" data-tags="{{ p.tags|default:'' }}">
+                <a href="{{ p.url }}" class="block p-4 hover:bg-white/5 rounded-2xl transition">
+                  <div class="flex items-start justify-between gap-3">
+                    <h4 class="text-white font-medium">{{ p.title }}</h4>
+                    <span class="chip">{{ p.category.title }}</span>
+                  </div>
+                  <p class="mt-1 text-white/70 line-clamp-2">{{ p.excerpt }}</p>
+                  <div class="mt-2 text-xs text-white/50 flex items-center gap-3">
+                    <span>{{ p.replies_count|default:"0" }} replies</span>
+                    <span>•</span>
+                    <span>{{ p.views_count|default:"0" }} views</span>
+                    <span>•</span>
+                    <span>Last activity {{ p.last_activity|date:"M j, g:i A" }}</span>
+                  </div>
+                </a>
+              </article>
+              {% empty %}
+              <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-5 text-white/80">
+                Be the first to start a discussion. <a class="underline" href="{% if request.user.is_authenticated %}/forums/new/{% else %}/accounts/login/?next=/forums/new/{% endif %}">Create a post</a>.
+              </div></div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- === EVENTS === -->
+      <section id="tab-events" role="tabpanel" class="hidden p-4 sm:p-6">
+        <div class="flex items-end justify-between">
+          <h3 class="text-lg font-semibold text-white">Upcoming community events</h3>
+          <a href="/tournaments/" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">Browse tournaments</a>
+        </div>
+        <div class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {% for ev in upcoming_events|default:'' %}
+          <article class="card bg-white/5 ring-1 ring-white/10">
+            <div class="p-5">
+              <h4 class="text-white font-semibold">{{ ev.title }}</h4>
+              <p class="mt-1 text-white/70">{{ ev.starts_at|date:"M j, g:i A" }} · {{ ev.location|default:"Online" }}</p>
+              <p class="mt-2 text-white/70 line-clamp-2">{{ ev.summary }}</p>
+              <div class="mt-4 flex gap-3">
+                <a class="btn btn-primary" href="{{ ev.url }}">Details</a>
+                <button class="btn btn-ghost btn-rsvp" data-event-id="{{ ev.id|default:forloop.counter }}">RSVP</button>
+              </div>
+            </div>
+          </article>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            No events scheduled. Watch our Discord announcements for pop-ups and scrims.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- === SCRIMS === -->
+      <section id="tab-scrims" role="tabpanel" class="hidden p-4 sm:p-6">
+        <div class="flex items-end justify-between">
+          <h3 class="text-lg font-semibold text-white">Scrims board</h3>
+          <a href="/forums/new/?category=scrims" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">Post a scrim</a>
+        </div>
+        <div class="mt-4 space-y-3" id="scrims-board">
+          {% for s in scrims|default:'' %}
+          <article class="card bg-white/5 ring-1 ring-white/10">
+            <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h4 class="text-white font-medium">{{ s.title }}</h4>
+                <p class="text-white/70 text-sm">{{ s.game|default:"—" }} • {{ s.time|date:"M j, g:i A" }} • {{ s.region|default:"BD" }}</p>
+              </div>
+              <div class="flex gap-3">
+                <a class="btn btn-primary" href="{{ s.contact_url|default:'#' }}">DM to join</a>
+                <a class="btn btn-ghost" href="{{ s.url }}">Details</a>
+              </div>
+            </div>
+          </article>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            No scrims posted yet. Be first to <a class="underline" href="/forums/new/?category=scrims">open a slot</a>.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- === CREATORS === -->
+      <section id="tab-creators" role="tabpanel" class="hidden p-4 sm:p-6">
+        <div class="flex items-end justify-between">
+          <h3 class="text-lg font-semibold text-white">Spotlight creators</h3>
+          <a class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4" href="/forums/?tag=highlights">See highlights</a>
+        </div>
+        <div class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {% for c in creators|default:'' %}
+          <article class="card bg-white/5 ring-1 ring-white/10">
+            <div class="p-5">
+              <div class="flex items-center gap-3">
+                <img src="{{ c.avatar_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" alt="" class="h-10 w-10 rounded-xl ring-1 ring-white/10 object-cover">
+                <div>
+                  <h4 class="text-white font-medium">{{ c.name }}</h4>
+                  <p class="text-white/60 text-sm">{{ c.followers|default:"—" }} followers</p>
+                </div>
+              </div>
+              <div class="mt-4 flex gap-3">
+                <a href="{{ c.url }}" target="_blank" rel="noopener" class="btn btn-primary">Follow</a>
+                <a href="/forums/?author={{ c.slug|default:c.name|urlencode }}" class="btn btn-ghost">Posts</a>
+              </div>
+            </div>
+          </article>
+          {% empty %}
+          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
+            Creators coming soon. Want to be featured? <a class="underline" href="/support/">Contact us</a>.
+          </div></div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- === LEADERBOARD === -->
+      <section id="tab-leaderboard" role="tabpanel" class="hidden p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-white">Community leaderboard</h3>
+        <p class="mt-1 text-white/70 text-sm">Based on recent verified matches, forum reputation, and highlights.</p>
+        <div class="mt-4 overflow-x-auto">
+          <table class="min-w-full text-left text-sm text-white/80">
+            <thead class="text-white/70">
+              <tr>
+                <th class="py-3 pr-6">Player</th>
+                <th class="py-3 pr-6">Game</th>
+                <th class="py-3 pr-6">Rank</th>
+                <th class="py-3 pr-6">Reputation</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-white/10">
+              {% for row in leaderboard|default:'' %}
+              <tr>
+                <td class="py-3 pr-6">
+                  <a href="/user/u/{{ row.username }}/" class="hover:underline text-white">{{ row.username }}</a>
+                </td>
+                <td class="py-3 pr-6">{{ row.game }}</td>
+                <td class="py-3 pr-6">{{ row.rank }}</td>
+                <td class="py-3 pr-6">{{ row.reputation }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="py-6 text-white/70">Leaderboard will appear after the first season kickoff.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- === POLLS === -->
+      <section id="tab-polls" role="tabpanel" class="hidden p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-white">Community polls</h3>
+        <div class="mt-4 grid gap-6 sm:grid-cols-2">
+          <article class="card bg-white/5 ring-1 ring-white/10">
+            <form class="p-5" method="post" action="/community/poll/season-1/">
+              {% csrf_token %}
+              <h4 class="text-white font-medium">Which game should headline Season 1?</h4>
+              <fieldset class="mt-3 space-y-2">
+                <label class="flex items-center gap-2"><input type="radio" name="game" value="valorant" class="accent-indigo-400"><span>Valorant</span></label>
+                <label class="flex items-center gap-2"><input type="radio" name="game" value="efootball" class="accent-indigo-400"><span>eFootball</span></label>
+                <label class="flex items-center gap-2"><input type="radio" name="game" value="pubg" class="accent-indigo-400"><span>PUBG Mobile</span></label>
+              </fieldset>
+              <div class="mt-4 flex gap-3">
+                <button class="btn btn-primary" type="submit">Vote</button>
+                <a href="/community/polls/" class="btn btn-ghost">See results</a>
+              </div>
+            </form>
+          </article>
+
+          <article class="card bg-white/5 ring-1 ring-white/10">
+            <div class="p-5">
+              <h4 class="text-white font-medium">Subscribe for community updates</h4>
+              <p class="mt-2 text-white/70 text-sm">Get highlights, scrims, and event reminders in your inbox.</p>
+              <form class="mt-3 flex flex-col sm:flex-row gap-3" method="post" action="/community/subscribe/">
+                {% csrf_token %}
+                <input required type="email" name="email" placeholder="you@example.com"
+                       class="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:outline-2 focus-visible:outline-cyan-300">
+                <button class="btn btn-secondary sm:whitespace-nowrap">Subscribe</button>
+              </form>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== GUIDELINES ===== -->
+  <section id="guidelines" class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+    <h2 class="text-2xl font-semibold text-white mb-4">Community guidelines</h2>
+    <div class="card bg-white/5 ring-1 ring-white/10">
+      <div class="p-6">
+        <ul class="list-disc pl-5 text-white/80 space-y-2">
+          <li>Play fair; no cheating or smurfing. Respect referees and rulings.</li>
+          <li>Zero tolerance for harassment or hate speech. Keep channels safe.</li>
+          <li>No spam/self-promo outside designated channels.</li>
+          <li>Follow platform ToS and local laws. Evidence policy applies to disputes.</li>
+        </ul>
+        <p class="mt-4 text-white/60 text-sm">Violations may lead to warnings, timeouts, or bans per policy.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Page script -->
+<script defer src="{% static 'siteui/js/community.js' %}"></script>
+{% endblock %}

@@ -5,20 +5,33 @@ from .views import my_matches as my_matches_views
 from .views import evidence as evidence_views
 from .views import attendance as attendance_views
 from .views import public as public
-from .views.public import tournament_list, tournament_detail, register_view, register_success, watch
+from .views.public import (
+    hub,
+    by_game,
+    detail,
+    tournament_list,  # legacy
+    register_view,
+    register_success,
+    watch,
+    registration_receipt,
+)
 
 app_name = "tournaments"
 
 urlpatterns = [
-    # Public list & detail
-    path("", tournament_list, name="list"),
-    path("<slug:slug>/", tournament_detail, name="detail"),
+    # Public hub, list by game, and detail
+    path("", hub, name="hub"),  # /tournaments/
+    path("game/<slug:game_slug>/", by_game, name="by_game"),
+    path("game/<slug:game_slug>/upcoming/", public.upcoming, name="by_game_upcoming"),
+    path("<slug:slug>/", detail, name="detail"),
+    # Back-compat: old list route
+    path("browse/", tournament_list, name="list"),
 
     # Registration
-    path("<slug:slug>/register/", public.register_view, name="register"),
-    path("<slug:slug>/register/success/", public.register_success, name="register_success"),
-    path("<slug:slug>/register/receipt/", public.registration_receipt, name="registration_receipt"),
-    path("<slug:slug>/watch/", public.watch, name="watch"),
+    path("<slug:slug>/register/", register_view, name="register"),
+    path("<slug:slug>/register/success/", register_success, name="register_success"),
+    path("<slug:slug>/register/receipt/", registration_receipt, name="registration_receipt"),
+    path("<slug:slug>/watch/", watch, name="watch"),
 
     # Brackets (public or staff)
     path("brackets/<slug:slug>/", dashboard_views.bracket_view, name="bracket_view"),

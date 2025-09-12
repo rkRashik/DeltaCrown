@@ -1,85 +1,66 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static %}
-
-{% block title %}Tournaments — DeltaCrown{% endblock %}
+{% block title %}{{ game_name|default:"Tournaments" }} - Tournaments | DeltaCrown{% endblock %}
 
 {% block content %}
-<section class="container py-8">
-  <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-    <div>
-      <h1 class="sec-h">Tournaments</h1>
-      <p class="text-muted">Compete in premium events across Valorant, eFootball, and more.</p>
-    </div>
-  </header>
-
-  {# Server-driven filters (match your public view params: q, game, status, entry) #}
-  <form class="filter-bar glass rounded-2xl p-4" method="get" action="">
-    <div class="filter-bar__row">
-      <div class="filter-field">
-        <label class="filter-label">Search</label>
-        <input type="search" name="q" value="{{ q }}" class="filter-input" placeholder="Search tournaments…">
-      </div>
-
-      <div class="filter-field">
-        <label class="filter-label">Game</label>
-        <select name="game" class="filter-select">
-          <option value="" {% if not game %}selected{% endif %}>All games</option>
-          <option value="valorant" {% if game == 'valorant' %}selected{% endif %}>Valorant</option>
-          <option value="efootball" {% if game == 'efootball' %}selected{% endif %}>eFootball Mobile</option>
-        </select>
-      </div>
-
-      <div class="filter-field">
-        <label class="filter-label">Status</label>
-        <select name="status" class="filter-select">
-          <option value="" {% if not status %}selected{% endif %}>Any</option>
-          <option value="open" {% if status == 'open' %}selected{% endif %}>Open (upcoming)</option>
+<main id="tournaments-list" class="min-h-screen">
+  <!-- Header -->
+  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-4">
+    <nav class="text-white/70 text-sm">
+      <a class="hover:underline" href="/tournaments/">Games</a>
+      <span>-</span>
+      <span class="text-white">{{ game_name|default:"All" }}</span>
+    </nav>
+    <div class="mt-2 grid gap-3 lg:grid-cols-2 lg:items-end">
+      <h1 class="text-3xl font-extrabold tracking-tight text-white">{{ game_name|default:"All tournaments" }}</h1>
+      <form method="get" id="t-filter" class="flex flex-wrap items-center justify-start lg:justify-end gap-2">
+        <input type="text" name="q" value="{{ q }}" placeholder="Search tournaments..." class="input input-sm w-48">
+        <select name="status" class="input input-sm">
+          <option value="">Any status</option>
           <option value="ongoing" {% if status == 'ongoing' %}selected{% endif %}>Ongoing</option>
-          <option value="finished" {% if status == 'finished' %}selected{% endif %}>Finished</option>
+          <option value="upcoming" {% if status == 'upcoming' %}selected{% endif %}>Upcoming</option>
+          <option value="past" {% if status == 'past' %}selected{% endif %}>Past</option>
         </select>
-      </div>
-
-      <div class="filter-field">
-        <label class="filter-label">Entry</label>
-        <select name="entry" class="filter-select">
-          <option value="" {% if not entry %}selected{% endif %}>Any</option>
-          <option value="free" {% if entry == 'free' %}selected{% endif %}>Free</option>
+        <select name="entry" class="input input-sm">
+          <option value="">Any entry</option>
           <option value="paid" {% if entry == 'paid' %}selected{% endif %}>Paid</option>
         </select>
-      </div>
-
-      <div class="filter-actions">
-        <button class="btn-secondary" type="submit">Apply</button>
-        <a class="btn-ghost" href="{% url 'tournaments:list' %}">Reset</a>
-      </div>
+        <select name="sort" class="input input-sm">
+          <option value="new" {% if sort == '' or sort == 'new' %}selected{% endif %}>Newest</option>
+          <option value="start" {% if sort == 'start' %}selected{% endif %}>Start time</option>
+          <option value="prize" {% if sort == 'prize' %}selected{% endif %}>Prize pool</option>
+          <option value="entry" {% if sort == 'entry' %}selected{% endif %}>Entry fee</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+        <a href="." class="btn btn-ghost btn-sm">Reset</a>
+      </form>
     </div>
-  </form>
+  </section>
 
-  {# Grid #}
-  <div class="t-grid mt-6">
-    {% if tournaments %}
-      {% for t in tournaments %}
-        {% include "tournaments/partials/_card.html" with tournament=t %}
-      {% endfor %}
-    {% else %}
-      {% include "components/empty.html" with 
-         title="No tournaments found" 
-         subtitle="Try different filters." 
-         icon=static('siteui/svg/empty/empty-tournaments.svg') %}
+  <!-- Grid -->
+  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12" id="grid-root">
+    {% include "tournaments/partials/_grid.html" %}
+
+    <!-- Pagination -->
+    {% if page_obj %}
+    <div class="mt-8 flex items-center justify-center gap-2">
+      {% if page_obj.has_previous %}
+        <a class="btn btn-ghost" href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.previous_page_number }}">Prev</a>
+      {% else %}
+        <span class="btn btn-ghost opacity-40 pointer-events-none">Prev</span>
+      {% endif %}
+
+      <span class="px-3 py-2 rounded-xl bg-white/5 ring-1 ring-white/10 text-white/80">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a class="btn btn-ghost" href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+      {% else %}
+        <span class="btn btn-ghost opacity-40 pointer-events-none">Next</span>
+      {% endif %}
+    </div>
     {% endif %}
-  </div>
-
-  {# Pagination (your view passes 'page') #}
-  {% if page and page.paginator.num_pages > 1 %}
-    <nav class="mt-8 flex items-center justify-center gap-2">
-      {% if page.has_previous %}
-        <a class="btn-ghost" href="?q={{ q }}&game={{ game }}&status={{ status }}&entry={{ entry }}&page={{ page.previous_page_number }}">← Prev</a>
-      {% endif %}
-      <span class="text-sm text-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-      {% if page.has_next %}
-        <a class="btn-ghost" href="?q={{ q }}&game={{ game }}&status={{ status }}&entry={{ entry }}&page={{ page.next_page_number }}">Next →</a>
-      {% endif %}
-    </nav>
-  {% endif %}
-</section>
+  </section>
+</main>
 {% endblock %}

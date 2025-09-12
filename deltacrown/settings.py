@@ -102,6 +102,7 @@ TEMPLATES = [
                 'apps.common.templatetags.seo_tags',
                 'apps.common.templatetags.assets',
                 'apps.common.templatetags.dashboard_widgets',
+                'apps.common.templatetags.string_utils',
             ],
         },
     },
@@ -219,7 +220,7 @@ else:
 # -----------------------------------------------------------------------------
 # Email (in-memory for tests)
 # -----------------------------------------------------------------------------
-EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", EMAIL_BACKEND)
 
 # -----------------------------------------------------------------------------
 # Testing niceties

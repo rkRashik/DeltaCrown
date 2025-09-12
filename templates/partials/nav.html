@@ -12,11 +12,24 @@
     </button>
 
     <ul class="nav-links" role="menubar" aria-label="Primary">
-      <li role="none"><a role="menuitem" class="link-nav" href="/tournaments/">Tournaments</a></li>
+      <li role="none" class="relative">
+        <a role="menuitem" class="link-nav" href="/tournaments/">Tournaments</a>
+      </li>
+      <li role="none" class="relative">
+        <button class="link-nav" data-menu-toggle aria-haspopup="true" aria-expanded="false">Games ▾</button>
+        <div class="glass rounded-xl p-2 absolute left-0 mt-2" hidden data-menu role="menu">
+          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/efootball/">eFootball</a>
+          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/valorant/">Valorant</a>
+          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/fc26/">FC 26</a>
+          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/pubg/">PUBG Mobile</a>
+          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/mlbb/">Mobile Legend</a>
+          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/cs2/">CS2</a>
+        </div>
+      </li>
       <li role="none"><a role="menuitem" class="link-nav" href="/teams/">Teams</a></li>
       <li role="none"><a role="menuitem" class="link-nav" href="{% firstof '/watch/' '/tournaments/' %}">Watch{% if nav_live %} <span class="pill pill--live">Live</span>{% endif %}</a></li>
-      <li role="none"><a role="menuitem" class="link-nav" href="/pages/community/">Community</a></li>
-      <li role="none"><a role="menuitem" class="link-nav" href="/pages/about/">About</a></li>
+      <li role="none"><a role="menuitem" class="link-nav" href="/community/">Community</a></li>
+      <li role="none"><a role="menuitem" class="link-nav" href="/about/">About</a></li>
     </ul>
 
     <div class="nav-cta">
@@ -26,8 +39,8 @@
           <div class="relative">
             <button class="btn-secondary" data-menu-toggle aria-haspopup="true" aria-expanded="false">Create ▾</button>
             <div class="glass rounded-xl p-2 absolute right-0 mt-2" hidden data-menu role="menu">
-              <a role="menuitem" class="link-nav block py-1 px-2" href="/teams/create/">New Team</a>
-              <a role="menuitem" class="link-nav block py-1 px-2" href="/admin/tournaments/tournament/add/">New Event</a>
+              <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/teams/create/">New Team</a>
+              <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/admin/tournaments/tournament/add/">New Event</a>
             </div>
           </div>
         {% endif %}
@@ -52,6 +65,7 @@
   </nav>
   {% include "partials/mobile_nav.html" %}
 </header>
+
 
 
 
