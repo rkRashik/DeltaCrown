@@ -1,0 +1,9 @@
+<div class="relative" data-share-menu>
+  <button type="button" class="btn btn-secondary" data-share-toggle aria-haspopup="true" aria-expanded="false">Share</button>
+  <div class="menu hidden" data-share-panel>
+    <a class="menu-item" href="https://www.facebook.com/sharer/sharer.php?u={{ url|urlencode }}" target="_blank" rel="noopener">Facebook</a>
+    <a class="menu-item" href="https://discord.com/channels/@me" target="_blank" rel="noopener">Discord</a>
+    <a class="menu-item" href="https://api.whatsapp.com/send?text={{ title|urlencode }}%20{{ url|urlencode }}" target="_blank" rel="noopener">WhatsApp</a>
+    <button class="menu-item" type="button" data-copy="{{ url }}">Copy link</button>
+  </div>
+</div>

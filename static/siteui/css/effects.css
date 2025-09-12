@@ -13,3 +13,8 @@
 /* Reveal */
 [data-reveal] { opacity: 0; transform: translateY(12px); transition: opacity .4s ease, transform .4s ease; }
 [data-reveal].is-shown { opacity: 1; transform: translateY(0); }
+
+
+/* effects.css — glass & hairline helpers */
+.glass { background-image: linear-gradient(to bottom right, rgba(255,255,255,.55), rgba(255,255,255,.35)); }
+:root[data-theme="dark"] .glass { background-image: linear-gradient(to bottom right, rgba(15,23,42,.55), rgba(15,23,42,.35)); }

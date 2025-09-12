@@ -1,0 +1,29 @@
+<div class="card glass p-4">
+  <h3 class="text-lg font-semibold mb-3">Roster</h3>
+  {% if roster %}
+    <ul role="list" class="divide-y divide-black/5 dark:divide-white/10">
+      {% for m in roster %}
+        <li class="py-3 flex items-center gap-3">
+          {% if m.avatar %}
+            <img src="{{ m.avatar.url }}" class="w-10 h-10 rounded-lg object-cover" alt="">
+          {% else %}
+            <div class="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 grid place-content-center text-sm">{{ m.user.username|slice:":2"|upper }}</div>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium truncate">{{ m.user.get_full_name|default:m.user.username }}</span>
+              {% if team.captain_id == m.id %}
+                <span class="badge">Captain</span>
+              {% endif %}
+            </div>
+          </div>
+          {% if is_captain and team.captain_id != m.id %}
+            <a href="{% url 'teams:kick' team.slug m.id %}" class="btn btn-xs btn-danger">Remove</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-600 dark:text-gray-300">No members yet.</p>
+  {% endif %}
+</div>

@@ -1,0 +1,27 @@
+<article class="t-card glass rounded-2xl" data-game="{% firstof team.get_game_display team.game 'unknown' %}">
+  <div class="t-card__media">
+    {% if team.banner_image %}
+      <img src="{{ team.banner_image.url }}" class="t-card__img" alt="" loading="lazy">
+    {% elif team.roster_image %}
+      <img src="{{ team.roster_image.url }}" class="t-card__img" alt="" loading="lazy">
+    {% else %}
+      <div class="t-card__ph" aria-hidden="true"></div>
+    {% endif %}
+    <div class="t-card__scrim" aria-hidden="true"></div>
+    <div class="t-card__status">
+      <span class="pill">{% firstof team.get_game_display team.game "Game" %}</span>
+    </div>
+  </div>
+
+  <div class="t-card__body card-body space-y-3">
+    <h3 class="t-card__title card-title">{% firstof team.name team.title "Team" %}</h3>
+    <div class="t-card__sub text-muted">{% if team.bio %}{{ team.bio|truncatechars:80 }}{% else %}—{% endif %}</div>
+    <div class="t-card__actions card-actions">
+      {% if team.slug %}
+        <a class="btn btn-secondary" href="{% url 'teams:detail' team.slug %}">View</a>
+      {% else %}
+        <a class="btn btn-secondary" href="/teams/">View</a>
+      {% endif %}
+    </div>
+  </div>
+</article>

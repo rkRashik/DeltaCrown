@@ -4,69 +4,76 @@
 {% block title %}Teams — DeltaCrown{% endblock %}
 
 {% block content %}
-<section class="container py-8">
-  <nav aria-label="Breadcrumb" class="text-sm mb-2">
-    <ol class="flex items-center gap-2 text-muted">
-      <li><a class="link-nav" href="/">Home</a></li>
-      <span>/</span>
-      <li aria-current="page" class="text-body">Teams</li>
-    </ol>
-  </nav>
-  <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-    <div>
-      <h1 class="sec-h">Teams</h1>
-      <p class="text-muted">Discover rosters, follow rivals, and find your next lineup.</p>
-    </div>
-    <div class="flex gap-2">
-      {% if request.user.is_authenticated %}
-        <a class="btn-primary" href="/teams/create/">Create Team</a>
-      {% else %}
-        <a class="btn-secondary" href="/accounts/login/">Sign in to create</a>
-      {% endif %}
-    </div>
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+  <header class="mb-6">
+    <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Teams</h1>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Find, manage, and scout teams across all games.</p>
   </header>
 
-  <form id="teams-filter" class="filter-bar glass rounded-2xl p-4" method="get" action="">
-    <div class="filter-bar__row">
-      <div class="filter-field">
-        <label class="filter-label">Search</label>
-        <input type="search" name="q" value="{{ q }}" class="filter-input" placeholder="Search teams…">
-      </div>
-      <div class="filter-field">
-        <label class="filter-label">Game</label>
-        <select name="game" class="filter-select" id="teams-game">
-          <option value="" {% if not game %}selected{% endif %}>All</option>
-          <option value="valorant" {% if game == 'valorant' %}selected{% endif %}>Valorant</option>
-          <option value="efootball" {% if game == 'efootball' %}selected{% endif %}>eFootball</option>
-        </select>
-      </div>
-      <div class="filter-field">
-        <label class="filter-label">Recruiting</label>
-        <select name="open" class="filter-select" id="teams-open">
-          <option value="" {% if not open %}selected{% endif %}>Any</option>
-          <option value="1" {% if open == '1' %}selected{% endif %}>Open to join</option>
-        </select>
-      </div>
-      <div class="filter-actions">
-        <button class="btn-secondary" type="submit">Apply</button>
-        <a class="btn-ghost" href="/teams/">Reset</a>
-      </div>
-    </div>
-  </form>
+  {# My Teams row (auth users) #}
+  {% include "teams/_my_teams.html" with my_teams_by_game=my_teams_by_game games=games %}
 
-  {% if teams %}
-    <div id="teams-grid" class="t-grid mt-6">
-      {% for tm in teams %}
-        {% include "teams/partials/_card.html" with team=tm %}
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="mt-6">
-      {% include "components/empty.html" with 
-        title="No teams found" 
-        subtitle="Try different filters or create your own team." 
-        icon=static('siteui/svg/empty/empty-teams.svg') %}
-    </div>
-  {% endif %}
-</section>
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-6 mt-6">
+    {# Sidebar #}
+    <aside class="md:col-span-3">
+      <div class="sticky top-24 space-y-4">
+        <a href="{% url 'teams:create' %}" class="btn btn-primary w-full">Create Team</a>
+
+        <nav class="card glass p-4 space-y-2">
+          <a href="{% url 'teams:invitations' %}" class="link-row">Invitations</a>
+          <a href="{% url 'teams:my_invites' %}" class="link-row">My Invites</a>
+        </nav>
+
+        {% include "teams/_filters.html" with games=games active_game=active_game filters=filters sort=sort query=query %}
+      </div>
+    </aside>
+
+    {# Content #}
+    <section class="md:col-span-9">
+      <div class="card glass p-4 mb-4">
+        <form id="teams-search-form" class="flex flex-col sm:flex-row gap-3">
+          <label class="sr-only" for="teams-q">Search teams</label>
+          <input type="search" id="teams-q" name="q" value="{{ query }}" placeholder="Search teams..."
+                 class="input flex-1" />
+          <select name="sort" id="teams-sort" class="select w-full sm:w-48">
+            <option value="powerrank" {% if sort == "powerrank" %}selected{% endif %}>Sort: Power Rank</option>
+            <option value="recent" {% if sort == "recent" %}selected{% endif %}>Sort: Recent activity</option>
+            <option value="members" {% if sort == "members" %}selected{% endif %}>Sort: Members</option>
+            <option value="az" {% if sort == "az" %}selected{% endif %}>Sort: A–Z</option>
+          </select>
+          <button class="btn btn-secondary" type="submit">Apply</button>
+        </form>
+      </div>
+
+      {% if object_list %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {% for team in object_list %}
+            {% include "teams/_card.html" with team=team %}
+          {% endfor %}
+        </div>
+
+        {% if paginator.num_pages > 1 %}
+          <div class="mt-8 flex justify-center">
+            <nav class="pagination">
+              {% if page_obj.has_previous %}
+                <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&amp;{% endif %}{% if active_game %}game={{ active_game }}&amp;{% endif %}sort={{ sort }}&amp;page={{ page_obj.previous_page_number }}">‹ Prev</a>
+              {% endif %}
+              <span class="page-stat">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+              {% if page_obj.has_next %}
+                <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&amp;{% endif %}{% if active_game %}game={{ active_game }}&amp;{% endif %}sort={{ sort }}&amp;page={{ page_obj.next_page_number }}">Next ›</a>
+              {% endif %}
+            </nav>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="empty-state">
+          <h3>No teams found</h3>
+          <p>Try changing filters or <a class="link" href="{% url 'teams:create' %}">create your own team</a>.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<script src="{% static 'siteui/js/teams-list.js' %}" defer></script>
 {% endblock %}

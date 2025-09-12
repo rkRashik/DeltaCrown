@@ -1,143 +1,99 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% firstof team.name team.title "Team" %} — DeltaCrown{% endblock %}
-{% block og_title %}{% firstof team.name team.title "Team" %} — DeltaCrown{% endblock %}
-{% block og_image %}{% if team.banner_image %}{{ team.banner_image.url }}{% elif team.roster_image %}{{ team.roster_image.url }}{% else %}{% static 'siteui/svg/logo-deltacrown.svg' %}{% endif %}{% endblock %}
-{% block canonical %}<link rel="canonical" href="{{ request.build_absolute_uri }}" />{% endblock %}
+{% block title %}{{ team.name }} — Team{% endblock %}
 
 {% block content %}
-<section class="t-hero">
-  <div class="t-hero__media">
-    {% if team.banner_image %}
-      <img src="{{ team.banner_image.url }}" class="t-hero__img" alt="" loading="eager">
-    {% elif team.roster_image %}
-      <img src="{{ team.roster_image.url }}" class="t-hero__img" alt="" loading="eager">
+<div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
+  <div class="relative rounded-2xl overflow-hidden border border-black/5 dark:border-white/10 bg-gradient-to-br from-slate-100 to-white dark:from-slate-900 dark:to-slate-950">
+    {% if team.banner %}
+      <img src="{{ team.banner.url }}" alt="" class="absolute inset-0 w-full h-40 object-cover opacity-80">
     {% else %}
-      <div class="t-hero__placeholder" aria-hidden="true"></div>
+      <div class="absolute inset-0 h-40 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,.35),transparent_40%)]"></div>
     {% endif %}
-    <div class="t-hero__scrim" aria-hidden="true"></div>
-  </div>
-
-  <div class="container t-hero__body">
-    <div class="t-hero__meta">
-      <nav aria-label="Breadcrumb" class="text-sm mb-2">
-        <ol class="flex items-center gap-2 text-muted">
-          <li><a class="link-nav" href="/teams/">Teams</a></li>
-          <span>/</span>
-          <li aria-current="page" class="text-body">{{ team.name }}</li>
-        </ol>
-      </nav>
-      <div class="flex items-center gap-3 mt-1">
-        <h1 class="t-hero__title crown-text">{% firstof team.name team.title "Team" %}</h1>
-      </div>
-      <ul class="t-hero__chips">
-        <li class="chip"><span class="chip__k">Game</span><span class="chip__v">{% firstof team.get_game_display team.game "—" %}</span></li>
-        <li class="chip"><span class="chip__k">Founded</span><span class="chip__v">{% if team.created_at %}{{ team.created_at|date:"M d, Y" }}{% else %}—{% endif %}</span></li>
-      </ul>
-      <div class="mt-3">
-        {% include "components/_share.html" with title=team.name %}
-      </div>
-    </div>
-
-    <aside class="t-hero__cta glass">
-      <div class="t-hero__cta-top">
-        <div class="flex items-center gap-3">
-          <div class="text-sm text-muted">Captain</div>
-          <div class="font-semibold">
-            {% if team.captain %}
-              {% firstof team.captain.display_name team.captain.user.get_full_name team.captain.user.username "Captain" %}
-            {% else %}—{% endif %}
-          </div>
-        </div>
-        <dl class="t-quick grid">
-          <div><dt>Members</dt><dd>{% if team.members_count %}{{ team.members_count }}{% else %}—{% endif %}</dd></div>
-          <div><dt>Wins</dt><dd>{% if team.wins %}{{ team.wins }}{% else %}0{% endif %}</dd></div>
-          <div><dt>Region</dt><dd>{% if team.region %}{{ team.region }}{% else %}BD{% endif %}</dd></div>
-        </dl>
-      </div>
-
-      <div class="t-hero__cta-actions">
-        {% if request.user.is_authenticated %}
-          {% if team.slug %}<a class="btn-primary w-full" href="/teams/{{ team.slug }}/manage/">Manage / Invites</a>{% endif %}
+    <div class="relative pt-6 px-6 pb-4">
+      <div class="flex items-center gap-4">
+        {% if team.logo %}
+          <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="w-16 h-16 rounded-xl ring-1 ring-black/5 dark:ring-white/10 object-cover bg-white/70 backdrop-blur">
         {% else %}
-          <a class="btn-secondary w-full" href="/accounts/login/">Sign in to join</a>
+          <div class="w-16 h-16 rounded-xl ring-1 ring-black/5 dark:ring-white/10 bg-white/70 backdrop-blur grid place-content-center text-lg font-semibold">
+            {{ team.name|slice:":2"|upper }}
+          </div>
+        {% endif %}
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">{{ team.name }}</h1>
+            <span class="chip">{{ team.game|title }}</span>
+          </div>
+          {% if team.tagline %}
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">{{ team.tagline }}</p>
+          {% endif %}
+        </div>
+
+        {% include "teams/partials/share_menu.html" with title=team.name url=request.build_absolute_uri %}
+
+      </div>
+
+      <div class="mt-4 flex flex-wrap gap-3">
+        {% if is_captain %}
+          <a href="{% url 'teams:edit' team.slug %}" class="btn btn-secondary">Edit</a>
+          <a href="{% url 'teams:invite' team.slug %}" class="btn btn-secondary">Invite</a>
+        {% endif %}
+
+        {% if is_member and not is_captain %}
+          <a href="{% url 'teams:leave' team.slug %}" class="btn btn-danger">Leave</a>
+        {% endif %}
+
+        {% if not is_member %}
+          {% if already_in_team_for_game %}
+            <button class="btn btn-disabled" disabled title="You already belong to a team in {{ team.game|title }}.">
+              Already in a {{ team.game|title }} team
+            </button>
+          {% else %}
+            <a href="{% url 'teams:join' team.slug %}" class="btn btn-primary">Join team</a>
+          {% endif %}
         {% endif %}
       </div>
-    </aside>
-  </div>
-</section>
-
-<section class="container py-10 grid lg:grid-cols-3 gap-6">
-  <article class="glass p-6 rounded-2xl lg:col-span-2">
-    <nav class="t-tabs border-b border-border mb-6">
-      <a href="#about" class="t-tab is-active" data-tab>About</a>
-      <a href="#roster" class="t-tab" data-tab>Roster</a>
-      <a href="#results" class="t-tab" data-tab>Recent Results</a>
-    </nav>
-
-    <section id="about" class="t-section">
-      {% if team.bio %}
-        <p>{{ team.bio|linebreaks }}</p>
-      {% else %}
-        <p class="text-muted">This team hasn't added a bio yet.</p>
-      {% endif %}
-    </section>
-
-    <section id="roster" class="t-section mt-10">
-      <h3 class="font-semibold mb-3">Roster</h3>
-      {% if roster %}
-        <div class="grid gap-8 lg:gap-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {% for p in roster %}
-          <div class="text-center text-muted">
-            {% if p.avatar %}
-              <img class="mx-auto mb-3 w-28 h-28 rounded-full object-cover border border-border" src="{{ p.avatar.url }}" alt="{{ p.display_name }}">
-            {% else %}
-              <img class="mx-auto mb-3 w-28 h-28 rounded-full object-cover border border-border" src="{% static 'siteui/img/avatar-default.png' %}" alt="{{ p.display_name }}">
-            {% endif %}
-            <h3 class="mb-1 text-xl font-bold text-body">{% firstof p.display_name p.user.get_full_name p.user.username 'Player' %}</h3>
-            <p>Member</p>
-          </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="text-muted">No members to show.</p>
-      {% endif %}
-    </section>
-
-    <section id="results" class="t-section mt-10">
-      <h3 class="font-semibold mb-3">Recent Results</h3>
-      {% if results %}
-        <ul class="grid gap-2">
-          {% for r in results %}
-            <li class="flex items-center justify-between text-sm">
-              <span>{% firstof r.event_name r.tournament_name "Event" %}</span>
-              <span class="text-muted">{% if r.placed %}Placed {{ r.placed }}{% else %}—{% endif %}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted">No recent results.</p>
-      {% endif %}
-    </section>
-  </article>
-
-  <aside class="space-y-6">
-    <div class="glass p-6 rounded-2xl">
-      <h3 class="font-semibold mb-3">Upcoming Matches</h3>
-      {% if upcoming %}
-        <ul class="grid gap-2 text-sm">
-          {% for match in upcoming %}
-            <li class="flex items-center justify-between">
-              <span>{% firstof match.opponent_name "Opponent" %}</span>
-              <span class="text-muted">{% if match.when %}{{ match.when|date:"M d, H:i" }}{% else %}TBA{% endif %}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted">No matches scheduled.</p>
-      {% endif %}
     </div>
-  </aside>
-</section>
+  </div>
+
+  <div class="mt-6">
+    <div class="tabs" data-tabs>
+      <button class="tab active" data-tab="roster">Roster</button>
+      <button class="tab" data-tab="matches">Matches</button>
+      <button class="tab" data-tab="stats">Stats</button>
+      <button class="tab" data-tab="media">Media</button>
+    </div>
+
+    <section id="tab-roster" class="tab-panel mt-4">
+      {% include "teams/_roster.html" with roster=roster team=team is_captain=is_captain %}
+    </section>
+
+    <section id="tab-matches" class="tab-panel mt-4 hidden">
+      {% include "teams/_matches.html" with team=team %}
+    </section>
+
+    <section id="tab-stats" class="tab-panel mt-4 hidden">
+      {% include "teams/_stats_blocks.html" with team=team %}
+    </section>
+
+    <section id="tab-media" class="tab-panel mt-4 hidden">
+      <div class="card glass p-4">
+        {% if team.discord or team.youtube or team.twitch or team.facebook %}
+          <h3 class="text-lg font-semibold mb-2">Social & Media</h3>
+          <ul class="list-disc pl-6">
+            {% if team.discord %}<li><a class="link" href="{{ team.discord }}" target="_blank" rel="noopener">Discord</a></li>{% endif %}
+            {% if team.youtube %}<li><a class="link" href="{{ team.youtube }}" target="_blank" rel="noopener">YouTube</a></li>{% endif %}
+            {% if team.twitch %}<li><a class="link" href="{{ team.twitch }}" target="_blank" rel="noopener">Twitch</a></li>{% endif %}
+            {% if team.facebook %}<li><a class="link" href="{{ team.facebook }}" target="_blank" rel="noopener">Facebook</a></li>{% endif %}
+          </ul>
+        {% else %}
+          <p class="text-gray-600 dark:text-gray-300">No media links yet.</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="{% static 'siteui/js/teams-detail.js' %}" defer></script>
 {% endblock %}
