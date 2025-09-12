@@ -1,0 +1,13 @@
+<div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4">
+  <div class="flex items-center justify-between gap-2 mb-3">
+    <h3 class="font-semibold">Participants</h3>
+    <input type="search" placeholder="Search participants..." class="px-3 py-2 rounded-xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    {% for p in tournament.participants.all|default_if_none:"" %}
+      <div class="px-3 py-2 rounded-xl ring-1 ring-black/5 dark:ring-white/10">{{ p }}</div>
+    {% empty %}
+      <div class="text-sm text-gray-600 dark:text-gray-300">No participants published yet.</div>
+    {% endfor %}
+  </div>
+</div>

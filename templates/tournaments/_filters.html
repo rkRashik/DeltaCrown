@@ -1,0 +1,57 @@
+<form method="get" class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4 space-y-3">
+  <h3 class="text-sm font-semibold">Filters</h3>
+
+  <div>
+    <label class="block text-xs mb-1">Status</label>
+    <div class="flex flex-wrap gap-2">
+      {% for s in "open,upcoming,ongoing,completed".split(",") %}
+        <a class="px-2 py-0.5 rounded text-xs {% if filters.status == s %}bg-blue-600 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}"
+           href="?status={{ s }}&{{ request.GET.urlencode|safe }}"> {{ s|title }} </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div>
+    <label class="block text-xs mb-1">Game</label>
+    <div class="flex flex-wrap gap-2">
+      <a class="px-2 py-0.5 rounded text-xs {% if not active_game %}bg-blue-600 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}" href="?{% if request.GET.q %}q={{ request.GET.q|urlencode }}&{% endif %}sort={{ sort }}">All</a>
+      {% for code,label in games %}
+        <a class="px-2 py-0.5 rounded text-xs {% if active_game == code %}bg-blue-600 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}" href="?game={{ code }}&{{ request.GET.urlencode|safe }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-2">
+    <div>
+      <label class="block text-xs mb-1">Fee min</label>
+      <input name="fee_min" value="{{ filters.fee_min }}" type="number" class="w-full px-3 py-2 rounded-xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
+    </div>
+    <div>
+      <label class="block text-xs mb-1">Fee max</label>
+      <input name="fee_max" value="{{ filters.fee_max }}" type="number" class="w-full px-3 py-2 rounded-xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-2">
+    <div>
+      <label class="block text-xs mb-1">Prize min</label>
+      <input name="prize_min" value="{{ filters.prize_min }}" type="number" class="w-full px-3 py-2 rounded-xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
+    </div>
+    <div>
+      <label class="block text-xs mb-1">Prize max</label>
+      <input name="prize_max" value="{{ filters.prize_max }}" type="number" class="w-full px-3 py-2 rounded-xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <input id="checkin" name="checkin" type="checkbox" {% if filters.checkin %}checked{% endif %}>
+    <label for="checkin" class="text-sm">Check-in required</label>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <input id="online" name="online" type="checkbox" {% if filters.online %}checked{% endif %}>
+    <label for="online" class="text-sm">Online event</label>
+  </div>
+
+  <button type="submit" class="w-full px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800">Apply filters</button>
+</form>

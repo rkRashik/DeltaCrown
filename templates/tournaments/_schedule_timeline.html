@@ -1,0 +1,11 @@
+<div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4">
+  <h3 class="font-semibold mb-2">Schedule</h3>
+  <ul class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+    {% if tournament.reg_open_at %}<li>Registration opens: <strong>{{ tournament.reg_open_at|date:"M j, g:i a" }}</strong></li>{% endif %}
+    {% if tournament.reg_close_at %}<li>Registration closes: <strong>{{ tournament.reg_close_at|date:"M j, g:i a" }}</strong></li>{% endif %}
+    {% if tournament.check_in_starts_at or tournament.checkin_starts_at %}<li>Check-in starts: <strong>{{ tournament.check_in_starts_at|default:tournament.checkin_starts_at|date:"M j, g:i a" }}</strong></li>{% endif %}
+    {% if tournament.check_in_ends_at or tournament.checkin_ends_at %}<li>Check-in ends: <strong>{{ tournament.check_in_ends_at|default:tournament.checkin_ends_at|date:"M j, g:i a" }}</strong></li>{% endif %}
+    {% if tournament.start_at %}<li>Starts: <strong>{{ tournament.start_at|date:"M j, g:i a" }}</strong></li>{% endif %}
+    {% if tournament.end_at %}<li>Ends: <strong>{{ tournament.end_at|date:"M j, g:i a" }}</strong></li>{% endif %}
+  </ul>
+</div>

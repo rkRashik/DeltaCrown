@@ -1,50 +1,92 @@
 ﻿{% extends "base.html" %}
 {% load static %}
-{% block title %}Tournaments - Games | DeltaCrown{% endblock %}
+
+{% block title %}Tournaments — DeltaCrown{% endblock %}
+
 {% block content %}
-<main id="tournaments-hub" class="min-h-screen">
-
-  <!-- Hero -->
-  <section class="relative overflow-hidden">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0 opacity-70">
-      <div class="absolute -top-28 left-1/2 -translate-x-1/2 h-[36rem] w-[36rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(99,102,241,.28), transparent 70%);"></div>
-      <div class="absolute -bottom-36 left-1/3 h-[28rem] w-[28rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(56,189,248,.22), transparent 70%);"></div>
-    </div>
-    <div class="relative container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 pb-10">
-      <div class="text-center">
-        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">Pick your game</h1>
-        <p class="mx-auto mt-3 max-w-2xl text-white/75">Browse tournaments by title. Clean filters, fast pages, light/dark ready.</p>
+<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+  <header class="mb-6">
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Tournaments</h1>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Find your next competition. Register, pay, check-in, and play.</p>
       </div>
+      {% if request.user.is_authenticated and request.user.is_staff %}
+        <a href="{% url 'tournaments:create' %}" class="inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Create tournament</a>
+      {% endif %}
     </div>
-  </section>
+  </header>
 
-  <!-- Game cards -->
-  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-14">
-    <div class="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-      {% comment %}
-      Expect context var "games": list of {slug, name, count, image_url?}
-      If not provided, we show a sensible default grid with zero counts.
-      {% endcomment %}
-      {% for g in games|default:'' %}
-      <article class="group rounded-2xl ring-1 ring-white/10 bg-white/5 overflow-hidden hover:ring-white/20 transition">
-        <div class="aspect-[16/9] bg-white/5">
-          <img src="{% static g.image %}" alt="{{ g.name }}" class="w-full h-full object-cover group-hover:scale-[1.02] transition"/>
+  {# Spotlight #}
+  {% if spotlight %}
+    <section aria-label="Featured" class="mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for s in spotlight %}
+          {% include "tournaments/_card.html" with t=s featured=True %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# Directory #}
+  {% include "tournaments/_directory.html" with games=games counts=directory_counts %}
+
+  {# My Registrations (auth) #}
+  {% include "tournaments/_my_registrations.html" with regs=my_registrations %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+    <aside class="lg:col-span-3">
+      <div class="sticky top-24 space-y-4">
+        {% include "tournaments/_filters.html" %}
+      </div>
+    </aside>
+
+    <section class="lg:col-span-9">
+      <div class="mb-3 flex flex-col sm:flex-row gap-3">
+        <form method="get" class="flex-1 flex gap-2">
+          <label class="sr-only" for="q">Search</label>
+          <input id="q" name="q" value="{{ query }}" type="search" placeholder="Search tournaments..."
+                 class="w-full px-3 py-2 rounded-xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
+          <select name="sort" class="px-3 py-2 rounded-xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
+            <option value="powersort" {% if sort == "powersort" %}selected{% endif %}>Sort: PowerSort</option>
+            <option value="soon" {% if sort == "soon" %}selected{% endif %}>Soonest</option>
+            <option value="prize" {% if sort == "prize" %}selected{% endif %}>Prize</option>
+            <option value="popular" {% if sort == "popular" %}selected{% endif %}>Most registered</option>
+            <option value="new" {% if sort == "new" %}selected{% endif %}>Newest</option>
+          </select>
+          <button class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800" type="submit">Apply</button>
+        </form>
+      </div>
+
+      {% if object_list %}
+        <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+          {% for t in object_list %}
+            {% include "tournaments/_card.html" with t=t %}
+          {% endfor %}
         </div>
-        <div class="p-5">
-          <div class="flex items-start justify-between gap-3">
-            <h2 class="text-white font-semibold">{{ g.name }}</h2>
-            <span class="chip">{{ g.count|default:"0" }} active</span>
+
+        {% if paginator.num_pages > 1 %}
+          <div class="mt-8 flex justify-center items-center gap-3">
+            {% if page_obj.has_previous %}
+              <a class="px-3 py-1.5 rounded-lg ring-1 ring-black/5 dark:ring-white/10 hover:bg-slate-100 dark:hover:bg-slate-800"
+                 href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode|safe }}">‹ Prev</a>
+            {% endif %}
+            <span class="text-sm text-gray-600 dark:text-gray-400">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+              <a class="px-3 py-1.5 rounded-lg ring-1 ring-black/5 dark:ring-white/10 hover:bg-slate-100 dark:hover:bg-slate-800"
+                 href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode|safe }}">Next ›</a>
+            {% endif %}
           </div>
-          <div class="mt-4 grid grid-cols-2 gap-2">
-            <a href="/tournaments/game/{{ g.slug }}/" class="btn btn-secondary w-full">View All</a>
-            <a href="/tournaments/game/{{ g.slug }}/upcoming/" class="btn btn-ghost w-full">Upcoming</a>
-          </div>
+        {% endif %}
+      {% else %}
+        <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-6 text-center">
+          <h3 class="font-semibold">No tournaments match your filters</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-300">Try clearing some filters or check back later.</p>
         </div>
-      </article>
-      {% endfor %}
-    </div>
-  </section>
-</main>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<script defer src="{% static 'siteui/js/tournaments-list.js' %}"></script>
 {% endblock %}

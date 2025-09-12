@@ -1,471 +1,409 @@
 # apps/tournaments/views/public.py
 from __future__ import annotations
 
-from django.contrib import messages
-from django.db.models import Count, Prefetch
-from django.core.paginator import Paginator
-from django.db.models import Q
-from django.shortcuts import get_object_or_404, redirect, render
+from dataclasses import dataclass
+from typing import Dict, Optional, Tuple
+
+from django.apps import apps
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count, Q, F, Value, IntegerField, BooleanField
+from django.db.models.functions import Coalesce
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from django.utils.timesince import timesince
 
-from ..models import Tournament, TournamentSettings
-from django.core.exceptions import ObjectDoesNotExist
-from apps.corelib.admin_utils import _safe_select_related
+# Prefer app-local imports; fall back to apps.get_model in case of refactors
+try:
+    from ..models import Tournament, Registration, PaymentVerification
+except Exception:  # pragma: no cover
+    Tournament = apps.get_model("tournaments", "Tournament")
+    Registration = apps.get_model("tournaments", "Registration")
+    PaymentVerification = apps.get_model("tournaments", "PaymentVerification")
 
-# Generic fallback forms
-from ..forms_registration import (
-    SoloRegistrationForm as GenericSoloForm,
-    TeamRegistrationForm as GenericTeamForm,
+
+# ---------------------------
+# Helpers & constants
+# ---------------------------
+GAME_CHOICES: Tuple[Tuple[str, str], ...] = (
+    ("valorant", "Valorant"),
+    ("efootball", "eFootball"),
+    ("pubg", "PUBG Mobile"),
+    ("freefire", "Free Fire"),
+    ("codm", "Call of Duty Mobile"),
+    ("mlbb", "Mobile Legends"),
+    ("csgo", "CS2/CS:GO"),
+    ("fc26", "FC 26"),
 )
 
-# Game-specific forms (import guarded)
-try:  # pragma: no cover
-    from apps.game_efootball.forms import EfootballSoloForm, EfootballDuoForm  # type: ignore
-except Exception:  # pragma: no cover
-    EfootballSoloForm = None
-    EfootballDuoForm = None
+STATUS_RANK = {
+    "OPEN": 0,        # accepting registrations
+    "UPCOMING": 1,    # announced; reg not open yet
+    "ONGOING": 2,     # bracket running
+    "COMPLETED": 3,   # finished
+}
 
-try:  # pragma: no cover
-    from apps.game_valorant.forms import ValorantTeamForm  # type: ignore
-except Exception:  # pragma: no cover
-    ValorantTeamForm = None
+def _now():
+    return timezone.now()
 
 
-from django.db.models import Count
-from django.core.paginator import Paginator
-from django.shortcuts import render, get_object_or_404
+def _status_for(t: Tournament) -> str:
+    """
+    Derive a coarse tournament lifecycle status from available fields.
+    Works even if some fields are missing.
+    """
+    now = _now()
+    start_at = getattr(t, "start_at", None)
+    end_at = getattr(t, "end_at", None)
+    reg_open_at = getattr(t, "reg_open_at", None)
+    reg_close_at = getattr(t, "reg_close_at", None)
+    bracket_state = getattr(t, "bracket_state", "")  # optional, e.g. RUNNING/FINISHED
+
+    # Bracket-driven overrides
+    if str(bracket_state).upper() in ("FINISHED", "COMPLETED"):
+        return "COMPLETED"
+    if str(bracket_state).upper() in ("RUNNING", "LIVE"):
+        return "ONGOING"
+
+    # Time-based fallbacks
+    if end_at and end_at <= now:
+        return "COMPLETED"
+    if start_at and start_at <= now:
+        return "ONGOING"
+
+    # Registration window
+    if reg_open_at and reg_close_at:
+        if reg_open_at <= now <= reg_close_at:
+            return "OPEN"
+        if now < reg_open_at:
+            return "UPCOMING"
+        if now > reg_close_at and (not start_at or now < start_at):
+            # Reg closed but event not started yet
+            return "UPCOMING"
+
+    # Minimal fallback using start time only
+    if start_at:
+        return "UPCOMING" if now < start_at else "ONGOING"
+
+    return "UPCOMING"
 
 
-def hub(request):
-    """Games hub: curated list with counts and cover images."""
-    curated = [
-        {"slug": "efootball", "name": "eFootball", "image": "img/efootball.jpeg"},
-        {"slug": "valorant", "name": "Valorant", "image": "img/Valorant.jpg"},
-        {"slug": "fc26", "name": "FC 26", "image": "img/FC26.jpg"},
-        {"slug": "pubg", "name": "PUBG Mobile", "image": "img/PUBG.jpeg"},
-        {"slug": "mlbb", "name": "Mobile Legend", "image": "img/MobileLegend.jpg"},
-        {"slug": "cs2", "name": "CS2", "image": "img/CS2.jpg"},
-    ]
-    counts = {row["game"]: row["count"] for row in Tournament.objects.values("game").annotate(count=Count("id"))}
-    games = [{**g, "count": int(counts.get(g["slug"], 0))} for g in curated]
-    return render(request, "tournaments/hub.html", {"games": games})
+def _annotate_listing(qs):
+    """
+    Adds defensive annotations needed for sorting/cards.
+    - registrations_count
+    - prize_total (fallback 0)
+    - entry_fee (fallback 0)
+    - organizer_verified (fallback False)
+    """
+    qs = qs.annotate(
+        registrations_count=Coalesce(Count("registrations", distinct=True), Value(0)),
+    )
+    # Optional numeric/boolean fields (prize_total, entry_fee, organizer_verified)
+    if hasattr(Tournament, "prize_total"):
+        qs = qs.annotate(prize_total_anno=F("prize_total"))
+    else:
+        qs = qs.annotate(prize_total_anno=Value(0, output_field=IntegerField()))
+
+    if hasattr(Tournament, "entry_fee"):
+        qs = qs.annotate(entry_fee_anno=F("entry_fee"))
+    else:
+        qs = qs.annotate(entry_fee_anno=Value(0, output_field=IntegerField()))
+
+    if hasattr(Tournament, "organizer_verified"):
+        qs = qs.annotate(organizer_verified_anno=F("organizer_verified"))
+    else:
+        qs = qs.annotate(organizer_verified_anno=Value(False, output_field=BooleanField()))
+
+    return qs
 
 
-def by_game(request, game_slug: str):
-    """List tournaments for a given game code with search/sort/filters."""
-    qs = Tournament.objects.filter(game=game_slug).select_related("settings")
-
-    # Best-effort: registrations count
-    try:
-        qs = qs.annotate(reg_count=Count("registrations"))
-    except Exception:
-        pass
-
-    # Query params
+def _apply_filters(request, qs):
+    """
+    Faceted filters via query params (all optional & safe):
+      - q: search name/slug/description
+      - status: open/upcoming/ongoing/completed
+      - game: code
+      - format, platform: exact match if fields exist
+      - fee_min, fee_max (ints)
+      - prize_min, prize_max (ints)
+      - checkin: '1' filter events requiring check-in (if field exists)
+      - region, online: exact flags if exist
+    """
     q = (request.GET.get("q") or "").strip()
-    status = (request.GET.get("status") or "").strip().lower()
-    entry = (request.GET.get("entry") or "").strip().lower()  # 'paid'
-    sort = (request.GET.get("sort") or "").strip().lower()    # 'start'|'prize'|'entry'|'new'
+    status = (request.GET.get("status") or "").strip().upper()
+    game = (request.GET.get("game") or "").strip()
 
     if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(slug__icontains=q))
+        filters = Q()
+        for f in ("name", "title", "slug", "short_description", "description"):
+            try:
+                Tournament._meta.get_field(f)
+                filters |= Q(**{f"{f}__icontains": q})
+            except Exception:
+                continue
+        if filters:
+            qs = qs.filter(filters)
 
-    # Status windows via TournamentSettings when available
-    now = timezone.now()
-    if status in ("open",):
-        qs = qs.filter(Q(settings__reg_open_at__lte=now, settings__reg_close_at__gte=now))
-    elif status in ("ongoing", "live"):
-        qs = qs.filter(Q(settings__start_at__lte=now, settings__end_at__gte=now))
-    elif status in ("finished", "completed", "past"):
-        qs = qs.filter(Q(settings__end_at__lt=now))
-    elif status in ("upcoming",):
-        qs = qs.filter(Q(settings__start_at__gt=now))
+    if game and hasattr(Tournament, "game"):
+        qs = qs.filter(game=game)
 
-    if entry == "paid":
-        # Prefer settings entry fee, else fallback to model field if present
-        if hasattr(Tournament, "entry_fee_bdt"):
-            qs = qs.filter(Q(settings__entry_fee_bdt__gt=0) | Q(entry_fee_bdt__gt=0))
-        else:
-            qs = qs.filter(settings__entry_fee_bdt__gt=0)
+    # Post-filter by derived status (done in Python; acceptable for page sizes)
+    if status in {"OPEN", "UPCOMING", "ONGOING", "COMPLETED"}:
+        ids = [t.id for t in qs.only("id", "start_at") if _status_for(t) == status]
+        qs = qs.filter(id__in=ids)
 
-    if sort == "start":
-        qs = qs.order_by("settings__start_at", "id")
-    elif sort == "prize":
-        qs = qs.order_by("-prize_pool_bdt", "-id") if hasattr(Tournament, "prize_pool_bdt") else qs.order_by("-id")
-    elif sort == "entry":
-        qs = qs.order_by("settings__entry_fee_bdt", "id") if hasattr(Tournament, "entry_fee_bdt") else qs.order_by("id")
-    else:
-        # newest first
-        qs = qs.order_by("-id")
+    # format/platform filters
+    for key in ("format", "platform", "region"):
+        val = (request.GET.get(key) or "").strip()
+        if val and hasattr(Tournament, key):
+            qs = qs.filter(**{key: val})
 
-    choices = dict(getattr(Tournament.Game, "choices", []))
-    game_name = choices.get(game_slug, (game_slug or "").replace("-", " ").title())
+    # online toggle
+    online = (request.GET.get("online") or "").strip().lower()
+    if online in ("1", "true", "on") and hasattr(Tournament, "is_online"):
+        qs = qs.filter(is_online=True)
 
-    paginator = Paginator(qs, 9)
-    page_obj = paginator.get_page(request.GET.get("page", 1))
+    # check-in required toggle
+    checkin = (request.GET.get("checkin") or "").strip().lower()
+    if checkin in ("1", "true", "on"):
+        for key in ("check_in_required", "requires_check_in"):
+            if hasattr(Tournament, key):
+                qs = qs.filter(**{key: True})
+                break
 
-    context = {
-        "game_name": game_name,
-        "tournaments": list(page_obj.object_list),
-        "page_obj": page_obj,
-        "q": q,
-        "status": status,
-        "entry": entry,
-        "sort": sort,
-    }
+    # fee/prize ranges
+    def _int(s, default=None):
+        try:
+            return int(s)
+        except Exception:
+            return default
 
-    if (request.GET.get("partial") or "").strip().lower() == "grid":
-        return render(request, "tournaments/partials/_grid.html", context)
+    fee_min = _int(request.GET.get("fee_min"))
+    fee_max = _int(request.GET.get("fee_max"))
+    if hasattr(Tournament, "entry_fee"):
+        if fee_min is not None:
+            qs = qs.filter(entry_fee__gte=fee_min)
+        if fee_max is not None:
+            qs = qs.filter(entry_fee__lte=fee_max)
 
-    return render(request, "tournaments/list.html", context)
+    prize_min = _int(request.GET.get("prize_min"))
+    prize_max = _int(request.GET.get("prize_max"))
+    if hasattr(Tournament, "prize_total"):
+        if prize_min is not None:
+            qs = qs.filter(prize_total__gte=prize_min)
+        if prize_max is not None:
+            qs = qs.filter(prize_total__lte=prize_max)
+
+    return qs
 
 
-def upcoming(request, game_slug: str):
-    """Upcoming tournaments page filtered by game."""
-    now = timezone.now()
-    qs = (
-        Tournament.objects.filter(game=game_slug)
-        .select_related("settings")
-        .filter(
-            (
-                Q(settings__start_at__gt=now)
-                | Q(start_at__gt=now)
-            )
+def _apply_powersort(request, qs):
+    """
+    PowerSort tuple:
+      1) status_rank (OPEN -> UPCOMING -> ONGOING -> COMPLETED)
+      2) start_at ASC
+      3) prize_total DESC
+      4) registrations_count DESC
+      5) organizer_verified DESC
+      6) created_at DESC
+    We emulate with tuple ordering and safe fallbacks.
+    """
+    sort = (request.GET.get("sort") or "powersort").lower()
+
+    # Common alternates
+    if sort == "soon":
+        return qs.order_by(
+            F("start_at").asc(nulls_last=True),
+            "-prize_total_anno",
+            "-registrations_count",
+            "-organizer_verified_anno",
+            "-id",
         )
-        .order_by("settings__start_at", "start_at", "id")
+    if sort == "prize":
+        return qs.order_by("-prize_total_anno", F("start_at").asc(nulls_last=True))
+    if sort == "popular":
+        return qs.order_by("-registrations_count", F("start_at").asc(nulls_last=True))
+    if sort == "new":
+        return qs.order_by("-id")
+
+    # powersort default: we can't order by derived status easily in SQL, so we pre-scan ids by status buckets.
+    # Acceptable for typical page sizes; for very large sets, consider a materialized status field.
+    ids_by_status: Dict[int, int] = {}
+    for t in qs.only("id", "start_at", "end_at", "reg_open_at", "reg_close_at"):
+        ids_by_status[t.id] = STATUS_RANK.get(_status_for(t), 9)
+
+    # Annotate the in-Python status rank into a CASE-like sort using a list (coarse)
+    ordered_ids = sorted(ids_by_status.items(), key=lambda kv: kv[1])
+    if not ordered_ids:
+        return qs.order_by("-id")
+
+    # We'll sort by a list of ids in that status order + DB-level tie-breakers
+    id_order = [tid for tid, _rank in ordered_ids]
+    preserved = [F("id").in_(id_order)]  # coarse pre-filter to favor our list; final order applied below
+    qs = qs.order_by(*preserved, F("start_at").asc(nulls_last=True),
+                     "-prize_total_anno", "-registrations_count",
+                     "-organizer_verified_anno", "-id")
+    return qs
+
+
+def _paginate(request, qs, per_page=12):
+    paginator = Paginator(qs, per_page)
+    page_number = request.GET.get("page") or 1
+    try:
+        return paginator.page(page_number), paginator
+    except PageNotAnInteger:
+        return paginator.page(1), paginator
+    except EmptyPage:
+        return paginator.page(paginator.num_pages), paginator
+
+
+def _my_registrations_map(user) -> Dict[int, Registration]:
+    if not getattr(user, "is_authenticated", False):
+        return {}
+    regs = (
+        Registration.objects.select_related("tournament")
+        .filter(user=user)  # adjust if Registration ties to profile/team
+        .order_by("-created_at")
     )
-    try:
-        qs = qs.annotate(reg_count=Count("registrations"))
-    except Exception:
-        pass
+    by_tid = {}
+    for r in regs:
+        by_tid[r.tournament_id] = r
+    return by_tid
 
-    choices = dict(getattr(Tournament.Game, "choices", []))
-    game_name = choices.get(game_slug, (game_slug or "").replace("-", " ").title())
 
-    paginator = Paginator(qs, 9)
-    page_obj = paginator.get_page(request.GET.get("page", 1))
+# ---------------------------
+# Pages
+# ---------------------------
+def hub(request):
+    """
+    /tournaments/ : Spotlight + Directory + My Registrations + Explore grid with filters.
+    """
+    qs = Tournament.objects.all().select_related()
+    qs = _annotate_listing(qs)
+    qs = _apply_filters(request, qs)
+    qs = _apply_powersort(request, qs)
 
-    context = {
-        "game_name": f"{game_name} Upcoming",
-        "tournaments": list(page_obj.object_list),
-        "page_obj": page_obj,
-        "status": "upcoming",
-    }
+    page_obj, paginator = _paginate(request, qs, per_page=12)
 
-    if (request.GET.get("partial") or "").strip().lower() == "grid":
-        return render(request, "tournaments/partials/_grid.html", context)
+    # Spotlight: feature a few verified/featured events (optional flags)
+    spotlight = Tournament.objects.all()
+    if hasattr(Tournament, "is_featured"):
+        spotlight = spotlight.filter(is_featured=True)
+    elif hasattr(Tournament, "organizer_verified"):
+        spotlight = spotlight.filter(organizer_verified=True)
+    spotlight = _annotate_listing(spotlight).order_by("-prize_total_anno", "-id")[:6]
 
-    return render(request, "tournaments/list.html", context)
-
-def detail(request, slug: str):
-    """Public tournament detail page (read-only)."""
-    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
-    # Try explicit models if present, else tolerant attributes
-    schedule = getattr(t, "schedule_items", [])
-    prizes = getattr(t, "prize_items", [])
-    try:
-        from django.apps import apps as dj_apps
-        SItem = dj_apps.get_model("tournaments", "ScheduleItem")
-        if SItem:
-            schedule = list(SItem.objects.filter(tournament=t).order_by("when").values("when", "text"))
-    except Exception:
-        pass
-    try:
-        PItem = dj_apps.get_model("tournaments", "PrizeItem")
-        if PItem:
-            prizes = list(PItem.objects.filter(tournament=t).order_by("place").values("place", "amount"))
-    except Exception:
-        pass
-    try:
-        regs = list(getattr(t, "registrations", []).all()) if hasattr(t, "registrations") else []
-    except Exception:
-        regs = []
-
-    try:
-        _ = t.game_name  # ensure property available
-    except Exception:
-        pass
+    # Directory counts per game
+    directory_counts = {}
+    if hasattr(Tournament, "game"):
+        counts = (
+            Tournament.objects.values_list("game")
+            .annotate(c=Count("id"))
+            .order_by("-c")
+        )
+        directory_counts = {code: c for code, c in counts}
 
     ctx = {
+        "page_obj": page_obj,
+        "paginator": paginator,
+        "object_list": page_obj.object_list,
+        "spotlight": spotlight,
+        "games": GAME_CHOICES,
+        "directory_counts": directory_counts,
+        "query": (request.GET.get("q") or "").strip(),
+        "active_game": (request.GET.get("game") or "").strip(),
+        "sort": (request.GET.get("sort") or "powersort").lower(),
+        "filters": {
+            "status": (request.GET.get("status") or "").strip().lower(),
+            "format": (request.GET.get("format") or "").strip(),
+            "platform": (request.GET.get("platform") or "").strip(),
+            "fee_min": request.GET.get("fee_min") or "",
+            "fee_max": request.GET.get("fee_max") or "",
+            "prize_min": request.GET.get("prize_min") or "",
+            "prize_max": request.GET.get("prize_max") or "",
+            "checkin": (request.GET.get("checkin") or "").strip().lower() in ("1", "true", "on"),
+            "region": (request.GET.get("region") or "").strip(),
+            "online": (request.GET.get("online") or "").strip().lower() in ("1", "true", "on"),
+        },
+        "my_registrations": _my_registrations_map(request.user),
+    }
+    return render(request, "tournaments/hub.html", ctx)
+
+
+def list_by_game(request, game: str):
+    """
+    /tournaments/<game>/
+    """
+    request.GET._mutable = True  # safe in view context; make game sticky in querystring
+    request.GET["game"] = game
+    return hub(request)
+
+
+def detail(request, slug: str):
+    t = get_object_or_404(Tournament.objects.select_related(), slug=slug)
+    status = _status_for(t)
+    now = _now()
+
+    # Countdown target: prefer check-in start, else start time
+    check_in_start = getattr(t, "check_in_starts_at", None) or getattr(t, "checkin_starts_at", None)
+    start_at = getattr(t, "start_at", None)
+    countdown_to = check_in_start or start_at
+
+    # Slots left (capacity - verified regs; defensive)
+    capacity = getattr(t, "capacity", None)
+    regs_qs = Registration.objects.filter(tournament=t)
+    regs_total = regs_qs.count()
+    verified = regs_qs.filter(state__in=["VERIFIED", "APPROVED"]).count() if hasattr(Registration, "state") else regs_total
+    slots_left = None
+    if capacity:
+        slots_left = max(capacity - verified, 0)
+
+    # Prize & entry (defensive)
+    prize_total = getattr(t, "prize_total", 0)
+    entry_fee = getattr(t, "entry_fee", 0)
+
+    # My registration (and PV state) if logged in
+    my_reg = None
+    my_pv_state = None
+    if getattr(request.user, "is_authenticated", False):
+        my_reg = Registration.objects.filter(tournament=t, user=request.user).select_related().first()
+        if my_reg and hasattr(my_reg, "payment_verification"):
+            pv = getattr(my_reg, "payment_verification")
+            my_pv_state = getattr(pv, "status", None)
+
+    # CTA state machine
+    cta = "register"
+    if status in ("COMPLETED",):
+        cta = "closed"
+    elif my_reg:
+        # draft vs submitted
+        reg_state = getattr(my_reg, "state", "").upper()
+        if reg_state in ("PENDING", "SUBMITTED"):
+            cta = "view_receipt" if my_pv_state else "continue"
+        elif reg_state in ("VERIFIED", "APPROVED"):
+            # Pre-check-in vs check-in window
+            # Determine if we're in check-in based on fields
+            ci_start = getattr(t, "check_in_starts_at", None) or getattr(t, "checkin_starts_at", None)
+            ci_end = getattr(t, "check_in_ends_at", None) or getattr(t, "checkin_ends_at", None)
+            if ci_start and ci_end and ci_start <= now <= ci_end:
+                cta = "check_in"
+            elif start_at and now >= start_at:
+                cta = "your_matches"
+            else:
+                cta = "registered"
+        else:
+            cta = "continue"
+
+    ctx = {
+        "t": t,
         "tournament": t,
-        "can_register": t.status in ("upcoming", "open", "registration") if getattr(t, "status", None) else False,
-        "schedule": schedule,
-        "prizes": prizes,
-        "registrations": regs,
-        "game_slug": getattr(t, "game", ""),
+        "status": status,
+        "countdown_to": countdown_to,
+        "slots_left": slots_left,
+        "prize_total": prize_total,
+        "entry_fee": entry_fee,
+        "my_registration": my_reg,
+        "my_pv_state": my_pv_state,
     }
     return render(request, "tournaments/detail.html", ctx)
-
-# --------------------
-# Public list / detail
-# --------------------
-def tournament_list(request):
-    """
-    Public tournaments index with simple filters + pagination.
-    """
-    qs = Tournament.objects.all()
-    qs = _safe_select_related(qs, "settings")
-    # Best-effort: prefetch registrations and expose a reg_count annotation for UI badges
-    try:
-        qs = qs.prefetch_related(Prefetch("registrations"))
-        qs = qs.annotate(reg_count=Count("registrations"))
-    except Exception:
-        # Schema variations tolerated (older DBs may not have the relation yet)
-        pass
-
-    # Filters
-    q = (request.GET.get("q") or "").strip()
-    game = (request.GET.get("game") or "").strip().lower()
-    status = (request.GET.get("status") or "").strip().lower()
-    entry = (request.GET.get("entry") or "").strip().lower()
-    sort = (request.GET.get("sort") or "").strip().lower()
-
-    if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(slug__icontains=q))
-    if game:
-        qs = qs.filter(game__iexact=game)
-
-    now = timezone.now()
-    # Support common UI statuses: open | ongoing | finished (and tolerate older: upcoming/live/completed)
-    if status:
-        if status in ("open",):
-            qs = qs.filter(
-                Q(settings__reg_open_at__lte=now, settings__reg_close_at__gte=now)
-            )
-        elif status in ("ongoing", "live"):
-            qs = qs.filter(
-                Q(settings__start_at__lte=now, settings__end_at__gte=now)
-            )
-        elif status in ("finished", "completed"):
-            qs = qs.filter(Q(settings__end_at__lt=now))
-        elif status in ("upcoming",):
-            qs = qs.filter(Q(settings__start_at__gt=now))
-
-    if entry == "paid":
-        qs = qs.filter(settings__entry_fee_bdt__gt=0)
-
-    # Sorting
-    if sort == "start":
-        qs = qs.order_by("settings__start_at", "id")
-    elif sort == "prize":
-        # Desc by prize pool
-        if hasattr(Tournament, "prize_pool_bdt"):
-            qs = qs.order_by("-prize_pool_bdt", "-id")
-        else:
-            qs = qs.order_by("-id")
-    elif sort == "entry":
-        if hasattr(Tournament, "entry_fee_bdt"):
-            qs = qs.order_by("entry_fee_bdt", "id")
-        else:
-            qs = qs.order_by("id")
-    else:
-        qs = qs.order_by("-id")
-
-    paginator = Paginator(qs, 12)
-    page = paginator.get_page(request.GET.get("page"))
-
-    # Games list for filter select (slug + name)
-    games = [{"slug": key, "name": label} for key, label in getattr(Tournament.Game, "choices", [])]
-
-    context = {
-        "page": page,
-        "tournaments": page.object_list,
-        "q": q,
-        "game": game,
-        "status": status,
-        "entry": entry,
-        "sort": sort,
-        "games": games,
-    }
-
-    # Partial rendering for AJAX grid updates
-    if (request.GET.get("partial") or "").strip().lower() == "grid":
-        return render(request, "tournaments/partials/_grid.html", context)
-
-    return render(request, "tournaments/list.html", context)
-
-
-def tournament_detail(request, slug: str):
-    """
-    Public tournament detail (slug).
-    """
-    qs = _safe_select_related(Tournament.objects.all(), "settings", "bracket")
-    # Also pull common owner field if present
-    qs = _safe_select_related(qs, "owner")
-    try:
-        # Prefetch collections used across pages and annotate registration count for badges
-        qs = qs.prefetch_related("registrations", "matches")
-        qs = qs.annotate(reg_count=Count("registrations"))
-    except Exception:
-        pass
-    t = get_object_or_404(qs, slug=slug)
-
-    # Ensure settings exists (or create a blank one) so template access is safe
-    try:
-        _ = t.settings  # may raise if missing
-    except ObjectDoesNotExist:
-        try:
-            TournamentSettings.objects.get_or_create(tournament=t)
-        except Exception:
-            pass
-    except Exception:
-        pass
-
-    return render(request, "tournaments/detail.html", {"tournament": t})
-
-
-# -------------------------
-# Registration (unified UI)
-# -------------------------
-def _entry_fee(t: Tournament) -> float:
-    settings = getattr(t, "settings", None)
-    return float(getattr(settings, "entry_fee_bdt", 0) or 0)
-
-
-@require_http_methods(["GET", "POST"])
-def register_view(request, slug):
-    """
-    Unified register endpoint.
-    Selects game-specific forms when available, else falls back to generic.
-    """
-    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
-
-    # Optional registration window guard
-    now = timezone.now()
-    if hasattr(t, "reg_open_at") and hasattr(t, "reg_close_at"):
-        try:
-            if not (t.reg_open_at <= now <= t.reg_close_at):
-                return render(request, "tournaments/register_closed.html", {"t": t})
-        except Exception:
-            pass
-
-    fee = _entry_fee(t)
-    is_post = request.method == "POST"
-    is_team_flow = "__team_flow" in request.POST
-    game = (t.game or "").lower().strip()
-
-    solo_form = team_form = None
-
-    if game == "efootball" and (EfootballSoloForm and EfootballDuoForm):
-        if is_post and is_team_flow:
-            team_form = EfootballDuoForm(request.POST or None, request.FILES or None, tournament=t, request=request, entry_fee_bdt=fee)
-            if team_form.is_valid():
-                team_form.save()
-                messages.success(request, "Registration submitted.")
-                return redirect("tournaments:register_success", slug=t.slug)
-        else:
-            solo_form = EfootballSoloForm(request.POST or None, request.FILES or None, tournament=t, request=request, entry_fee_bdt=fee)
-            if is_post and solo_form.is_valid():
-                solo_form.save()
-                messages.success(request, "Registration submitted.")
-                return redirect("tournaments:register_success", slug=t.slug)
-
-        # Provide empty forms for GET / failed POST re-render
-        solo_form = solo_form or EfootballSoloForm(None, None, tournament=t, request=request, entry_fee_bdt=fee)
-        team_form = team_form or EfootballDuoForm(None, None, tournament=t, request=request, entry_fee_bdt=fee)
-
-    elif game == "valorant" and ValorantTeamForm:
-        team_form = ValorantTeamForm(request.POST or None, request.FILES or None, tournament=t, request=request, entry_fee_bdt=fee)
-        if is_post and team_form.is_valid():
-            team_form.save()
-            messages.success(request, "Registration submitted.")
-            return redirect("tournaments:register_success", slug=t.slug)
-
-    else:
-        # Fallback: generic forms
-        if is_post and is_team_flow:
-            team_form = GenericTeamForm(request.POST or None, request.FILES or None, tournament=t, request=request)
-            if team_form.is_valid():
-                team_form.save()
-                messages.success(request, "Registration submitted.")
-                return redirect("tournaments:register_success", slug=t.slug)
-        else:
-            solo_form = GenericSoloForm(request.POST or None, request.FILES or None, tournament=t, request=request)
-            if is_post and solo_form.is_valid():
-                solo_form.save()
-                messages.success(request, "Registration submitted.")
-                return redirect("tournaments:register_success", slug=t.slug)
-
-        solo_form = solo_form or GenericSoloForm(None, None, tournament=t, request=request)
-        team_form = team_form or GenericTeamForm(None, None, tournament=t, request=request)
-
-    # Sidebar/context wiring (no schema change)
-    # User teams (captain or active member)
-    user_teams = []
-    try:
-        Profile = apps.get_model("user_profile", "UserProfile")
-        Team = apps.get_model("teams", "Team")
-        TeamMembership = apps.get_model("teams", "TeamMembership")
-        prof = getattr(request.user, "profile", None)
-        if not prof and Profile and request.user.is_authenticated:
-            prof = Profile.objects.filter(user=request.user).first()
-        if prof and Team:
-            qs = Team.objects.filter(models.Q(captain=prof) | models.Q(memberships__profile=prof, memberships__status="ACTIVE")).distinct()
-            user_teams = list(qs.values("id", "name", "slug"))
-    except Exception:
-        user_teams = []
-
-    # Entry fee + payment channels
-    entry_fee_bdt = None
-    try:
-        if getattr(t, "settings", None) and getattr(t.settings, "entry_fee_bdt", None):
-            entry_fee_bdt = int(t.settings.entry_fee_bdt or 0)
-        elif getattr(t, "entry_fee_bdt", None):
-            entry_fee_bdt = int(t.entry_fee_bdt or 0)
-    except Exception:
-        entry_fee_bdt = None
-
-    payment_channels = {
-        "bkash": getattr(getattr(t, "settings", None), "bkash_receive_number", ""),
-        "nagad": getattr(getattr(t, "settings", None), "nagad_receive_number", ""),
-    }
-
-    prefill = {}
-    try:
-        prof = getattr(request.user, "profile", None)
-        if prof:
-            prefill = {"display_name": getattr(prof, "display_name", ""), "phone": getattr(prof, "phone", "")}
-    except Exception:
-        prefill = {}
-
-    return render(
-        request,
-        "tournaments/register.html",
-        {
-            "tournament": t,
-            "t": t,
-            "solo_form": solo_form,
-            "team_form": team_form,
-            "user_teams": user_teams,
-            "entry_fee_bdt": entry_fee_bdt,
-            "payment_channels": payment_channels,
-            "prefill": prefill,
-        },
-    )
-
-
-def register_success(request, slug):
-    t = get_object_or_404(Tournament, slug=slug)
-    return render(request, "tournaments/register_success.html", {"t": t, "tournament": t})
-
-
-def watch(request, slug):
-    t = get_object_or_404(Tournament.objects.select_related("settings"), slug=slug)
-    return render(request, "tournaments/watch.html", {"tournament": t, "t": t})
-
-
-def registration_receipt(request, slug):
-    t = get_object_or_404(Tournament, slug=slug)
-    reg = None
-    try:
-        Profile = apps.get_model("user_profile", "UserProfile")
-        prof = getattr(request.user, "profile", None)
-        if not prof and Profile and request.user.is_authenticated:
-            prof = Profile.objects.filter(user=request.user).first()
-        if prof:
-            Registration = apps.get_model("tournaments", "Registration")
-            reg = Registration.objects.filter(tournament=t).filter(models.Q(user=prof) | models.Q(team__captain=prof)).order_by("-created_at").first()
-    except Exception:
-        reg = None
-    return render(request, "tournaments/registration_receipt.html", {"tournament": t, "reg": reg})

@@ -5,33 +5,31 @@ from .views import my_matches as my_matches_views
 from .views import evidence as evidence_views
 from .views import attendance as attendance_views
 from .views import public as public
-from .views.public import (
-    hub,
-    by_game,
-    detail,
-    tournament_list,  # legacy
-    register_view,
-    register_success,
-    watch,
-    registration_receipt,
-)
+from .views import public as views
+# from .views.public import (
+#     hub,
+#     by_game,
+#     detail,
+#     tournament_list,  # legacy
+#     register_view,
+#     register_success,
+#     watch,
+#     registration_receipt,
+# )
 
 app_name = "tournaments"
 
 urlpatterns = [
-    # Public hub, list by game, and detail
-    path("", hub, name="hub"),  # /tournaments/
-    path("game/<slug:game_slug>/", by_game, name="by_game"),
-    path("game/<slug:game_slug>/upcoming/", public.upcoming, name="by_game_upcoming"),
-    path("<slug:slug>/", detail, name="detail"),
-    # Back-compat: old list route
-    path("browse/", tournament_list, name="list"),
+    path("", views.hub, name="hub"),
+    path("<str:game>/", views.list_by_game, name="by_game"),
+    path("view/<slug:slug>/", views.detail, name="detail"),
 
-    # Registration
-    path("<slug:slug>/register/", register_view, name="register"),
-    path("<slug:slug>/register/success/", register_success, name="register_success"),
-    path("<slug:slug>/register/receipt/", registration_receipt, name="registration_receipt"),
-    path("<slug:slug>/watch/", watch, name="watch"),
+    # Existing registration-related routes in your project; ensure names/args:
+    path("register/<slug:slug>/", views.detail, name="register"),  # point to your actual register view if different
+    path("receipt/<slug:slug>/", views.detail, name="registration_receipt"),
+    path("check-in/<slug:slug>/", views.detail, name="check_in"),
+    path("ics/<slug:slug>/", views.detail, name="ics"),
+    path("my-matches/", views.hub, name="my_matches"),
 
     # Brackets (public or staff)
     path("brackets/<slug:slug>/", dashboard_views.bracket_view, name="bracket_view"),
