@@ -1,73 +1,152 @@
-﻿{% load static %}
+﻿{% load static dc_avatar %}
 <header class="site-nav" role="navigation">
   <nav class="container nav-inner">
+    <!-- Brand -->
     <a href="/" class="brand" aria-label="Home">
       <img src="{% static 'siteui/svg/logo-deltacrown-animated.svg' %}" alt="DeltaCrown" class="h-7 w-7" />
       <span class="hidden sm:inline">DeltaCrown</span>
     </a>
 
+    <!-- Mobile menu button -->
     <button class="btn-ghost md:hidden" data-open-drawer="main-drawer" aria-label="Open menu" aria-expanded="false">
       <span class="sr-only">Menu</span>
-      <svg class="h-6 w-6" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>
+      <svg class="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/>
+      </svg>
     </button>
 
+    <!-- Primary nav -->
     <ul class="nav-links" role="menubar" aria-label="Primary">
+      <!-- Play (primary action) -->
       <li role="none" class="relative">
-        <a role="menuitem" class="link-nav" href="/tournaments/">Tournaments</a>
+        <a role="menuitem" class="link-nav" href="/tournaments/">Tournament</a>
       </li>
+
+      <!-- Games (dropdown grid) -->
       <li role="none" class="relative">
-        <button class="link-nav" data-menu-toggle aria-haspopup="true" aria-expanded="false">Games ▾</button>
-        <div class="glass rounded-xl p-2 absolute left-0 mt-2" hidden data-menu role="menu">
-          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/efootball/">eFootball</a>
-          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/valorant/">Valorant</a>
-          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/fc26/">FC 26</a>
-          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/pubg/">PUBG Mobile</a>
-          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/mlbb/">Mobile Legend</a>
-          <a role="menuitem" class="link-nav block py-1 px-2" href="/tournaments/game/cs2/">CS2</a>
+        <button class="link-nav inline-flex items-center gap-1" data-menu-toggle
+                aria-haspopup="true" aria-expanded="false" aria-controls="menu-games">
+          Games
+          <svg class="h-3.5 w-3.5 opacity-75" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+        </button>
+        <div id="menu-games" class="glass rounded-xl p-3 absolute left-0 mt-2 w-[20rem] sm:w-[28rem] shadow-[var(--shadow-xl)]"
+             hidden data-menu role="menu" aria-label="Games">
+          <div class="grid grid-cols-2 gap-1 sm:grid-cols-3">
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/tournaments/game/efootball/">eFootball</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/tournaments/game/valorant/">Valorant</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/tournaments/game/fc26/">FC 26</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/tournaments/game/pubg/">PUBG Mobile</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/tournaments/game/mlbb/">Mobile Legends</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/tournaments/game/cs2/">CS2</a>
+          </div>
+          <div class="mt-2 border-t border-[color:var(--border)]/70 pt-2">
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/tournaments/games/">
+              Browse all games →
+            </a>
+          </div>
         </div>
       </li>
-      <li role="none"><a role="menuitem" class="link-nav" href="/teams/">Teams</a></li>
-      <li role="none"><a role="menuitem" class="link-nav" href="{% firstof '/watch/' '/tournaments/' %}">Watch{% if nav_live %} <span class="pill pill--live">Live</span>{% endif %}</a></li>
+
+      <!-- Watch -->
+      <li role="none">
+          <a role="menuitem" class="link-nav inline-flex items-center gap-2" href="/watch/">
+            Watch
+            {% if nav_live %}<span class="pill pill--live">Live</span>{% endif %}
+          </a>
+
+      </li>
+
+      <!-- Community -->
       <li role="none"><a role="menuitem" class="link-nav" href="/community/">Community</a></li>
+
+      <!-- Teams -->
+      <li role="none"><a role="menuitem" class="link-nav" href="/teams/">Teams</a></li>
+
+      <!-- About -->
       <li role="none"><a role="menuitem" class="link-nav" href="/about/">About</a></li>
     </ul>
 
+    <!-- Right actions -->
     <div class="nav-cta">
-      <button class="btn-secondary flex items-center gap-2" id="theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.64 13A9 9 0 0 1 11 2.36a1 1 0 0 0-1.15 1.45A7 7 0 1 0 20.19 14.15 1 1 0 0 0 21.64 13Z"/></svg><span data-theme-label class="text-sm">system</span></button>
+      <!-- Theme toggle -->
+      <button class="btn-secondary flex items-center gap-2" id="theme-toggle" data-theme-toggle
+              aria-label="Toggle theme" aria-pressed="false">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.64 13A9 9 0 0 1 11 2.36a1 1 0 0 0-1.15 1.45A7 7 0 1 0 20.19 14.15 1 1 0 0 0 21.64 13Z"/></svg>
+        <span data-theme-label class="text-sm">system</span>
+      </button>
+
       {% if request.user.is_authenticated %}
+
         {% if nav_user_can_create_event %}
-          <div class="relative">
-            <button class="btn-secondary" data-menu-toggle aria-haspopup="true" aria-expanded="false">Create ▾</button>
-            <div class="glass rounded-xl p-2 absolute right-0 mt-2" hidden data-menu role="menu">
-              <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/teams/create/">New Team</a>
-              <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/admin/tournaments/tournament/add/">New Event</a>
-            </div>
-          </div>
-        {% endif %}
-        <a class="btn-ghost notif-btn" href="/notifications/" aria-label="Notifications"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1Z"/></svg><span id="notif-badge" class="notif-badge pill">{% if nav_unread_count %}{{ nav_unread_count }}{% endif %}</span></a>
+        <!-- Create -->
         <div class="relative">
-          <button class="btn-primary" data-avatar-toggle aria-haspopup="true" aria-expanded="false">Account ▾</button>
-          <div class="glass rounded-xl p-2 absolute right-0 mt-2" hidden data-avatar-menu role="menu">
-            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/dashboard/">My Dashboard / Registrations</a>
-            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/teams/">My Teams</a>
-            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/dashboard/matches/">My Matches</a>
-            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/dashboard/">Payouts</a>
-            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/user/u/{{ request.user.username }}/">Profile</a>
-            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/user/me/edit/">Settings</a>
-            <a role="menuitem" class="link-nav block py-1 px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" href="/accounts/logout/">Sign out</a>
+          <button class="btn-secondary inline-flex items-center gap-1" data-menu-toggle
+                  aria-haspopup="true" aria-expanded="false" aria-controls="menu-create">
+            Create
+            <svg class="h-3.5 w-3.5 opacity-75" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+          <div id="menu-create" class="glass rounded-xl p-2 absolute right-0 mt-2 min-w-[14rem] shadow-[var(--shadow-xl)]"
+               hidden data-menu role="menu" aria-label="Create">
+            <div class="px-2 py-1 text-xs tracking-wide uppercase text-[color:var(--muted)]">Organization</div>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/teams/create/">New Team</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/admin/tournaments/tournament/add/">New Event</a>
           </div>
         </div>
+        {% endif %}
+
+        <!-- Notifications -->
+        <a class="btn-ghost notif-btn relative" href="/notifications/" aria-label="Notifications">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1Z"/></svg>
+          <span id="notif-badge" class="notif-badge pill" aria-live="polite" aria-atomic="true">
+            {% if nav_unread_count %}{{ nav_unread_count }}{% endif %}
+          </span>
+        </a>
+
+        <!-- Account -->
+        <div class="relative">
+          {% user_avatar_url request.user as av %}
+          <button class="btn-primary inline-flex items-center gap-2" data-avatar-toggle
+                  aria-haspopup="true" aria-expanded="false" aria-controls="menu-account">
+            <img src="{{ av }}" alt="User avatar" class="h-5 w-5 rounded-full object-cover border border-[color:var(--border)]">
+            <span class="hidden sm:inline">{{ request.user.get_short_name|default:request.user.username }}</span>
+            <svg class="h-3.5 w-3.5 opacity-75" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+          </button>
+
+          <div id="menu-account" class="glass rounded-xl p-2 absolute right-0 mt-2 min-w-[18rem] shadow-[var(--shadow-xl)]"
+               hidden data-avatar-menu role="menu" aria-label="Account">
+            <!-- Header -->
+            <div class="px-3 py-2 rounded-lg bg-[color:var(--surface)] border border-[color:var(--border)]">
+              <div class="text-sm font-semibold text-[color:var(--text)]">
+                {{ request.user.get_full_name|default:request.user.username }}
+              </div>
+              <div class="text-xs text-[color:var(--muted)]">@{{ request.user.username }}</div>
+            </div>
+
+            <!-- My Stuff -->
+            <div class="px-2 pt-2 text-xs tracking-wide uppercase text-[color:var(--muted)]">My Stuff</div>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/dashboard/">Dashboard / Registrations</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/dashboard/matches/">My Matches</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/teams/">My Teams</a>
+
+            <!-- Account -->
+            <div class="px-2 pt-2 text-xs tracking-wide uppercase text-[color:var(--muted)]">Account</div>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/user/u/{{ request.user.username }}/">Profile</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/user/me/edit/">Settings</a>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/dashboard/">Payouts</a>
+
+            <!-- Auth -->
+            <div class="px-2 pt-2 text-xs tracking-wide uppercase text-[color:var(--muted)]">Auth</div>
+            <a role="menuitem" class="link-nav block rounded-lg px-2 py-1.5 hover:bg-[color:var(--surface)]/70" href="/accounts/logout/">Sign out</a>
+          </div>
+        </div>
+
       {% else %}
-        <a class="btn-secondary" href="/accounts/signup/">Create ▾</button>
+        <!-- Signed out: clear CTAs -->
+        <a class="btn-secondary" href="/accounts/signup/">Create account</a>
         <a class="btn-primary" href="/accounts/login/">Sign in</a>
       {% endif %}
     </div>
   </nav>
+
   {% include "partials/mobile_nav.html" %}
 </header>
-
-
-
-
-
-

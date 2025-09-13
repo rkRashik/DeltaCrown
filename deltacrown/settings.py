@@ -111,6 +111,11 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
     "apps.notifications.context_processors.unread_notifications",
 ]
 
+# ensure cache exists (in dev the locmem cache is fine)
+CACHES = {
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+}
+
 
 WSGI_APPLICATION = "deltacrown.wsgi.application"
 

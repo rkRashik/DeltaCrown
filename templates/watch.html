@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Watch — DeltaCrown{% endblock %}
+
+{% block content %}
+<main id="watch" class="min-h-screen">
+
+  <!-- ===== Hero / Command Bar ===== -->
+  <section class="relative overflow-hidden">
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0">
+      <div class="absolute -top-24 left-1/2 -translate-x-1/2 h-[30rem] w-[30rem] rounded-full blur-3xl opacity-50"
+           style="background: radial-gradient(closest-side, color-mix(in oklab, var(--brand-delta) 28%, transparent), transparent 70%);"></div>
+      <div class="absolute -bottom-24 right-0 h-[24rem] w-[24rem] rounded-full blur-3xl opacity-45"
+           style="background: radial-gradient(closest-side, color-mix(in oklab, var(--brand-sky, #38bdf8) 24%, transparent), transparent 70%);"></div>
+    </div>
+
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-12 pb-6">
+      <header class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="text-xs tracking-widest uppercase text-[color:var(--muted)]">Streams · VODs · Schedule</p>
+          <h1 class="font-extrabold tracking-tight leading-tight" style="font-size: var(--h1); color: var(--text);">
+            Watch
+            {% if live_streams %}<span class="pill pill--live align-middle ms-2">Live</span>{% endif %}
+          </h1>
+          <p class="mt-2 text-[color:var(--muted)] max-w-prose">
+            Catch live tournaments and community broadcasts. Replays and highlights right after the show.
+          </p>
+        </div>
+
+        <form method="get" action="" class="w-full md:w-[28rem]">
+          <label for="q" class="sr-only">Search</label>
+          <div class="card p-2 flex items-center gap-2">
+            <svg aria-hidden="true" class="opacity-70 ms-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="q" name="q" type="search" class="form-input flex-1" placeholder="Search streams, games, channels… ( / )"
+                   value="{{ request.GET.q|default:'' }}">
+            <button class="btn btn-secondary">Search</button>
+          </div>
+        </form>
+      </header>
+
+      {% if games %}
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a class="chip {% if not request.GET.game %}is-active{% endif %}" href="{{ request.path }}">All</a>
+          {% for g in games %}
+            <a class="chip {% if request.GET.game == g.slug %}is-active{% endif %}"
+               href="?game={{ g.slug|urlencode }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}">
+              {{ g.name|default:g }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- ===== Featured Player + Live Now ===== -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 grid lg:grid-cols-3 gap-6">
+
+    <!-- Featured Player -->
+    <div class="lg:col-span-2">
+      <div class="card overflow-hidden">
+        {% comment %} Choose first live; else featured; else first VOD {% endcomment %}
+        {% with featured=featured_stream %}
+          {% if featured %}
+            {% if featured.embed_url %}
+              <div class="aspect-video bg-black">
+                <iframe
+                  title="{{ featured.title|default:'Stream' }}"
+                  src="{{ featured.embed_url }}{% if '?' in featured.embed_url %}&{% else %}?{% endif %}autoplay=1&mute=1"
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowfullscreen
+                  loading="lazy"
+                  class="w-full h-full">
+                </iframe>
+              </div>
+            {% else %}
+              <button class="group w-full relative aspect-video bg-[color:var(--surface)] grid place-items-center"
+                      data-open-watch
+                      data-embed-url="{{ featured.watch_url|default:'#' }}">
+                {% if featured.thumbnail_url %}
+                  <img src="{{ featured.thumbnail_url }}" alt="" class="absolute inset-0 w-full h-full object-cover">
+                {% endif %}
+                <span class="relative z-10 btn btn-primary">Play</span>
+              </button>
+            {% endif %}
+
+            <div class="p-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <h2 class="font-semibold leading-snug text-balance" style="font-size: var(--h3); color: var(--text);">
+                    {{ featured.title|default:"Untitled broadcast" }}
+                  </h2>
+                  <p class="mt-1 text-sm text-[color:var(--muted)]">
+                    {% if featured.channel %}{{ featured.channel }}{% endif %}
+                    {% if featured.game %} • {{ featured.game }}{% endif %}
+                    {% if featured.start_time %} • <time datetime="{{ featured.start_time|date:'c' }}">{{ featured.start_time|timesince }} ago</time>{% endif %}
+                    {% if featured.viewers %} • {{ featured.viewers }} watching{% endif %}
+                  </p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  {% if featured.platform %}
+                    <span class="pill">{{ featured.platform }}</span>
+                  {% endif %}
+                  {% if featured.is_live %}<span class="pill pill--live">Live</span>{% endif %}
+                </div>
+              </div>
+              {% if featured.tags %}
+                <div class="mt-3 flex flex-wrap gap-2">
+                  {% for tg in featured.tags %}<span class="chip">#{{ tg }}</span>{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="p-6 text-[color:var(--muted)]">No streams or videos yet.</div>
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+
+    <!-- Live Now list -->
+    <aside class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="font-semibold" style="font-size: var(--h4); color: var(--text);">Live now</h3>
+        <a href="#vods" class="btn btn-ghost text-sm">Recent VODs</a>
+      </div>
+      <ul class="space-y-3">
+        {% if live_streams %}
+          {% for s in live_streams|slice:":6" %}
+          <li class="card overflow-hidden">
+            <a class="grid grid-cols-[5rem,1fr] gap-3" href="{{ s.watch_url|default:'#' }}" target="_blank" rel="noopener">
+              <div class="relative">
+                <img src="{{ s.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" alt="" class="w-full h-full object-cover">
+                <span class="absolute top-1 left-1 pill pill--live">Live</span>
+              </div>
+              <div class="p-3 min-w-0">
+                <div class="truncate font-medium">{{ s.title|default:"Live stream" }}</div>
+                <div class="text-xs text-[color:var(--muted)] truncate">
+                  {% if s.channel %}{{ s.channel }}{% endif %}
+                  {% if s.game %} • {{ s.game }}{% endif %}
+                  {% if s.viewers %} • {{ s.viewers }} watching{% endif %}
+                </div>
+              </div>
+            </a>
+          </li>
+          {% endfor %}
+        {% else %}
+          <li class="text-sm text-[color:var(--muted)]">No live streams right now.</li>
+        {% endif %}
+      </ul>
+    </aside>
+  </section>
+
+  <!-- ===== Upcoming Schedule ===== -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+    <div class="card">
+      <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <h2 class="font-semibold" style="font-size: var(--h3); color: var(--text);">Upcoming</h2>
+          <a href="/tournaments/" class="btn btn-soft">All tournaments</a>
+        </div>
+        <ul class="mt-3 divide-y divide-[color:var(--border)]/70">
+          {% if upcoming_streams %}
+            {% for e in upcoming_streams %}
+              <li class="py-3 flex items-center gap-3">
+                <div class="pill">{{ e.game|default:"" }}</div>
+                <div class="min-w-0 flex-1">
+                  <div class="truncate font-medium">{{ e.title|default:"Upcoming broadcast" }}</div>
+                  <div class="text-xs text-[color:var(--muted)]">
+                    {% if e.scheduled_for %}<time datetime="{{ e.scheduled_for|date:'c' }}">{{ e.scheduled_for|date:"M j, g:i A" }}</time>{% endif %}
+                    {% if e.channel %} · {{ e.channel }}{% endif %}
+                    {% if e.platform %} · {{ e.platform }}{% endif %}
+                  </div>
+                </div>
+                {% if e.cta_url %}<a class="btn btn-primary" href="{{ e.cta_url }}">Notify me</a>{% endif %}
+              </li>
+            {% endfor %}
+          {% else %}
+            <li class="py-3 text-sm text-[color:var(--muted)]">No scheduled broadcasts.</li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Recent VODs ===== -->
+  <section id="vods" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+    <div class="flex items-center justify-between">
+      <h2 class="font-semibold" style="font-size: var(--h3); color: var(--text);">Recent VODs</h2>
+      {% if request.GET.q or request.GET.game %}
+        <a class="btn btn-ghost" href="{{ request.path }}">Clear filters</a>
+      {% endif %}
+    </div>
+
+    {% if vods %}
+      <div class="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {% for v in vods %}
+          <article class="card overflow-hidden group">
+            <a href="{{ v.watch_url|default:'#' }}" target="_blank" rel="noopener">
+              <div class="relative">
+                <img src="{{ v.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" class="w-full aspect-video object-cover" alt="">
+                {% if v.duration %}<span class="absolute bottom-2 right-2 pill bg-black/70 text-white">{{ v.duration }}</span>{% endif %}
+              </div>
+              <div class="p-4">
+                <div class="font-medium line-clamp-2">{{ v.title|default:"Replay" }}</div>
+                <div class="mt-1 text-sm text-[color:var(--muted)]">
+                  {% if v.channel %}{{ v.channel }}{% endif %}
+                  {% if v.published_at %} • <time datetime="{{ v.published_at|date:'c' }}">{{ v.published_at|timesince }} ago</time>{% endif %}
+                </div>
+              </div>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+
+      {% if page_obj %}
+        <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+          <div>{% if page_obj.has_previous %}<a class="btn btn-ghost" href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}</div>
+          <div class="text-sm text-[color:var(--muted)]">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+          <div>{% if page_obj.has_next %}<a class="btn btn-ghost" href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}</div>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="card"><div class="p-6 text-[color:var(--muted)]">No VODs yet.</div></div>
+    {% endif %}
+  </section>
+
+</main>
+
+<!-- ===== Inline player modal (optional, provider-agnostic) ===== -->
+<dialog id="watch-modal" class="glass rounded-2xl p-0 w-[min(90vw,1000px)]">
+  <div class="aspect-video bg-black">
+    <iframe id="watch-iframe" class="w-full h-full" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+  </div>
+  <form method="dialog" class="flex justify-end p-2">
+    <button class="btn btn-ghost">Close</button>
+  </form>
+</dialog>
+
+<script>
+(function(){
+  // Focus search with "/"
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === '/' && !e.target.matches('input, textarea')) {
+      const q = document.getElementById('q'); if(q){ e.preventDefault(); q.focus(); }
+    }
+  });
+
+  // Modal embed opener
+  const modal = document.getElementById('watch-modal');
+  const iframe = document.getElementById('watch-iframe');
+  document.querySelectorAll('[data-open-watch]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const url = btn.getAttribute('data-embed-url');
+      if (!url || !modal || !iframe) return;
+      // Append autoplay params if missing
+      const sep = url.includes('?') ? '&' : '?';
+      iframe.src = url + sep + 'autoplay=1';
+      if (typeof modal.showModal === 'function') modal.showModal(); else modal.setAttribute('open','');
+    });
+  });
+  // Close resets src (stop playback)
+  if (modal){
+    modal.addEventListener('close', ()=>{ iframe.src=''; });
+    modal.addEventListener('click', (e)=>{ // click outside content closes
+      const rect = modal.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom){
+        modal.close();
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

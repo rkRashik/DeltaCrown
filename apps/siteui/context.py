@@ -44,3 +44,35 @@ def site_settings(request):
         "spotlight_items": spotlight_items,
         "timeline_entries": timeline_entries,
     }
+
+
+
+from django.core.cache import cache
+from django.apps import apps
+from django.db.models import Q
+
+
+def nav_flags(request):
+    """
+    Adds `nav_live` to all templates. Cached for 30s to keep it fast.
+    """
+    key = "dc_nav_live"
+    val = cache.get(key)
+    if val is None:
+        live = False
+        for app_label, model_name in (("media","Broadcast"), ("streams","Stream"), ("siteui","Broadcast")):
+            try:
+                Model = apps.get_model(app_label, model_name)
+            except Exception:
+                continue
+            if not Model:
+                continue
+            try:
+                if Model.objects.filter(Q(is_live=True)).exists():
+                    live = True
+                    break
+            except Exception:
+                continue
+        cache.set(key, live, 30)
+        val = live
+    return {"nav_live": val}
