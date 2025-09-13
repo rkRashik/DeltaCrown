@@ -1,95 +1,104 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{{ tournament.name|default:tournament.title }} — Tournament{% endblock %}
+{% block title %}{% firstof tournament.name tournament.slug "Tournament" %} — Tournament{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
-  <div class="relative rounded-2xl overflow-hidden border border-black/5 dark:border-white/10 bg-gradient-to-br from-slate-100 to-white dark:from-slate-900 dark:to-slate-950">
-    {% if tournament.banner %}
-      <img src="{{ tournament.banner.url }}" alt="" class="absolute inset-0 w-full h-40 object-cover opacity-80">
-    {% else %}
-      <div class="absolute inset-0 h-40 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,.35),transparent_40%)]"></div>
-    {% endif %}
+  <div class="relative rounded-2xl overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900">
+    <div class="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+      {% if banner_url %}
+        <img src="{{ banner_url }}" alt="" class="absolute inset-0 w-full h-full object-cover">
+      {% endif %}
+      <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent"></div>
+    </div>
 
-    <div class="relative pt-6 px-6 pb-4">
+    <div class="relative px-6 pb-4 pt-6">
       <div class="flex items-center gap-3">
-        <h1 class="text-2xl md:text-3xl font-semibold">{{ tournament.name|default:tournament.title }}</h1>
-        {% if tournament.game %}<span class="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800">{{ tournament.game|title }}</span>{% endif %}
-        {% if tournament.organizer_verified %}{% include "tournaments/_organizer_badge.html" %}{% endif %}
+        <h1 class="text-2xl md:text-3xl font-semibold text-slate-900 dark:text-slate-100">{% firstof tournament.name tournament.slug "Tournament" %}</h1>
+        {% if tournament.game %}<span class="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">{{ tournament.game|title }}</span>{% endif %}
+        {% if tournament.organizer_verified and has_organizer_badge %}{% include "tournaments/_organizer_badge.html" %}{% endif %}
       </div>
 
-      <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
-        {% if entry_fee %}<span>Entry: <strong>{{ entry_fee }}</strong></span>{% endif %}
-        {% if prize_total %}<span>Prize: <strong>{{ prize_total }}</strong></span>{% endif %}
-        {% if slots_left != None %}<span>Slots left: <strong>{{ slots_left }}</strong></span>{% endif %}
+      {% if description_html %}
+        <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">{{ description_html|safe }}</p>
+      {% endif %}
+
+      <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
+        {% if entry_fee %}<span>Entry: <strong class="text-slate-900 dark:text-slate-100">{{ entry_fee }}</strong></span>{% endif %}
+        {% if prize_total %}<span>Prize: <strong class="text-slate-900 dark:text-slate-100">{{ prize_total }}</strong></span>{% endif %}
+        {% if slots_left != None %}<span>Slots left: <strong class="text-slate-900 dark:text-slate-100">{{ slots_left }}</strong></span>{% endif %}
         {% if countdown_to %}<span id="countdown" data-deadline="{{ countdown_to|date:'c' }}"></span>{% endif %}
       </div>
 
       <div class="mt-4 flex flex-wrap gap-2">
-        {% if cta == "register" %}
-          <a href="{% url 'tournaments:register' tournament.slug %}" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Register</a>
-        {% elif cta == "continue" %}
-          <a href="{% url 'tournaments:register' tournament.slug %}" class="px-4 py-2 rounded-xl bg-blue-600 text-white">Continue registration</a>
+        {% if cta == "register" and register_url %}
+          <a href="{{ register_url }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Register</a>
+        {% elif cta == "continue" and register_url %}
+          <a href="{{ register_url }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white">Continue registration</a>
         {% elif cta == "view_receipt" %}
-          <a href="{% url 'tournaments:registration_receipt' tournament.slug %}" class="px-4 py-2 rounded-xl bg-amber-600 text-white">View receipt (Pending)</a>
+          {% url 'tournaments:registration_receipt' tournament.slug as receipt_url %}
+          {% if receipt_url %}<a href="{{ receipt_url }}" class="px-4 py-2 rounded-xl bg-amber-600 text-white">View receipt (Pending)</a>{% endif %}
         {% elif cta == "check_in" %}
-          <a href="{% url 'tournaments:check_in' tournament.slug %}" class="px-4 py-2 rounded-xl bg-emerald-600 text-white">Check-in</a>
+          {% url 'tournaments:check_in' tournament.slug as checkin_url %}
+          {% if checkin_url %}<a href="{{ checkin_url }}" class="px-4 py-2 rounded-xl bg-emerald-600 text-white">Check-in</a>{% endif %}
         {% elif cta == "your_matches" %}
-          <a href="{% url 'tournaments:my_matches' %}" class="px-4 py-2 rounded-xl bg-indigo-600 text-white">Your matches</a>
+          {% url 'tournaments:my_matches' as my_matches_url %}
+          {% if my_matches_url %}<a href="{{ my_matches_url }}" class="px-4 py-2 rounded-xl bg-indigo-600 text-white">Your matches</a>{% endif %}
         {% elif cta == "registered" %}
           <span class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Registered</span>
         {% else %}
           <span class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Registration closed</span>
         {% endif %}
-        <a href="#" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800" data-copy="{{ request.build_absolute_uri }}">Share</a>
-        <a href="{% url 'tournaments:ics' tournament.slug %}" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800">Add to calendar</a>
+
+        <a href="#" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100" data-copy="{{ request.build_absolute_uri }}">Share</a>
+        {% url 'tournaments:ics' tournament.slug as ics_url %}
+        {% if ics_url %}
+          <a href="{{ ics_url }}" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100">Add to calendar</a>
+        {% endif %}
       </div>
     </div>
   </div>
 
   <div class="mt-6">
-    <div class="flex gap-2 border-b border-black/5 dark:border-white/10" data-tabs>
-      <button class="px-3 py-2 rounded-t-xl text-sm bg-slate-200 dark:bg-slate-800" data-tab="overview">Overview</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm" data-tab="participants">Participants</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm" data-tab="bracket">Bracket</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm" data-tab="standings">Standings</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm" data-tab="watch">Watch</button>
+    <div class="flex gap-2 border-b border-slate-200 dark:border-slate-700" data-tabs>
+      <button class="px-3 py-2 rounded-t-xl text-sm bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100" data-tab="overview">Overview</button>
+      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="participants">Participants</button>
+      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="bracket">Bracket</button>
+      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="standings">Standings</button>
+      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="watch">Watch</button>
     </div>
 
     <section id="tab-overview" class="mt-4">
       <div class="grid sm:grid-cols-2 gap-4">
-        {% include "tournaments/_prize_pool.html" %}
-        {% include "tournaments/_schedule_timeline.html" %}
+        {% if has_prize_pool %}{% include "tournaments/_prize_pool.html" %}{% endif %}
+        {% if has_schedule_timeline %}{% include "tournaments/_schedule_timeline.html" %}{% endif %}
       </div>
 
-      {% include "tournaments/_rules_drawer.html" %}
-      <div class="grid sm:grid-cols-2 gap-4 mt-4">
-        <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4">
-          <h3 class="font-semibold mb-1">Organizer</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-300">{{ tournament.organizer_name|default:"Organizer" }}</p>
+      {% if has_rules_drawer %}
+        <div class="mt-4 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900 p-4">
+          <h3 class="font-semibold text-slate-900 dark:text-slate-100">Rules</h3>
+          <div class="mt-2 prose prose-sm dark:prose-invert max-w-none text-slate-800 dark:text-slate-200">
+            {% if rules_html %}{{ rules_html|safe }}{% else %}<p>No rules provided yet.</p>{% endif %}
+          </div>
         </div>
-        <div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4">
-          <h3 class="font-semibold mb-1">FAQ & Support</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-300">Read rules, then contact the organizer if you still need help.</p>
-        </div>
-      </div>
+      {% endif %}
     </section>
 
     <section id="tab-participants" class="mt-4 hidden" role="region" aria-label="Participants">
-      {% include "tournaments/_participants_grid.html" %}
+      {% if has_participants_grid %}{% include "tournaments/_participants_grid.html" %}{% endif %}
     </section>
 
     <section id="tab-bracket" class="mt-4 hidden" role="region" aria-label="Bracket">
-      {% include "tournaments/bracket.html" %}
+      {% if has_bracket %}{% include "tournaments/bracket.html" %}{% endif %}
     </section>
 
     <section id="tab-standings" class="mt-4 hidden" role="region" aria-label="Standings">
-      {% include "tournaments/standings.html" %}
+      {% if has_standings %}{% include "tournaments/standings.html" %}{% endif %}
     </section>
 
     <section id="tab-watch" class="mt-4 hidden" role="region" aria-label="Watch">
-      {% include "tournaments/_stream_embed.html" %}
+      {% if has_stream_embed %}{% include "tournaments/_stream_embed.html" %}{% endif %}
     </section>
   </div>
 </div>

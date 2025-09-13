@@ -67,8 +67,7 @@
     <script src="{% static 'siteui/js/micro.js' %}"></script>
     <script src="{% static 'siteui/js/nav.js' %}"></script>
     <script src="{% static 'siteui/js/reg_wizard.js' %}"></script>
-    <script src="{% static 'siteui/js/teams.js' %}"></script>
-    <script src="{% static 'siteui/js/auth.js' %}"></script>
+
     {% if messages %}
     <script id="dj-messages" type="application/json">[
       {% for message in messages %}{"level":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}

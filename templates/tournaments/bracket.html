@@ -1,45 +1,8 @@
-{% extends "base.html" %}
-{% load static %}
-{% block title %}Bracket — {% firstof tournament.name t.name "Tournament" %}{% endblock %}
-
-{% block content %}
-<section class="container py-10">
-  <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
-    <div>
-      <h1 class="sec-h">Bracket</h1>
-      <p class="text-muted">{% firstof tournament.name t.name "Tournament" %}</p>
-    </div>
-    <div class="flex gap-2">
-      {% if t and t.slug %}
-        <a class="btn-secondary" href="{% url 'tournaments:detail' slug=t.slug %}">Back to Details</a>
-      {% elif tournament and tournament.slug %}
-        <a class="btn-secondary" href="{% url 'tournaments:detail' slug=tournament.slug %}">Back to Details</a>
-      {% else %}
-        <a class="btn-secondary" href="/tournaments/">Back</a>
-      {% endif %}
-    </div>
-  </header>
-
-  {% if rounds %}
-    <div class="grid-bracket overflow-x-auto">
-      {% for round in rounds %}
-        <div class="bracket-round">
-          <div class="bracket-round__title">Round {{ forloop.counter }}</div>
-          <div class="bracket-round__matches">
-            {% for m in round %}
-              {% include "tournaments/partials/_match_card.html" with m=m %}
-            {% empty %}
-              <div class="text-muted text-sm">No matches</div>
-            {% endfor %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
+<div class="rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900 p-4">
+  <h3 class="font-semibold text-slate-900 dark:text-slate-100 mb-2">Bracket</h3>
+  {% if tournament.bracket %}
+    <div class="text-slate-900 dark:text-slate-100">{{ tournament.bracket|safe }}</div>
   {% else %}
-    <div class="glass p-8 rounded-2xl">
-      <h3 class="text-xl font-semibold">Bracket not published</h3>
-      <p class="text-muted mt-1">Check-in may still be ongoing or seeding in progress.</p>
-    </div>
+    <p class="text-sm text-slate-600 dark:text-slate-300">Bracket will appear here once published.</p>
   {% endif %}
-</section>
-{% endblock %}
+</div>

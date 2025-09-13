@@ -70,3 +70,9 @@
     --shadow-lg: 0 18px 48px rgba(2,6,23,.18);
   }
 }
+
+:root {
+  --brand-sky: #38bdf8;
+  --brand-emerald: #10b981;
+  --brand-fuchsia: #d946ef;
+}

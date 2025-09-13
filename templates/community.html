@@ -5,332 +5,511 @@
 {% block content %}
 <main id="community" class="min-h-screen">
 
-  <!-- ===== HERO ===== -->
+  <!-- ===================== FUTURISTIC HERO ===================== -->
   <section class="relative overflow-hidden">
-    <!-- gradient blooms -->
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0 opacity-70">
-      <div class="absolute -top-28 left-1/2 -translate-x-1/2 h-[36rem] w-[36rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(99,102,241,.35), transparent 70%);"></div>
-      <div class="absolute -bottom-36 left-1/3 h-[28rem] w-[28rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(16,185,129,.25), transparent 70%);"></div>
-      <div class="absolute -bottom-16 right-0 h-[30rem] w-[30rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(56,189,248,.25), transparent 70%);"></div>
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10">
+      <div class="absolute -top-32 left-1/2 -translate-x-1/2 h-[48rem] w-[48rem] rounded-full blur-3xl opacity-70"
+           style="background: radial-gradient(closest-side, color-mix(in oklab, var(--brand-delta) 38%, transparent), transparent 70%);"></div>
+      <div class="absolute -bottom-48 right-0 h-[42rem] w-[42rem] rounded-full blur-3xl opacity-60"
+           style="background: radial-gradient(closest-side, color-mix(in oklab, var(--brand-crown) 32%, transparent), transparent 70%);"></div>
     </div>
 
-    <div class="relative container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-10">
-      <div class="text-center">
-        <span class="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs font-medium tracking-wide ring-1 ring-white/10 text-white/80">
-          Play • Learn • Create • Belong
-        </span>
-        <h1 class="mt-6 text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
-          Bangladesh’s most vibrant esports community
-        </h1>
-        <p class="mx-auto mt-4 max-w-2xl text-white/75">
-          Find teammates, join scrims, follow announcements, share highlights, and grow your scene—safely and fairly.
-        </p>
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+      <div class="grid gap-8 lg:grid-cols-[1.2fr,0.8fr] items-start">
+        <header class="space-y-4">
+          <p class="text-xs tracking-widest uppercase text-[color:var(--muted)]">From the Delta to the Crown</p>
+          <h1 class="font-extrabold leading-tight tracking-tight" style="font-size: var(--h1);">
+            Your Esports Command Center
+          </h1>
+          <p class="max-w-prose text-[color:var(--muted)]">
+            A next-gen social hub for Bangladesh’s gamers. Post, squad up, join events, share clips—everything in one place.
+          </p>
 
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <a href="https://discord.gg/deltacrown" target="_blank" rel="noopener" class="btn btn-primary">Join Discord</a>
-          <a href="/forums/" class="btn btn-secondary">Open Forums</a>
-          <a href="/tournaments/" class="btn btn-ghost">Browse Tournaments</a>
-          {% if request.user.is_authenticated %}
-            <a href="/forums/new/" class="btn btn-primary">Create Post</a>
+          <!-- Command bar -->
+          <div class="card">
+            <div class="p-2 sm:p-3">
+              <div class="flex items-center gap-3">
+                <div class="relative flex-1">
+                  <input id="cmd-search" class="form-input w-full ps-9" type="search"
+                         placeholder="Search posts, teams, players… (Press /)"
+                         value="{{ request.GET.q|default:'' }}">
+                  <svg aria-hidden="true" class="absolute left-3 top-1/2 -translate-y-1/2 opacity-70" width="18" height="18"
+                       viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                  </svg>
+                </div>
+                {% if request.user.is_authenticated %}
+                  <a class="btn btn-primary" href="/forums/new/">New post</a>
+                {% else %}
+                  <a class="btn btn-primary" href="/accounts/login/?next=/forums/new/">Sign in to Post</a>
+                {% endif %}
+                <a class="btn btn-soft" href="/forums/new/?category=scrims">Post scrim</a>
+                <a class="btn btn-ghost" href="/support/">Report</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPI row -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="card"><div class="p-4 text-center">
+              <div class="text-xs tracking-wide text-[color:var(--muted)]">Online now</div>
+              <div class="font-extrabold leading-none" style="font-size: var(--h2);">{{ online_count|default:42 }}</div>
+            </div></div>
+            <div class="card"><div class="p-4 text-center">
+              <div class="text-xs tracking-wide text-[color:var(--muted)]">Posts today</div>
+              <div class="font-extrabold leading-none" style="font-size: var(--h2);">{{ posts_today|default:18 }}</div>
+            </div></div>
+            <div class="card"><div class="p-4 text-center">
+              <div class="text-xs tracking-wide text-[color:var(--muted)]">Scrims open</div>
+              <div class="font-extrabold leading-none" style="font-size: var(--h2);">{{ scrims_open|default:7 }}</div>
+            </div></div>
+            <div class="card"><div class="p-4 text-center">
+              <div class="text-xs tracking-wide text-[color:var(--muted)]">Events upcoming</div>
+              <div class="font-extrabold leading-none" style="font-size: var(--h2);">{{ events_upcoming|default:3 }}</div>
+            </div></div>
+          </div>
+        </header>
+
+        <!-- Spotlight (glassy) -->
+        <aside class="card relative overflow-hidden">
+          <div class="absolute inset-0 -z-10 opacity-60"
+               style="background: linear-gradient(135deg, color-mix(in oklab, var(--brand-delta) 14%, transparent), transparent 55%, color-mix(in oklab, var(--brand-crown) 12%, transparent));"></div>
+          <div class="p-6">
+            <div class="flex items-center gap-3">
+              <img src="{% static 'siteui/svg/logo-deltacrown.svg' %}" alt="" class="h-10 w-10">
+              <div>
+                <div class="text-sm text-[color:var(--muted)]">Weekly Spotlight</div>
+                <h3 class="font-semibold">Top Guides & Clips</h3>
+              </div>
+            </div>
+            <p class="mt-2 text-sm text-[color:var(--muted)]">Hand-picked content from the community.</p>
+            <div class="mt-4 grid grid-cols-2 gap-3">
+              {% if clips %}
+                {% for v in clips|slice:":2" %}
+                <a class="group card overflow-hidden" href="{{ v.url|default:'#' }}">
+                  <img src="{{ v.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" class="w-full aspect-video object-cover" alt="">
+                  <div class="p-3">
+                    <div class="line-clamp-2 text-sm font-medium">{{ v.title|default:"Clip" }}</div>
+                  </div>
+                </a>
+                {% endfor %}
+              {% else %}
+                <div class="card"><div class="p-4 text-sm text-[color:var(--muted)]">No clips yet—share yours!</div></div>
+              {% endif %}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== QUICK CHANNELS ===================== -->
+  <section class="border-t border-[color:var(--border)]/70">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-[color:var(--muted)]">Channels:</span>
+        <a href="/forums/?tag=valorant" class="chip">#valorant</a>
+        <a href="/forums/?tag=efootball" class="chip">#efootball</a>
+        <a href="/forums/?tag=pubg" class="chip">#pubg</a>
+        <a href="/forums/?tag=freefire" class="chip">#freefire</a>
+        <a href="/forums/?tag=guides" class="chip">#guides</a>
+        <a href="/forums/?tag=lfg" class="chip">#lfg</a>
+        <div class="ms-auto flex flex-wrap gap-2">
+          {% if popular_tags %}
+            {% for tag in popular_tags %}
+              <a href="?tag={{ tag.slug|default:tag|urlencode }}" class="pill">
+                #{{ tag.name|default:tag }}{% if tag.count %}<span class="opacity-70">· {{ tag.count }}</span>{% endif %}
+              </a>
+            {% endfor %}
           {% else %}
-            <a href="/accounts/login/?next=/forums/new/" class="btn btn-primary">Sign in to Post</a>
+            <span class="text-sm text-[color:var(--muted)]">Popular tags appear as community grows</span>
           {% endif %}
         </div>
-
-        <div class="mt-6 flex items-center justify-center gap-4 text-white/70 text-sm">
-          <button id="btn-share" class="inline-flex items-center gap-2 hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7.02-4.11A3 3 0 1 0 15 5a3 3 0 0 0 .04.49L8 9.6a3 3 0 1 0 0 4.8l7.06 4.12c-.03.16-.06.33-.06.48a3 3 0 1 0 3-3Z"/></svg>
-            Share community link
-          </button>
-          <span class="hidden sm:inline">•</span>
-          <a class="hover:text-white" href="#guidelines">Read guidelines</a>
-        </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== QUICK ACTIONS / TRENDS ===== -->
-  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-4">
-    <div class="grid gap-6 lg:grid-cols-3">
-      <!-- Quick actions -->
-      <div class="lg:col-span-2 card bg-white/5 ring-1 ring-white/10">
-        <div class="p-6">
-          <h2 class="text-xl font-semibold text-white">Quick actions</h2>
-          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <a href="/forums/new/?category=lft" class="btn btn-secondary w-full">Find Team (LFT)</a>
-            <a href="/forums/new/?category=lfp" class="btn btn-secondary w-full">Find Player (LFP)</a>
-            <a href="/forums/new/?category=trading" class="btn btn-secondary w-full">Marketplace / Trading</a>
-            <a href="/forums/new/?category=highlights" class="btn btn-ghost w-full">Post Highlights</a>
-            <a href="/support/" class="btn btn-ghost w-full">Contact Mods</a>
-            <a href="/notifications/" class="btn btn-ghost w-full">Notifications</a>
+  <!-- ===================== MAIN GRID ===================== -->
+  <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 grid lg:grid-cols-3 gap-8">
+
+    <!-- ======== CENTER COLUMN: FEED + Q&A + MISSIONS ======== -->
+    <div class="lg:col-span-2 space-y-8">
+
+      <!-- FEED (Trending) -->
+      <div>
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold" style="font-size: var(--h3);">Trending feed</h2>
+          <a href="/forums/new/" class="btn btn-soft">Start a thread</a>
+        </div>
+        <div class="mt-3 space-y-4">
+          {% if threads %}
+            {% for t in threads %}
+              <article class="card group overflow-hidden">
+                <div class="p-5">
+                  <div class="flex gap-3">
+                    {% if t.author and t.author.avatar_url %}
+                      <img src="{{ t.author.avatar_url }}" alt="{{ t.author.username|default:'User' }}" class="h-10 w-10 rounded-xl object-cover border border-[color:var(--border)]">
+                    {% else %}
+                      <div class="h-10 w-10 rounded-xl grid place-items-center border border-[color:var(--border)] bg-[color:var(--surface)]">
+                        <span class="text-sm font-semibold">{% if t.author and t.author.username %}{{ t.author.username|slice:":1"|upper }}{% else %}U{% endif %}</span>
+                      </div>
+                    {% endif %}
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        {% if t.category %}<span class="pill">{{ t.category }}</span>{% endif %}
+                        {% if t.game %}<span class="pill">{{ t.game }}</span>{% endif %}
+                        {% if t.pinned %}<span class="pill">Pinned</span>{% endif %}
+                      </div>
+                      <h3 class="mt-1 font-semibold leading-snug text-balance">
+                        <a href="{{ t.get_absolute_url|default:'#' }}" class="hover:underline">{{ t.title }}</a>
+                      </h3>
+                      <p class="mt-1 text-sm text-[color:var(--muted)]">
+                        by <strong class="font-semibold">
+                          {% if t.author and t.author.display_name %}{{ t.author.display_name }}
+                          {% elif t.author and t.author.get_full_name %}{{ t.author.get_full_name }}
+                          {% elif t.author and t.author.username %}{{ t.author.username }}
+                          {% else %}Anonymous{% endif %}
+                        </strong>
+                        {% if t.created_at %} • <time datetime="{{ t.created_at|date:'c' }}">{{ t.created_at|timesince }} ago</time>{% endif %}
+                      </p>
+                      {% if t.excerpt %}<p class="mt-3 text-[color:var(--text)]/85 line-clamp-3">{{ t.excerpt }}</p>
+                      {% elif t.body %}<p class="mt-3 text-[color:var(--text)]/85 line-clamp-3">{{ t.body|striptags }}</p>{% endif %}
+                      {% if t.tags %}
+                        <div class="mt-3 flex flex-wrap gap-2">
+                          {% for tg in t.tags %}
+                            <a href="?tag={{ tg.slug|default:tg|urlencode }}" class="chip"><span class="chip__k">#</span><span class="chip__v">{{ tg.name|default:tg }}</span></a>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                      <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <div class="flex items-center gap-4 text-[color:var(--muted)]">
+                          <span class="inline-flex items-center gap-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+                            {{ t.replies_count|default:t.comments_count|default:0 }}
+                          </span>
+                          <span class="inline-flex items-center gap-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21S3 14 3 8a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6-9 13-9 13Z"/></svg>
+                            {{ t.likes|default:0 }}
+                          </span>
+                          <span class="inline-flex items-center gap-1">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v14H7l-4 4V3Z"/></svg>
+                            {{ t.views|default:0 }}
+                          </span>
+                        </div>
+                        <a href="{{ t.get_absolute_url|default:'#' }}" class="btn btn-secondary">Open</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            {% endfor %}
+          {% else %}
+            <div class="card"><div class="p-6 text-[color:var(--muted)]">No posts yet—be first to start a thread.</div></div>
+          {% endif %}
+        </div>
+        {% if page_obj %}
+          <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+            <div>{% if page_obj.has_previous %}<a class="btn btn-ghost" href="?page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}</div>
+            <div class="text-sm text-[color:var(--muted)]">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</div>
+            <div>{% if page_obj.has_next %}<a class="btn btn-ghost" href="?page={{ page_obj.next_page_number }}">Next</a>{% endif %}</div>
+          </nav>
+        {% endif %}
+      </div>
+
+      <!-- Q&A (Ask & Answer) -->
+      <div>
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold" style="font-size: var(--h3);">Questions & Answers</h2>
+          <a href="/forums/new/?category=questions" class="btn btn-soft">Ask a question</a>
+        </div>
+        <div class="mt-3 grid gap-4 md:grid-cols-2">
+          {% if qa %}
+            {% for q in qa|slice:":4" %}
+              <article class="card">
+                <div class="p-5">
+                  <h3 class="font-medium line-clamp-2"><a href="{{ q.get_absolute_url|default:'#' }}" class="hover:underline">{{ q.title|default:"Question" }}</a></h3>
+                  <p class="mt-1 text-sm text-[color:var(--muted)]">
+                    {% if q.created_at %}<time datetime="{{ q.created_at|date:'c' }}">{{ q.created_at|timesince }} ago</time>{% endif %}
+                    {% if q.author %} • by {{ q.author.display_name|default:q.author.username|default:"User" }}{% endif %}
+                  </p>
+                  {% if q.answer_excerpt %}<p class="mt-2 text-sm text-[color:var(--text)]/85 line-clamp-3">{{ q.answer_excerpt }}</p>{% endif %}
+                  <div class="mt-3 flex justify-end"><a href="{{ q.get_absolute_url|default:'#' }}" class="btn btn-ghost">View</a></div>
+                </div>
+              </article>
+            {% endfor %}
+          {% elif threads %}
+            {% for q in threads|slice:":4" %}
+              <article class="card">
+                <div class="p-5">
+                  <h3 class="font-medium line-clamp-2"><a href="{{ q.get_absolute_url|default:'#' }}" class="hover:underline">{{ q.title|default:"Question" }}</a></h3>
+                  <p class="mt-1 text-sm text-[color:var(--muted)]">
+                    {% if q.created_at %}<time datetime="{{ q.created_at|date:'c' }}">{{ q.created_at|timesince }} ago</time>{% endif %}
+                    {% if q.author %} • by {{ q.author.display_name|default:q.author.username|default:"User" }}{% endif %}
+                  </p>
+                </div>
+              </article>
+            {% endfor %}
+          {% else %}
+            <div class="card"><div class="p-5 text-[color:var(--muted)]">No Q&A yet.</div></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Missions (Gamified) -->
+      <div>
+        <h2 class="font-semibold" style="font-size: var(--h3);">Weekly Missions</h2>
+        <div class="mt-3 grid gap-4 sm:grid-cols-2">
+          <div class="card"><div class="p-5">
+            <div class="flex items-center justify-between"><div class="font-medium">Post a guide</div><span class="pill">+25 REP</span></div>
+            <div class="mt-2 text-sm text-[color:var(--muted)]">Write a helpful tutorial for your game.</div>
+            <div class="mt-3 h-2 rounded bg-[color:var(--surface)] overflow-hidden"><div class="h-full w-[30%] bg-[color:var(--brand-delta)]/60"></div></div>
+            <div class="mt-3 flex justify-end"><a href="/forums/new/?tag=guides" class="btn btn-soft">Start</a></div>
+          </div></div>
+          <div class="card"><div class="p-5">
+            <div class="flex items-center justify-between"><div class="font-medium">Share a clip</div><span class="pill">+10 REP</span></div>
+            <div class="mt-2 text-sm text-[color:var(--muted)]">Upload your best play from this week.</div>
+            <div class="mt-3 h-2 rounded bg-[color:var(--surface)] overflow-hidden"><div class="h-full w-[55%] bg-[color:var(--brand-crown)]/60"></div></div>
+            <div class="mt-3 flex justify-end"><a href="/forums/new/?tag=clip" class="btn btn-soft">Upload</a></div>
+          </div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======== RIGHT COLUMN: LIVE + EVENTS + LEADERBOARD ======== -->
+    <aside class="space-y-6">
+
+      <!-- Quick Compose (inline) -->
+      <div class="card">
+        <form class="p-5 space-y-3" method="post" action="/forums/new/">{% csrf_token %}
+          <div class="font-semibold">Quick post</div>
+          <input class="form-input w-full" type="text" name="title" placeholder="Title" required>
+          <textarea class="form-textarea w-full" name="body" placeholder="Share your update…" rows="3" required></textarea>
+          <div class="flex gap-2">
+            <select name="category" class="form-select">
+              <option value="">Category…</option>
+              <option value="discussions">Discussions</option>
+              <option value="lfg">LFG</option>
+              <option value="guides">Guides</option>
+              <option value="scrims">Scrims</option>
+              <option value="questions">Questions</option>
+            </select>
+            <button class="btn btn-primary ms-auto">Post</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Now Playing / Rooms (uses scrims as rooms fallback) -->
+      <div class="card">
+        <div class="p-5">
+          <h3 class="font-semibold">Now playing rooms</h3>
+          <ul class="mt-3 space-y-3">
+            {% if scrims %}
+              {% for s in scrims|slice:":4" %}
+                <li class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="truncate font-medium">{{ s.title }}</div>
+                    <div class="text-xs text-[color:var(--muted)]">{{ s.game|default:"—" }} • {{ s.region|default:"BD" }}</div>
+                  </div>
+                  <a class="btn btn-ghost" href="{{ s.contact_url|default:s.url|default:'#' }}">Join</a>
+                </li>
+              {% endfor %}
+            {% else %}
+              <li class="text-sm text-[color:var(--muted)]">No active rooms.</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Upcoming Events -->
+      <div class="card">
+        <div class="p-5">
+          <h3 class="font-semibold">Upcoming events</h3>
+          <ul class="mt-3 space-y-3">
+            {% if events %}
+              {% for e in events|slice:":5" %}
+                <li class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="truncate font-medium">{{ e.title|default:e.name }}</div>
+                    <div class="text-xs text-[color:var(--muted)]">
+                      {% if e.time %}{{ e.time|date:"M j, g:i A" }}{% elif e.start_at %}{{ e.start_at|date:"M j, Y" }}{% endif %}
+                      {% if e.location %} · {{ e.location }}{% elif e.game %} · {{ e.game }}{% endif %}
+                    </div>
+                  </div>
+                  {% if e.cta_url %}<a class="btn btn-primary" href="{{ e.cta_url }}">Register</a>{% else %}<a class="btn btn-ghost" href="{{ e.url|default:'#' }}">Details</a>{% endif %}
+                </li>
+              {% endfor %}
+            {% elif upcoming_tournaments %}
+              {% for e in upcoming_tournaments|slice:":5" %}
+                <li class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="truncate font-medium">{{ e.title|default:e.name }}</div>
+                    <div class="text-xs text-[color:var(--muted)]">
+                      {% if e.time %}{{ e.time|date:"M j, g:i A" }}{% elif e.start_at %}{{ e.start_at|date:"M j, Y" }}{% endif %}
+                      {% if e.location %} · {{ e.location }}{% elif e.game %} · {{ e.game }}{% endif %}
+                    </div>
+                  </div>
+                  <a class="btn btn-ghost" href="{{ e.get_absolute_url|default:'#' }}">Details</a>
+                </li>
+              {% endfor %}
+            {% else %}
+              <li class="text-sm text-[color:var(--muted)]">No upcoming events.</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Leaderboard mini -->
+      <div class="card">
+        <div class="p-5">
+          <h3 class="font-semibold">Leaderboard</h3>
+          <ul class="mt-3 space-y-3">
+            {% if top_users %}
+              {% for u in top_users|slice:":5" %}
+                <li class="flex items-center gap-3">
+                  {% if u.avatar_url %}
+                    <img src="{{ u.avatar_url }}" alt="{{ u.username|default:'User' }}" class="h-8 w-8 rounded-full object-cover border border-[color:var(--border)]">
+                  {% else %}
+                    <div class="h-8 w-8 rounded-full grid place-items-center border border-[color:var(--border)] bg-[color:var(--surface)] text-xs font-semibold">
+                      {% if u.username %}{{ u.username|slice:":1"|upper }}{% else %}U{% endif %}
+                    </div>
+                  {% endif %}
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate font-medium">{{ u.display_name|default:u.username }}</div>
+                    <div class="text-xs text-[color:var(--muted)]">{{ u.karma|default:0 }} pts</div>
+                  </div>
+                </li>
+              {% endfor %}
+            {% else %}
+              <li class="text-sm text-[color:var(--muted)]">No leaders yet.</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Share -->
+      <div class="card">
+        <div class="p-5">
+          <h3 class="font-semibold">Share DeltaCrown</h3>
+          <p class="text-sm text-[color:var(--muted)]">Invite your friends to join the community.</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button class="btn btn-soft" id="btn-share">Copy link</button>
+            <a class="btn btn-outline" target="_blank" rel="noopener"
+               href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri|default:request.get_full_path|urlencode }}">Facebook</a>
+            <a class="btn btn-outline" target="_blank" rel="noopener"
+               href="https://api.whatsapp.com/send?text={{ request.build_absolute_uri|default:request.get_full_path|urlencode }}">WhatsApp</a>
           </div>
         </div>
       </div>
 
-      <!-- Trending tags -->
-      <aside class="card bg-white/5 ring-1 ring-white/10">
-        <div class="p-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-white">Trending</h2>
-            <button id="btn-reset-tags" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">Reset</button>
-          </div>
-          <div id="tag-cloud" class="mt-4 flex flex-wrap gap-2">
-            {% for tag in trending_tags|default:"valorant,efootball,pubg,freefire,bdt-100,streams,coaching,discord"|cut:"," %}
-              <button class="chip data-chip" data-filter="{{ tag|trim }}">{{ tag|trim }}</button>
+    </aside>
+
+    <!-- ======== BOTTOM STRIP: DISCOVER + CREATORS + CLIPS ======== -->
+    <div class="lg:col-span-3 space-y-8">
+
+      <!-- Discover Games -->
+      <div>
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold" style="font-size: var(--h3);">Discover channels</h2>
+          <a href="/tournaments/" class="btn btn-soft">All tournaments</a>
+        </div>
+        <div class="mt-3 grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          <a class="card group" href="/forums/?tag=valorant"><div class="p-4 text-center"><div class="font-semibold">Valorant</div><div class="text-xs text-[color:var(--muted)]">Tips, LFG, tourneys</div></div></a>
+          <a class="card group" href="/forums/?tag=efootball"><div class="p-4 text-center"><div class="font-semibold">eFootball</div><div class="text-xs text-[color:var(--muted)]">Mobile & console</div></div></a>
+          <a class="card group" href="/forums/?tag=pubg"><div class="p-4 text-center"><div class="font-semibold">PUBG</div><div class="text-xs text-[color:var(--muted)]">Scrims, customs</div></div></a>
+          <a class="card group" href="/forums/?tag=freefire"><div class="p-4 text-center"><div class="font-semibold">Free Fire</div><div class="text-xs text-[color:var(--muted)]">Loadouts, squads</div></div></a>
+          <a class="card group" href="/forums/?tag=guides"><div class="p-4 text-center"><div class="font-semibold">Guides</div><div class="text-xs text-[color:var(--muted)]">Improve faster</div></div></a>
+          <a class="card group" href="/forums/?tag=lfg"><div class="p-4 text-center"><div class="font-semibold">Find Team</div><div class="text-xs text-[color:var(--muted)]">Role, rank, region</div></div></a>
+        </div>
+      </div>
+
+      <!-- Creator Spotlight -->
+      <div>
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold" style="font-size: var(--h3);">Creator spotlight</h2>
+          <a href="/forums/?tag=highlights" class="btn btn-soft">See highlights</a>
+        </div>
+        {% if creators %}
+          <div class="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {% for c in creators %}
+              <article class="card overflow-hidden">
+                <div class="p-5">
+                  <div class="flex items-center gap-3">
+                    <img src="{{ c.avatar_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" alt="" class="h-10 w-10 rounded-xl border border-[color:var(--border)] object-cover">
+                    <div><div class="font-medium">{{ c.name }}</div><div class="text-sm text-[color:var(--muted)]">{{ c.followers|default:"—" }} followers</div></div>
+                  </div>
+                  <div class="mt-4 flex gap-2">
+                    <a href="{{ c.url|default:'#' }}" target="_blank" rel="noopener" class="btn btn-primary">Follow</a>
+                    <a href="/forums/?author={{ c.slug|default:c.name|urlencode }}" class="btn btn-ghost">Posts</a>
+                  </div>
+                </div>
+              </article>
             {% endfor %}
           </div>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <!-- ===== TABS ===== -->
-  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-    <div class="card bg-white/5 ring-1 ring-white/10">
-      <div class="p-4 border-b border-white/10">
-        <nav class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Community sections">
-          <button class="tab-btn" role="tab" aria-selected="true" data-tab="feed">Feed</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="events">Events</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="scrims">Scrims</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="creators">Creators</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="leaderboard">Leaderboard</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="polls">Polls</button>
-        </nav>
+        {% else %}
+          <div class="card"><div class="p-6 text-[color:var(--muted)]">No creators yet.</div></div>
+        {% endif %}
       </div>
 
-      <!-- === FEED === -->
-      <section id="tab-feed" role="tabpanel" class="p-4 sm:p-6">
-        <div class="grid gap-6 lg:grid-cols-3">
-          <!-- Announcements -->
-          <div class="lg:col-span-2">
-            <h3 class="text-lg font-semibold text-white">Announcements</h3>
-            <div id="announcements" class="mt-3 space-y-3">
-              {% for a in announcements|default:'' %}
-              <article class="card bg-white/5 ring-1 ring-white/10">
-                <a href="{{ a.url }}" class="block p-5 hover:bg-white/5 rounded-2xl transition">
-                  <h4 class="text-white font-semibold">{{ a.title }}</h4>
-                  <p class="mt-1 text-white/70 line-clamp-2">{{ a.summary }}</p>
-                  <p class="mt-2 text-sm text-white/50">{{ a.created_at|date:"M j, g:i A" }}</p>
-                </a>
-              </article>
-              {% empty %}
-              <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-5 text-white/80">
-                Nothing yet—follow our <a class="underline" href="https://facebook.com/DeltaCrown" target="_blank" rel="noopener">Facebook</a> for updates.
-              </div></div>
-              {% endfor %}
-            </div>
-          </div>
-
-          <!-- Discussions -->
-          <div>
-            <h3 class="text-lg font-semibold text-white flex items-center justify-between">
-              Discussions
-              <a href="/forums/" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">View all</a>
-            </h3>
-            <div id="discussions" class="mt-3 space-y-3">
-              {% for p in posts|default:'' %}
-              <article class="card bg-white/5 ring-1 ring-white/10" data-tags="{{ p.tags|default:'' }}">
-                <a href="{{ p.url }}" class="block p-4 hover:bg-white/5 rounded-2xl transition">
-                  <div class="flex items-start justify-between gap-3">
-                    <h4 class="text-white font-medium">{{ p.title }}</h4>
-                    <span class="chip">{{ p.category.title }}</span>
+      <!-- Clips Gallery -->
+      <div>
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold" style="font-size: var(--h3);">Clips Gallery</h2>
+          <a href="/forums/?tag=clip" class="btn btn-soft">Share a clip</a>
+        </div>
+        {% if clips %}
+          <div class="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {% for v in clips %}
+              <article class="card overflow-hidden group">
+                <a href="{{ v.url|default:'#' }}">
+                  <div class="relative">
+                    <img src="{{ v.thumbnail_url|default:'/static/siteui/svg/community.svg' }}" class="w-full aspect-video object-cover" alt="">
+                    {% if v.duration %}<span class="absolute bottom-2 right-2 pill bg-black/60 text-white">{{ v.duration }}</span>{% endif %}
                   </div>
-                  <p class="mt-1 text-white/70 line-clamp-2">{{ p.excerpt }}</p>
-                  <div class="mt-2 text-xs text-white/50 flex items-center gap-3">
-                    <span>{{ p.replies_count|default:"0" }} replies</span>
-                    <span>•</span>
-                    <span>{{ p.views_count|default:"0" }} views</span>
-                    <span>•</span>
-                    <span>Last activity {{ p.last_activity|date:"M j, g:i A" }}</span>
+                  <div class="p-4">
+                    <div class="font-medium line-clamp-2">{{ v.title|default:"Clip" }}</div>
+                    {% if v.creator %}<div class="mt-1 text-sm text-[color:var(--muted)]">by {{ v.creator }}</div>{% endif %}
                   </div>
                 </a>
               </article>
-              {% empty %}
-              <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-5 text-white/80">
-                Be the first to start a discussion. <a class="underline" href="{% if request.user.is_authenticated %}/forums/new/{% else %}/accounts/login/?next=/forums/new/{% endif %}">Create a post</a>.
-              </div></div>
-              {% endfor %}
-            </div>
+            {% endfor %}
           </div>
-        </div>
-      </section>
-
-      <!-- === EVENTS === -->
-      <section id="tab-events" role="tabpanel" class="hidden p-4 sm:p-6">
-        <div class="flex items-end justify-between">
-          <h3 class="text-lg font-semibold text-white">Upcoming community events</h3>
-          <a href="/tournaments/" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">Browse tournaments</a>
-        </div>
-        <div class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {% for ev in upcoming_events|default:'' %}
-          <article class="card bg-white/5 ring-1 ring-white/10">
-            <div class="p-5">
-              <h4 class="text-white font-semibold">{{ ev.title }}</h4>
-              <p class="mt-1 text-white/70">{{ ev.starts_at|date:"M j, g:i A" }} · {{ ev.location|default:"Online" }}</p>
-              <p class="mt-2 text-white/70 line-clamp-2">{{ ev.summary }}</p>
-              <div class="mt-4 flex gap-3">
-                <a class="btn btn-primary" href="{{ ev.url }}">Details</a>
-                <button class="btn btn-ghost btn-rsvp" data-event-id="{{ ev.id|default:forloop.counter }}">RSVP</button>
-              </div>
-            </div>
-          </article>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            No events scheduled. Watch our Discord announcements for pop-ups and scrims.
-          </div></div>
-          {% endfor %}
-        </div>
-      </section>
-
-      <!-- === SCRIMS === -->
-      <section id="tab-scrims" role="tabpanel" class="hidden p-4 sm:p-6">
-        <div class="flex items-end justify-between">
-          <h3 class="text-lg font-semibold text-white">Scrims board</h3>
-          <a href="/forums/new/?category=scrims" class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">Post a scrim</a>
-        </div>
-        <div class="mt-4 space-y-3" id="scrims-board">
-          {% for s in scrims|default:'' %}
-          <article class="card bg-white/5 ring-1 ring-white/10">
-            <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h4 class="text-white font-medium">{{ s.title }}</h4>
-                <p class="text-white/70 text-sm">{{ s.game|default:"—" }} • {{ s.time|date:"M j, g:i A" }} • {{ s.region|default:"BD" }}</p>
-              </div>
-              <div class="flex gap-3">
-                <a class="btn btn-primary" href="{{ s.contact_url|default:'#' }}">DM to join</a>
-                <a class="btn btn-ghost" href="{{ s.url }}">Details</a>
-              </div>
-            </div>
-          </article>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            No scrims posted yet. Be first to <a class="underline" href="/forums/new/?category=scrims">open a slot</a>.
-          </div></div>
-          {% endfor %}
-        </div>
-      </section>
-
-      <!-- === CREATORS === -->
-      <section id="tab-creators" role="tabpanel" class="hidden p-4 sm:p-6">
-        <div class="flex items-end justify-between">
-          <h3 class="text-lg font-semibold text-white">Spotlight creators</h3>
-          <a class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4" href="/forums/?tag=highlights">See highlights</a>
-        </div>
-        <div class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {% for c in creators|default:'' %}
-          <article class="card bg-white/5 ring-1 ring-white/10">
-            <div class="p-5">
-              <div class="flex items-center gap-3">
-                <img src="{{ c.avatar_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" alt="" class="h-10 w-10 rounded-xl ring-1 ring-white/10 object-cover">
-                <div>
-                  <h4 class="text-white font-medium">{{ c.name }}</h4>
-                  <p class="text-white/60 text-sm">{{ c.followers|default:"—" }} followers</p>
-                </div>
-              </div>
-              <div class="mt-4 flex gap-3">
-                <a href="{{ c.url }}" target="_blank" rel="noopener" class="btn btn-primary">Follow</a>
-                <a href="/forums/?author={{ c.slug|default:c.name|urlencode }}" class="btn btn-ghost">Posts</a>
-              </div>
-            </div>
-          </article>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            Creators coming soon. Want to be featured? <a class="underline" href="/support/">Contact us</a>.
-          </div></div>
-          {% endfor %}
-        </div>
-      </section>
-
-      <!-- === LEADERBOARD === -->
-      <section id="tab-leaderboard" role="tabpanel" class="hidden p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-white">Community leaderboard</h3>
-        <p class="mt-1 text-white/70 text-sm">Based on recent verified matches, forum reputation, and highlights.</p>
-        <div class="mt-4 overflow-x-auto">
-          <table class="min-w-full text-left text-sm text-white/80">
-            <thead class="text-white/70">
-              <tr>
-                <th class="py-3 pr-6">Player</th>
-                <th class="py-3 pr-6">Game</th>
-                <th class="py-3 pr-6">Rank</th>
-                <th class="py-3 pr-6">Reputation</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/10">
-              {% for row in leaderboard|default:'' %}
-              <tr>
-                <td class="py-3 pr-6">
-                  <a href="/user/u/{{ row.username }}/" class="hover:underline text-white">{{ row.username }}</a>
-                </td>
-                <td class="py-3 pr-6">{{ row.game }}</td>
-                <td class="py-3 pr-6">{{ row.rank }}</td>
-                <td class="py-3 pr-6">{{ row.reputation }}</td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="4" class="py-6 text-white/70">Leaderboard will appear after the first season kickoff.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- === POLLS === -->
-      <section id="tab-polls" role="tabpanel" class="hidden p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-white">Community polls</h3>
-        <div class="mt-4 grid gap-6 sm:grid-cols-2">
-          <article class="card bg-white/5 ring-1 ring-white/10">
-            <form class="p-5" method="post" action="/community/poll/season-1/">
-              {% csrf_token %}
-              <h4 class="text-white font-medium">Which game should headline Season 1?</h4>
-              <fieldset class="mt-3 space-y-2">
-                <label class="flex items-center gap-2"><input type="radio" name="game" value="valorant" class="accent-indigo-400"><span>Valorant</span></label>
-                <label class="flex items-center gap-2"><input type="radio" name="game" value="efootball" class="accent-indigo-400"><span>eFootball</span></label>
-                <label class="flex items-center gap-2"><input type="radio" name="game" value="pubg" class="accent-indigo-400"><span>PUBG Mobile</span></label>
-              </fieldset>
-              <div class="mt-4 flex gap-3">
-                <button class="btn btn-primary" type="submit">Vote</button>
-                <a href="/community/polls/" class="btn btn-ghost">See results</a>
-              </div>
-            </form>
-          </article>
-
-          <article class="card bg-white/5 ring-1 ring-white/10">
-            <div class="p-5">
-              <h4 class="text-white font-medium">Subscribe for community updates</h4>
-              <p class="mt-2 text-white/70 text-sm">Get highlights, scrims, and event reminders in your inbox.</p>
-              <form class="mt-3 flex flex-col sm:flex-row gap-3" method="post" action="/community/subscribe/">
-                {% csrf_token %}
-                <input required type="email" name="email" placeholder="you@example.com"
-                       class="w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-2 text-white placeholder-white/40 focus:outline-none focus-visible:outline-2 focus-visible:outline-cyan-300">
-                <button class="btn btn-secondary sm:whitespace-nowrap">Subscribe</button>
-              </form>
-            </div>
-          </article>
-        </div>
-      </section>
-    </div>
-  </section>
-
-  <!-- ===== GUIDELINES ===== -->
-  <section id="guidelines" class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-    <h2 class="text-2xl font-semibold text-white mb-4">Community guidelines</h2>
-    <div class="card bg-white/5 ring-1 ring-white/10">
-      <div class="p-6">
-        <ul class="list-disc pl-5 text-white/80 space-y-2">
-          <li>Play fair; no cheating or smurfing. Respect referees and rulings.</li>
-          <li>Zero tolerance for harassment or hate speech. Keep channels safe.</li>
-          <li>No spam/self-promo outside designated channels.</li>
-          <li>Follow platform ToS and local laws. Evidence policy applies to disputes.</li>
-        </ul>
-        <p class="mt-4 text-white/60 text-sm">Violations may lead to warnings, timeouts, or bans per policy.</p>
+        {% else %}
+          <div class="card"><div class="p-6 text-[color:var(--muted)]">No clips yet—be first to upload.</div></div>
+        {% endif %}
       </div>
+
     </div>
   </section>
-
 </main>
 
-<!-- Page script -->
-<script defer src="{% static 'siteui/js/community.js' %}"></script>
+<!-- ===================== Minimal JS: shortcuts + share ===================== -->
+<script>
+(function(){
+  const search = document.getElementById('cmd-search');
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === '/' && !e.target.matches('input, textarea')) { e.preventDefault(); search?.focus(); }
+  });
+
+  const shareBtn = document.getElementById('btn-share');
+  if (shareBtn){
+    shareBtn.addEventListener('click', async ()=>{
+      try{
+        if (navigator.share){
+          await navigator.share({ title: document.title, url: location.href });
+        } else if (navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(location.href);
+          shareBtn.textContent = 'Copied';
+          setTimeout(()=>shareBtn.textContent='Copy link', 1500);
+        } else {
+          const ta=document.createElement('textarea'); ta.value=location.href; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy'); ta.remove();
+          shareBtn.textContent = 'Copied';
+          setTimeout(()=>shareBtn.textContent='Copy link', 1500);
+        }
+      } catch(_){}
+    });
+  }
+})();
+</script>
 {% endblock %}

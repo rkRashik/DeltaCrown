@@ -1,17 +1,10 @@
-<div class="mt-4 rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60">
-  <button class="w-full text-left px-4 py-3 font-semibold flex items-center justify-between" data-rules-toggle>
-    Entry & Rules
-    <span aria-hidden="true">▾</span>
-  </button>
-  <div class="px-4 pb-4 hidden" id="rules-panel">
-    {% if tournament.rules_html %}
-      <div class="prose max-w-none">{{ tournament.rules_html|safe }}</div>
-    {% elif tournament.rules_text %}
-      <pre class="whitespace-pre-wrap text-sm">{{ tournament.rules_text }}</pre>
+<div class="mt-4 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900 p-4">
+  <h3 class="font-semibold text-slate-900 dark:text-slate-100">Rules</h3>
+  <div class="mt-2 prose prose-sm dark:prose-invert max-w-none text-slate-800 dark:text-slate-200">
+    {% if tournament.rules %}
+      {{ tournament.rules|safe }}
     {% else %}
-      {% include "tournaments/_entry_summary.html" ignore missing %}
-      {% include "tournaments/_payment_instructions.html" ignore missing %}
-      <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">See organizer notes for specific game rules.</p>
+      <p>Rules will be provided by the organizer. Follow standard fair-play and platform policies.</p>
     {% endif %}
   </div>
 </div>

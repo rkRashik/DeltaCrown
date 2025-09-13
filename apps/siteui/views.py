@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.apps import apps
 from .services import compute_stats, get_spotlight, get_timeline
+from django.apps import apps as django_apps
 
 def home(request):
     """Premium homepage: dynamic NEXT EVENT + live stats.
@@ -111,3 +112,77 @@ def community(request):
         "forum_categories": [],
         "upcoming_events": [],
     })
+
+
+def _get_model(candidates):
+    """Return the first model that exists from [(app_label, model_name), ...]."""
+    for app_label, model_name in candidates:
+        try:
+            return django_apps.get_model(app_label, model_name)
+        except Exception:
+            continue
+    return None
+
+def community(request):
+    Thread = _get_model([('forums', 'Thread'), ('forums', 'Post'), ('forums', 'Topic')])
+    Tournament = _get_model([('tournaments', 'Tournament')])
+    User = _get_model([('auth', 'User'), ('accounts', 'User'), ('users', 'User')])
+
+    # Threads/feed
+    threads = []
+    if Thread:
+        try:
+            qs = Thread.objects.all().order_by('-id')  # safe ordering
+            threads = list(qs[:20])
+        except Exception:
+            threads = []
+
+    # Popular tags (optional; keep simple/fallback)
+    popular_tags = []  # You can compute real tag counts later
+
+    # Top users (fallback ordering)
+    top_users = []
+    if User:
+        try:
+            qs = User.objects.all().order_by('-date_joined')
+            top_users = list(qs[:8])
+        except Exception:
+            top_users = []
+
+    # Upcoming tournaments / events (fallback)
+    upcoming_tournaments = []
+    if Tournament:
+        try:
+            upcoming_tournaments = list(Tournament.objects.all().order_by('-id')[:6])
+        except Exception:
+            upcoming_tournaments = []
+
+    # Optional extra panels (safe defaults)
+    scrims = []
+    events = []
+    creators = []
+    clips = []
+    qa = []
+
+    # KPIs (simple fallbacks)
+    online_count = 42
+    posts_today = len(threads)
+    scrims_open = len(scrims)
+    events_upcoming = len(events) or len(upcoming_tournaments)
+
+    context = {
+        'threads': threads,
+        'popular_tags': popular_tags,
+        'top_users': top_users,
+        'upcoming_tournaments': upcoming_tournaments,
+        'events': events,
+        'scrims': scrims,
+        'creators': creators,
+        'clips': clips,
+        'qa': qa,
+        'online_count': online_count,
+        'posts_today': posts_today,
+        'scrims_open': scrims_open,
+        'events_upcoming': events_upcoming,
+    }
+    return render(request, 'community.html', context)

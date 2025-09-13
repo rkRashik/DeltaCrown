@@ -1,11 +1,8 @@
-<div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4">
-  <h3 class="font-semibold mb-2">Watch</h3>
-  {% if tournament.stream_url %}
-    <div class="aspect-video rounded-xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
-      <iframe src="{{ tournament.stream_url }}" title="Live stream" class="w-full h-full" allowfullscreen referrerpolicy="no-referrer"></iframe>
-    </div>
-    <p class="text-xs text-gray-500 mt-2">Organizers are encouraged to provide captions when available.</p>
+<div class="rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900 p-4">
+  <h3 class="font-semibold text-slate-900 dark:text-slate-100 mb-2">Watch</h3>
+  {% if tournament.stream_embed %}
+    <div class="text-slate-900 dark:text-slate-100">{{ tournament.stream_embed|safe }}</div>
   {% else %}
-    <p class="text-sm text-gray-600 dark:text-gray-300">No live stream linked yet.</p>
+    <p class="text-sm text-slate-600 dark:text-slate-300">The live stream will appear here when available.</p>
   {% endif %}
 </div>

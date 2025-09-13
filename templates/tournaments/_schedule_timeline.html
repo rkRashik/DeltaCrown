@@ -1,11 +1,17 @@
-<div class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4">
-  <h3 class="font-semibold mb-2">Schedule</h3>
-  <ul class="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-    {% if tournament.reg_open_at %}<li>Registration opens: <strong>{{ tournament.reg_open_at|date:"M j, g:i a" }}</strong></li>{% endif %}
-    {% if tournament.reg_close_at %}<li>Registration closes: <strong>{{ tournament.reg_close_at|date:"M j, g:i a" }}</strong></li>{% endif %}
-    {% if tournament.check_in_starts_at or tournament.checkin_starts_at %}<li>Check-in starts: <strong>{{ tournament.check_in_starts_at|default:tournament.checkin_starts_at|date:"M j, g:i a" }}</strong></li>{% endif %}
-    {% if tournament.check_in_ends_at or tournament.checkin_ends_at %}<li>Check-in ends: <strong>{{ tournament.check_in_ends_at|default:tournament.checkin_ends_at|date:"M j, g:i a" }}</strong></li>{% endif %}
-    {% if tournament.start_at %}<li>Starts: <strong>{{ tournament.start_at|date:"M j, g:i a" }}</strong></li>{% endif %}
-    {% if tournament.end_at %}<li>Ends: <strong>{{ tournament.end_at|date:"M j, g:i a" }}</strong></li>{% endif %}
+<div class="rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900 p-4">
+  <h3 class="font-semibold text-slate-900 dark:text-slate-100">Schedule</h3>
+  <ul class="mt-2 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+    {% if tournament.reg_open_at %}
+      <li>Registration opens: <strong class="text-slate-900 dark:text-slate-100">{{ tournament.reg_open_at|date:"M j, Y H:i" }}</strong></li>
+    {% endif %}
+    {% if tournament.reg_close_at %}
+      <li>Registration closes: <strong class="text-slate-900 dark:text-slate-100">{{ tournament.reg_close_at|date:"M j, Y H:i" }}</strong></li>
+    {% endif %}
+    {% if tournament.start_at %}
+      <li>Starts: <strong class="text-slate-900 dark:text-slate-100">{{ tournament.start_at|date:"M j, Y H:i" }}</strong></li>
+    {% endif %}
+    {% if tournament.end_at %}
+      <li>Ends: <strong class="text-slate-900 dark:text-slate-100">{{ tournament.end_at|date:"M j, Y H:i" }}</strong></li>
+    {% endif %}
   </ul>
 </div>

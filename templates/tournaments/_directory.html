@@ -1,9 +1,11 @@
 <section aria-label="Game directory" class="mb-6">
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-    {% for code,label in games %}
-      <a href="{% url 'tournaments:by_game' code %}" class="rounded-xl ring-1 ring-black/5 dark:ring-white/10 px-3 py-2 bg-white/70 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between">
-        <span class="text-sm">{{ label }}</span>
-        <span class="text-xs text-gray-500">{{ counts.code|default:counts|get_item:code|default:"0" }}</span>
+    {% for g in game_cards %}
+      {% url 'tournaments:by_game' g.code as by_game_url %}
+      <a href="{% if by_game_url %}{{ by_game_url }}{% else %}/tournaments/?game={{ g.code }}{% endif %}"
+         class="rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center justify-between">
+        <span class="text-sm text-slate-900 dark:text-slate-100">{{ g.label }}</span>
+        <span class="text-xs text-slate-700 dark:text-slate-400">{{ g.count }}</span>
       </a>
     {% endfor %}
   </div>
