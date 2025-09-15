@@ -30,7 +30,8 @@ class DCLogoutView(LogoutView):
 class SignUpView(FormView):
     template_name = "account/signup.html"
     form_class = SignUpForm
-    success_url = reverse_lazy("account:verify_email")
+    # Change this to redirect to OTP verification instead of generic email sent
+    success_url = reverse_lazy("account:verify_email_otp")
 
     def form_valid(self, form):
         user = form.save()  # is_active = False
@@ -71,21 +72,33 @@ class VerifyEmailView(FormView):
         messages.success(self.request, "Email verified—welcome!")
         return super().form_valid(form)
 
+
 class ResendOTPView(View):
     def post(self, request):
         user_id = request.session.get("pending_user_id")
         user = User.objects.filter(id=user_id).first()
         if not user:
-            return redirect("account:login")
-        last = EmailOTP.objects.filter(user=user).order_by("-created_at").first()
+            messages.error(request, "No pending verification found.")
+            return redirect("account:signup")
+
+        # Check if we've sent too many OTPs recently
         from django.utils import timezone
-        if last and (timezone.now() - last.created_at).total_seconds() < 60:
-            messages.info(request, "Please wait a minute before requesting a new code.")
-            return redirect("account:verify_email")
+        from datetime import timedelta
+
+        recent_otps = EmailOTP.objects.filter(
+            user=user,
+            created_at__gte=timezone.now() - timedelta(minutes=2)
+        ).count()
+
+        if recent_otps >= 2:
+            messages.info(request, "Please wait before requesting a new code.")
+            return redirect("account:verify_email_otp")
+
+        # Create and send new OTP
         otp = EmailOTP.create_for_user(user)
         send_otp_email(user, otp.code)
-        messages.success(request, "A new code has been sent.")
-        return redirect("account:verify_email")
+        messages.success(request, "A new verification code has been sent.")
+        return redirect("account:verify_email_otp")
 
 # ---------- Google OAuth ----------
 class GoogleLoginStart(View):

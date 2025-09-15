@@ -17,6 +17,7 @@ urlpatterns = [
     # OTP verify
     path("verify/", VerifyEmailView.as_view(), name="verify_email"),
     path("verify/resend/", ResendOTPView.as_view(), name="resend_otp"),
+    path("verify/otp/", VerifyEmailView.as_view(), name="verify_email_otp"),
 
     # Password reset (keeps namespaced email template)
     path("password_reset/", auth_views.PasswordResetView.as_view(

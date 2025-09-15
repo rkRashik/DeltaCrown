@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Verify Email — DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-bg"></div>
+    <div class="auth-bg-pattern"></div>
+
+    <div class="auth-form-card">
+        <div class="auth-header">
+            <a href="/" class="auth-logo">
+                <img src="{% static 'siteui/svg/logo-deltacrown-static.svg' %}" alt="DeltaCrown logo">
+                DeltaCrown
+            </a>
+            <h1 class="auth-form-title">Verify Your Email</h1>
+            <p class="auth-form-subtitle">Enter the 6-digit code sent to your email</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="form-error">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_code" class="form-label">Verification Code</label>
+                <input type="text" name="code" id="id_code" required class="form-input"
+                       placeholder="Enter 6-digit code" pattern="[0-9]{6}" maxlength="6">
+                {% if form.code.errors %}<div class="form-error">{{ form.code.errors|join:', ' }}</div>{% endif %}
+            </div>
+
+            <button type="submit" class="btn-auth">Verify Account</button>
+        </form>
+
+        <div class="auth-links">
+            <form method="post" action="{% url 'account:resend_otp' %}">
+                {% csrf_token %}
+                <button type="submit" class="auth-link">Resend Code</button>
+            </form>
+            <a href="{% url 'account:login' %}" class="auth-link">Back to Sign In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

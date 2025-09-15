@@ -1,18 +1,38 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Confirm email — DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
+{% endblock %}
+
 {% block content %}
-<section class="container py-10">
-  <div class="glass p-6 rounded-2xl auth-card text-center">
-    <h1 class="sec-h">Confirm email</h1>
-    {% if confirmation %}
-      <p class="text-muted">Email: {{ confirmation.email_address.email }}</p>
-      <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
-        {% csrf_token %}
-        <button class="btn-primary mt-3" type="submit">Confirm</button>
-      </form>
-    {% else %}
-      <p class="text-muted">This confirmation link is invalid.</p>
-    {% endif %}
-  </div>
-</section>
+<div class="auth-container">
+    <div class="auth-bg"></div>
+    <div class="auth-bg-pattern"></div>
+
+    <div class="auth-message-card">
+        <div class="auth-message-icon">
+            <i class="fas fa-envelope"></i>
+        </div>
+
+        <h1 class="auth-message-title">Confirm Email</h1>
+
+        {% if confirmation %}
+            <p class="auth-message-text">Please confirm that <strong>{{ confirmation.email_address.email }}</strong> is your email address.</p>
+
+            <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+                {% csrf_token %}
+                <button class="btn-auth" type="submit">Confirm Email</button>
+            </form>
+        {% else %}
+            <p class="auth-message-text">This confirmation link has expired or is invalid.</p>
+
+            <div class="auth-message-actions">
+                <a href="{% url 'account:login' %}" class="btn-secondary">Return to Sign In</a>
+                <a href="{% url 'account:signup' %}" class="auth-link">Create New Account</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

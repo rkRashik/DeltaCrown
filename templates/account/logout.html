@@ -1,14 +1,31 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Sign out — DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
+{% endblock %}
+
 {% block content %}
-<section class="container py-10">
-  <div class="glass p-6 rounded-2xl auth-card text-center">
-    <h1 class="sec-h">Sign out</h1>
-    <p class="text-muted mt-2">Are you sure you want to sign out?</p>
-    <form method="post" action="{% url 'account_logout' %}">
-      {% csrf_token %}
-      <button class="btn-primary mt-3" type="submit">Sign out</button>
-    </form>
-  </div>
-</section>
+<div class="auth-container">
+    <div class="auth-bg"></div>
+    <div class="auth-bg-pattern"></div>
+
+    <div class="auth-message-card">
+        <div class="auth-message-icon">
+            <i class="fas fa-sign-out-alt"></i>
+        </div>
+
+        <h1 class="auth-message-title">Sign Out</h1>
+        <p class="auth-message-text">Are you sure you want to leave the arena?</p>
+
+        <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <div class="auth-message-actions">
+                <button class="btn-auth" type="submit">Sign Out</button>
+                <a href="javascript:history.back()" class="btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
