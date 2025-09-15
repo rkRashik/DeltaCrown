@@ -1,31 +1,125 @@
+{% load static %}
 <div id="main-drawer" class="mobile-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawer-title">
   <div class="mobile-drawer__panel" role="document">
-    <button class="btn-ghost close-x" data-close-drawer aria-label="Close menu">×</button>
-    <h2 id="drawer-title" class="sr-only">Navigation</h2>
-    <form action="/search/" method="get" class="mb-3">
-      <input class="filter-input w-full" type="search" name="q" placeholder="Search…">
+    <div class="mobile-drawer__header">
+      <a href="/" class="mobile-drawer__brand">
+        <img src="{% static 'siteui/svg/logo-deltacrown-animated.svg' %}" alt="DeltaCrown" class="h-7 w-7" />
+        <span class="text-lg font-bold">DeltaCrown</span>
+      </a>
+      <button class="mobile-drawer__close" data-close-drawer aria-label="Close menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+
+    <form action="/search/" method="get" class="mobile-search">
+      <input class="mobile-search__input" type="search" name="q" placeholder="Search tournaments, teams, gear...">
     </form>
-    <ul class="drawer-links">
-      <li><a class="link-nav" href="/tournaments/">Tournaments</a></li>
-      <li><a class="link-nav" href="/teams/">Teams</a></li>
-      <li>
-        <a class="link-nav" href="{% firstof '/watch/' '/tournaments/' %}">Watch{% if nav_live %} <span class="pill pill--live">Live</span>{% endif %}</a>
-      </li>
-      <li><a class="link-nav" href="/pages/community/">Community</a></li>
-      <li><a class="link-nav" href="/pages/about/">About</a></li>
-      <li class="pt-2 border-t border-border">
+
+    <nav class="mobile-nav">
+      <h2 id="drawer-title" class="sr-only">Navigation</h2>
+      <ul class="mobile-nav__list">
+        <li class="mobile-nav__item">
+          <a class="mobile-nav__link" href="/tournaments/">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M17 13h-4v-4h4v4zm2 4H5V7h14v10z"/>
+            </svg>
+            <span>Tournaments</span>
+          </a>
+        </li>
+        <li class="mobile-nav__item">
+          <a class="mobile-nav__link" href="/teams/">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4z"/>
+            </svg>
+            <span>Teams</span>
+          </a>
+        </li>
         {% if request.user.is_authenticated %}
-          <a class="btn-primary w-full" href="/dashboard/">Dashboard</a>
-        {% else %}
-          <div class="flex gap-2">
-            <a class="btn-primary w-full" href="/accounts/login/">Sign in</a>
-            <a class="btn-secondary w-full" href="/accounts/signup/">Create account</a>
-          </div>
+        <li class="mobile-nav__item">
+          <a class="mobile-nav__link" href="/dashboard/">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M4 13h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1zm0 8h6c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1zm10 0h6c.55 0 1-.45 1-1v-8c0-.55-.45-1-1-1h-6c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1zM13 4v4c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1h-6c-.55 0-1 .45-1 1z"/>
+            </svg>
+            <span>Dashboard</span>
+          </a>
+        </li>
         {% endif %}
-      </li>
-      <li><button class="btn-secondary w-full" data-theme-toggle id="theme-toggle-mobile" aria-pressed="false">Theme</button></li>
-    </ul>
+        <li class="mobile-nav__item">
+          <a class="mobile-nav__link" href="/crowngear/">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-1.99.9-1.99 2L3 20c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm0 10c-2.76 0-5-2.24-5-5h2c0 1.66 1.34 3 3 3s3-1.34 3-3h2c0 2.76-2.24 5-5 5z"/>
+            </svg>
+            <span>CrownGear</span>
+          </a>
+        </li>
+        <li class="mobile-nav__item">
+          <a class="mobile-nav__link" href="/arenalive/">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M18 10.48V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-4.48l4 3.98v-11l-4 3.98zm-3 3.52v-3l4 3-4 3z"/>
+            </svg>
+            <span>ArenaLive{% if nav_live %} <span class="pill pill--live">Live</span>{% endif %}</span>
+          </a>
+        </li>
+        <li class="mobile-nav__item">
+          <a class="mobile-nav__link" href="/community/">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zm4 18v-6h2.5l-2.54-7.63C19.68 7.55 18.92 7 18.06 7h-.12c-.86 0-1.62.55-1.9 1.37l-.86 2.58c1.08.6 1.82 1.73 1.82 3.05v8h3zm-7.5-10.5c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5-1.5.67-1.5 1.5.67 1.5 1.5 1.5zM5.5 6c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm2 16v-7H5v7h2.5zm2.5-16c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM12.5 22v-7H10v7h2.5z"/>
+            </svg>
+            <span>Community</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="mobile-drawer__footer">
+      {% if request.user.is_authenticated %}
+        <div class="mobile-user">
+          <img src="{{ request.user.profile.avatar.url|default:'/static/img/user_avatar/default-avatar.png' }}" alt="User avatar" class="mobile-user__avatar">
+          <div class="mobile-user__info">
+            <div class="mobile-user__name">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="mobile-user__username">@{{ request.user.username }}</div>
+          </div>
+          <a href="/accounts/logout/" class="mobile-user__logout" aria-label="Sign out">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+            </svg>
+          </a>
+        </div>
+
+        <div class="mobile-actions">
+          <a href="/notifications/" class="mobile-action-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1z"/>
+            </svg>
+            <span>Notifications</span>
+            {% if nav_unread_count %}
+            <span class="mobile-notification-badge">{{ nav_unread_count }}</span>
+            {% endif %}
+          </a>
+
+          <button class="mobile-action-btn" data-theme-toggle aria-pressed="false">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>
+            </svg>
+            <span>Theme</span>
+          </button>
+        </div>
+      {% else %}
+        <div class="mobile-auth">
+          <a class="btn-primary w-full" href="/accounts/login/">Log In</a>
+          <a class="btn-secondary w-full" href="/accounts/signup/">Sign Up</a>
+        </div>
+
+        <button class="mobile-theme-toggle" data-theme-toggle id="theme-toggle-mobile" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>
+          </svg>
+          <span>Theme</span>
+        </button>
+      {% endif %}
+    </div>
   </div>
   <button class="mobile-drawer__scrim" data-close-drawer aria-label="Close"></button>
 </div>
-

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" role="img" aria-labelledby="title-bell3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <title id="title-bell3">Notifications</title>
+  <g>
+    <path d="M12 4.2c-2.87 0-5.2 2.33-5.2 5.2V14l-1.2 2c-.2.35.05.8.46.8h11.88c.41 0 .66-.45.46-.8L17.2 14V9.4c0-2.87-2.33-5.2-5.2-5.2Z"/>
+    <path d="M10 18.8a2 2 0 0 0 4 0"/>
+  </g>
+  <!-- badge (hide/show as needed) -->
+  <circle cx="18.2" cy="5.8" r="2.3" fill="currentColor"/>
+</svg>

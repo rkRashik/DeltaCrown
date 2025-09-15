@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" role="img" aria-labelledby="title-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <title id="title-bell">Notifications</title>
+  <path d="M15.5 18H8.5c-1.1 0-2-.9-2-2v-4.2c0-3.13 2.37-5.8 5.5-5.8s5.5 2.67 5.5 5.8V16c0 1.1-.9 2-2 2Z"/>
+  <path d="M9.75 18a2.25 2.25 0 0 0 4.5 0"/>
+  <!-- unread dot -->
+  <circle cx="17.8" cy="6.2" r="2.1" fill="currentColor"/>
+</svg>
