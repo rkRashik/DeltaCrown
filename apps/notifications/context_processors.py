@@ -2,10 +2,7 @@ from django.apps import apps
 
 
 def _get_unread_count_for_user(user) -> int:
-    """
-    Your Notification.recipient FK points to auth.User (not UserProfile),
-    so count by the authenticated request.user directly.
-    """
+    """Count unread notifications for the authenticated user instance."""
     if not user or not getattr(user, "is_authenticated", False):
         return 0
     Notification = apps.get_model("notifications", "Notification")

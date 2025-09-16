@@ -33,9 +33,13 @@ class SignUpView(FormView):
     success_url = reverse_lazy("account:verify_email")
 
     def form_valid(self, form):
-        user = form.save()  # is_active = False
-        otp = EmailOTP.create_for_user(user)
-        send_otp_email(user, otp.code)
+        user = form.save()  # is_active = False / unverified
+        try:
+            otp = EmailOTP.create_for_user(user, enforce_cooldown=False)
+        except EmailOTP.RateLimitError:
+            otp = EmailOTP.objects.filter(user=user, is_used=False).order_by("-created_at").first()
+        if otp:
+            send_otp_email(user, otp.code)
         self.request.session["pending_user_id"] = user.id
         messages.info(self.request, "We sent a 6-digit code to your email.")
         return super().form_valid(form)
@@ -46,9 +50,14 @@ def profile_view(request: HttpRequest) -> HttpResponse:
 
 # ---------- Email OTP ----------
 class VerifyEmailView(FormView):
-    template_name = "account/verify_email.html"
+    template_name = "account/verify_email_otp.html"
     form_class = VerifyEmailForm
     success_url = reverse_lazy("account:profile")
+
+    def _cleanup_pending(self, user):
+        EmailOTP.objects.filter(user=user).delete()
+        if not getattr(user, "is_verified", False) and not user.is_active:
+            user.delete()
 
     def dispatch(self, request, *args, **kwargs):
         if not request.session.get("pending_user_id"):
@@ -61,11 +70,30 @@ class VerifyEmailView(FormView):
         if not user:
             return HttpResponseBadRequest("No pending user.")
         otp = EmailOTP.objects.filter(user=user, is_used=False).order_by("-created_at").first()
-        if not otp or not otp.verify(form.cleaned_data["code"]):
-            messages.error(self.request, "Invalid or expired code.")
+        if not otp:
+            messages.error(self.request, "We couldn't find a pending code. Please request a new one.")
             return self.form_invalid(form)
-        user.is_active = True
-        user.save(update_fields=["is_active"])
+        if otp.is_expired:
+            otp.is_used = True
+            otp.save(update_fields=["is_used"])
+            messages.error(self.request, "That code has expired. Request a new one to continue.")
+            return self.form_invalid(form)
+        if not otp.verify(form.cleaned_data["code"]):
+            if otp.attempts >= EmailOTP.MAX_ATTEMPTS:
+                self._cleanup_pending(user)
+                self.request.session.pop("pending_user_id", None)
+                messages.error(self.request, "Too many incorrect attempts. Please sign up again.")
+                return redirect("account:signup")
+            remaining = otp.attempts_remaining
+            if remaining:
+                messages.error(
+                    self.request,
+                    f"Invalid code. You have {remaining} attempt{'s' if remaining != 1 else ''} left.",
+                )
+            else:
+                messages.error(self.request, "Invalid code. Please request a new one.")
+            return self.form_invalid(form)
+        user.mark_email_verified()
         login(self.request, user)
         self.request.session.pop("pending_user_id", None)
         messages.success(self.request, "Email verified—welcome!")
@@ -77,12 +105,11 @@ class ResendOTPView(View):
         user = User.objects.filter(id=user_id).first()
         if not user:
             return redirect("account:login")
-        last = EmailOTP.objects.filter(user=user).order_by("-created_at").first()
-        from django.utils import timezone
-        if last and (timezone.now() - last.created_at).total_seconds() < 60:
+        try:
+            otp = EmailOTP.create_for_user(user)
+        except EmailOTP.RateLimitError:
             messages.info(request, "Please wait a minute before requesting a new code.")
             return redirect("account:verify_email")
-        otp = EmailOTP.create_for_user(user)
         send_otp_email(user, otp.code)
         messages.success(request, "A new code has been sent.")
         return redirect("account:verify_email")
@@ -140,8 +167,17 @@ class GoogleCallback(View):
 
         user, created = User.objects.get_or_create(
             email=email,
-            defaults={"username": _unique_username_from(name), "is_active": True},
+            defaults={
+                "username": _unique_username_from(name),
+                "is_active": True,
+                "is_verified": True,
+            },
         )
+        if not created and not getattr(user, "is_verified", False):
+            user.is_verified = True
+            if not user.is_active:
+                user.is_active = True
+            user.save(update_fields=["is_verified", "is_active"])
         if created:
             messages.success(request, "Welcome with Google!")
         login(request, user)

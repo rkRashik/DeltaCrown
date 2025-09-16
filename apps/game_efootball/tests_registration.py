@@ -1,10 +1,12 @@
 # apps/game_efootball/tests_registration.py
 import pytest
+from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.contrib.auth.models import User
 
 from apps.user_profile.models import UserProfile
 from apps.tournaments.models import Tournament
+
+User = get_user_model()
 
 @pytest.mark.django_db
 def test_efootball_solo_prefill_and_payment_required(client):

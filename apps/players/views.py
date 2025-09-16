@@ -1,8 +1,9 @@
 from __future__ import annotations
+from django.contrib.auth import get_user_model
 from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.models import User
 from django.apps import apps
 
+User = get_user_model()
 
 def player_detail(request, username: str):
     user = get_object_or_404(User, username=username)

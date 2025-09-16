@@ -8,11 +8,10 @@ from django.http import JsonResponse
 from django.views.decorators.cache import cache_page
 
 Notification = apps.get_model("notifications", "Notification")
-UserProfile = apps.get_model("user_profile", "UserProfile")
 
 
 def _user(user):
-    # Return the auth user (Notification.recipient targets auth.User)
+    # Return the auth user (Notification.recipient targets AUTH_USER_MODEL)
     return user
 
 

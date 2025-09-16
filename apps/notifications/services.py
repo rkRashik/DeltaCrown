@@ -29,7 +29,7 @@ class EmitResult(dict):
 
 
 def _resolve_email(target: Any) -> Optional[str]:
-    """Return an email from auth.User / UserProfile / raw string."""
+    """Return an email from a user/profile instance or raw string."""
     if isinstance(target, str):
         return target
     u = getattr(target, "user", None)
@@ -41,7 +41,7 @@ def _resolve_email(target: Any) -> Optional[str]:
 
 
 def _to_auth_user(target: Any) -> Optional[User]:
-    """Normalize target to auth.User (UserProfile → .user; User → itself)."""
+    """Normalize target to the configured AUTH_USER_MODEL instance."""
     if getattr(target, "user", None) and getattr(getattr(target, "user"), "_meta", None):
         usr = target.user
         if getattr(usr._meta, "model_name", "") == "user":
@@ -93,7 +93,7 @@ def notify(
     email_ctx: Optional[Dict[str, Any]] = None,
 ) -> dict:
     """
-    Create Notification rows for auth.User recipients and optionally send emails.
+    Create Notification rows for AUTH_USER_MODEL recipients and optionally send emails.
     RETURNS a dict: {"created": X, "skipped": Y, "email_sent": Z}
     """
     event_str = event or ntype or "generic"

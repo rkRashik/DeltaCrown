@@ -29,5 +29,6 @@ def test_email_signup_and_verify_flow(client):
     assert resp2.status_code == 200
     u.refresh_from_db()
     assert u.is_active
+    assert getattr(u, "is_verified", False)
     # Landed on profile
     assert "Profile" in resp2.content.decode()

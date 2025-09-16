@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+from django.conf import settings
 from django.db import models
 
 
@@ -26,9 +27,9 @@ class Notification(models.Model):
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Your project uses auth.User as recipient
+    # Recipient references the swappable AUTH_USER_MODEL
     recipient = models.ForeignKey(
-        "auth.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="notifications",
     )

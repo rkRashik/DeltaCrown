@@ -1,5 +1,5 @@
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
 
 REGION_CHOICES = [
     ("BD", "Bangladesh"),
@@ -13,7 +13,7 @@ def user_avatar_path(instance, filename):
     return f"user_avatars/{instance.user_id}/{filename}"
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     display_name = models.CharField(max_length=80)
     region = models.CharField(max_length=2, choices=REGION_CHOICES, default="BD")
     avatar = models.ImageField(upload_to=user_avatar_path, blank=True, null=True)
