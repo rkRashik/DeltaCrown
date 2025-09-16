@@ -49,7 +49,7 @@
       </li>
       {% endif %}
 
-      <!-- CrownGear (formerly CrownStore) -->
+      <!-- CrownGear -->
       <li role="none" class="nav-item">
         <a role="menuitem" class="nav-link" href="/crowngear/">
           <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -59,7 +59,7 @@
         </a>
       </li>
 
-      <!-- ArenaLive (formerly Watch) -->
+      <!-- ArenaLive -->
       <li role="none" class="nav-item">
         <a role="menuitem" class="nav-link" href="/arenalive/">
           <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -127,35 +127,34 @@
           {% with avatar_url=request.user.profile.avatar.url|default:"/static/img/user_avatar/default-avatar.png" %}
           <button class="user-menu-btn" data-avatar-toggle
                   aria-haspopup="true" aria-expanded="false" aria-controls="menu-account">
-            <img src="{{ avatar_url }}" alt="User avatar" class="user-avatar">
-            <svg class="dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+            <div class="avatar-wrapper">
+              <img src="{{ avatar_url }}" alt="User avatar" class="user-avatar">
+              <div class="avatar-status"></div>
+            </div>
           </button>
 
           <div id="menu-account" class="dropdown-menu user-menu"
                hidden data-avatar-menu role="menu" aria-label="Account">
             <!-- Header -->
             <div class="user-menu-header">
-              <img src="{{ avatar_url }}" alt="User avatar" class="user-avatar-large">
+              <div class="avatar-wrapper-large">
+                <img src="{{ avatar_url }}" alt="User avatar" class="user-avatar-large">
+                <div class="avatar-status-large"></div>
+              </div>
               <div class="user-info">
-                <div class="user-display-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                <div class="user-display-name">{{ request.user.get_full_name|default:request.user.first_name|default:request.user.username }}</div>
                 <div class="user-username">@{{ request.user.username }}</div>
               </div>
             </div>
 
-            <!-- My Stuff -->
+            <!-- Quick Actions -->
             <div class="menu-section">
-              <div class="menu-section-title">My Stuff</div>
-              <a role="menuitem" class="menu-item" href="/dashboard/">
+              <div class="menu-section-title">Quick Actions</div>
+              <a role="menuitem" class="menu-item" href="/user/u/{{ request.user.username }}/">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M4 13h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1zm0 8h6c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1zm10 0h6c.55 0 1-.45 1-1v-8c0-.55-.45-1-1-1h-6c-.55 0-1 .45-1 1v8c0 .55.45 1 1 1zM13 4v4c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1h-6c-.55 0-1 .45-1 1z"/>
+                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
                 </svg>
-                <span>Dashboard</span>
-              </a>
-              <a role="menuitem" class="menu-item" href="/dashboard/matches/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
-                </svg>
-                <span>My Matches</span>
+                <span>View Profile</span>
               </a>
               <a role="menuitem" class="menu-item" href="/teams/">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -163,34 +162,33 @@
                 </svg>
                 <span>My Teams</span>
               </a>
+              <a role="menuitem" class="menu-item" href="/dashboard/matches/">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+                </svg>
+                <span>My Matches</span>
+              </a>
             </div>
 
             <!-- Account -->
             <div class="menu-section">
               <div class="menu-section-title">Account</div>
-              <a role="menuitem" class="menu-item" href="/user/u/{{ request.user.username }}/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                </svg>
-                <span>Profile</span>
-              </a>
               <a role="menuitem" class="menu-item" href="/user/me/edit/">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                 </svg>
-                <span>Settings</span>
+                <span>Edit Profile</span>
               </a>
-              <a role="menuitem" class="menu-item" href="/dashboard/">
+              <a role="menuitem" class="menu-item" href="/notifications/">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 13.5h-2v-7h2v7zm4 0h-2v-7h2v7z"/>
+                  <path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1z"/>
                 </svg>
-                <span>Payouts</span>
+                <span>Notification Settings</span>
               </a>
             </div>
 
             <!-- Auth -->
             <div class="menu-section">
-              <div class="menu-section-title">Auth</div>
               <a role="menuitem" class="menu-item menu-item-logout" href="/accounts/logout/">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
