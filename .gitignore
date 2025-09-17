@@ -1,3 +1,29 @@
 .venv
 .env
-.idea
+.idea# Python bytecode
+__pycache__/
+*.py[cod]
+*.class
+
+# Environments
+.venv/
+venv/
+.env
+.env.*
+
+# Django / logs / db (adjust if you track any of these intentionally)
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Node / build (if any)
+node_modules/
+dist/
+build/
