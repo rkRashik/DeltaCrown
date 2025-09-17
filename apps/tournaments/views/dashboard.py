@@ -432,5 +432,5 @@ def match_dispute_resolve_view(request, match_id):
 
         return redirect("tournaments:match_review", match_id=m.id)
 
-    # GET → show the staff form
+    # GET -> show the staff form
     return render(request, "tournaments/staff_dispute.html", {"match": m, "dispute": d})

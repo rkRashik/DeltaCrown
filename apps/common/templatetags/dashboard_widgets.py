@@ -111,7 +111,8 @@ def upcoming_matches(context, matches=None, limit: Any = 5) -> str:
             if round_no:
                 meta_bits.append(f"Round {escape(str(round_no))}")
             meta_bits.append(_fmt_time(scheduled_at))
-            meta = " · ".join([b for b in meta_bits if b])
+            meta_bits = [b for b in meta_bits if b]
+            meta = " &#183; ".join(meta_bits)
 
             # Link
             href = "#"
