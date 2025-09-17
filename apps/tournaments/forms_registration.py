@@ -71,7 +71,7 @@ class BaseRegistrationForm(IdempotentAutofillMixin, forms.Form):
         choices=PAYMENT_METHOD_CHOICES, required=False, help_text="Optional"
     )
     payment_reference = forms.CharField(
-        max_length=128, required=False, help_text="Transaction ID / Reference (optional)"
+        max_length=128, required=False, label="Transaction ID", help_text="Transaction ID (optional)"
     )
     payer_account_number = forms.CharField(
         max_length=32, required=False, help_text="Your bKash/Nagad/Rocket number (optional)"
@@ -262,3 +262,4 @@ class SoloRegistrationForm(BaseRegistrationForm):
 
 
 __all__ = ["SoloRegistrationForm", "TeamRegistrationForm"]
+

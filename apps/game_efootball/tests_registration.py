@@ -1,7 +1,9 @@
 # apps/game_efootball/tests_registration.py
 import pytest
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 from apps.user_profile.models import UserProfile
 from apps.tournaments.models import Tournament
@@ -91,3 +93,4 @@ def test_efootball_duo_captain_team_flow(client):
     r = client.post(url, payload, follow=True)
     assert r.status_code == 200
     assert b"Registration submitted" in r.content
+

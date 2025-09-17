@@ -2,6 +2,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.urls import reverse
+from django_ckeditor_5.fields import CKEditor5Field
 
 from .paths import tournament_banner_path, rules_pdf_path  # rules_pdf_path kept for compat if used anywhere
 
@@ -15,6 +16,8 @@ class TournamentStatus(models.TextChoices):
 
 
 class Tournament(models.Model):
+    """Primary tournament model with basics, schedule, prizes, and helpers."""
+
     class Game(models.TextChoices):
         VALORANT = "valorant", "Valorant"
         EFOOTBALL = "efootball", "eFootball Mobile"
@@ -22,31 +25,32 @@ class Tournament(models.Model):
     # Back-compat alias so code can keep using Tournament.Status
     Status = TournamentStatus
 
-    # Identity
+    # ----- Basics -----
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, max_length=255)
-    short_description = models.CharField(max_length=255, blank=True, default="")
+    short_description = CKEditor5Field("Short description", config_name="default", blank=True, null=True)
 
-    # Core config
+    # ----- Core Configuration -----
     game = models.CharField(max_length=20, choices=Game.choices)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
     banner = models.ImageField(upload_to=tournament_banner_path, blank=True, null=True)
 
-    # Scheduling/registration windows
+    # ----- Schedule -----
     slot_size = models.PositiveIntegerField(null=True, blank=True)
     reg_open_at = models.DateTimeField(blank=True, null=True)
     reg_close_at = models.DateTimeField(blank=True, null=True)
     start_at = models.DateTimeField(blank=True, null=True)
     end_at = models.DateTimeField(blank=True, null=True)
 
-    # Money
+    # ----- Finance -----
     entry_fee_bdt = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     prize_pool_bdt = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
-    # Timestamps
+    # ----- Metadata -----
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # ----- Publishing toggles -----
     groups_published = models.BooleanField(
         default=False,
         help_text="Show bracket groups on public page when enabled."

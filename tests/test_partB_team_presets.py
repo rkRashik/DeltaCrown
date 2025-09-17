@@ -11,7 +11,7 @@ ValorantTeamPreset = apps.get_model('teams', 'ValorantTeamPreset')
 ValorantPlayerPreset = apps.get_model('teams', 'ValorantPlayerPreset')
 
 def make_profile(username: str):
-    user = User.objects.create_user(username=username, password='x')
+    user = User.objects.create_user(username=username, email=f"{username}@example.com", password='x')
     prof, _ = UserProfile.objects.get_or_create(user=user)
     return prof
 

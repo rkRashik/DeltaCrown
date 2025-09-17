@@ -1,9 +1,11 @@
 # apps/tournaments/migrations/00xx_user_prefs.py
+from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 
 def backfill_calendar_tokens(apps, schema_editor):
-    User = apps.get_model("auth", "User")
+    app_label, model_name = settings.AUTH_USER_MODEL.split('.')
+    User = apps.get_model(app_label, model_name)
     CalendarFeedToken = apps.get_model("tournaments", "CalendarFeedToken")
     import secrets
     for u in User.objects.all():
@@ -23,7 +25,7 @@ class Migration(migrations.Migration):
                 ("id", models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name="ID")),
                 ("token", models.CharField(max_length=64, unique=True, db_index=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("user", models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to="auth.user", related_name="calendar_feed_token")),
+                ("user", models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL, related_name="calendar_feed_token")),
             ],
         ),
         migrations.CreateModel(
@@ -39,7 +41,7 @@ class Migration(migrations.Migration):
                 ("end_date", models.DateField(null=True, blank=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("user", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="saved_match_filters", to="auth.user")),
+                ("user", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="saved_match_filters", to=settings.AUTH_USER_MODEL)),
             ],
             options={"constraints": [models.UniqueConstraint(fields=["user", "name"], name="uq_saved_match_filter_user_name")]},
         ),
@@ -49,7 +51,7 @@ class Migration(migrations.Migration):
                 ("id", models.AutoField(primary_key=True, serialize=False, auto_created=True, verbose_name="ID")),
                 ("tournament_id", models.IntegerField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("user", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="pinned_tournaments", to="auth.user")),
+                ("user", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="pinned_tournaments", to=settings.AUTH_USER_MODEL)),
             ],
             options={"constraints": [models.UniqueConstraint(fields=["user", "tournament_id"], name="uq_pin_user_tournament")]},
         ),

@@ -1,0 +1,17 @@
+﻿.ck-editor__editable_inline {
+    min-height: 180px;
+    color: var(--body-fg, #111);
+    background-color: var(--body-bg, #fff);
+    padding: 12px;
+    border-radius: 6px;
+}
+
+.ck-editor__editable_inline:focus {
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.35);
+}
+
+.ck.ck-editor__main > .ck-editor__editable {
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}

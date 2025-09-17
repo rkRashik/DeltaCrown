@@ -15,7 +15,7 @@ def _profile(user):
 
 @pytest.mark.django_db
 def test_participation_awarded_once_on_verified_payment(django_user_model):
-    u = django_user_model.objects.create_user(username="p1", password="x")
+    u = django_user_model.objects.create_user(username="p1", email="p1@example.com", password="x")
     p = _profile(u)
 
     # SOLO tournament for a user registration (eFootball = solo)
@@ -50,10 +50,10 @@ def test_participation_awarded_once_on_verified_payment(django_user_model):
 @pytest.mark.django_db
 def test_backfill_awards_for_existing_verified_regs(django_user_model):
     # Setup users
-    u1 = django_user_model.objects.create_user(username="solo", password="x")
-    u2 = django_user_model.objects.create_user(username="cpt", password="x")
-    u3 = django_user_model.objects.create_user(username="m1", password="x")
-    u4 = django_user_model.objects.create_user(username="m2", password="x")
+    u1 = django_user_model.objects.create_user(username="solo", email="solo@example.com", password="x")
+    u2 = django_user_model.objects.create_user(username="cpt", email="cpt@example.com", password="x")
+    u3 = django_user_model.objects.create_user(username="m1", email="m1@example.com", password="x")
+    u4 = django_user_model.objects.create_user(username="m2", email="m2@example.com", password="x")
 
     p1 = _profile(u1)
     cpt = _profile(u2)
@@ -110,8 +110,8 @@ def test_backfill_awards_for_existing_verified_regs(django_user_model):
 @pytest.mark.django_db
 def test_award_placements_is_idempotent(django_user_model):
     # Build two teams with captains
-    uA = django_user_model.objects.create_user(username="cA", password="x")
-    uB = django_user_model.objects.create_user(username="cB", password="x")
+    uA = django_user_model.objects.create_user(username="cA", email="cA@example.com", password="x")
+    uB = django_user_model.objects.create_user(username="cB", email="cB@example.com", password="x")
     cpA = _profile(uA)
     cpB = _profile(uB)
 

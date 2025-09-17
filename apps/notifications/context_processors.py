@@ -1,9 +1,9 @@
-from django.apps import apps
+﻿from django.apps import apps
 
 
 def _get_unread_count_for_user(user) -> int:
     """
-    Your Notification.recipient FK points to auth.User (not UserProfile),
+    Your Notification.recipient FK points to accounts.User (not UserProfile),
     so count by the authenticated request.user directly.
     """
     if not user or not getattr(user, "is_authenticated", False):
@@ -24,3 +24,4 @@ def notification_counts(request):
 # Back-compat shim (legacy setting name)
 def unread_notifications(request):
     return notification_counts(request)
+

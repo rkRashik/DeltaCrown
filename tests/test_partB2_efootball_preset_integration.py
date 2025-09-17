@@ -11,7 +11,7 @@ EfootballTeamPreset = apps.get_model('teams', 'EfootballTeamPreset')
 from apps.game_efootball.forms import EfootballDuoForm
 
 def make_user(username='u_ef1'):
-    u = User.objects.create_user(username=username, password='x')
+    u = User.objects.create_user(username=username, email=f"{username}@example.com", password='x')
     prof, _ = UserProfile.objects.get_or_create(user=u)
     return u, prof
 

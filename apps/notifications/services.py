@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 from typing import Iterable, Optional, Any, Dict
@@ -29,7 +29,7 @@ class EmitResult(dict):
 
 
 def _resolve_email(target: Any) -> Optional[str]:
-    """Return an email from auth.User / UserProfile / raw string."""
+    """Return an email from accounts.User / UserProfile / raw string."""
     if isinstance(target, str):
         return target
     u = getattr(target, "user", None)
@@ -40,8 +40,8 @@ def _resolve_email(target: Any) -> Optional[str]:
     return None
 
 
-def _to_auth_user(target: Any) -> Optional[User]:
-    """Normalize target to auth.User (UserProfile → .user; User → itself)."""
+def _to_user_model(target: Any) -> Optional[User]:
+    """Normalize target to accounts.User (UserProfile ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ .user; User ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ itself)."""
     if getattr(target, "user", None) and getattr(getattr(target, "user"), "_meta", None):
         usr = target.user
         if getattr(usr._meta, "model_name", "") == "user":
@@ -93,7 +93,7 @@ def notify(
     email_ctx: Optional[Dict[str, Any]] = None,
 ) -> dict:
     """
-    Create Notification rows for auth.User recipients and optionally send emails.
+    Create Notification rows for accounts.User recipients and optionally send emails.
     RETURNS a dict: {"created": X, "skipped": Y, "email_sent": Z}
     """
     event_str = event or ntype or "generic"
@@ -108,7 +108,7 @@ def notify(
     has_fp = any(getattr(f, "name", None) == "fingerprint" for f in Notification._meta.get_fields())
 
     for target in recipients:
-        user = _to_auth_user(target)
+        user = _to_user_model(target)
 
         if user is not None:
             with transaction.atomic():
@@ -222,3 +222,6 @@ def emit(
 
 
 __all__ = ["notify", "emit", "EmitResult"]
+
+
+

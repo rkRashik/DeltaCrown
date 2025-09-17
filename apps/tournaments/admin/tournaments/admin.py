@@ -36,6 +36,21 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         "bracket_json_preview",
     )
 
+    class Media:
+        css = {'all': ('admin/css/ckeditor5_fix.css',)}
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        user = request.user
+        if user.is_superuser:
+            return qs
+        group_names = set(user.groups.values_list("name", flat=True))
+        if "Valorant Organizer" in group_names:
+            return qs.filter(game=Tournament.Game.VALORANT)
+        if "eFootball Organizer" in group_names:
+            return qs.filter(game=Tournament.Game.EFOOTBALL)
+        return qs
+
     def get_list_display(self, request):
         fields = _present_fields(Tournament)
         cols: List[str] = ["id", "name"]
@@ -71,7 +86,7 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
 
         basics = _fields_if_exist(Tournament, "name", "slug", "game", "short_description")
         if basics:
-            fsets.append(("Basics", {"fields": tuple(basics)}))
+            fsets.append(("Basics (required)", {"fields": tuple(basics), "description": "Required fields for every tournament."}))
 
         sched_rows = []
         pair1 = _fields_if_exist(Tournament, "start_at", "end_at")
@@ -81,11 +96,11 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         if pair2:
             sched_rows.append(tuple(pair2))
         if sched_rows:
-            fsets.append(("Schedule", {"fields": tuple(sched_rows)}))
+            fsets.append(("Schedule (optional)", {"fields": tuple(sched_rows), "description": "Optional start/end timing; set later if unknown."}))
 
         entry = _fields_if_exist(Tournament, "entry_fee_bdt", "entry_fee", "bank_instructions")
         if entry:
-            fsets.append(("Entry & Bank", {"fields": tuple(entry)}))
+            fsets.append(("Entry & Bank (optional)", {"fields": tuple(entry), "description": "Optional entry fee and payout helpers."}))
 
         links = ["link_export_bracket", "link_force_regenerate", "bracket_json_preview"]
         if obj is not None:
@@ -97,7 +112,7 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
                 links.append("link_valorant_config")
             if hasattr(obj, "efootball_config"):
                 links.append("link_efootball_config")
-        fsets.append(("Advanced / Related", {"fields": tuple(links)}))
+        fsets.append(("Advanced / Related (optional)", {"fields": tuple(links), "description": "Quick links to optional tools and related records."}))
         return tuple(fsets)
 
     def get_inline_instances(self, request, obj=None):

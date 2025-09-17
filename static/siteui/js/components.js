@@ -1,23 +1,59 @@
-﻿// Drawer open/close via data-open-drawer="TARGET_ID" and [data-close-drawer]
+// Drawer open/close via data-open-drawer="TARGET_ID" and [data-close-drawer]
 (function () {
+  function closeDrawer(drawer) {
+    if (!drawer) return;
+    drawer.classList.remove("open");
+    const trigger = drawer._trigger;
+    const finish = () => {
+      drawer.hidden = true;
+      drawer.removeEventListener("transitionend", finish);
+    };
+    drawer.addEventListener("transitionend", finish, { once: true });
+    if (trigger) {
+      trigger.setAttribute("aria-expanded", "false");
+      drawer._trigger = null;
+      trigger.focus({ preventScroll: true });
+    }
+  }
+
+  function openDrawer(drawer, trigger) {
+    if (!drawer) return;
+    if (drawer.classList.contains("open")) {
+      closeDrawer(drawer);
+      return;
+    }
+    drawer.hidden = false;
+    requestAnimationFrame(() => drawer.classList.add("open"));
+    if (trigger) {
+      trigger.setAttribute("aria-expanded", "true");
+      drawer._trigger = trigger;
+    }
+    const focusable = drawer.querySelector("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])");
+    focusable?.focus({ preventScroll: true });
+  }
+
   document.addEventListener("click", (e) => {
     const openBtn = e.target.closest("[data-open-drawer]");
     if (openBtn) {
       const id = openBtn.getAttribute("data-open-drawer");
       const drawer = document.getElementById(id);
       if (!drawer) return;
-      drawer.hidden = false;
-      requestAnimationFrame(() => drawer.classList.add("open"));
-      openBtn.setAttribute("aria-expanded", "true");
-      drawer.querySelector("a,button")?.focus({ preventScroll: true });
+      openDrawer(drawer, openBtn);
       return;
     }
     const closeBtn = e.target.closest("[data-close-drawer]");
     if (closeBtn) {
-      const panel = closeBtn.closest(".mobile-drawer");
-      if (!panel) return;
-      panel.classList.remove("open");
-      panel.addEventListener("transitionend", () => (panel.hidden = true), { once: true });
+      const drawer = closeBtn.closest(".mobile-drawer");
+      closeDrawer(drawer);
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const drawer = document.querySelector(".mobile-drawer.open");
+      if (drawer) {
+        closeDrawer(drawer);
+      }
     }
   });
 })();
@@ -83,3 +119,4 @@
     }catch(e){ /* no-op */ }
   });
 })();
+

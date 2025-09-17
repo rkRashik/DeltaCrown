@@ -620,4 +620,12 @@
   height: 100%;
   grid-row: 1;
   grid-column: 1;
+}.mobile-nav__link.is-active {
+  background: color-mix(in oklab, var(--surface) 70%, transparent);
+  color: var(--brand-delta);
+  font-weight: 600;
+}
+
+.mobile-nav__link.is-active svg {
+  color: var(--brand-delta);
 }

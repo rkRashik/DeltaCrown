@@ -1,7 +1,11 @@
-from __future__ import annotations
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.models import User
+﻿from __future__ import annotations
+
 from django.apps import apps
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404, render
+
+
+User = get_user_model()
 
 
 def player_detail(request, username: str):
@@ -27,4 +31,3 @@ def player_detail(request, username: str):
 
     ctx = {"player": profile, "user": user, "teams": teams, "results": results}
     return render(request, "players/detail.html", ctx)
-

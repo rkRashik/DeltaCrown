@@ -21,7 +21,6 @@ app_name = "tournaments"
 
 urlpatterns = [
     path("", views.hub, name="hub"),
-    path("<str:game>/", views.list_by_game, name="by_game"),
     path("view/<slug:slug>/", views.detail, name="detail"),
 
     # Existing registration-related routes in your project; ensure names/args:
@@ -29,8 +28,6 @@ urlpatterns = [
     path("receipt/<slug:slug>/", views.detail, name="registration_receipt"),
     path("check-in/<slug:slug>/", views.detail, name="check_in"),
     path("ics/<slug:slug>/", views.detail, name="ics"),
-    path("my-matches/", views.hub, name="my_matches"),
-
     # Brackets (public or staff)
     path("brackets/<slug:slug>/", dashboard_views.bracket_view, name="bracket_view"),
     path("<slug:slug>/standings/", dashboard_views.standings_view, name="standings"),
@@ -46,6 +43,8 @@ urlpatterns = [
     path("my-matches/ics-regen/", my_matches_views.my_matches_ics_regen, name="my_matches_ics_regen"),
     path("my-matches/ics/<str:token>/", my_matches_views.my_matches_ics, name="my_matches_ics"),
 
+    path("<str:game>/", views.list_by_game, name="by_game"),
+
     # Pins / Attendance / Quick actions
     path("my-matches/toggle-pin/<int:tournament_id>/", my_matches_views.toggle_pin, name="my_matches_toggle_pin"),
     path("match/<int:match_id>/attendance/<str:action>/", attendance_views.toggle_attendance, name="match_attendance_toggle"),
@@ -60,3 +59,4 @@ urlpatterns = [
     # Signed evidence downloads
     path("evidence/<int:evidence_id>/", evidence_views.evidence_download, name="evidence_download"),
 ]
+

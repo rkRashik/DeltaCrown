@@ -1,4 +1,4 @@
-# apps/tournaments/views/attendance.py
+﻿# apps/tournaments/views/attendance.py
 from __future__ import annotations
 
 from django.contrib import messages
@@ -27,7 +27,7 @@ def _redirect_back(request: HttpRequest, default="tournaments:my_matches") -> Ht
 def _attendance_subject_for(request: HttpRequest):
     """
     Return the object to store in MatchAttendance.user, matching the FK's model.
-    Works whether it's auth.User or UserProfile.
+    Works whether it's accounts.User or UserProfile.
     """
     rel_model = MatchAttendance._meta.get_field("user").remote_field.model
     if isinstance(request.user, rel_model):
@@ -36,7 +36,7 @@ def _attendance_subject_for(request: HttpRequest):
     if prof and isinstance(prof, rel_model):
         return prof
     label = getattr(rel_model._meta, "label_lower", "")
-    if label in ("auth.user", "users.user"):
+    if label in ("accounts.User", "users.user"):
         return request.user
     return prof or request.user
 
@@ -46,7 +46,7 @@ def toggle_attendance(request: HttpRequest, match_id: int, action: str) -> HttpR
     """
     Self-service attendance:
       /tournaments/match/<id>/attendance/<action>/
-    action ∈ {confirm, decline, late, absent}
+    action âˆˆ {confirm, decline, late, absent}
     """
     if request.method not in ("POST", "GET"):
         raise Http404()
@@ -69,7 +69,7 @@ def toggle_attendance(request: HttpRequest, match_id: int, action: str) -> HttpR
         match=match,
         defaults={"status": status},
     )
-    messages.success(request, f"Attendance marked “{status}”.")
+    messages.success(request, f"Attendance marked â€œ{status}â€.")
     return _redirect_back(request)
 
 
@@ -79,8 +79,8 @@ def quick_action(request: HttpRequest, match_id: int, action: str) -> HttpRespon
     Organizer/player quick actions:
       /tournaments/match/<id>/quick/<action>/
     Supported:
-      • notify      -> (alias of remind_team for now)
-      • remind_team -> email teammates about this match (rate-limited)
+      â€¢ notify      -> (alias of remind_team for now)
+      â€¢ remind_team -> email teammates about this match (rate-limited)
     """
     if request.method not in ("POST", "GET"):
         raise Http404()
@@ -114,7 +114,7 @@ def quick_action(request: HttpRequest, match_id: int, action: str) -> HttpRespon
                 team = match.team_b
 
             if team is None:
-                messages.error(request, "You’re not on this match roster.")
+                messages.error(request, "Youâ€™re not on this match roster.")
                 return _redirect_back(request)
 
             member_profiles = TeamMembership.objects.filter(
@@ -126,12 +126,12 @@ def quick_action(request: HttpRequest, match_id: int, action: str) -> HttpRespon
                 if getattr(getattr(m.profile, "user", None), "email", "")
             ]
         else:
-            # Solo match — remind self if participant
+            # Solo match â€” remind self if participant
             p = profile
             if match.user_a_id == getattr(p, "id", None) or match.user_b_id == getattr(p, "id", None):
                 recipients_users = [request.user]
             else:
-                messages.error(request, "You’re not a participant in this match.")
+                messages.error(request, "Youâ€™re not a participant in this match.")
                 return _redirect_back(request)
     except Exception:
         recipients_users = [request.user]  # safe fallback
@@ -141,7 +141,7 @@ def quick_action(request: HttpRequest, match_id: int, action: str) -> HttpRespon
         start_local = localtime(match.start_at) if match.start_at else None
         tz = get_current_timezone()
         tname = getattr(match.tournament, "name", "Tournament")
-        subject = f"[DeltaCrown] Match reminder — {tname}"
+        subject = f"[DeltaCrown] Match reminder â€” {tname}"
         url = request.build_absolute_uri(reverse("tournaments:match_review", args=[match.id]))
         body = (
             f"Your match in {tname} is coming up."
@@ -172,3 +172,4 @@ def quick_action(request: HttpRequest, match_id: int, action: str) -> HttpRespon
     cache.set(rl_key, True, timeout=10 * 60)
     messages.success(request, "Reminder sent to your team." if emailed else "Reminder scheduled.")
     return _redirect_back(request)
+

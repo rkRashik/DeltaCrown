@@ -3,6 +3,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core import mail
 
+from apps.accounts.models import PendingSignup
+
 User = get_user_model()
 
 
@@ -24,12 +26,20 @@ def test_signup_creates_user_and_redirects(client):
     }
     resp = client.post(url, data, follow=True)
     assert resp.status_code == 200
-    assert User.objects.filter(username="testuser").exists()
 
-    # With OTP gating, we should land on /account/verify/ (not profile yet)
-    chain_urls = [u for (u, s) in resp.redirect_chain]
-    html = resp.content.decode()
-    assert any("/account/verify/" in u for u in chain_urls) or "Verify your email" in html
+    # No persistent user until verification completes
+    assert not User.objects.filter(username="testuser").exists()
+    pending = PendingSignup.objects.get(username="testuser")
+    assert pending.email == "test@example.com"
+
+    # Verify redirect path goes through the email verification flow
+    chain_urls = [u for (u, _status) in resp.redirect_chain]
+    verify_url = reverse("account:verify_email_otp")
+    assert any(verify_url in u for u in chain_urls)
+    assert "verification" in resp.content.decode().lower()
+
+    # Email sent with OTP
+    assert len(mail.outbox) == 1
 
 
 @pytest.mark.django_db
@@ -48,3 +58,4 @@ def test_password_reset_sends_email(client):
     assert len(mail.outbox) == 1
     subj = mail.outbox[0].subject or ""
     assert "reset" in subj.lower()
+

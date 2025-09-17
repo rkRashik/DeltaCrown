@@ -92,12 +92,9 @@ class TournamentRegistrationPolicyInline(admin.StackedInline):
     def get_fields(self, request, obj=None):
         return _fields_if_exist(
             self.model,
-            "registration_mode",
-            "max_slots",
-            "min_team_size",
-            "max_team_size",
-            "allow_substitutes",
-            "notes",
+            "mode",
+            "team_size_min",
+            "team_size_max", "allow_substitutes",
         )
 
     def get_formset(self, request, obj=None, **kwargs):
@@ -111,3 +108,5 @@ class TournamentRegistrationPolicyInline(admin.StackedInline):
         except Exception:
             pass
         return formset
+
+

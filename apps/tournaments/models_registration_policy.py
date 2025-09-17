@@ -22,7 +22,7 @@ class TournamentRegistrationPolicy(models.Model):
     mode = models.CharField(max_length=8, choices=MODE_CHOICES, default=MODE_TEAM)
     team_size_min = models.PositiveSmallIntegerField(default=1)
     team_size_max = models.PositiveSmallIntegerField(default=5)
-
+    allow_substitutes = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.tournament} – {self.mode} [{self.team_size_min}-{self.team_size_max}]"
 
@@ -42,3 +42,7 @@ class TournamentRegistrationPolicy(models.Model):
         # Simple team-size sanity
         if self.team_size_min > self.team_size_max:
             raise ValidationError({"team_size_min": "Minimum cannot exceed maximum."})
+
+
+
+

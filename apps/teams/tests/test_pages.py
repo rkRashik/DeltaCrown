@@ -18,9 +18,9 @@ def test_teams_list_renders(client):
 
 @pytest.mark.django_db
 def test_my_teams_row_shows_user_teams_per_game(client):
-    user = User.objects.create_user(username="rashik", password="x")
+    user = User.objects.create_user(username="rashik", email="rashik@example.com", password="x")
     t = Team.objects.create(name="Phoenix", slug="phoenix", game="valorant")
-    TeamMembership.objects.create(user=user, team=t)
+    TeamMembership.objects.create(team=t, profile=user.profile)
     client.login(username="rashik", password="x")
     resp = client.get(reverse("teams:list"))
     assert resp.status_code == 200
@@ -30,11 +30,12 @@ def test_my_teams_row_shows_user_teams_per_game(client):
 
 @pytest.mark.django_db
 def test_team_detail_join_guard_when_already_in_game_team(client):
-    user = User.objects.create_user(username="p1", password="x")
+    user = User.objects.create_user(username="p1", email="p1@example.com", password="x")
     t1 = Team.objects.create(name="A", slug="a", game="valorant")
     t2 = Team.objects.create(name="B", slug="b", game="valorant")
-    TeamMembership.objects.create(user=user, team=t1)
+    TeamMembership.objects.create(team=t1, profile=user.profile)
     client.login(username="p1", password="x")
     resp = client.get(reverse("teams:detail", args=[t2.slug]))
     assert resp.status_code == 200
     assert b"Already in a Valorant team" in resp.content or b"Already in a" in resp.content
+

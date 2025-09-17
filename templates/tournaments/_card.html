@@ -21,7 +21,7 @@
       {% if tt.organizer_verified or tt.organizer_verified_anno %}{% include "tournaments/_organizer_badge.html" %}{% endif %}
     </div>
 
-    <div class="mt-1 text-sm text-slate-700 dark:text-slate-300 line-clamp-2">{{ tt.short_description|default_if_none:"" }}</div>
+    <div class="mt-1 text-sm text-slate-700 dark:text-slate-300 line-clamp-2">{{ tt.short_description|default_if_none:""|safe }}</div>
 
     <div class="mt-3 grid grid-cols-4 gap-2 text-center">
       <div>

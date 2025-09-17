@@ -28,7 +28,7 @@ class Registration(models.Model):
     # Payment info
     payment_method = models.CharField(max_length=32, blank=True, default="")
     payment_sender = models.CharField(max_length=64, blank=True, default="")
-    payment_reference = models.CharField(max_length=64, blank=True, default="")
+    payment_reference = models.CharField("Transaction ID", max_length=64, blank=True, default="")
     payment_status = models.CharField(
         max_length=16,
         choices=[("pending", "Pending"), ("verified", "Verified"), ("rejected", "Rejected")],

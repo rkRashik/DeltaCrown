@@ -6,9 +6,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
 
-# Prefer Postgres ArrayField when available; fall back to JSONField otherwise
 try:
-    from django.contrib.postgres.fields import ArrayField as _ArrayField  # available even if DB != PG
+    from django.contrib.postgres.fields import ArrayField as _ArrayField
 except Exception:  # pragma: no cover
     _ArrayField = None
 
@@ -33,43 +32,50 @@ DEFAULT_MAP_POOL = [
 
 
 class ValorantConfig(models.Model):
-    """
-    Per-tournament Valorant rules.
-    Uses ArrayField on PostgreSQL; JSON list elsewhere (MySQL-friendly).
-    Mutually exclusive with eFootball config on the same tournament.
-    """
+    """Per-tournament Valorant configuration with optional knobs."""
+
+    # ----- Relationship -----
     tournament = models.OneToOneField(
         "tournaments.Tournament",
         on_delete=models.CASCADE,
         related_name="valorant_config",
     )
 
-    best_of = models.CharField(max_length=3, choices=VALORANT_BO, default="BO3")
+    # ----- Match rules -----
+    best_of = models.CharField(
+        max_length=3,
+        choices=VALORANT_BO,
+        null=True,
+        blank=True,
+    )
     rounds_per_match = models.PositiveIntegerField(
-        default=13, validators=[MinValueValidator(11), MaxValueValidator(16)]
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(11), MaxValueValidator(16)],
     )
 
-    # Map pool (PG ArrayField if available + PG engine; else JSON list)
     if _ArrayField and _using_postgres():
-        map_pool = _ArrayField(models.CharField(max_length=30), default=list, blank=True)
+        map_pool = _ArrayField(models.CharField(max_length=30), default=list, blank=True, null=True)
     else:
-        map_pool = models.JSONField(default=list, blank=True, help_text="List of selected maps")
+        map_pool = models.JSONField(default=list, blank=True, null=True, help_text="List of selected maps")
 
-    # Optional controls
     match_duration_limit = models.DurationField(null=True, blank=True)
     overtime_rules = models.CharField(
-        max_length=120, blank=True, help_text="e.g. ‘MR3 OT, win by 2’"
+        max_length=120,
+        null=True,
+        blank=True,
+        help_text="e.g. MR3 OT, win by 2",
     )
 
-    # Long-form extras (rules/veto/policies)
-    additional_rules_richtext = CKEditor5Field("Additional rules", config_name="default", blank=True)
+    # ----- Narrative / Content -----
+    additional_rules_richtext = CKEditor5Field("Additional rules", config_name="default", blank=True, null=True)
 
-    # Advanced toggles (future-proof; all default off)
-    regional_lock = models.BooleanField(default=False)
-    live_scoreboard = models.BooleanField(default=False)
-    sponsor_integration = models.BooleanField(default=False)
-    community_voting = models.BooleanField(default=False)
-    livestream_customization = models.BooleanField(default=False)
+    # ----- Advanced toggles -----
+    regional_lock = models.BooleanField(null=True, blank=True)
+    live_scoreboard = models.BooleanField(null=True, blank=True)
+    sponsor_integration = models.BooleanField(null=True, blank=True)
+    community_voting = models.BooleanField(null=True, blank=True)
+    livestream_customization = models.BooleanField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.map_pool:
@@ -78,6 +84,7 @@ class ValorantConfig(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
+
         econf = getattr(self.tournament, "efootball_config", None)
         if econf and getattr(econf, "pk", None):
             raise ValidationError("This tournament already has an eFootball config. Remove it first.")

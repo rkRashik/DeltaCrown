@@ -1,4 +1,5 @@
-# apps/tournaments/models/dispute.py
+﻿# apps/tournaments/models/dispute.py
+from django.conf import settings
 from django.db import models
 
 
@@ -12,14 +13,13 @@ class MatchDispute(models.Model):
         related_name="disputes_opened",
     )
     resolver = models.ForeignKey(
-        "auth.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="disputes_resolved",
     )
 
-    # Flag used by views/tests: .filter(match=m, is_open=True)
     is_open = models.BooleanField(default=True)
 
     status = models.CharField(

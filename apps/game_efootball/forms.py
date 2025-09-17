@@ -44,7 +44,7 @@ class EfootballSoloForm(forms.ModelForm):
     # Payment
     payment_method = forms.ChoiceField(choices=PAYMENT_METHOD_CHOICES, required=False)
     payer_account_number = forms.CharField(max_length=32, required=False, help_text="Your bKash/Nagad/Rocket number")
-    payment_reference = forms.CharField(max_length=128, required=False, label="Transaction ID / Reference")
+    payment_reference = forms.CharField(max_length=128, required=False, label="Transaction ID")
     amount_bdt = forms.DecimalField(required=False, max_digits=10, decimal_places=2)
 
     class Meta:
@@ -143,7 +143,7 @@ class EfootballDuoForm(forms.ModelForm):
     # Payment
     payment_method = forms.ChoiceField(choices=PAYMENT_METHOD_CHOICES, required=False)
     payer_account_number = forms.CharField(max_length=32, required=False, help_text="Your bKash/Nagad/Rocket number")
-    payment_reference = forms.CharField(max_length=128, required=False, label="Transaction ID / Reference")
+    payment_reference = forms.CharField(max_length=128, required=False, label="Transaction ID")
     amount_bdt = forms.DecimalField(required=False, max_digits=10, decimal_places=2)
     payment_proof = forms.ImageField(required=False)
 

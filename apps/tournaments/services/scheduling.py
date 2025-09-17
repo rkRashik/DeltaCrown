@@ -5,10 +5,10 @@ def _get_ts(tournament):
     """Pull TournamentSettings with sane defaults if absent."""
     s = getattr(tournament, "settings", None)
     return {
-        "round_duration_mins": getattr(s, "round_duration_mins", 45),
-        "round_gap_mins": getattr(s, "round_gap_mins", 10),
-        "check_in_open_mins": getattr(s, "check_in_open_mins", 60),
-        "check_in_close_mins": getattr(s, "check_in_close_mins", 15),
+        "round_duration_mins": (getattr(s, "round_duration_mins", None) or 45),
+        "round_gap_mins": (getattr(s, "round_gap_mins", None) or 10),
+        "check_in_open_mins": (getattr(s, "check_in_open_mins", None) or 60),
+        "check_in_close_mins": (getattr(s, "check_in_close_mins", None) or 15),
     }
 
 
@@ -25,7 +25,7 @@ def auto_schedule_matches(tournament):
     knobs = _get_ts(tournament)
     per_round = {}
 
-    # ✅ Use your related_name="matches" (not match_set)
+    # Use your related_name="matches" (not match_set)
     qs = tournament.matches.all().order_by("round_no", "position", "id")
     if not qs.exists():
         return 0

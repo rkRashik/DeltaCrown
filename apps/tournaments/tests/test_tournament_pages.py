@@ -17,7 +17,7 @@ def test_hub_renders(client):
 
 @pytest.mark.django_db
 def test_detail_cta_states(client):
-    user = User.objects.create_user(username="p1", password="x")
+    user = User.objects.create_user(username="p1", email="p1@example.com", password="x")
     t = Tournament.objects.create(name="V Cup", slug="v-cup", game="valorant")
     client.login(username="p1", password="x")
     resp = client.get(reverse("tournaments:detail", args=[t.slug]))

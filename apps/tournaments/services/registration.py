@@ -199,13 +199,13 @@ def register_efootball_player(data: SoloRegistrationInput):
 
     # best-effort email to registrant
     captain_email = None
-    User = _get_model("auth", "User")
-    if User:
-        u = User.objects.filter(pk=user_profile.user_id).first()
-        captain_email = getattr(u, "email", None)
+    linked_user = getattr(user_profile, "user", None)
+    if linked_user:
+        captain_email = getattr(linked_user, "email", None)
     _send_email_safe(
         subject=f"[DeltaCrown] Registration received – {getattr(tournament, 'name', '')}",
         message="Your registration has been received. Payment will be verified by admin.",
         to=[e for e in [captain_email] if e],
     )
     return reg
+

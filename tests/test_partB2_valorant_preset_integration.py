@@ -12,7 +12,7 @@ ValorantPlayerPreset = apps.get_model('teams', 'ValorantPlayerPreset')
 from apps.game_valorant.forms import ValorantTeamForm
 
 def make_user(username='u1'):
-    u = User.objects.create_user(username=username, password='x')
+    u = User.objects.create_user(username=username, email=f"{username}@example.com", password='x')
     prof, _ = UserProfile.objects.get_or_create(user=u)
     return u, prof
 

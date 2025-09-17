@@ -67,7 +67,11 @@ def test_by_game_filters(client):
     assert resp.status_code == 200
     html = resp.content.decode()
     assert "EF Open" in html
-    assert "Valorant Cup" not in html  # filtered out
+    object_names = {
+        getattr(obj, "name", getattr(obj, "title", ""))
+        for obj in resp.context["object_list"]
+    }
+    assert object_names == {"EF Open"}
 
 
 @pytest.mark.django_db
@@ -94,7 +98,12 @@ def test_fee_filter_range(client):
     assert resp.status_code == 200
     html = resp.content.decode()
     assert "Paid Cup" in html
-    assert "Free Cup" not in html
+    object_names = {
+        getattr(obj, "name", getattr(obj, "title", ""))
+        for obj in resp.context["object_list"]
+    }
+    assert "Paid Cup" in object_names
+    assert "Free Cup" not in object_names
 
 
 @pytest.mark.django_db
@@ -111,9 +120,9 @@ def test_detail_renders_and_has_countdown_or_info(client):
 
 @pytest.mark.django_db
 def test_my_registrations_row_appears_for_logged_in_user(client):
-    user = User.objects.create_user(username="alice", password="x")
+    user = User.objects.create_user(username="alice", email="alice@example.com", password="x")
     t = make_tournament(name="EF Open", slug="ef-open", game="efootball")
-    Registration.objects.create(tournament=t, user=user)  # minimal fields
+    Registration.objects.create(tournament=t, user=user.profile)  # minimal fields
     client.login(username="alice", password="x")
     resp = client.get(reverse("tournaments:hub"))
     assert resp.status_code == 200
@@ -128,9 +137,9 @@ def test_detail_cta_for_registered_pending(client):
     If a registration exists without a VERIFIED state, the CTA should be
     'Continue registration' or 'View receipt (Pending)'. We check for either label.
     """
-    user = User.objects.create_user(username="bob", password="x")
-    t = make_tournament(name="Delta Clash", slug="delta-clash", game="valorant", status="OPEN")
-    Registration.objects.create(tournament=t, user=user)  # no state set -> treated as draft/pending
+    user = User.objects.create_user(username="bob", email="bob@example.com", password="x")
+    t = make_tournament(name="Delta Clash", slug="delta-clash", game="efootball", status="OPEN")
+    Registration.objects.create(tournament=t, user=user.profile)  # no state set -> treated as draft/pending
     client.login(username="bob", password="x")
     resp = client.get(reverse("tournaments:detail", kwargs={"slug": t.slug}))
     assert resp.status_code == 200
@@ -153,3 +162,6 @@ def test_check_in_and_ics_aliases_exist(client):
     resp2 = client.get(reverse("tournaments:ics", kwargs={"slug": t.slug}))
     # ICS may redirect to detail; accept 200 or 302
     assert resp2.status_code in (200, 302)
+
+
+

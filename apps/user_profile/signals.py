@@ -1,23 +1,16 @@
+﻿from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth.models import User
+
 from .models import UserProfile
-from django.contrib.auth import get_user_model
-
-
-@receiver(post_save, sender=User)
-def create_profile_on_user_create(sender, instance, created, **kwargs):
-    if created:
-        UserProfile.objects.get_or_create(user=instance, defaults={"display_name": instance.username})
-    else:
-        # make sure we never lose the profile (e.g., users imported without profile)
-        UserProfile.objects.get_or_create(user=instance)
 
 User = get_user_model()
 
+
 @receiver(post_save, sender=User)
-def ensure_profile(sender, instance, created, **kwargs):
+def ensure_profile(sender, instance, created, **_):
+    defaults = {"display_name": instance.username or instance.email}
     if created:
-        UserProfile.objects.get_or_create(user=instance, defaults={"display_name": instance.username})
+        UserProfile.objects.get_or_create(user=instance, defaults=defaults)
     else:
-        UserProfile.objects.get_or_create(user=instance)
+        UserProfile.objects.get_or_create(user=instance, defaults=defaults)

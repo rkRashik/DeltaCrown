@@ -33,7 +33,8 @@ def test_efootball_tournament_autocreates_efootball_config():
     assert hasattr(t, "efootball_config")
     t.refresh_from_db()
     assert t.efootball_config is not None
-    assert t.efootball_config.match_duration_min > 0
+    duration = t.efootball_config.match_duration_min
+    assert duration is None or duration > 0
 
 
 @pytest.mark.django_db

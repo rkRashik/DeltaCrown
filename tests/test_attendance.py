@@ -9,7 +9,7 @@ from apps.tournaments.models.attendance import MatchAttendance
 @pytest.mark.django_db
 def test_attendance_toggle(client, django_user_model):
     # Minimal objects
-    user = django_user_model.objects.create_user(username="p", password="x")
+    user = django_user_model.objects.create_user(username="p", email="p@example.com", password="x")
     client.login(username="p", password="x")
 
     # Unique-ish slug to avoid clashes if tests run in parallel

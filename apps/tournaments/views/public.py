@@ -1,4 +1,4 @@
-# apps/tournaments/views/public.py
+﻿# apps/tournaments/views/public.py
 from __future__ import annotations
 
 from typing import Dict, Tuple, Any, Optional
@@ -62,7 +62,7 @@ def _tpl_exists(name: str) -> bool:
 
 
 def _get_profile(user):
-    """Return UserProfile for auth user, or None (without creating)."""
+    """Return UserProfile for accounts.User, or None (without creating)."""
     if not getattr(user, "is_authenticated", False):
         return None
     prof = getattr(user, "profile", None) or getattr(user, "userprofile", None)
@@ -78,11 +78,11 @@ def _get_profile(user):
 def _registration_owner_filter_kwargs(user) -> Dict[str, object]:
     """
     Build the correct filter for Registration owner:
-    - If model has `profile` FK → use profile
+    - If model has `profile` FK â†’ use profile
     - Else if model has `user`:
-        - If it's FK to UserProfile → use profile
-        - If it's FK to auth.User → use user
-    - Else → return empty (matches nothing)
+        - If it's FK to UserProfile â†’ use profile
+        - If it's FK to accounts.User â†’ use user
+    - Else â†’ return empty (matches nothing)
     """
     profile = _get_profile(user)
 
@@ -139,7 +139,7 @@ def _status_for(t: Tournament) -> str:
 def _annotate_listing(qs):
     qs = qs.annotate(registrations_count=Coalesce(Count("registrations", distinct=True), Value(0)))
 
-    # Prize pool → prefer prize_pool_bdt, else prize_total, else 0
+    # Prize pool â†’ prefer prize_pool_bdt, else prize_total, else 0
     if hasattr(Tournament, "prize_pool_bdt"):
         qs = qs.annotate(prize_total_anno=F("prize_pool_bdt"))
     elif hasattr(Tournament, "prize_total"):
@@ -147,7 +147,7 @@ def _annotate_listing(qs):
     else:
         qs = qs.annotate(prize_total_anno=Value(0, output_field=IntegerField()))
 
-    # Entry fee → prefer entry_fee_bdt, else entry_fee, else 0
+    # Entry fee â†’ prefer entry_fee_bdt, else entry_fee, else 0
     if hasattr(Tournament, "entry_fee_bdt"):
         qs = qs.annotate(entry_fee_anno=F("entry_fee_bdt"))
     elif hasattr(Tournament, "entry_fee"):
@@ -309,7 +309,7 @@ def _banner_url(obj: Any, request) -> Optional[str]:
     for fname in ("banner", "cover", "image", "thumbnail"):
         if hasattr(obj, fname):
             f = getattr(obj, fname)
-            # If no file set, FileField.name is "" → skip
+            # If no file set, FileField.name is "" â†’ skip
             try:
                 name = getattr(f, "name", "") or ""
             except Exception:
@@ -548,3 +548,4 @@ def detail(request, slug: str):
         "cta": cta,
     }
     return render(request, "tournaments/detail.html", ctx)
+

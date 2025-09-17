@@ -3,11 +3,14 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core import mail
 
+from apps.accounts.models import EmailOTP, PendingSignup
+
 User = get_user_model()
+
 
 @pytest.mark.django_db
 def test_email_signup_and_verify_flow(client):
-    # Sign up (creates inactive user + sends code)
+    # Sign up (creates pending signup + sends code)
     resp = client.post(reverse("account:signup"), {
         "username": "otpuser",
         "email": "otp@example.com",
@@ -15,19 +18,24 @@ def test_email_signup_and_verify_flow(client):
         "password2": "S3curePassw0rd!",
     }, follow=True)
     assert resp.status_code == 200
-    u = User.objects.get(username="otpuser")
-    assert not u.is_active
+    assert not User.objects.filter(username="otpuser").exists()
+    pending = PendingSignup.objects.get(username="otpuser")
+
     # Email sent
     assert len(mail.outbox) == 1
+
     # Get last OTP from DB
-    from apps.accounts.models import EmailOTP
-    otp = EmailOTP.objects.filter(user=u).order_by("-created_at").first()
+    otp = EmailOTP.objects.filter(pending_signup=pending).order_by("-created_at").first()
     assert otp is not None
 
-    # Verify
+    # Verify (creates actual user)
     resp2 = client.post(reverse("account:verify_email"), {"code": otp.code}, follow=True)
     assert resp2.status_code == 200
-    u.refresh_from_db()
-    assert u.is_active
+
+    user = User.objects.get(username="otpuser")
+    assert user.is_active
+    assert user.is_verified
+    assert not PendingSignup.objects.filter(pk=pending.pk).exists()
+
     # Landed on profile
     assert "Profile" in resp2.content.decode()

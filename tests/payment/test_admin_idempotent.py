@@ -12,7 +12,7 @@ def test_payment_verification_admin_idempotent(client):
     from apps.user_profile.models import UserProfile
 
     t = Tournament.objects.create(name="Test Cup", slug="test-cup", game="efootball")
-    u = User.objects.create_user(username="player", password="x")
+    u = User.objects.create_user(username="player", email="player@example.com", password="x")
     # profile auto-created via signals; fetch it
     prof = UserProfile.objects.get(user=u)
     reg = Registration.objects.create(tournament=t, user=prof)

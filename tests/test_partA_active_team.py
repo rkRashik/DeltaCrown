@@ -11,7 +11,7 @@ Tournament = apps.get_model('tournaments', 'Tournament')
 Registration = apps.get_model('tournaments', 'Registration')
 
 def make_profile(username: str):
-    user = User.objects.create_user(username=username, password='x')
+    user = User.objects.create_user(username=username, email=f"{username}@example.com", password='x')
     prof, _ = UserProfile.objects.get_or_create(user=user)
     return prof
 

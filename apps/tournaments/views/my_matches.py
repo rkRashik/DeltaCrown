@@ -1,4 +1,4 @@
-# apps/tournaments/views/my_matches.py
+﻿# apps/tournaments/views/my_matches.py
 from __future__ import annotations
 
 import csv
@@ -56,8 +56,8 @@ def _valid_lookup(qs, lookup: str, value) -> bool:
 def _user_match_qs(django_user):
     """
     Scope matches to the current user, adapting to either:
-      - Match.user_a/user_b -> auth.User
-      - Match.user_a/user_b -> UserProfile (with .user O2O to auth.User)
+      - Match.user_a/user_b -> accounts.User
+      - Match.user_a/user_b -> UserProfile (with .user O2O to accounts.User)
     """
     select_fields = ["tournament"]
     for f in ("team_a", "team_b", "user_a", "user_b"):
@@ -111,7 +111,7 @@ def _attendance_subject_for(request):
     if prof and isinstance(prof, rel_model):
         return prof
     label = getattr(rel_model._meta, "label_lower", "")
-    if label in ("auth.user", "users.user"):
+    if label in ("accounts.User", "users.user"):
         return request.user
     return prof or request.user
 
@@ -242,7 +242,7 @@ def my_matches_bulk(request):
     subject = _attendance_subject_for(request)
     for mid in scoped_ids:
         MatchAttendance.objects.update_or_create(user=subject, match_id=mid, defaults={"status": status})
-    messages.success(request, f"{len(scoped_ids)} match(es) marked “{status}”.")
+    messages.success(request, f"{len(scoped_ids)} match(es) marked â€œ{status}â€.")
     return redirect(reverse("tournaments:my_matches"))
 
 
@@ -341,7 +341,7 @@ def my_matches_ics(request, token: str):
             m, "team_b_name",
             getattr(getattr(m, "team_b", None), "name", getattr(getattr(m, "user_b", None), "username", "")),
         )
-        summary = f"{getattr(m.tournament, 'name','')} — {title_a} vs {title_b}"
+        summary = f"{getattr(m.tournament, 'name','')} â€” {title_a} vs {title_b}"
         uid = f"deltacrown-match-{m.id}@deltacrown"
         lines += [
             "BEGIN:VEVENT",
@@ -356,3 +356,4 @@ def my_matches_ics(request, token: str):
     resp = HttpResponse("\r\n".join(lines), content_type="text/calendar; charset=utf-8")
     resp["Content-Disposition"] = 'attachment; filename="my_matches.ics"'
     return resp
+

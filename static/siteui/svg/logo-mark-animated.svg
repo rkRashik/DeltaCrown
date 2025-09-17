@@ -1,37 +1,44 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="t d">
-  <title id="t">DeltaCrown Mark (Animated)</title>
-  <desc id="d">Stylized delta triangle with a crown; subtle stroke animation. Respects prefers-reduced-motion.</desc>
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="deltaMarkTitle deltaMarkDesc">
+  <title id="deltaMarkTitle">DeltaCrown Modern Mark</title>
+  <desc id="deltaMarkDesc">Gradient orb containing a stylised delta with a minimal crown accent.</desc>
   <defs>
-    <linearGradient id="dcg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3B82F6"/>
-      <stop offset="100%" stop-color="#7C3AED"/>
+    <radialGradient id="orb" cx="32" cy="20" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#5EEAD4" stop-opacity="0.9"/>
+      <stop offset="55%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#312E81"/>
+    </radialGradient>
+    <linearGradient id="deltaFill" x1="18" y1="44" x2="46" y2="16" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F9FAFB" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#E0E7FF" stop-opacity="0.8"/>
     </linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#3B82F6" flood-opacity=".35"/>
-    </filter>
     <style>
-      .k { fill: none; stroke: url(#dcg); stroke-width: 2.8; stroke-linejoin: round; stroke-linecap: round; }
-      .c { fill: url(#dcg); }
-      .anim { stroke-dasharray: 180 220; animation: draw 8s ease-in-out infinite; }
-      @keyframes draw {
-        0% { stroke-dashoffset: 0; opacity: .95; }
-        40% { stroke-dashoffset: -200; opacity: 1; }
-        60% { stroke-dashoffset: -200; opacity: 1; }
-        100% { stroke-dashoffset: 0; opacity: .95; }
-      }
-      /* Respect reduced motion */
-      @media (prefers-reduced-motion: reduce) {
-        .anim { animation: none; }
+      .orb { fill: url(#orb); }
+      .delta { fill: url(#deltaFill); }
+      .delta-stroke { fill: none; stroke: rgba(255,255,255,0.42); stroke-width: 1.6; stroke-linejoin: round; }
+      .crown-dot { fill: #FACC15; }
+      .sparkle { fill: none; stroke: rgba(255,255,255,0.35); stroke-width: 1.4; stroke-linecap: round; }
+      .halo { fill: none; stroke: rgba(94,234,212,0.4); stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 14 12; }
+      @keyframes pulseHalo { 0% { stroke-dashoffset: 0; opacity: 0.65; } 60% { stroke-dashoffset: -60; opacity: 0.95; } 100% { stroke-dashoffset: -120; opacity: 0.65; } }
+      @media (prefers-reduced-motion: no-preference) {
+        .halo { animation: pulseHalo 6s ease-in-out infinite; }
       }
     </style>
   </defs>
 
-  <!-- Triangle (Δ) outline -->
-  <path class="k anim" filter="url(#glow)" d="M32 6 L6 54 H58 Z"/>
+  <circle class="orb" cx="32" cy="32" r="24"/>
+  <circle class="halo" cx="32" cy="32" r="22"/>
 
-  <!-- Crown inside the delta -->
-  <g transform="translate(0,-2)">
-    <path class="c" d="M18 43 L23 31 L28 36 L32 29 L36 36 L41 31 L46 43 Z" opacity=".95"/>
-    <rect class="c" x="20" y="43" width="24" height="3" rx="1.5"/>
+  <g transform="translate(0,-1)">
+    <path class="delta" d="M32 14 L17 46 H47 Z"/>
+    <path class="delta-stroke" d="M32 16.5 L19.4 44 H44.6 Z"/>
   </g>
+
+  <g transform="translate(0,-3)">
+    <circle class="crown-dot" cx="26.5" cy="25.5" r="2"/>
+    <circle class="crown-dot" cx="32" cy="23.5" r="2.4"/>
+    <circle class="crown-dot" cx="37.5" cy="25.5" r="2"/>
+  </g>
+
+  <path class="sparkle" d="M20 18 L23 21"/>
+  <path class="sparkle" d="M45 44 L48 47"/>
 </svg>
