@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 180" role="img" aria-label="DeltaCrown Wordmark — Premium">
+  <defs>
+    <linearGradient id="dc-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+    <style>
+      .dc-font{font-family: "Russo One", "Orbitron", "Segoe UI", Arial, sans-serif; font-weight:900; letter-spacing:6px;}
+    </style>
+  </defs>
+
+  <!-- Left word fragment -->
+  <text x="24" y="112" font-size="92" class="dc-font" fill="url(#dc-grad)" dominant-baseline="alphabetic">DELT</text>
+
+  <!-- Refined Δ-Crown symbol (fills like the text, baseline & cap-height matched) -->
+  <!-- Dimensions: cap top ~28, baseline 112; width ≈ 88 to match letter rhythm -->
+  <g transform="translate(320,0)" fill="url(#dc-grad)">
+    <!-- Solid A/Delta body with inner counter (even-odd = hole) -->
+    <path fill-rule="evenodd" d="
+      M 0 28
+      L 44 112
+      L -44 112
+      Z
+
+      M 0 60
+      L  -22 112
+      L   22 112
+      Z
+    "/>
+    <!-- Crown: three elegant spikes integrated, kept within cap-height band -->
+    <path d="M -28 36 L -14 20 L -2 34 L -14 20 Z" />
+    <path d="M  -2 34 L   0 16 L   2 34 Z" />
+    <path d="M   2 34 L  14 20 L  28 36 L  14 20 Z" />
+    <!-- Optional subtle band to ground the crown visually (thin, within cap zone) -->
+    <rect x="-26" y="38" width="52" height="4" rx="2"/>
+  </g>
+
+  <!-- Right word -->
+  <text x="420" y="112" font-size="92" class="dc-font" fill="url(#dc-grad)" dominant-baseline="alphabetic">CROWN</text>
+</svg>

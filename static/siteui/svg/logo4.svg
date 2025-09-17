@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-label="DeltaCrown Gaming Logo">
+  <defs>
+    <linearGradient id="dc-gaming" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0ff"/>
+      <stop offset="50%" stop-color="#7e22ce"/>
+      <stop offset="100%" stop-color="#facc15"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Shield / Delta base -->
+  <path d="M40 6 L74 68 H6 Z" fill="none" stroke="url(#dc-gaming)" stroke-width="4" stroke-linejoin="round"
+        stroke-dasharray="240" stroke-dashoffset="240" filter="url(#glow)">
+    <animate attributeName="stroke-dashoffset" values="240;0" dur="1.2s" fill="freeze"/>
+  </path>
+
+  <!-- Crown -->
+  <path d="M20 48 L28 26 L36 38 L44 22 L52 38 L60 26 L68 48"
+        fill="none" stroke="url(#dc-gaming)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+        stroke-dasharray="180" stroke-dashoffset="180">
+    <animate attributeName="stroke-dashoffset" values="180;0" dur="1s" fill="freeze" begin="0.4s"/>
+  </path>
+
+  <!-- Jewels -->
+  <circle cx="28" cy="26" r="3" fill="url(#dc-gaming)"/>
+  <circle cx="44" cy="22" r="3" fill="url(#dc-gaming)"/>
+  <circle cx="60" cy="26" r="3" fill="url(#dc-gaming)"/>
+
+  <!-- Pulse glow -->
+  <circle cx="40" cy="40" r="30" fill="none" stroke="url(#dc-gaming)" stroke-width="1.2" opacity="0.15">
+    <animate attributeName="r" values="30;34;30" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.15;0.05;0.15" dur="4s" repeatCount="indefinite"/>
+  </circle>
+</svg>

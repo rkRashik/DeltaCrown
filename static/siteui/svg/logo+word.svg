@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 160" role="img" aria-label="DeltaCrown Wordmark (Fixed)">
+  <defs>
+    <linearGradient id="grad-text" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#FFD700"/>
+    </linearGradient>
+  </defs>
+
+  <g font-family="Russo One, Orbitron, Segoe UI, sans-serif" font-weight="900" fill="url(#grad-text)">
+    <!-- DELT -->
+    <text x="24" y="112" font-size="92" letter-spacing="4" dominant-baseline="alphabetic">DELT</text>
+
+    <!-- Custom Δ-crown “A” -->
+    <g transform="translate(300,0)">
+      <!-- Delta -->
+      <path d="M0 48 L36 128 H-36 Z" fill="none" stroke="url(#grad-text)" stroke-width="10" stroke-linejoin="round"/>
+      <!-- Crown -->
+      <path d="M-20 48 L-6 26 L0 42 L6 26 L20 48"
+            fill="none" stroke="url(#grad-text)" stroke-width="8" stroke-linecap="round"/>
+    </g>
+
+    <!-- CROWN (now comfortably inside canvas) -->
+    <text x="360" y="112" font-size="92" letter-spacing="6" dominant-baseline="alphabetic">CROWN</text>
+  </g>
+</svg>

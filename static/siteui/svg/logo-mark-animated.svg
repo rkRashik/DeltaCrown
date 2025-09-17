@@ -1,44 +1,47 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="deltaMarkTitle deltaMarkDesc">
-  <title id="deltaMarkTitle">DeltaCrown Modern Mark</title>
-  <desc id="deltaMarkDesc">Gradient orb containing a stylised delta with a minimal crown accent.</desc>
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-label="DeltaCrown Logo">
   <defs>
-    <radialGradient id="orb" cx="32" cy="20" r="36" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#5EEAD4" stop-opacity="0.9"/>
-      <stop offset="55%" stop-color="#4F46E5"/>
-      <stop offset="100%" stop-color="#312E81"/>
-    </radialGradient>
-    <linearGradient id="deltaFill" x1="18" y1="44" x2="46" y2="16" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#F9FAFB" stop-opacity="0.92"/>
-      <stop offset="100%" stop-color="#E0E7FF" stop-opacity="0.8"/>
+    <!-- Gradient that cycles -->
+    <linearGradient id="dc-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4">
+        <animate attributeName="stop-color" values="#06b6d4;#a855f7;#facc15;#06b6d4" dur="6s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#facc15">
+        <animate attributeName="stop-color" values="#facc15;#06b6d4;#a855f7;#facc15" dur="6s" repeatCount="indefinite"/>
+      </stop>
     </linearGradient>
-    <style>
-      .orb { fill: url(#orb); }
-      .delta { fill: url(#deltaFill); }
-      .delta-stroke { fill: none; stroke: rgba(255,255,255,0.42); stroke-width: 1.6; stroke-linejoin: round; }
-      .crown-dot { fill: #FACC15; }
-      .sparkle { fill: none; stroke: rgba(255,255,255,0.35); stroke-width: 1.4; stroke-linecap: round; }
-      .halo { fill: none; stroke: rgba(94,234,212,0.4); stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 14 12; }
-      @keyframes pulseHalo { 0% { stroke-dashoffset: 0; opacity: 0.65; } 60% { stroke-dashoffset: -60; opacity: 0.95; } 100% { stroke-dashoffset: -120; opacity: 0.65; } }
-      @media (prefers-reduced-motion: no-preference) {
-        .halo { animation: pulseHalo 6s ease-in-out infinite; }
-      }
-    </style>
   </defs>
 
-  <circle class="orb" cx="32" cy="32" r="24"/>
-  <circle class="halo" cx="32" cy="32" r="22"/>
+  <!-- Outer Delta (thicker outline) -->
+  <path d="M36 6 L66 62 H6 Z"
+        fill="none"
+        stroke="url(#dc-gradient)"
+        stroke-width="3.5"
+        stroke-linejoin="round"
+        stroke-dasharray="200"
+        stroke-dashoffset="200">
+    <animate attributeName="stroke-dashoffset" values="200;0" dur="1.2s" fill="freeze"/>
+  </path>
 
-  <g transform="translate(0,-1)">
-    <path class="delta" d="M32 14 L17 46 H47 Z"/>
-    <path class="delta-stroke" d="M32 16.5 L19.4 44 H44.6 Z"/>
-  </g>
+  <!-- Inner Crown (distinct spikes) -->
+  <path d="M20 44 L28 28 L36 38 L44 24 L52 44 Z"
+        fill="none"
+        stroke="url(#dc-gradient)"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-dasharray="120"
+        stroke-dashoffset="120">
+    <animate attributeName="stroke-dashoffset" values="120;0" dur="1s" fill="freeze" begin="0.4s"/>
+  </path>
 
-  <g transform="translate(0,-3)">
-    <circle class="crown-dot" cx="26.5" cy="25.5" r="2"/>
-    <circle class="crown-dot" cx="32" cy="23.5" r="2.4"/>
-    <circle class="crown-dot" cx="37.5" cy="25.5" r="2"/>
-  </g>
+  <!-- Crown Orbs -->
+  <circle cx="28" cy="28" r="2.4" fill="url(#dc-gradient)"/>
+  <circle cx="36" cy="38" r="2.4" fill="url(#dc-gradient)"/>
+  <circle cx="44" cy="24" r="2.4" fill="url(#dc-gradient)"/>
 
-  <path class="sparkle" d="M20 18 L23 21"/>
-  <path class="sparkle" d="M45 44 L48 47"/>
+  <!-- Subtle Glow Pulse -->
+  <circle cx="36" cy="34" r="28" fill="none" stroke="url(#dc-gradient)" stroke-width="0.8" opacity="0.2">
+    <animate attributeName="r" values="28;32;28" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.2;0.05;0.2" dur="4s" repeatCount="indefinite"/>
+  </circle>
 </svg>

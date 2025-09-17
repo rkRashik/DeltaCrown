@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" role="img" aria-label="DeltaCrown Logo">
+  <defs>
+    <linearGradient id="dc-metal-lockup" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#21D4FD"/>
+      <stop offset="55%" stop-color="#7E5BEF"/>
+      <stop offset="100%" stop-color="#F9D423"/>
+    </linearGradient>
+    <filter id="dc-glow2" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Icon (same geometry, slightly smaller) -->
+  <g transform="translate(6,6) scale(1)">
+    <path d="M36 6 L67 62 H5 Z" fill="none" stroke="url(#dc-metal-lockup)" stroke-width="3.1" stroke-linejoin="round" filter="url(#dc-glow2)"/>
+    <path d="M36 15 L59 58 H13 Z" fill="none" stroke="url(#dc-metal-lockup)" stroke-opacity=".55" stroke-width="1.3" stroke-linejoin="round"/>
+    <path d="M18 44 L26 28 L34 38 L38 26 L46 40 L54 44" fill="none" stroke="url(#dc-metal-lockup)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="26" cy="28" r="2.1" fill="url(#dc-metal-lockup)"/>
+    <circle cx="38" cy="26" r="2.1" fill="url(#dc-metal-lockup)"/>
+    <circle cx="46" cy="40" r="2.1" fill="url(#dc-metal-lockup)"/>
+  </g>
+
+  <!-- Wordmark (strong modern shapes; outline-fill combo) -->
+  <g transform="translate(100,24)">
+    <!-- DELTA -->
+    <text x="0" y="24" font-size="28" font-weight="800" font-family="Poppins, 'Russo One', 'Segoe UI', Arial, sans-serif" fill="url(#dc-metal-lockup)" letter-spacing="1.5">DELTA</text>
+    <!-- CROWN (heavier for hierarchy) -->
+    <text x="0" y="58" font-size="32" font-weight="900" font-family="Poppins, 'Russo One', 'Segoe UI', Arial, sans-serif" fill="#0f172a" letter-spacing="3">CROWN</text>
+  </g>
+</svg>

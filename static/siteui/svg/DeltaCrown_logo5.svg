@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 180" role="img">
+  <defs>
+    <linearGradient id="grad2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#facc15"/>
+    </linearGradient>
+    <style>.dcf{font-family:"Russo One","Orbitron",sans-serif;font-weight:900;letter-spacing:6px}</style>
+  </defs>
+  <text x="24" y="112" font-size="92" class="dcf" fill="url(#grad2)">DELT</text>
+  <g transform="translate(330,0)" fill="url(#grad2)">
+    <path fill-rule="evenodd" d="M0 28 L48 112 L-48 112 Z M0 64 L-24 112 L24 112 Z"/>
+    <circle cx="-16" cy="28" r="5"/>
+    <circle cx="0" cy="20" r="5"/>
+    <circle cx="16" cy="28" r="5"/>
+  </g>
+  <text x="440" y="112" font-size="92" class="dcf" fill="url(#grad2)">CROWN</text>
+</svg>

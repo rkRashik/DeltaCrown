@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 180" role="img" aria-label="DeltaCrown — Twin Slash A">
+  <defs>
+    <linearGradient id="dc-grad3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="55%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <style>
+      .dcf{font-family:"Russo One","Orbitron","Segoe UI",Arial,sans-serif;font-weight:900;letter-spacing:6px}
+    </style>
+  </defs>
+
+  <text x="24" y="112" font-size="92" class="dcf" fill="url(#dc-grad3)" dominant-baseline="alphabetic">DELT</text>
+
+  <!-- Solid Δ with true typographic counter -->
+  <g transform="translate(334,0)">
+    <path fill="url(#dc-grad3)" fill-rule="evenodd" d="
+      M 0 28 L 48 112 L -48 112 Z
+      M 0 60 L -24 112 L 24 112 Z
+    "/>
+    <!-- Minimal crown as three sharp tabs hugging the cap line -->
+    <rect x="-20" y="30" width="10" height="10" fill="url(#dc-grad3)"/>
+    <rect x="-3"  y="24" width="6"  height="16" fill="url(#dc-grad3)"/>
+    <rect x="10"  y="30" width="10" height="10" fill="url(#dc-grad3)"/>
+    <!-- Twin speed slashes (diagonal, crisp) -->
+    <path d="M -42 88 L 42 74" stroke="url(#dc-grad3)" stroke-width="6" stroke-linecap="round" opacity=".45"/>
+    <path d="M -38 102 L 38 90" stroke="url(#dc-grad3)" stroke-width="4" stroke-linecap="round" opacity=".35"/>
+  </g>
+
+  <text x="440" y="112" font-size="92" class="dcf" fill="url(#dc-grad3)" dominant-baseline="alphabetic">CROWN</text>
+</svg>

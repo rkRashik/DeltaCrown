@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 180" role="img">
+  <defs>
+    <linearGradient id="grad3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="55%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <style>.dcf{font-family:"Russo One","Orbitron",sans-serif;font-weight:900;letter-spacing:6px}</style>
+  </defs>
+  <text x="24" y="112" font-size="92" class="dcf" fill="url(#grad3)">DELT</text>
+  <g transform="translate(340,0)">
+    <path fill="url(#grad3)" fill-rule="evenodd" d="M0 28 L48 112 L-48 112 Z M0 60 L-20 112 L20 112 Z"/>
+    <path d="M-40 84 L40 72" stroke="url(#grad3)" stroke-width="6" opacity=".5"/>
+    <path d="M-36 100 L36 88" stroke="url(#grad3)" stroke-width="4" opacity=".35"/>
+  </g>
+  <text x="452" y="112" font-size="92" class="dcf" fill="url(#grad3)">CROWN</text>
+</svg>
