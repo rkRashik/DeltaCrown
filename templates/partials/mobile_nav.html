@@ -1,87 +1,58 @@
 {% load static nav_extras dc_avatar %}
-<div id="main-drawer" class="mobile-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+<div id="main-drawer" class="mobile-drawer" hidden role="dialog" aria-modal="true" aria-labelledby="mobile-nav-title">
+  <button class="mobile-drawer__overlay" data-close-drawer aria-label="Close menu"></button>
   <div class="mobile-drawer__panel" role="document">
     <div class="mobile-drawer__header">
       {% nav_active '/' as is_home %}
       <a href="/" class="mobile-drawer__brand"{% if is_home %} aria-current="page"{% endif %}>
-        <img src="{% static 'siteui/svg/logo-deltacrown-animated.svg' %}" alt="DeltaCrown" class="h-7 w-7" />
-        <span class="text-lg font-bold">DeltaCrown</span>
+        <img src="{% static 'siteui/svg/Logos/DeltaCrown.svg' %}" alt="DeltaCrown" class="mobile-drawer__brand-mark" />
+        <span class="mobile-drawer__brand-name">DeltaCrown</span>
       </a>
       <button class="mobile-drawer__close" data-close-drawer aria-label="Close menu">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="m6 6 12 12M6 18 18 6" />
         </svg>
       </button>
     </div>
 
-    <form action="/search/" method="get" class="mobile-search">
-      <input class="mobile-search__input" type="search" name="q" placeholder="Search tournaments, teams, gear...">
-    </form>
-
-    <nav class="mobile-nav" aria-label="Mobile navigation">
-      <h2 id="drawer-title" class="sr-only">Navigation</h2>
-      <ul class="mobile-nav__list">
+    <nav class="mobile-drawer__nav" aria-labelledby="mobile-nav-title">
+      <h2 id="mobile-nav-title" class="sr-only">Main navigation</h2>
+      <ul class="mobile-drawer__list" role="list">
         {% nav_active '/tournaments/' '/tournaments' as tournaments_active %}
-        <li class="mobile-nav__item">
-          <a class="mobile-nav__link{% if tournaments_active %} is-active{% endif %}" href="/tournaments/"{% if tournaments_active %} aria-current="page"{% endif %}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M6.5 4h11l.5 3.5a5 5 0 0 1-5 5.5h-2a5 5 0 0 1-5-5.5L6.5 4Z"/>
-              <path d="M10 14v4"/>
-              <path d="M14 14v4"/>
-              <path d="M8 18h8"/>
-            </svg>
+        <li class="mobile-drawer__item">
+          <a class="mobile-drawer__link{% if tournaments_active %} is-active{% endif %}" href="/tournaments/"{% if tournaments_active %} aria-current="page"{% endif %}>
             <span>Tournaments</span>
           </a>
         </li>
         {% nav_active '/teams/' '/teams' as teams_active %}
-        <li class="mobile-nav__item">
-          <a class="mobile-nav__link{% if teams_active %} is-active{% endif %}" href="/teams/"{% if teams_active %} aria-current="page"{% endif %}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z"/>
-              <path d="M4 18.25c0-2.486 3.582-4.5 8-4.5s8 2.014 8 4.5V20H4v-1.75Z"/>
-            </svg>
+        <li class="mobile-drawer__item">
+          <a class="mobile-drawer__link{% if teams_active %} is-active{% endif %}" href="/teams/"{% if teams_active %} aria-current="page"{% endif %}>
             <span>Teams</span>
           </a>
         </li>
         {% if request.user.is_authenticated %}
         {% nav_active '/dashboard/' '/dashboard' as dashboard_active %}
-        <li class="mobile-nav__item">
-          <a class="mobile-nav__link{% if dashboard_active %} is-active{% endif %}" href="/dashboard/"{% if dashboard_active %} aria-current="page"{% endif %}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M4.5 4.5h6v9h-6v-9Zm9 6h6v9h-6v-9Z"/>
-              <path d="M15.5 4.5h3v3h-3v-3Zm-9 9h3v3h-3v-3Z"/>
-            </svg>
+        <li class="mobile-drawer__item">
+          <a class="mobile-drawer__link{% if dashboard_active %} is-active{% endif %}" href="/dashboard/"{% if dashboard_active %} aria-current="page"{% endif %}>
             <span>Dashboard</span>
           </a>
         </li>
         {% endif %}
         {% nav_active '/crowngear/' '/crowngear' as crowngear_active %}
-        <li class="mobile-nav__item">
-          <a class="mobile-nav__link{% if crowngear_active %} is-active{% endif %}" href="/crowngear/"{% if crowngear_active %} aria-current="page"{% endif %}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5.5 6h13l-1 8.5H6.5L5.5 6Z"/>
-              <path d="M9 6V4.5h6V6M9 14.5V18h6v-3.5"/>
-            </svg>
+        <li class="mobile-drawer__item">
+          <a class="mobile-drawer__link{% if crowngear_active %} is-active{% endif %}" href="/crowngear/"{% if crowngear_active %} aria-current="page"{% endif %}>
             <span>CrownGear</span>
           </a>
         </li>
         {% nav_active '/arenalive/' '/arenalive' as arenalive_active %}
-        <li class="mobile-nav__item">
-          <a class="mobile-nav__link{% if arenalive_active %} is-active{% endif %}" href="/arenalive/"{% if arenalive_active %} aria-current="page"{% endif %}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m10 15.5 4.75-3.25L10 9V15.5Z"/>
-              <path d="M5.5 5.5h13v13h-13v-13Z"/>
-            </svg>
-            <span>ArenaLive{% if nav_live %} <span class="pill pill--live">Live</span>{% endif %}</span>
+        <li class="mobile-drawer__item">
+          <a class="mobile-drawer__link{% if arenalive_active %} is-active{% endif %}" href="/arenalive/"{% if arenalive_active %} aria-current="page"{% endif %}>
+            <span>ArenaLive{% if nav_live %} <span class="mobile-live-pill">Live</span>{% endif %}</span>
           </a>
         </li>
         {% nav_active '/community/' '/community' as community_active %}
-        <li class="mobile-nav__item">
-          <a class="mobile-nav__link{% if community_active %} is-active{% endif %}" href="/community/"{% if community_active %} aria-current="page"{% endif %}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M7 7a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z"/>
-              <path d="M4.5 19.5a7.5 7.5 0 0 1 15 0V20h-15v-.5Z"/>
-            </svg>
+        <li class="mobile-drawer__item">
+          <a class="mobile-drawer__link{% if community_active %} is-active{% endif %}" href="/community/"{% if community_active %} aria-current="page"{% endif %}>
             <span>Community</span>
           </a>
         </li>
@@ -89,53 +60,45 @@
     </nav>
 
     <div class="mobile-drawer__footer">
-      {% if request.user.is_authenticated %}
-        {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as mobile_avatar %}
-        <div class="mobile-user">
-          <img src="{{ mobile_avatar }}" alt="User avatar" class="mobile-user__avatar">
-          <div class="mobile-user__info">
-            <div class="mobile-user__name">{{ request.user.get_full_name|default:request.user.username }}</div>
-            <div class="mobile-user__username">@{{ request.user.username }}</div>
-          </div>
-          <a href="/accounts/logout/" class="mobile-user__logout" aria-label="Sign out">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-            </svg>
-          </a>
-        </div>
-
-        <div class="mobile-actions">
-          <a href="/notifications/" class="mobile-action-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1z"/>
-            </svg>
-            <span>Notifications</span>
-            {% if nav_unread_count %}
-            <span class="mobile-notification-badge">{{ nav_unread_count }}</span>
-            {% endif %}
-          </a>
-
-          <button class="mobile-action-btn" data-theme-toggle aria-pressed="false">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>
-            </svg>
-            <span>Theme</span>
-          </button>
-        </div>
-      {% else %}
-        <div class="mobile-auth">
-          <a class="btn-primary w-full" href="/accounts/login/">Log In</a>
-          <a class="btn-secondary w-full" href="/accounts/signup/">Sign Up</a>
-        </div>
-
-        <button class="mobile-theme-toggle" data-theme-toggle id="theme-toggle-mobile" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/>
+      <div class="mobile-drawer__actions">
+        <button class="mobile-drawer__action" data-theme-toggle aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
           </svg>
           <span>Theme</span>
         </button>
+        <a class="mobile-drawer__action" href="/notifications/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 21a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Z" />
+            <path d="M6.5 16.5h11l-1.1-1.54a4.5 4.5 0 0 1-.9-2.7V10a4.5 4.5 0 0 0-9 0v2.26a4.5 4.5 0 0 1-.9 2.7L6.5 16.5Z" />
+          </svg>
+          <span>Alerts</span>
+          {% if nav_unread_count %}
+          <span class="mobile-drawer__badge" aria-hidden="true">{{ nav_unread_count }}</span>
+          {% else %}
+          <span class="mobile-drawer__badge" aria-hidden="true">3</span>
+          {% endif %}
+        </a>
+      </div>
+
+      {% if request.user.is_authenticated %}
+        {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as mobile_avatar %}
+        <div class="mobile-drawer__profile">
+          <span class="mobile-drawer__profile-avatar">
+            <img src="{{ mobile_avatar }}" alt="" />
+          </span>
+          <div class="mobile-drawer__profile-meta">
+            <span class="mobile-drawer__profile-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+            <span class="mobile-drawer__profile-handle">@{{ request.user.username }}</span>
+          </div>
+          <a href="/accounts/logout/" class="mobile-drawer__signout">Sign out</a>
+        </div>
+      {% else %}
+        <div class="mobile-drawer__auth">
+          <a class="mobile-drawer__auth-primary" href="/accounts/signup/">Create account</a>
+          <a class="mobile-drawer__auth-secondary" href="/accounts/login/">Log in</a>
+        </div>
       {% endif %}
     </div>
   </div>
-  <button class="mobile-drawer__scrim" data-close-drawer aria-label="Close"></button>
 </div>

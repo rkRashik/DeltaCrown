@@ -1,115 +1,242 @@
-// Notifications badge (auto-update + ARIA label)
-(function(){
-  const badge = document.getElementById('notif-badge');
-  const notifBtn = document.querySelector('.notif-btn');
-  if (!badge || !notifBtn) return;
+(function () {
+  const nav = document.querySelector('[data-site-nav]');
+  if (!nav) return;
 
-  function setCount(n){
-    badge.textContent = n > 0 ? String(n) : '';
-    const label = n > 0 ? `Notifications (${n} unread)` : 'Notifications';
-    notifBtn.setAttribute('aria-label', label);
-  }
+  const notifBadge = nav.querySelector('[data-notif-badge]');
+  const notifTrigger = nav.querySelector('.notif-trigger');
+  const mobileToggle = nav.querySelector('[data-open-drawer="main-drawer"]');
+  const mobileDrawer = document.getElementById('main-drawer');
+  const mobileCloseButtons = mobileDrawer ? mobileDrawer.querySelectorAll('[data-close-drawer]') : [];
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  async function update(){
-    try{
-      const r = await fetch('/notifications/unread_count/', { credentials:'same-origin' });
-      if (!r.ok) return;
-      const d = await r.json();
-      if (typeof d.count === 'number') setCount(d.count);
-    } catch(_){}
-  }
-
-  update();
-  setInterval(update, 60_000);
-})();
-
-// Generic dropdowns (multiple instances, keyboard & focus handling)
-(function(){
-  // Utility
-  function getItems(menu){
-    return Array.from(menu.querySelectorAll('[role="menuitem"], a[href], button:not([disabled])'))
-      .filter(el => !el.closest('[hidden]'));
-  }
-  function closeAll(){
-    document.querySelectorAll('[data-menu],[data-avatar-menu]').forEach(m=>{
-      m.hidden = true;
-      m.removeAttribute('data-open');
-    });
-    document.querySelectorAll('[data-menu-toggle],[data-avatar-toggle]').forEach(b=>{
-      b.setAttribute('aria-expanded', 'false');
-    });
-  }
-
-  function setupPair(btn, menu){
-    if (!btn || !menu) return;
-
-    function open(){
-      closeAll();
-      menu.hidden = false;
-      menu.setAttribute('data-open', 'true');
-      btn.setAttribute('aria-expanded', 'true');
-      const first = getItems(menu)[0];
-      if (first) first.focus({ preventScroll: true });
+  /* Sticky shrink on scroll */
+  const toggleShrink = () => {
+    const offset = window.scrollY || document.documentElement.scrollTop;
+    if (offset > 24) {
+      nav.classList.add('is-shrunk');
+    } else {
+      nav.classList.remove('is-shrunk');
     }
-    function close(){
+  };
+  toggleShrink();
+  window.addEventListener('scroll', () => {
+    if (prefersReducedMotion.matches) {
+      toggleShrink();
+    } else {
+      window.requestAnimationFrame(toggleShrink);
+    }
+  }, { passive: true });
+
+  /* Notification badge auto-update */
+  if (notifBadge && notifTrigger) {
+    const setBadge = (count) => {
+      const display = count > 0 ? String(count) : '3';
+      notifBadge.textContent = display;
+      notifBadge.toggleAttribute('data-has-unread', count > 0);
+      notifTrigger.setAttribute('aria-label', count > 0 ? `Notifications (${count} unread)` : 'Notifications');
+    };
+
+    const updateCount = async () => {
+      try {
+        const response = await fetch('/notifications/unread_count/', { credentials: 'same-origin' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (typeof data.count === 'number') {
+          setBadge(data.count);
+        }
+      } catch (error) {
+        // swallow silently
+      }
+    };
+
+    setBadge(Number(notifBadge.textContent.trim()) || 0);
+    updateCount();
+    setInterval(updateCount, 60_000);
+  }
+
+  /* Dropdown helpers */
+  const dropdowns = [];
+
+  const getFocusable = (root) => Array.from(root.querySelectorAll('[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+    .filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+
+  const closeAllDropdowns = () => {
+    dropdowns.forEach(({ button, menu }) => {
       menu.hidden = true;
       menu.removeAttribute('data-open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
-    function toggle(e){
-      e.preventDefault();
-      (menu.hidden ? open : close)();
-    }
+      button.setAttribute('aria-expanded', 'false');
+    });
+  };
 
-    // Click / keyboard on button
-    btn.addEventListener('click', toggle);
-    btn.addEventListener('keydown', (e)=>{
-      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault(); open();
+  const setupDropdown = (button, menu) => {
+    if (!button || !menu) return;
+
+    const open = () => {
+      closeAllDropdowns();
+      menu.hidden = false;
+      menu.setAttribute('data-open', 'true');
+      button.setAttribute('aria-expanded', 'true');
+      const focusable = getFocusable(menu);
+      if (focusable.length) {
+        focusable[0].focus({ preventScroll: true });
+      }
+    };
+
+    const close = ({ focusButton } = { focusButton: false }) => {
+      menu.hidden = true;
+      menu.removeAttribute('data-open');
+      button.setAttribute('aria-expanded', 'false');
+      if (focusButton) {
+        button.focus({ preventScroll: true });
+      }
+    };
+
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      if (menu.hidden) {
+        open();
+      } else {
+        close();
       }
     });
 
-    // Keyboard navigation inside menu
-    menu.addEventListener('keydown', (e)=>{
-      const items = getItems(menu);
-      const idx = items.indexOf(document.activeElement);
-      if (e.key === 'Escape'){ e.preventDefault(); close(); btn.focus(); }
-      if (e.key === 'ArrowDown'){ e.preventDefault(); (items[idx+1] || items[0])?.focus(); }
-      if (e.key === 'ArrowUp'){ e.preventDefault(); (items[idx-1] || items[items.length-1])?.focus(); }
-      if (e.key === 'Home'){ e.preventDefault(); items[0]?.focus(); }
-      if (e.key === 'End'){ e.preventDefault(); items[items.length-1]?.focus(); }
-      if (e.key === 'Tab'){
-        // If tabbing out and focus leaves menu, close it
-        setTimeout(()=>{ if (!menu.contains(document.activeElement)) close(); }, 0);
+    button.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        open();
       }
     });
 
-    // Click outside to close
-    document.addEventListener('click', (e)=>{
-      if (!menu.contains(e.target) && !btn.contains(e.target)) close();
+    menu.addEventListener('keydown', (event) => {
+      const focusable = getFocusable(menu);
+      const index = focusable.indexOf(document.activeElement);
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close({ focusButton: true });
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        (focusable[index + 1] || focusable[0])?.focus();
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        (focusable[index - 1] || focusable[focusable.length - 1])?.focus();
+      }
+      if (event.key === 'Tab') {
+        setTimeout(() => {
+          if (!menu.contains(document.activeElement)) {
+            close();
+          }
+        }, 0);
+      }
     });
 
-    // Close on resize/scroll to avoid misplaced panels
-    window.addEventListener('resize', close, { passive: true });
-    window.addEventListener('scroll', close, { passive: true });
+    document.addEventListener('click', (event) => {
+      if (!menu.contains(event.target) && !button.contains(event.target)) {
+        close();
+      }
+    });
+
+    window.addEventListener('resize', () => close(), { passive: true });
+    window.addEventListener('scroll', () => close(), { passive: true });
+
+    dropdowns.push({ button, menu, close });
+  };
+
+  document.querySelectorAll('[data-menu-toggle]').forEach((btn) => {
+    const menuId = btn.getAttribute('aria-controls');
+    const menu = menuId ? document.getElementById(menuId) : null;
+    if (menu) setupDropdown(btn, menu);
+  });
+
+  document.querySelectorAll('[data-avatar-toggle]').forEach((btn) => {
+    const menuId = btn.getAttribute('aria-controls');
+    const menu = menuId ? document.getElementById(menuId) : null;
+    if (menu) setupDropdown(btn, menu);
+  });
+
+  /* Mobile drawer interactions */
+  if (mobileToggle && mobileDrawer) {
+    let previouslyFocused = null;
+
+    const focusableInDrawer = () => getFocusable(mobileDrawer.querySelector('.mobile-drawer__panel'));
+
+    const openDrawer = () => {
+      if (!mobileDrawer) return;
+      previouslyFocused = document.activeElement;
+      mobileDrawer.hidden = false;
+      mobileDrawer.setAttribute('data-open', 'true');
+      document.body.classList.add('has-mobile-drawer-open');
+      const focusables = focusableInDrawer();
+      (focusables[0] || mobileDrawer).focus({ preventScroll: true });
+    };
+
+    const closeDrawer = ({ returnFocus } = { returnFocus: true }) => {
+      if (!mobileDrawer) return;
+      mobileDrawer.removeAttribute('data-open');
+      document.body.classList.remove('has-mobile-drawer-open');
+      setTimeout(() => {
+        mobileDrawer.hidden = true;
+      }, prefersReducedMotion.matches ? 0 : 200);
+      if (returnFocus && previouslyFocused) {
+        previouslyFocused.focus({ preventScroll: true });
+      }
+    };
+
+    mobileToggle.addEventListener('click', (event) => {
+      event.preventDefault();
+      openDrawer();
+      mobileToggle.setAttribute('aria-expanded', 'true');
+    });
+
+    mobileCloseButtons.forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.preventDefault();
+        closeDrawer();
+        mobileToggle.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    mobileDrawer.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeDrawer();
+        mobileToggle.setAttribute('aria-expanded', 'false');
+      }
+      if (event.key === 'Tab') {
+        const focusables = focusableInDrawer();
+        if (!focusables.length) return;
+        const index = focusables.indexOf(document.activeElement);
+        if (event.shiftKey && (index <= 0 || document.activeElement === mobileDrawer)) {
+          event.preventDefault();
+          focusables[focusables.length - 1].focus();
+        } else if (!event.shiftKey && index === focusables.length - 1) {
+          event.preventDefault();
+          focusables[0].focus();
+        }
+      }
+    });
+
+    mobileDrawer.addEventListener('click', (event) => {
+      if (event.target === mobileDrawer) {
+        closeDrawer();
+        mobileToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!mobileDrawer.hidden && !mobileDrawer.contains(event.target) && event.target !== mobileToggle) {
+        closeDrawer();
+        mobileToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 1024) {
+        closeDrawer({ returnFocus: false });
+        mobileToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
   }
-
-  // Setup all standard dropdowns (Games, Create, etc.)
-  document.querySelectorAll('[data-menu-toggle]').forEach(btn=>{
-    // Find the paired [data-menu] near the button (sibling or within same .relative)
-    const root = btn.closest('.relative') || btn.parentElement || document;
-    const menuId = btn.getAttribute('aria-controls');
-    const menu = menuId ? document.getElementById(menuId) : root.querySelector('[data-menu]');
-    setupPair(btn, menu);
-  });
-
-  // Setup avatar dropdown(s)
-  document.querySelectorAll('[data-avatar-toggle]').forEach(btn=>{
-    const root = btn.closest('.relative') || btn.parentElement || document;
-    const menuId = btn.getAttribute('aria-controls');
-    const menu = menuId ? document.getElementById(menuId) : root.querySelector('[data-avatar-menu]');
-    setupPair(btn, menu);
-  });
 })();
-
-
