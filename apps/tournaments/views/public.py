@@ -22,6 +22,8 @@ from django.template.loader import get_template
 from django.template import TemplateDoesNotExist
 from django.urls import reverse
 
+
+
 # Prefer app-local imports; fall back to apps.get_model to survive refactors
 try:
     from ..models import Tournament, Registration, PaymentVerification
@@ -387,80 +389,194 @@ def _my_registrations_map(user) -> Dict[int, Registration]:
 
 def hub(request):
     """
-    /tournaments/ : Spotlight + Directory + My Registrations + Explore grid with filters.
+    Hub page with guided discovery + curated rows + explore grid.
+    Defensive and independent of minor model differences.
     """
-    qs = Tournament.objects.all().select_related()
-    qs = _annotate_listing(qs)
-    qs = _apply_filters(request, qs)
-    qs = _apply_powersort(request, qs)
+    from apps.tournaments.models import Tournament  # local import to avoid circulars
 
-    page_obj, paginator = _paginate(request, qs, per_page=12)
+    q = request.GET.get("q") or ""
+    status = request.GET.get("status")
+    start = request.GET.get("start")
+    fee = request.GET.get("fee")
+    sort = request.GET.get("sort")
 
-    # Attach a UI-only banner url (avoid clashing with @property banner_url)
-    objects = list(page_obj.object_list)
-    for obj in objects:
-        setattr(obj, "ui_banner_url", _banner_url(obj, request))
+    base = Tournament.objects.all()
 
-    # Spotlight
-    spotlight = Tournament.objects.all()
-    if hasattr(Tournament, "is_featured"):
-        spotlight = spotlight.filter(is_featured=True)
-    elif hasattr(Tournament, "organizer_verified"):
-        spotlight = spotlight.filter(organizer_verified=True)
-    spotlight = _annotate_listing(spotlight).order_by("-prize_total_anno", "-id")[:6]
-    spotlight = list(spotlight)
-    for s in spotlight:
-        setattr(s, "ui_banner_url", _banner_url(s, request))
+    # minimal fields mapping for templates
+    base = base.annotate().select_related().order_by("-id")
 
-    # Directory counts per game
-    directory_counts = {}
-    if hasattr(Tournament, "game"):
-        counts = (
-            Tournament.objects.values_list("game")
-            .annotate(c=Count("id"))
-            .order_by("-c")
+    # search
+    if q:
+        base = base.filter(
+            Q(title__icontains=q) |
+            Q(game__icontains=q)
         )
-        directory_counts = {code: c for code, c in counts}
 
-    game_cards = [
-        {"code": code, "label": label, "count": directory_counts.get(code, 0)}
-        for code, label in GAME_CHOICES
-    ]
+    # status filter (open/live/etc). Adjust to your actual fields.
+    if status == "open":
+        base = base.filter(is_open=True) if hasattr(Tournament, "is_open") else base
+    elif status == "live":
+        base = base.filter(status="live") if hasattr(Tournament, "status") else base
+
+    # start window (≤7d)
+    if start == "7d":
+        from django.utils import timezone
+        now = timezone.now()
+        in7 = now + timezone.timedelta(days=7)
+        if hasattr(Tournament, "starts_at"):
+            base = base.filter(starts_at__gte=now, starts_at__lte=in7)
+
+    # fee filter
+    if fee == "free":
+        if hasattr(Tournament, "fee_amount"):
+            base = base.filter(fee_amount=0)
+
+    # curated subsets
+    live_qs = base.filter(status="live")[:6] if hasattr(Tournament, "status") else []
+    starting_soon_qs = []
+    new_this_week_qs = []
+    free_qs = []
+
+    if hasattr(Tournament, "starts_at"):
+        from django.utils import timezone
+        now = timezone.now()
+        soon = now + timezone.timedelta(days=7)
+        starting_soon_qs = base.filter(starts_at__gte=now, starts_at__lte=soon).order_by("starts_at")[:6]
+        # "new this week" as recently created
+        new_this_week_qs = base.filter(created_at__gte=now - timezone.timedelta(days=7))[:6] if hasattr(Tournament, "created_at") else base[:6]
+    if hasattr(Tournament, "fee_amount"):
+        free_qs = base.filter(fee_amount=0)[:6]
+
+    # explore grid sorting
+    grid = base
+    if sort == "new":
+        grid = grid.order_by("-id")
+    elif sort == "fee_asc" and hasattr(Tournament, "fee_amount"):
+        grid = grid.order_by("fee_amount")
+
+    tournaments = list(grid[:24])  # cap first page
+
+    for t in tournaments:
+        resolved_banner = getattr(t, "banner_url", None) or _banner_url(t)
+        object.__setattr__(t, "dc_banner_url", resolved_banner)
+        resolved_status = getattr(t, "status", None) or _status_for_card(t)
+        object.__setattr__(t, "dc_status", resolved_status)
+        resolved_reg = getattr(t, "register_url", None) or _register_url(t)
+        object.__setattr__(t, "dc_register_url", resolved_reg)
+
+    # game registry + counts (include card image)
+    games = []
+    for g in GAME_REGISTRY:
+        cnt = base.filter(game=g["slug"]).count() if hasattr(Tournament, "game") else 0
+        games.append({
+            "slug": g["slug"],
+            "name": g["name"],
+            "icon_url": g.get("icon_url"),
+            "primary": g.get("primary", "#7c3aed"),
+            "image": g.get("image"),  # <<< used by card background
+            "count": cnt,
+        })
+
+    my_states = _compute_my_states(request, tournaments)
 
     ctx = {
-        "page_obj": page_obj,
-        "paginator": paginator,
-        "object_list": objects,   # each has ui_banner_url
-        "spotlight": spotlight,   # each has ui_banner_url
-        "games": GAME_CHOICES,
-        "directory_counts": directory_counts,
-        "game_cards": game_cards,
-        "query": (request.GET.get("q") or "").strip(),
-        "active_game": (request.GET.get("game") or "").strip(),
-        "sort": (request.GET.get("sort") or "powersort").lower(),
-        "filters": {
-            "status": (request.GET.get("status") or "").strip().lower(),
-            "format": (request.GET.get("format") or "").strip(),
-            "platform": (request.GET.get("platform") or "").strip(),
-            "fee_min": request.GET.get("fee_min") or "",
-            "fee_max": request.GET.get("fee_max") or "",
-            "prize_min": request.GET.get("prize_min") or "",
-            "prize_max": request.GET.get("prize_max") or "",
-            "checkin": (request.GET.get("checkin") or "").strip().lower() in ("1", "true", "on"),
-            "region": (request.GET.get("region") or "").strip(),
-            "online": (request.GET.get("online") or "").strip().lower() in ("1", "true", "on"),
-        },
-        "status_list": ["open", "upcoming", "ongoing", "completed"],
-        "my_registrations": _my_registrations_map(request.user),
+        "q": q, "sort": sort,
+        "tournaments": tournaments,
+        "live_tournaments": live_qs,
+        "starting_soon": starting_soon_qs,
+        "new_this_week": new_this_week_qs,
+        "free_tournaments": free_qs,
+        "games": games,
+        "my_reg_states": my_states,
     }
+
+    # --- stats (defensive) ---
+    stats = {"total_active": 0, "players_this_month": 0, "prize_pool_month": "0"}
+    try:
+        from django.utils import timezone
+        now = timezone.now()
+        this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # total active
+        if hasattr(Tournament, "is_open"):
+            stats["total_active"] = base.filter(is_open=True).count()
+        else:
+            stats["total_active"] = base.count()
+        # players this month (best-effort)
+        try:
+            from apps.tournaments.models import Registration
+            stats["players_this_month"] = Registration.objects.filter(created_at__gte=this_month_start).count()
+        except Exception:
+            stats["players_this_month"] = 0
+        # prize pool (sum) — if you have a field prize_pool
+        if hasattr(Tournament, "prize_pool"):
+            from django.db.models import Sum
+            total = base.filter(created_at__gte=this_month_start).aggregate(s=Sum("prize_pool")).get("s") or 0
+            stats["prize_pool_month"] = f"{int(total):,}"
+    except Exception:
+        pass
+
+    ctx.update({"stats": stats})
+
     return render(request, "tournaments/hub.html", ctx)
 
 
-def list_by_game(request, game: str):
-    """ /tournaments/<game>/  -> reuse hub() with game filter """
-    request.GET._mutable = True
-    request.GET["game"] = game
-    return hub(request)
+def list_by_game(request, game):
+    from apps.tournaments.models import Tournament
+
+    q = request.GET.get("q") or ""
+    fee = request.GET.get("fee")
+    status = request.GET.get("status")
+    start = request.GET.get("start")
+    sort = request.GET.get("sort")
+
+    base = Tournament.objects.all()
+    if hasattr(Tournament, "game"):
+        base = base.filter(game=game)
+
+    if q:
+        base = base.filter(Q(title__icontains=q))
+
+    if fee == "free" and hasattr(Tournament, "fee_amount"):
+        base = base.filter(fee_amount=0)
+
+    if status == "open":
+        base = base.filter(is_open=True) if hasattr(Tournament, "is_open") else base
+
+    if start == "7d" and hasattr(Tournament, "starts_at"):
+        from django.utils import timezone
+        now = timezone.now()
+        soon = now + timezone.timedelta(days=7)
+        base = base.filter(starts_at__gte=now, starts_at__lte=soon)
+
+    if sort == "new":
+        base = base.order_by("-id")
+    elif sort == "fee_asc" and hasattr(Tournament, "fee_amount"):
+        base = base.order_by("fee_amount")
+
+    tournaments = list(base[:36])
+
+    for t in tournaments:
+        resolved_banner = getattr(t, "banner_url", None) or _banner_url(t)
+        object.__setattr__(t, "_dc_banner_url", resolved_banner)
+        resolved_status = getattr(t, "status", None) or _status_for_card(t)
+        object.__setattr__(t, "_dc_status", resolved_status)
+        resolved_reg = getattr(t, "register_url", None) or _register_url(t)
+        object.__setattr__(t, "_dc_register_url", resolved_reg)
+
+
+    # game meta from registry (future-proof, even if no Game model)
+    gm = next((g for g in GAME_REGISTRY if g["slug"] == game), {"slug": game, "name": game.title(), "icon_url": "", "primary": "#7c3aed"})
+    total = base.count()
+    my_states = _compute_my_states(request, tournaments)
+
+    ctx = {
+        "q": q, "sort": sort,
+        "game": game, "game_meta": gm,
+        "tournaments": tournaments,
+        "total": total,
+        "my_reg_states": my_states,
+    }
+    return render(request, "tournaments/list_by_game.html", ctx)
 
 
 def detail(request, slug: str):
@@ -549,3 +665,106 @@ def detail(request, slug: str):
     }
     return render(request, "tournaments/detail.html", ctx)
 
+
+# Image paths are relative to STATIC_URL and will be resolved by the template via {% static %}
+GAME_REGISTRY = [
+    {"slug": "valorant",       "name": "Valorant",        "icon_url": "", "primary": "#ff4655", "image": "img/game_cards/Valorant.jpg"},
+    {"slug": "efootball",      "name": "eFootball",       "icon_url": "", "primary": "#1e90ff", "image": "img/game_cards/efootball.jpeg"},
+    # CS2: user typo "cse" noted; include both keys to be safe
+    {"slug": "cs2",            "name": "Counter-Strike 2","icon_url": "", "primary": "#f59e0b", "image": "img/game_cards/CS2.jpg"},
+    {"slug": "cse",            "name": "Counter-Strike 2","icon_url": "", "primary": "#f59e0b", "image": "img/game_cards/CS2.jpg"},
+    {"slug": "fc26",           "name": "FC 26",           "icon_url": "", "primary": "#22c55e", "image": "img/game_cards/FC26.jpg"},
+    {"slug": "mobilelegend",   "name": "Mobile Legends",  "icon_url": "", "primary": "#7c3aed", "image": "img/game_cards/MobileLegend.jpg"},
+    {"slug": "pubg",           "name": "PUBG Mobile",     "icon_url": "", "primary": "#10b981", "image": "img/game_cards/PUBG.jpeg"},
+]
+
+def _status_for_card(t):
+    # Basic guard; customize to your status fields
+    try:
+        return t.status
+    except Exception:
+        # infer from dates if needed
+        return "open" if getattr(t, "is_open", True) else "closed"
+
+def _banner_url(t):
+    # If your model provides a property, prefer that
+    url = getattr(t, "banner_url", None)
+    if url:
+        return url
+    # fallback from ImageField `banner`
+    banner = getattr(t, "banner", None)
+    try:
+        return banner.url if banner else None
+    except Exception:
+        return None
+
+def _register_url(t):
+    try:
+        return reverse("tournaments:register", args=[t.slug])
+    except Exception:
+        return getattr(t, "register_url", None) or "#"
+
+def _compute_my_states(request, tournaments):
+    """
+    Returns { tournament.id: {registered: bool, cta: 'continue'|'receipt'|None, cta_url: str|None} }
+    Falls back gracefully if Registration/PaymentVerification models differ.
+    """
+    states = {}
+    user = getattr(request, "user", None)
+    if not (user and user.is_authenticated):
+        return states
+    ids = [getattr(t, "id") for t in tournaments if getattr(t, "id", None)]
+    if not ids:
+        return states
+
+    # Try to import models; guard failures
+    try:
+        from apps.tournaments.models import Registration
+    except Exception:
+        Registration = None
+    try:
+        from apps.tournaments.models import PaymentVerification
+    except Exception:
+        PaymentVerification = None
+
+    reg_qs = []
+    if Registration:
+        try:
+            reg_qs = list(Registration.objects.filter(user=user, tournament_id__in=ids).values("tournament_id", "id"))
+        except Exception:
+            reg_qs = []
+
+    pv_map = {}
+    if PaymentVerification and reg_qs:
+        try:
+            reg_ids = [r["id"] for r in reg_qs]
+            for pv in PaymentVerification.objects.filter(registration_id__in=reg_ids).values("registration_id","status"):
+                pv_map[pv["registration_id"]] = pv["status"]
+        except Exception:
+            pv_map = {}
+
+    reg_by_tid = {}
+    for r in reg_qs:
+        reg_by_tid[r["tournament_id"]] = r["id"]
+
+    for t in tournaments:
+        tid = getattr(t, "id", None)
+        if not tid:
+            continue
+        if tid in reg_by_tid:
+            reg_id = reg_by_tid[tid]
+            status = pv_map.get(reg_id)
+            # Choose CTA based on PV status
+            if status in (None, "pending", "rejected"):
+                states[tid] = {"registered": True, "cta": "continue", "cta_url": _register_url(t)}
+            elif status in ("verified", "approved"):
+                try:
+                    receipt_url = reverse("tournaments:registration_receipt", args=[t.slug])
+                except Exception:
+                    receipt_url = _register_url(t)
+                states[tid] = {"registered": True, "cta": "receipt", "cta_url": receipt_url}
+            else:
+                states[tid] = {"registered": True, "cta": None, "cta_url": None}
+        else:
+            states[tid] = {"registered": False, "cta": None, "cta_url": None}
+    return states

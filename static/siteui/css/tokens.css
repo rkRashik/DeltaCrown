@@ -1,78 +1,153 @@
+/* ========================================================================== */
+/* DeltaCrown — Design Tokens (2025)                                          */
+/* - Single source of truth (no duplicated roots)                             */
+/* - Dark is default; Light + System supported via [data-theme]               */
+/* - Tuned for premium esports UI (neon glows, elegant glass)                 */
+/* ========================================================================== */
+
+/* -------------------------------------------------------------------------- */
+/* 0) Brand & constants (do not change across themes)                         */
+/* -------------------------------------------------------------------------- */
 :root {
-  /* Brand */
-  --brand-delta: #22d3ee;  /* cyan-400 */
-  --brand-crown: #facc15;  /* amber-400 */
+  /* Core brand */
+  --brand-delta:  #22d3ee;   /* cyan-400 */
+  --brand-crown:  #facc15;   /* amber-400 */
 
-  /* Surfaces & text (dark default) */
-  --bg: #0b0e14;
-  --surface: rgba(30,41,59,0.5); /* slate-800/50 */
-  --border: rgba(148,163,184,0.25); /* slate-400/25 */
-  --text: #e5e7eb;  /* slate-200 */
-  --muted: #94a3b8; /* slate-400 */
+  /* Accent family */
+  --brand-sky:    #38bdf8;
+  --brand-emerald:#10b981;
+  --brand-fuchsia:#d946ef;
 
-  /* Accents */
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger:  #ef4444;
+  /* Hero / glow accents (used by premium hero & cards) */
+  --glow-cyan:    #06b6d4;
+  --glow-violet:  #8b5cf6;
+  --glow-gold:    #facc15;
 
   /* Radii */
   --radius-md: .6rem;
   --radius-lg: .9rem;
   --radius-xl: 1.25rem;
 
-  /* Shadows */
+  /* Shadows (semantic; actual color mixes come from theme colors) */
   --shadow-sm: 0 6px 14px rgba(0,0,0,.18);
   --shadow-md: 0 10px 24px rgba(0,0,0,.25);
   --shadow-lg: 0 18px 48px rgba(0,0,0,.35);
 
-  /* Spacing scale */
-  --space-1: .25rem;   /* 4px */
-  --space-2: .5rem;    /* 8px */
-  --space-3: .75rem;   /* 12px */
-  --space-4: 1rem;     /* 16px */
-  --space-5: 1.25rem;  /* 20px */
-  --space-6: 1.5rem;   /* 24px */
-  --space-8: 2rem;     /* 32px */
-  --space-10: 2.5rem;  /* 40px */
+  /* Spacing */
+  --space-1: .25rem;  /* 4px */
+  --space-2: .5rem;   /* 8px */
+  --space-3: .75rem;  /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-8: 2rem;    /* 32px */
+  --space-10: 2.5rem; /* 40px */
 
   /* Type scale */
   --h1: clamp(1.8rem, 1.2rem + 2.4vw, 2.6rem);
   --h2: clamp(1.4rem, 1.0rem + 1.6vw, 2.0rem);
   --h3: clamp(1.1rem, 0.9rem + 1.0vw, 1.4rem);
 
-  /* Overlays */
+  /* Status colors */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+
+  /* Product gradient (used in headings, chips) */
+  --brand-primary: linear-gradient(135deg, var(--glow-cyan) 0%, var(--glow-violet) 55%, var(--glow-gold) 100%);
+
+  /* Overlay for modals / backdrops */
   --overlay: rgba(2,6,23,.55);
 }
 
-/* Light mode */
-:root[data-theme="light"] {
-  --bg: #f8fafc;
-  --surface: rgba(255,255,255,0.7);
-  --border: rgba(15,23,42,0.1);
-  --text: #0b1220;
-  --muted: #475569;
+/* -------------------------------------------------------------------------- */
+/* 1) THEME: Dark (DEFAULT)                                                   */
+/*    Applies when no data-theme is set, or data-theme="dark"                 */
+/* -------------------------------------------------------------------------- */
+:root,
+:root[data-theme="dark"] {
+  /* Surfaces */
+  --bg:    #0b0f16;               /* page */
+  --bg-2:  #0e141d;               /* cards/hero */
+  --surface: rgba(30,41,59,0.50); /* legacy alias (kept for compatibility) */
+  --glass: rgba(255,255,255,0.06);
+  --border:#222a36;               /* darker, solid border for clarity */
 
-  --shadow-sm: 0 6px 14px rgba(2,6,23,.08);
-  --shadow-md: 0 10px 24px rgba(2,6,23,.12);
-  --shadow-lg: 0 18px 48px rgba(2,6,23,.18);
+  /* Text */
+  --text:       #e7edf5;
+  --text-muted: #a3b1c2;
+
+  /* Chips & subtle UI fills */
+  --chip: rgba(255,255,255,0.08);
+
+  /* Shadow tuning (kept but you can override per-component) */
+  --shadow-sm: 0 6px 14px rgba(0,0,0,.20);
+  --shadow-md: 0 12px 28px rgba(0,0,0,.28);
+  --shadow-lg: 0 20px 52px rgba(0,0,0,.36);
 }
 
-/* System: follow prefers-color-scheme if data-theme="system" */
+/* -------------------------------------------------------------------------- */
+/* 2) THEME: Light                                                            */
+/*    Explicit light mode: html[data-theme="light"]                           */
+/* -------------------------------------------------------------------------- */
+:root[data-theme="light"] {
+  /* Surfaces */
+  --bg:    #f5f7fb;               /* page */
+  --bg-2:  #ffffff;               /* cards/hero */
+  --surface: rgba(255,255,255,0.70);
+  --glass: rgba(10, 20, 30, 0.06);
+  --border: rgba(5, 19, 45, 0.16); /* strong enough for clear edges */
+
+  /* Text */
+  --text:       #0b1220;          /* near-ink */
+  --text-muted: #5a6a80;          /* slate-ish */
+
+  /* Chips & subtle UI fills */
+  --chip: rgba(5, 19, 45, 0.06);
+
+  /* Shadows tuned for light background */
+  --shadow-sm: 0 6px 14px rgba(2,6,23,.08);
+  --shadow-md: 0 12px 28px rgba(2,6,23,.12);
+  --shadow-lg: 0 22px 54px rgba(2,6,23,.16);
+}
+
+/* -------------------------------------------------------------------------- */
+/* 3) THEME: System                                                           */
+/*    Follow OS: html[data-theme="system"] + prefers-color-scheme             */
+/* -------------------------------------------------------------------------- */
 @media (prefers-color-scheme: light) {
   :root[data-theme="system"] {
-    --bg: #f8fafc;
-    --surface: rgba(255,255,255,0.7);
-    --border: rgba(15,23,42,0.1);
-    --text: #0b1220;
-    --muted: #475569;
+    --bg:    #f5f7fb;
+    --bg-2:  #ffffff;
+    --surface: rgba(255,255,255,0.70);
+    --glass: rgba(10, 20, 30, 0.06);
+    --border: rgba(5, 19, 45, 0.16);
+
+    --text:       #0b1220;
+    --text-muted: #5a6a80;
+
+    --chip: rgba(5, 19, 45, 0.06);
+
     --shadow-sm: 0 6px 14px rgba(2,6,23,.08);
-    --shadow-md: 0 10px 24px rgba(2,6,23,.12);
-    --shadow-lg: 0 18px 48px rgba(2,6,23,.18);
+    --shadow-md: 0 12px 28px rgba(2,6,23,.12);
+    --shadow-lg: 0 22px 54px rgba(2,6,23,.16);
   }
 }
+/* If system prefers dark, our base (dark) already applies. No override needed. */
 
-:root {
-  --brand-sky: #38bdf8;
-  --brand-emerald: #10b981;
-  --brand-fuchsia: #d946ef;
+/* -------------------------------------------------------------------------- */
+/* 4) Global base                                                             */
+/* -------------------------------------------------------------------------- */
+html, body {
+  background: var(--bg);
+  color: var(--text);
 }
+
+/* Optional: high-contrast focus ring token (used by components) */
+:root {
+  --focus-ring: 0 0 0 3px color-mix(in oklab, var(--glow-cyan) 35%, transparent);
+}
+
+/* ========================================================================== */
+/* END TOKENS                                                                 */
+/* ========================================================================== */
