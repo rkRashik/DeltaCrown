@@ -21,6 +21,8 @@ app_name = "tournaments"
 
 urlpatterns = [
     path("", views.hub, name="hub"),
+    path("game/<slug:game>/", views.list_by_game, name="game"),
+
     path("view/<slug:slug>/", views.detail, name="detail"),
 
     # Existing registration-related routes in your project; ensure names/args:

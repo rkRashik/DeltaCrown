@@ -1,183 +1,483 @@
-﻿from __future__ import annotations
-from typing import Any, Dict, List, Optional, Tuple
+﻿# apps/tournaments/views/public.py
+from __future__ import annotations
+
+from typing import Dict, Tuple, Any, Optional
 
 from django.apps import apps
-from django.db.models import Q
-from django.http import HttpRequest, HttpResponse
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db.models import (
+    BooleanField,
+    Case,
+    Count,
+    F,
+    IntegerField,
+    Q,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.template.loader import get_template
+from django.template import TemplateDoesNotExist
+from django.urls import reverse
 
-from .helpers import (
-    first, fmt_money, as_bool, as_html, maybe_text,
-    banner_url, read_title, read_game, read_fee_amount, register_url,
-    computed_state, role_for, user_reg, next_cta,
-    coin_policy_of, rules_pdf_of, load_participants, load_standings,
-    live_stream_info, bracket_url_of, build_tabs, hero_meta_for, slugify_game,
-    GAME_REGISTRY, build_pdf_viewer_config,
+
+
+# Prefer app-local imports; fall back to apps.get_model to survive refactors
+try:
+    from ..models import Tournament, Registration, PaymentVerification
+except Exception:  # pragma: no cover
+    Tournament = apps.get_model("tournaments", "Tournament")
+    Registration = apps.get_model("tournaments", "Registration")
+    PaymentVerification = apps.get_model("tournaments", "PaymentVerification")
+
+
+# ---------------------------
+# Helpers & constants
+# ---------------------------
+
+GAME_CHOICES: Tuple[Tuple[str, str], ...] = (
+    ("valorant", "Valorant"),
+    ("efootball", "eFootball"),
+    ("pubg", "PUBG Mobile"),
+    ("freefire", "Free Fire"),
+    ("codm", "Call of Duty Mobile"),
+    ("mlbb", "Mobile Legends"),
+    ("csgo", "CS2/CS:GO"),
+    ("fc26", "FC 26"),
 )
-from .cards import annotate_cards, compute_my_states, related_tournaments
 
-Tournament = apps.get_model("tournaments", "Tournament")
-Registration = apps.get_model("tournaments", "Registration")
+STATUS_RANK = {"OPEN": 0, "UPCOMING": 1, "ONGOING": 2, "COMPLETED": 3}
 
-# Optional/forgiving team models (work with either app label)
-def _get_model(app_label: str, name: str):
+
+def _now():
+    return timezone.now()
+
+
+def _tpl_exists(name: str) -> bool:
     try:
-        return apps.get_model(app_label, name)
+        get_template(name)
+        return True
+    except TemplateDoesNotExist:
+        return False
+
+
+def _get_profile(user):
+    """Return UserProfile for accounts.User, or None (without creating)."""
+    if not getattr(user, "is_authenticated", False):
+        return None
+    prof = getattr(user, "profile", None) or getattr(user, "userprofile", None)
+    if prof:
+        return prof
+    try:
+        UserProfile = apps.get_model("user_profile", "UserProfile")
+        return UserProfile.objects.filter(user=user).first()
     except Exception:
         return None
 
-Team = _get_model("tournaments", "Team") or _get_model("teams", "Team")
-TeamMembership = _get_model("tournaments", "TeamMembership") or _get_model("teams", "TeamMembership")
 
+def _registration_owner_filter_kwargs(user) -> Dict[str, object]:
+    """
+    Build the correct filter for Registration owner:
+    - If model has `profile` FK â†’ use profile
+    - Else if model has `user`:
+        - If it's FK to UserProfile â†’ use profile
+        - If it's FK to accounts.User â†’ use user
+    - Else â†’ return empty (matches nothing)
+    """
+    profile = _get_profile(user)
 
-def _is_team_event(t: Any) -> bool:
-    """Detect if this tournament is a team event (multiple schema patterns supported)."""
-    for attr in ("is_team_event", "team_mode"):
-        if hasattr(t, attr) and getattr(t, attr):
-            return True
-    for attr in ("team_size_min", "team_min", "min_team_size"):
-        if hasattr(t, attr) and (getattr(t, attr) or 0) > 1:
-            return True
-    mode = (getattr(t, "mode", "") or "").lower()
-    return mode in {"team", "teams", "squad", "5v5", "3v3", "2v2"}
-
-
-def _user_team(user) -> Tuple[Optional[Any], Optional[Any]]:
-    """Return (team, membership) for the current user, if any."""
-    if not Team or not TeamMembership or not getattr(user, "is_authenticated", False):
-        return None, None
     try:
-        mem = TeamMembership.objects.select_related("team").filter(user=user).first()
-        return (mem.team if mem else None), mem
-    except Exception:
-        # Fallback: some schemas have user.team directly
-        return getattr(user, "team", None), None
-
-
-def _is_captain(membership: Optional[Any]) -> bool:
-    if not membership:
-        return False
-    if hasattr(membership, "is_captain"):
-        return bool(getattr(membership, "is_captain"))
-    role = (getattr(membership, "role", "") or "").lower()
-    return role in {"captain", "cap", "leader", "owner"}
-
-
-def _team_already_registered(t: Any, team: Any) -> bool:
-    """True if this team (or any of its members) is already registered for t."""
-    if not team:
-        return False
-    # Prefer a direct FK on Registration if present
-    try:
-        return Registration.objects.filter(tournament=t, team=team).exists()
+        Registration._meta.get_field("profile")
+        return {"profile": profile} if profile else {"id__in": []}
     except Exception:
         pass
-    # Fallback by members
+
     try:
-        members = TeamMembership.objects.filter(team=team).values_list("user_id", flat=True)
-        return Registration.objects.filter(tournament=t, user_id__in=list(members)).exists()
+        f = Registration._meta.get_field("user")
+        remote = getattr(f, "remote_field", None)
+        remote_model_name = getattr(getattr(remote, "model", None), "__name__", "")
+        if remote_model_name in ("UserProfile", "Profile"):
+            return {"user": profile} if profile else {"id__in": []}
+        return {"user": user}
     except Exception:
-        return False
+        pass
+
+    return {"id__in": []}
 
 
-# -------------------------- HUB --------------------------
-def hub(request: HttpRequest) -> HttpResponse:
+def _status_for(t: Tournament) -> str:
+    now = _now()
+    start_at = getattr(t, "start_at", None)
+    end_at = getattr(t, "end_at", None)
+    reg_open_at = getattr(t, "reg_open_at", None)
+    reg_close_at = getattr(t, "reg_close_at", None)
+    bracket_state = str(getattr(t, "bracket_state", "")).upper()
+
+    if bracket_state in ("FINISHED", "COMPLETED"):
+        return "COMPLETED"
+    if bracket_state in ("RUNNING", "LIVE"):
+        return "ONGOING"
+
+    if end_at and end_at <= now:
+        return "COMPLETED"
+    if start_at and start_at <= now:
+        return "ONGOING"
+
+    if reg_open_at and reg_close_at:
+        if reg_open_at <= now <= reg_close_at:
+            return "OPEN"
+        if now < reg_open_at:
+            return "UPCOMING"
+        if now > reg_close_at and (not start_at or now < start_at):
+            return "UPCOMING"
+
+    if start_at:
+        return "UPCOMING" if now < start_at else "ONGOING"
+    return "UPCOMING"
+
+
+def _annotate_listing(qs):
+    qs = qs.annotate(registrations_count=Coalesce(Count("registrations", distinct=True), Value(0)))
+
+    # Prize pool â†’ prefer prize_pool_bdt, else prize_total, else 0
+    if hasattr(Tournament, "prize_pool_bdt"):
+        qs = qs.annotate(prize_total_anno=F("prize_pool_bdt"))
+    elif hasattr(Tournament, "prize_total"):
+        qs = qs.annotate(prize_total_anno=F("prize_total"))
+    else:
+        qs = qs.annotate(prize_total_anno=Value(0, output_field=IntegerField()))
+
+    # Entry fee â†’ prefer entry_fee_bdt, else entry_fee, else 0
+    if hasattr(Tournament, "entry_fee_bdt"):
+        qs = qs.annotate(entry_fee_anno=F("entry_fee_bdt"))
+    elif hasattr(Tournament, "entry_fee"):
+        qs = qs.annotate(entry_fee_anno=F("entry_fee"))
+    else:
+        qs = qs.annotate(entry_fee_anno=Value(0, output_field=IntegerField()))
+
+    # Organizer verified (optional)
+    if hasattr(Tournament, "organizer_verified"):
+        qs = qs.annotate(organizer_verified_anno=F("organizer_verified"))
+    else:
+        qs = qs.annotate(organizer_verified_anno=Value(False, output_field=BooleanField()))
+    return qs
+
+
+def _apply_filters(request, qs):
+    q = (request.GET.get("q") or "").strip()
+    status = (request.GET.get("status") or "").strip().upper()
+    game = (request.GET.get("game") or "").strip()
+
+    if q:
+        filters = Q()
+        for f in ("name", "title", "slug", "short_description", "description"):
+            try:
+                Tournament._meta.get_field(f)
+                filters |= Q(**{f"{f}__icontains": q})
+            except Exception:
+                continue
+        if filters:
+            qs = qs.filter(filters)
+
+    if game and hasattr(Tournament, "game"):
+        qs = qs.filter(game=game)
+
+    if status in {"OPEN", "UPCOMING", "ONGOING", "COMPLETED"}:
+        ids = [t.id for t in qs.only("id", "start_at") if _status_for(t) == status]
+        qs = qs.filter(id__in=ids)
+
+    for key in ("format", "platform", "region"):
+        val = (request.GET.get(key) or "").strip()
+        if val and hasattr(Tournament, key):
+            qs = qs.filter(**{key: val})
+
+    online = (request.GET.get("online") or "").strip().lower()
+    if online in ("1", "true", "on") and hasattr(Tournament, "is_online"):
+        qs = qs.filter(is_online=True)
+
+    checkin = (request.GET.get("checkin") or "").strip().lower()
+    if checkin in ("1", "true", "on"):
+        for key in ("check_in_required", "requires_check_in"):
+            if hasattr(Tournament, key):
+                qs = qs.filter(**{key: True})
+                break
+
+    def _int(s, default=None):
+        try:
+            return int(s)
+        except Exception:
+            return default
+
+    fee_min = _int(request.GET.get("fee_min"))
+    fee_max = _int(request.GET.get("fee_max"))
+    if hasattr(Tournament, "entry_fee_bdt"):
+        if fee_min is not None:
+            qs = qs.filter(entry_fee_bdt__gte=fee_min)
+        if fee_max is not None:
+            qs = qs.filter(entry_fee_bdt__lte=fee_max)
+    elif hasattr(Tournament, "entry_fee"):
+        if fee_min is not None:
+            qs = qs.filter(entry_fee__gte=fee_min)
+        if fee_max is not None:
+            qs = qs.filter(entry_fee__lte=fee_max)
+
+    prize_min = _int(request.GET.get("prize_min"))
+    prize_max = _int(request.GET.get("prize_max"))
+    if hasattr(Tournament, "prize_pool_bdt"):
+        if prize_min is not None:
+            qs = qs.filter(prize_pool_bdt__gte=prize_min)
+        if prize_max is not None:
+            qs = qs.filter(prize_pool_bdt__lte=prize_max)
+    elif hasattr(Tournament, "prize_total"):
+        if prize_min is not None:
+            qs = qs.filter(prize_total__gte=prize_min)
+        if prize_max is not None:
+            qs = qs.filter(prize_total__lte=prize_max)
+
+    return qs
+
+
+def _apply_powersort(request, qs):
+    sort = (request.GET.get("sort") or "powersort").lower()
+
+    if sort == "soon":
+        return qs.order_by(
+            F("start_at").asc(nulls_last=True),
+            "-prize_total_anno",
+            "-registrations_count",
+            "-organizer_verified_anno",
+            "-id",
+        )
+    if sort == "prize":
+        return qs.order_by("-prize_total_anno", F("start_at").asc(nulls_last=True))
+    if sort == "popular":
+        return qs.order_by("-registrations_count", F("start_at").asc(nulls_last=True))
+    if sort == "new":
+        return qs.order_by("-id")
+
+    objs = list(qs.only("id", "start_at", "end_at", "reg_open_at", "reg_close_at"))
+    if not objs:
+        return qs.order_by("-id")
+
+    id_to_rank: Dict[int, int] = {t.id: STATUS_RANK.get(_status_for(t), 9) for t in objs}
+    whens = [When(id=tid, then=Value(rank)) for tid, rank in id_to_rank.items()]
+    qs = qs.annotate(_status_rank=Case(*whens, default=Value(9), output_field=IntegerField()))
+
+    return qs.order_by(
+        "_status_rank",
+        F("start_at").asc(nulls_last=True),
+        "-prize_total_anno",
+        "-registrations_count",
+        "-organizer_verified_anno",
+        "-id",
+    )
+
+
+def _extract_rules(obj: Any) -> Optional[str]:
     """
-    Tournaments landing page with featured rows + search/filter.
-    Lightweight and empty-safe. Uses annotate_cards() for dc_* fields.
+    Pull rules text from several possible locations: rules, registration_policy, settings{rules|policy|text}.
     """
-    q      = request.GET.get("q") or ""
+    for fname in ("rules", "registration_policy", "tournament_rules"):
+        if hasattr(obj, fname):
+            val = getattr(obj, fname)
+            if val:
+                return str(val)
+    for fname in ("settings",):
+        if hasattr(obj, fname):
+            val = getattr(obj, fname)
+            if isinstance(val, dict):
+                for key in ("rules", "tournament_rules", "policy", "text", "content"):
+                    txt = val.get(key)
+                    if txt:
+                        return str(txt)
+    return None
+
+
+def _extract_description(obj: Any) -> Optional[str]:
+    for fname in ("description", "long_description", "short_description"):
+        if hasattr(obj, fname):
+            val = getattr(obj, fname)
+            if val:
+                return str(val)
+    return None
+
+
+def _banner_url(obj: Any, request) -> Optional[str]:
+    """
+    SAFE: only access .url if a file is associated.
+    """
+    for fname in ("banner", "cover", "image", "thumbnail"):
+        if hasattr(obj, fname):
+            f = getattr(obj, fname)
+            # If no file set, FileField.name is "" â†’ skip
+            try:
+                name = getattr(f, "name", "") or ""
+            except Exception:
+                name = ""
+            if not name:
+                continue
+            # With a name present, .url should be safe
+            try:
+                url = f.url
+            except Exception:
+                url = None
+            if url:
+                try:
+                    if str(url).startswith(("http://", "https://")):
+                        return str(url)
+                    return request.build_absolute_uri(url)
+                except Exception:
+                    return str(url)
+    return None
+
+
+def _try_reverse(name: str, *args, **kwargs) -> Optional[str]:
+    try:
+        return reverse(name, args=args, kwargs=kwargs)
+    except Exception:
+        return None
+
+
+def _compute_register_url(t: Tournament) -> str:
+    slug_kw = {"slug": t.slug}
+    for name in [
+        "tournaments:register",
+        "tournaments:registration",
+        "tournaments:register_team",
+        "tournaments:join",
+        "tournaments:signup",
+        "tournaments:enroll",
+        "register",
+    ]:
+        url = _try_reverse(name, **slug_kw)
+        if url:
+            return url
+    return f"/tournaments/{t.slug}/register/"
+
+
+def _paginate(request, qs, per_page=12):
+    paginator = Paginator(qs, per_page)
+    page_number = request.GET.get("page") or 1
+    try:
+        return paginator.page(page_number), paginator
+    except PageNotAnInteger:
+        return paginator.page(1), paginator
+    except EmptyPage:
+        return paginator.page(paginator.num_pages), paginator
+
+
+def _my_registrations_map(user) -> Dict[int, Registration]:
+    if not getattr(user, "is_authenticated", False):
+        return {}
+    owner = _registration_owner_filter_kwargs(user)
+    regs = (
+        Registration.objects.select_related("tournament")
+        .filter(**owner)
+        .order_by("-created_at")
+    )
+    by_tid = {}
+    for r in regs:
+        by_tid[r.tournament_id] = r
+    return by_tid
+
+
+# ---------------------------
+# Pages
+# ---------------------------
+
+def hub(request):
+    """
+    Hub page with guided discovery + curated rows + explore grid.
+    Defensive and independent of minor model differences.
+    """
+    from apps.tournaments.models import Tournament  # local import to avoid circulars
+
+    q = request.GET.get("q") or ""
     status = request.GET.get("status")
-    start  = request.GET.get("start")
-    fee    = request.GET.get("fee")
-    sort   = request.GET.get("sort")
+    start = request.GET.get("start")
+    fee = request.GET.get("fee")
+    sort = request.GET.get("sort")
 
-    base = Tournament.objects.all().order_by("-id")
+    base = Tournament.objects.all()
 
-    # Text search across common fields
+    # minimal fields mapping for templates
+    base = base.annotate().select_related().order_by("-id")
+
+    # search
     if q:
         base = base.filter(
             Q(title__icontains=q) |
-            Q(name__icontains=q)  |
-            Q(game__icontains=q)  |
-            Q(description__icontains=q)
+            Q(game__icontains=q)
         )
 
-    # Filters (best-effort)
-    if status == "open" and hasattr(Tournament, "is_open"):
-        base = base.filter(is_open=True)
-    elif status == "live" and hasattr(Tournament, "status"):
-        base = base.filter(status__iexact="live")
+    # status filter (open/live/etc). Adjust to your actual fields.
+    if status == "open":
+        base = base.filter(is_open=True) if hasattr(Tournament, "is_open") else base
+    elif status == "live":
+        base = base.filter(status="live") if hasattr(Tournament, "status") else base
 
-    if start == "7d" and hasattr(Tournament, "starts_at"):
+    # start window (≤7d)
+    if start == "7d":
+        from django.utils import timezone
         now = timezone.now()
-        soon = now + timezone.timedelta(days=7)
-        base = base.filter(starts_at__gte=now, starts_at__lte=soon)
+        in7 = now + timezone.timedelta(days=7)
+        if hasattr(Tournament, "starts_at"):
+            base = base.filter(starts_at__gte=now, starts_at__lte=in7)
 
+    # fee filter
     if fee == "free":
         if hasattr(Tournament, "fee_amount"):
             base = base.filter(fee_amount=0)
-        elif hasattr(Tournament, "entry_fee_bdt") or hasattr(Tournament, "entry_fee"):
-            field = "entry_fee_bdt" if hasattr(Tournament, "entry_fee_bdt") else "entry_fee"
-            base = base.filter(**{field: 0})
 
-    # Sorting
-    if sort == "new":
-        base = base.order_by("-id")
-    elif sort == "fee_asc" and hasattr(Tournament, "fee_amount"):
-        base = base.order_by("fee_amount")
-
-    # Curated rows (best-effort)
-    live_qs: List[Any] = list(base.filter(status__iexact="live")[:6]) if hasattr(Tournament, "status") else []
-    starting_soon_qs: List[Any] = []
-    new_this_week_qs: List[Any] = []
-    free_qs: List[Any] = []
+    # curated subsets
+    live_qs = base.filter(status="live")[:6] if hasattr(Tournament, "status") else []
+    starting_soon_qs = []
+    new_this_week_qs = []
+    free_qs = []
 
     if hasattr(Tournament, "starts_at"):
+        from django.utils import timezone
         now = timezone.now()
         soon = now + timezone.timedelta(days=7)
-        starting_soon_qs = list(base.filter(starts_at__gte=now, starts_at__lte=soon).order_by("starts_at")[:6])
-        if hasattr(Tournament, "created_at"):
-            new_this_week_qs = list(base.filter(created_at__gte=now - timezone.timedelta(days=7))[:6])
-        else:
-            new_this_week_qs = list(base[:6])
-
+        starting_soon_qs = base.filter(starts_at__gte=now, starts_at__lte=soon).order_by("starts_at")[:6]
+        # "new this week" as recently created
+        new_this_week_qs = base.filter(created_at__gte=now - timezone.timedelta(days=7))[:6] if hasattr(Tournament, "created_at") else base[:6]
     if hasattr(Tournament, "fee_amount"):
-        free_qs = list(base.filter(fee_amount=0)[:6])
-    elif hasattr(Tournament, "entry_fee_bdt") or hasattr(Tournament, "entry_fee"):
-        field = "entry_fee_bdt" if hasattr(Tournament, "entry_fee_bdt") else "entry_fee"
-        free_qs = list(base.filter(**{field: 0})[:6])
+        free_qs = base.filter(fee_amount=0)[:6]
 
-    # Main grid (first page)
-    tournaments = list(base[:24])
+    # explore grid sorting
+    grid = base
+    if sort == "new":
+        grid = grid.order_by("-id")
+    elif sort == "fee_asc" and hasattr(Tournament, "fee_amount"):
+        grid = grid.order_by("fee_amount")
 
-    # Annotate all querysets for cards (dc_* fields)
-    annotate_cards(tournaments)
-    annotate_cards(live_qs)
-    annotate_cards(starting_soon_qs)
-    annotate_cards(new_this_week_qs)
-    annotate_cards(free_qs)
+    tournaments = list(grid[:24])  # cap first page
 
-    # Browse-by-game meta with counts
+    for t in tournaments:
+        resolved_banner = getattr(t, "banner_url", None) or _banner_url(t)
+        object.__setattr__(t, "dc_banner_url", resolved_banner)
+        resolved_status = getattr(t, "status", None) or _status_for_card(t)
+        object.__setattr__(t, "dc_status", resolved_status)
+        resolved_reg = getattr(t, "register_url", None) or _register_url(t)
+        object.__setattr__(t, "dc_register_url", resolved_reg)
+
+    # game registry + counts (include card image)
     games = []
-    for key, g in GAME_REGISTRY.items():
-        cnt = base.filter(game=key).count() if hasattr(Tournament, "game") else 0
+    for g in GAME_REGISTRY:
+        cnt = base.filter(game=g["slug"]).count() if hasattr(Tournament, "game") else 0
         games.append({
-            "slug": key, "name": g["name"],
-            "primary": g["primary"], "image": g.get("card_image"),
+            "slug": g["slug"],
+            "name": g["name"],
+            "icon_url": g.get("icon_url"),
+            "primary": g.get("primary", "#7c3aed"),
+            "image": g.get("image"),  # <<< used by card background
             "count": cnt,
         })
 
-    # My registration states for the visible grid
-    my_states = compute_my_states(request, tournaments)
-
-    # Light stats (best-effort)
-    stats = {"total_active": 0}
-    try:
-        stats["total_active"] = base.filter(is_open=True).count() if hasattr(Tournament, "is_open") else base.count()
-    except Exception:
-        pass
+    my_states = _compute_my_states(request, tournaments)
 
     ctx = {
         "q": q, "sort": sort,
@@ -188,40 +488,62 @@ def hub(request: HttpRequest) -> HttpResponse:
         "free_tournaments": free_qs,
         "games": games,
         "my_reg_states": my_states,
-        "stats": stats,
     }
+
+    # --- stats (defensive) ---
+    stats = {"total_active": 0, "players_this_month": 0, "prize_pool_month": "0"}
+    try:
+        from django.utils import timezone
+        now = timezone.now()
+        this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        # total active
+        if hasattr(Tournament, "is_open"):
+            stats["total_active"] = base.filter(is_open=True).count()
+        else:
+            stats["total_active"] = base.count()
+        # players this month (best-effort)
+        try:
+            from apps.tournaments.models import Registration
+            stats["players_this_month"] = Registration.objects.filter(created_at__gte=this_month_start).count()
+        except Exception:
+            stats["players_this_month"] = 0
+        # prize pool (sum) — if you have a field prize_pool
+        if hasattr(Tournament, "prize_pool"):
+            from django.db.models import Sum
+            total = base.filter(created_at__gte=this_month_start).aggregate(s=Sum("prize_pool")).get("s") or 0
+            stats["prize_pool_month"] = f"{int(total):,}"
+    except Exception:
+        pass
+
+    ctx.update({"stats": stats})
+
     return render(request, "tournaments/hub.html", ctx)
 
 
-# ---------------------- LIST BY GAME ----------------------
-def list_by_game(request: HttpRequest, game: str) -> HttpResponse:
-    """
-    Game-specific listing with search/filter/sort.
-    """
+def list_by_game(request, game):
+    from apps.tournaments.models import Tournament
+
+    q = request.GET.get("q") or ""
+    fee = request.GET.get("fee")
+    status = request.GET.get("status")
+    start = request.GET.get("start")
+    sort = request.GET.get("sort")
+
     base = Tournament.objects.all()
     if hasattr(Tournament, "game"):
         base = base.filter(game=game)
 
-    q      = request.GET.get("q") or ""
-    fee    = request.GET.get("fee")
-    status = request.GET.get("status")
-    start  = request.GET.get("start")
-    sort   = request.GET.get("sort")
-
     if q:
-        base = base.filter(Q(title__icontains=q) | Q(name__icontains=q) | Q(description__icontains=q))
+        base = base.filter(Q(title__icontains=q))
 
-    if fee == "free":
-        if hasattr(Tournament, "fee_amount"):
-            base = base.filter(fee_amount=0)
-        elif hasattr(Tournament, "entry_fee_bdt") or hasattr(Tournament, "entry_fee"):
-            field = "entry_fee_bdt" if hasattr(Tournament, "entry_fee_bdt") else "entry_fee"
-            base = base.filter(**{field: 0})
+    if fee == "free" and hasattr(Tournament, "fee_amount"):
+        base = base.filter(fee_amount=0)
 
-    if status == "open" and hasattr(Tournament, "is_open"):
-        base = base.filter(is_open=True)
+    if status == "open":
+        base = base.filter(is_open=True) if hasattr(Tournament, "is_open") else base
 
     if start == "7d" and hasattr(Tournament, "starts_at"):
+        from django.utils import timezone
         now = timezone.now()
         soon = now + timezone.timedelta(days=7)
         base = base.filter(starts_at__gte=now, starts_at__lte=soon)
@@ -232,13 +554,20 @@ def list_by_game(request: HttpRequest, game: str) -> HttpResponse:
         base = base.order_by("fee_amount")
 
     tournaments = list(base[:36])
-    annotate_cards(tournaments)
 
-    # game visual meta
-    gslug = game
-    gm = GAME_REGISTRY.get(gslug, {"name": game.title(), "primary": "#7c3aed"})
+    for t in tournaments:
+        resolved_banner = getattr(t, "banner_url", None) or _banner_url(t)
+        object.__setattr__(t, "_dc_banner_url", resolved_banner)
+        resolved_status = getattr(t, "status", None) or _status_for_card(t)
+        object.__setattr__(t, "_dc_status", resolved_status)
+        resolved_reg = getattr(t, "register_url", None) or _register_url(t)
+        object.__setattr__(t, "_dc_register_url", resolved_reg)
+
+
+    # game meta from registry (future-proof, even if no Game model)
+    gm = next((g for g in GAME_REGISTRY if g["slug"] == game), {"slug": game, "name": game.title(), "icon_url": "", "primary": "#7c3aed"})
     total = base.count()
-    my_states = compute_my_states(request, tournaments)
+    my_states = _compute_my_states(request, tournaments)
 
     ctx = {
         "q": q, "sort": sort,
@@ -250,178 +579,192 @@ def list_by_game(request: HttpRequest, game: str) -> HttpResponse:
     return render(request, "tournaments/list_by_game.html", ctx)
 
 
-# -------------------------- DETAIL --------------------------
-def detail(request: HttpRequest, slug: str) -> HttpResponse:
-    """
-    Premium esports detail page: hero, live media, bracket, participants, standings,
-    rules/policy accordions, contextual CTA, countdown, and related tournaments.
+def detail(request, slug: str):
+    t = get_object_or_404(Tournament.objects.select_related(), slug=slug)
+    status = _status_for(t)
+    now = _now()
 
-    Now team-aware: exposes flags for CTA logic (already registered / captain only).
-    """
-    t = get_object_or_404(Tournament, slug=slug)
+    # Countdown target
+    check_in_start = getattr(t, "check_in_starts_at", None) or getattr(t, "checkin_starts_at", None)
+    start_at = getattr(t, "start_at", None)
+    countdown_to = check_in_start or start_at
 
-    # Base fields
-    title = read_title(t)
-    game  = read_game(t)
-    gslug = slugify_game(game)
-
-    entry_fee  = read_fee_amount(t)
-    prize_pool = first(getattr(t, "prize_pool_bdt", None), getattr(t, "prize_total", None))
-
-    starts_at  = first(getattr(t, "starts_at", None), getattr(t, "start_at", None))
-    ends_at    = first(getattr(t, "ends_at", None),   getattr(t, "end_at", None))
-    reg_open   = getattr(t, "reg_open_at", None)
-    reg_close  = getattr(t, "reg_close_at", None)
-    chk_open   = first(getattr(t, "check_in_open_at", None), getattr(getattr(t, "settings", None), "check_in_open_at", None))
-    chk_close  = first(getattr(t, "check_in_close_at", None), getattr(getattr(t, "settings", None), "check_in_close_at", None))
-
-    # Format
-    format_type = first(getattr(getattr(t, "settings", None), "tournament_type", None), getattr(t, "format", None))
-    best_of     = first(getattr(getattr(t, "settings", None), "best_of", None), getattr(t, "best_of", None))
-    min_team    = first(getattr(getattr(t, "settings", None), "min_team_size", None), getattr(t, "min_team_size", None))
-    max_team    = first(getattr(getattr(t, "settings", None), "max_team_size", None), getattr(t, "max_team_size", None))
-    platform    = first(getattr(getattr(t, "settings", None), "platform", None), getattr(t, "platform", None))
-    region      = first(getattr(getattr(t, "settings", None), "region", None), getattr(t, "region", None))
-    check_in_required = as_bool(getattr(getattr(t, "settings", None), "check_in_required", None), False)
-
-    # Capacity / slots (best-effort)
-    cap_total = first(getattr(t, "capacity", None), getattr(getattr(t, "settings", None), "capacity", None))
-    reg_count = 0
-    try:
-        for name in ("registrations", "participants", "teams"):
-            if hasattr(t, name):
-                rel = getattr(t, name)
-                if hasattr(rel, "count"):
-                    reg_count = rel.count()
-                    break
-    except Exception:
-        pass
-
-    # Descriptions
-    short_desc = as_html(first(getattr(t, "short_description", None), getattr(t, "summary", None), getattr(getattr(t, "settings", None), "short_description", None)))
-    desc_html  = as_html(first(getattr(t, "description", None), getattr(getattr(t, "settings", None), "description", None)))
-
-    # Rules / policy
-    rules_text = maybe_text(
-        getattr(t, "rules_text", None), getattr(t, "rules_html", None),
-        getattr(getattr(t, "settings", None), "rules_text", None),
-        getattr(getattr(t, "settings", None), "rules_html", None)
+    # Slots left (capacity - verified regs)
+    capacity = getattr(t, "capacity", None)
+    owner = _registration_owner_filter_kwargs(request.user)
+    regs_qs = Registration.objects.filter(tournament=t, **owner)
+    all_regs = Registration.objects.filter(tournament=t)
+    verified_total = (
+        all_regs.filter(state__in=["VERIFIED", "APPROVED"]).count()
+        if hasattr(Registration, "state")
+        else all_regs.count()
     )
-    extra_rules = maybe_text(
-        getattr(t, "additional_rules", None),
-        getattr(getattr(t, "settings", None), "additional_rules", None)
-    )
-    rules_url, rules_filename = rules_pdf_of(t)
-    coin_policy = coin_policy_of(t)
+    slots_left = max((capacity or 0) - verified_total, 0) if capacity else None
 
-    # Live / bracket
-    live_info   = live_stream_info(t)         # {stream, status, viewers}
-    bracket_url = bracket_url_of(t)
+    # Prize & entry
+    prize_total = getattr(t, "prize_pool_bdt", getattr(t, "prize_total", 0))
+    entry_fee = getattr(t, "entry_fee_bdt", getattr(t, "entry_fee", 0))
 
-    # Data-heavy sections
-    participants = load_participants(t)       # [{name, seed, status, logo, captain, region, record}]
-    standings    = load_standings(t)          # [{rank, name, points}]
+    # My registration / PV
+    my_reg = regs_qs.select_related().first()
+    my_pv_state = None
+    if my_reg and hasattr(my_reg, "payment_verification"):
+        pv = getattr(my_reg, "payment_verification")
+        my_pv_state = getattr(pv, "status", None)
 
-    # State & CTA + hero meta
-    state   = computed_state(t)
-    banner  = banner_url(t)
-    reg_url = register_url(t)
-    cta     = next_cta(request.user, t, state, entry_fee, reg_url)
-    hero    = hero_meta_for(t)                # theme colors, countdown, tz label, game icon
+    # CTA
+    cta = "register"
+    if status == "COMPLETED":
+        cta = "closed"
+    elif my_reg:
+        reg_state = str(getattr(my_reg, "state", "")).upper()
+        if reg_state in ("PENDING", "SUBMITTED"):
+            cta = "view_receipt" if my_pv_state else "continue"
+        elif reg_state in ("VERIFIED", "APPROVED"):
+            ci_start = getattr(t, "check_in_starts_at", None) or getattr(t, "checkin_starts_at", None)
+            ci_end = getattr(t, "check_in_ends_at", None) or getattr(t, "checkin_ends_at", None)
+            if ci_start and ci_end and ci_start <= now <= ci_end:
+                cta = "check_in"
+            elif start_at and now >= start_at:
+                cta = "your_matches"
+            else:
+                cta = "registered"
+        else:
+            cta = "continue"
 
-    # Tabs based on content
-    tabs = build_tabs(
-        participants=participants,
-        prize_pool=prize_pool,
-        rules_text=rules_text, extra_rules=extra_rules, rules_pdf_url=rules_url,
-        standings=standings, bracket_url=bracket_url,
-        live_info=live_info, coin_policy_text=coin_policy
-    )
+    # Content extraction & URLs
+    rules_html = _extract_rules(t)
+    description_html = _extract_description(t)
+    banner_url = _banner_url(t, request)
+    register_url = _compute_register_url(t)
 
-    # active tab sanitized to a valid tab name
-    active_tab = (request.GET.get("tab") or "overview").lower()
-    if active_tab not in tabs:
-        active_tab = "overview"
-
-    # Related tournaments (same game, excluding self) — ready for cards
-    related = related_tournaments(t, limit=8)
-
-    # PDF.js viewer config (theme-aware; templates may toggle light/dark)
-    pdf_viewer = build_pdf_viewer_config(t, theme="auto")
-
-    # -------- NEW: team-awareness for CTA visibility --------
-    is_team = _is_team_event(t)
-    team, membership = _user_team(request.user)
-    user_is_captain = _is_captain(membership)
-    team_registered = _team_already_registered(t, team) if team else False
-
-    # Build context
     ctx = {
-        # hero & primary info
-        "title": title,
-        "short_desc": short_desc,
-        "desc_html": desc_html,
-        "banner": banner,
-        "game": game,
-        "game_slug": gslug,
-        "hero": hero,                      # {game_slug, game_name, theme{primary,glowA,glowB}, countdown, tz_label}
-        "platform": platform, "region": region,
-
-        # money & schedule
-        "entry_fee": entry_fee, "entry_fee_fmt": fmt_money(entry_fee),
-        "prize_pool": prize_pool, "prize_pool_fmt": fmt_money(prize_pool),
-        "schedule": {
-            "reg_open": reg_open, "reg_close": reg_close,
-            "checkin_open": chk_open, "checkin_close": chk_close,
-            "starts_at": starts_at, "ends_at": ends_at,
-        },
-
-        # format + slots
-        "format": {
-            "type": format_type, "best_of": best_of,
-            "team_min": min_team, "team_max": max_team,
-            "check_in_required": check_in_required,
-        },
-        "slots": {"current": reg_count, "capacity": cap_total},
-
-        # sections
-        "participants": participants,
-        "standings": standings,
-        "prizes": [],  # optional normalized breakdown if you store it later
-        "bracket_url": bracket_url,
-        "live": live_info,                 # {stream, status, viewers}
-
-        # rules & policy
-        "rules": {"text": rules_text, "extra": extra_rules, "pdf_url": rules_url, "pdf_name": rules_filename},
-        "pdf_viewer": pdf_viewer,          # <-- config for inline PDF.js viewer
-        "coin_policy": coin_policy,
-
-        # UI/CTA
-        "ui": {
-            "state": state,
-            "user_role": role_for(request.user, t),
-            "user_registration": user_reg(request.user, t),
-            "next_call_to_action": cta,
-            "can_register": cta["kind"] in ("register", "pay", "checkin"),
-            "show_live": bool(live_info.get("stream") or live_info.get("status") == "live"),
-        },
-
-        # NEW: team-aware flags for template CTA logic
-        "is_team_event": is_team,
-        "team": team,
-        "user_is_captain": user_is_captain,
-        "team_registered": team_registered,
-
-        # tabs/nav
-        "tabs": tabs,
-        "active_tab": active_tab,
-
-        # urls & related
-        "register_url": reg_url,
-        "related": related,
-
-        # raw
         "t": t,
+        "tournament": t,
+        "status": status,
+        "countdown_to": countdown_to,
+        "slots_left": slots_left,
+        "prize_total": prize_total,
+        "entry_fee": entry_fee,
+        "my_registration": my_reg,
+        "my_pv_state": my_pv_state,
+        "rules_html": rules_html,
+        "description_html": description_html,
+        "banner_url": banner_url,
+        "register_url": register_url,
+        # Optional partials
+        "has_organizer_badge": _tpl_exists("tournaments/_organizer_badge.html"),
+        "has_prize_pool": _tpl_exists("tournaments/_prize_pool.html"),
+        "has_schedule_timeline": _tpl_exists("tournaments/_schedule_timeline.html"),
+        "has_rules_drawer": _tpl_exists("tournaments/_rules_drawer.html"),
+        "has_participants_grid": _tpl_exists("tournaments/_participants_grid.html"),
+        "has_bracket": _tpl_exists("tournaments/bracket.html"),
+        "has_standings": _tpl_exists("tournaments/standings.html"),
+        "has_stream_embed": _tpl_exists("tournaments/_stream_embed.html"),
+        "cta": cta,
     }
+    return render(request, "tournaments/detail.html", ctx)
 
-    return render(request, "tournaments/detail.html", {"ctx": ctx})
+
+# Image paths are relative to STATIC_URL and will be resolved by the template via {% static %}
+GAME_REGISTRY = [
+    {"slug": "valorant",       "name": "Valorant",        "icon_url": "", "primary": "#ff4655", "image": "img/game_cards/Valorant.jpg"},
+    {"slug": "efootball",      "name": "eFootball",       "icon_url": "", "primary": "#1e90ff", "image": "img/game_cards/efootball.jpeg"},
+    # CS2: user typo "cse" noted; include both keys to be safe
+    {"slug": "cs2",            "name": "Counter-Strike 2","icon_url": "", "primary": "#f59e0b", "image": "img/game_cards/CS2.jpg"},
+    {"slug": "cse",            "name": "Counter-Strike 2","icon_url": "", "primary": "#f59e0b", "image": "img/game_cards/CS2.jpg"},
+    {"slug": "fc26",           "name": "FC 26",           "icon_url": "", "primary": "#22c55e", "image": "img/game_cards/FC26.jpg"},
+    {"slug": "mobilelegend",   "name": "Mobile Legends",  "icon_url": "", "primary": "#7c3aed", "image": "img/game_cards/MobileLegend.jpg"},
+    {"slug": "pubg",           "name": "PUBG Mobile",     "icon_url": "", "primary": "#10b981", "image": "img/game_cards/PUBG.jpeg"},
+]
+
+def _status_for_card(t):
+    # Basic guard; customize to your status fields
+    try:
+        return t.status
+    except Exception:
+        # infer from dates if needed
+        return "open" if getattr(t, "is_open", True) else "closed"
+
+def _banner_url(t):
+    # If your model provides a property, prefer that
+    url = getattr(t, "banner_url", None)
+    if url:
+        return url
+    # fallback from ImageField `banner`
+    banner = getattr(t, "banner", None)
+    try:
+        return banner.url if banner else None
+    except Exception:
+        return None
+
+def _register_url(t):
+    try:
+        return reverse("tournaments:register", args=[t.slug])
+    except Exception:
+        return getattr(t, "register_url", None) or "#"
+
+def _compute_my_states(request, tournaments):
+    """
+    Returns { tournament.id: {registered: bool, cta: 'continue'|'receipt'|None, cta_url: str|None} }
+    Falls back gracefully if Registration/PaymentVerification models differ.
+    """
+    states = {}
+    user = getattr(request, "user", None)
+    if not (user and user.is_authenticated):
+        return states
+    ids = [getattr(t, "id") for t in tournaments if getattr(t, "id", None)]
+    if not ids:
+        return states
+
+    # Try to import models; guard failures
+    try:
+        from apps.tournaments.models import Registration
+    except Exception:
+        Registration = None
+    try:
+        from apps.tournaments.models import PaymentVerification
+    except Exception:
+        PaymentVerification = None
+
+    reg_qs = []
+    if Registration:
+        try:
+            reg_qs = list(Registration.objects.filter(user=user, tournament_id__in=ids).values("tournament_id", "id"))
+        except Exception:
+            reg_qs = []
+
+    pv_map = {}
+    if PaymentVerification and reg_qs:
+        try:
+            reg_ids = [r["id"] for r in reg_qs]
+            for pv in PaymentVerification.objects.filter(registration_id__in=reg_ids).values("registration_id","status"):
+                pv_map[pv["registration_id"]] = pv["status"]
+        except Exception:
+            pv_map = {}
+
+    reg_by_tid = {}
+    for r in reg_qs:
+        reg_by_tid[r["tournament_id"]] = r["id"]
+
+    for t in tournaments:
+        tid = getattr(t, "id", None)
+        if not tid:
+            continue
+        if tid in reg_by_tid:
+            reg_id = reg_by_tid[tid]
+            status = pv_map.get(reg_id)
+            # Choose CTA based on PV status
+            if status in (None, "pending", "rejected"):
+                states[tid] = {"registered": True, "cta": "continue", "cta_url": _register_url(t)}
+            elif status in ("verified", "approved"):
+                try:
+                    receipt_url = reverse("tournaments:registration_receipt", args=[t.slug])
+                except Exception:
+                    receipt_url = _register_url(t)
+                states[tid] = {"registered": True, "cta": "receipt", "cta_url": receipt_url}
+            else:
+                states[tid] = {"registered": True, "cta": None, "cta_url": None}
+        else:
+            states[tid] = {"registered": False, "cta": None, "cta_url": None}
+    return states

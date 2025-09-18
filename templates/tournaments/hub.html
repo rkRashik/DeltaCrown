@@ -1,93 +1,230 @@
 ﻿{% extends "base.html" %}
-{% load static %}
+{% load static dict_utils %}
 
-{% block title %}Tournaments — DeltaCrown{% endblock %}
+{% block title %}Play. Win. Be Seen — Tournaments | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-  <header class="mb-6">
-    <div class="flex items-center justify-between gap-4">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Tournaments</h1>
-        <p class="mt-1 text-sm text-slate-700 dark:text-slate-300">Find your next competition. Register, pay, check-in, and play.</p>
+<section class="dc-container">
+
+  {# ---------------- HERO ---------------- #}
+  <header class="hero-2025">
+    <div class="hero-bg">
+      <div class="hero-noise"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-glow hero-glow-a"></div>
+      <div class="hero-glow hero-glow-b"></div>
+    </div>
+
+    <div class="hero-wrap">
+      <div class="hero-left">
+        <p class="eyebrow">Official Bangladesh Platform</p>
+        <h1 class="hero-title">Compete. Climb. <span class="grad">Get Noticed.</span></h1>
+        <p class="hero-sub">Join premium esports tournaments across Valorant, eFootball, CS2, FC, MLBB, PUBG and more. Verified prizes, fair brackets, real-time standings.</p>
+
+        <div class="hero-ctas">
+          <a class="cta-primary" href="#browse">Browse Tournaments</a>
+          <a class="cta-secondary" href="#all">All Tournaments</a>
+        </div>
+
+        <ul class="hero-stats">
+          <li><strong>{{ stats.total_active|default:"25" }}</strong><span>Active now</span></li>
+          <li><strong>{{ stats.players_this_month|default:"1,200" }}</strong><span>Players this month</span></li>
+          <li><strong>৳{{ stats.prize_pool_month|default:"2,50,000" }}</strong><span>Prize pool</span></li>
+        </ul>
+
+        <div class="trust-row">
+          <span class="trust-badge">Fast payouts</span>
+          <span class="trust-badge">Anti-smurf checks</span>
+          <span class="trust-badge">Live support</span>
+        </div>
       </div>
 
-      {% url 'tournaments:create' as t_create_url %}
-      {% if t_create_url and request.user.is_authenticated and request.user.is_staff %}
-        <a href="{{ t_create_url }}" class="inline-flex items-center px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">
-          Create tournament
-        </a>
-      {% endif %}
+      <div class="hero-right">
+        <div class="hero-card">
+          <div class="hc-top"><span class="live-dot"></span> Featured Now</div>
+          <div class="hc-body">
+            {% if live_tournaments %}
+              {% with t=live_tournaments.0 %}
+              <a class="hc-banner" href="{{ t.get_absolute_url|default:'#' }}">
+                {% if t.dc_banner_url %}
+                  <img src="{{ t.dc_banner_url }}" alt="{{ t.title }}">
+                {% else %}
+                  <div class="hc-fallback"></div>
+                {% endif %}
+              </a>
+              <h3 class="hc-title"><a href="{{ t.get_absolute_url|default:'#' }}">{{ t.title|default:"Featured tournament" }}</a></h3>
+              <div class="hc-meta">
+                {% if t.starts_at %}<span>Starts {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
+                {% if t.game %}<span>{{ t.game|title }}</span>{% endif %}
+                {% if t.fee_amount is not None %}<span>{% if t.fee_amount == 0 %}Free Entry{% else %}৳{{ t.fee_amount }}{% endif %}</span>{% endif %}
+              </div>
+              <div class="hc-cta">
+                <a class="cta-primary" href="{{ t.dc_register_url|default:'#' }}">Register</a>
+                <a class="cta-ghost" href="{{ t.get_absolute_url|default:'#' }}">View</a>
+              </div>
+              {% endwith %}
+            {% else %}
+              <div class="hc-empty">Live events appear here when a tournament is in progress.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
-  {% if spotlight %}
-    <section aria-label="Featured" class="mb-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for s in spotlight %}
-          {% include "tournaments/_card.html" with t=s featured=True %}
-        {% endfor %}
+  {# ---------------- BROWSE BY GAME (top under hero) ---------------- #}
+  <section class="section-head" id="browse">
+    <h2 class="section-title">Browse by Game</h2>
+    <a class="section-link" href="#all">All tournaments</a>
+  </section>
+  <div class="game-grid">
+    {% for g in games %}
+      {% include "tournaments/partials/_game_card.html" with g=g %}
+    {% endfor %}
+  </div>
+
+  {# ---------------- ALL TOURNAMENTS (clean filters) ---------------- #}
+  <section class="section-head" id="all">
+    <h2 class="section-title">All Tournaments</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}">See more</a>
+  </section>
+
+  <div class="search-panel glass">
+    <form id="hub-search-form" method="get" action="{% url 'tournaments:hub' %}" class="search-form">
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Search</label>
+          <input type="search" name="q" value="{{ q|default_if_none:'' }}" placeholder="Name, game, format…" class="input" aria-label="Search tournaments">
+        </div>
+        <div class="sf-field">
+          <label>Status</label>
+          <select name="status" class="select">
+            <option value="">Any</option>
+            <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Open</option>
+            <option value="live" {% if request.GET.status == 'live' %}selected{% endif %}>Live</option>
+          </select>
+        </div>
+        <div class="sf-field">
+          <label>Start</label>
+          <select name="start" class="select">
+            <option value="">Any</option>
+            <option value="7d" {% if request.GET.start == '7d' %}selected{% endif %}>Within 7 days</option>
+          </select>
+        </div>
+        <div class="sf-field">
+          <label>Fee</label>
+          <select name="fee" class="select">
+            <option value="">Any</option>
+            <option value="free" {% if request.GET.fee == 'free' %}selected{% endif %}>Free</option>
+          </select>
+        </div>
+        <div class="sf-field">
+          <label>Sort</label>
+          <select name="sort" class="select">
+            <option value="relevant" {% if sort == 'relevant' or not sort %}selected{% endif %}>Most relevant</option>
+            <option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option>
+            <option value="fee_asc" {% if sort == 'fee_asc' %}selected{% endif %}>Fee: Low→High</option>
+          </select>
+        </div>
+        <div class="sf-actions">
+          <button class="btn">Apply</button>
+          <a class="btn-ghost" href="{% url 'tournaments:hub' %}">Clear</a>
+        </div>
       </div>
-    </section>
+    </form>
+  </div>
+
+  {% if tournaments %}
+    <div class="grid">
+      {% for t in tournaments %}
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_item:t.id %}
+      {% endfor %}
+    </div>
+  {% else %}
+    {% include "tournaments/partials/_grid_empty.html" %}
   {% endif %}
 
-  {% include "tournaments/_directory.html" with game_cards=game_cards %}
-
-  {% include "tournaments/_my_registrations.html" with regs=my_registrations %}
-
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-    <aside class="lg:col-span-3">
-      <div class="sticky top-24 space-y-4">
-        {% include "tournaments/_filters.html" with status_list=status_list games=games filters=filters active_game=active_game sort=sort query=query %}
+  {# ---------------- OPTIONAL ROWS (still helpful) ---------------- #}
+  {% if starting_soon %}
+  <section class="section-head">
+    <h2 class="section-title">Starting Soon</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?start=7d">Within 7 days</a>
+  </section>
+  <div class="carousel">
+    {% for t in starting_soon %}
+      <div class="carousel-item">
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_item:t.id %}
       </div>
-    </aside>
-
-    <section class="lg:col-span-9">
-      <div class="mb-3 flex flex-col sm:flex-row gap-3">
-        <form method="get" class="flex-1 flex gap-2">
-          <label class="sr-only" for="q">Search</label>
-          <input id="q" name="q" value="{{ query }}" type="search" placeholder="Search tournaments..."
-                 class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-          <select name="sort" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-            <option value="powersort" {% if sort == "powersort" %}selected{% endif %}>Sort: PowerSort</option>
-            <option value="soon" {% if sort == "soon" %}selected{% endif %}>Soonest</option>
-            <option value="prize" {% if sort == "prize" %}selected{% endif %}>Prize</option>
-            <option value="popular" {% if sort == "popular" %}selected{% endif %}>Most registered</option>
-            <option value="new" {% if sort == "new" %}selected{% endif %}>Newest</option>
-          </select>
-          <button class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100" type="submit">Apply</button>
-        </form>
-      </div>
-
-      {% if object_list %}
-        <div id="grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-          {% for t in object_list %}
-            {% include "tournaments/_card.html" with t=t %}
-          {% endfor %}
-        </div>
-
-        {% if paginator.num_pages > 1 %}
-          <div class="mt-8 flex justify-center items-center gap-3">
-            {% if page_obj.has_previous %}
-              <a class="px-3 py-1.5 rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100"
-                 href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode|safe }}">‹ Prev</a>
-            {% endif %}
-            <span class="text-sm text-slate-700 dark:text-slate-400">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-            {% if page_obj.has_next %}
-              <a class="px-3 py-1.5 rounded-lg ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-100"
-                 href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode|safe }}">Next ›</a>
-            {% endif %}
-          </div>
-        {% endif %}
-      {% else %}
-        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 text-center">
-          <h3 class="font-semibold text-slate-900 dark:text-slate-100">No tournaments match your filters</h3>
-          <p class="text-sm text-slate-700 dark:text-slate-300">Try clearing some filters or check back later.</p>
-        </div>
-      {% endif %}
-    </section>
+    {% endfor %}
   </div>
-</div>
+  {% endif %}
 
-<script defer src="{% static 'siteui/js/tournaments-list.js' %}"></script>
+  {% if new_this_week %}
+  <section class="section-head">
+    <h2 class="section-title">New This Week</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?sort=new">Newest first</a>
+  </section>
+  <div class="grid">
+    {% for t in new_this_week %}
+      {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_item:t.id %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ---------------- VALUE PROPS AT BOTTOM ---------------- #}
+  <section class="vp-grid bottom-vp">
+    <article class="vp-card">
+      <div class="vp-icon i-trophy"></div>
+      <h3>Real prizes</h3>
+      <p>Verified payouts and leaderboard badges. Win more than bragging rights.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-bracket"></div>
+      <h3>Fair brackets</h3>
+      <p>Auto-seeding, transparent rules, and public standings in real time.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-shield"></div>
+      <h3>Competitive integrity</h3>
+      <p>Anti-smurf checks, manual verification, and match dispute support.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-bolt"></div>
+      <h3>Fast & simple</h3>
+      <p>2-minute registration, e-wallet payments, clear status at every step.</p>
+    </article>
+  </section>
+
+  {# ---------------- HOW IT WORKS AT BOTTOM ---------------- #}
+  <section class="how premium-how" id="how">
+    <h2 class="section-title">How it works</h2>
+    <ol class="how-steps">
+      <li>
+        <span class="num">1</span>
+        <h3>Pick a tournament</h3>
+        <p>Use the filters, or jump into the featured rows above.</p>
+      </li>
+      <li>
+        <span class="num">2</span>
+        <h3>Register & pay</h3>
+        <p>Solo or team. Pay with bKash/Nagad/Rocket. Get instant status.</p>
+      </li>
+      <li>
+        <span class="num">3</span>
+        <h3>Compete & climb</h3>
+        <p>Follow your bracket, check-in, and track standings live.</p>
+      </li>
+    </ol>
+  </section>
+
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
 {% endblock %}
