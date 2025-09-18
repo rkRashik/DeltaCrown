@@ -1,37 +1,29 @@
-﻿{% load static nav_extras dc_avatar %}
-<header class="site-nav" role="banner">
-  <nav class="container nav-inner" aria-label="Primary">
-    <div class="nav-start">
+{% load static nav_extras dc_avatar %}
+<header class="site-nav" role="banner" data-site-nav>
+  <nav class="nav-shell" aria-label="Primary">
+    <div class="nav-left">
       {% nav_active '/' as is_home %}
       <a href="/" class="brand" aria-label="DeltaCrown"{% if is_home %} aria-current="page"{% endif %}>
-        <span class="brand-mark">
-          <img src="{% static 'siteui/svg/logo-mark-animated.svg' %}" alt="" class="brand-logo" />
+        <span class="brand-logo-wrap">
+          <img src="{% static 'siteui/svg/Logos/DeltaCrown.svg' %}" alt="" class="brand-logo" />
         </span>
         <span class="brand-wordmark">DeltaCrown</span>
       </a>
-      <button class="mobile-menu-btn" data-open-drawer="main-drawer" aria-label="Open menu" aria-controls="main-drawer" aria-expanded="false">
-        <span class="sr-only">Menu</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
-          <path d="M4 7h16" />
+
+      <button class="nav-icon-btn nav-mobile-toggle" type="button" data-open-drawer="main-drawer" aria-label="Open menu" aria-controls="main-drawer" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6h16" />
           <path d="M4 12h16" />
-          <path d="M4 17h16" />
+          <path d="M4 18h16" />
         </svg>
       </button>
     </div>
 
     <div class="nav-center">
-      <ul class="nav-links">
+      <ul class="nav-links" role="list">
         {% nav_active '/tournaments/' '/tournaments' as tournaments_active %}
         <li class="nav-item">
           <a class="nav-link{% if tournaments_active %} is-active{% endif %}" href="/tournaments/"{% if tournaments_active %} aria-current="page"{% endif %}>
-            <span class="nav-link-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M6.5 4h11l.5 3.5a5 5 0 0 1-5 5.5h-2a5 5 0 0 1-5-5.5L6.5 4Z" />
-                <path d="M10 14v4" />
-                <path d="M14 14v4" />
-                <path d="M8 18h8" />
-              </svg>
-            </span>
             <span>Tournaments</span>
           </a>
         </li>
@@ -39,12 +31,6 @@
         {% nav_active '/teams/' '/teams' as teams_active %}
         <li class="nav-item">
           <a class="nav-link{% if teams_active %} is-active{% endif %}" href="/teams/"{% if teams_active %} aria-current="page"{% endif %}>
-            <span class="nav-link-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 12a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
-                <path d="M4 18.25c0-2.486 3.582-4.5 8-4.5s8 2.014 8 4.5V20H4v-1.75Z" />
-              </svg>
-            </span>
             <span>Teams</span>
           </a>
         </li>
@@ -53,12 +39,6 @@
           {% nav_active '/dashboard/' '/dashboard' as dashboard_active %}
           <li class="nav-item">
             <a class="nav-link{% if dashboard_active %} is-active{% endif %}" href="/dashboard/"{% if dashboard_active %} aria-current="page"{% endif %}>
-              <span class="nav-link-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4.5 4.5h6v9h-6v-9Zm9 6h6v9h-6v-9Z" />
-                  <path d="M15.5 4.5h3v3h-3v-3Zm-9 9h3v3h-3v-3Z" />
-                </svg>
-              </span>
               <span>Dashboard</span>
             </a>
           </li>
@@ -67,12 +47,6 @@
         {% nav_active '/crowngear/' '/crowngear' as crowngear_active %}
         <li class="nav-item">
           <a class="nav-link{% if crowngear_active %} is-active{% endif %}" href="/crowngear/"{% if crowngear_active %} aria-current="page"{% endif %}>
-            <span class="nav-link-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M5.5 6h13l-1 8.5H6.5L5.5 6Z" />
-                <path d="M9 6V4.5h6V6M9 14.5V18h6v-3.5" />
-              </svg>
-            </span>
             <span>CrownGear</span>
           </a>
         </li>
@@ -80,12 +54,6 @@
         {% nav_active '/arenalive/' '/arenalive' as arenalive_active %}
         <li class="nav-item">
           <a class="nav-link{% if arenalive_active %} is-active{% endif %}" href="/arenalive/"{% if arenalive_active %} aria-current="page"{% endif %}>
-            <span class="nav-link-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="m10 15.5 4.75-3.25L10 9V15.5Z" />
-                <path d="M5.5 5.5h13v13h-13v-13Z" />
-              </svg>
-            </span>
             <span>ArenaLive</span>
             {% if nav_live %}<span class="live-badge"><span class="live-dot"></span>Live</span>{% endif %}
           </a>
@@ -94,21 +62,15 @@
         {% nav_active '/community/' '/community' as community_active %}
         <li class="nav-item">
           <a class="nav-link{% if community_active %} is-active{% endif %}" href="/community/"{% if community_active %} aria-current="page"{% endif %}>
-            <span class="nav-link-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M7 7a5 5 0 1 1 10 0 5 5 0 0 1-10 0Z" />
-                <path d="M4.5 19.5a7.5 7.5 0 0 1 15 0V20h-15v-.5Z" />
-              </svg>
-            </span>
             <span>Community</span>
           </a>
         </li>
       </ul>
     </div>
 
-    <div class="nav-end">
-      <div class="nav-utility">
-        <button class="nav-action-btn theme-toggle" id="theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="false">
+    <div class="nav-right">
+      <div class="nav-actions" role="group" aria-label="Primary actions">
+        <button class="nav-icon-btn theme-toggle" id="theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="false">
           <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="4" />
             <path d="M12 3v2M12 19v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M3 12h2M19 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4" />
@@ -118,92 +80,97 @@
           </svg>
         </button>
 
-        <a class="nav-action-btn notifications-btn" href="/notifications/" aria-label="Notifications">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 21a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Z" />
-            <path d="M6.5 16.5h11l-1.1-1.54a4.5 4.5 0 0 1-.9-2.7V10a4.5 4.5 0 0 0-9 0v2.26a4.5 4.5 0 0 1-.9 2.7L6.5 16.5Z" />
-          </svg>
-          {% if nav_unread_count %}<span class="nav-badge">{{ nav_unread_count }}</span>{% endif %}
-        </a>
+        <div class="nav-dropdown">
+          {% with nav_unread_count|default:0 as unread_count %}
+          <button class="nav-icon-btn notif-trigger" type="button" data-menu-toggle aria-haspopup="true" aria-expanded="false" aria-controls="menu-notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 21a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Z" />
+              <path d="M6.5 16.5h11l-1.1-1.54a4.5 4.5 0 0 1-.9-2.7V10a4.5 4.5 0 0 0-9 0v2.26a4.5 4.5 0 0 1-.9 2.7L6.5 16.5Z" />
+            </svg>
+            <span class="notif-badge" data-notif-badge{% if unread_count|add:0 > 0 %} data-has-unread="true"{% endif %}>
+              {% if unread_count|add:0 > 0 %}{{ unread_count }}{% else %}3{% endif %}
+            </span>
+          </button>
+          {% endwith %}
+          <div id="menu-notifications" class="dropdown-menu notifications-menu" hidden data-menu role="menu" aria-label="Notifications">
+            <div class="dropdown-header">
+              <h2 class="dropdown-title">Notifications</h2>
+              <a class="dropdown-link" href="/notifications/">View all</a>
+            </div>
+            <ul class="dropdown-list" role="none">
+              <li role="none">
+                <a href="/notifications/" role="menuitem" class="dropdown-item">
+                  <span class="item-title">New team invite</span>
+                  <span class="item-meta">GhostFox Gaming wants you on the roster.</span>
+                </a>
+              </li>
+              <li role="none">
+                <a href="/notifications/" role="menuitem" class="dropdown-item">
+                  <span class="item-title">Payout processed</span>
+                  <span class="item-meta">Your CrownCup winnings have been sent.</span>
+                </a>
+              </li>
+              <li role="none">
+                <a href="/notifications/" role="menuitem" class="dropdown-item">
+                  <span class="item-title">Match starting soon</span>
+                  <span class="item-meta">Quarter-final kicks off in 15 minutes.</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <a class="nav-cta" href="/tournaments/">Join a Tournament</a>
       </div>
 
       {% if request.user.is_authenticated %}
         {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as avatar_url %}
         {% with request.user.get_full_name|default:request.user.first_name|default:request.user.username as nav_display_name %}
-        {% with nav_display_name|slice:':1'|upper as nav_initial %}
         <div class="nav-profile">
-          <button class="profile-chip" data-avatar-toggle aria-haspopup="true" aria-expanded="false" aria-controls="menu-account">
+          <button class="profile-trigger" type="button" data-avatar-toggle aria-haspopup="true" aria-expanded="false" aria-controls="menu-account">
             <span class="profile-avatar">
-              <img src="{{ avatar_url }}" alt="User avatar" class="profile-avatar-img">
-              <span class="avatar-fallback">{{ nav_initial }}</span>
+              <img src="{{ avatar_url }}" alt="" class="profile-avatar-img" />
+              <span class="avatar-fallback" aria-hidden="true">{{ nav_display_name|slice:':1'|upper }}</span>
+            </span>
+            <span class="profile-label">
+              <span class="profile-name">{{ nav_display_name }}</span>
             </span>
           </button>
 
-          <div id="menu-account" class="dropdown-menu user-menu" hidden data-avatar-menu role="menu" aria-label="Account">
-            <div class="user-menu-header">
-              <div class="avatar-wrapper-large">
-                <img src="{{ avatar_url }}" alt="User avatar" class="user-avatar-large">
+          <div id="menu-account" class="dropdown-menu profile-menu" hidden data-avatar-menu role="menu" aria-label="Account">
+            <div class="profile-menu-header">
+              <span class="profile-menu-avatar">
+                <img src="{{ avatar_url }}" alt="" />
+              </span>
+              <div class="profile-menu-meta">
+                <span class="profile-menu-name">{{ nav_display_name }}</span>
+                <span class="profile-menu-handle">@{{ request.user.username }}</span>
               </div>
-              <div class="user-info">
-                <div class="user-display-name">{{ request.user.get_full_name|default:request.user.first_name|default:request.user.username }}</div>
-                <div class="user-username">@{{ request.user.username }}</div>
-              </div>
             </div>
 
-            <div class="menu-section">
-              <div class="menu-section-title">Quick Actions</div>
-              <a class="menu-item" href="/user/u/{{ request.user.username }}/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                </svg>
-                <span>View Profile</span>
-              </a>
-              <a class="menu-item" href="/teams/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4z"/>
-                </svg>
-                <span>My Teams</span>
-              </a>
-              <a class="menu-item" href="/dashboard/matches/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
-                </svg>
-                <span>My Matches</span>
-              </a>
+            <div class="profile-menu-section" role="none">
+              <span class="profile-menu-heading" role="presentation">Quick Actions</span>
+              <a class="profile-menu-item" href="/user/u/{{ request.user.username }}/" role="menuitem">View Profile</a>
+              <a class="profile-menu-item" href="/teams/" role="menuitem">My Teams</a>
+              <a class="profile-menu-item" href="/dashboard/matches/" role="menuitem">My Matches</a>
             </div>
 
-            <div class="menu-section">
-              <div class="menu-section-title">Account</div>
-              <a class="menu-item" href="/user/me/edit/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                </svg>
-                <span>Edit Profile</span>
-              </a>
-              <a class="menu-item" href="/notifications/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1z"/>
-                </svg>
-                <span>Notification Settings</span>
-              </a>
+            <div class="profile-menu-section" role="none">
+              <span class="profile-menu-heading" role="presentation">Account</span>
+              <a class="profile-menu-item" href="/user/me/edit/" role="menuitem">Settings</a>
+              <a class="profile-menu-item" href="/notifications/" role="menuitem">Notification Center</a>
             </div>
 
-            <div class="menu-section">
-              <a class="menu-item menu-item-logout" href="/accounts/logout/">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-                </svg>
-                <span>Sign out</span>
-              </a>
+            <div class="profile-menu-section" role="none">
+              <a class="profile-menu-item profile-menu-signout" href="/accounts/logout/" role="menuitem">Sign out</a>
             </div>
           </div>
         </div>
         {% endwith %}
-        {% endwith %}
       {% else %}
         <div class="nav-auth">
-          <a class="btn-secondary nav-auth-btn" href="/accounts/signup/">Sign Up</a>
-          <a class="btn-primary nav-auth-btn" href="/accounts/login/">Log In</a>
+          <a class="nav-auth-link" href="/accounts/login/">Log in</a>
+          <a class="nav-auth-cta" href="/accounts/signup/">Create account</a>
         </div>
       {% endif %}
     </div>
