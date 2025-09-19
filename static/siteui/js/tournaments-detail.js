@@ -1,64 +1,103 @@
-// static/siteui/js/tournaments-detail.js
+// tournaments-detail.js
+// Non-intrusive orchestrator for the Tournament Detail page.
+// Plays nicely with tournament-detail-neo.js (no duplication).
+
 (function () {
-  // Tabs
-  const tabsRoot = document.querySelector("[data-tabs]");
-  if (tabsRoot) {
-    const tabs = tabsRoot.querySelectorAll("button[data-tab]");
-    const panels = {
-      overview: document.getElementById("tab-overview"),
-      participants: document.getElementById("tab-participants"),
-      bracket: document.getElementById("tab-bracket"),
-      standings: document.getElementById("tab-standings"),
-      watch: document.getElementById("tab-watch"),
-    };
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-    function show(id) {
-      tabs.forEach((b) => {
-        const active = b.dataset.tab === id;
-        // Active background for both light & dark
-        b.classList.toggle("bg-slate-200", active);
-        b.classList.toggle("dark:bg-slate-700", active);
-        // Text contrast
-        b.classList.toggle("text-slate-900", active);
-        b.classList.toggle("dark:text-slate-100", active);
-        b.classList.toggle("text-slate-700", !active);
-        b.classList.toggle("dark:text-slate-300", !active);
-      });
-      Object.entries(panels).forEach(([k, el]) => el && el.classList.toggle("hidden", k !== id));
-    }
+  const root = $(".tneo") || $(".tournament-detail") || $(".tournament-page");
+  if (!root) return;
 
-    // Initial state (use the first tab if none is marked active)
-    const initial = Array.from(tabs).find((b) => b.classList.contains("bg-slate-200"))?.dataset.tab || "overview";
-    show(initial);
+  // ---- Share / Copy link ----------------------------------------------------
+  $$(".js-share, [data-share]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const title = document.title || "Tournament";
+      const url = window.location.href;
+      try {
+        if (navigator.share) {
+          await navigator.share({ title, url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          btn.classList.add("copied");
+          setTimeout(() => btn.classList.remove("copied"), 900);
+        }
+      } catch (e) {}
+    });
+  });
 
-    tabs.forEach((b) =>
-      b.addEventListener("click", () => {
-        show(b.dataset.tab);
-        // update hash for shareable deep link (optional, harmless)
-        history.replaceState(null, "", `#${b.dataset.tab}`);
-      })
-    );
-
-    // Deep link restore
-    const hash = location.hash.replace("#", "");
-    if (hash && panels[hash]) show(hash);
+  // ---- Favorite / Bell (visual only; emit custom events) --------------------
+  const fav = $("[data-favorite]");
+  const bell = $("[data-notify]");
+  if (fav) {
+    fav.addEventListener("click", () => {
+      fav.classList.toggle("is-on");
+      root.dispatchEvent(new CustomEvent("favorite:toggle", { detail: { on: fav.classList.contains("is-on") }}));
+    });
+  }
+  if (bell) {
+    bell.addEventListener("click", () => {
+      bell.classList.toggle("is-on");
+      root.dispatchEvent(new CustomEvent("notify:toggle", { detail: { on: bell.classList.contains("is-on") }}));
+    });
   }
 
-  // Countdown (unchanged)
-  const cd = document.getElementById("countdown");
-  if (cd) {
-    const deadline = new Date(cd.dataset.deadline);
-    function tick() {
-      const now = new Date();
-      let diff = Math.max(0, deadline - now);
-      const s = Math.floor(diff / 1000);
-      const h = Math.floor(s / 3600);
-      const m = Math.floor((s % 3600) / 60);
-      const sec = s % 60;
-      cd.textContent = `Starts in ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-      if (diff > 0) requestAnimationFrame(() => setTimeout(tick, 250));
-      else cd.textContent = "Starting soon";
-    }
-    tick();
+  // ---- Sticky in-page nav (anchors) ----------------------------------------
+  const anchorNav = $(".tabs, .tournament-tabs, .tabs-wrap");
+  if (anchorNav) {
+    anchorNav.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-tab], [href^='#']");
+      if (!a) return;
+      const name = a.dataset.tab || a.getAttribute("href").replace("#","");
+      const target = root.querySelector(`.pane[data-pane='${name}']`) || $("#" + name);
+      if (!target) return;
+
+      e.preventDefault();
+      const top = target.getBoundingClientRect().top + window.scrollY - 72; // offset for sticky headers
+      window.scrollTo({ top, behavior: "smooth" });
+
+      // Mark active (if not handled by neo.js)
+      $$(".tab", anchorNav).forEach(t => t.classList.toggle("is-active", (t.dataset.tab === name)));
+      const url = new URL(window.location.href);
+      url.hash = "";
+      url.searchParams.set("tab", name);
+      history.replaceState({}, "", url.toString());
+    });
   }
+
+  // ---- Lazy videos (non-iframe thumbnails -> iframe) -----------------------
+  $$(".js-lazy-video").forEach(card => {
+    const btn = $(".js-play", card);
+    const id = card.getAttribute("data-yt");
+    if (!btn || !id) return;
+    btn.addEventListener("click", () => {
+      const iframe = document.createElement("iframe");
+      iframe.width = "100%";
+      iframe.height = "100%";
+      iframe.allow =
+        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      iframe.allowFullscreen = true;
+      iframe.src = "https://www.youtube.com/embed/" + encodeURIComponent(id) + "?autoplay=1&rel=0";
+      card.innerHTML = "";
+      card.appendChild(iframe);
+    });
+  });
+
+  // ---- Countdown “pips” (optional tiny LEDs) --------------------------------
+  const pip = $("[data-pips]");
+  if (pip) {
+    let i = 0;
+    setInterval(() => {
+      i = (i + 1) % 3;
+      pip.setAttribute("data-pips", i + 1);
+    }, 700);
+  }
+
+  // ---- External: emit events so pages can hook (analytics, etc.) -----------
+  root.dispatchEvent(new CustomEvent("tournament:detail:init", {
+    detail: {
+      slug: root.getAttribute("data-slug") || null,
+      game: root.getAttribute("data-game") || null,
+    }
+  }));
 })();

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Matches — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}?v=mm1">
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-matches-neo.css' %}?v=mm1">
+{% endblock %}
+
+{% block content %}
+<section class="dc-container mmneo">
+  <header class="mm-hero">
+    <h1><span class="grad">My Matches</span></h1>
+    <p class="muted">Live status, lobby codes, and result reporting.</p>
+  </header>
+
+  <div class="mm-body">
+    <div class="card">
+      {% if matches %}
+        <div class="mm-table">
+          <div class="row th">
+            <div>Time</div><div>Round</div><div>Opponent</div><div>BO</div><div>Status</div><div>Actions</div>
+          </div>
+          {% for m in matches %}
+          <div class="row">
+            <div>{{ m.time|date:"M j, H:i" }}</div>
+            <div>{{ m.round|default:"—" }}</div>
+            <div>{{ m.opponent|default:"TBD" }}</div>
+            <div>{{ m.best_of|default:"—" }}</div>
+            <div>{{ m.status|title }}</div>
+            <div class="act">
+              {% if m.lobby_code %}<span class="chip">Lobby: {{ m.lobby_code }}</span>{% endif %}
+              {% if m.report_url %}<a class="btn-neo ghost" href="{{ m.report_url }}">Report Result</a>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">No matches yet. Register for a tournament to see your fixtures here.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

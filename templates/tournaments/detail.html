@@ -1,107 +1,423 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}{% firstof tournament.name tournament.slug "Tournament" %} — Tournament{% endblock %}
+{% block title %}{{ ctx.title }} — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-neo.css' %}?v=1" />
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-pro.css' %}?v=1" />
+{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
-  <div class="relative rounded-2xl overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900">
-    <div class="relative h-40 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-      {% if banner_url %}
-        <img src="{{ banner_url }}" alt="" class="absolute inset-0 w-full h-full object-cover">
-      {% endif %}
-      <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent"></div>
+<section class="dc-container tneo" data-game="{{ ctx.game_slug|default:'generic' }}" data-slug="{{ ctx.t.slug }}">
+  <div class="neo-hero">
+    <div class="bg" aria-hidden="true">
+      <div class="glow a"></div>
+      <div class="glow b"></div>
+      <div class="grid"></div>
+      <div class="shine"></div>
     </div>
 
-    <div class="relative px-6 pb-4 pt-6">
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl md:text-3xl font-semibold text-slate-900 dark:text-slate-100">{% firstof tournament.name tournament.slug "Tournament" %}</h1>
-        {% if tournament.game %}<span class="px-2 py-0.5 rounded text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">{{ tournament.game|title }}</span>{% endif %}
-        {% if tournament.organizer_verified and has_organizer_badge %}{% include "tournaments/_organizer_badge.html" %}{% endif %}
-      </div>
-
-      {% if description_html %}
-        <p class="mt-2 text-sm text-slate-700 dark:text-slate-300">{{ description_html|safe }}</p>
-      {% endif %}
-
-      <div class="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-        {% if entry_fee %}<span>Entry: <strong class="text-slate-900 dark:text-slate-100">{{ entry_fee }}</strong></span>{% endif %}
-        {% if prize_total %}<span>Prize: <strong class="text-slate-900 dark:text-slate-100">{{ prize_total }}</strong></span>{% endif %}
-        {% if slots_left != None %}<span>Slots left: <strong class="text-slate-900 dark:text-slate-100">{{ slots_left }}</strong></span>{% endif %}
-        {% if countdown_to %}<span id="countdown" data-deadline="{{ countdown_to|date:'c' }}"></span>{% endif %}
-      </div>
-
-      <div class="mt-4 flex flex-wrap gap-2">
-        {% if cta == "register" and register_url %}
-          <a href="{{ register_url }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700">Register</a>
-        {% elif cta == "continue" and register_url %}
-          <a href="{{ register_url }}" class="px-4 py-2 rounded-xl bg-blue-600 text-white">Continue registration</a>
-        {% elif cta == "view_receipt" %}
-          {% url 'tournaments:registration_receipt' tournament.slug as receipt_url %}
-          {% if receipt_url %}<a href="{{ receipt_url }}" class="px-4 py-2 rounded-xl bg-amber-600 text-white">View receipt (Pending)</a>{% endif %}
-        {% elif cta == "check_in" %}
-          {% url 'tournaments:check_in' tournament.slug as checkin_url %}
-          {% if checkin_url %}<a href="{{ checkin_url }}" class="px-4 py-2 rounded-xl bg-emerald-600 text-white">Check-in</a>{% endif %}
-        {% elif cta == "your_matches" %}
-          {% url 'tournaments:my_matches' as my_matches_url %}
-          {% if my_matches_url %}<a href="{{ my_matches_url }}" class="px-4 py-2 rounded-xl bg-indigo-600 text-white">Your matches</a>{% endif %}
-        {% elif cta == "registered" %}
-          <span class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Registered</span>
+    <div class="wrap">
+      <div class="media">
+        {% if ctx.banner %}
+          <img src="{{ ctx.banner }}" alt="{{ ctx.title }} banner" loading="eager" />
         {% else %}
-          <span class="px-4 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Registration closed</span>
+          <div class="fallback"></div>
         {% endif %}
-
-        <a href="#" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100" data-copy="{{ request.build_absolute_uri }}">Share</a>
-        {% url 'tournaments:ics' tournament.slug as ics_url %}
-        {% if ics_url %}
-          <a href="{{ ics_url }}" class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100">Add to calendar</a>
+        {% if ctx.ui.show_live %}
+          <span class="pill live">LIVE</span>
         {% endif %}
       </div>
+
+      <div class="head">
+        <nav class="crumbs small">
+          <a href="{% url 'tournaments:hub' %}">Tournaments</a>
+          <span>›</span>
+          {% if ctx.game %}<a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game }}</a><span>›</span>{% endif %}
+          <span class="muted">Details</span>
+        </nav>
+
+        <h1 class="title">
+          <span class="grad">{{ ctx.title }}</span>
+        </h1>
+
+        {% if ctx.short_desc %}
+          <p class="sub">{{ ctx.short_desc|safe }}</p>
+        {% endif %}
+
+        <div class="chips">
+          {% if ctx.schedule.starts_at %}<span class="chip">Starts {{ ctx.schedule.starts_at|date:"M j, H:i" }}</span>{% endif %}
+          {% if ctx.schedule.ends_at %}<span class="chip">Ends {{ ctx.schedule.ends_at|date:"M j, H:i" }}</span>{% endif %}
+          {% if ctx.format.type %}<span class="chip">{{ ctx.format.type|title }}</span>{% endif %}
+          {% if ctx.format.best_of %}<span class="chip">Bo{{ ctx.format.best_of }}</span>{% endif %}
+          {% if ctx.format.team_min or ctx.format.team_max %}
+            <span class="chip">
+              {% if ctx.format.team_min and ctx.format.team_max %}
+                {{ ctx.format.team_min }}–{{ ctx.format.team_max }} players
+              {% else %}
+                {{ ctx.format.team_min|default:ctx.format.team_max }} players
+              {% endif %}
+            </span>
+          {% endif %}
+          {% if ctx.region %}<span class="chip">{{ ctx.region }}</span>{% endif %}
+          {% if ctx.platform %}<span class="chip">{{ ctx.platform }}</span>{% endif %}
+          {% if ctx.entry_fee is not None %}
+            <span class="chip">{% if ctx.entry_fee == 0 %}Free Entry{% else %}৳{{ ctx.entry_fee_fmt }} Entry{% endif %}</span>
+          {% endif %}
+          {% if ctx.prize_pool %}
+            <span class="chip">Prize ৳{{ ctx.prize_pool_fmt }}</span>
+          {% endif %}
+          {% if ctx.slots.capacity %}
+            <span class="chip">{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }} slots</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <aside class="buy">
+        <div class="card cta">
+          {% if ctx.hero.countdown %}
+            <div class="small muted">Countdown ({{ ctx.hero.tz_label }})</div>
+            <div class="countdown" data-countdown="{{ ctx.hero.countdown.target_iso }}">
+              <span class="unit"><span class="num" data-d>0</span>d</span>
+              <span class="unit"><span class="num" data-h>00</span>h</span>
+              <span class="unit"><span class="num" data-m>00</span>m</span>
+              <span class="unit"><span class="num" data-s>00</span>s</span>
+            </div>
+          {% endif %}
+
+          <div class="price">
+            {% if ctx.entry_fee is not None %}
+              <strong>{% if ctx.entry_fee == 0 %}Free{% else %}৳{{ ctx.entry_fee_fmt }}{% endif %}</strong>
+              <span class="muted small">Entry Fee</span>
+            {% endif %}
+          </div>
+
+          <ul class="ticks small">
+            <li><i class="fa-solid fa-bolt"></i> 2-minute registration</li>
+            <li><i class="fa-solid fa-shield"></i> Verified payouts</li>
+            <li><i class="fa-solid fa-trophy"></i> Public standings</li>
+            {% if ctx.format.check_in_required %}<li><i class="fa-solid fa-circle-check"></i> Check-in required</li>{% endif %}
+          </ul>
+
+          <div>
+            {% if ctx.ui.next_call_to_action.url %}
+              <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">
+                {{ ctx.ui.next_call_to_action.label }}
+              </a>
+            {% else %}
+              <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+            {% endif %}
+          </div>
+
+          {% if ctx.ui.user_registration %}
+            <div class="tag">You are registered</div>
+          {% endif %}
+        </div>
+      </aside>
     </div>
   </div>
 
-  <div class="mt-6">
-    <div class="flex gap-2 border-b border-slate-200 dark:border-slate-700" data-tabs>
-      <button class="px-3 py-2 rounded-t-xl text-sm bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100" data-tab="overview">Overview</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="participants">Participants</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="bracket">Bracket</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="standings">Standings</button>
-      <button class="px-3 py-2 rounded-t-xl text-sm text-slate-700 dark:text-slate-300" data-tab="watch">Watch</button>
-    </div>
-
-    <section id="tab-overview" class="mt-4">
-      <div class="grid sm:grid-cols-2 gap-4">
-        {% if has_prize_pool %}{% include "tournaments/_prize_pool.html" %}{% endif %}
-        {% if has_schedule_timeline %}{% include "tournaments/_schedule_timeline.html" %}{% endif %}
+  <div class="neo-body">
+    <div>
+      <div class="tabs">
+        {% for tab in ctx.tabs %}
+          <button class="tab{% if tab == ctx.active_tab %} is-active{% endif %}" data-tab="{{ tab }}">
+            {% if tab == 'overview' %}Overview{% endif %}
+            {% if tab == 'info' %}Info{% endif %}
+            {% if tab == 'prizes' %}Prizes{% endif %}
+            {% if tab == 'participants' %}Participants{% endif %}
+            {% if tab == 'bracket' %}Bracket{% endif %}
+            {% if tab == 'standings' %}Standings{% endif %}
+            {% if tab == 'live' %}Live{% endif %}
+            {% if tab == 'rules' %}Rules{% endif %}
+            {% if tab == 'policy' %}Coin Policy{% endif %}
+            {% if tab == 'support' %}Support{% endif %}
+          </button>
+        {% endfor %}
       </div>
 
-      {% if has_rules_drawer %}
-        <div class="mt-4 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white dark:bg-slate-900 p-4">
-          <h3 class="font-semibold text-slate-900 dark:text-slate-100">Rules</h3>
-          <div class="mt-2 prose prose-sm dark:prose-invert max-w-none text-slate-800 dark:text-slate-200">
-            {% if rules_html %}{{ rules_html|safe }}{% else %}<p>No rules provided yet.</p>{% endif %}
+      <!-- OVERVIEW -->
+      <section class="pane {% if 'overview' == ctx.active_tab %}is-active{% endif %}" data-pane="overview">
+        <div class="split">
+          <article class="card">
+            <h2 class="h2">About</h2>
+            {% if ctx.desc_html %}
+              <div class="rich">{{ ctx.desc_html|safe }}</div>
+            {% else %}
+              <p class="muted">Full description will appear here.</p>
+            {% endif %}
+          </article>
+
+          <aside class="side">
+            <div class="sticky">
+              <div class="card">
+                <h3 class="h3">Quick Facts</h3>
+                <dl class="meta compact">
+                  {% if ctx.schedule.starts_at %}<div><dt>Starts</dt><dd>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</dd></div>{% endif %}
+                  {% if ctx.schedule.ends_at %}<div><dt>Ends</dt><dd>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</dd></div>{% endif %}
+                  {% if ctx.schedule.reg_open %}<div><dt>Reg. open</dt><dd>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</dd></div>{% endif %}
+                  {% if ctx.schedule.reg_close %}<div><dt>Reg. close</dt><dd>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</dd></div>{% endif %}
+                  {% if ctx.format.type %}<div><dt>Format</dt><dd>{{ ctx.format.type|title }}</dd></div>{% endif %}
+                  {% if ctx.format.best_of %}<div><dt>Best of</dt><dd>Bo{{ ctx.format.best_of }}</dd></div>{% endif %}
+                  {% if ctx.platform %}<div><dt>Platform</dt><dd>{{ ctx.platform }}</dd></div>{% endif %}
+                  {% if ctx.region %}<div><dt>Region</dt><dd>{{ ctx.region }}</dd></div>{% endif %}
+                  {% if ctx.slots.capacity %}<div><dt>Slots</dt><dd>{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }}</dd></div>{% endif %}
+                </dl>
+              </div>
+
+              {% if ctx.prize_pool %}
+                <div class="card">
+                  <h3 class="h3">Prize Pool</h3>
+                  <p><strong>৳{{ ctx.prize_pool_fmt }}</strong></p>
+                </div>
+              {% endif %}
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- INFO -->
+      <section class="pane {% if 'info' == ctx.active_tab %}is-active{% endif %}" data-pane="info">
+        <article class="card">
+          <h2 class="h2">Schedule & Format</h2>
+          <div class="grid2">
+            <div>
+              <h3 class="h3">Schedule</h3>
+              <ul class="timeline small">
+                {% if ctx.schedule.reg_open %}<li><span class="muted">Registration opens</span><span>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</span></li>{% endif %}
+                {% if ctx.schedule.reg_close %}<li><span class="muted">Registration closes</span><span>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</span></li>{% endif %}
+                {% if ctx.schedule.checkin_open %}<li><span class="muted">Check-in opens</span><span>{{ ctx.schedule.checkin_open|date:"M j, H:i" }}</span></li>{% endif %}
+                {% if ctx.schedule.checkin_close %}<li><span class="muted">Check-in closes</span><span>{{ ctx.schedule.checkin_close|date:"M j, H:i" }}</span></li>{% endif %}
+                {% if ctx.schedule.starts_at %}<li><span class="muted">Tournament starts</span><span>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</span></li>{% endif %}
+                {% if ctx.schedule.ends_at %}<li><span class="muted">Tournament ends</span><span>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</span></li>{% endif %}
+              </ul>
+            </div>
+            <div>
+              <h3 class="h3">Format</h3>
+              <dl class="meta">
+                {% if ctx.format.type %}<div><dt>Type</dt><dd>{{ ctx.format.type|title }}</dd></div>{% endif %}
+                {% if ctx.format.best_of %}<div><dt>Best of</dt><dd>Bo{{ ctx.format.best_of }}</dd></div>{% endif %}
+                {% if ctx.format.team_min or ctx.format.team_max %}
+                  <div><dt>Team size</dt>
+                    <dd>
+                      {% if ctx.format.team_min and ctx.format.team_max %}
+                        {{ ctx.format.team_min }}–{{ ctx.format.team_max }}
+                      {% else %}
+                        {{ ctx.format.team_min|default:ctx.format.team_max }}
+                      {% endif %}
+                    </dd>
+                  </div>
+                {% endif %}
+                {% if ctx.format.check_in_required %}<div><dt>Check-in</dt><dd>Required</dd></div>{% endif %}
+              </dl>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- PRIZES -->
+      <section class="pane {% if 'prizes' == ctx.active_tab %}is-active{% endif %}" data-pane="prizes">
+        <article class="card">
+          <h2 class="h2">Prizes</h2>
+          {% if ctx.prizes and ctx.prizes|length %}
+            <div class="prizegrid">
+              {% for p in ctx.prizes %}
+                <div class="prize">
+                  <span class="muted">{{ p.place }}</span>
+                  <strong>৳{{ p.amount }}</strong>
+                </div>
+              {% endfor %}
+            </div>
+          {% elif ctx.prize_pool %}
+            <p>Total prize pool: <strong>৳{{ ctx.prize_pool_fmt }}</strong></p>
+          {% else %}
+            <p class="muted">Prize breakdown will be announced soon.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- PARTICIPANTS -->
+      <section class="pane {% if 'participants' == ctx.active_tab %}is-active{% endif %}" data-pane="participants">
+        <article class="card">
+          <h2 class="h2">Participants</h2>
+          {% if ctx.participants and ctx.participants|length %}
+            <div class="table">
+              <div class="tr th"><div>Seed</div><div>Name</div><div>Status</div></div>
+              {% for p in ctx.participants %}
+                <div class="tr">
+                  <div>#{{ p.seed|default:"–" }}</div>
+                  <div>
+                    {% if p.logo %}<img src="{{ p.logo }}" alt="" style="width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:.35rem;">{% endif %}
+                    <strong>{{ p.name }}</strong>
+                    {% if p.captain %}<span class="muted small"> • Cpt. {{ p.captain }}</span>{% endif %}
+                  </div>
+                  <div class="muted">{{ p.status|default:"" }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">Participants will appear here once registrations are verified.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- BRACKET -->
+      <section class="pane {% if 'bracket' == ctx.active_tab %}is-active{% endif %}" data-pane="bracket">
+        <article class="card">
+          <h2 class="h2">Bracket</h2>
+          {% if ctx.bracket_url %}
+            <div class="embed">
+              <iframe title="Bracket" data-src="{{ ctx.bracket_url }}" allowfullscreen loading="lazy"></iframe>
+            </div>
+          {% else %}
+            <p class="muted">Bracket will be available when the tournament starts.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- STANDINGS -->
+      <section class="pane {% if 'standings' == ctx.active_tab %}is-active{% endif %}" data-pane="standings">
+        <article class="card">
+          <h2 class="h2">Standings</h2>
+          {% if ctx.standings and ctx.standings|length %}
+            <div class="table">
+              <div class="tr th"><div>Rank</div><div>Team/Player</div><div>Points</div></div>
+              {% for r in ctx.standings %}
+                <div class="tr">
+                  <div>{{ r.rank|default:"–" }}</div>
+                  <div>{{ r.name }}</div>
+                  <div>{{ r.points|default:"0" }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">Standings will populate as matches are reported.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- LIVE -->
+      <section class="pane {% if 'live' == ctx.active_tab %}is-active{% endif %}" data-pane="live">
+        <article class="card">
+          <h2 class="h2">Live</h2>
+          {% if ctx.live.stream %}
+            <div class="embed live">
+              <iframe title="Live Stream" data-src="{{ ctx.live.stream }}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
+            </div>
+            <p class="small muted" style="margin-top:.4rem;">
+              Status: {{ ctx.live.status|title }}{% if ctx.live.viewers %} • {{ ctx.live.viewers }} watching{% endif %}
+            </p>
+          {% else %}
+            <p class="muted">Live stream is currently offline.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- RULES -->
+      <section class="pane {% if 'rules' == ctx.active_tab %}is-active{% endif %}" data-pane="rules">
+        <article class="card">
+          <h2 class="h2">Rules</h2>
+          {% if ctx.rules.text %}<div class="rich">{{ ctx.rules.text|safe }}</div>{% endif %}
+          {% if ctx.rules.extra %}<div class="rich" style="margin-top:.6rem;">{{ ctx.rules.extra|safe }}</div>{% endif %}
+          {% if ctx.rules.pdf_url %}
+            <div class="embed" style="margin-top:.8rem;">
+              <iframe title="Rules PDF" data-src="{{ ctx.rules.pdf_url }}" loading="lazy"></iframe>
+            </div>
+            <p class="small" style="margin-top:.4rem;">
+              <a class="btn-neo btn-ghost" href="{{ ctx.rules.pdf_url }}" target="_blank" rel="noopener">Open rules PDF</a>
+            </p>
+          {% endif %}
+          {% if not ctx.rules.text and not ctx.rules.extra and not ctx.rules.pdf_url %}
+            <p class="muted">Rules will be posted soon.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- COIN POLICY -->
+      <section class="pane {% if 'policy' == ctx.active_tab %}is-active{% endif %}" data-pane="policy">
+        <article class="card">
+          <h2 class="h2">Coin / Wallet Policy</h2>
+          {% if ctx.coin_policy %}
+            <div class="rich">{{ ctx.coin_policy|safe }}</div>
+          {% else %}
+            <p class="muted">No coin policy specified for this tournament.</p>
+          {% endif %}
+        </article>
+      </section>
+
+      <!-- SUPPORT -->
+      <section class="pane {% if 'support' == ctx.active_tab %}is-active{% endif %}" data-pane="support">
+        <article class="card">
+          <h2 class="h2">Support & Disputes</h2>
+          <p>If you have an issue with registration, check-in, or match results, please open a ticket.</p>
+          <div style="margin-top:.6rem; display:flex; gap:.5rem; flex-wrap:wrap;">
+            <a class="btn-neo" href="/support/tickets/new/?ref={{ ctx.t.slug }}">Open a ticket</a>
+            <a class="btn-neo btn-ghost" href="/discord" target="_blank" rel="noopener"><i class="fa-brands fa-discord"></i> Join Discord</a>
+          </div>
+        </article>
+      </section>
+
+      {% if ctx.related and ctx.related|length %}
+        <section class="pane is-active" data-pane="related" style="margin-top: .8rem;">
+          <article class="card">
+            <h2 class="h2">Related Tournaments</h2>
+            <div class="prizegrid">
+              {% for t in ctx.related %}
+                <div class="prize" style="display:grid; grid-template-columns: 60px 1fr auto; gap:.6rem; align-items:center;">
+                  {% if t.dc_banner_url %}
+                    <img src="{{ t.dc_banner_url }}" alt="" style="width:60px;height:40px;object-fit:cover;border-radius:.4rem;">
+                  {% endif %}
+                  <div>
+                    <div class="small"><a href="{{ t.dc_url }}">{{ t.dc_title }}</a></div>
+                    <div class="muted small">{{ t.dc_game }}{% if t.starts_at %} • {{ t.starts_at|date:"M j" }}{% endif %}</div>
+                  </div>
+                  <div class="muted small">{% if t.dc_fee_amount == 0 %}Free{% elif t.dc_fee_amount %}৳{{ t.dc_fee_amount }}{% endif %}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </article>
+        </section>
+      {% endif %}
+    </div>
+
+    <aside class="side">
+      <div class="sticky">
+        <div class="card">
+          <h3 class="h3">Actions</h3>
+          <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+            {% if ctx.ui.next_call_to_action.url %}
+              <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo"> {{ ctx.ui.next_call_to_action.label }} </a>
+            {% else %}
+              <button class="btn-neo" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+            {% endif %}
+            <button class="btn-neo btn-ghost" data-share>Share</button>
           </div>
         </div>
-      {% endif %}
-    </section>
 
-    <section id="tab-participants" class="mt-4 hidden" role="region" aria-label="Participants">
-      {% if has_participants_grid %}{% include "tournaments/_participants_grid.html" %}{% endif %}
-    </section>
-
-    <section id="tab-bracket" class="mt-4 hidden" role="region" aria-label="Bracket">
-      {% if has_bracket %}{% include "tournaments/bracket.html" %}{% endif %}
-    </section>
-
-    <section id="tab-standings" class="mt-4 hidden" role="region" aria-label="Standings">
-      {% if has_standings %}{% include "tournaments/standings.html" %}{% endif %}
-    </section>
-
-    <section id="tab-watch" class="mt-4 hidden" role="region" aria-label="Watch">
-      {% if has_stream_embed %}{% include "tournaments/_stream_embed.html" %}{% endif %}
-    </section>
+        <div class="card">
+          <h3 class="h3">Contact</h3>
+          <p class="small muted">For schedule or bracket issues, contact support via ticket or Discord.</p>
+          <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+            <a class="btn-neo btn-ghost" href="/support/tickets/new/?ref={{ ctx.t.slug }}">Support</a>
+            <a class="btn-neo btn-ghost" href="/discord" target="_blank" rel="noopener"><i class="fa-brands fa-discord"></i> Discord</a>
+          </div>
+        </div>
+      </div>
+    </aside>
   </div>
-</div>
 
-<script defer src="{% static 'siteui/js/tournaments-detail.js' %}"></script>
+  <div class="mobile-cta">
+    {% if ctx.ui.next_call_to_action.url %}
+      <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">{{ ctx.ui.next_call_to_action.label }}</a>
+    {% else %}
+      <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/tournament-detail-neo.js' %}?v=1"></script>
+<script src="{% static 'siteui/js/tournaments-detail.js' %}?v=1"></script>
 {% endblock %}

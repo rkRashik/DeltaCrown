@@ -1,0 +1,193 @@
+/* tournament-detail-neo.css
+   Premium esports skin (light+dark), matching templates/tournaments/detail.html
+   Uses variables from tokens.css (bg/surface/border/text/text-muted, etc.)
+*/
+
+/* -------- Base tokens fallback (in case tokens.css loads late) -------- */
+:root {
+  --neo-grad: linear-gradient(135deg,#06b6d4 0%,#8b5cf6 55%,#facc15 100%);
+  --neo-card: var(--surface, rgba(255,255,255,0.06));
+  --neo-border: var(--border, rgba(255,255,255,0.12));
+  --neo-text: var(--text, #e7edf5);
+  --neo-muted: var(--text-muted, #a3b1c2);
+  --neo-chip: var(--chip, rgba(255,255,255,0.08));
+  --neo-shadow: var(--shadow-md, 0 10px 24px rgba(0,0,0,.25));
+}
+
+/* -------- Layout wrapper -------- */
+.tneo { padding: 1.25rem 0 3rem; }
+.dc-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+
+/* -------- HERO -------- */
+.neo-hero { position: relative; border-radius: 1.25rem; overflow: hidden; }
+.neo-hero .bg { position: absolute; inset: 0; pointer-events: none; }
+.neo-hero .bg .glow { position:absolute; filter: blur(60px); opacity:.55; }
+.neo-hero .bg .glow.a { width:40vw; height:40vw; left:-10vw; top:-12vw; background:#06b6d4; }
+.neo-hero .bg .glow.b { width:40vw; height:40vw; right:-12vw; top:-10vw; background:#8b5cf6; }
+.neo-hero .bg .grid {
+  position:absolute; inset:0;
+  background:
+    linear-gradient(rgba(255,255,255,.06), rgba(255,255,255,.02)),
+    radial-gradient(1200px 700px at 10% -10%, rgba(56,189,248,.15), transparent 60%),
+    radial-gradient(1000px 600px at 90% -10%, rgba(168,85,247,.15), transparent 60%),
+    radial-gradient(1000px 600px at 50% 120%, rgba(250,204,21,.12), transparent 60%);
+  mix-blend-mode: screen;
+}
+:root[data-theme="light"] .neo-hero .bg .grid {
+  background:
+    linear-gradient(rgba(4,18,44,.05), rgba(4,18,44,.02)),
+    radial-gradient(1200px 700px at 10% -10%, rgba(56,189,248,.18), transparent 60%),
+    radial-gradient(1000px 600px at 90% -10%, rgba(168,85,247,.18), transparent 60%),
+    radial-gradient(1000px 600px at 50% 120%, rgba(250,204,21,.16), transparent 60%);
+  mix-blend-mode: normal;
+}
+.neo-hero .bg .shine { position:absolute; inset:0; background: radial-gradient(500px 260px at 50% -60px, rgba(255,255,255,.18), transparent 60%); }
+
+.neo-hero .wrap {
+  position: relative; display: grid; grid-template-columns: 28rem 1fr 20rem; gap: 1.25rem; padding: 1.25rem;
+  background: var(--neo-card); border: 1px solid var(--neo-border); border-radius: 1.25rem;
+  box-shadow: var(--neo-shadow);
+}
+@media (max-width: 1200px) { .neo-hero .wrap { grid-template-columns: 24rem 1fr; } .neo-hero .buy { grid-column: 1 / -1; } }
+@media (max-width: 860px)  { .neo-hero .wrap { grid-template-columns: 1fr; } }
+
+.neo-hero .media { position: relative; border-radius: 1rem; overflow: hidden; aspect-ratio: 16/9; background: rgba(255,255,255,.06); }
+.neo-hero .media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.neo-hero .media .fallback { width:100%; height:100%; background: linear-gradient(120deg, rgba(255,255,255,.12), transparent 40%); }
+.neo-hero .pill.live {
+  position: absolute; top: .75rem; left: .75rem; padding: .3rem .6rem; border-radius: 999px;
+  background: #ef4444; color: white; font-weight: 800; font-size: .8rem; letter-spacing: .02em;
+  box-shadow: 0 6px 16px rgba(239,68,68,.35);
+}
+
+.neo-hero .head .crumbs { display: flex; gap: .5rem; color: var(--neo-muted); font-size: .92rem; }
+.neo-hero .head .crumbs a { color: inherit; text-decoration: none; }
+.neo-hero .head .title { margin: .35rem 0 .4rem; line-height: 1.2; font-size: clamp(1.7rem, 1.1rem + 2.3vw, 2.6rem); }
+.neo-hero .head .title .grad { background: var(--neo-grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.neo-hero .head .sub { color: var(--neo-muted); margin: .1rem 0 .6rem; }
+
+.chips { display:flex; flex-wrap: wrap; gap: .5rem; }
+.chip { background: var(--neo-chip); border:1px solid var(--neo-border); padding: .35rem .6rem; border-radius: 999px; font-size:.86rem; white-space: nowrap; }
+
+.buy .card.cta { background: var(--neo-card); border: 1px solid var(--neo-border); border-radius: 1rem; padding: 1rem; display:flex; flex-direction: column; gap: .75rem; }
+.price strong { font-size: 1.6rem; display:block; }
+.price span { color: var(--neo-muted); font-size:.9rem; }
+.ticks { list-style: none; padding:0; margin: .25rem 0 0; display:grid; gap:.35rem; color: var(--neo-text); }
+.ticks i { width: 1.1rem; }
+.tag { font-size: .8rem; background: var(--neo-chip); border:1px solid var(--neo-border); padding:.25rem .5rem; border-radius: .6rem; }
+
+/* Buttons */
+.btn-neo {
+  --mx: 50%;
+  --my: 50%;
+  position: relative; display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+  padding:.7rem 1rem; border-radius:.8rem; font-weight:800; background: var(--neo-grad); color:#0b1220;
+  box-shadow: var(--neo-shadow); text-decoration: none; border: none; cursor: pointer; transition: transform .08s ease;
+}
+.btn-neo:hover { transform: translateY(-1px); }
+.btn-neo.big { padding: .9rem 1.2rem; font-size: 1.05rem; }
+.btn-neo.ghost { background: transparent; border:1px solid var(--neo-border); color: var(--neo-text); box-shadow:none; }
+.btn-neo.wfull { width:100%; }
+
+/* micro “spark” */
+.btn-neo::after {
+  content:""; position:absolute; inset:0;
+  background: radial-gradient(300px 160px at var(--mx) var(--my), rgba(255,255,255,.30), transparent 55%);
+  opacity:.7; mix-blend-mode: screen; pointer-events:none; transition: opacity .2s ease;
+}
+.btn-neo:hover::after { opacity: .95; }
+
+/* -------- BODY -------- */
+.neo-body { display:grid; grid-template-columns: 1fr 20rem; gap:1rem; margin-top: 1rem; }
+@media (max-width: 1100px) { .neo-body { grid-template-columns: 1fr; } }
+
+.card { background: var(--neo-card); border:1px solid var(--neo-border); border-radius: 1rem; padding:1rem; box-shadow: var(--neo-shadow); }
+.h2 { font-size: 1.25rem; margin-bottom:.6rem; }
+.h3 { font-size: 1.05rem; margin-bottom:.4rem; }
+.small { font-size:.9rem; }
+.muted { color: var(--neo-muted); }
+
+.tabs { position: sticky; top: .5rem; z-index: 5; display:flex; gap:.35rem; flex-wrap: wrap; margin-bottom:.8rem; }
+.tab { background: transparent; border:1px solid var(--neo-border); color:var(--neo-text); border-radius:.6rem; padding:.45rem .7rem; cursor:pointer; font-weight:700; }
+.tab.is-active { background: var(--neo-chip); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+
+.pane { display:none; }
+.pane.is-active { display:block; animation: fade .28s ease-out; }
+@keyframes fade { from { opacity:0; transform: translateY(4px);} to { opacity:1; transform:none;} }
+
+.split { display:grid; grid-template-columns: 1fr 22rem; gap:1rem; }
+@media (max-width: 1000px) { .split { grid-template-columns: 1fr; } }
+
+.meta { display:grid; gap:.45rem; }
+.meta.compact { gap:.3rem; }
+.meta > div { display:flex; justify-content: space-between; gap:.75rem; border-bottom:1px dashed var(--neo-border); padding:.25rem 0; }
+.meta dt { color: var(--neo-muted); }
+.meta dd { margin:0; }
+
+.kv { list-style:none; padding:0; margin:0; display:grid; gap:.45rem; }
+.kv li { display:flex; justify-content: space-between; }
+
+.timeline { list-style:none; padding:0; margin:0; display:grid; gap:.4rem; }
+.timeline li { display:flex; justify-content: space-between; }
+
+.table { display:grid; gap:.3rem; }
+.tr { display:grid; grid-template-columns: 5rem 1fr 8rem; gap:.6rem; padding:.5rem .6rem; border:1px solid var(--neo-border); border-radius:.6rem; }
+.tr.th { background: rgba(255,255,255,.04); font-weight:800; }
+@media (max-width: 700px) { .tr { grid-template-columns: 3rem 1fr 6rem; } }
+
+.embed { border-radius: .8rem; overflow:hidden; border:1px solid var(--neo-border); background: rgba(0,0,0,.25); }
+.embed iframe { display:block; width:100%; height: 520px; background:#000; }
+.embed.live iframe { height: 360px; }
+
+.grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+
+.prizegrid { display:grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap:.6rem; }
+.prize { padding:.8rem; border:1px solid var(--neo-border); border-radius:.6rem; background: rgba(255,255,255,.04); display:flex; align-items:center; justify-content:space-between; }
+
+.formgrid { display:grid; gap:.6rem; }
+.formgrid input, .formgrid textarea {
+  width:100%; background: rgba(255,255,255,.06); color:var(--neo-text);
+  border:1px solid var(--neo-border); border-radius:.6rem; padding:.6rem .7rem;
+}
+:root[data-theme="light"] .formgrid input,
+:root[data-theme="light"] .formgrid textarea { background: rgba(4,18,44,.04); color: var(--text,#0b1220); }
+
+.side .sticky { position: sticky; top: 1rem; }
+
+/* Bottom mobile CTA */
+.mobile-cta { display:none; position: sticky; bottom: .4rem; margin-top: .8rem; }
+@media (max-width: 900px) { .mobile-cta { display:block; } }
+
+/* Light-mode tuning */
+:root[data-theme="light"] .btn-neo { color: #0b1220; }
+:root[data-theme="light"] .tr.th { background: rgba(4,18,44,.05); }
+:root[data-theme="light"] .embed { background: rgba(4,18,44,.08); }
+
+/* -------- Countdown (optional block) -------- */
+.tneo [data-countdown] {
+  display:flex; gap:.5rem; align-items:center; font-weight:800; letter-spacing:.02em;
+  border:1px solid var(--neo-border); border-radius:.6rem; padding:.35rem .6rem; background: var(--neo-chip);
+}
+.tneo [data-countdown] .unit { display:flex; align-items:baseline; gap:.2rem; }
+.tneo [data-countdown] .num { font-size: 1.05rem; }
+.tneo [data-countdown].done { opacity:.55; }
+
+/* -------- Per-game theming via [data-game] on .tneo -------- */
+.tneo[data-game="valorant"] .bg .glow.a { background:#ff4655; }
+.tneo[data-game="valorant"] .bg .glow.b { background:#7c3aed; }
+
+.tneo[data-game="efootball"] .bg .glow.a { background:#1e90ff; }
+.tneo[data-game="efootball"] .bg .glow.b { background:#facc15; }
+
+.tneo[data-game="cs2"] .bg .glow.a { background:#f59e0b; }
+.tneo[data-game="cs2"] .bg .glow.b { background:#06b6d4; }
+
+.tneo[data-game="fc26"] .bg .glow.a { background:#22c55e; }
+.tneo[data-game="fc26"] .bg .glow.b { background:#8b5cf6; }
+
+.tneo[data-game="mobilelegend"] .bg .glow.a { background:#7c3aed; }
+.tneo[data-game="mobilelegend"] .bg .glow.b { background:#06b6d4; }
+
+.tneo[data-game="pubg"] .bg .glow.a { background:#10b981; }
+.tneo[data-game="pubg"] .bg .glow.b { background:#f59e0b; }

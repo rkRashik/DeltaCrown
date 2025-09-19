@@ -1,51 +1,156 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Register — {{ tournament.name|default:tournament.title }}{% endblock %}
+{% block title %}Register — {{ title }} — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-register-neo.css' %}?v=1" />
+{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-8">
-  <header class="mb-4">
-    <h1 class="text-2xl font-semibold">Register for {{ tournament.name|default:tournament.title }}</h1>
-    <p class="text-sm text-gray-600 dark:text-gray-300">Complete all steps to secure your slot.</p>
-  </header>
-
-  <ol class="flex items-center gap-2 text-sm" data-steps>
-    <li class="px-3 py-1.5 rounded-xl bg-blue-600 text-white" data-step="1">1. Team / Solo</li>
-    <li class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800" data-step="2">2. Payment</li>
-    <li class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-800" data-step="3">3. Review</li>
-  </ol>
-
-  <form method="post" enctype="multipart/form-data" id="reg-form" class="mt-4">
-    {% csrf_token %}
-
-    <section id="step-1" class="rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4">
-      <h2 class="font-semibold mb-2">Team / Solo</h2>
-      {% if step1_form %}{{ step1_form.as_p }}{% else %}<p class="text-sm text-gray-600">Select team or solo and confirm IGN / roster.</p>{% endif %}
-      <div class="mt-3 flex justify-end"><button class="px-4 py-2 rounded-xl bg-blue-600 text-white" data-next>Continue to Payment</button></div>
-    </section>
-
-    <section id="step-2" class="hidden rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4 mt-4">
-      <h2 class="font-semibold mb-2">Payment</h2>
-      {% include "tournaments/_payment_instructions.html" %}
-      {% if payment_form %}{{ payment_form.as_p }}{% else %}<p class="text-sm text-gray-600">Enter payer details and upload receipt (bKash / Nagad / Rocket).</p>{% endif %}
-      <div class="mt-3 flex justify-between">
-        <button class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800" data-prev>Back</button>
-        <button class="px-4 py-2 rounded-xl bg-blue-600 text-white" data-next>Continue to Review</button>
+<section class="dc-container reg-neo">
+  <div class="reg-hero">
+    <div class="wrap">
+      <div>
+        <h1 class="title">{{ title }}</h1>
+        <p class="muted">Complete your registration. You can review status anytime from your Dashboard.</p>
+        <div class="chips" style="margin-top:.5rem;">
+          {% if entry_fee is not None %}
+            <span class="chip">{% if entry_fee == 0 %}Free Entry{% else %}Entry ৳{{ entry_fee }}{% endif %}</span>
+          {% endif %}
+          <span class="chip">Secure • Fast • Verified</span>
+        </div>
       </div>
-    </section>
-
-    <section id="step-3" class="hidden rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/60 p-4 mt-4">
-      <h2 class="font-semibold mb-2">Review & Submit</h2>
-      {% if review_html %}{{ review_html|safe }}{% else %}<p class="text-sm text-gray-600">Review your details and confirm.</p>{% endif %}
-      <label class="flex items-center gap-2 mt-3 text-sm"><input type="checkbox" required> I agree to the rules and policies.</label>
-      <div class="mt-3 flex justify-between">
-        <button class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800" data-prev>Back</button>
-        <button type="submit" class="px-4 py-2 rounded-xl bg-blue-600 text-white">Submit registration</button>
+      <div style="display:flex; align-items:center; gap:.6rem; justify-content:flex-end;">
+        <span class="price-badge">
+          {% if entry_fee is not None %}
+            <strong>{% if entry_fee == 0 %}Free{% else %}৳{{ entry_fee }}{% endif %}</strong>
+            <span class="muted small">Entry Fee</span>
+          {% else %}
+            <strong>—</strong>
+            <span class="muted small">Entry Fee</span>
+          {% endif %}
+        </span>
       </div>
-    </section>
-  </form>
-</div>
+    </div>
+  </div>
 
-<script defer src="{% static 'siteui/js/reg_wizard.js' %}"></script>
+  <div class="reg-body">
+    <article class="card">
+      <h2 class="h2">Your Details</h2>
+      <form method="post" action="{{ register_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="method" value="bkash" />
+        <div class="formgrid" {% if entry_fee and entry_fee > 0 %}data-fee-positive="1"{% endif %}>
+          <div class="inline">
+            <div class="field">
+              <label class="label" for="display_name">Display name</label>
+              <input type="text" id="display_name" name="display_name" autocomplete="name" />
+              <div class="err"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="team_name">Team name (optional)</label>
+              <input type="text" id="team_name" name="team_name" />
+              <div class="err"></div>
+            </div>
+          </div>
+
+          <div class="inline">
+            <div class="field">
+              <label class="label" for="phone">Phone</label>
+              <input type="tel" id="phone" name="phone" placeholder="01XXXXXXXXX" />
+              <div class="err"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="email">Email (optional)</label>
+              <input type="email" id="email" name="email" placeholder="you@example.com" />
+              <div class="err"></div>
+            </div>
+          </div>
+
+          {% if entry_fee and entry_fee > 0 %}
+            <div>
+              <h3 class="h3">Payment Method</h3>
+              <div class="methods">
+                <label class="method"><input type="radio" name="method_opt" value="bkash" checked> bKash</label>
+                <label class="method"><input type="radio" name="method_opt" value="nagad"> Nagad</label>
+                <label class="method"><input type="radio" name="method_opt" value="rocket"> Rocket</label>
+              </div>
+
+              <div class="pay-info" data-method="bkash">
+                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to bKash merchant number:</div>
+                <ul class="kv small">
+                  <li><span>Number</span><span><code>01XXXXXXXXX</code> <span class="copy" data-copy="01XXXXXXXXX">Copy</span></span></li>
+                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
+                </ul>
+                <div class="field" style="margin-top:.6rem;">
+                  <label class="label" for="txn">Transaction ID</label>
+                  <input type="text" id="txn" name="txn" placeholder="e.g., 8XYZ1A2BC3" />
+                  <div class="err"></div>
+                </div>
+              </div>
+
+              <div class="pay-info" data-method="nagad">
+                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to Nagad merchant number:</div>
+                <ul class="kv small">
+                  <li><span>Number</span><span><code>01YYYYYYYY</code> <span class="copy" data-copy="01YYYYYYYY">Copy</span></span></li>
+                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
+                </ul>
+                <div class="field" style="margin-top:.6rem;">
+                  <label class="label" for="txn2">Transaction ID</label>
+                  <input type="text" id="txn2" name="txn" placeholder="e.g., TX12345" />
+                  <div class="err"></div>
+                </div>
+              </div>
+
+              <div class="pay-info" data-method="rocket">
+                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to Rocket merchant number:</div>
+                <ul class="kv small">
+                  <li><span>Number</span><span><code>01ZZZZZZZZ</code> <span class="copy" data-copy="01ZZZZZZZZ">Copy</span></span></li>
+                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
+                </ul>
+                <div class="field" style="margin-top:.6rem;">
+                  <label class="label" for="txn3">Transaction ID</label>
+                  <input type="text" id="txn3" name="txn" placeholder="e.g., RX12345" />
+                  <div class="err"></div>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
+            <button type="submit" class="btn-neo">Submit Registration</button>
+            <a class="btn-neo btn-ghost" href="{% url 'tournaments:detail' t.slug %}">Back to details</a>
+          </div>
+        </div>
+      </form>
+    </article>
+
+    <aside class="side">
+      <div class="sticky">
+        <div class="card">
+          <div class="title">What happens next?</div>
+          <ul class="timeline small" style="margin-top:.5rem;">
+            <li><span class="badge success">1</span> Submit registration</li>
+            {% if entry_fee and entry_fee > 0 %}
+              <li><span class="badge warn">2</span> Payment verification</li>
+            {% endif %}
+            <li><span class="badge">3</span> Status visible in Dashboard</li>
+          </ul>
+        </div>
+
+        {% if coin_policy %}
+          <div class="card">
+            <div class="title">Coin Policy</div>
+            <div class="small">{{ coin_policy|safe }}</div>
+          </div>
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/tournament-register-neo.js' %}?v=1"></script>
 {% endblock %}
