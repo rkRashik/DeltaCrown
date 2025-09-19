@@ -49,25 +49,26 @@
           <div class="hc-top"><span class="live-dot"></span> Featured Now</div>
           <div class="hc-body">
             {% if live_tournaments %}
-              {% with t=live_tournaments.0 %}
-              <a class="hc-banner" href="{{ t.get_absolute_url|default:'#' }}">
+            {% with t=live_tournaments.0 %}
+              <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
                 {% if t.dc_banner_url %}
-                  <img src="{{ t.dc_banner_url }}" alt="{{ t.title }}">
-                {% else %}
-                  <div class="hc-fallback"></div>
-                {% endif %}
+                  <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}">
+                {% else %}<div class="hc-fallback"></div>{% endif %}
               </a>
-              <h3 class="hc-title"><a href="{{ t.get_absolute_url|default:'#' }}">{{ t.title|default:"Featured tournament" }}</a></h3>
+              <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
               <div class="hc-meta">
                 {% if t.starts_at %}<span>Starts {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
-                {% if t.game %}<span>{{ t.game|title }}</span>{% endif %}
-                {% if t.fee_amount is not None %}<span>{% if t.fee_amount == 0 %}Free Entry{% else %}৳{{ t.fee_amount }}{% endif %}</span>{% endif %}
+                {% if t.dc_game %}<span>{{ t.dc_game }}</span>{% endif %}
+                {% if t.dc_fee_amount is not None %}
+                  <span>{% if t.dc_fee_amount == 0 %}Free Entry{% else %}৳{{ t.dc_fee_amount }}{% endif %}</span>
+                {% endif %}
               </div>
               <div class="hc-cta">
                 <a class="cta-primary" href="{{ t.dc_register_url|default:'#' }}">Register</a>
-                <a class="cta-ghost" href="{{ t.get_absolute_url|default:'#' }}">View</a>
+                <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">View</a>
               </div>
-              {% endwith %}
+            {% endwith %}
+
             {% else %}
               <div class="hc-empty">Live events appear here when a tournament is in progress.</div>
             {% endif %}

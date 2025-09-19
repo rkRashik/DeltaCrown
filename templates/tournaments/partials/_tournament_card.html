@@ -1,8 +1,8 @@
 {# expects: t (Tournament-like), optional state dict #}
 <article class="dc-card">
-  <a href="{{ t.get_absolute_url|default:'#' }}" class="dc-card-media">
+  <a href="{{ t.dc_url|default:'#' }}" class="dc-card-media">
     {% if t.dc_banner_url %}
-      <img src="{{ t.dc_banner_url }}" alt="{{ t.title }} banner" loading="lazy">
+      <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }} banner" loading="lazy">
     {% else %}
       <div class="dc-card-fallback" aria-hidden="true"></div>
     {% endif %}
@@ -13,23 +13,25 @@
 
   <div class="dc-card-body">
     <h3 class="dc-card-title">
-      <a href="{{ t.get_absolute_url|default:'#' }}">{{ t.title|default:"Untitled Tournament" }}</a>
+      <a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a>
     </h3>
 
     <div class="dc-meta">
       {% if t.starts_at %}
         <span class="dc-chip-muted">Starts {{ t.starts_at|date:"M j, H:i" }}</span>
       {% endif %}
-      {% if t.game %}
-        <span class="dc-chip-muted">{{ t.game|title }}</span>
+      {% if t.dc_game %}
+        <span class="dc-chip-muted">{{ t.dc_game }}</span>
       {% endif %}
-      {% if t.fee_amount is not None %}
-        <span class="dc-chip-muted">{% if t.fee_amount == 0 %}Free{% else %}৳{{ t.fee_amount }}{% endif %}</span>
+      {% if t.dc_fee_amount is not None %}
+        <span class="dc-chip-muted">
+          {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount }}{% endif %}
+        </span>
       {% endif %}
     </div>
 
     <div class="dc-actions">
-      <a class="dc-btn-secondary" href="{{ t.get_absolute_url|default:'#' }}">View</a>
+      <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}">View</a>
 
       {# Registered/Continue/Receipt logic #}
       {% if state and state.registered %}

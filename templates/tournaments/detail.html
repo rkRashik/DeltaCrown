@@ -23,7 +23,7 @@
         {% if ctx.banner %}
           <img src="{{ ctx.banner }}" alt="{{ ctx.title }} banner" loading="eager" />
         {% else %}
-          <div class="fallback" aria-hidden="true"></div>
+          <div class="fallback"></div>
         {% endif %}
         {% if ctx.ui.show_live %}
           <span class="pill live">LIVE</span>
@@ -31,11 +31,11 @@
       </div>
 
       <div class="head">
-        <nav class="crumbs small" aria-label="Breadcrumb">
+        <nav class="crumbs small">
           <a href="{% url 'tournaments:hub' %}">Tournaments</a>
-          <span aria-hidden="true">›</span>
-          {% if ctx.game %}<a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game }}</a><span aria-hidden="true">›</span>{% endif %}
-          <span class="muted" aria-current="page">Details</span>
+          <span>›</span>
+          {% if ctx.game %}<a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game }}</a><span>›</span>{% endif %}
+          <span class="muted">Details</span>
         </nav>
 
         <h1 class="title">
@@ -101,30 +101,12 @@
           </ul>
 
           <div>
-            {# -------- Team-aware CTA logic (hero card) -------- #}
-            {% if ctx.is_team_event %}
-              {% if ctx.team_registered %}
-                <button class="btn-neo big wfull" disabled>Already Registered</button>
-              {% elif ctx.team and not ctx.user_is_captain %}
-                <button class="btn-neo big wfull" disabled>Register (captain only)</button>
-                <p class="small muted" style="margin-top:.35rem;">Ask your captain to register the team.</p>
-              {% else %}
-                {% if ctx.ui.next_call_to_action.url %}
-                  <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">
-                    {{ ctx.ui.next_call_to_action.label }}
-                  </a>
-                {% else %}
-                  <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
-                {% endif %}
-              {% endif %}
+            {% if ctx.ui.next_call_to_action.url %}
+              <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">
+                {{ ctx.ui.next_call_to_action.label }}
+              </a>
             {% else %}
-              {% if ctx.ui.next_call_to_action.url %}
-                <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">
-                  {{ ctx.ui.next_call_to_action.label }}
-                </a>
-              {% else %}
-                <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
-              {% endif %}
+              <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
             {% endif %}
           </div>
 
@@ -138,12 +120,9 @@
 
   <div class="neo-body">
     <div>
-      <div class="tabs" role="tablist" aria-label="Tournament sections">
+      <div class="tabs">
         {% for tab in ctx.tabs %}
-          <button class="tab{% if tab == ctx.active_tab %} is-active{% endif %}"
-        data-tab="{{ tab }}"
-        role="tab"
-        aria-selected="{% if tab == ctx.active_tab %}true{% else %}false{% endif %}">
+          <button class="tab{% if tab == ctx.active_tab %} is-active{% endif %}" data-tab="{{ tab }}">
             {% if tab == 'overview' %}Overview{% endif %}
             {% if tab == 'info' %}Info{% endif %}
             {% if tab == 'prizes' %}Prizes{% endif %}
@@ -339,15 +318,9 @@
       <section class="pane {% if 'rules' == ctx.active_tab %}is-active{% endif %}" data-pane="rules">
         <article class="card">
           <h2 class="h2">Rules</h2>
-
           {% if ctx.rules.text %}<div class="rich">{{ ctx.rules.text|safe }}</div>{% endif %}
           {% if ctx.rules.extra %}<div class="rich" style="margin-top:.6rem;">{{ ctx.rules.extra|safe }}</div>{% endif %}
-
-          {% if ctx.pdf_viewer %}
-            <div class="pdfwrap" style="margin-top:.8rem;">
-              {% include "tournaments/partials/_pdf_viewer.html" with cfg=ctx.pdf_viewer %}
-            </div>
-          {% elif ctx.rules.pdf_url %}
+          {% if ctx.rules.pdf_url %}
             <div class="embed" style="margin-top:.8rem;">
               <iframe title="Rules PDF" data-src="{{ ctx.rules.pdf_url }}" loading="lazy"></iframe>
             </div>
@@ -355,7 +328,6 @@
               <a class="btn-neo btn-ghost" href="{{ ctx.rules.pdf_url }}" target="_blank" rel="noopener">Open rules PDF</a>
             </p>
           {% endif %}
-
           {% if not ctx.rules.text and not ctx.rules.extra and not ctx.rules.pdf_url %}
             <p class="muted">Rules will be posted soon.</p>
           {% endif %}
@@ -414,25 +386,10 @@
         <div class="card">
           <h3 class="h3">Actions</h3>
           <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
-            {# -------- Team-aware CTA logic (side card) -------- #}
-            {% if ctx.is_team_event %}
-              {% if ctx.team_registered %}
-                <button class="btn-neo" disabled>Already Registered</button>
-              {% elif ctx.team and not ctx.user_is_captain %}
-                <button class="btn-neo" disabled>Register (captain only)</button>
-              {% else %}
-                {% if ctx.ui.next_call_to_action.url %}
-                  <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo">{{ ctx.ui.next_call_to_action.label }}</a>
-                {% else %}
-                  <button class="btn-neo" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
-                {% endif %}
-              {% endif %}
+            {% if ctx.ui.next_call_to_action.url %}
+              <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo"> {{ ctx.ui.next_call_to_action.label }} </a>
             {% else %}
-              {% if ctx.ui.next_call_to_action.url %}
-                <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo">{{ ctx.ui.next_call_to_action.label }}</a>
-              {% else %}
-                <button class="btn-neo" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
-              {% endif %}
+              <button class="btn-neo" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
             {% endif %}
             <button class="btn-neo btn-ghost" data-share>Share</button>
           </div>
@@ -451,25 +408,10 @@
   </div>
 
   <div class="mobile-cta">
-    {# -------- Team-aware CTA logic (mobile sticky) -------- #}
-    {% if ctx.is_team_event %}
-      {% if ctx.team_registered %}
-        <button class="btn-neo big wfull" disabled>Already Registered</button>
-      {% elif ctx.team and not ctx.user_is_captain %}
-        <button class="btn-neo big wfull" disabled>Register (captain only)</button>
-      {% else %}
-        {% if ctx.ui.next_call_to_action.url %}
-          <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">{{ ctx.ui.next_call_to_action.label }}</a>
-        {% else %}
-          <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
-        {% endif %}
-      {% endif %}
+    {% if ctx.ui.next_call_to_action.url %}
+      <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">{{ ctx.ui.next_call_to_action.label }}</a>
     {% else %}
-      {% if ctx.ui.next_call_to_action.url %}
-        <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">{{ ctx.ui.next_call_to_action.label }}</a>
-      {% else %}
-        <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
-      {% endif %}
+      <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
     {% endif %}
   </div>
 </section>
@@ -478,11 +420,4 @@
 {% block extra_js %}
 <script src="{% static 'siteui/js/tournament-detail-neo.js' %}?v=1"></script>
 <script src="{% static 'siteui/js/tournaments-detail.js' %}?v=1"></script>
-
-{# When we add the vendor files later, this will enable the inline PDF viewer automatically. #}
-{% if ctx.pdf_viewer %}
-  <script src="{% static 'siteui/pdfjs/pdf.js' %}"></script>
-  <script>window.pdfjsLib && (pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'siteui/pdfjs/pdf.worker.js' %}");</script>
-  <script src="{% static 'siteui/js/pdfjs-init.js' %}"></script>
-{% endif %}
 {% endblock %}

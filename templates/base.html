@@ -47,7 +47,7 @@
     <link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    {# 🔽 allow pages to inject extra CSS (e.g., tournaments.css) #}
+    {# 🔽 allow pages to inject extra CSS (e.g., tournaments-detail.css) #}
     {% block extra_head %}{% endblock %}
   </head>
   <body class="min-h-full bg-body text-body antialiased">
@@ -76,11 +76,13 @@
 
     {% if messages %}
     <script id="dj-messages" type="application/json">[
-      {% for message in messages %}{"level":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}
+      {% for message in messages %}
+        {"level":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}
+      {% endfor %}
     ]</script>
     {% endif %}
 
-    {# 🔽 allow pages to inject extra JS (e.g., tournaments-hub.js) #}
+    {# 🔽 allow pages to inject extra JS (e.g., tournament-detail.js) #}
     {% block extra_js %}{% endblock %}
   </body>
 </html>

@@ -4,7 +4,7 @@
 {% block title %}Register — {{ title }} — DeltaCrown{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'siteui/css/tournament-register-neo.css' %}?v=5" />
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-register-neo.css' %}?v=1" />
 {% endblock %}
 
 {% block content %}
@@ -36,155 +36,102 @@
   </div>
 
   <div class="reg-body">
-    {% if is_team_event and team and team_registered %}
-      <article class="card">
-        <h2 class="h2">Already Registered</h2>
-        <p class="muted">Your team is already registered for this tournament.</p>
-        <div style="margin-top:.5rem;">
-          <a class="btn-neo" href="{% url 'tournaments:detail' t.slug %}">Go to Tournament</a>
-        </div>
-      </article>
-    {% else %}
     <article class="card">
-      <h2 class="h2">{% if is_team_event %}Team Registration{% else %}Your Details{% endif %}</h2>
-
-      <form method="post" action="{{ register_url }}" enctype="multipart/form-data">
+      <h2 class="h2">Your Details</h2>
+      <form method="post" action="{{ register_url }}">
         {% csrf_token %}
-
-        {# Honeypot #}
-        <div style="position:absolute;left:-5000px;top:auto;width:1px;height:1px;overflow:hidden;">
-          <label for="website">Leave this blank</label>
-          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
-        </div>
-
+        <input type="hidden" name="method" value="bkash" />
         <div class="formgrid" {% if entry_fee and entry_fee > 0 %}data-fee-positive="1"{% endif %}>
+          <div class="inline">
+            <div class="field">
+              <label class="label" for="display_name">Display name</label>
+              <input type="text" id="display_name" name="display_name" autocomplete="name" />
+              <div class="err"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="team_name">Team name (optional)</label>
+              <input type="text" id="team_name" name="team_name" />
+              <div class="err"></div>
+            </div>
+          </div>
 
-          {% if not is_team_event %}
-            {# ------------------------ SOLO FLOW ------------------------ #}
-            {% if form %}
-              {{ form.non_field_errors }}
-              {{ form.as_p }}
-            {% else %}
-              <div class="inline">
-                <div class="field">
-                  <label class="label" for="display_name">Display name</label>
-                  <input type="text" id="display_name" name="display_name" value="{{ initial.display_name|default:'' }}" />
-                </div>
-                <div class="field">
-                  <label class="label" for="email">Email (optional)</label>
-                  <input type="email" id="email" name="email" value="{{ initial.email|default:'' }}" />
-                </div>
-              </div>
-              <div class="field">
-                <label class="label" for="phone">Phone</label>
-                <input type="tel" id="phone" name="phone" value="{{ initial.phone|default:'' }}" />
-              </div>
-            {% endif %}
-
-          {% else %}
-            {# ------------------------ TEAM FLOW ------------------------ #}
-            {% if team %}
-              <div class="field">
-                <label class="label">Your Team</label>
-                <div class="kv small">
-                  <div><span>Name</span> <span><strong>{{ team.name }}</strong></span></div>
-                  {% if team.tag %}<div><span>Tag</span> <span>{{ team.tag }}</span></div>{% endif %}
-                </div>
-                {% if not user_is_captain %}
-                  <p class="muted" style="margin-top:.4rem;">Only the <strong>team captain</strong> can register the team. Ask your captain to proceed.</p>
-                {% endif %}
-              </div>
-              {% if form %}
-                {{ form.non_field_errors }}
-                {{ form.as_p }}
-              {% endif %}
-            {% else %}
-              <div class="inline">
-                <div class="field">
-                  <label class="label" for="team_name">Team Name</label>
-                  <input type="text" id="team_name" name="team_name" value="{{ initial.team_name|default:'' }}" required />
-                </div>
-                <div class="field">
-                  <label class="label" for="team_logo">Team Logo (optional)</label>
-                  <input type="file" id="team_logo" name="team_logo" accept="image/*" />
-                </div>
-              </div>
-              <div class="field">
-                <label><input type="checkbox" name="save_as_team" value="1" checked> Save these details as a new team</label>
-              </div>
-            {% endif %}
-          {% endif %}
+          <div class="inline">
+            <div class="field">
+              <label class="label" for="phone">Phone</label>
+              <input type="tel" id="phone" name="phone" placeholder="01XXXXXXXXX" />
+              <div class="err"></div>
+            </div>
+            <div class="field">
+              <label class="label" for="email">Email (optional)</label>
+              <input type="email" id="email" name="email" placeholder="you@example.com" />
+              <div class="err"></div>
+            </div>
+          </div>
 
           {% if entry_fee and entry_fee > 0 %}
             <div>
               <h3 class="h3">Payment Method</h3>
-
               <div class="methods">
-                {% if pay.bkash %}<label class="method"><input type="radio" name="payment_method" value="bkash" checked> bKash</label>{% endif %}
-                {% if pay.nagad %}<label class="method"><input type="radio" name="payment_method" value="nagad" {% if not pay.bkash %}checked{% endif %}> Nagad</label>{% endif %}
-                {% if pay.rocket %}<label class="method"><input type="radio" name="payment_method" value="rocket" {% if not pay.bkash and not pay.nagad %}checked{% endif %}> Rocket</label>{% endif %}
-                {% if pay.bank %}<label class="method"><input type="radio" name="payment_method" value="bank" {% if not pay.bkash and not pay.nagad and not pay.rocket %}checked{% endif %}> Bank</label>{% endif %}
+                <label class="method"><input type="radio" name="method_opt" value="bkash" checked> bKash</label>
+                <label class="method"><input type="radio" name="method_opt" value="nagad"> Nagad</label>
+                <label class="method"><input type="radio" name="method_opt" value="rocket"> Rocket</label>
               </div>
 
-              {% if pay.bkash %}
-              <div class="pay-info is-active" data-method="bkash">
-                {% with method="bkash" num=pay.bkash %}
-                  {% include "tournaments/partials/_payment_instructions.html" %}
-                {% endwith %}
+              <div class="pay-info" data-method="bkash">
+                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to bKash merchant number:</div>
+                <ul class="kv small">
+                  <li><span>Number</span><span><code>01XXXXXXXXX</code> <span class="copy" data-copy="01XXXXXXXXX">Copy</span></span></li>
+                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
+                </ul>
+                <div class="field" style="margin-top:.6rem;">
+                  <label class="label" for="txn">Transaction ID</label>
+                  <input type="text" id="txn" name="txn" placeholder="e.g., 8XYZ1A2BC3" />
+                  <div class="err"></div>
+                </div>
               </div>
-              {% endif %}
 
-              {% if pay.nagad %}
-              <div class="pay-info{% if not pay.bkash %} is-active{% endif %}" data-method="nagad">
-                {% with method="nagad" num=pay.nagad %}
-                  {% include "tournaments/partials/_payment_instructions.html" %}
-                {% endwith %}
+              <div class="pay-info" data-method="nagad">
+                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to Nagad merchant number:</div>
+                <ul class="kv small">
+                  <li><span>Number</span><span><code>01YYYYYYYY</code> <span class="copy" data-copy="01YYYYYYYY">Copy</span></span></li>
+                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
+                </ul>
+                <div class="field" style="margin-top:.6rem;">
+                  <label class="label" for="txn2">Transaction ID</label>
+                  <input type="text" id="txn2" name="txn" placeholder="e.g., TX12345" />
+                  <div class="err"></div>
+                </div>
               </div>
-              {% endif %}
 
-              {% if pay.rocket %}
-              <div class="pay-info{% if not pay.bkash and not pay.nagad %} is-active{% endif %}" data-method="rocket">
-                {% with method="rocket" num=pay.rocket %}
-                  {% include "tournaments/partials/_payment_instructions.html" %}
-                {% endwith %}
-              </div>
-              {% endif %}
-
-              {% if pay.bank %}
-              <div class="pay-info{% if not pay.bkash and not pay.nagad and not pay.rocket %} is-active{% endif %}" data-method="bank">
-                {% with method="bank" bank_info=pay.bank %}
-                  {% include "tournaments/partials/_payment_instructions.html" %}
-                {% endwith %}
-              </div>
-              {% endif %}
-
-              <div class="field" style="margin-top:.6rem;">
-                <label class="label" for="txn">Transaction ID</label>
-                <input type="text" id="txn" name="payment_reference" placeholder="e.g., 8XYZ1A2BC3" />
-                <div class="err"></div>
+              <div class="pay-info" data-method="rocket">
+                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to Rocket merchant number:</div>
+                <ul class="kv small">
+                  <li><span>Number</span><span><code>01ZZZZZZZZ</code> <span class="copy" data-copy="01ZZZZZZZZ">Copy</span></span></li>
+                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
+                </ul>
+                <div class="field" style="margin-top:.6rem;">
+                  <label class="label" for="txn3">Transaction ID</label>
+                  <input type="text" id="txn3" name="txn" placeholder="e.g., RX12345" />
+                  <div class="err"></div>
+                </div>
               </div>
             </div>
           {% endif %}
 
-          <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-top:.6rem;">
-            {% if is_team_event and team and not user_is_captain %}
-              <button class="btn-neo" type="submit" disabled>Register (captain only)</button>
-            {% else %}
-              <button class="btn-neo" type="submit">Submit Registration</button>
-            {% endif %}
+          <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
+            <button type="submit" class="btn-neo">Submit Registration</button>
             <a class="btn-neo btn-ghost" href="{% url 'tournaments:detail' t.slug %}">Back to details</a>
           </div>
         </div>
       </form>
     </article>
-    {% endif %}
 
     <aside class="side">
       <div class="sticky">
         <div class="card">
           <div class="title">What happens next?</div>
           <ul class="timeline small" style="margin-top:.5rem;">
-            <li><span class="badge success">1</span> Submit {% if is_team_event %}team{% else %}your{% endif %} registration</li>
+            <li><span class="badge success">1</span> Submit registration</li>
             {% if entry_fee and entry_fee > 0 %}
               <li><span class="badge warn">2</span> Payment verification</li>
             {% endif %}
@@ -205,5 +152,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'siteui/js/tournament-register-neo.js' %}?v=5"></script>
+<script src="{% static 'siteui/js/tournament-register-neo.js' %}?v=1"></script>
 {% endblock %}
