@@ -1,81 +1,72 @@
-/* tournament-detail-pro.css */
-/* Load this AFTER tournament-detail-neo.css for layered enhancements */
+/* tournament-detail-pro.css
+   Load AFTER tournament-detail-neo.css
+   Enhancements: parallax, glossy edge, animated tab underline, CTA shimmer,
+   soft embed glow, LIVE pulse, sticky mobile-CTA shadow, reduced-motion guards.
+*/
 
-/* ---- Hero parallax depth (pure CSS hint) ---- */
-.neo-hero .bg .grid { will-change: transform; }
+/* ---------- Micro parallax (hover hint) ---------- */
+.neo-hero { perspective: 1200px; }
+.neo-hero .bg .grid { will-change: transform; transform-style: preserve-3d; }
 @media (prefers-reduced-motion: no-preference) {
-  .neo-hero:hover .bg .grid { transform: translateY(-1px); transition: transform .25s ease; }
+  .neo-hero:hover .bg .grid { transform: translateZ(0) rotateX(0.35deg) translateY(-1px); transition: transform .28s ease; }
 }
 
-/* ---- Glossy card edge ---- */
-.card {
-  position: relative;
-  isolation: isolate;
-}
+/* ---------- Glossy card edge (subtle) ---------- */
+.card { position: relative; isolation: isolate; }
 .card::before {
-  content:""; position:absolute; inset: -1px; border-radius: inherit; z-index: -1;
-  background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,0) 30%, rgba(255,255,255,.10) 70%, rgba(255,255,255,0));
+  content:""; position:absolute; inset:-1px; border-radius: inherit; z-index:-1;
+  background: linear-gradient(135deg, rgba(255,255,255,.12), rgba(255,255,255,0) 30%, rgba(255,255,255,.08) 70%, rgba(255,255,255,0));
   filter: blur(.5px);
 }
 :root[data-theme="light"] .card::before {
   background: linear-gradient(135deg, rgba(4,18,44,.10), rgba(4,18,44,0) 30%, rgba(4,18,44,.08) 70%, rgba(4,18,44,0));
 }
 
-/* ---- Tab underline animation ---- */
+/* ---------- Animated tab underline ---------- */
 .tabs { overflow: visible; }
-.tab {
-  position: relative; overflow: hidden;
-}
+.tab { position: relative; overflow: hidden; --uL:10%; --uR:90%; }
 .tab::after {
-  content:""; position:absolute; left:10%; right:90%; bottom: 2px; height: 2px; border-radius: 2px;
+  content:""; position:absolute; left:var(--uL); right:var(--uR); bottom:2px; height:2px; border-radius:2px;
   background: linear-gradient(90deg,#06b6d4,#8b5cf6,#facc15);
-  transition: left .25s ease, right .25s ease, opacity .25s ease;
-  opacity: .0;
+  opacity:0; transition: left .25s ease, right .25s ease, opacity .25s ease;
 }
-.tab.is-active::after {
-  left: 10%; right: 10%; opacity: .85;
-}
+.tab.is-active { --uL:10%; --uR:10%; }
+.tab.is-active::after { opacity:.9; }
 
-/* ---- CTA “circuit shimmer” ---- */
+/* ---------- CTA “circuit shimmer” with pointer position ---------- */
 .btn-neo {
   background-image:
    linear-gradient(135deg,#06b6d4 0%,#8b5cf6 55%,#facc15 100%),
-   radial-gradient(600px 160px at var(--mx) var(--my), rgba(255,255,255,.35), transparent 60%);
+   radial-gradient(600px 160px at var(--mx,50%) var(--my,50%), rgba(255,255,255,.35), transparent 60%);
   background-blend-mode: overlay, screen;
 }
-.btn-neo:hover { filter: saturate(1.08); }
-
-/* ---- Live badge pulsing ---- */
-.pill.live {
-  animation: pulse 1.2s ease-in-out infinite;
+@media (prefers-reduced-motion: no-preference) {
+  .btn-neo:hover { filter: saturate(1.08); }
 }
+.btn-neo.ghost { background-image: none; }
+
+/* Pointer tracking (optional; harmless if no JS updates --mx/--my) */
+.btn-neo { --mx:50%; --my:50%; }
+
+/* ---------- LIVE pill pulsing ---------- */
+.pill.live { animation: pulse 1.2s ease-in-out infinite; }
 @keyframes pulse {
-  0%,100% { transform: translateZ(0) scale(1); box-shadow: 0 6px 16px rgba(239,68,68,.35); }
-  50% { transform: translateZ(0) scale(1.03); box-shadow: 0 10px 22px rgba(239,68,68,.45); }
+  0%,100% { transform: scale(1); box-shadow: 0 6px 16px rgba(239,68,68,.35); }
+  50%     { transform: scale(1.03); box-shadow: 0 10px 22px rgba(239,68,68,.45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pill.live { animation: none; }
 }
 
-/* ---- Particles sheen (subtle) ---- */
-.neo-hero .wrap::after {
-  content:""; pointer-events:none; position:absolute; inset:0; border-radius:1.25rem;
-  background:
-    radial-gradient(3px 3px at 12% 22%, rgba(255,255,255,.18), transparent 60%),
-    radial-gradient(3px 3px at 82% 16%, rgba(255,255,255,.14), transparent 60%),
-    radial-gradient(3px 3px at 56% 86%, rgba(255,255,255,.10), transparent 60%);
-  opacity:.35; mix-blend-mode: overlay;
+/* ---------- Soft embed glow + border ---------- */
+.embed {
+  box-shadow: 0 10px 26px rgba(0,0,0,.25), inset 0 0 0 1px var(--neo-border);
 }
-:root[data-theme="light"] .neo-hero .wrap::after {
-  opacity:.25; mix-blend-mode: soft-light;
+:root[data-theme="light"] .embed {
+  box-shadow: 0 10px 26px rgba(4,18,44,.18), inset 0 0 0 1px var(--neo-border);
 }
 
-/* ---- Tables tighten spacing on hover ---- */
-.tr:hover { background: rgba(255,255,255,.035); }
-:root[data-theme="light"] .tr:hover { background: rgba(4,18,44,.035); }
-
-/* ---- Embeds soft glow ---- */
-.embed { box-shadow: 0 10px 26px rgba(0,0,0,.25), inset 0 0 0 1px var(--neo-border); }
-:root[data-theme="light"] .embed { box-shadow: 0 10px 26px rgba(4,18,44,.18), inset 0 0 0 1px var(--neo-border); }
-
-/* ---- Countdown emphasis ---- */
+/* ---------- Countdown emphasis ---------- */
 .tneo [data-countdown] {
   background:
     linear-gradient(0deg, rgba(255,255,255,.04), rgba(255,255,255,0)),
@@ -83,3 +74,18 @@
   border-color: rgba(255,255,255,.18);
 }
 .tneo [data-countdown] .num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Sticky mobile CTA shadow ---------- */
+@media (max-width: 900px) {
+  .mobile-cta { filter: drop-shadow(0 10px 24px rgba(0,0,0,.3)); }
+  :root[data-theme="light"] .mobile-cta { filter: drop-shadow(0 10px 24px rgba(4,18,44,.18)); }
+}
+
+/* ---------- Hover lifts for cards (reduced-motion safe) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .card:hover { transform: translateY(-1px); transition: transform .15s ease; }
+}
+
+/* ---------- Table hover clarity ---------- */
+.tr:hover { background: rgba(255,255,255,.035); }
+:root[data-theme="light"] .tr:hover { background: rgba(4,18,44,.035); }

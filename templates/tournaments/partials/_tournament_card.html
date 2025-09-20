@@ -1,54 +1,73 @@
-{# expects: t (Tournament-like), optional state dict #}
-<article class="dc-card">
-  <a href="{{ t.dc_url|default:'#' }}" class="dc-card-media">
+{# expects: t (Tournament-like with dc_* attrs), optional state dict #}
+<article class="dc-card" data-game="{{ t.dc_game|default:'generic'|lower }}">
+  <a href="{{ t.dc_url|default:'#' }}" class="dc-card-media" aria-label="{{ t.dc_title|default:'Tournament' }}">
     {% if t.dc_banner_url %}
-      <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }} banner" loading="lazy">
+      <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title|default:'Tournament' }} banner" loading="lazy" decoding="async">
     {% else %}
       <div class="dc-card-fallback" aria-hidden="true"></div>
     {% endif %}
+
+    {# LIVE pill #}
     {% if t.dc_status == 'live' %}
-      <span class="dc-live">LIVE</span>
+      <span class="dc-live" aria-label="Live now">LIVE</span>
     {% endif %}
   </a>
 
   <div class="dc-card-body">
     <h3 class="dc-card-title">
-      <a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a>
+      <a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title|default:'Untitled Tournament' }}</a>
     </h3>
 
     <div class="dc-meta">
+      {# start time, if available #}
       {% if t.starts_at %}
         <span class="dc-chip-muted">Starts {{ t.starts_at|date:"M j, H:i" }}</span>
+      {% elif t.start_at %}
+        <span class="dc-chip-muted">Starts {{ t.start_at|date:"M j, H:i" }}</span>
       {% endif %}
+
       {% if t.dc_game %}
         <span class="dc-chip-muted">{{ t.dc_game }}</span>
       {% endif %}
+
       {% if t.dc_fee_amount is not None %}
         <span class="dc-chip-muted">
-          {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount }}{% endif %}
+          {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount|floatformat:0 }}{% endif %}
         </span>
+      {% endif %}
+
+      {# optional prize (if helpers provided it via dc_map elsewhere) #}
+      {% if t.dc_prize_amount is not None %}
+        <span class="dc-chip-prize">Prize: ৳{{ t.dc_prize_amount|floatformat:0 }}</span>
+      {% endif %}
+
+      {# optional slots (when list views pass slots info) #}
+      {% if t.dc_slots_current is not None and t.dc_slots_capacity %}
+        <span class="dc-chip-muted">{{ t.dc_slots_current }}/{{ t.dc_slots_capacity }} slots</span>
       {% endif %}
     </div>
 
     <div class="dc-actions">
-      <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}">View</a>
+      <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}" aria-label="View details">View</a>
 
-      {# Registered/Continue/Receipt logic #}
+      {# Registered/Continue/Receipt logic from my_states (optional) #}
       {% if state and state.registered %}
         {% if state.cta == 'continue' and state.cta_url %}
           <a class="dc-btn" href="{{ state.cta_url }}">Continue</a>
-          <span class="dc-badge dc-badge-registered">Registered</span>
+          <span class="dc-badge dc-badge-registered" aria-label="You are registered">Registered</span>
         {% elif state.cta == 'receipt' and state.cta_url %}
           <a class="dc-btn" href="{{ state.cta_url }}">Receipt</a>
-          <span class="dc-badge dc-badge-registered">Registered</span>
+          <span class="dc-badge dc-badge-registered" aria-label="You are registered">Registered</span>
         {% else %}
-          <button class="dc-btn" disabled>Registered</button>
+          <button class="dc-btn" disabled aria-disabled="true">Registered</button>
         {% endif %}
       {% else %}
-        {% if t.dc_status == 'open' or t.dc_status == 'opening' or t.dc_status == 'filling' %}
+        {% if t.dc_status in 'open opening filling' or t.dc_status == 'open' or t.dc_status == 'opening' or t.dc_status == 'filling' %}
           <a class="dc-btn" href="{{ t.dc_register_url|default:'#' }}">Register</a>
+        {% elif t.dc_status == 'live' %}
+          <a class="dc-btn" href="{{ t.dc_url|default:'#' }}#live">Watch</a>
         {% else %}
-          <button class="dc-btn" disabled>{{ t.dc_status|default:"Closed"|title }}</button>
+          <button class="dc-btn" disabled aria-disabled="true">{{ t.dc_status|default:"Closed"|title }}</button>
         {% endif %}
       {% endif %}
     </div>

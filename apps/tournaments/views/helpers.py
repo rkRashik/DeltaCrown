@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, Iterable, Optional, Tuple, List
 from dataclasses import dataclass
+import re
 
 from django.apps import apps
 from django.conf import settings
@@ -8,6 +9,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.timesince import timesince
+from django.utils.html import strip_tags
+
+# Optional: sanitize with bleach if present; otherwise safe fallback
+try:
+    import bleach  # type: ignore
+except Exception:  # bleach not installed
+    bleach = None  # pragma: no cover
 
 # Robust model getters (work even if import ordering changes)
 Tournament = apps.get_model("tournaments", "Tournament")
@@ -65,7 +73,6 @@ GAME_REGISTRY: Dict[str, Dict[str, Any]] = {
     },
 }
 
-
 # ---------- tiny utils ----------
 def now():
     return timezone.now()
@@ -122,6 +129,29 @@ def slugify_game(v: Optional[str]) -> str:
     aliases = {"efootballmobile": "efootball", "mlbb": "mobilelegend", "csgo": "cs2"}
     return aliases.get(s, s)
 
+# ---------- content sanitizer ----------
+_ALLOWED_TAGS = ["p", "br", "strong", "b", "em", "i", "u", "ul", "ol", "li", "a", "blockquote", "code", "pre", "span"]
+_ALLOWED_ATTRS = {"a": ["href", "title", "target", "rel"], "span": ["class"]}
+
+def sanitize_html(html: Optional[str]) -> Optional[str]:
+    """
+    Best-effort sanitizer: uses bleach if available; else strips tags (keeps line breaks).
+    Forbidden: <script>, <style>, inline event handlers.
+    """
+    if not html:
+        return None
+    if bleach:
+        return bleach.clean(
+            html,
+            tags=_ALLOWED_TAGS,
+            attributes=_ALLOWED_ATTRS,
+            protocols=["http", "https", "mailto", "tel"],
+            strip=True,
+        )
+    # Fallback: drop <script>/<style>, then strip all tags; keep simple newlines
+    txt = re.sub(r"(?is)<(script|style).*?>.*?</\1>", "", html)
+    txt = strip_tags(txt)
+    return txt
 
 # ---------- date/time helpers ----------
 def tz_label(tzinfo=None) -> str:
@@ -156,7 +186,6 @@ def countdown_to(dt) -> Optional[Dict[str, Any]]:
         "human": f"in {timesince(n, dt)}",
         "target_iso": dt.isoformat(),
     }
-
 
 # ---------- readers for common tournament fields ----------
 def banner_url_from_file(obj: Any) -> Optional[str]:
@@ -212,6 +241,13 @@ def read_fee_amount(obj: Any):
             return coerce_int(v)
     return None
 
+def read_prize_amount(obj: Any):
+    for f in ("prize_pool", "total_prize", "prize_money_bdt", "prize_money"):
+        v = getattr(obj, f, None)
+        if v not in (None, ""):
+            return coerce_int(v)
+    return None
+
 def read_url(obj: Any) -> str:
     try:
         if hasattr(obj, "get_absolute_url") and callable(obj.get_absolute_url):
@@ -233,7 +269,6 @@ def status_for_card(t: Any) -> str:
     if v:
         return str(v).lower()
     return "open" if getattr(t, "is_open", True) else "closed"
-
 
 # ---------- computed page state / role / CTA ----------
 def computed_state(t: Any) -> str:
@@ -342,7 +377,6 @@ def next_cta(user, t, state, entry_fee, reg_url):
 
     return {"label": "Details", "kind": "details", "url": f"/tournaments/{getattr(t,'slug','')}/"}
 
-
 # ---------- policy, rules, media ----------
 def coin_policy_of(t):
     """
@@ -371,6 +405,15 @@ def rules_pdf_of(t) -> Tuple[Optional[str], Optional[str]]:
         return url, url.split("/")[-1]
     return None, None
 
+def build_pdf_viewer_config(t, *, theme: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    Returns a dict for initializing PDF.js in templates: {url, filename, theme, downloadable}
+    """
+    url, name = rules_pdf_of(t)
+    if not url:
+        return None
+    theme = theme or "auto"  # templates can switch to 'dark'/'light'
+    return {"url": url, "filename": name or "rules.pdf", "theme": theme, "downloadable": False}
 
 # ---------- participants / standings loaders (best-effort) ----------
 def load_participants(t) -> List[Dict[str, Any]]:
@@ -410,7 +453,6 @@ def load_standings(t) -> List[Dict[str, Any]]:
         pass
     return out
 
-
 # ---------- live / bracket helpers ----------
 def live_stream_info(t) -> Dict[str, Any]:
     """
@@ -428,7 +470,6 @@ def live_stream_info(t) -> Dict[str, Any]:
 def bracket_url_of(t) -> Optional[str]:
     return first(getattr(t, "bracket_embed_url", None), getattr(t, "bracket_url", None))
 
-
 # ---------- tabs builder (feature-aware) ----------
 def build_tabs(*, participants, prize_pool, rules_text, extra_rules, rules_pdf_url, standings, bracket_url, live_info, coin_policy_text) -> List[str]:
     tabs: List[str] = ["overview", "info"]
@@ -441,7 +482,6 @@ def build_tabs(*, participants, prize_pool, rules_text, extra_rules, rules_pdf_u
     if coin_policy_text: tabs.append("policy")
     tabs.append("support")
     return tabs
-
 
 # ---------- expose a small pack of meta for the hero (game theming + countdown) ----------
 def hero_meta_for(t) -> Dict[str, Any]:
@@ -469,4 +509,37 @@ def hero_meta_for(t) -> Dict[str, Any]:
         "icons": {"game": g.get("icon")},
         "countdown": cdown,
         "tz_label": tz_label(),
+    }
+
+# ---------- single stable dc_* mapping for templates ----------
+def dc_map(request, t: Any) -> Dict[str, Any]:
+    """
+    Returns a stable dict of fields used by templates/partials (no crashes on missing data).
+    """
+    title = read_title(t)
+    game = read_game(t)
+    fee_amt = read_fee_amount(t)
+    prize_amt = read_prize_amount(t)
+    fee_text = f"BDT {fmt_money(fee_amt)}" if fee_amt else "Free"
+    prize_text = f"BDT {fmt_money(prize_amt)}" if prize_amt else None
+    url = read_url(t)
+    banner = banner_url(t)
+    state = computed_state(t)
+    reg_url = register_url(t)
+    cta = next_cta(getattr(request, "user", None), t, state, fee_amt, reg_url)
+
+    return {
+        "title": title,
+        "game": game,
+        "fee_amount": fee_amt,
+        "fee_text": fee_text,
+        "prize_amount": prize_amt,
+        "prize_text": prize_text,
+        "url": url,
+        "banner_url": banner,
+        "status": status_for_card(t),
+        "state": state,
+        "register_url": reg_url,
+        "cta": cta,
+        "hero": hero_meta_for(t),
     }

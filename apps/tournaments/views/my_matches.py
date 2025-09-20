@@ -103,6 +103,45 @@ def _apply_filters(qs, params):
     return qs
 
 
+def _apply_search(qs, qtext: str):
+    """
+    Lightweight text search over common fields; safe for different schemas.
+    """
+    qtext = (qtext or "").strip()
+    if not qtext:
+        return qs
+
+    q = Q()
+    # tournament title/name
+    if _has_field(Tournament, "title"):
+        q |= Q(tournament__title__icontains=qtext)
+    if _has_field(Tournament, "name"):
+        q |= Q(tournament__name__icontains=qtext)
+
+    # team / user display fields (best-effort)
+    for side in ("a", "b"):
+        name_field = f"team_{side}_name"
+        if _has_field(Match, name_field):
+            q |= Q(**{f"{name_field}__icontains": qtext})
+    if _has_field(Match, "score_text"):
+        q |= Q(score_text__icontains=qtext)
+
+    # related team objects
+    for side in ("a", "b"):
+        if _has_field(Match, f"team_{side}"):
+            q |= Q(**{f"team_{side}__name__icontains": qtext})
+
+    # related user objects
+    for side in ("a", "b"):
+        if _has_field(Match, f"user_{side}"):
+            # username or profile name (best-effort)
+            q |= Q(**{f"user_{side}__username__icontains": qtext})
+            q |= Q(**{f"user_{side}__first_name__icontains": qtext})
+            q |= Q(**{f"user_{side}__last_name__icontains": qtext})
+
+    return qs.filter(q)
+
+
 def _attendance_subject_for(request):
     rel_model = MatchAttendance._meta.get_field("user").remote_field.model
     if isinstance(request.user, rel_model):
@@ -128,7 +167,7 @@ def my_matches(request):
     initial = {}
     default_sf = SavedMatchFilter.objects.filter(user=request.user, is_default=True).first()
     if default_sf and request.GET.get("use_default", "1") == "1" and not any(
-        k in request.GET for k in ["game", "state", "tournament_id", "start_date", "end_date"]
+        k in request.GET for k in ["game", "state", "tournament_id", "start_date", "end_date", "q"]
     ):
         initial = {
             "game": default_sf.game or "",
@@ -146,7 +185,9 @@ def my_matches(request):
         "end_date": request.GET.get("end_date", initial.get("end_date", "")),
         "q": request.GET.get("q", "").strip(),
     }
+
     qs = _apply_filters(qs, params)
+    qs = _apply_search(qs, params["q"])
 
     group_by = request.GET.get("group") or ""
     if group_by not in ("tournament", "date", ""):
@@ -167,7 +208,9 @@ def my_matches(request):
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get("page", 1))
 
+    # 2-week heat map for quick-glance availability
     heat_qs = _apply_filters(_user_match_qs(request.user), params)
+    heat_qs = _apply_search(heat_qs, params["q"])
     heat_counts = (
         heat_qs.filter(start_at__date__gte=now.date(), start_at__date__lte=(now + timedelta(days=14)).date())
         .values("start_at__date")
@@ -176,6 +219,9 @@ def my_matches(request):
     heat_map = {str(row["start_at__date"]): row["c"] for row in heat_counts}
 
     token = CalendarFeedToken.issue_for(request.user)
+
+    # Optional UI hint for client to auto-refresh (e.g., every 60–120s); respect reduced-motion on the client.
+    auto_refresh = request.GET.get("auto", "0") == "1"
 
     return render(
         request,
@@ -189,6 +235,7 @@ def my_matches(request):
             "heat_map": heat_map,
             "ics_token": token.token,
             "group_by": group_by,
+            "auto_refresh": auto_refresh,
         },
     )
 
@@ -242,7 +289,7 @@ def my_matches_bulk(request):
     subject = _attendance_subject_for(request)
     for mid in scoped_ids:
         MatchAttendance.objects.update_or_create(user=subject, match_id=mid, defaults={"status": status})
-    messages.success(request, f"{len(scoped_ids)} match(es) marked â€œ{status}â€.")
+    messages.success(request, f'{len(scoped_ids)} match(es) marked "{status}".')
     return redirect(reverse("tournaments:my_matches"))
 
 
@@ -253,6 +300,7 @@ def my_matches_bulk(request):
 @login_required
 def my_matches_csv(request):
     qs = _apply_filters(_user_match_qs(request.user), request.GET)
+    qs = _apply_search(qs, request.GET.get("q", ""))
     buffer = io.StringIO()
     w = csv.writer(buffer)
     w.writerow(["Match ID", "Tournament", "Game", "Starts At", "State", "Side A", "Side B", "Score"])
@@ -302,6 +350,7 @@ def my_matches_ics_link(request):
             "tournament_id": request.GET.get("tournament_id", ""),
             "start_date": request.GET.get("start_date", ""),
             "end_date": request.GET.get("end_date", ""),
+            "q": request.GET.get("q", ""),
         }
     })
 
@@ -322,6 +371,7 @@ def my_matches_ics_regen(request):
 def my_matches_ics(request, token: str):
     user = _token_user_or_404(token)
     qs = _apply_filters(_user_match_qs(user), request.GET)
+    qs = _apply_search(qs, request.GET.get("q", ""))
 
     lines = [
         "BEGIN:VCALENDAR",
@@ -341,7 +391,7 @@ def my_matches_ics(request, token: str):
             m, "team_b_name",
             getattr(getattr(m, "team_b", None), "name", getattr(getattr(m, "user_b", None), "username", "")),
         )
-        summary = f"{getattr(m.tournament, 'name','')} â€” {title_a} vs {title_b}"
+        summary = f"{getattr(m.tournament, 'name','')} — {title_a} vs {title_b}"
         uid = f"deltacrown-match-{m.id}@deltacrown"
         lines += [
             "BEGIN:VEVENT",
@@ -356,4 +406,3 @@ def my_matches_ics(request, token: str):
     resp = HttpResponse("\r\n".join(lines), content_type="text/calendar; charset=utf-8")
     resp["Content-Disposition"] = 'attachment; filename="my_matches.ics"'
     return resp
-

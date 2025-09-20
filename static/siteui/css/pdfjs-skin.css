@@ -1,0 +1,79 @@
+/* pdfjs-skin.css — minimal theme for templates/tournaments/partials/_pdf_viewer.html
+   Depends on tokens.css for colors; safe even if tokens load late.
+*/
+
+.dc-pdfviewer {
+  --pv-bg: var(--glass, rgba(255,255,255,.06));
+  --pv-border: var(--border, rgba(255,255,255,.12));
+  --pv-text: var(--text, #e7edf5);
+  --pv-muted: var(--text-muted, #a3b1c2);
+
+  border: 1px solid var(--pv-border);
+  border-radius: .8rem;
+  background: var(--pv-bg);
+  box-shadow: var(--shadow-sm, 0 6px 14px rgba(0,0,0,.18));
+  overflow: hidden;
+}
+
+:root[data-theme="light"] .dc-pdfviewer {
+  --pv-bg: rgba(4,18,44,.06);
+  --pv-text: var(--text, #0b1220);
+  --pv-muted: #5a6a80;
+}
+
+/* Toolbar */
+.dc-pdfviewer__toolbar {
+  display: grid; grid-template-columns: auto 1fr auto auto auto;
+  gap: .35rem; align-items: center;
+  padding: .45rem .55rem;
+  border-bottom: 1px solid var(--pv-border);
+  background: linear-gradient(0deg, rgba(255,255,255,.06), transparent);
+}
+:root[data-theme="light"] .dc-pdfviewer__toolbar {
+  background: linear-gradient(0deg, rgba(4,18,44,.05), transparent);
+}
+
+/* Buttons */
+.pv-btn, .dc-pdfviewer .pv-btn {
+  display: inline-grid; place-items: center;
+  min-width: 34px; height: 34px;
+  border-radius: .6rem;
+  border: 1px solid var(--pv-border);
+  background: rgba(255,255,255,.06);
+  color: var(--pv-text);
+  cursor: pointer;
+}
+:root[data-theme="light"] .pv-btn { background: rgba(4,18,44,.06); }
+.pv-btn:hover { filter: brightness(1.05); }
+.pv-btn:focus { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(56,189,248,.35)); }
+
+/* Labels and totals */
+.pv-label { font-size: .9rem; color: var(--pv-muted); margin: 0 .2rem 0 .4rem; }
+.pv-of { color: var(--pv-muted); }
+
+/* Page field */
+.pv-page {
+  width: 64px; height: 34px;
+  border-radius: .6rem; padding: 0 .5rem;
+  border: 1px solid var(--pv-border);
+  background: rgba(255,255,255,.06);
+  color: var(--pv-text);
+}
+:root[data-theme="light"] .pv-page { background: rgba(4,18,44,.06); color: var(--pv-text); }
+.pv-page:focus { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(56,189,248,.35)); }
+
+/* Canvas wrapper */
+.dc-pdfviewer__canvaswrap {
+  background: #0b0b0b; /* gives contrast while loading pages */
+  min-height: 320px;
+  display: grid; place-items: center;
+}
+:root[data-theme="light"] .dc-pdfviewer__canvaswrap { background: #ffffff; }
+
+.dc-pdfviewer__canvas { width: 100%; height: auto; display: block; }
+
+/* Empty/fallback states */
+.pv-empty, .pv-fallback { padding: .7rem .8rem; color: var(--pv-muted); }
+
+/* Tiny helpers */
+.pv-spacer { flex: 1; }

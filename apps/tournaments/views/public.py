@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 from typing import Any, Dict, List, Optional
+
 from django.apps import apps
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
@@ -12,9 +13,9 @@ from .helpers import (
     computed_state, role_for, user_reg, next_cta,
     coin_policy_of, rules_pdf_of, load_participants, load_standings,
     live_stream_info, bracket_url_of, build_tabs, hero_meta_for, slugify_game,
-    GAME_REGISTRY,
+    GAME_REGISTRY, build_pdf_viewer_config,
 )
-from .cards import annotate_cards, compute_my_states
+from .cards import annotate_cards, compute_my_states, related_tournaments
 
 Tournament = apps.get_model("tournaments", "Tournament")
 
@@ -23,6 +24,7 @@ Tournament = apps.get_model("tournaments", "Tournament")
 def hub(request: HttpRequest) -> HttpResponse:
     """
     Tournaments landing page with featured rows + search/filter.
+    Lightweight and empty-safe. Uses annotate_cards() for dc_* fields.
     """
     q      = request.GET.get("q") or ""
     status = request.GET.get("status")
@@ -273,16 +275,16 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
         live_info=live_info, coin_policy_text=coin_policy
     )
 
-    # Related tournaments (same game, excluding self)
-    related = []
-    try:
-        qs = Tournament.objects.exclude(id=t.id)
-        if hasattr(Tournament, "game") and game:
-            qs = qs.filter(game=gslug)
-        related = list(qs.order_by("-id")[:8])
-        annotate_cards(related)
-    except Exception:
-        pass
+    # active tab sanitized to a valid tab name
+    active_tab = (request.GET.get("tab") or "overview").lower()
+    if active_tab not in tabs:
+        active_tab = "overview"
+
+    # Related tournaments (same game, excluding self) — ready for cards
+    related = related_tournaments(t, limit=8)
+
+    # PDF.js viewer config (theme-aware; templates may toggle light/dark)
+    pdf_viewer = build_pdf_viewer_config(t, theme="auto")
 
     # Build context
     ctx = {
@@ -322,6 +324,7 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
 
         # rules & policy
         "rules": {"text": rules_text, "extra": extra_rules, "pdf_url": rules_url, "pdf_name": rules_filename},
+        "pdf_viewer": pdf_viewer,          # <-- new: config for inline PDF.js viewer
         "coin_policy": coin_policy,
 
         # UI/CTA
@@ -336,7 +339,7 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
 
         # tabs/nav
         "tabs": tabs,
-        "active_tab": (request.GET.get("tab") or "overview"),
+        "active_tab": active_tab,
 
         # urls & related
         "register_url": reg_url,

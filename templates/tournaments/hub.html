@@ -6,13 +6,14 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
 <link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
+{# Filter Orb CSS/JS will be added in later steps; the markup still works progressively. #}
 {% endblock %}
 
 {% block content %}
 <section class="dc-container">
 
   {# ---------------- HERO ---------------- #}
-  <header class="hero-2025">
+  <header class="hero-2025" id="top">
     <div class="hero-bg">
       <div class="hero-noise"></div>
       <div class="hero-grid"></div>
@@ -31,13 +32,13 @@
           <a class="cta-secondary" href="#all">All Tournaments</a>
         </div>
 
-        <ul class="hero-stats">
+        <ul class="hero-stats" aria-label="Platform stats">
           <li><strong>{{ stats.total_active|default:"25" }}</strong><span>Active now</span></li>
           <li><strong>{{ stats.players_this_month|default:"1,200" }}</strong><span>Players this month</span></li>
           <li><strong>৳{{ stats.prize_pool_month|default:"2,50,000" }}</strong><span>Prize pool</span></li>
         </ul>
 
-        <div class="trust-row">
+        <div class="trust-row" aria-label="Trust markers">
           <span class="trust-badge">Fast payouts</span>
           <span class="trust-badge">Anti-smurf checks</span>
           <span class="trust-badge">Live support</span>
@@ -46,14 +47,14 @@
 
       <div class="hero-right">
         <div class="hero-card">
-          <div class="hc-top"><span class="live-dot"></span> Featured Now</div>
+          <div class="hc-top"><span class="live-dot" aria-hidden="true"></span> Featured Now</div>
           <div class="hc-body">
             {% if live_tournaments %}
             {% with t=live_tournaments.0 %}
               <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
                 {% if t.dc_banner_url %}
                   <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}">
-                {% else %}<div class="hc-fallback"></div>{% endif %}
+                {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
               </a>
               <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
               <div class="hc-meta">
@@ -68,7 +69,6 @@
                 <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">View</a>
               </div>
             {% endwith %}
-
             {% else %}
               <div class="hc-empty">Live events appear here when a tournament is in progress.</div>
             {% endif %}
@@ -79,8 +79,8 @@
   </header>
 
   {# ---------------- BROWSE BY GAME (top under hero) ---------------- #}
-  <section class="section-head" id="browse">
-    <h2 class="section-title">Browse by Game</h2>
+  <section class="section-head" id="browse" aria-labelledby="browse-title">
+    <h2 id="browse-title" class="section-title">Browse by Game</h2>
     <a class="section-link" href="#all">All tournaments</a>
   </section>
   <div class="game-grid">
@@ -89,55 +89,15 @@
     {% endfor %}
   </div>
 
-  {# ---------------- ALL TOURNAMENTS (clean filters) ---------------- #}
-  <section class="section-head" id="all">
-    <h2 class="section-title">All Tournaments</h2>
+  {# ---------------- ALL TOURNAMENTS (Filter Orb replaces bulky panel) ---------------- #}
+  <section class="section-head" id="all" aria-labelledby="all-title">
+    <h2 id="all-title" class="section-title">All Tournaments</h2>
     <a class="section-link" href="{% url 'tournaments:hub' %}">See more</a>
   </section>
 
-  <div class="search-panel glass">
-    <form id="hub-search-form" method="get" action="{% url 'tournaments:hub' %}" class="search-form">
-      <div class="sf-row">
-        <div class="sf-field">
-          <label>Search</label>
-          <input type="search" name="q" value="{{ q|default_if_none:'' }}" placeholder="Name, game, format…" class="input" aria-label="Search tournaments">
-        </div>
-        <div class="sf-field">
-          <label>Status</label>
-          <select name="status" class="select">
-            <option value="">Any</option>
-            <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Open</option>
-            <option value="live" {% if request.GET.status == 'live' %}selected{% endif %}>Live</option>
-          </select>
-        </div>
-        <div class="sf-field">
-          <label>Start</label>
-          <select name="start" class="select">
-            <option value="">Any</option>
-            <option value="7d" {% if request.GET.start == '7d' %}selected{% endif %}>Within 7 days</option>
-          </select>
-        </div>
-        <div class="sf-field">
-          <label>Fee</label>
-          <select name="fee" class="select">
-            <option value="">Any</option>
-            <option value="free" {% if request.GET.fee == 'free' %}selected{% endif %}>Free</option>
-          </select>
-        </div>
-        <div class="sf-field">
-          <label>Sort</label>
-          <select name="sort" class="select">
-            <option value="relevant" {% if sort == 'relevant' or not sort %}selected{% endif %}>Most relevant</option>
-            <option value="new" {% if sort == 'new' %}selected{% endif %}>Newest</option>
-            <option value="fee_asc" {% if sort == 'fee_asc' %}selected{% endif %}>Fee: Low→High</option>
-          </select>
-        </div>
-        <div class="sf-actions">
-          <button class="btn">Apply</button>
-          <a class="btn-ghost" href="{% url 'tournaments:hub' %}">Clear</a>
-        </div>
-      </div>
-    </form>
+  {# New: compact Filter Orb (hover/tap) #}
+  <div class="filter-orb-wrap" aria-label="Filters">
+    {% include "tournaments/partials/_filter_orb.html" %}
   </div>
 
   {% if tournaments %}
@@ -150,10 +110,10 @@
     {% include "tournaments/partials/_grid_empty.html" %}
   {% endif %}
 
-  {# ---------------- OPTIONAL ROWS (still helpful) ---------------- #}
+  {# ---------------- OPTIONAL ROWS ---------------- #}
   {% if starting_soon %}
-  <section class="section-head">
-    <h2 class="section-title">Starting Soon</h2>
+  <section class="section-head" aria-labelledby="soon-title">
+    <h2 id="soon-title" class="section-title">Starting Soon</h2>
     <a class="section-link" href="{% url 'tournaments:hub' %}?start=7d">Within 7 days</a>
   </section>
   <div class="carousel">
@@ -166,8 +126,8 @@
   {% endif %}
 
   {% if new_this_week %}
-  <section class="section-head">
-    <h2 class="section-title">New This Week</h2>
+  <section class="section-head" aria-labelledby="new-title">
+    <h2 id="new-title" class="section-title">New This Week</h2>
     <a class="section-link" href="{% url 'tournaments:hub' %}?sort=new">Newest first</a>
   </section>
   <div class="grid">
@@ -178,32 +138,32 @@
   {% endif %}
 
   {# ---------------- VALUE PROPS AT BOTTOM ---------------- #}
-  <section class="vp-grid bottom-vp">
+  <section class="vp-grid bottom-vp" aria-label="Why DeltaCrown">
     <article class="vp-card">
-      <div class="vp-icon i-trophy"></div>
+      <div class="vp-icon i-trophy" aria-hidden="true"></div>
       <h3>Real prizes</h3>
       <p>Verified payouts and leaderboard badges. Win more than bragging rights.</p>
     </article>
     <article class="vp-card">
-      <div class="vp-icon i-bracket"></div>
+      <div class="vp-icon i-bracket" aria-hidden="true"></div>
       <h3>Fair brackets</h3>
       <p>Auto-seeding, transparent rules, and public standings in real time.</p>
     </article>
     <article class="vp-card">
-      <div class="vp-icon i-shield"></div>
+      <div class="vp-icon i-shield" aria-hidden="true"></div>
       <h3>Competitive integrity</h3>
       <p>Anti-smurf checks, manual verification, and match dispute support.</p>
     </article>
     <article class="vp-card">
-      <div class="vp-icon i-bolt"></div>
+      <div class="vp-icon i-bolt" aria-hidden="true"></div>
       <h3>Fast & simple</h3>
       <p>2-minute registration, e-wallet payments, clear status at every step.</p>
     </article>
   </section>
 
-  {# ---------------- HOW IT WORKS AT BOTTOM ---------------- #}
-  <section class="how premium-how" id="how">
-    <h2 class="section-title">How it works</h2>
+  {# ---------------- HOW IT WORKS ---------------- #}
+  <section class="how premium-how" id="how" aria-labelledby="how-title">
+    <h2 id="how-title" class="section-title">How it works</h2>
     <ol class="how-steps">
       <li>
         <span class="num">1</span>
@@ -228,4 +188,5 @@
 
 {% block extra_js %}
 <script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
+{# Later we’ll add filter-orb.js here in the CSS/JS steps. #}
 {% endblock %}

@@ -1,6 +1,6 @@
-// tournaments-detail.js
-// Non-intrusive orchestrator for the Tournament Detail page.
+// tournaments-detail.js — non-intrusive orchestrator for the Detail page.
 // Plays nicely with tournament-detail-neo.js (no duplication).
+// Enhancements: reduced-motion aware smooth scroll, smarter anchor targeting.
 
 (function () {
   const $ = (s, r = document) => r.querySelector(s);
@@ -44,17 +44,20 @@
 
   // ---- Sticky in-page nav (anchors) ----------------------------------------
   const anchorNav = $(".tabs, .tournament-tabs, .tabs-wrap");
+  const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   if (anchorNav) {
     anchorNav.addEventListener("click", (e) => {
       const a = e.target.closest("[data-tab], [href^='#']");
       if (!a) return;
+
       const name = a.dataset.tab || a.getAttribute("href").replace("#","");
       const target = root.querySelector(`.pane[data-pane='${name}']`) || $("#" + name);
       if (!target) return;
 
       e.preventDefault();
       const top = target.getBoundingClientRect().top + window.scrollY - 72; // offset for sticky headers
-      window.scrollTo({ top, behavior: "smooth" });
+      window.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
 
       // Mark active (if not handled by neo.js)
       $$(".tab", anchorNav).forEach(t => t.classList.toggle("is-active", (t.dataset.tab === name)));
