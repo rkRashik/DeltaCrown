@@ -1,0 +1,68 @@
+{# DeltaCrown — Inline PDF.js Viewer Partial
+   Usage:
+     {% include "tournaments/partials/_pdf_viewer.html" with
+        cfg=ctx.pdf_viewer
+     %}
+   Expected cfg keys (all optional-safe):
+     cfg.url            - absolute/relative URL to the PDF
+     cfg.start_page     - starting page number (int, default 1)
+     cfg.title          - display title for the document
+#}
+
+{% with
+  _url=cfg.url|default:''
+  _start=cfg.start_page|default:1
+  _title=cfg.title|default:'Rules PDF'
+%}
+  <div class="pdfjs-viewer"
+       data-pdf-url="{{ _url }}"
+       data-start-page="{{ _start }}"
+       data-title="{{ _title }}">
+
+    <div class="pdfjs-toolbar" role="toolbar" aria-label="PDF viewer controls">
+      <div class="group">
+        <button type="button" class="btn" data-pdf-prev aria-label="Previous page" title="Previous page" disabled>
+          ‹
+        </button>
+        <span class="small page-readout">
+          Page <span data-pdf-page>1</span>/<span data-pdf-pages>?</span>
+        </span>
+        <button type="button" class="btn" data-pdf-next aria-label="Next page" title="Next page" disabled>
+          ›
+        </button>
+      </div>
+      <div class="group">
+        <button type="button" class="btn" data-pdf-zoomout aria-label="Zoom out" title="Zoom out">−</button>
+        <button type="button" class="btn" data-pdf-zoomin aria-label="Zoom in" title="Zoom in">+</button>
+      </div>
+      <div class="spacer" aria-hidden="true"></div>
+      <div class="group">
+        {% if _url %}
+          <a class="btn link" data-pdf-download href="{{ _url }}" target="_blank" rel="noopener">Download</a>
+        {% else %}
+          <button class="btn link" disabled>Download</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="pdfjs-canvas-wrap">
+      <canvas class="pdfjs-canvas" aria-label="{{ _title }}"></canvas>
+      <div class="pdfjs-error" hidden role="alert"></div>
+      {% if not _url %}
+        <div class="pdfjs-fallback small">
+          <p class="muted">No PDF provided.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <noscript>
+      <div class="pdfjs-fallback small">
+        {% if _url %}
+          <p>JavaScript is off. <a href="{{ _url }}" target="_blank" rel="noopener">Open the PDF</a>.</p>
+        {% else %}
+          <p class="muted">PDF viewer requires JavaScript.</p>
+        {% endif %}
+      </div>
+    </noscript>
+  </div>
+{% endwith %}

@@ -1,0 +1,141 @@
+/* DeltaCrown — PDF.js skin (light/dark parity) */
+
+.pdfjs-viewer {
+  --pdf-bg: var(--surface, #0b0d13);
+  --pdf-fg: var(--text, #e8eaf1);
+  --pdf-muted: var(--muted, #98a2b3);
+  --pdf-accent: var(--primary, #7c3aed);
+  --pdf-border: color-mix(in srgb, var(--pdf-fg) 10%, transparent);
+  --pdf-btn-bg: color-mix(in srgb, var(--pdf-fg) 8%, transparent);
+  --pdf-btn-bg-hover: color-mix(in srgb, var(--pdf-fg) 14%, transparent);
+  --pdf-btn-bg-active: color-mix(in srgb, var(--pdf-fg) 20%, transparent);
+
+  background: var(--pdf-bg);
+  color: var(--pdf-fg);
+  border-radius: 0.75rem;
+  border: 1px solid var(--pdf-border);
+  overflow: hidden;
+}
+
+/* Toolbar */
+
+.pdfjs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--pdf-fg) 6%, transparent), transparent);
+  border-bottom: 1px solid var(--pdf-border);
+}
+
+.pdfjs-toolbar .group {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+}
+
+.pdfjs-toolbar .spacer {
+  flex: 1 1 auto;
+}
+
+.pdfjs-toolbar .btn {
+  appearance: none;
+  border: 1px solid var(--pdf-border);
+  background: var(--pdf-btn-bg);
+  color: var(--pdf-fg);
+  padding: .35rem .6rem;
+  border-radius: .5rem;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, transform .05s ease;
+}
+
+.pdfjs-toolbar .btn:hover {
+  background: var(--pdf-btn-bg-hover);
+}
+
+.pdfjs-toolbar .btn:active {
+  background: var(--pdf-btn-bg-active);
+  transform: translateY(1px);
+}
+
+.pdfjs-toolbar .btn[disabled] {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.pdfjs-toolbar .btn.link {
+  background: transparent;
+  border-color: transparent;
+  text-decoration: underline;
+  padding-left: .2rem;
+  padding-right: .2rem;
+}
+
+.pdfjs-toolbar .page-readout {
+  color: var(--pdf-muted);
+}
+
+/* Canvas area */
+
+.pdfjs-canvas-wrap {
+  position: relative;
+  background: color-mix(in srgb, var(--pdf-fg) 6%, transparent);
+  padding: .75rem;
+}
+
+.pdfjs-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: .5rem;
+  background: #fff;           /* PDF pages render on white surface */
+  box-shadow: 0 10px 24px rgba(0,0,0,.25);
+}
+
+/* Error + fallback */
+
+.pdfjs-error {
+  margin-top: .5rem;
+  padding: .5rem .6rem;
+  border-radius: .5rem;
+  background: rgba(220, 38, 38, .12);
+  color: #fecaca;
+  border: 1px solid rgba(220, 38, 38, .25);
+}
+
+.pdfjs-fallback {
+  margin-top: .5rem;
+  color: var(--pdf-muted);
+}
+
+/* Focus visibility */
+
+.pdfjs-toolbar .btn:focus-visible,
+.pdfjs-viewer a:focus-visible {
+  outline: 2px solid var(--pdf-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--pdf-accent) 30%, transparent);
+}
+
+/* Light theme overrides if tokens expose flags */
+
+:root[data-theme="light"] .pdfjs-viewer,
+html.light .pdfjs-viewer {
+  --pdf-bg: #f7f8fb;
+  --pdf-fg: #0b0f19;
+  --pdf-muted: #475467;
+  --pdf-border: rgba(2,6,23,.06);
+  --pdf-btn-bg: rgba(2,6,23,.04);
+  --pdf-btn-bg-hover: rgba(2,6,23,.07);
+  --pdf-btn-bg-active: rgba(2,6,23,.1);
+}
+
+@media (max-width: 640px) {
+  .pdfjs-toolbar {
+    flex-wrap: wrap;
+    gap: .4rem .5rem;
+  }
+}

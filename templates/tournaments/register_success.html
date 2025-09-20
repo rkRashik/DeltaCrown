@@ -1,31 +1,60 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Registration Submitted — {% firstof tournament.name "Tournament" %}{% endblock %}
+
+{% block title %}Registration Submitted — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-register-neo.css' %}?v=4" />
+{% endblock %}
+
 {% block content %}
-<section class="container py-16">
-  <div class="glass p-8 rounded-2xl max-w-2xl mx-auto text-center relative overflow-hidden">
-    <div id="confetti" aria-hidden="true"></div>
-    <h1 class="text-2xl font-bold">Registration Submitted</h1>
-    <p class="text-muted mt-2">We’ll verify your payment and confirm your slot shortly.</p>
-    <div class="mt-6 flex gap-2 justify-center">
-      {% if tournament and tournament.slug %}
-        <a class="btn-primary" href="/tournaments/{{ tournament.slug }}/">Back to Tournament</a>
-        <a class="btn-secondary" href="{% url 'tournaments:registration_receipt' slug=tournament.slug %}">View Receipt</a>
-      {% else %}
-        <a class="btn-primary" href="/tournaments/">Browse Events</a>
-      {% endif %}
+<section class="dc-container reg-neo">
+  <div class="reg-hero">
+    <div class="wrap">
+      <div>
+        <h1 class="title">Registration Submitted</h1>
+        <p class="muted">We’ll verify the details and update your status soon.</p>
+      </div>
     </div>
   </div>
+
+  <div class="reg-body">
+    <article class="card">
+      <h2 class="h2">What happens next?</h2>
+      <ul class="timeline small" style="margin-top:.5rem;">
+        <li><span class="badge success">1</span> We’ve received your submission</li>
+        <li><span class="badge warn">2</span> Payment verification (if applicable)</li>
+        <li><span class="badge">3</span> Track status from your Dashboard</li>
+      </ul>
+
+      <div style="display:flex; gap:.6rem; flex-wrap:wrap; margin-top:.8rem;">
+        {% if tournament %}
+          {% url 'tournaments:registration_receipt' tournament.slug as receipt_url %}
+          {% if receipt_url %}
+            <a class="btn-neo" href="{{ receipt_url }}">View Receipt</a>
+          {% endif %}
+          <a class="btn-neo btn-ghost" href="{% url 'tournaments:detail' tournament.slug %}">Back to tournament</a>
+        {% else %}
+          <a class="btn-neo btn-ghost" href="{% url 'tournaments:hub' %}">Browse tournaments</a>
+        {% endif %}
+      </div>
+    </article>
+
+    <aside class="side">
+      <div class="sticky">
+        <div class="card">
+          <div class="title">Tips</div>
+          <ul class="small">
+            <li>Keep your transaction ID handy until verification completes.</li>
+            <li>Join our Discord for updates and quick help.</li>
+          </ul>
+          <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+            <a class="btn-neo btn-ghost" href="/discord" target="_blank" rel="noopener"><i class="fa-brands fa-discord"></i> Discord</a>
+            <a class="btn-neo btn-ghost" href="/support/tickets/new/">Support</a>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
 </section>
-<script>
-(function(){
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const box = document.getElementById('confetti'); if(!box) return; const n=60;
-  for(let i=0;i<n;i++){ const s=document.createElement('span'); s.style.position='absolute'; s.style.left=Math.random()*100+'%'; s.style.top='-10px'; s.style.width='6px'; s.style.height='10px'; s.style.background = i%2? 'var(--brand-delta)':'var(--brand-crown)'; s.style.opacity='.8'; s.style.transform=`rotate(${Math.random()*180}deg)`;
-    const dur = 1500 + Math.random()*1500; const dx = (Math.random()*40-20);
-    s.animate([{transform:`translate(${dx}px,0) rotate(0deg)`},{transform:`translate(${dx}px,120vh) rotate(360deg)`}],{duration:dur,iterations:1,easing:'ease-out'});
-    box.appendChild(s); setTimeout(()=>s.remove(), dur);
-  }
-})();
-</script>
 {% endblock %}
