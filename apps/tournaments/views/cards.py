@@ -1,11 +1,13 @@
 from __future__ import annotations
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
+
 from django.apps import apps
+from django.db.models import QuerySet
 from django.urls import reverse
 
 from .helpers import (
     read_title, read_game, read_fee_amount, banner_url, read_url,
-    register_url, status_for_card,
+    register_url, status_for_card, dc_map, computed_state,
 )
 
 Tournament = apps.get_model("tournaments", "Tournament")
@@ -26,6 +28,19 @@ def annotate_cards(objs: Iterable[Any]) -> None:
         object.__setattr__(t, "dc_game",       read_game(t))
         object.__setattr__(t, "dc_fee_amount", read_fee_amount(t))
         object.__setattr__(t, "dc_url",        read_url(t))
+
+
+def annotate_queryset(qs: QuerySet) -> List[Any]:
+    """
+    Convenience: select_related common fields, then annotate dc_* and return list.
+    """
+    try:
+        qs = qs.select_related("settings")
+    except Exception:
+        pass
+    objs = list(qs)
+    annotate_cards(objs)
+    return objs
 
 
 def compute_my_states(request, tournaments: Iterable[Any]) -> Dict[int, Dict[str, Any]]:
@@ -79,3 +94,28 @@ def compute_my_states(request, tournaments: Iterable[Any]) -> Dict[int, Dict[str
             states[tid] = {"registered": False, "cta": None, "cta_url": None}
 
     return states
+
+
+def related_tournaments(current: Any, limit: int = 6) -> List[Any]:
+    """
+    Returns a small list of 'more like this' tournaments (same game, not the current one),
+    already dc_* annotated for cards.
+    """
+    try:
+        game_value = getattr(current, "game", None) or getattr(current, "game_name", None)
+        if not game_value:
+            return []
+        qs = Tournament.objects.all()
+        # Basic similarity: same game (string-compare, case-insensitive), exclude self
+        qs = qs.filter(game__iexact=str(game_value)).exclude(pk=getattr(current, "pk", None))
+        try:
+            qs = qs.select_related("settings")
+        except Exception:
+            pass
+        qs = qs.order_by("-starts_at", "-id")[:limit]
+        objs = list(qs)
+    except Exception:
+        objs = []
+
+    annotate_cards(objs)
+    return objs

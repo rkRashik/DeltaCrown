@@ -23,7 +23,7 @@
         {% if ctx.banner %}
           <img src="{{ ctx.banner }}" alt="{{ ctx.title }} banner" loading="eager" />
         {% else %}
-          <div class="fallback"></div>
+          <div class="fallback" aria-hidden="true"></div>
         {% endif %}
         {% if ctx.ui.show_live %}
           <span class="pill live">LIVE</span>
@@ -31,11 +31,11 @@
       </div>
 
       <div class="head">
-        <nav class="crumbs small">
+        <nav class="crumbs small" aria-label="Breadcrumb">
           <a href="{% url 'tournaments:hub' %}">Tournaments</a>
-          <span>›</span>
-          {% if ctx.game %}<a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game }}</a><span>›</span>{% endif %}
-          <span class="muted">Details</span>
+          <span aria-hidden="true">›</span>
+          {% if ctx.game %}<a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game }}</a><span aria-hidden="true">›</span>{% endif %}
+          <span class="muted" aria-current="page">Details</span>
         </nav>
 
         <h1 class="title">
@@ -120,9 +120,12 @@
 
   <div class="neo-body">
     <div>
-      <div class="tabs">
+      <div class="tabs" role="tablist" aria-label="Tournament sections">
         {% for tab in ctx.tabs %}
-          <button class="tab{% if tab == ctx.active_tab %} is-active{% endif %}" data-tab="{{ tab }}">
+          <button class="tab{% if tab == ctx.active_tab %} is-active{% endif %}"
+        data-tab="{{ tab }}"
+        role="tab"
+        aria-selected="{% if tab == ctx.active_tab %}true{% else %}false{% endif %}">
             {% if tab == 'overview' %}Overview{% endif %}
             {% if tab == 'info' %}Info{% endif %}
             {% if tab == 'prizes' %}Prizes{% endif %}
@@ -318,9 +321,15 @@
       <section class="pane {% if 'rules' == ctx.active_tab %}is-active{% endif %}" data-pane="rules">
         <article class="card">
           <h2 class="h2">Rules</h2>
+
           {% if ctx.rules.text %}<div class="rich">{{ ctx.rules.text|safe }}</div>{% endif %}
           {% if ctx.rules.extra %}<div class="rich" style="margin-top:.6rem;">{{ ctx.rules.extra|safe }}</div>{% endif %}
-          {% if ctx.rules.pdf_url %}
+
+          {% if ctx.pdf_viewer %}
+            <div class="pdfwrap" style="margin-top:.8rem;">
+              {% include "tournaments/partials/_pdf_viewer.html" with cfg=ctx.pdf_viewer %}
+            </div>
+          {% elif ctx.rules.pdf_url %}
             <div class="embed" style="margin-top:.8rem;">
               <iframe title="Rules PDF" data-src="{{ ctx.rules.pdf_url }}" loading="lazy"></iframe>
             </div>
@@ -328,6 +337,7 @@
               <a class="btn-neo btn-ghost" href="{{ ctx.rules.pdf_url }}" target="_blank" rel="noopener">Open rules PDF</a>
             </p>
           {% endif %}
+
           {% if not ctx.rules.text and not ctx.rules.extra and not ctx.rules.pdf_url %}
             <p class="muted">Rules will be posted soon.</p>
           {% endif %}
@@ -420,4 +430,11 @@
 {% block extra_js %}
 <script src="{% static 'siteui/js/tournament-detail-neo.js' %}?v=1"></script>
 <script src="{% static 'siteui/js/tournaments-detail.js' %}?v=1"></script>
+
+{# When we add the vendor files later, this will enable the inline PDF viewer automatically. #}
+{% if ctx.pdf_viewer %}
+  <script src="{% static 'siteui/pdfjs/pdf.js' %}"></script>
+  <script>window.pdfjsLib && (pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'siteui/pdfjs/pdf.worker.js' %}");</script>
+  <script src="{% static 'siteui/js/pdfjs-init.js' %}"></script>
+{% endif %}
 {% endblock %}

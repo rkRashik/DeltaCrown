@@ -1,0 +1,83 @@
+{# Accessible hover/tap filter orb. Requires CSS (filter-orb.css) and optional JS (filter-orb.js). #}
+<div class="filter-orb" data-behavior="filter-orb">
+  <button
+    type="button"
+    class="filter-orb__toggle"
+    id="filter-orb-toggle"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    aria-controls="filter-orb-panel"
+    title="Filters"
+  >
+    <span class="visually-hidden">Filters</span>
+    <!-- simple icon -->
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 5h18l-7 8v4l-4 2v-6L3 5z"></path>
+    </svg>
+  </button>
+
+  <div
+    class="filter-orb__panel"
+    id="filter-orb-panel"
+    role="dialog"
+    aria-labelledby="filter-orb-title"
+    aria-modal="false"
+    hidden
+  >
+    <div class="filter-orb__header">
+      <h2 id="filter-orb-title">Quick filters</h2>
+      <button type="button" class="filter-orb__close" data-close="filter-orb" aria-label="Close filters">×</button>
+    </div>
+
+    {# GET form posts back to the same page (hub or list_by_game). #}
+    <form method="get" action="">
+      <div class="filter-orb__row">
+        <label for="fo-q">Search</label>
+        <input id="fo-q" name="q" type="search" placeholder="Find tournaments…" value="{{ request.GET.q|default:'' }}">
+      </div>
+
+      <div class="filter-orb__row">
+        <label for="fo-status">Status</label>
+        <select id="fo-status" name="status">
+          <option value="" {% if not request.GET.status %}selected{% endif %}>Any</option>
+          <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Open</option>
+          <option value="live" {% if request.GET.status == 'live' %}selected{% endif %}>Live</option>
+          <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+        </select>
+      </div>
+
+      <div class="filter-orb__row">
+        <label for="fo-fee">Fee</label>
+        <select id="fo-fee" name="fee">
+          <option value="" {% if not request.GET.fee %}selected{% endif %}>Any</option>
+          <option value="free" {% if request.GET.fee == 'free' %}selected{% endif %}>Free</option>
+          <option value="paid" {% if request.GET.fee == 'paid' %}selected{% endif %}>Paid</option>
+        </select>
+      </div>
+
+      <div class="filter-orb__row">
+        <label for="fo-start">Start</label>
+        <select id="fo-start" name="start">
+          <option value="" {% if not request.GET.start %}selected{% endif %}>Any time</option>
+          <option value="7d" {% if request.GET.start == '7d' %}selected{% endif %}>Within 7 days</option>
+        </select>
+      </div>
+
+      <div class="filter-orb__row">
+        <label for="fo-sort">Sort</label>
+        <select id="fo-sort" name="sort">
+          <option value="" {% if not request.GET.sort %}selected{% endif %}>Default</option>
+          <option value="new" {% if request.GET.sort == 'new' %}selected{% endif %}>Newest</option>
+          <option value="fee_asc" {% if request.GET.sort == 'fee_asc' %}selected{% endif %}>Fee (low to high)</option>
+        </select>
+      </div>
+
+      <div class="filter-orb__actions">
+        <button class="dc-btn" type="submit">Apply</button>
+        <a class="dc-btn-secondary" href="{{ request.path }}">Reset</a>
+      </div>
+
+      <p class="filter-orb__hint">Tip: Hover the orb to peek, tap to pin open.</p>
+    </form>
+  </div>
+</div>

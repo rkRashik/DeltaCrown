@@ -1,0 +1,118 @@
+/* filter-orb.css — floating hover/tap filter orb
+   Works with templates/tournaments/partials/_filter_orb.html
+   Requires no JS to function; JS only enhances aria-expanded + focus trap.
+*/
+
+/* Root container */
+.filter-orb { position: relative; width: 0; height: 0; z-index: 20; }
+
+/* Toggle button (the orb) */
+.filter-orb__toggle {
+  position: sticky; /* stays visible while you scroll lists */
+  top: 1rem;
+  left: 0;
+  transform: translateX(-.25rem);
+  display: inline-grid; place-items: center;
+  width: 48px; height: 48px;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(255,255,255,.12));
+  background: radial-gradient(60% 60% at 50% 35%, rgba(255,255,255,.18), transparent 60%),
+              var(--chip, rgba(255,255,255,.08));
+  color: var(--text, #e7edf5);
+  box-shadow: var(--shadow-md, 0 12px 28px rgba(0,0,0,.28));
+  cursor: pointer;
+}
+:root[data-theme="light"] .filter-orb__toggle {
+  background: radial-gradient(60% 60% at 50% 35%, rgba(4,18,44,.12), transparent 60%),
+              rgba(4,18,44,.06);
+  color: var(--text, #0b1220);
+}
+.filter-orb__toggle:focus { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(56,189,248,.35)); }
+
+/* Drawer panel */
+.filter-orb__panel {
+  position: fixed;
+  bottom: 1rem; right: 1rem;
+  width: min(92vw, 360px);
+  max-height: 82vh;
+  overflow: auto;
+  padding: .8rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border, rgba(255,255,255,.12));
+  background: var(--glass, rgba(255,255,255,.06));
+  box-shadow: var(--shadow-lg, 0 20px 52px rgba(0,0,0,.36));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+:root[data-theme="light"] .filter-orb__panel {
+  background: rgba(4,18,44,.06);
+  box-shadow: 0 20px 52px rgba(4,18,44,.18);
+}
+
+/* Header row */
+.filter-orb__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .2rem .2rem .5rem .2rem;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.12));
+  margin-bottom: .6rem;
+}
+.filter-orb__header h2 { font-size: 1.05rem; margin: 0; }
+.filter-orb__close {
+  background: transparent; border: 1px solid var(--border, rgba(255,255,255,.12));
+  color: inherit; width: 32px; height: 32px; border-radius: .6rem; cursor: pointer;
+}
+.filter-orb__close:focus { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(56,189,248,.35)); }
+
+/* Form rows */
+.filter-orb__row { display: grid; gap: .35rem; margin-bottom: .55rem; }
+.filter-orb__row label { font-weight: 700; font-size: .95rem; }
+.filter-orb__row input[type="search"],
+.filter-orb__row input[type="text"],
+.filter-orb__row input[type="number"],
+.filter-orb__row input[type="date"],
+.filter-orb__row select {
+  width: 100%;
+  padding: .6rem .65rem;
+  border-radius: .6rem;
+  border: 1px solid var(--border, rgba(255,255,255,.12));
+  background: rgba(255,255,255,.06);
+  color: var(--text, #e7edf5);
+}
+:root[data-theme="light"] .filter-orb__row input[type="search"],
+:root[data-theme="light"] .filter-orb__row input[type="text"],
+:root[data-theme="light"] .filter-orb__row input[type="number"],
+:root[data-theme="light"] .filter-orb__row input[type="date"],
+:root[data-theme="light"] .filter-orb__row select {
+  background: rgba(4,18,44,.04); color: var(--text, #0b1220);
+}
+.filter-orb__row input:focus,
+.filter-orb__row select:focus { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(56,189,248,.35)); }
+
+/* Actions */
+.filter-orb__actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .4rem; }
+
+/* Helper text */
+.filter-orb__hint { margin-top: .4rem; font-size: .85rem; color: var(--text-muted, #a3b1c2); }
+
+/* Visibility behaviors ---------------------------------------------------- */
+/* [hidden] attribute is handled by the template/JS; we add a transition. */
+@media (prefers-reduced-motion: no-preference) {
+  .filter-orb__panel[hidden] { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  .filter-orb__panel:not([hidden]) { animation: fo-rise .18s ease-out; }
+  @keyframes fo-rise { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform: none;} }
+}
+
+/* Mobile affordance: when pinned open on narrow screens, stretch to full width */
+@media (max-width: 700px) {
+  .filter-orb__panel {
+    right: .5rem; left: .5rem; width: auto; max-height: 85vh;
+  }
+}
+
+/* Ensure the orb never sits under grid content */
+.filter-orb-wrap { position: relative; z-index: 21; }
+
+/* A11y helpers */
+.visually-hidden {
+  position:absolute !important; width:1px; height:1px; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); clip-path: inset(50%); border:0; padding:0;
+}

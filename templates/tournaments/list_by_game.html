@@ -9,23 +9,23 @@
 {% endblock %}
 
 {% block content %}
-<section class="dc-container">
-  <nav class="dc-breadcrumb">
+<section class="dc-container" data-game="{{ game|default:game_meta.name|lower }}">
+  <nav class="dc-breadcrumb" aria-label="Breadcrumb">
     <a href="{% url 'tournaments:hub' %}" class="dc-link">Tournaments</a>
-    <span>/</span>
-    <span>{{ game_meta.name }}</span>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">{{ game_meta.name }}</span>
   </nav>
 
   <header class="dc-gameband glass" style="--game-color: {{ game_meta.primary|default:'#7c3aed' }}">
     <div class="dc-gameband-inner">
       <div class="dc-gameband-title">
         {% if game_meta.icon_url %}
-          <img src="{{ game_meta.icon_url }}" alt="{{ game_meta.name }}" class="dc-game-icon">
+          <img src="{{ game_meta.icon_url }}" alt="" class="dc-game-icon" aria-hidden="true">
         {% endif %}
         <h1 class="dc-title">{{ game_meta.name }}</h1>
       </div>
       <div class="dc-gameband-meta">
-        <span class="dc-badge">{{ total }} active</span>
+        <span class="dc-badge">{{ total|default:0 }} active</span>
         <div class="dc-presets">
           <a class="dc-chip" href="?status=open">Open Now</a>
           <a class="dc-chip" href="?start=7d">Starting ≤ 7d</a>
@@ -35,17 +35,19 @@
     </div>
   </header>
 
-  <section class="dc-section">
+  <section class="dc-section" aria-labelledby="section-all">
     <div class="dc-row-head">
-      <form id="game-search-form" method="get" class="dc-search-form">
-        <input type="search" name="q" value="{{ q|default_if_none:'' }}" class="dc-input" placeholder="Search {{ game_meta.name }} tournaments">
-        <button class="dc-btn">Search</button>
-      </form>
+      <h2 id="section-all" class="visually-hidden">All {{ game_meta.name }} tournaments</h2>
       <div class="dc-sort">
         <a class="dc-chip {% if sort == 'relevant' or not sort %}is-active{% endif %}" href="?{% if q %}q={{ q|urlencode }}&{% endif %}sort=relevant">Most relevant</a>
         <a class="dc-chip {% if sort == 'new' %}is-active{% endif %}" href="?{% if q %}q={{ q|urlencode }}&{% endif %}sort=new">Newest</a>
         <a class="dc-chip {% if sort == 'fee_asc' %}is-active{% endif %}" href="?{% if q %}q={{ q|urlencode }}&{% endif %}sort=fee_asc">Fee: Low→High</a>
       </div>
+    </div>
+
+    {# Compact, accessible Filter Orb (hover/tap) #}
+    <div class="filter-orb-wrap" aria-label="Filters">
+      {% include "tournaments/partials/_filter_orb.html" %}
     </div>
 
     {% if tournaments %}

@@ -146,6 +146,78 @@ html, body {
 /* Optional: high-contrast focus ring token (used by components) */
 :root {
   --focus-ring: 0 0 0 3px color-mix(in oklab, var(--glow-cyan) 35%, transparent);
+  /* Motion token so components can respect reduced-motion without re-querying */
+  --motion-ok: 1;
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-ok: 0; }
+}
+
+/* -------------------------------------------------------------------------- */
+/* 5) Per-game variables (used by pages/components via [data-game])           */
+/*    Defaults, then overrides for each supported game                        */
+/* -------------------------------------------------------------------------- */
+:root {
+  /* Defaults (generic tournaments) */
+  --game-primary: var(--glow-violet);
+  --game-glow-a: var(--glow-cyan);
+  --game-glow-b: var(--glow-gold);
+}
+
+/* Valorant */
+:root[data-game="valorant"],
+.tneo[data-game="valorant"],
+[data-game="valorant"] {
+  --game-primary: #ff4655;
+  --game-glow-a:  #ff4655;
+  --game-glow-b:  #7c3aed;
+}
+
+/* eFootball */
+:root[data-game="efootball"],
+.tneo[data-game="efootball"],
+[data-game="efootball"] {
+  --game-primary: #1e90ff;
+  --game-glow-a:  #1e90ff;
+  --game-glow-b:  #facc15;
+}
+
+/* CS2 */
+:root[data-game="cs2"],
+.tneo[data-game="cs2"],
+[data-game="cs2"] {
+  --game-primary: #f59e0b;
+  --game-glow-a:  #f59e0b;
+  --game-glow-b:  #06b6d4;
+}
+
+/* FC 26 */
+:root[data-game="fc26"],
+.tneo[data-game="fc26"],
+[data-game="fc26"] {
+  --game-primary: #22c55e;
+  --game-glow-a:  #22c55e;
+  --game-glow-b:  #8b5cf6;
+}
+
+/* Mobile Legends */
+:root[data-game="mobilelegend"],
+.tneo[data-game="mobilelegend"],
+[data-game="mobilelegend"] {
+  --game-primary: #7c3aed;
+  --game-glow-a:  #7c3aed;
+  --game-glow-b:  #06b6d4;
+}
+
+/* PUBG Mobile */
+:root[data-game="pubg"],
+.tneo[data-game="pubg"],
+[data-game="pubg"] {
+  --game-primary: #10b981;
+  --game-glow-a:  #10b981;
+  --game-glow-b:  #f59e0b;
 }
 
 /* ========================================================================== */

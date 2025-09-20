@@ -12,6 +12,10 @@
   --neo-muted: var(--text-muted, #a3b1c2);
   --neo-chip: var(--chip, rgba(255,255,255,0.08));
   --neo-shadow: var(--shadow-md, 0 10px 24px rgba(0,0,0,.25));
+
+  /* Fallbacks for per-game variables if tokens didn’t load yet */
+  --game-glow-a: #06b6d4;
+  --game-glow-b: #8b5cf6;
 }
 
 /* -------- Layout wrapper -------- */
@@ -22,8 +26,10 @@
 .neo-hero { position: relative; border-radius: 1.25rem; overflow: hidden; }
 .neo-hero .bg { position: absolute; inset: 0; pointer-events: none; }
 .neo-hero .bg .glow { position:absolute; filter: blur(60px); opacity:.55; }
-.neo-hero .bg .glow.a { width:40vw; height:40vw; left:-10vw; top:-12vw; background:#06b6d4; }
-.neo-hero .bg .glow.b { width:40vw; height:40vw; right:-12vw; top:-10vw; background:#8b5cf6; }
+/* Use per-game variables for glow colors (set in tokens.css) */
+.neo-hero .bg .glow.a { width:40vw; height:40vw; left:-10vw; top:-12vw; background: var(--game-glow-a); }
+.neo-hero .bg .glow.b { width:40vw; height:40vw; right:-12vw; top:-10vw; background: var(--game-glow-b); }
+
 .neo-hero .bg .grid {
   position:absolute; inset:0;
   background:
@@ -140,7 +146,7 @@
 .embed.live iframe { height: 360px; }
 
 .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
-@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { \.grid2 { grid-template-columns: 1fr; } }
 
 .prizegrid { display:grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap:.6rem; }
 .prize { padding:.8rem; border:1px solid var(--neo-border); border-radius:.6rem; background: rgba(255,255,255,.04); display:flex; align-items:center; justify-content:space-between; }
@@ -173,21 +179,10 @@
 .tneo [data-countdown] .num { font-size: 1.05rem; }
 .tneo [data-countdown].done { opacity:.55; }
 
-/* -------- Per-game theming via [data-game] on .tneo -------- */
-.tneo[data-game="valorant"] .bg .glow.a { background:#ff4655; }
-.tneo[data-game="valorant"] .bg .glow.b { background:#7c3aed; }
+/* -------- Per-game theming now handled via tokens.css -------- */
+/* We rely on --game-glow-a / --game-glow-b, so no per-game overrides here. */
 
-.tneo[data-game="efootball"] .bg .glow.a { background:#1e90ff; }
-.tneo[data-game="efootball"] .bg .glow.b { background:#facc15; }
-
-.tneo[data-game="cs2"] .bg .glow.a { background:#f59e0b; }
-.tneo[data-game="cs2"] .bg .glow.b { background:#06b6d4; }
-
-.tneo[data-game="fc26"] .bg .glow.a { background:#22c55e; }
-.tneo[data-game="fc26"] .bg .glow.b { background:#8b5cf6; }
-
-.tneo[data-game="mobilelegend"] .bg .glow.a { background:#7c3aed; }
-.tneo[data-game="mobilelegend"] .bg .glow.b { background:#06b6d4; }
-
-.tneo[data-game="pubg"] .bg .glow.a { background:#10b981; }
-.tneo[data-game="pubg"] .bg .glow.b { background:#f59e0b; }
+/* -------- Accessibility -------- */
+.tab:focus,
+.btn-neo:focus,
+a.btn-neo:focus { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(56,189,248,.35)); }
