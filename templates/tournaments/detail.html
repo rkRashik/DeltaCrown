@@ -101,12 +101,30 @@
           </ul>
 
           <div>
-            {% if ctx.ui.next_call_to_action.url %}
-              <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">
-                {{ ctx.ui.next_call_to_action.label }}
-              </a>
+            {# -------- Team-aware CTA logic (hero card) -------- #}
+            {% if ctx.is_team_event %}
+              {% if ctx.team_registered %}
+                <button class="btn-neo big wfull" disabled>Already Registered</button>
+              {% elif ctx.team and not ctx.user_is_captain %}
+                <button class="btn-neo big wfull" disabled>Register (captain only)</button>
+                <p class="small muted" style="margin-top:.35rem;">Ask your captain to register the team.</p>
+              {% else %}
+                {% if ctx.ui.next_call_to_action.url %}
+                  <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">
+                    {{ ctx.ui.next_call_to_action.label }}
+                  </a>
+                {% else %}
+                  <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+                {% endif %}
+              {% endif %}
             {% else %}
-              <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+              {% if ctx.ui.next_call_to_action.url %}
+                <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">
+                  {{ ctx.ui.next_call_to_action.label }}
+                </a>
+              {% else %}
+                <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+              {% endif %}
             {% endif %}
           </div>
 
@@ -396,10 +414,25 @@
         <div class="card">
           <h3 class="h3">Actions</h3>
           <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
-            {% if ctx.ui.next_call_to_action.url %}
-              <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo"> {{ ctx.ui.next_call_to_action.label }} </a>
+            {# -------- Team-aware CTA logic (side card) -------- #}
+            {% if ctx.is_team_event %}
+              {% if ctx.team_registered %}
+                <button class="btn-neo" disabled>Already Registered</button>
+              {% elif ctx.team and not ctx.user_is_captain %}
+                <button class="btn-neo" disabled>Register (captain only)</button>
+              {% else %}
+                {% if ctx.ui.next_call_to_action.url %}
+                  <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo">{{ ctx.ui.next_call_to_action.label }}</a>
+                {% else %}
+                  <button class="btn-neo" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+                {% endif %}
+              {% endif %}
             {% else %}
-              <button class="btn-neo" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+              {% if ctx.ui.next_call_to_action.url %}
+                <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo">{{ ctx.ui.next_call_to_action.label }}</a>
+              {% else %}
+                <button class="btn-neo" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+              {% endif %}
             {% endif %}
             <button class="btn-neo btn-ghost" data-share>Share</button>
           </div>
@@ -418,10 +451,25 @@
   </div>
 
   <div class="mobile-cta">
-    {% if ctx.ui.next_call_to_action.url %}
-      <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">{{ ctx.ui.next_call_to_action.label }}</a>
+    {# -------- Team-aware CTA logic (mobile sticky) -------- #}
+    {% if ctx.is_team_event %}
+      {% if ctx.team_registered %}
+        <button class="btn-neo big wfull" disabled>Already Registered</button>
+      {% elif ctx.team and not ctx.user_is_captain %}
+        <button class="btn-neo big wfull" disabled>Register (captain only)</button>
+      {% else %}
+        {% if ctx.ui.next_call_to_action.url %}
+          <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">{{ ctx.ui.next_call_to_action.label }}</a>
+        {% else %}
+          <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+        {% endif %}
+      {% endif %}
     {% else %}
-      <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+      {% if ctx.ui.next_call_to_action.url %}
+        <a href="{{ ctx.ui.next_call_to_action.url }}" class="btn-neo big wfull">{{ ctx.ui.next_call_to_action.label }}</a>
+      {% else %}
+        <button class="btn-neo big wfull" disabled>{{ ctx.ui.next_call_to_action.label }}</button>
+      {% endif %}
     {% endif %}
   </div>
 </section>

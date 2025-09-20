@@ -1,5 +1,5 @@
 ﻿from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.apps import apps
 from django.db.models import Q
@@ -18,6 +18,67 @@ from .helpers import (
 from .cards import annotate_cards, compute_my_states, related_tournaments
 
 Tournament = apps.get_model("tournaments", "Tournament")
+Registration = apps.get_model("tournaments", "Registration")
+
+# Optional/forgiving team models (work with either app label)
+def _get_model(app_label: str, name: str):
+    try:
+        return apps.get_model(app_label, name)
+    except Exception:
+        return None
+
+Team = _get_model("tournaments", "Team") or _get_model("teams", "Team")
+TeamMembership = _get_model("tournaments", "TeamMembership") or _get_model("teams", "TeamMembership")
+
+
+def _is_team_event(t: Any) -> bool:
+    """Detect if this tournament is a team event (multiple schema patterns supported)."""
+    for attr in ("is_team_event", "team_mode"):
+        if hasattr(t, attr) and getattr(t, attr):
+            return True
+    for attr in ("team_size_min", "team_min", "min_team_size"):
+        if hasattr(t, attr) and (getattr(t, attr) or 0) > 1:
+            return True
+    mode = (getattr(t, "mode", "") or "").lower()
+    return mode in {"team", "teams", "squad", "5v5", "3v3", "2v2"}
+
+
+def _user_team(user) -> Tuple[Optional[Any], Optional[Any]]:
+    """Return (team, membership) for the current user, if any."""
+    if not Team or not TeamMembership or not getattr(user, "is_authenticated", False):
+        return None, None
+    try:
+        mem = TeamMembership.objects.select_related("team").filter(user=user).first()
+        return (mem.team if mem else None), mem
+    except Exception:
+        # Fallback: some schemas have user.team directly
+        return getattr(user, "team", None), None
+
+
+def _is_captain(membership: Optional[Any]) -> bool:
+    if not membership:
+        return False
+    if hasattr(membership, "is_captain"):
+        return bool(getattr(membership, "is_captain"))
+    role = (getattr(membership, "role", "") or "").lower()
+    return role in {"captain", "cap", "leader", "owner"}
+
+
+def _team_already_registered(t: Any, team: Any) -> bool:
+    """True if this team (or any of its members) is already registered for t."""
+    if not team:
+        return False
+    # Prefer a direct FK on Registration if present
+    try:
+        return Registration.objects.filter(tournament=t, team=team).exists()
+    except Exception:
+        pass
+    # Fallback by members
+    try:
+        members = TeamMembership.objects.filter(team=team).values_list("user_id", flat=True)
+        return Registration.objects.filter(tournament=t, user_id__in=list(members)).exists()
+    except Exception:
+        return False
 
 
 # -------------------------- HUB --------------------------
@@ -194,6 +255,8 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
     """
     Premium esports detail page: hero, live media, bracket, participants, standings,
     rules/policy accordions, contextual CTA, countdown, and related tournaments.
+
+    Now team-aware: exposes flags for CTA logic (already registered / captain only).
     """
     t = get_object_or_404(Tournament, slug=slug)
 
@@ -286,6 +349,12 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
     # PDF.js viewer config (theme-aware; templates may toggle light/dark)
     pdf_viewer = build_pdf_viewer_config(t, theme="auto")
 
+    # -------- NEW: team-awareness for CTA visibility --------
+    is_team = _is_team_event(t)
+    team, membership = _user_team(request.user)
+    user_is_captain = _is_captain(membership)
+    team_registered = _team_already_registered(t, team) if team else False
+
     # Build context
     ctx = {
         # hero & primary info
@@ -324,7 +393,7 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
 
         # rules & policy
         "rules": {"text": rules_text, "extra": extra_rules, "pdf_url": rules_url, "pdf_name": rules_filename},
-        "pdf_viewer": pdf_viewer,          # <-- new: config for inline PDF.js viewer
+        "pdf_viewer": pdf_viewer,          # <-- config for inline PDF.js viewer
         "coin_policy": coin_policy,
 
         # UI/CTA
@@ -333,9 +402,15 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
             "user_role": role_for(request.user, t),
             "user_registration": user_reg(request.user, t),
             "next_call_to_action": cta,
-            "can_register": cta["kind"] in ("register","pay","checkin"),
+            "can_register": cta["kind"] in ("register", "pay", "checkin"),
             "show_live": bool(live_info.get("stream") or live_info.get("status") == "live"),
         },
+
+        # NEW: team-aware flags for template CTA logic
+        "is_team_event": is_team,
+        "team": team,
+        "user_is_captain": user_is_captain,
+        "team_registered": team_registered,
 
         # tabs/nav
         "tabs": tabs,

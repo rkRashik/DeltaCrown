@@ -4,7 +4,7 @@
 {% block title %}Register — {{ title }} — DeltaCrown{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'siteui/css/tournament-register-neo.css' %}?v=1" />
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-register-neo.css' %}?v=3" />
 {% endblock %}
 
 {% block content %}
@@ -13,12 +13,12 @@
     <div class="wrap">
       <div>
         <h1 class="title">{{ title }}</h1>
-        <p class="muted">Complete your registration. You can review status anytime from your Dashboard.</p>
+        <p class="muted">Sign in, fill the form, and you’re in. Only captains can register teams.</p>
         <div class="chips" style="margin-top:.5rem;">
           {% if entry_fee is not None %}
             <span class="chip">{% if entry_fee == 0 %}Free Entry{% else %}Entry ৳{{ entry_fee }}{% endif %}</span>
           {% endif %}
-          <span class="chip">Secure • Fast • Verified</span>
+          <span class="chip">Secure • Verified • Fast</span>
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:.6rem; justify-content:flex-end;">
@@ -36,109 +36,162 @@
   </div>
 
   <div class="reg-body">
+    {% if is_team_event and team and team_registered %}
+      <article class="card">
+        <h2 class="h2">Already Registered</h2>
+        <p class="muted">Your team is already registered for this tournament.</p>
+        <div style="margin-top:.5rem;">
+          <a class="btn-neo" href="{% url 'tournaments:detail' t.slug %}">Go to Tournament</a>
+        </div>
+      </article>
+
+    {% else %}
     <article class="card">
-      <h2 class="h2">Your Details</h2>
-      <form method="post" action="{{ register_url }}">
+      <h2 class="h2">{% if is_team_event %}Team Registration{% else %}Your Details{% endif %}</h2>
+
+      <form method="post" action="{{ register_url }}" enctype="multipart/form-data">
         {% csrf_token %}
-        {# Honeypot (spam deterrent; server ignores). Keep empty. #}
+
+        {# Honeypot #}
         <div style="position:absolute;left:-5000px;top:auto;width:1px;height:1px;overflow:hidden;">
           <label for="website">Leave this blank</label>
           <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
         </div>
 
         <div class="formgrid" {% if entry_fee and entry_fee > 0 %}data-fee-positive="1"{% endif %}>
-          <div class="inline">
-            <div class="field">
-              <label class="label" for="display_name">Display name</label>
-              <input type="text" id="display_name" name="display_name" autocomplete="name" required />
-              <div class="err"></div>
-            </div>
-            <div class="field">
-              <label class="label" for="team_name">Team name (optional)</label>
-              <input type="text" id="team_name" name="team_name" />
-              <div class="err"></div>
-            </div>
-          </div>
 
-          <div class="inline">
-            <div class="field">
-              <label class="label" for="phone">Phone</label>
-              <input type="tel" id="phone" name="phone" placeholder="01XXXXXXXXX" required />
-              <div class="err"></div>
+          {% if not is_team_event %}
+            {# ------------------------ SOLO FLOW ------------------------ #}
+            <div class="inline">
+              <div class="field">
+                <label class="label" for="display_name">Display name</label>
+                <input type="text" id="display_name" name="display_name" autocomplete="name"
+                       value="{{ initial.display_name|default:'' }}" required />
+                <div class="err"></div>
+              </div>
+              <div class="field">
+                <label class="label" for="team_name">Team name (optional)</label>
+                <input type="text" id="team_name" name="team_name"
+                       value="{{ initial.team_name|default:'' }}" />
+                <div class="err"></div>
+              </div>
             </div>
-            <div class="field">
-              <label class="label" for="email">Email (optional)</label>
-              <input type="email" id="email" name="email" placeholder="you@example.com" />
-              <div class="err"></div>
+
+            <div class="inline">
+              <div class="field">
+                <label class="label" for="phone">Phone</label>
+                <input type="tel" id="phone" name="phone" placeholder="01XXXXXXXXX"
+                       value="{{ initial.phone|default:'' }}" required />
+                <div class="err"></div>
+              </div>
+              <div class="field">
+                <label class="label" for="email">Email (optional)</label>
+                <input type="email" id="email" name="email" placeholder="you@example.com"
+                       value="{{ initial.email|default:'' }}" />
+                <div class="err"></div>
+              </div>
             </div>
-          </div>
+
+            {% if form %}
+              <div class="field">
+                {{ form.non_field_errors }}
+                {{ form.as_p }}
+              </div>
+            {% endif %}
+
+          {% else %}
+            {# ------------------------ TEAM FLOW ------------------------ #}
+            {% if team %}
+              <div class="field">
+                <label class="label">Your Team</label>
+                <div class="kv small">
+                  <div><span>Name</span> <span><strong>{{ team.name }}</strong></span></div>
+                  {% if team.tag %}<div><span>Tag</span> <span>{{ team.tag }}</span></div>{% endif %}
+                </div>
+                {% if not user_is_captain %}
+                  <p class="muted" style="margin-top:.4rem;">Only the <strong>team captain</strong> can register the team. Ask your captain to proceed.</p>
+                {% endif %}
+              </div>
+            {% else %}
+              <div class="inline">
+                <div class="field">
+                  <label class="label" for="team_name">Team Name</label>
+                  <input type="text" id="team_name" name="team_name" value="{{ initial.team_name|default:'' }}" required />
+                  <div class="err"></div>
+                </div>
+                <div class="field">
+                  <label class="label" for="team_logo">Team Logo (optional)</label>
+                  <input type="file" id="team_logo" name="team_logo" accept="image/*" />
+                </div>
+              </div>
+              <div class="field">
+                <label><input type="checkbox" name="save_as_team" value="1" checked> Save these details as a new team</label>
+              </div>
+            {% endif %}
+
+            {% if form %}
+              <div class="field">
+                {{ form.non_field_errors }}
+                {{ form.as_p }}
+              </div>
+            {% endif %}
+          {% endif %}
 
           {% if entry_fee and entry_fee > 0 %}
             <div>
               <h3 class="h3">Payment Method</h3>
 
-              {# IMPORTANT: radios use name="method" so the server receives the selected provider. #}
               <div class="methods">
                 <label class="method"><input type="radio" name="method" value="bkash" checked> bKash</label>
                 <label class="method"><input type="radio" name="method" value="nagad"> Nagad</label>
                 <label class="method"><input type="radio" name="method" value="rocket"> Rocket</label>
               </div>
 
-              <div class="pay-info" data-method="bkash">
-                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to bKash merchant number:</div>
-                <ul class="kv small">
-                  <li><span>Number</span><span><code>01XXXXXXXXX</code> <span class="copy" data-copy="01XXXXXXXXX">Copy</span></span></li>
-                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
-                </ul>
-                <div class="field" style="margin-top:.6rem;">
-                  <label class="label" for="txn">Transaction ID</label>
-                  <input type="text" id="txn" name="txn" placeholder="e.g., 8XYZ1A2BC3" required />
-                  <div class="err"></div>
-                </div>
+              {# Use organizer-configured instructions (backend). #}
+              <div class="pay-info is-active" data-method="bkash">
+                {% with tournament=t method="bkash" %}
+                  {% include "tournaments/partials/_payment_instructions.html" %}
+                {% endwith %}
               </div>
-
               <div class="pay-info" data-method="nagad">
-                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to Nagad merchant number:</div>
-                <ul class="kv small">
-                  <li><span>Number</span><span><code>01YYYYYYYY</code> <span class="copy" data-copy="01YYYYYYYY">Copy</span></span></li>
-                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
-                </ul>
-                <div class="field" style="margin-top:.6rem;">
-                  <label class="label" for="txn2">Transaction ID</label>
-                  <input type="text" id="txn2" name="txn" placeholder="e.g., TX12345" />
-                  <div class="err"></div>
-                </div>
+                {% with tournament=t method="nagad" %}
+                  {% include "tournaments/partials/_payment_instructions.html" %}
+                {% endwith %}
+              </div>
+              <div class="pay-info" data-method="rocket">
+                {% with tournament=t method="rocket" %}
+                  {% include "tournaments/partials/_payment_instructions.html" %}
+                {% endwith %}
               </div>
 
-              <div class="pay-info" data-method="rocket">
-                <div class="small muted" style="margin:.5rem 0 .3rem;">Send to Rocket merchant number:</div>
-                <ul class="kv small">
-                  <li><span>Number</span><span><code>01ZZZZZZZZ</code> <span class="copy" data-copy="01ZZZZZZZZ">Copy</span></span></li>
-                  <li><span>Reference</span><span><code>{{ title|slugify }}</code> <span class="copy" data-copy="{{ title|slugify }}">Copy</span></span></li>
-                </ul>
-                <div class="field" style="margin-top:.6rem;">
-                  <label class="label" for="txn3">Transaction ID</label>
-                  <input type="text" id="txn3" name="txn" placeholder="e.g., RX12345" />
-                  <div class="err"></div>
-                </div>
+
+              <div class="field" style="margin-top:.6rem;">
+                <label class="label" for="txn">Transaction ID</label>
+                <input type="text" id="txn" name="txn" placeholder="e.g., 8XYZ1A2BC3" />
+                <div class="err"></div>
               </div>
             </div>
           {% endif %}
 
-          <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
-            <button type="submit" class="btn-neo">Submit Registration</button>
+          <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-top:.6rem;">
+            {% if is_team_event and team and not user_is_captain %}
+              <button class="btn-neo" type="submit" disabled>Register (captain only)</button>
+            {% else %}
+              <button class="btn-neo" type="submit">Submit Registration</button>
+            {% endif %}
             <a class="btn-neo btn-ghost" href="{% url 'tournaments:detail' t.slug %}">Back to details</a>
           </div>
         </div>
       </form>
     </article>
+    {% endif %}
 
     <aside class="side">
       <div class="sticky">
         <div class="card">
           <div class="title">What happens next?</div>
           <ul class="timeline small" style="margin-top:.5rem;">
-            <li><span class="badge success">1</span> Submit registration</li>
+            <li><span class="badge success">1</span> Submit {% if is_team_event %}team{% else %}your{% endif %} registration</li>
             {% if entry_fee and entry_fee > 0 %}
               <li><span class="badge warn">2</span> Payment verification</li>
             {% endif %}
@@ -159,5 +212,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'siteui/js/tournament-register-neo.js' %}?v=1"></script>
+<script src="{% static 'siteui/js/tournament-register-neo.js' %}?v=3"></script>
 {% endblock %}

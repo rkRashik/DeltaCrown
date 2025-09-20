@@ -1,35 +1,76 @@
-<div class="space-y-4">
-  <h3 class="font-semibold">Payment Instructions</h3>
-  <p class="text-sm text-muted">Send your entry fee to one of the numbers below and keep the Transaction ID. You will enter it in the form for verification.</p>
+{# Renders ONE payment method's instructions based on backend settings.
+   Usage:
+     {% include "tournaments/partials/_payment_instructions.html" with tournament=t method="bkash" only %}
+     method ∈ {"bkash","nagad","rocket","bank"}
+#}
 
-  <div class="glass p-4 rounded-xl">
-    <div class="flex items-center justify-between mb-2">
-      <div class="font-semibold">bKash</div>
-      {% if tournament.settings.bkash_receive_number %}
-        <button class="btn-secondary btn-sm" data-copy="#bkash-number">Copy</button>
-      {% endif %}
-    </div>
-    {% if tournament.settings.bkash_receive_number %}
-      <input id="bkash-number" type="text" readonly class="filter-input w-full" value="{{ tournament.settings.bkash_receive_number }}">
-    {% else %}
-      <div class="text-xs text-muted">Not available</div>
-    {% endif %}
-    <div class="text-xs text-muted mt-2">Reference example: <code>TXID 8L3A4C9PQ</code></div>
-  </div>
-
-  <div class="glass p-4 rounded-xl">
-    <div class="flex items-center justify-between mb-2">
-      <div class="font-semibold">Nagad</div>
-      {% if tournament.settings.nagad_receive_number %}
-        <button class="btn-secondary btn-sm" data-copy="#nagad-number">Copy</button>
-      {% endif %}
-    </div>
-    {% if tournament.settings.nagad_receive_number %}
-      <input id="nagad-number" type="text" readonly class="filter-input w-full" value="{{ tournament.settings.nagad_receive_number }}">
-    {% else %}
-      <div class="text-xs text-muted">Not available</div>
-    {% endif %}
-    <div class="text-xs text-muted mt-2">Reference example: <code>TXID N9Q5Z1AB2</code></div>
-  </div>
-</div>
-
+{% with m=method|default:"bkash" %}
+  {% if m == "bkash" %}
+    {% with num=tournament.settings.bkash_receive_number %}
+      <div class="kv small">
+        <div><strong>bKash Personal</strong></div>
+        {% if num %}
+          <div class="mt-1">
+            <div>Number</div>
+            <div class="inline-flex items-center gap-2">
+              <code>{{ num }}</code>
+              <button type="button" class="copy" data-copy="{{ num }}">Copy</button>
+            </div>
+          </div>
+          <div class="muted small mt-1">Send entry fee and keep your TXID. You’ll enter it below.</div>
+        {% else %}
+          <div class="muted small">bKash is not available for this tournament.</div>
+        {% endif %}
+      </div>
+    {% endwith %}
+  {% elif m == "nagad" %}
+    {% with num=tournament.settings.nagad_receive_number %}
+      <div class="kv small">
+        <div><strong>Nagad Personal</strong></div>
+        {% if num %}
+          <div class="mt-1">
+            <div>Number</div>
+            <div class="inline-flex items-center gap-2">
+              <code>{{ num }}</code>
+              <button type="button" class="copy" data-copy="{{ num }}">Copy</button>
+            </div>
+          </div>
+          <div class="muted small mt-1">Send entry fee and keep your TXID. You’ll enter it below.</div>
+        {% else %}
+          <div class="muted small">Nagad is not available for this tournament.</div>
+        {% endif %}
+      </div>
+    {% endwith %}
+  {% elif m == "rocket" %}
+    {% with num=tournament.settings.rocket_receive_number %}
+      <div class="kv small">
+        <div><strong>Rocket</strong></div>
+        {% if num %}
+          <div class="mt-1">
+            <div>Number</div>
+            <div class="inline-flex items-center gap-2">
+              <code>{{ num }}</code>
+              <button type="button" class="copy" data-copy="{{ num }}">Copy</button>
+            </div>
+          </div>
+          <div class="muted small mt-1">Send entry fee and keep your TXID. You’ll enter it below.</div>
+        {% else %}
+          <div class="muted small">Rocket is not available for this tournament.</div>
+        {% endif %}
+      </div>
+    {% endwith %}
+  {% elif m == "bank" %}
+    {% with info=tournament.settings.bank_instructions %}
+      <div class="kv small">
+        <div><strong>Bank Transfer</strong></div>
+        {% if info %}
+          <div class="mt-1 small">{{ info|safe }}</div>
+        {% else %}
+          <div class="muted small">Bank transfer instructions are not available.</div>
+        {% endif %}
+      </div>
+    {% endwith %}
+  {% else %}
+    <div class="muted small">Payment method not recognized.</div>
+  {% endif %}
+{% endwith %}
