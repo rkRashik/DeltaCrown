@@ -1,265 +1,212 @@
-# apps/tournaments/forms_registration.py
 from __future__ import annotations
-
-from decimal import Decimal
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from django import forms
 from django.apps import apps
-from django.core.exceptions import ValidationError
 
-# Idempotency + autofill mixin
-from apps.corelib.forms.idempotency import IdempotentAutofillMixin  # noqa: E402
+# Models (tolerant lookups)
+Tournament = apps.get_model("tournaments", "Tournament")
+Registration = apps.get_model("tournaments", "Registration")
 
-
-# --- helpers --------------------------------------------------------
-
-def _get_model(app_label: str, model_name: str):
+def _get_model(app_label: str, name: str):
     try:
-        return apps.get_model(app_label, model_name)
+        return apps.get_model(app_label, name)
     except Exception:
         return None
 
-
-Tournament = _get_model("tournaments", "Tournament")
-Team = _get_model("teams", "Team")
-
-# services
-from apps.tournaments.services.registration import (  # type: ignore
-    register_valorant_team,
-    register_efootball_player,
-    TeamRegistrationInput,
-    SoloRegistrationInput,
-)
-
-# Keep choices aligned with PV.Method (bkash/nagad/rocket/bank)
-PAYMENT_METHOD_CHOICES = (
-    ("bkash", "bKash"),
-    ("nagad", "Nagad"),
-    ("rocket", "Rocket"),
-    ("bank", "Bank Transfer"),
-)
+Team = _get_model("tournaments", "Team") or _get_model("teams", "Team")
+TeamMembership = _get_model("tournaments", "TeamMembership") or _get_model("teams", "TeamMembership")
 
 
-# --- base form ------------------------------------------------------
+# -------------------------- Helpers --------------------------
 
-class BaseRegistrationForm(IdempotentAutofillMixin, forms.Form):
+def _settings(tournament: Any):
+    return getattr(tournament, "settings", None)
+
+def _cfg_efootball(tournament: Any):
+    for attr in ("efootball_config", "efb_config", "game_config"):
+        obj = getattr(tournament, attr, None) or getattr(_settings(tournament), attr, None)
+        if obj:
+            return obj
+    return None
+
+def _cfg_valorant(tournament: Any):
+    for attr in ("valorant_config", "valo_config", "game_config"):
+        obj = getattr(tournament, attr, None) or getattr(_settings(tournament), attr, None)
+        if obj:
+            return obj
+    return None
+
+def _bool(obj, name: str, default: bool = False) -> bool:
+    try:
+        v = getattr(obj, name, default)
+        if isinstance(v, str):
+            return v.lower() in ("1", "true", "yes", "on")
+        return bool(v)
+    except Exception:
+        return default
+
+
+# -------------------------- Base Dynamic Form --------------------------
+
+class _BaseRegForm(forms.Form):
     """
-    Common fields captured at submit time.
-    Payments are created as PENDING; admin verifies later.
-
-    Inherits IdempotentAutofillMixin to:
-      - add a hidden idempotency token field
-      - autofill selected fields from request.user/profile on initial render
+    Base for tournament registration forms.
+    Accepts `tournament` and `request` in kwargs; adds dynamic fields from organizer config.
+    Includes shared payment fields (optional; validated by the view when fee > 0).
     """
 
-    # Gentle autofill: display name from full name; payer number from profile.phone
-    IDEM_SCOPE = "tournaments.registration.generic"
-    AUTOFILL_MAP = {
-        "display_name": (lambda u: (getattr(u, "get_full_name", lambda: "")() or getattr(u, "username", "")) or None),
-        "payer_account_number": "profile.phone",
-    }
-
-    # UX: show who’s registering; not required (can be edited by user)
-    display_name = forms.CharField(
-        max_length=128,
-        required=False,
-        help_text="How your name should appear on the bracket (optional)."
-    )
-
+    # Shared payment fields — the view reads these exact names
     payment_method = forms.ChoiceField(
-        choices=PAYMENT_METHOD_CHOICES, required=False, help_text="Optional"
+        choices=(("bkash", "bKash"), ("nagad", "Nagad"), ("rocket", "Rocket"), ("bank", "Bank")),
+        required=False,
+        label="Payment Method"
     )
-    payment_reference = forms.CharField(
-        max_length=128, required=False, label="Transaction ID", help_text="Transaction ID (optional)"
-    )
-    payer_account_number = forms.CharField(
-        max_length=32, required=False, help_text="Your bKash/Nagad/Rocket number (optional)"
-    )
-    amount_bdt = forms.DecimalField(
-        required=False, max_digits=10, decimal_places=2, help_text="Amount paid (optional)"
-    )
+    payer_account_number = forms.CharField(required=False, label="Payer mobile/account")
+    payment_reference = forms.CharField(required=False, label="Transaction ID / Reference")
 
     def __init__(self, *args, **kwargs):
-        # Expect tournament instance and optionally request in kwargs; pop them out
         self.tournament = kwargs.pop("tournament", None)
-        request = kwargs.pop("request", None)
-        self.request = request
-        # IMPORTANT: pass request to mixin so it can seed autofill + idempotency
-        super().__init__(*args, request=request, **kwargs)
-        # Apply UI classes so forms match the requested design
-        for name, field in self.fields.items():
-            w = field.widget
+        self.request = kwargs.pop("request", None)
+        super().__init__(*args, **kwargs)
+
+        # Add organizer-defined fields dynamically
+        self._add_dynamic_fields()
+
+        # Gentle autofill: if initial missing and request has data, we do not override here.
+        # (Your view already passes initial profile data.)
+
+    def _add_dynamic_fields(self):
+        """
+        Dynamically attach fields according to toggles on tournament.settings
+        and per-game configs for eFootball/Valorant.
+        """
+        t = self.tournament
+        sett = _settings(t)
+        efb = _cfg_efootball(t)
+        valo = _cfg_valorant(t)
+
+        # Generic toggles commonly used by organizers
+        wants_ingame_id    = _bool(sett, "ask_ingame_id") or _bool(sett, "require_ingame_id")
+        wants_username     = _bool(sett, "ask_username") or _bool(sett, "require_username")
+        wants_team_name    = _bool(sett, "ask_team_name")
+        wants_screenshot   = _bool(sett, "ask_team_screenshot") or _bool(sett, "ask_roster_screenshot")
+        wants_discord      = _bool(sett, "ask_discord") or _bool(sett, "require_discord")
+        wants_whatsapp     = _bool(sett, "ask_whatsapp")
+        wants_region       = _bool(sett, "ask_region")
+        wants_logo         = _bool(sett, "ask_team_logo")
+        wants_agree_rules  = _bool(sett, "require_rules_agree") or _bool(sett, "agree_rules")
+
+        # Game-specific
+        wants_efb_username = _bool(efb, "ask_username")
+        wants_efb_id       = _bool(efb, "ask_ingame_id") or _bool(efb, "require_ingame_id")
+        wants_valo_tag     = _bool(valo, "ask_riot_id") or _bool(valo, "require_riot_id")
+
+        # Build fields (Form API ignores duplicates)
+        if wants_username or wants_efb_username:
+            self.fields.setdefault("in_game_username", forms.CharField(
+                label="In-game Username", required=True
+            ))
+        if wants_ingame_id or wants_efb_id or wants_valo_tag:
+            self.fields.setdefault("in_game_id", forms.CharField(
+                label="In-game ID / Tag", required=True
+            ))
+        if wants_team_name:
+            self.fields.setdefault("team_name", forms.CharField(
+                label="Team Name", required=False
+            ))
+        if wants_logo:
+            self.fields.setdefault("team_logo", forms.ImageField(
+                label="Team Logo", required=False
+            ))
+        if wants_region:
+            self.fields.setdefault("region", forms.CharField(
+                label="Region", required=False
+            ))
+        if wants_discord:
+            self.fields.setdefault("discord_id", forms.CharField(
+                label="Discord ID", required=False
+            ))
+        if wants_whatsapp:
+            self.fields.setdefault("whatsapp_number", forms.CharField(
+                label="WhatsApp Number", required=False
+            ))
+        if wants_screenshot:
+            self.fields.setdefault("team_screenshot", forms.ImageField(
+                label="Team / Roster Screenshot", required=False
+            ))
+        if wants_agree_rules:
+            self.fields.setdefault("agree_rules", forms.BooleanField(
+                label="I agree to the tournament rules", required=True
+            ))
+
+    # Default tolerant save: create a Registration if schema matches; always return payload.
+    def save(self) -> Dict[str, Any]:
+        data = dict(self.cleaned_data)
+        try:
+            reg = Registration.objects.create(
+                tournament=self.tournament,
+                user=getattr(self.request, "user", None),
+                status="submitted",
+                # Best-effort copies; only if your Registration has these fields
+                display_name=data.get("in_game_username") or data.get("team_name") or None,
+                phone=data.get("payer_account_number") or None,
+                email=getattr(getattr(self.request, "user", None), "email", None),
+                team_name=data.get("team_name") or None,
+            )
+            data["registration_id"] = getattr(reg, "id", None)
+        except Exception:
+            # If schema doesn’t match, we still return cleaned data (service can persist)
+            pass
+        return data
+
+
+# -------------------------- SOLO (1v1) --------------------------
+
+class SoloRegistrationForm(_BaseRegForm):
+    """
+    For 1v1 solo tournaments (eFootball solo, etc.).
+    """
+    display_name = forms.CharField(required=False, label="Display name")
+    email = forms.EmailField(required=False, label="Email")
+    phone = forms.CharField(required=False, label="Phone")
+
+    def clean(self):
+        cd = super().clean()
+        # If organizer requires rules agree (added dynamically), ensure it's True
+        if "agree_rules" in self.fields and not cd.get("agree_rules"):
+            self.add_error("agree_rules", "You must agree to the rules to continue.")
+        # Phone format (basic BD mobile if provided)
+        phone = cd.get("phone") or cd.get("payer_account_number")
+        if phone:
+            import re
+            if not re.match(r"^(?:\+?880|0)1[0-9]{9}$", str(phone).replace(" ", "")):
+                self.add_error("phone", "Enter a valid Bangladeshi mobile number.")
+        return cd
+
+
+# -------------------------- TEAM (captain-led) --------------------------
+
+class TeamRegistrationForm(_BaseRegForm):
+    """
+    For team tournaments (Valorant, etc.). The view handles:
+      - already-in-a-team path (captain registers),
+      - create-team path when the user has no team.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if Team:
             try:
-                base = w.attrs.get("class", "").strip()
-                if getattr(w, "input_type", "") in ("text", "email", "password", "number", "file"):
-                    cls = "input"
-                elif w.__class__.__name__.lower().find("select") >= 0:
-                    cls = "select"
-                elif w.__class__.__name__.lower().find("textarea") >= 0:
-                    cls = "textarea"
-                else:
-                    cls = "input"
-                w.attrs["class"] = (base + " " + cls).strip()
+                self.fields.setdefault("team", forms.ModelChoiceField(
+                    queryset=Team.objects.all(),
+                    required=False,
+                    label="Team (auto-selected if you’re in one)"
+                ))
             except Exception:
                 pass
 
-    def _created_by_user_id(self) -> Optional[int]:
-        u = getattr(self.request, "user", None)
-        return getattr(u, "id", None) if getattr(u, "is_authenticated", False) else None
-
-    def _normalized_amount(self) -> Optional[float]:
-        amt = self.cleaned_data.get("amount_bdt")
-        if isinstance(amt, Decimal):
-            return float(amt)
-        if isinstance(amt, (int, float)):
-            return float(amt)
-        return None
-
     def clean(self):
-        cleaned = super().clean()
-        # RELAXED: Do not require a tournament in clean() so tests may POST without one.
-        # In real flows, the view supplies `tournament` and `save()` uses it.
-        return cleaned
-
-
-# --- team (Valorant) ------------------------------------------------
-
-class TeamRegistrationForm(BaseRegistrationForm):
-    """
-    For team-based tournaments (Valorant).
-    """
-    IDEM_SCOPE = "tournaments.registration.team"
-
-    # Prefer ModelChoiceField if Team model is available; else fallback to integer id
-    if Team:
-        team = forms.ModelChoiceField(queryset=Team.objects.all(), required=True)
-    else:
-        team_id = forms.IntegerField(required=True, min_value=1)
-
-    def clean(self):
-        cleaned = super().clean()
-
-        t = self.tournament
-
-        # Prefer explicit config relations
-        is_valorant = bool(getattr(t, "valorant_config", None)) if t else False
-        is_efootball = bool(getattr(t, "efootball_config", None)) if t else False
-
-        if t and not (is_valorant or is_efootball):
-            g = getattr(t, "game", None)
-            if isinstance(g, str):
-                gl = g.lower()
-                is_valorant = "valorant" in gl
-                is_efootball = ("efootball" in gl) or ("e-football" in gl) or ("e football" in gl)
-
-        if t and is_efootball and not is_valorant:
-            raise ValidationError("This tournament requires solo registration, not team.")
-
-        # Ensure team provided
-        if Team and not cleaned.get("team"):
-            raise ValidationError("Please select a team to register.")
-        if not Team and not cleaned.get("team_id"):
-            raise ValidationError("Please provide a valid team id.")
-
-        return cleaned
-
-    def save(self):
-        if Team:
-            team_id = int(self.cleaned_data["team"].id)
-        else:
-            team_id = int(self.cleaned_data["team_id"])
-
-        return register_valorant_team(
-            TeamRegistrationInput(
-                tournament_id=int(self.tournament.id),
-                team_id=team_id,
-                created_by_user_id=self._created_by_user_id(),
-                # Optional payment metadata:
-                payment_method=self.cleaned_data.get("payment_method") or None,
-                payment_reference=self.cleaned_data.get("payment_reference") or None,
-                payer_account_number=self.cleaned_data.get("payer_account_number") or None,
-                amount_bdt=self._normalized_amount(),
-            )
-        )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Narrow team choices to user-related teams and same game when possible
-        try:
-            if Team and "team" in self.fields:
-                qs = Team.objects.all()
-                req = getattr(self, "request", None) or getattr(self, "_request", None)
-                user = getattr(req, "user", None)
-                prof = getattr(user, "profile", None)
-                if prof:
-                    from django.db.models import Q
-                    qs = qs.filter(Q(captain=prof) | Q(memberships__profile=prof, memberships__status="ACTIVE")).distinct()
-                # Filter by tournament game if available
-                t = getattr(self, "tournament", None)
-                g = (getattr(t, "game", None) or "").lower()
-                if g:
-                    qs = qs.filter(game__iexact=g)
-                self.fields["team"].queryset = qs.order_by("name")
-        except Exception:
-            # Fail-soft: keep default queryset
-            pass
-
-
-# --- solo (eFootball) -----------------------------------------------
-
-class SoloRegistrationForm(BaseRegistrationForm):
-    """
-    For solo-based tournaments (eFootball).
-    """
-    IDEM_SCOPE = "tournaments.registration.solo"
-
-    def clean(self):
-        cleaned = super().clean()
-
-        t = self.tournament
-
-        # Prefer explicit config relations
-        is_valorant = bool(getattr(t, "valorant_config", None)) if t else False
-        is_efootball = bool(getattr(t, "efootball_config", None)) if t else False
-
-        if t and not (is_valorant or is_efootball):
-            g = getattr(t, "game", None)
-            if isinstance(g, str):
-                gl = g.lower()
-                is_valorant = "valorant" in gl
-                is_efootball = ("efootball" in gl) or ("e-football" in gl) or ("e football" in gl)
-
-        if t and is_valorant and not is_efootball:
-            raise ValidationError("This tournament requires team registration, not solo.")
-
-        # Ensure there is an effective user id on submit (only enforce on bound forms)
-        if self.is_bound:
-            req_user = getattr(self.request, "user", None)
-            if not getattr(req_user, "is_authenticated", False):
-                raise ValidationError("You must be logged in to register.")
-
-        return cleaned
-
-    def save(self):
-        # Expect a view to set `_effective_user_id` or use request.user
-        uid = getattr(self.request.user, "id", None)
-        if "_effective_user_id" in self.cleaned_data:
-            uid = int(self.cleaned_data["_effective_user_id"])
-
-        return register_efootball_player(
-            SoloRegistrationInput(
-                tournament_id=int(self.tournament.id),
-                user_id=int(uid),
-                created_by_user_id=self._created_by_user_id(),
-                # Optional payment metadata:
-                payment_method=self.cleaned_data.get("payment_method") or None,
-                payment_reference=self.cleaned_data.get("payment_reference") or None,
-                payer_account_number=self.cleaned_data.get("payer_account_number") or None,
-                amount_bdt=self._normalized_amount(),
-            )
-        )
-
-
-__all__ = ["SoloRegistrationForm", "TeamRegistrationForm"]
-
+        cd = super().clean()
+        if "agree_rules" in self.fields and not cd.get("agree_rules"):
+            self.add_error("agree_rules", "Team must accept the rules to continue.")
+        return cd

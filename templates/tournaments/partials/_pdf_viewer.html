@@ -1,35 +1,68 @@
-{# Inline PDF.js viewer (theme-aware). Usage:
-   {% include "tournaments/partials/_pdf_viewer.html" with cfg=pdf_viewer %}
-   where cfg = {"url": "...", "filename": "rules.pdf", "theme": "auto", "downloadable": False}
+{# DeltaCrown — Inline PDF.js Viewer Partial
+   Usage:
+     {% include "tournaments/partials/_pdf_viewer.html" with
+        cfg=ctx.pdf_viewer
+     %}
+   Expected cfg keys (all optional-safe):
+     cfg.url            - absolute/relative URL to the PDF
+     cfg.start_page     - starting page number (int, default 1)
+     cfg.title          - display title for the document
 #}
-{% with viewer=cfg|default:pdf_viewer %}
-<div class="dc-pdfviewer" data-theme="{{ viewer.theme|default:'auto' }}" data-pdf-url="{{ viewer.url|default:'' }}">
-  {% if viewer.url %}
-    <div class="dc-pdfviewer__toolbar" role="toolbar" aria-label="PDF controls">
-      <button type="button" class="pv-btn" data-pv="prev" aria-label="Previous page">‹</button>
-      <span class="pv-spacer"></span>
-      <label class="pv-label">Page</label>
-      <input type="number" class="pv-page" data-pv="page" min="1" value="1" aria-label="Current page">
-      <span class="pv-of">/ <span class="pv-total" data-pv="total">?</span></span>
-      <span class="pv-spacer"></span>
-      <button type="button" class="pv-btn" data-pv="zoom-out" aria-label="Zoom out">−</button>
-      <button type="button" class="pv-btn" data-pv="zoom-in" aria-label="Zoom in">+</button>
-      {% if viewer.downloadable %}
-        <a class="pv-btn" href="{{ viewer.url }}" download="{{ viewer.filename|default:'rules.pdf' }}" aria-label="Download PDF">↓</a>
+
+{% with
+  _url=cfg.url|default:''
+  _start=cfg.start_page|default:1
+  _title=cfg.title|default:'Rules PDF'
+%}
+  <div class="pdfjs-viewer"
+       data-pdf-url="{{ _url }}"
+       data-start-page="{{ _start }}"
+       data-title="{{ _title }}">
+
+    <div class="pdfjs-toolbar" role="toolbar" aria-label="PDF viewer controls">
+      <div class="group">
+        <button type="button" class="btn" data-pdf-prev aria-label="Previous page" title="Previous page" disabled>
+          ‹
+        </button>
+        <span class="small page-readout">
+          Page <span data-pdf-page>1</span>/<span data-pdf-pages>?</span>
+        </span>
+        <button type="button" class="btn" data-pdf-next aria-label="Next page" title="Next page" disabled>
+          ›
+        </button>
+      </div>
+      <div class="group">
+        <button type="button" class="btn" data-pdf-zoomout aria-label="Zoom out" title="Zoom out">−</button>
+        <button type="button" class="btn" data-pdf-zoomin aria-label="Zoom in" title="Zoom in">+</button>
+      </div>
+      <div class="spacer" aria-hidden="true"></div>
+      <div class="group">
+        {% if _url %}
+          <a class="btn link" data-pdf-download href="{{ _url }}" target="_blank" rel="noopener">Download</a>
+        {% else %}
+          <button class="btn link" disabled>Download</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="pdfjs-canvas-wrap">
+      <canvas class="pdfjs-canvas" aria-label="{{ _title }}"></canvas>
+      <div class="pdfjs-error" hidden role="alert"></div>
+      {% if not _url %}
+        <div class="pdfjs-fallback small">
+          <p class="muted">No PDF provided.</p>
+        </div>
       {% endif %}
     </div>
 
-    <div class="dc-pdfviewer__canvaswrap">
-      <canvas class="dc-pdfviewer__canvas" data-pv="canvas"></canvas>
-    </div>
-
     <noscript>
-      <p class="pv-fallback">
-        PDF viewer needs JavaScript. You can <a href="{{ viewer.url }}">open {{ viewer.filename|default:'this PDF' }}</a> instead.
-      </p>
+      <div class="pdfjs-fallback small">
+        {% if _url %}
+          <p>JavaScript is off. <a href="{{ _url }}" target="_blank" rel="noopener">Open the PDF</a>.</p>
+        {% else %}
+          <p class="muted">PDF viewer requires JavaScript.</p>
+        {% endif %}
+      </div>
     </noscript>
-  {% else %}
-    <p class="pv-empty">Rules PDF is not available.</p>
-  {% endif %}
-</div>
+  </div>
 {% endwith %}
