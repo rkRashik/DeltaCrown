@@ -417,4 +417,4 @@ def watch(request):
     # Navbar flag (you can also move this to a context processor below)
     context["nav_live"] = bool(live_streams)
 
-    return render(request, "watch.html", context)
+    return render(request, "Arena.html", context)
