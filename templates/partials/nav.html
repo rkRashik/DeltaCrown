@@ -3,14 +3,27 @@
   <nav class="nav-shell" aria-label="Primary">
     <div class="nav-left">
       {% nav_active '/' as is_home %}
-      <a href="/" class="brand" aria-label="DeltaCrown"{% if is_home %} aria-current="page"{% endif %}>
+      <a href="/" class="brand" aria-label="DeltaCrown Home"{% if is_home %} aria-current="page"{% endif %}>
         <span class="brand-logo-wrap">
-          <img src="{% static 'siteui/svg/Logos/DeltaCrown.svg' %}" alt="" class="brand-logo" />
+          <svg class="brand-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#5865F2"/>
+                <stop offset="50%" style="stop-color:#7C3AED"/>
+                <stop offset="100%" style="stop-color:#F59E0B"/>
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#logoGradient)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+            <path d="M20 12L28 18L20 24L20 28L12 22L12 18L20 12Z" fill="white" opacity="0.9"/>
+            <circle cx="20" cy="20" r="3" fill="white" opacity="0.7"/>
+          </svg>
         </span>
-        <span class="brand-wordmark">DeltaCrown</span>
+        <span class="brand-wordmark">
+          <img src="{% static 'siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="brand-wordmark-img" />
+        </span>
       </a>
 
-      <button class="nav-icon-btn nav-mobile-toggle" type="button" data-open-drawer="main-drawer" aria-label="Open menu" aria-controls="main-drawer" aria-expanded="false">
+      <button class="nav-icon-btn nav-mobile-toggle" type="button" data-open-drawer="main-drawer" aria-label="Open navigation menu" aria-controls="main-drawer" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M4 6h16" />
           <path d="M4 12h16" />
@@ -44,52 +57,90 @@
           </li>
         {% endif %}
 
-        {% nav_active '/crowngear/' '/crowngear' as crowngear_active %}
-        <li class="nav-item">
-          <a class="nav-link{% if crowngear_active %} is-active{% endif %}" href="/crowngear/"{% if crowngear_active %} aria-current="page"{% endif %}>
-            <span>CrownGear</span>
-          </a>
-        </li>
-
-        {% nav_active '/arenalive/' '/arenalive' as arenalive_active %}
-        <li class="nav-item">
-          <a class="nav-link{% if arenalive_active %} is-active{% endif %}" href="/arenalive/"{% if arenalive_active %} aria-current="page"{% endif %}>
-            <span>ArenaLive</span>
-            {% if nav_live %}<span class="live-badge"><span class="live-dot"></span>Live</span>{% endif %}
-          </a>
-        </li>
-
         {% nav_active '/community/' '/community' as community_active %}
         <li class="nav-item">
           <a class="nav-link{% if community_active %} is-active{% endif %}" href="/community/"{% if community_active %} aria-current="page"{% endif %}>
             <span>Community</span>
           </a>
         </li>
+
+        {% nav_active '/watch/' '/arena' as arena_active %}
+        <li class="nav-item">
+          <a class="nav-link{% if arena_active %} is-active{% endif %}" href="/watch/"{% if arena_active %} aria-current="page"{% endif %}>
+            <span>Arena</span>
+            {% if nav_live %}
+              <span class="live-badge" aria-label="Live content available">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span>Live</span>
+              </span>
+            {% endif %}
+          </a>
+        </li>
+
+        {% nav_active '/crowngear/' '/crownstore' as crownstore_active %}
+        <li class="nav-item">
+          <a class="nav-link{% if crownstore_active %} is-active{% endif %}" href="/crowngear/"{% if crownstore_active %} aria-current="page"{% endif %}>
+            <span>CrownStore</span>
+          </a>
+        </li>
       </ul>
     </div>
 
     <div class="nav-right">
-      <div class="nav-actions" role="group" aria-label="Primary actions">
-        <button class="nav-icon-btn theme-toggle" id="theme-toggle" data-theme-toggle aria-label="Toggle theme" aria-pressed="false">
-          <svg class="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 3v2M12 19v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M3 12h2M19 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4" />
-          </svg>
-          <svg class="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M15.75 4.25a6.75 6.75 0 1 0 4 11.98 7.5 7.5 0 1 1-8.73-10.7 6.77 6.77 0 0 0 4.73-1.28Z" />
-          </svg>
-        </button>
+      <div class="nav-actions" role="group" aria-label="Navigation actions">
+        <label class="bb8-toggle">
+          <input class="bb8-toggle__checkbox" type="checkbox" id="theme-toggle" data-theme-toggle>
+          <div class="bb8-toggle__container">
+            <div class="bb8-toggle__scenery">
+              <div class="bb8-toggle__star"></div>
+              <div class="bb8-toggle__star"></div>
+              <div class="bb8-toggle__star"></div>
+              <div class="bb8-toggle__star"></div>
+              <div class="bb8-toggle__star"></div>
+              <div class="bb8-toggle__star"></div>
+              <div class="bb8-toggle__star"></div>
+              <div class="tatto-1"></div>
+              <div class="tatto-2"></div>
+              <div class="gomrassen"></div>
+              <div class="hermes"></div>
+              <div class="chenini"></div>
+              <div class="bb8-toggle__cloud"></div>
+              <div class="bb8-toggle__cloud"></div>
+              <div class="bb8-toggle__cloud"></div>
+            </div>
+            <div class="bb8">
+              <div class="bb8__head-container">
+                <div class="bb8__antenna"></div>
+                <div class="bb8__antenna"></div>
+                <div class="bb8__head"></div>
+              </div>
+              <div class="bb8__body"></div>
+            </div>
+            <div class="artificial__hidden">
+              <div class="bb8__shadow"></div>
+            </div>
+          </div>
+        </label>
 
         <div class="nav-dropdown">
           {% with nav_unread_count|default:0 as unread_count %}
           <button class="nav-icon-btn notif-trigger" type="button" data-menu-toggle aria-haspopup="true" aria-expanded="false" aria-controls="menu-notifications">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 21a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Z" />
-              <path d="M6.5 16.5h11l-1.1-1.54a4.5 4.5 0 0 1-.9-2.7V10a4.5 4.5 0 0 0-9 0v2.26a4.5 4.5 0 0 1-.9 2.7L6.5 16.5Z" />
+            <svg class="notif-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <defs>
+                <linearGradient id="bellGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:currentColor"/>
+                  <stop offset="100%" style="stop-color:currentColor" stop-opacity="0.7"/>
+                </linearGradient>
+              </defs>
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="url(#bellGradient)" fill="none"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" fill="none"/>
+              <circle cx="18" cy="6" r="3" fill="var(--accent)" stroke="none" opacity="0.9"/>
             </svg>
-            <span class="notif-badge" data-notif-badge{% if unread_count|add:0 > 0 %} data-has-unread="true"{% endif %}>
-              {% if unread_count|add:0 > 0 %}{{ unread_count }}{% else %}3{% endif %}
-            </span>
+            {% if unread_count|add:0 > 0 %}
+              <span class="notif-badge" data-notif-badge data-has-unread="true">
+                {{ unread_count }}
+              </span>
+            {% endif %}
           </button>
           {% endwith %}
           <div id="menu-notifications" class="dropdown-menu notifications-menu" hidden data-menu role="menu" aria-label="Notifications">
@@ -119,8 +170,6 @@
             </ul>
           </div>
         </div>
-
-        <a class="nav-cta" href="/tournaments/">Join a Tournament</a>
       </div>
 
       {% if request.user.is_authenticated %}

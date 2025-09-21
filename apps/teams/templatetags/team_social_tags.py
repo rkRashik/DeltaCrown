@@ -154,6 +154,15 @@ def team_role_badge(team, user_profile):
 
 
 @register.filter
+def is_team_captain(team, member):
+    """Check if a member is captain of the team."""
+    try:
+        return team.is_captain(member)
+    except (AttributeError, TypeError):
+        return False
+
+
+@register.filter
 def pluralize_smart(count, singular, plural=None):
     """Smart pluralization."""
     if plural is None:
@@ -166,7 +175,21 @@ def follower_count(team):
     """Get follower count for a team."""
     try:
         from apps.teams.models.social import TeamFollower
-        return TeamFollower.objects.filter(team=team, is_following=True).count()
+        return TeamFollower.objects.filter(team=team).count()
     except ImportError:
         # Fallback if social models don't exist yet
         return 0
+
+
+@register.simple_tag
+def recent_posts(team, limit=3):
+    """Get recent posts for a team."""
+    try:
+        from apps.teams.models.social import TeamPost
+        return TeamPost.objects.filter(
+            team=team, 
+            visibility='public'
+        ).select_related('author', 'author__user').order_by('-created_at')[:limit]
+    except ImportError:
+        # Fallback if social models don't exist yet
+        return []
