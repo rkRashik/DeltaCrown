@@ -1,0 +1,1103 @@
+{% extends "base.html" %}
+{% load static %}
+{% load team_social_tags %}
+
+{% block title %}{{ team.name }} — Elite Gaming Team{% endblock %}
+
+{% block extra_head %}
+<style>
+/* � MODERN FUTURISTIC GAMING TEAM DETAIL - 2025 ESPORTS DESIGN � */
+.gaming-team-detail {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #000000 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Animated background particles */
+.gaming-team-detail::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at 20% 80%, rgba(0, 255, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(255, 0, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 40% 40%, rgba(0, 255, 0, 0.02) 0%, transparent 50%);
+    animation: particleFloat 20s infinite linear;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes particleFloat {
+    0% { transform: translateY(0px) rotate(0deg); opacity: 1; }
+    50% { transform: translateY(-50px) rotate(180deg); opacity: 0.5; }
+    100% { transform: translateY(-100px) rotate(360deg); opacity: 1; }
+}
+
+/* Epic Team Banner */
+.team-banner {
+    height: 450px;
+    position: relative;
+    border-radius: 25px;
+    overflow: hidden;
+    margin-bottom: 30px;
+    z-index: 2;
+    box-shadow: 0 25px 50px rgba(0, 255, 255, 0.15);
+}
+
+.banner-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ff00ff 0%, #00ffff 50%, #ff0080 100%);
+    opacity: 0.8;
+}
+
+.banner-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+}
+
+.banner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 100%);
+    z-index: 2;
+}
+
+.team-info-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 40px;
+    z-index: 3;
+    background: linear-gradient(transparent, rgba(0,0,0,0.9));
+}
+
+.team-logo-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
+    border: 4px solid rgba(255,255,255,0.8);
+    object-fit: cover;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+    animation: logoGlow 3s infinite alternate;
+}
+
+@keyframes logoGlow {
+    0% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.5); }
+    100% { box-shadow: 0 0 50px rgba(255, 0, 255, 0.8); }
+}
+
+.team-logo-placeholder-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #ff00ff, #00ffff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 0 20px rgba(0,0,0,0.8);
+    animation: logoGlow 3s infinite alternate;
+}
+
+.team-main-title {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ff00ff, #00ffff, #ff0080);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+    margin: 20px 0 10px 0;
+    animation: titleGlow 2s infinite alternate;
+}
+
+@keyframes titleGlow {
+    0% { filter: brightness(1) drop-shadow(0 0 10px rgba(0, 255, 255, 0.3)); }
+    100% { filter: brightness(1.2) drop-shadow(0 0 20px rgba(255, 0, 255, 0.5)); }
+}
+
+.team-tag-badge {
+    background: linear-gradient(135deg, #ff0080, #8000ff);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 20px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 15px;
+    box-shadow: 0 0 20px rgba(255, 0, 128, 0.4);
+    animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.team-game-badge {
+    background: rgba(0, 255, 255, 0.2);
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.team-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin-top: 25px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.2);
+    border-color: #00ffff;
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ff00ff, #00ffff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Main Content */
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 20px;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 32px;
+}
+
+/* Team Description */
+.team-description-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.professional-team-detail.light-theme .team-description-section {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.professional-team-detail.light-theme .section-title {
+    color: #24292f;
+}
+
+.section-title i {
+    color: #7d8590;
+}
+
+.professional-team-detail.light-theme .section-title i {
+    color: #656d76;
+}
+
+.team-description {
+    color: #7d8590;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+.professional-team-detail.light-theme .team-description {
+    color: #656d76;
+}
+
+/* Activity Feed */
+.activity-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.professional-team-detail.light-theme .activity-section {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.post-form {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.professional-team-detail.light-theme .post-form {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+}
+
+.form-input {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: #e6edf3;
+    width: 100%;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.professional-team-detail.light-theme .form-input {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292f;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #1f6feb;
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
+}
+
+.form-input::placeholder {
+    color: #7d8590;
+}
+
+.professional-team-detail.light-theme .form-input::placeholder {
+    color: #656d76;
+}
+
+.form-textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.form-button {
+    background: #1f6feb;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.form-button:hover {
+    background: #1a5dc7;
+}
+
+.post-item {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.professional-team-detail.light-theme .post-item {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.post-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+}
+
+.professional-team-detail.light-theme .post-avatar {
+    border: 1px solid #d0d7de;
+}
+
+.post-author {
+    font-weight: 600;
+    color: #e6edf3;
+    margin: 0;
+    font-size: 14px;
+}
+
+.professional-team-detail.light-theme .post-author {
+    color: #24292f;
+}
+
+.post-time {
+    color: #7d8590;
+    font-size: 14px;
+}
+
+.professional-team-detail.light-theme .post-time {
+    color: #656d76;
+}
+
+.post-content {
+    color: #e6edf3;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.professional-team-detail.light-theme .post-content {
+    color: #24292f;
+}
+
+.post-actions {
+    display: flex;
+    gap: 16px;
+}
+
+.post-action {
+    color: #7d8590;
+    text-decoration: none;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+
+.professional-team-detail.light-theme .post-action {
+    color: #656d76;
+}
+
+.post-action:hover {
+    color: #1f6feb;
+    text-decoration: none;
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.sidebar-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.professional-team-detail.light-theme .sidebar-card {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.sidebar-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.professional-team-detail.light-theme .sidebar-title {
+    color: #24292f;
+}
+
+.sidebar-title i {
+    color: #7d8590;
+}
+
+.professional-team-detail.light-theme .sidebar-title i {
+    color: #656d76;
+}
+
+.action-button {
+    background: #1f6feb;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.action-button:hover {
+    background: #1a5dc7;
+    color: white;
+    text-decoration: none;
+}
+
+.action-button.secondary {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+}
+
+.professional-team-detail.light-theme .action-button.secondary {
+    background: #ffffff;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+}
+
+.action-button.secondary:hover {
+    background: #30363d;
+    color: #e6edf3;
+}
+
+.professional-team-detail.light-theme .action-button.secondary:hover {
+    background: #f6f8fa;
+    color: #24292f;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #30363d;
+}
+
+.professional-team-detail.light-theme .member-item {
+    border-bottom: 1px solid #d0d7de;
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.member-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    object-fit: cover;
+}
+
+.professional-team-detail.light-theme .member-avatar {
+    border: 1px solid #d0d7de;
+}
+
+.member-info h4 {
+    color: #e6edf3;
+    font-weight: 600;
+    margin: 0 0 2px 0;
+    font-size: 14px;
+}
+
+.professional-team-detail.light-theme .member-info h4 {
+    color: #24292f;
+}
+
+.member-role {
+    color: #7d8590;
+    font-size: 12px;
+}
+
+.professional-team-detail.light-theme .member-role {
+    color: #656d76;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #7d8590;
+}
+
+.professional-team-detail.light-theme .empty-state {
+    color: #656d76;
+}
+
+.empty-state i {
+    font-size: 32px;
+    margin-bottom: 12px;
+}
+
+.empty-state h4 {
+    color: #e6edf3;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.professional-team-detail.light-theme .empty-state h4 {
+    color: #24292f;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+    
+    .sidebar {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .team-main-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .team-stats-bar {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    
+    .main-content {
+        padding: 20px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .team-header {
+        padding: 16px 0;
+    }
+    
+    .team-title {
+        font-size: 24px;
+    }
+    
+    .team-stats-bar {
+        gap: 16px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Gaming Team Navigation -->
+{% include 'teams/partials/team_nav.html' with team=team active_page='detail' %}
+
+<div class="gaming-team-detail">
+  <!-- Epic Team Banner -->
+  <div class="team-banner">
+    {% if team.banner_image %}
+      <img src="{{ team.banner_image.url }}" alt="{{ team.name }} banner" class="banner-image">
+    {% else %}
+      <div class="banner-bg"></div>
+    {% endif %}
+    <div class="banner-overlay"></div>
+    
+    <div class="team-info-overlay">
+      <div style="display: flex; align-items: flex-end; gap: 25px; margin-bottom: 25px;">
+        {% if team.logo %}
+          <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo-large">
+        {% else %}
+          <div class="team-logo-placeholder-large">
+            {{ team.name|first|upper }}
+          </div>
+        {% endif %}
+        
+        <div style="flex: 1;">
+          <h1 class="team-main-title">{{ team.name }}</h1>
+          {% if team.tag %}
+            <div class="team-tag-badge">[{{ team.tag }}]</div>
+          {% endif %}
+          {% if team.game %}
+            <div class="team-game-badge">{{ team.get_game_display|default:team.game }}</div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Enhanced Team Statistics -->
+      <div class="team-stats-grid">
+        <div class="stat-item">
+          <span class="stat-number">{{ team.active_members.count }}</span>
+          <span class="stat-label">Active Members</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ team.power_rank|default:"--" }}</span>
+          <span class="stat-label">Global Ranking</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ team.tournaments_played|default:"0" }}</span>
+          <span class="stat-label">Tournaments</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ team.wins|default:"0" }}</span>
+          <span class="stat-label">Victories</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ team.win_rate|default:"0" }}%</span>
+          <span class="stat-label">Win Rate</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ team.followers_count|default:"0" }}</span>
+          <span class="stat-label">Followers</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Left Column -->
+    <div>
+      <!-- Team About Section -->
+      <div class="about-section">
+        <h2 class="section-title">
+          <i class="fas fa-info-circle section-icon"></i>
+          About The Team
+        </h2>
+        {% if team.description %}
+          <p class="team-description">{{ team.description }}</p>
+        {% else %}
+          <p class="team-description">
+            {{ team.name }} is a professional esports organization competing at the highest level in {{ team.get_game_display|default:team.game }}. 
+            We are dedicated to excellence, teamwork, and pushing the boundaries of competitive gaming.
+          </p>
+        {% endif %}
+      </div>
+
+      <!-- Elite Roster Section -->
+      <div class="roster-section">
+        <h2 class="section-title">
+          <i class="fas fa-users section-icon"></i>
+          Elite Roster ({{ team.active_members.count }})
+        </h2>
+        
+        {% if team.active_members.exists %}
+          <div class="roster-grid">
+            {% for membership in team.active_members %}
+              <div class="member-card" onclick="openMemberModal('{{ membership.profile.user.username }}', '{{ membership.role }}', '{{ membership.profile.user.profile.avatar.url|default:'' }}')">
+                <div class="member-header">
+                  {% if membership.profile.user.profile.avatar %}
+                    <img src="{{ membership.profile.user.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" class="member-avatar">
+                  {% else %}
+                    <div class="member-avatar-placeholder">
+                      {{ membership.profile.user.username|first|upper }}
+                    </div>
+                  {% endif %}
+                  
+                  <div class="member-info">
+                    <div class="member-name">{{ membership.profile.user.username }}</div>
+                    <div class="member-role">{{ membership.get_role_display|default:membership.role }}</div>
+                  </div>
+                </div>
+                
+                <!-- Player Stats -->
+                <div class="member-stats">
+                  <div class="member-stat">
+                    <div class="member-stat-number">{{ membership.profile.matches_played|default:"0" }}</div>
+                    <div class="member-stat-label">Matches</div>
+                  </div>
+                  <div class="member-stat">
+                    <div class="member-stat-number">{{ membership.profile.kd_ratio|default:"0.0" }}</div>
+                    <div class="member-stat-label">K/D</div>
+                  </div>
+                  <div class="member-stat">
+                    <div class="member-stat-number">{{ membership.profile.tournaments_won|default:"0" }}</div>
+                    <div class="member-stat-label">Titles</div>
+                  </div>
+                  <div class="member-stat">
+                    <div class="member-stat-number">{{ membership.profile.skill_rating|default:"--" }}</div>
+                    <div class="member-stat-label">Rating</div>
+                  </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="member-actions">
+                  <a href="{{ membership.profile.user.profile.get_absolute_url }}" class="member-action-btn" onclick="event.stopPropagation()">
+                    <i class="fas fa-user"></i> Profile
+                  </a>
+                  <a href="#" class="member-action-btn" onclick="event.stopPropagation()">
+                    <i class="fas fa-chart-line"></i> Stats
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <h4>No Active Members</h4>
+            <p>This team is currently looking for elite players to join their roster.</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Team Activity -->
+      <div class="activity-section">
+        <h2 class="section-title">
+          <i class="fas fa-bolt section-icon"></i>
+          Recent Activity
+        </h2>
+        
+        <div class="activity-item">
+          <div class="activity-icon">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">Team {{ team.name }} created</div>
+            <div class="activity-time">{{ team.created_at|timesince }} ago</div>
+          </div>
+        </div>
+        
+        {% for membership in team.active_members|slice:":3" %}
+          <div class="activity-item">
+            <div class="activity-icon">
+              <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="activity-content">
+              <div class="activity-title">{{ membership.profile.user.username }} joined as {{ membership.get_role_display }}</div>
+              <div class="activity-time">{{ membership.joined_at|timesince|default:"Recently" }} ago</div>
+            </div>
+          </div>
+        {% endfor %}
+        
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="#" class="member-action-btn">View All Activity</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="sidebar">
+      <!-- Team Actions -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">
+          <i class="fas fa-bolt section-icon"></i>
+          Quick Actions
+        </h3>
+        
+        {% if user_is_member %}
+          {% if is_captain %}
+            <a href="{% url 'teams:manage' team.slug %}" class="quick-action">
+              <i class="fas fa-cog"></i> Manage Team
+            </a>
+            <a href="{% url 'teams:invite_member' team.slug %}" class="quick-action">
+              <i class="fas fa-user-plus"></i> Invite Members
+            </a>
+            <a href="{% url 'teams:settings' team.slug %}" class="quick-action secondary">
+              <i class="fas fa-edit"></i> Team Settings
+            </a>
+          {% else %}
+            <a href="{% url 'teams:leave' team.slug %}" class="quick-action secondary">
+              <i class="fas fa-sign-out-alt"></i> Leave Team
+            </a>
+          {% endif %}
+        {% elif user_can_join %}
+          <a href="{% url 'teams:join' team.slug %}" class="quick-action">
+            <i class="fas fa-plus"></i> Join Team
+          </a>
+        {% elif team.is_recruiting %}
+          <a href="{% url 'teams:apply' team.slug %}" class="quick-action">
+            <i class="fas fa-paper-plane"></i> Apply to Team
+          </a>
+        {% endif %}
+        
+        <a href="#" class="quick-action secondary">
+          <i class="fas fa-heart"></i> Follow Team
+        </a>
+        <a href="#" class="quick-action secondary">
+          <i class="fas fa-share"></i> Share Team
+        </a>
+      </div>
+
+      <!-- Team Information -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">
+          <i class="fas fa-info section-icon"></i>
+          Team Information
+        </h3>
+        
+        <ul class="info-list">
+          <li class="info-item">
+            <span class="info-label">Founded</span>
+            <span class="info-value">{{ team.created_at|date:"M d, Y" }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-label">Captain</span>
+            <span class="info-value">{{ team.captain.user.username|default:"TBD" }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-label">Region</span>
+            <span class="info-value">{{ team.region|default:"Global" }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-label">Status</span>
+            {% if team.is_recruiting %}
+              <span class="info-value status-badge status-recruiting">Recruiting</span>
+            {% else %}
+              <span class="info-value status-badge status-closed">Closed</span>
+            {% endif %}
+          </li>
+          <li class="info-item">
+            <span class="info-label">Privacy</span>
+            {% if team.is_open %}
+              <span class="info-value status-badge status-public">Public</span>
+            {% else %}
+              <span class="info-value status-badge status-private">Private</span>
+            {% endif %}
+          </li>
+          <li class="info-item">
+            <span class="info-label">Game</span>
+            <span class="info-value">{{ team.get_game_display|default:team.game }}</span>
+          </li>
+        </ul>
+        
+        <!-- Team Social Links -->
+        {% if team.twitter or team.instagram or team.discord or team.twitch %}
+          <div class="social-links">
+            {% if team.twitter %}
+              <a href="{{ team.twitter }}" class="social-link twitter" target="_blank">
+                <i class="fab fa-twitter"></i>
+              </a>
+            {% endif %}
+            {% if team.instagram %}
+              <a href="{{ team.instagram }}" class="social-link instagram" target="_blank">
+                <i class="fab fa-instagram"></i>
+              </a>
+            {% endif %}
+            {% if team.discord %}
+              <a href="{{ team.discord }}" class="social-link discord" target="_blank">
+                <i class="fab fa-discord"></i>
+              </a>
+            {% endif %}
+            {% if team.twitch %}
+              <a href="{{ team.twitch }}" class="social-link twitch" target="_blank">
+                <i class="fab fa-twitch"></i>
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Team Achievements -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">
+          <i class="fas fa-trophy section-icon"></i>
+          Achievements
+        </h3>
+        
+        {% if team.achievements.exists %}
+          {% for achievement in team.achievements.all|slice:":5" %}
+            <div class="info-item">
+              <span class="info-label">{{ achievement.tournament.name|default:"Tournament" }}</span>
+              <span class="info-value">{{ achievement.placement }}</span>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            <i class="fas fa-trophy"></i>
+            <h4>No Achievements Yet</h4>
+            <p>This team is working hard to earn their first trophy!</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Member Profile Modal -->
+<div class="member-modal" id="memberModal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeMemberModal()">
+      <i class="fas fa-times"></i>
+    </button>
+    
+    <img src="" alt="Member Avatar" class="modal-avatar" id="modalAvatar">
+    <div class="modal-name" id="modalName">Player Name</div>
+    <div class="modal-role" id="modalRole">Role</div>
+    
+    <div class="modal-stats">
+      <div class="modal-stat">
+        <div class="modal-stat-number">156</div>
+        <div class="modal-stat-label">Matches Played</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-number">2.4</div>
+        <div class="modal-stat-label">K/D Ratio</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-number">12</div>
+        <div class="modal-stat-label">Tournaments</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-number">3</div>
+        <div class="modal-stat-label">Championships</div>
+      </div>
+    </div>
+    
+    <div class="modal-actions">
+      <a href="#" class="modal-action" id="modalProfileLink">
+        <i class="fas fa-user"></i> View Profile
+      </a>
+      <a href="#" class="modal-action secondary">
+        <i class="fas fa-message"></i> Message
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced member card interactions
+    const memberCards = document.querySelectorAll('.member-card');
+    memberCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+
+    // Team following functionality
+    const followBtn = document.querySelector('.quick-action[href="#"]:has(i.fa-heart)');
+    if (followBtn) {
+        followBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Implementation for team following
+            const icon = this.querySelector('i');
+            const text = this.childNodes[1];
+            
+            if (icon.classList.contains('fa-heart')) {
+                icon.classList.remove('fa-heart');
+                icon.classList.add('fa-heart-broken');
+                text.textContent = ' Unfollow Team';
+                this.style.background = 'rgba(255, 0, 0, 0.2)';
+            } else {
+                icon.classList.remove('fa-heart-broken');
+                icon.classList.add('fa-heart');
+                text.textContent = ' Follow Team';
+                this.style.background = '';
+            }
+        });
+    }
+
+    // Share team functionality
+    const shareBtn = document.querySelector('.quick-action[href="#"]:has(i.fa-share)');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (navigator.share) {
+                navigator.share({
+                    title: '{{ team.name }} - Elite Gaming Team',
+                    text: 'Check out this amazing esports team!',
+                    url: window.location.href
+                });
+            } else {
+                // Fallback: copy to clipboard
+                navigator.clipboard.writeText(window.location.href);
+                this.innerHTML = '<i class="fas fa-check"></i> Link Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-share"></i> Share Team';
+                }, 2000);
+            }
+        });
+    }
+});
+
+// Member Profile Modal Functions
+function openMemberModal(username, role, avatarUrl) {
+    const modal = document.getElementById('memberModal');
+    const modalAvatar = document.getElementById('modalAvatar');
+    const modalName = document.getElementById('modalName');
+    const modalRole = document.getElementById('modalRole');
+    const modalProfileLink = document.getElementById('modalProfileLink');
+    
+    modalName.textContent = username;
+    modalRole.textContent = role;
+    
+    if (avatarUrl) {
+        modalAvatar.src = avatarUrl;
+        modalAvatar.style.display = 'block';
+    } else {
+        modalAvatar.style.display = 'none';
+    }
+    
+    modalProfileLink.href = `/profile/${username}/`;
+    
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeMemberModal() {
+    const modal = document.getElementById('memberModal');
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Close modal on outside click
+document.getElementById('memberModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMemberModal();
+    }
+});
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeMemberModal();
+    }
+});
+</script>
+{% endblock %}

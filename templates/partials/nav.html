@@ -5,17 +5,109 @@
       {% nav_active '/' as is_home %}
       <a href="/" class="brand" aria-label="DeltaCrown Home"{% if is_home %} aria-current="page"{% endif %}>
         <span class="brand-logo-wrap">
-          <svg class="brand-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <svg class="brand-logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs>
-              <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#5865F2"/>
-                <stop offset="50%" style="stop-color:#7C3AED"/>
-                <stop offset="100%" style="stop-color:#F59E0B"/>
+              <!-- Animated gradient for crown -->
+              <linearGradient id="crownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:var(--accent)">
+                  <animate attributeName="stop-color" 
+                    values="var(--accent);rgba(126,58,237,0.9);var(--accent)" 
+                    dur="3s" repeatCount="indefinite"/>
+                </stop>
+                <stop offset="50%" style="stop-color:rgba(126,58,237,0.8)">
+                  <animate attributeName="stop-color" 
+                    values="rgba(126,58,237,0.8);rgba(245,158,11,0.8);rgba(126,58,237,0.8)" 
+                    dur="3s" repeatCount="indefinite"/>
+                </stop>
+                <stop offset="100%" style="stop-color:rgba(245,158,11,0.7)">
+                  <animate attributeName="stop-color" 
+                    values="rgba(245,158,11,0.7);var(--accent);rgba(245,158,11,0.7)" 
+                    dur="3s" repeatCount="indefinite"/>
+                </stop>
               </linearGradient>
+              
+              <!-- Glow effect gradient -->
+              <radialGradient id="glowGradient" cx="50%" cy="50%" r="60%">
+                <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0.3"/>
+                <stop offset="70%" style="stop-color:var(--accent);stop-opacity:0.1"/>
+                <stop offset="100%" style="stop-color:transparent"/>
+              </radialGradient>
+              
+              <!-- Inner detail gradient -->
+              <linearGradient id="detailGradient" x1="30%" y1="20%" x2="70%" y2="80%">
+                <stop offset="0%" style="stop-color:rgba(255,255,255,0.9)"/>
+                <stop offset="50%" style="stop-color:rgba(255,255,255,0.6)"/>
+                <stop offset="100%" style="stop-color:rgba(255,255,255,0.3)"/>
+              </linearGradient>
+              
+              <!-- Drop shadow filter -->
+              <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+                <feOffset dx="0" dy="2" result="offset"/>
+                <feComponentTransfer>
+                  <feFuncA type="linear" slope="0.3"/>
+                </feComponentTransfer>
+                <feMerge> 
+                  <feMergeNode/>
+                  <feMergeNode in="SourceGraphic"/> 
+                </feMerge>
+              </filter>
             </defs>
-            <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#logoGradient)" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
-            <path d="M20 12L28 18L20 24L20 28L12 22L12 18L20 12Z" fill="white" opacity="0.9"/>
-            <circle cx="20" cy="20" r="3" fill="white" opacity="0.7"/>
+            
+            <!-- Glow background -->
+            <circle cx="24" cy="24" r="20" fill="url(#glowGradient)" opacity="0.8">
+              <animate attributeName="r" values="18;22;18" dur="4s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.6;0.9;0.6" dur="4s" repeatCount="indefinite"/>
+            </circle>
+            
+            <!-- Main crown structure -->
+            <g filter="url(#dropShadow)">
+              <!-- Crown base -->
+              <rect x="8" y="32" width="32" height="4" rx="2" fill="url(#crownGradient)" opacity="0.9"/>
+              
+              <!-- Crown peaks -->
+              <path d="M12 32L16 18L20 24L24 12L28 24L32 18L36 32Z" 
+                    fill="url(#crownGradient)" opacity="0.95">
+                <animateTransform attributeName="transform" 
+                  type="scale" values="1;1.02;1" dur="3s" repeatCount="indefinite"/>
+              </path>
+              
+              <!-- Crown jewels -->
+              <circle cx="24" cy="16" r="3" fill="url(#detailGradient)">
+                <animate attributeName="r" values="2.5;3.5;2.5" dur="2s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="18" cy="22" r="2" fill="url(#detailGradient)" opacity="0.8">
+                <animate attributeName="r" values="1.5;2.5;1.5" dur="2.5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="30" cy="22" r="2" fill="url(#detailGradient)" opacity="0.8">
+                <animate attributeName="r" values="1.5;2.5;1.5" dur="2.3s" repeatCount="indefinite"/>
+              </circle>
+              
+              <!-- Delta symbol in center -->
+              <path d="M24 20L28 26L20 26Z" fill="rgba(255,255,255,0.9)" opacity="0.9">
+                <animateTransform attributeName="transform" 
+                  type="rotate" values="0 24 24;5 24 24;-5 24 24;0 24 24" 
+                  dur="6s" repeatCount="indefinite"/>
+              </path>
+              
+              <!-- Crown detail lines -->
+              <line x1="16" y1="28" x2="16" y2="18" stroke="rgba(255,255,255,0.4)" stroke-width="1" opacity="0.7"/>
+              <line x1="24" y1="28" x2="24" y2="12" stroke="rgba(255,255,255,0.4)" stroke-width="1" opacity="0.7"/>
+              <line x1="32" y1="28" x2="32" y2="18" stroke="rgba(255,255,255,0.4)" stroke-width="1" opacity="0.7"/>
+            </g>
+            
+            <!-- Sparkle effects -->
+            <g opacity="0.8">
+              <circle cx="14" cy="14" r="1" fill="rgba(255,255,255,0.9)">
+                <animate attributeName="opacity" values="0;1;0" dur="1.5s" repeatCount="indefinite"/>
+              </circle>
+              <circle cx="34" cy="16" r="1" fill="rgba(255,255,255,0.9)">
+                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="0.5s"/>
+              </circle>
+              <circle cx="38" cy="28" r="0.5" fill="rgba(255,255,255,0.9)">
+                <animate attributeName="opacity" values="0;1;0" dur="1.8s" repeatCount="indefinite" begin="1s"/>
+              </circle>
+            </g>
           </svg>
         </span>
         <span class="brand-wordmark">
@@ -88,39 +180,6 @@
 
     <div class="nav-right">
       <div class="nav-actions" role="group" aria-label="Navigation actions">
-        <label class="bb8-toggle">
-          <input class="bb8-toggle__checkbox" type="checkbox" id="theme-toggle" data-theme-toggle>
-          <div class="bb8-toggle__container">
-            <div class="bb8-toggle__scenery">
-              <div class="bb8-toggle__star"></div>
-              <div class="bb8-toggle__star"></div>
-              <div class="bb8-toggle__star"></div>
-              <div class="bb8-toggle__star"></div>
-              <div class="bb8-toggle__star"></div>
-              <div class="bb8-toggle__star"></div>
-              <div class="bb8-toggle__star"></div>
-              <div class="tatto-1"></div>
-              <div class="tatto-2"></div>
-              <div class="gomrassen"></div>
-              <div class="hermes"></div>
-              <div class="chenini"></div>
-              <div class="bb8-toggle__cloud"></div>
-              <div class="bb8-toggle__cloud"></div>
-              <div class="bb8-toggle__cloud"></div>
-            </div>
-            <div class="bb8">
-              <div class="bb8__head-container">
-                <div class="bb8__antenna"></div>
-                <div class="bb8__antenna"></div>
-                <div class="bb8__head"></div>
-              </div>
-              <div class="bb8__body"></div>
-            </div>
-            <div class="artificial__hidden">
-              <div class="bb8__shadow"></div>
-            </div>
-          </div>
-        </label>
 
         <div class="nav-dropdown">
           {% with nav_unread_count|default:0 as unread_count %}
@@ -134,7 +193,7 @@
               </defs>
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="url(#bellGradient)" fill="none"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" fill="none"/>
-              <circle cx="18" cy="6" r="3" fill="var(--accent)" stroke="none" opacity="0.9"/>
+              <circle cx="18" cy="6" r="2" fill="var(--accent)" stroke="none" opacity="0.9"/>
             </svg>
             {% if unread_count|add:0 > 0 %}
               <span class="notif-badge" data-notif-badge data-has-unread="true">
@@ -178,11 +237,8 @@
         <div class="nav-profile">
           <button class="profile-trigger" type="button" data-avatar-toggle aria-haspopup="true" aria-expanded="false" aria-controls="menu-account">
             <span class="profile-avatar">
-              <img src="{{ avatar_url }}" alt="" class="profile-avatar-img" />
+              <img src="{{ avatar_url }}" alt="{{ nav_display_name }}" class="profile-avatar-img" />
               <span class="avatar-fallback" aria-hidden="true">{{ nav_display_name|slice:':1'|upper }}</span>
-            </span>
-            <span class="profile-label">
-              <span class="profile-name">{{ nav_display_name }}</span>
             </span>
           </button>
 
@@ -208,6 +264,17 @@
               <span class="profile-menu-heading" role="presentation">Account</span>
               <a class="profile-menu-item" href="/user/me/edit/" role="menuitem">Settings</a>
               <a class="profile-menu-item" href="/notifications/" role="menuitem">Notification Center</a>
+              <label for="profile-theme-toggle" class="profile-menu-item profile-theme-toggle" role="menuitem" tabindex="0">
+                <input type="checkbox" id="profile-theme-toggle" data-theme-toggle style="position: absolute; opacity: 0; pointer-events: none;" />
+                <svg class="profile-theme-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="10" cy="10" r="4"/>
+                  <path d="M10 1v2M10 17v2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M1 10h2M17 10h2M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"/>
+                </svg>
+                <svg class="profile-theme-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M17 10.79A7 7 0 1 1 9.21 3 5 5 0 0 0 17 10.79Z"/>
+                </svg>
+                <span class="profile-theme-text">Switch Theme</span>
+              </label>
             </div>
 
             <div class="profile-menu-section" role="none">
@@ -218,8 +285,8 @@
         {% endwith %}
       {% else %}
         <div class="nav-auth">
-          <a class="nav-auth-link" href="/accounts/login/">Log in</a>
-          <a class="nav-auth-cta" href="/accounts/signup/">Create account</a>
+          <a class="nav-auth-link" href="/accounts/signup/">Sign up</a>
+          <a class="nav-auth-cta" href="/accounts/login/">Sign in</a>
         </div>
       {% endif %}
     </div>
