@@ -37,8 +37,12 @@ def team_logo_path(instance, filename):
 
 class Team(models.Model):
     # Basics
-    name = models.CharField(max_length=255, blank=True, null=True)
-    tag = models.CharField(max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=100, unique=True, help_text="Team name must be unique")
+    tag = models.CharField(max_length=10, unique=True, help_text="Team tag/abbreviation (2-10 characters)")
+    description = models.TextField(max_length=500, blank=True, help_text="Brief team description")
+    
+    # Logo field
+    logo = models.ImageField(upload_to=team_logo_path, blank=True, null=True, help_text="Team logo image")
 
     name_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     tag_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
@@ -52,6 +56,7 @@ class Team(models.Model):
         related_name="captain_teams",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     # Game association (Part A)
     GAME_CHOICES = (
@@ -81,6 +86,17 @@ class Team(models.Model):
 
     # Slug per game (optional but recommended)
     slug = models.SlugField(max_length=64, blank=True, default="", help_text="Unique per game")
+    
+    # Social engagement fields
+    followers_count = models.PositiveIntegerField(default=0, help_text="Number of followers")
+    posts_count = models.PositiveIntegerField(default=0, help_text="Number of posts")
+    is_verified = models.BooleanField(default=False, help_text="Verified team badge")
+    is_featured = models.BooleanField(default=False, help_text="Featured team status")
+    
+    # Team page settings
+    allow_posts = models.BooleanField(default=True, help_text="Allow team members to post")
+    allow_followers = models.BooleanField(default=True, help_text="Allow users to follow this team")
+    posts_require_approval = models.BooleanField(default=False, help_text="Posts need captain approval")
 
     class Meta:
         db_table = "teams_team"
@@ -118,8 +134,107 @@ class Team(models.Model):
                     "status": TeamMembership.Status.ACTIVE,
                 },
             )
+    
+    @property
+    def logo_url(self):
+        """Get team logo URL or return default"""
+        if self.logo:
+            return self.logo.url
+        return None
+    
+    @property
+    def active_members(self):
+        """Get all active team members"""
+        return self.memberships.filter(status=TeamMembership.Status.ACTIVE).select_related('profile__user')
+    
+    @property
+    def can_accept_members(self):
+        """Check if team can accept more members"""
+        return self.members_count < TEAM_MAX_ROSTER
+    
+    @property
+    def display_name(self):
+        """Get display name with tag if available"""
+        if self.tag and self.name:
+            return f"{self.name} ({self.tag})"
+        return self.name or f"Team #{self.pk}"
+    
+    def get_absolute_url(self):
+        """Get team detail URL"""
+        return f"/teams/{self.slug}/" if self.slug else f"/teams/{self.pk}/"
+    
+    def is_captain(self, profile):
+        """Check if profile is team captain"""
+        return self.captain == profile
+    
+    def is_member(self, profile):
+        """Check if profile is an active team member"""
+        return self.has_member(profile)
+    
+    # Social features methods
+    def can_user_post(self, user_profile):
+        """Check if a user can post to this team."""
+        if not self.allow_posts:
+            return False
+        # Team members can always post
+        if self.has_member(user_profile):
+            return True
+        # Captain can always post
+        if self.is_captain(user_profile):
+            return True
+        return False
+    
+    def get_follower_count(self):
+        """Get the number of followers for this team."""
+        return getattr(self, 'followers', None) and self.followers.count() or 0
+    
+    def is_followed_by(self, user_profile):
+        """Check if a user is following this team."""
+        return hasattr(self, 'followers') and self.followers.filter(follower=user_profile).exists()
+    
+    def get_recent_posts(self, limit=5):
+        """Get recent published posts."""
+        if hasattr(self, 'posts'):
+            return self.posts.filter(
+                published_at__isnull=False,
+                visibility__in=['public', 'followers']
+            ).select_related('author__user').prefetch_related('media')[:limit]
+        return []
+    
+    def get_activity_feed(self, limit=10):
+        """Get recent activity for this team."""
+        if hasattr(self, 'activities'):
+            return self.activities.filter(is_public=True)[:limit]
+        return []
+    
+    @property
+    def banner_url(self):
+        """Get banner image URL or default."""
+        if self.banner_image:
+            return self.banner_image.url
+        return None
 
     def clean(self):
+        # Validate name
+        if self.name:
+            self.name = self.name.strip()
+            if len(self.name) < 3:
+                raise ValidationError({"name": "Team name must be at least 3 characters long"})
+            if len(self.name) > 50:
+                raise ValidationError({"name": "Team name cannot exceed 50 characters"})
+        
+        # Validate tag
+        if self.tag:
+            self.tag = self.tag.strip().upper()
+            if len(self.tag) < 2:
+                raise ValidationError({"tag": "Team tag must be at least 2 characters long"})
+            if len(self.tag) > 10:
+                raise ValidationError({"tag": "Team tag cannot exceed 10 characters"})
+            # Only allow alphanumeric characters for tag
+            import re
+            if not re.match(r'^[A-Z0-9]+$', self.tag):
+                raise ValidationError({"tag": "Team tag can only contain letters and numbers"})
+        
         # Auto-slug per game if blank
         try:
             if not getattr(self, "slug", "") and getattr(self, "name", ""):
@@ -128,6 +243,12 @@ class Team(models.Model):
         except Exception:
             # Fail-soft
             pass
+        
+        # Update case-insensitive fields
+        if self.name:
+            self.name_ci = self.name.lower()
+        if self.tag:
+            self.tag_ci = self.tag.lower()
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -317,7 +438,7 @@ class TeamInvite(models.Model):
         if active + pending >= TEAM_MAX_ROSTER:
             raise ValidationError("Roster capacity already reserved by existing invites.")
 
-    def accept(self, profile: Optional["user_profile.UserProfile"] = None):
+    def accept(self, profile=None):
         """
         Accept the invite and create/activate a membership.
         If `profile` is not provided, we require `invited_user` to be set.

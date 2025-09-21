@@ -118,11 +118,18 @@ def register(request: HttpRequest, slug: str) -> HttpResponse:
 
     # organizer-configured payment availability
     sett = getattr(t, "settings", None)
+
+    def _s(val):
+        try:
+            return str(val) if val is not None else None
+        except Exception:
+            return None
+
     pay = {
-        "bkash": getattr(sett, "bkash_receive_number", None) if sett else None,
-        "nagad": getattr(sett, "nagad_receive_number", None) if sett else None,
-        "rocket": getattr(sett, "rocket_receive_number", None) if sett else None,
-        "bank": getattr(sett, "bank_instructions", None) if sett else None,
+        "bkash": _s(getattr(sett, "bkash_receive_number", None)) if sett else None,
+        "nagad": _s(getattr(sett, "nagad_receive_number", None)) if sett else None,
+        "rocket": _s(getattr(sett, "rocket_receive_number", None)) if sett else None,
+        "bank": _s(getattr(sett, "bank_instructions", None)) if sett else None,
     }
 
     team, membership = _user_team(request.user)

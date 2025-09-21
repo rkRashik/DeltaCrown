@@ -1,27 +1,173 @@
-<article class="t-card glass rounded-2xl" data-game="{% firstof team.get_game_display team.game 'unknown' %}">
-  <div class="t-card__media">
+{% load team_social_tags %}
+
+<article class="t-card card border-0 shadow-sm rounded-3 overflow-hidden position-relative" 
+         data-game="{% firstof team.get_game_display team.game 'unknown' %}">
+  
+  <!-- Team Banner/Header -->
+  <div class="t-card__media position-relative" style="height: 200px; overflow: hidden;">
     {% if team.banner_image %}
-      <img src="{{ team.banner_image.url }}" class="t-card__img" alt="" loading="lazy">
+      <img src="{{ team.banner_image.url }}" class="t-card__img w-100 h-100" 
+           alt="{{ team.name }} Banner" loading="lazy" style="object-fit: cover;">
     {% elif team.roster_image %}
-      <img src="{{ team.roster_image.url }}" class="t-card__img" alt="" loading="lazy">
+      <img src="{{ team.roster_image.url }}" class="t-card__img w-100 h-100" 
+           alt="{{ team.name }} Roster" loading="lazy" style="object-fit: cover;">
     {% else %}
-      <div class="t-card__ph" aria-hidden="true"></div>
+      <div class="t-card__ph w-100 h-100 d-flex align-items-center justify-content-center" 
+           style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="text-center text-white">
+          <i class="fas fa-users fa-3x mb-2"></i>
+          <h5>{{ team.name|truncatechars:20 }}</h5>
+        </div>
+      </div>
     {% endif %}
-    <div class="t-card__scrim" aria-hidden="true"></div>
-    <div class="t-card__status">
-      <span class="pill">{% firstof team.get_game_display team.game "Game" %}</span>
+    
+    <!-- Overlay Gradient -->
+    <div class="position-absolute top-0 start-0 w-100 h-100" 
+         style="background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);"></div>
+    
+    <!-- Game Badge -->
+    <div class="position-absolute top-0 end-0 m-3">
+      <span class="badge bg-primary rounded-pill px-3 py-2">
+        <i class="fas fa-gamepad me-1"></i>
+        {% firstof team.get_game_display team.game "Game" %}
+      </span>
     </div>
+
+    <!-- Team Logo (Bottom Left) -->
+    <div class="position-absolute bottom-0 start-0 m-3 d-flex align-items-end">
+      <div class="team-logo-wrapper me-3">
+        {% if team.logo %}
+          <img src="{{ team.logo.url }}" alt="{{ team.name }}" 
+               class="rounded-circle border border-3 border-white shadow"
+               style="width: 60px; height: 60px; object-fit: cover;">
+        {% else %}
+          <div class="rounded-circle border border-3 border-white shadow bg-primary d-flex align-items-center justify-content-center text-white fw-bold"
+               style="width: 60px; height: 60px; font-size: 1.5rem;">
+            {{ team.name|first|upper }}
+          </div>
+        {% endif %}
+      </div>
+      
+      <!-- Team Name & Tag -->
+      <div class="text-white">
+        <h5 class="mb-0 fw-bold text-shadow">{{ team.name|truncatechars:25 }}</h5>
+        {% if team.tag %}
+        <small class="text-white-50">[{{ team.tag }}]</small>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Verification Badge -->
+    {% if team.is_verified %}
+    <div class="position-absolute" style="bottom: 15px; right: 15px;">
+      <i class="fas fa-check-circle text-primary fs-4" title="Verified Team"></i>
+    </div>
+    {% endif %}
   </div>
 
-  <div class="t-card__body card-body space-y-3">
-    <h3 class="t-card__title card-title">{% firstof team.name team.title "Team" %}</h3>
-    <div class="t-card__sub text-muted">{% if team.bio %}{{ team.bio|truncatechars:80 }}{% else %}—{% endif %}</div>
-    <div class="t-card__actions card-actions">
+  <!-- Card Body -->
+  <div class="card-body p-4">
+    <!-- Team Stats Row -->
+    <div class="d-flex justify-content-between align-items-center mb-3 text-muted small">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-users me-1"></i>
+        <span>{{ team.members.count }} member{{ team.members.count|pluralize }}</span>
+      </div>
+      <div class="d-flex align-items-center">
+        <i class="fas fa-map-marker-alt me-1"></i>
+        <span>{{ team.get_region_display|default:team.region|title|truncatechars:15 }}</span>
+      </div>
+      {% follower_count team as followers %}
+      <div class="d-flex align-items-center">
+        <i class="fas fa-heart me-1"></i>
+        <span>{{ followers }} follower{{ followers|pluralize }}</span>
+      </div>
+    </div>
+
+    <!-- Team Description -->
+    {% if team.description %}
+    <p class="card-text text-muted mb-3" style="font-size: 0.9rem; line-height: 1.4;">
+      {{ team.description|truncatechars:100 }}
+    </p>
+    {% else %}
+    <p class="card-text text-muted fst-italic mb-3">No description available.</p>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="d-grid gap-2 d-md-flex justify-content-md-between">
       {% if team.slug %}
-        <a class="btn btn-secondary" href="{% url 'teams:detail' team.slug %}">View</a>
+        <!-- Primary Action: Visit Team Social Page -->
+        <a class="btn btn-primary flex-fill me-md-2" 
+           href="{% url 'teams:teams_social:team_social_detail' team.slug %}">
+          <i class="fas fa-eye me-1"></i> Visit Team
+        </a>
+        
+        <!-- Secondary Action: Team Details -->
+        <a class="btn btn-outline-secondary" 
+           href="{% url 'teams:detail' team.slug %}"
+           title="Team Details & Stats">
+          <i class="fas fa-chart-bar"></i>
+        </a>
       {% else %}
-        <a class="btn btn-secondary" href="/teams/">View</a>
+        <a class="btn btn-secondary flex-fill" href="/teams/">View Team</a>
       {% endif %}
+    </div>
+
+    <!-- Recent Activity Indicator -->
+    {% recent_posts team 1 as recent_post %}
+    {% if recent_post %}
+    <div class="mt-3 pt-3 border-top">
+      <small class="text-muted d-flex align-items-center">
+        <i class="fas fa-clock me-1"></i>
+        Last active {{ recent_post.0.created_at|timesince }} ago
+      </small>
+    </div>
+    {% endif %}
+  </div>
+  
+  <!-- Hover Effect Overlay -->
+  <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center 
+              bg-primary bg-opacity-10 opacity-0 transition-opacity" 
+       style="transition: opacity 0.3s ease; pointer-events: none;">
+    <div class="text-primary">
+      <i class="fas fa-arrow-right fa-2x"></i>
     </div>
   </div>
 </article>
+
+<style>
+.t-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.t-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15) !important;
+}
+
+.t-card:hover .position-absolute.opacity-0 {
+  opacity: 1 !important;
+}
+
+.text-shadow {
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.transition-opacity {
+  transition: opacity 0.3s ease;
+}
+
+@media (max-width: 576px) {
+  .t-card__media {
+    height: 160px !important;
+  }
+  
+  .team-logo-wrapper img,
+  .team-logo-wrapper div {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 1.2rem !important;
+  }
+}
+</style>

@@ -85,7 +85,6 @@ class TournamentSettings(models.Model):
         blank=True,
         help_text="Allow teams to register substitute players.",
     )
-    entry_fee_bdt = models.PositiveIntegerField(null=True, blank=True)
 
     # ----- Prizing -----
     prize_pool_bdt = models.PositiveIntegerField(null=True, blank=True)

@@ -1,0 +1,604 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Register for {{ title }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
+<style>
+/* Dark mode compatible styles */
+.registration-container {
+    @apply container mx-auto px-4 py-8;
+}
+
+.registration-card {
+    @apply max-w-2xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden;
+}
+
+.registration-header {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6;
+}
+
+.registration-content {
+    @apply p-6 dark:bg-gray-800;
+}
+
+.form-input {
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md 
+           bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+           focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400;
+}
+
+.form-label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+}
+
+.info-section {
+    @apply bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6;
+}
+
+.payment-method-option {
+    @apply flex items-center p-3 border border-gray-300 dark:border-gray-600 
+           rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer
+           bg-white dark:bg-gray-800;
+}
+
+.rules-section {
+    @apply border-t dark:border-gray-600 pt-6;
+}
+
+.rules-content {
+    @apply bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 
+           rounded-lg p-4 mb-4 max-h-96 overflow-y-auto;
+}
+
+.rules-pdf-link {
+    @apply inline-flex items-center px-3 py-2 bg-blue-100 dark:bg-blue-900 
+           text-blue-700 dark:text-blue-300 rounded-md hover:bg-blue-200 
+           dark:hover:bg-blue-800 transition-colors;
+}
+
+/* Enhanced form validation styles */
+.form-input.error {
+    @apply border-red-500 bg-red-50 dark:bg-red-900/20;
+}
+
+.form-input.success {
+    @apply border-green-500 bg-green-50 dark:bg-green-900/20;
+}
+
+.loading {
+    @apply opacity-50 cursor-not-allowed pointer-events-none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="registration-container">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-4 p-4 rounded-lg {% if message.tags == 'error' %}bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700{% elif message.tags == 'success' %}bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700{% else %}bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="registration-card">
+        <!-- Header -->
+        <div class="registration-header">
+            <h1 class="text-2xl font-bold mb-2">Tournament Registration</h1>
+            <h2 class="text-xl opacity-90">{{ title }}</h2>
+            {% if entry_fee %}
+                <p class="mt-2 text-sm opacity-80">
+                    Entry Fee: <span class="font-semibold">৳{{ entry_fee }}</span>
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="registration-content">
+                {% if status == "already_registered" %}
+                    <!-- Already Registered Status -->
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Already Registered!</h3>
+                        <p class="text-gray-600 mb-6">
+                            {% if is_team_tournament %}
+                                Your team is already registered for this tournament.
+                            {% else %}
+                                You are already registered for this tournament.
+                            {% endif %}
+                        </p>
+                        <a href="{{ redirect_url }}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            Back to Tournament
+                        </a>
+                    </div>
+
+                {% else %}
+                    <!-- Registration Form -->
+                    <form method="post" enctype="multipart/form-data" class="space-y-6">
+                        {% csrf_token %}
+                        
+                        <!-- Honeypot -->
+                        <input type="text" name="website" style="display:none;" tabindex="-1" autocomplete="off">
+
+                        <!-- Tournament Type Information -->
+                        <div class="info-section">
+                            <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                {% if is_team_tournament %}
+                                    <i class="fas fa-users mr-2 text-blue-600"></i>Team Tournament Registration
+                                {% else %}
+                                    <i class="fas fa-user mr-2 text-blue-600"></i>Individual Tournament Registration
+                                {% endif %}
+                            </h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                {% if registration_type == "solo" %}
+                                    Complete the form below to register as an individual player.
+                                {% elif registration_type == "team_existing" %}
+                                    Register your team "{{ user_team.name }}" for this tournament.
+                                {% elif registration_type == "team_create" %}
+                                    You don't have a team yet. You can create one during registration or register with temporary team details.
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <!-- Personal Information -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="display_name" class="form-label">
+                                    <i class="fas fa-user mr-1"></i>Display Name *
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="display_name" 
+                                    id="display_name" 
+                                    required
+                                    value="{{ initial_data.display_name|default:'' }}"
+                                    class="form-input"
+                                    placeholder="Your display name"
+                                >
+                            </div>
+                            <div>
+                                <label for="phone" class="form-label">
+                                    <i class="fas fa-phone mr-1"></i>Phone Number *
+                                </label>
+                                <input 
+                                    type="tel" 
+                                    name="phone" 
+                                    id="phone" 
+                                    required
+                                    value="{{ initial_data.phone|default:'' }}"
+                                    class="form-input"
+                                    placeholder="Your phone number"
+                                >
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="email" class="form-label">
+                                    <i class="fas fa-envelope mr-1"></i>Email Address
+                                </label>
+                                <input 
+                                    type="email" 
+                                    name="email" 
+                                    id="email"
+                                    value="{{ initial_data.email|default:'' }}"
+                                    class="form-input"
+                                    placeholder="Your email address"
+                                >
+                            </div>
+                        </div>
+
+                        <!-- Organizer Custom Fields -->
+                        {% if organizer_fields.require_in_game_id %}
+                            <div>
+                                <label for="in_game_id" class="form-label">
+                                    <i class="fas fa-gamepad mr-1"></i>In-Game ID *
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="in_game_id" 
+                                    id="in_game_id" 
+                                    required
+                                    class="form-input"
+                                    placeholder="Your in-game username/ID"
+                                >
+                            </div>
+                        {% endif %}
+
+                        <!-- Team Creation Section -->
+                        {% if registration_type == "team_create" %}
+                            <div class="border-t dark:border-gray-600 pt-6">
+                                <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                    <i class="fas fa-users mr-2 text-blue-600"></i>Team Information
+                                </h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="team_name" class="form-label">
+                                            Team Name *
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            name="team_name" 
+                                            id="team_name" 
+                                            required
+                                            class="form-input"
+                                            placeholder="Enter your team name"
+                                        >
+                                    </div>
+                                    
+                                    {% if organizer_fields.require_team_logo %}
+                                        <div>
+                                            <label for="team_logo" class="form-label">
+                                                Team Logo
+                                            </label>
+                                            <input 
+                                                type="file" 
+                                                name="team_logo" 
+                                                id="team_logo" 
+                                                accept="image/*"
+                                                class="form-input"
+                                            >
+                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Upload a logo for your team (optional)</p>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <div class="bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
+                                        <label class="flex items-start">
+                                            <input type="checkbox" name="save_as_team" value="1" class="mt-1 mr-3">
+                                            <div>
+                                                <span class="font-medium text-gray-900 dark:text-gray-100">Save as permanent team</span>
+                                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                    Check this to create a permanent team that you can use for future tournaments. 
+                                                    You will be assigned as the team captain.
+                                                </p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Payment Section -->
+                        {% if entry_fee %}
+                            <div class="border-t dark:border-gray-600 pt-6">
+                                <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                    <i class="fas fa-credit-card mr-2 text-blue-600"></i>Payment Information
+                                </h4>
+                                <div class="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-4">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-info-circle text-yellow-600 dark:text-yellow-400 mr-2"></i>
+                                        <span class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                            Entry Fee: ৳{{ entry_fee }} - Payment verification will be done manually by organizers
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-yellow-700 dark:text-yellow-300 mt-2">
+                                        After submitting payment information, you'll receive an email once your payment is verified.
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Payment Method -->
+                                    <div class="md:col-span-2">
+                                        <label class="form-label">
+                                            <i class="fas fa-mobile-alt mr-1"></i>Payment Method *
+                                        </label>
+                                        <div class="space-y-2">
+                                            {% if payment_config.bkash %}
+                                                <label class="payment-method-option">
+                                                    <input type="radio" name="payment_method" value="bkash" required class="mr-3">
+                                                    <div class="flex-1">
+                                                        <span class="font-medium text-gray-900 dark:text-gray-100">bKash</span>
+                                                        <p class="text-sm text-gray-600 dark:text-gray-400">Send money to: {{ payment_config.bkash }}</p>
+                                                    </div>
+                                                </label>
+                                            {% endif %}
+                                            
+                                            {% if payment_config.nagad %}
+                                                <label class="payment-method-option">
+                                                    <input type="radio" name="payment_method" value="nagad" required class="mr-3">
+                                                    <div class="flex-1">
+                                                        <span class="font-medium text-gray-900 dark:text-gray-100">Nagad</span>
+                                                        <p class="text-sm text-gray-600 dark:text-gray-400">Send money to: {{ payment_config.nagad }}</p>
+                                                    </div>
+                                                </label>
+                                            {% endif %}
+                                            
+                                            {% if payment_config.rocket %}
+                                                <label class="payment-method-option">
+                                                    <input type="radio" name="payment_method" value="rocket" required class="mr-3">
+                                                    <div class="flex-1">
+                                                        <span class="font-medium text-gray-900 dark:text-gray-100">Rocket</span>
+                                                        <p class="text-sm text-gray-600 dark:text-gray-400">Send money to: {{ payment_config.rocket }}</p>
+                                                    </div>
+                                                </label>
+                                            {% endif %}
+                                            
+                                            {% if payment_config.bank %}
+                                                <label class="payment-method-option">
+                                                    <input type="radio" name="payment_method" value="bank" required class="mr-3">
+                                                    <div class="flex-1">
+                                                        <span class="font-medium text-gray-900 dark:text-gray-100">Bank Transfer</span>
+                                                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ payment_config.bank }}</p>
+                                                    </div>
+                                                </label>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+
+                                    <!-- Transaction Details -->
+                                    <div>
+                                        <label for="payment_reference" class="form-label">
+                                            <i class="fas fa-receipt mr-1"></i>Transaction ID/Reference *
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            name="payment_reference" 
+                                            id="payment_reference" 
+                                            required
+                                            minlength="6"
+                                            class="form-input"
+                                            placeholder="Enter transaction ID"
+                                        >
+                                    </div>
+                                    <div>
+                                        <label for="payer_account_number" class="form-label">
+                                            <i class="fas fa-hashtag mr-1"></i>Your Account Number *
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            name="payer_account_number" 
+                                            id="payer_account_number" 
+                                            required
+                                            value="{{ initial_data.phone|default:'' }}"
+                                            class="form-input"
+                                            placeholder="Account number used for payment"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Tournament Rules -->
+                        {% if tournament_rules.has_rules %}
+                            <div class="rules-section">
+                                <h4 class="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                                    <i class="fas fa-file-contract mr-2 text-blue-600"></i>
+                                    Tournament Rules & Conditions
+                                </h4>
+                                
+                                {% if tournament_rules.rules_pdf_url %}
+                                    <div class="mb-4">
+                                        <a href="{{ tournament_rules.rules_pdf_url }}" 
+                                           target="_blank" 
+                                           class="rules-pdf-link">
+                                            <i class="fas fa-file-pdf mr-2"></i>
+                                            Download Tournament Rules PDF
+                                            {% if tournament_rules.rules_pdf_filename %}
+                                                ({{ tournament_rules.rules_pdf_filename }})
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                {% endif %}
+
+                                {% if tournament_rules.rules_text %}
+                                    <div class="rules-content">
+                                        <h5 class="font-medium text-gray-900 dark:text-gray-100 mb-2">Tournament Rules:</h5>
+                                        <div class="text-sm text-gray-700 dark:text-gray-300 prose prose-sm max-w-none dark:prose-invert">
+                                            {{ tournament_rules.rules_text|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                {% if tournament_rules.extra_rules %}
+                                    <div class="rules-content">
+                                        <h5 class="font-medium text-gray-900 dark:text-gray-100 mb-2">Additional Rules:</h5>
+                                        <div class="text-sm text-gray-700 dark:text-gray-300 prose prose-sm max-w-none dark:prose-invert">
+                                            {{ tournament_rules.extra_rules|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Agreement -->
+                        <div class="rules-section">
+                            <label class="flex items-start">
+                                <input type="checkbox" name="agree_rules" required class="mt-1 mr-3">
+                                <div class="text-sm">
+                                    <span class="font-medium text-gray-900 dark:text-gray-100">
+                                        {% if tournament_rules.has_rules %}
+                                            I have read and agree to the tournament rules and conditions *
+                                        {% else %}
+                                            I agree to the tournament terms and conditions *
+                                        {% endif %}
+                                    </span>
+                                    <p class="text-gray-600 dark:text-gray-400 mt-1">
+                                        By registering, you confirm that you have read and agree to follow all tournament rules and regulations.
+                                        {% if coin_policy %}
+                                            You also acknowledge the DeltaCoin policy for this tournament.
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="border-t dark:border-gray-600 pt-6">
+                            <button 
+                                type="submit" 
+                                class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center"
+                            >
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                {% if entry_fee %}
+                                    Complete Registration & Submit Payment Info
+                                {% else %}
+                                    Complete Registration
+                                {% endif %}
+                            </button>
+                            
+                            <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">
+                                {% if entry_fee %}
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    After submission, our team will verify your payment and send you a confirmation email.
+                                {% else %}
+                                    <i class="fas fa-clock mr-1"></i>
+                                    Your registration will be reviewed and confirmed shortly.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+    </div>
+
+    <!-- Additional Information -->
+    {% if coin_policy and not status %}
+        <div class="mt-6 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+            <h4 class="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+                <i class="fas fa-coins mr-2"></i>DeltaCoin Policy
+            </h4>
+            <div class="text-sm text-blue-800 dark:text-blue-200 prose prose-sm max-w-none dark:prose-invert">
+                {{ coin_policy|safe }}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Enhanced form interactions
+document.getElementById('phone')?.addEventListener('input', function() {
+    // Auto-fill payer account number when phone is entered
+    const payerField = document.getElementById('payer_account_number');
+    if (payerField && !payerField.value) {
+        payerField.value = this.value;
+    }
+    
+    // Format phone number for Bangladesh
+    let value = this.value.replace(/\D/g, '');
+    if (value.startsWith('88')) {
+        value = '+' + value;
+    } else if (value.startsWith('01')) {
+        value = '+88' + value;
+    }
+    this.value = value;
+});
+
+// Real-time email validation
+document.getElementById('email')?.addEventListener('input', function() {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    this.classList.remove('error', 'success');
+    
+    if (this.value && emailPattern.test(this.value)) {
+        this.classList.add('success');
+    } else if (this.value && !emailPattern.test(this.value)) {
+        this.classList.add('error');
+    }
+});
+
+// In-game ID validation
+document.getElementById('in_game_id')?.addEventListener('input', function() {
+    this.classList.remove('error', 'success');
+    
+    if (this.value.length >= 3) {
+        this.classList.add('success');
+    } else if (this.value.length > 0 && this.value.length < 3) {
+        this.classList.add('error');
+    }
+});
+
+// Payment method selection feedback
+document.querySelectorAll('input[name="payment_method"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        // Remove previous selections
+        document.querySelectorAll('label:has(input[name="payment_method"])').forEach(function(label) {
+            label.classList.remove('border-blue-500', 'bg-blue-50', 'dark:border-blue-400', 'dark:bg-blue-900');
+        });
+        
+        // Highlight selected method
+        if (this.checked) {
+            this.closest('label').classList.add('border-blue-500', 'bg-blue-50', 'dark:border-blue-400', 'dark:bg-blue-900');
+        }
+    });
+});
+
+// Enhance form accessibility
+document.addEventListener('DOMContentLoaded', function() {
+    // Add loading state to submit button
+    const form = document.querySelector('form[method="post"]');
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            // Validate required fields
+            const requiredFields = form.querySelectorAll('[required]');
+            let hasErrors = false;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('error');
+                    hasErrors = true;
+                } else {
+                    field.classList.remove('error');
+                }
+            });
+            
+            if (hasErrors) {
+                e.preventDefault();
+                showFormNotification('Please fill in all required fields', 'error');
+                return false;
+            }
+            
+            // Proceed with submission
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing Registration...';
+            form.classList.add('loading');
+            
+            showFormNotification('Processing your registration...', 'info');
+        });
+    }
+    
+    // Form notification system
+    function showFormNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform ${
+            type === 'error' ? 'bg-red-600' : 
+            type === 'success' ? 'bg-green-600' : 'bg-blue-600'
+        } text-white max-w-sm`;
+        
+        notification.innerHTML = `
+            <div class="flex items-center justify-between">
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => notification.classList.remove('translate-x-full'), 100);
+        setTimeout(() => {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => notification.remove(), 300);
+        }, 4000);
+    }
+    
+    // Auto-expand rules sections on focus
+    const rulesCheckbox = document.querySelector('input[name="agree_rules"]');
+    if (rulesCheckbox) {
+        rulesCheckbox.addEventListener('focus', function() {
+            const rulesContent = document.querySelector('.rules-content');
+            if (rulesContent) {
+                rulesContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

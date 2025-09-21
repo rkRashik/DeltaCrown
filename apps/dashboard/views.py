@@ -99,6 +99,10 @@ def _collect_user_teams(user) -> Iterable[models.Model]:
 
 
 def _filter_matches_for_user(user, form: MyMatchesFilterForm):
+    # Ensure form is valid to populate cleaned_data
+    if not hasattr(form, 'cleaned_data'):
+        form.is_valid()  # This will populate cleaned_data even for empty form
+    
     Match = _get_model("tournaments.Match") or _get_model("matches.Match") or _get_model("brackets.Match")
     if not Match:
         return Match, []

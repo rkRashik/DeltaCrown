@@ -1,192 +1,162 @@
-// tournament-detail-neo.js — premium detail page logic (tabs, countdown, lazy mounts)
-// Enhancements: keyboard tabs, aria-selected sync, deep links (?tab= / #tab), popstate support.
-
+/* DeltaCrown — tournament detail (tabs, countdown, lazy embeds, small motion) */
 (function () {
-  const root = document.querySelector(".tneo");
-  if (!root) return;
+  const d = document;
+  const mqReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
-  // ---- Tabs / Panes ---------------------------------------------------------
-  const tabs = Array.from(root.querySelectorAll(".tabs .tab"));
-  const panes = Array.from(root.querySelectorAll(".pane"));
+  function $(sel, root) { return (root || d).querySelector(sel); }
+  function $all(sel, root) { return Array.from((root || d).querySelectorAll(sel)); }
 
-  function setAria(name) {
-    tabs.forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === name)));
-  }
+  function initTabs() {
+    const tabs = $all('.tabs .tab');
+    const panes = $all('.pane');
+    if (!tabs.length || !panes.length) return;
 
-  function lazyMountIframesIn(paneName) {
-    const wrap = root.querySelector(`.pane[data-pane='${paneName}']`);
-    if (!wrap) return;
-    wrap.querySelectorAll("iframe").forEach(iframe => {
-      // If already mounted, skip
-      if (iframe.getAttribute("src")) return;
-      const src = iframe.getAttribute("data-src");
-      if (src) iframe.setAttribute("src", src);
-    });
-  }
+    const byName = Object.fromEntries(panes.map(p => [p.getAttribute('data-pane'), p]));
+    const setActive = (name, push) => {
+      if (!byName[name]) return;
+      tabs.forEach(t => {
+        const is = t.getAttribute('data-tab') === name;
+        t.classList.toggle('is-active', is);
+        t.setAttribute('aria-selected', is ? 'true' : 'false');
+      });
+      panes.forEach(p => p.classList.toggle('is-active', p.getAttribute('data-pane') === name));
 
-  function activate(name) {
-    if (!name) return;
-    tabs.forEach(t => t.classList.toggle("is-active", t.dataset.tab === name));
-    panes.forEach(p => p.classList.toggle("is-active", p.dataset.pane === name));
-    setAria(name);
+      // Lazy-load iframes inside the activated pane (one-time)
+      const pane = byName[name];
+      if (pane) {
+        $all('iframe[data-src]', pane).forEach(ifr => {
+          if (!ifr.src) ifr.src = ifr.getAttribute('data-src');
+        });
+        // enable prev/next buttons in pdf toolbar once visible
+        $all('.pdfjs-toolbar', pane).forEach(tb => {
+          const prev = tb.querySelector('[data-pdf-prev]'); const next = tb.querySelector('[data-pdf-next]');
+          prev && prev.removeAttribute('disabled'); next && next.removeAttribute('disabled');
+        });
+      }
 
-    // lazy mount heavy embeds when first shown
-    if (name === "live") lazyMountIframesIn("live");
-    if (name === "bracket") lazyMountIframesIn("bracket");
+      if (push) {
+        try { history.replaceState(null, '', '#' + name); } catch (_) {}
+        // Smooth scroll to tabs (helps on mobile)
+        const tablist = $('.tabs');
+        if (tablist && !mqReduced?.matches) {
+          tablist.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    };
 
-    // update URL (no jump)
-    const url = new URL(window.location.href);
-    url.searchParams.set("tab", name);
-    url.hash = ""; // normalize to ?tab=
-    window.history.replaceState({ tab: name }, "", url.toString());
-  }
+    // Start from hash if present
+    const initial = (location.hash || '').replace('#', '');
+    if (initial && byName[initial]) setActive(initial, false);
 
-  // initial tab from #hash or ?tab= or first tab
-  (function initTab() {
-    const url = new URL(window.location.href);
-    const qsTab = url.searchParams.get("tab");
-    const hash = (window.location.hash || "").replace("#", "");
-    const names = new Set(tabs.map(t => t.dataset.tab));
-    const firstTab = tabs[0]?.dataset.tab || "overview";
-    const wanted = names.has(hash) ? hash : (names.has(qsTab) ? qsTab : firstTab);
-
-    // Move any eager src -> data-src for bracket/live to prevent autoload
-    ["live", "bracket"].forEach(pn => {
-      root.querySelectorAll(`.pane[data-pane='${pn}'] iframe[src]`).forEach(ifr => {
-        if (!ifr.getAttribute("data-src")) {
-          ifr.setAttribute("data-src", ifr.getAttribute("src"));
-          ifr.removeAttribute("src");
+    tabs.forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        const name = btn.getAttribute('data-tab');
+        setActive(name, true);
+        // Small pulse on the active tab (respect reduced motion)
+        if (!mqReduced?.matches) {
+          btn.classList.add('pulse');
+          setTimeout(() => btn.classList.remove('pulse'), 220);
+        }
+      });
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+        // Arrow navigation across tabs
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const dir = e.key === 'ArrowRight' ? 1 : -1;
+          const next = tabs[(i + dir + tabs.length) % tabs.length];
+          next.focus();
         }
       });
     });
 
-    activate(wanted);
-  })();
+    // If no hash matched, ensure the one with .is-active is reflected in the URL
+    const current = $('.tabs .tab.is-active');
+    if (current) setActive(current.getAttribute('data-tab'), true);
 
-  // click handlers
-  tabs.forEach(btn => {
-    btn.addEventListener("click", () => activate(btn.dataset.tab));
-    // keyboard nav (Left/Right/Home/End)
-    btn.addEventListener("keydown", (e) => {
-      const i = tabs.indexOf(btn);
-      if (e.key === "ArrowRight") {
-        e.preventDefault();
-        const next = tabs[(i + 1) % tabs.length];
-        next.focus(); activate(next.dataset.tab);
-      } else if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        const prev = tabs[(i - 1 + tabs.length) % tabs.length];
-        prev.focus(); activate(prev.dataset.tab);
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        tabs[0].focus(); activate(tabs[0].dataset.tab);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        const last = tabs[tabs.length - 1];
-        last.focus(); activate(last.dataset.tab);
-      }
-    });
-  });
-
-  // respond to back/forward when ?tab= changes
-  window.addEventListener("popstate", () => {
-    const params = new URLSearchParams(window.location.search);
-    const name = params.get("tab");
-    if (name) activate(name);
-  });
-
-  // ---- Sticky section spy (for long pages with anchors) ---------------------
-  const sectionMap = panes.reduce((m, p) => { m[p.dataset.pane] = p; return m; }, {});
-  let spyTick = null;
-  function onScrollSpy() {
-    if (spyTick) return;
-    spyTick = requestAnimationFrame(() => {
-      spyTick = null;
-      const viewportMid = window.scrollY + window.innerHeight * 0.35;
-      let activeName = null;
-
-      for (const name in sectionMap) {
-        const el = sectionMap[name];
-        const rect = el.getBoundingClientRect();
-        const top = window.scrollY + rect.top;
-        const bottom = top + rect.height;
-        if (viewportMid >= top && viewportMid < bottom) { activeName = name; break; }
-      }
-      if (activeName) {
-        tabs.forEach(t => t.classList.toggle("is-active", t.dataset.tab === activeName));
-        setAria(activeName);
-      }
+    // Respond to back/forward hash changes
+    window.addEventListener('hashchange', () => {
+      const name = (location.hash || '').replace('#', '');
+      if (byName[name]) setActive(name, false);
     });
   }
-  document.addEventListener("scroll", onScrollSpy, { passive: true });
 
-  // ---- Countdown (hero) -----------------------------------------------------
-  const ctn = root.querySelector("[data-countdown]");
-  if (ctn) {
-    const targetISO = ctn.getAttribute("data-countdown");
-    const target = targetISO ? new Date(targetISO) : null;
+  function initCountdowns() {
+    const nodes = $all('[data-countdown]');
+    if (!nodes.length) return;
 
-    function two(n) { return n < 10 ? "0" + n : "" + n; }
-    function tick() {
-      if (!target) return;
-      const now = new Date();
-      const diff = Math.max(0, Math.floor((target - now) / 1000));
-      const d = Math.floor(diff / 86400);
-      const h = Math.floor((diff % 86400) / 3600);
-      const m = Math.floor((diff % 3600) / 60);
-      const s = diff % 60;
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
 
-      ctn.querySelector("[data-d]").textContent = d;
-      ctn.querySelector("[data-h]").textContent = two(h);
-      ctn.querySelector("[data-m]").textContent = two(m);
-      ctn.querySelector("[data-s]").textContent = two(s);
+    nodes.forEach(el => {
+      const iso = el.getAttribute('data-countdown');
+      let target = iso ? new Date(iso) : null;
+      if (!target || isNaN(target.getTime())) return;
 
-      if (diff === 0) {
-        ctn.classList.add("done");
-        clearInterval(timer);
-      }
-    }
-    const timer = setInterval(tick, 1000);
-    tick();
-  }
+      const dSpan = el.querySelector('[data-d]');
+      const hSpan = el.querySelector('[data-h]');
+      const mSpan = el.querySelector('[data-m]');
+      const sSpan = el.querySelector('[data-s]');
 
-  // ---- Micro-animations (CTA hover glow) -----------------------------------
-  const ctas = root.querySelectorAll(".btn-neo");
-  ctas.forEach(btn => {
-    btn.addEventListener("pointermove", (e) => {
-      const r = btn.getBoundingClientRect();
-      const x = e.clientX - r.left;
-      const y = e.clientY - r.top;
-      btn.style.setProperty("--mx", x + "px");
-      btn.style.setProperty("--my", y + "px");
-    });
-  });
+      const tick = () => {
+        const now = new Date();
+        let diff = Math.max(0, target - now);
+        const d = Math.floor(diff / (24 * 3600e3)); diff -= d * 24 * 3600e3;
+        const h = Math.floor(diff / 3600e3); diff -= h * 3600e3;
+        const m = Math.floor(diff / 60e3); diff -= m * 60e3;
+        const s = Math.floor(diff / 1e3);
 
-  // ---- “Copy to clipboard” helpers (for lobby code, etc.) -------------------
-  root.querySelectorAll("[data-copy]").forEach(el => {
-    el.addEventListener("click", async () => {
-      const text = el.getAttribute("data-copy");
-      try {
-        await navigator.clipboard.writeText(text || "");
-        el.classList.add("copied");
-        setTimeout(() => el.classList.remove("copied"), 1200);
-      } catch (e) {}
-    });
-  });
+        if (dSpan) dSpan.textContent = String(d);
+        if (hSpan) hSpan.textContent = pad(h);
+        if (mSpan) mSpan.textContent = pad(m);
+        if (sSpan) sSpan.textContent = pad(s);
 
-  // ---- Lazy images (if any with data-src) -----------------------------------
-  const lazyImgs = Array.from(root.querySelectorAll("img[data-src]"));
-  if ("IntersectionObserver" in window && lazyImgs.length) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          const img = e.target;
-          img.src = img.getAttribute("data-src");
-          img.removeAttribute("data-src");
-          io.unobserve(img);
+        if (target - now <= 0) {
+          clearInterval(timer);
+          el.classList.add('done');
         }
-      });
-    }, { rootMargin: "200px" });
-    lazyImgs.forEach(img => io.observe(img));
+      };
+      tick();
+      const timer = setInterval(tick, 1000);
+    });
   }
+
+  function initShare() {
+    $all('[data-share]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const url = location.href;
+        const title = d.title || 'Tournament';
+        try {
+          if (navigator.share) await navigator.share({ title, url });
+          else {
+            await navigator.clipboard.writeText(url);
+            btn.textContent = 'Link copied!';
+            setTimeout(() => (btn.textContent = 'Share'), 1200);
+          }
+        } catch (_) {}
+      });
+    });
+  }
+
+  // micro “spark” hover for .btn-neo
+  function initButtonSparks() {
+    $all('.btn-neo').forEach(btn => {
+      btn.addEventListener('mousemove', (e) => {
+        const r = btn.getBoundingClientRect();
+        const x = ((e.clientX - r.left) / r.width) * 100;
+        const y = ((e.clientY - r.top) / r.height) * 100;
+        btn.style.setProperty('--mx', x + '%');
+        btn.style.setProperty('--my', y + '%');
+      });
+    });
+  }
+
+  function init() {
+    initTabs();
+    initCountdowns();
+    initShare();
+    initButtonSparks();
+  }
+
+  if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', init);
+  else init();
 })();

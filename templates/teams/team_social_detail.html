@@ -1,0 +1,1529 @@
+{% extends "base.html" %}
+{% load static %}
+{% load team_social_tags %}
+
+{% block title %}{{ team.name }} - Team Profile{% endblock %}
+
+{% block extra_head %}
+<link href="{% static 'siteui/css/team-social.css' %}" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="team-social-page">
+    <!-- Team Header/Banner Section -->
+    <div class="team-banner-section position-relative">
+        {% if team.banner_image %}
+            <img src="{{ team.banner_image.url }}" alt="{{ team.name }} Banner" class="team-banner w-100">
+        {% else %}
+            <div class="team-banner-placeholder d-flex align-items-center justify-content-center">
+                <div class="text-center text-white">
+                    <i class="fas fa-image fa-3x mb-2"></i>
+                    <h4>{{ team.name }}</h4>
+                    <p class="mb-0">Professional Esports Team</p>
+                </div>
+            </div>
+        {% endif %}
+        
+        {% if is_captain %}
+            <button class="btn btn-outline-light banner-upload-btn position-absolute" 
+                    data-bs-toggle="modal" data-bs-target="#bannerModal"
+                    style="bottom: 20px; right: 20px;">
+                <i class="fas fa-camera me-2"></i> Update Banner
+            </button>
+        {% endif %}
+        
+        <!-- Gradient Overlay -->
+        <div class="banner-overlay"></div>
+    </div>
+
+    <!-- Team Info Bar -->
+    <div class="team-info-bar bg-white shadow-sm">
+        <div class="container">
+            <div class="team-info-content d-flex align-items-center py-3">
+                <div class="team-avatar me-4">
+                    {% if team.logo %}
+                        <img src="{{ team.logo.url }}" alt="{{ team.name }}" 
+                             class="team-logo rounded-circle border border-4 border-white shadow">
+                    {% else %}
+                        <div class="team-logo-placeholder rounded-circle border border-4 border-white shadow 
+                                    d-flex align-items-center justify-content-center bg-primary text-white">
+                            <span class="h2 mb-0 fw-bold">{{ team.name|first|upper }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="team-details flex-grow-1">
+                    <h1 class="team-name h3 mb-1 d-flex align-items-center">
+                        {{ team.name }}
+                        {% if team.is_verified %}
+                            <i class="fas fa-check-circle text-primary ms-2" title="Verified Team"></i>
+                        {% endif %}
+                        <span class="badge bg-secondary ms-2">{{ team.tag }}</span>
+                    </h1>
+                    <div class="team-stats d-flex gap-4 text-muted">
+                        <span class="stat d-flex align-items-center">
+                            <i class="fas fa-users me-1"></i>
+                            <strong>{{ team.members.count }}</strong>&nbsp;Members
+                        </span>
+                        <span class="stat d-flex align-items-center">
+                            <i class="fas fa-heart me-1"></i>
+                            <strong>{{ follower_count }}</strong>&nbsp;Followers
+                        </span>
+                        <span class="stat d-flex align-items-center">
+                            <i class="fas fa-gamepad me-1"></i>
+                            {{ team.get_game_display }}
+                        </span>
+                        <span class="stat d-flex align-items-center">
+                            <i class="fas fa-trophy me-1"></i>
+                            {{ team.get_region_display|default:team.region|title }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="team-actions d-flex gap-2">
+                    {% if not is_member %}
+                        <form method="post" action="{% url 'teams:teams_social:toggle_follow' team.slug %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-primary follow-btn">
+                                {% if is_following %}
+                                    <i class="fas fa-heart-broken me-1"></i> Unfollow
+                                {% else %}
+                                    <i class="fas fa-heart me-1"></i> Follow
+                                {% endif %}
+                            </button>
+                        </form>
+                        <a href="{% url 'teams:join' team.slug %}" class="btn btn-success">
+                            <i class="fas fa-user-plus me-1"></i> Join Team
+                        </a>
+                    {% elif is_member and not is_captain %}
+                        <span class="badge bg-success fs-6 px-3 py-2">
+                            <i class="fas fa-check me-1"></i> Team Member
+                        </span>
+                    {% endif %}
+                    
+                    {% if is_captain %}
+                        <a href="{% url 'teams:manage' team.slug %}" class="btn btn-outline-primary">
+                            <i class="fas fa-cog me-1"></i> Manage Team
+                        </a>
+                        <span class="badge bg-warning fs-6 px-3 py-2">
+                            <i class="fas fa-crown me-1"></i> Captain
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Main Feed Column -->
+            <div class="col-lg-8">
+                <!-- Post Creation Card -->
+                {% if can_post %}
+                <div class="card post-creation-card mb-4 border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <form method="post" action="{% url 'teams:teams_social:create_post' team.slug %}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="post-creation-header d-flex align-items-center mb-3">
+                                {% user_avatar user 'md' %}
+                                <div class="post-input-wrapper flex-grow-1 ms-3">
+                                    {{ post_form.title }}
+                                </div>
+                            </div>
+                            
+                            <div class="post-content-area mb-3">
+                                {{ post_form.content }}
+                            </div>
+                            
+                            <div class="post-options mb-3">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted small">Post Type</label>
+                                        {{ post_form.post_type }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted small">Visibility</label>
+                                        {{ post_form.visibility }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label text-muted small">Media (Optional)</label>
+                                        <input type="file" name="media" accept="image/*,video/*" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="post-actions d-flex justify-content-between align-items-center">
+                                <div class="post-features d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-image me-1"></i> Photo
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-video me-1"></i> Video
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm">
+                                        <i class="fas fa-calendar me-1"></i> Event
+                                    </button>
+                                </div>
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="fas fa-paper-plane me-1"></i> Post
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Posts Feed -->
+                <div class="posts-feed">
+                    {% for post in posts %}
+                    <div class="card post-card mb-4 border-0 shadow-sm">
+                        <div class="card-header bg-white border-0 pb-0">
+                            <div class="post-header d-flex justify-content-between align-items-start">
+                                <div class="post-author d-flex">
+                                    {% user_avatar post.author.user 'md' %}
+                                    <div class="author-info ms-3">
+                                        <h6 class="author-name mb-0 fw-bold">
+                                            {{ post.author.user.get_full_name|default:post.author.user.username }}
+                                            {% team_role_badge team post.author %}
+                                        </h6>
+                                        <div class="post-meta d-flex align-items-center text-muted small">
+                                            <span>{{ post.created_at|time_ago }}</span>
+                                            <span class="mx-2">•</span>
+                                            <i class="{{ post.visibility|visibility_icon }} me-1"></i>
+                                            <span>{{ post.visibility|visibility_label }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="post-options">
+                                    <div class="dropdown">
+                                        <button class="btn btn-link text-muted p-1" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-h"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#"><i class="fas fa-bookmark me-2"></i> Save Post</a></li>
+                                            <li><a class="dropdown-item" href="#"><i class="fas fa-share me-2"></i> Share</a></li>
+                                            <li><a class="dropdown-item" href="#"><i class="fas fa-link me-2"></i> Copy Link</a></li>
+                                            {% if post.author == user_profile or is_captain %}
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="#"><i class="fas fa-edit me-2"></i> Edit</a></li>
+                                            <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-trash me-2"></i> Delete</a></li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-body pt-2">
+                            {% if post.title %}
+                            <h5 class="post-title mb-2">{{ post.title }}</h5>
+                            {% endif %}
+                            
+                            <div class="post-content mb-3">
+                                {{ post.content|linebreaksbr }}
+                            </div>
+
+                            <!-- Post Media -->
+                            {% if post.media.exists %}
+                            <div class="post-media mb-3">
+                                <div class="row g-2">
+                                    {% for media in post.media.all %}
+                                    <div class="col-{% if post.media.count == 1 %}12{% elif post.media.count == 2 %}6{% else %}4{% endif %}">
+                                        <div class="media-item position-relative">
+                                            <img src="{{ media.file.url }}" alt="{{ media.alt_text }}" 
+                                                 class="img-fluid rounded w-100" style="object-fit: cover; height: 200px;">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- Engagement Stats -->
+                            {% if post.likes.count > 0 or post.comments.count > 0 %}
+                            <div class="engagement-stats d-flex justify-content-between align-items-center py-2 border-top border-bottom">
+                                <div class="likes-info d-flex align-items-center">
+                                    {% if post.likes.count > 0 %}
+                                    <div class="like-faces d-flex me-2">
+                                        <div class="bg-danger rounded-circle d-flex align-items-center justify-content-center" 
+                                             style="width: 20px; height: 20px;">
+                                            <i class="fas fa-heart text-white" style="font-size: 10px;"></i>
+                                        </div>
+                                    </div>
+                                    <span class="text-muted small">{{ post.likes.count }} {{ post.likes.count|pluralize_smart:"person,people" }}</span>
+                                    {% endif %}
+                                </div>
+                                {% if post.comments.count > 0 %}
+                                <span class="text-muted small">
+                                    {{ post.comments.count }} {{ post.comments.count|pluralize:"comment,comments" }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            <!-- Action Buttons -->
+                            <div class="post-actions d-flex justify-content-around py-2">
+                                <button class="action-btn like-btn btn btn-link text-decoration-none flex-fill 
+                                              {% if post.likes|user_has_liked:user_profile %}text-danger{% else %}text-muted{% endif %}" 
+                                        data-post-id="{{ post.id }}">
+                                    <i class="fas fa-heart me-1"></i> Like
+                                </button>
+                                <button class="action-btn comment-btn btn btn-link text-muted text-decoration-none flex-fill" 
+                                        data-post-id="{{ post.id }}">
+                                    <i class="fas fa-comment me-1"></i> Comment
+                                </button>
+                                <button class="action-btn share-btn btn btn-link text-muted text-decoration-none flex-fill">
+                                    <i class="fas fa-share me-1"></i> Share
+                                </button>
+                            </div>
+
+                            <!-- Comments Section -->
+                            <div class="comments-section mt-3" id="comments-{{ post.id }}">
+                                <!-- Comment Form -->
+                                <div class="comment-form mb-3">
+                                    <form class="add-comment-form" data-post-id="{{ post.id }}">
+                                        {% csrf_token %}
+                                        <div class="d-flex align-items-center">
+                                            {% user_avatar user 'sm' %}
+                                            <div class="flex-grow-1 ms-2">
+                                                <input type="text" class="form-control comment-input rounded-pill" 
+                                                       placeholder="Write a comment..." name="content">
+                                            </div>
+                                            <button type="submit" class="btn btn-link text-primary ms-2">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Comments List -->
+                                <div class="comments-list">
+                                    {% for comment in post.comments.all|slice:":3" %}
+                                    <div class="comment-item mb-2">
+                                        <div class="comment-content d-flex">
+                                            {% user_avatar comment.author.user 'sm' %}
+                                            <div class="comment-bubble bg-light rounded-3 px-3 py-2 ms-2 flex-grow-1">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <strong class="small">{{ comment.author.user.get_full_name|default:comment.author.user.username }}</strong>
+                                                    <small class="text-muted">{{ comment.created_at|time_ago }}</small>
+                                                </div>
+                                                <p class="mb-0 small">{{ comment.content }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    
+                                    {% if post.comments.count > 3 %}
+                                    <button class="btn btn-link text-muted small p-0 view-more-comments" data-post-id="{{ post.id }}">
+                                        <i class="fas fa-chevron-down me-1"></i>
+                                        View {{ post.comments.count|add:"-3" }} more comments
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Posts Yet</h5>
+                            <p class="text-muted">Be the first to share something with the team!</p>
+                            {% if can_post %}
+                            <button class="btn btn-primary" onclick="document.querySelector('.post-creation-card .form-control').focus()">
+                                <i class="fas fa-plus me-1"></i> Create First Post
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Load More Posts -->
+                {% if posts.has_next %}
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-primary" id="load-more-posts" data-page="{{ posts.next_page_number }}">
+                        <i class="fas fa-chevron-down me-1"></i> Load More Posts
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar Column -->
+            <div class="col-lg-4">
+                <!-- Team Info Card -->
+                <div class="card team-info-card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="mb-0"><i class="fas fa-info-circle text-primary me-2"></i> About</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">{{ team.description|default:"No description available." }}</p>
+                        
+                        <div class="team-details-list">
+                            <div class="detail-item d-flex align-items-center mb-2">
+                                <i class="fas fa-gamepad text-muted me-3" style="width: 20px;"></i>
+                                <span>{{ team.get_game_display }}</span>
+                            </div>
+                            <div class="detail-item d-flex align-items-center mb-2">
+                                <i class="fas fa-map-marker-alt text-muted me-3" style="width: 20px;"></i>
+                                <span>{{ team.get_region_display|default:team.region|title }}</span>
+                            </div>
+                            <div class="detail-item d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar text-muted me-3" style="width: 20px;"></i>
+                                <span>Created {{ team.created_at|date:"M Y" }}</span>
+                            </div>
+                            {% if team.is_verified %}
+                            <div class="detail-item d-flex align-items-center mb-2">
+                                <i class="fas fa-check-circle text-primary me-3" style="width: 20px;"></i>
+                                <span>Verified Team</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Members Card -->
+                <div class="card members-card mb-4 border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="mb-0"><i class="fas fa-users text-primary me-2"></i> Members ({{ team.members.count }})</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for member in team.members.all|slice:":8" %}
+                        <div class="member-item d-flex align-items-center mb-3">
+                            {% user_avatar member.user 'sm' %}
+                            <div class="member-info ms-3 flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="member-name fw-bold">{{ member.user.get_full_name|default:member.user.username }}</span>
+                                    {% if team.captain == member %}
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-crown me-1"></i>Captain
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">@{{ member.user.username }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if team.members.count > 8 %}
+                        <a href="{% url 'teams:detail' team.slug %}?tab=members" class="btn btn-outline-primary btn-sm w-100 mt-2">
+                            <i class="fas fa-users me-1"></i> View All Members
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Activity Feed Card -->
+                <div class="card activity-card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0">
+                        <h5 class="mb-0"><i class="fas fa-bell text-primary me-2"></i> Recent Activity</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for activity in activities %}
+                        <div class="activity-item d-flex mb-3">
+                            <div class="activity-icon me-3">
+                                {% activity_icon activity.activity_type %}
+                            </div>
+                            <div class="activity-content">
+                                <p class="activity-text mb-1 small">{{ activity.description }}</p>
+                                <small class="text-muted">{{ activity.created_at|time_ago }}</small>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-history fa-2x text-muted mb-2"></i>
+                            <p class="text-muted small mb-0">No recent activity</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Banner Upload Modal -->
+{% if is_captain %}
+<div class="modal fade" id="bannerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-image me-2"></i>Update Team Banner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'teams:teams_social:upload_banner' team.slug %}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    {{ banner_form.banner_image }}
+                    <div class="mt-3">
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Recommendations:</strong><br>
+                            • Size: 1200x400 pixels (3:1 aspect ratio)<br>
+                            • Format: JPG, PNG, or WebP<br>
+                            • Maximum file size: 5MB<br>
+                            • High-resolution images work best
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>Upload Banner
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/team-social.js' %}"></script>
+{% endblock %}
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: -60px;
+    position: relative;
+    z-index: 15;
+}
+
+.team-stats {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    min-width: 80px;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #495057;
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.btn-social {
+    padding: 12px 30px;
+    border-radius: 25px;
+    border: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-follow {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+}
+
+.btn-follow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-following {
+    background: #28a745;
+    color: white;
+}
+
+.btn-member {
+    background: #17a2b8;
+    color: white;
+}
+
+.content-area {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+@media (max-width: 992px) {
+    .content-area {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        order: -1;
+    }
+}
+
+/* Post Creation */
+.post-creator {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 25px;
+}
+
+.post-input {
+    border: 2px solid #e9ecef;
+    border-radius: 15px;
+    padding: 15px 20px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.post-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+}
+
+.post-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e9ecef;
+}
+
+.post-type-selector {
+    display: flex;
+    gap: 10px;
+}
+
+.post-type-btn {
+    padding: 8px 16px;
+    border: 2px solid #e9ecef;
+    background: white;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    color: #495057;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.post-type-btn.active,
+.post-type-btn:hover {
+    background: #667eea;
+    border-color: #667eea;
+    color: white;
+}
+
+/* Posts Feed */
+.post-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+}
+
+.post-card:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.post-author-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.post-meta {
+    flex: 1;
+}
+
+.post-author {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.post-time {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.post-content h3 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.post-content p {
+    color: #6c757d;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.post-media {
+    margin: 20px 0;
+}
+
+.post-media img {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 15px;
+}
+
+.post-actions {
+    display: flex;
+    gap: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    color: #6c757d;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.action-btn:hover {
+    background: #f8f9fa;
+    color: #495057;
+}
+
+.action-btn.liked {
+    color: #e74c3c;
+}
+
+.action-btn.liked:hover {
+    background: rgba(231, 76, 60, 0.1);
+}
+
+/* Comments */
+.comments-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.comment {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.comment-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.comment-content {
+    flex: 1;
+    background: #f8f9fa;
+    padding: 12px 15px;
+    border-radius: 15px;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.comment-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.comment-time {
+    color: #adb5bd;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+/* Sidebar */
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.sidebar-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.sidebar-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.team-details-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.team-details-list li {
+    padding: 12px 0;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.team-details-list li:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.detail-value {
+    color: #495057;
+    font-weight: 500;
+}
+
+/* Activity Feed */
+.activity-item {
+    padding: 15px 0;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-description {
+    color: #495057;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.activity-time {
+    color: #adb5bd;
+    font-size: 0.8rem;
+    margin-top: 3px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .team-banner {
+        height: 250px;
+    }
+    
+    .team-avatar {
+        width: 80px;
+        height: 80px;
+        margin-top: -40px;
+    }
+    
+    .team-stats {
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .stat-item {
+        flex: 1;
+        min-width: 70px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .post-card {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+}
+
+/* Loading States */
+.loading-placeholder {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Custom Badges */
+.team-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.verified-badge {
+    background: linear-gradient(45deg, #28a745, #20c997);
+}
+
+/* Enhanced Buttons */
+.btn-upload-banner {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #495057;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.btn-upload-banner:hover {
+    background: white;
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="team-social-page">
+    <!-- Team Banner -->
+    <div class="team-banner {% if team.banner_image %}has-image{% endif %}">
+        {% if team.banner_image %}
+            <img src="{{ team.banner_image.url }}" alt="{{ team.name }} banner" style="width: 100%; height: 100%; object-fit: cover;">
+        {% endif %}
+        
+        <div class="team-banner-overlay">
+            <div class="container">
+                <h1 class="display-4 mb-0">{{ team.name }}</h1>
+                <p class="lead mb-0">{{ team.game_config.name }} • {{ team.region }}</p>
+            </div>
+        </div>
+        
+        {% if is_captain %}
+        <button class="btn-upload-banner" data-bs-toggle="modal" data-bs-target="#bannerUploadModal">
+            <i class="fas fa-camera"></i> Update Banner
+        </button>
+        {% endif %}
+    </div>
+    
+    <!-- Team Info Header -->
+    <div class="team-info-header">
+        <div class="container">
+            <div class="row align-items-end">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-end gap-4">
+                        <!-- Team Avatar -->
+                        <div class="team-avatar">
+                            {% if team.logo %}
+                                <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-100 h-100 rounded-circle">
+                            {% else %}
+                                <span class="fs-2 fw-bold">{{ team.name|first|upper }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <h2 class="mb-2">{{ team.name }}</h2>
+                            <div class="d-flex align-items-center gap-3 mb-2">
+                                {% if team.is_verified %}
+                                <span class="team-badge verified-badge">
+                                    <i class="fas fa-check-circle"></i> Verified
+                                </span>
+                                {% endif %}
+                                <span class="team-badge">
+                                    <i class="fas fa-gamepad"></i> {{ team.game_config.name }}
+                                </span>
+                                <span class="team-badge">
+                                    <i class="fas fa-map-marker-alt"></i> {{ team.region }}
+                                </span>
+                            </div>
+                            {% if team.description %}
+                            <p class="text-muted mb-0">{{ team.description|truncatechars:150 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 text-end">
+                    <!-- Action Buttons -->
+                    <div class="action-buttons justify-content-end">
+                        {% if not is_member %}
+                            <button class="btn btn-social {% if is_following %}btn-following{% else %}btn-follow{% endif %}" 
+                                    onclick="toggleFollow('{{ team.slug }}')">
+                                <i class="fas {% if is_following %}fa-check{% else %}fa-plus{% endif %}"></i>
+                                <span id="follow-text">{% if is_following %}Following{% else %}Follow{% endif %}</span>
+                            </button>
+                        {% else %}
+                            <span class="btn btn-social btn-member">
+                                <i class="fas fa-users"></i> Team Member
+                            </span>
+                        {% endif %}
+                        
+                        {% if is_captain %}
+                        <a href="{% url 'teams:manage' team.slug %}" class="btn btn-social" style="background: #6c757d; color: white;">
+                            <i class="fas fa-cog"></i> Manage
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Team Stats -->
+            <div class="team-stats">
+                <div class="stat-item">
+                    <span class="stat-number">{{ team.members.count }}</span>
+                    <div class="stat-label">Members</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="follower-count">{{ follower_count }}</span>
+                    <div class="stat-label">Followers</div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{{ team.posts_count|default:0 }}</span>
+                    <div class="stat-label">Posts</div>
+                </div>
+                {% if team.tournaments_won %}
+                <div class="stat-item">
+                    <span class="stat-number">{{ team.tournaments_won }}</span>
+                    <div class="stat-label">Wins</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="container">
+        <div class="content-area">
+            <!-- Main Feed -->
+            <div class="main-feed">
+                <!-- Post Creator -->
+                {% if can_post %}
+                <div class="post-creator">
+                    <form method="post" action="{% url 'teams_social:create_post' team.slug %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            {{ post_form.title }}
+                        </div>
+                        <div class="mb-3">
+                            {{ post_form.content }}
+                        </div>
+                        
+                        <div class="post-options">
+                            <div class="post-type-selector">
+                                <input type="radio" name="post_type" value="text" id="type-text" checked hidden>
+                                <label for="type-text" class="post-type-btn active">
+                                    <i class="fas fa-font"></i> Text
+                                </label>
+                                
+                                <input type="radio" name="post_type" value="image" id="type-image" hidden>
+                                <label for="type-image" class="post-type-btn">
+                                    <i class="fas fa-image"></i> Photo
+                                </label>
+                                
+                                <input type="radio" name="post_type" value="video" id="type-video" hidden>
+                                <label for="type-video" class="post-type-btn">
+                                    <i class="fas fa-video"></i> Video
+                                </label>
+                            </div>
+                            
+                            <div class="d-flex gap-2 align-items-center">
+                                {{ post_form.visibility }}
+                                <button type="submit" class="btn btn-social btn-follow">
+                                    <i class="fas fa-paper-plane"></i> Post
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+                
+                <!-- Posts Feed -->
+                <div id="posts-container">
+                    {% for post in posts %}
+                    <div class="post-card" data-post-id="{{ post.id }}">
+                        <div class="post-header">
+                            <div class="post-author-avatar">
+                                {% if post.author.avatar %}
+                                    <img src="{{ post.author.avatar.url }}" alt="{{ post.author.user.get_full_name }}" class="w-100 h-100 rounded-circle">
+                                {% else %}
+                                    {{ post.author.user.first_name|first|upper|default:post.author.user.username|first|upper }}
+                                {% endif %}
+                            </div>
+                            <div class="post-meta">
+                                <div class="post-author">
+                                    {{ post.author.user.get_full_name|default:post.author.user.username }}
+                                    {% if team.is_captain post.author %}
+                                    <span class="team-badge ms-2">
+                                        <i class="fas fa-crown"></i> Captain
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="post-time">{{ post.created_at|timesince }} ago</div>
+                            </div>
+                            <div class="post-visibility">
+                                {% if post.visibility == 'public' %}
+                                <i class="fas fa-globe text-success" title="Public"></i>
+                                {% elif post.visibility == 'followers' %}
+                                <i class="fas fa-users text-info" title="Followers only"></i>
+                                {% else %}
+                                <i class="fas fa-lock text-warning" title="Members only"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="post-content">
+                            {% if post.title %}
+                            <h3>{{ post.title }}</h3>
+                            {% endif %}
+                            <p>{{ post.content|linebreaks }}</p>
+                            
+                            <!-- Post Media -->
+                            {% if post.media.all %}
+                            <div class="post-media">
+                                {% for media in post.media.all %}
+                                    {% if media.file_type == 'image' %}
+                                    <img src="{{ media.file.url }}" alt="{{ media.alt_text }}" class="img-fluid">
+                                    {% elif media.file_type == 'video' %}
+                                    <video controls class="w-100">
+                                        <source src="{{ media.file.url }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="post-actions">
+                            <button class="action-btn like-btn {% if post.likes.all|user_has_liked:user_profile %}liked{% endif %}" 
+                                    onclick="toggleLike({{ post.id }}, '{{ team.slug }}')">
+                                <i class="fas fa-heart"></i>
+                                <span class="like-count">{{ post.likes.count }}</span>
+                            </button>
+                            
+                            <button class="action-btn comment-btn" onclick="toggleComments({{ post.id }})">
+                                <i class="fas fa-comment"></i>
+                                <span>{{ post.comments.count }}</span>
+                            </button>
+                            
+                            <button class="action-btn">
+                                <i class="fas fa-share"></i>
+                                Share
+                            </button>
+                        </div>
+                        
+                        <!-- Comments Section -->
+                        <div class="comments-section" id="comments-{{ post.id }}" style="display: none;">
+                            <!-- Existing Comments -->
+                            {% for comment in post.comments.all|slice:":3" %}
+                            <div class="comment">
+                                <div class="comment-avatar">
+                                    {{ comment.author.user.first_name|first|upper|default:comment.author.user.username|first|upper }}
+                                </div>
+                                <div class="comment-content">
+                                    <div class="comment-author">{{ comment.author.user.get_full_name|default:comment.author.user.username }}</div>
+                                    <div class="comment-text">{{ comment.content }}</div>
+                                    <div class="comment-time">{{ comment.created_at|timesince }} ago</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <!-- Comment Form -->
+                            {% if user.is_authenticated %}
+                            <div class="comment-form mt-3">
+                                <form method="post" action="{% url 'teams_social:create_comment' team.slug post.id %}" class="d-flex gap-2">
+                                    {% csrf_token %}
+                                    <div class="comment-avatar">
+                                        {{ user.first_name|first|upper|default:user.username|first|upper }}
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <textarea name="content" class="form-control" rows="2" placeholder="Write a comment..." required></textarea>
+                                        <button type="submit" class="btn btn-sm btn-social btn-follow mt-2">Comment</button>
+                                    </div>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No posts yet</h4>
+                        <p class="text-muted">Be the first to share something with the team!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Load More Button -->
+                {% if posts.has_next %}
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-primary" onclick="loadMorePosts({{ posts.next_page_number }})">
+                        Load More Posts
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Team Details -->
+                <div class="sidebar-card">
+                    <div class="sidebar-title">
+                        <i class="fas fa-info-circle"></i>
+                        About This Team
+                    </div>
+                    
+                    <ul class="team-details-list">
+                        <li>
+                            <span class="detail-label">Game</span>
+                            <span class="detail-value">{{ team.game_config.name }}</span>
+                        </li>
+                        <li>
+                            <span class="detail-label">Region</span>
+                            <span class="detail-value">{{ team.region }}</span>
+                        </li>
+                        <li>
+                            <span class="detail-label">Created</span>
+                            <span class="detail-value">{{ team.created_at|date:"M Y" }}</span>
+                        </li>
+                        <li>
+                            <span class="detail-label">Captain</span>
+                            <span class="detail-value">{{ team.captain.user.get_full_name|default:team.captain.user.username }}</span>
+                        </li>
+                        {% if team.website %}
+                        <li>
+                            <span class="detail-label">Website</span>
+                            <span class="detail-value">
+                                <a href="{{ team.website }}" target="_blank" class="text-primary">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <!-- Recent Activity -->
+                <div class="sidebar-card">
+                    <div class="sidebar-title">
+                        <i class="fas fa-clock"></i>
+                        Recent Activity
+                    </div>
+                    
+                    <div id="activity-feed">
+                        {% for activity in activities %}
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                {% if activity.activity_type == 'post_created' %}
+                                <i class="fas fa-edit"></i>
+                                {% elif activity.activity_type == 'member_joined' %}
+                                <i class="fas fa-user-plus"></i>
+                                {% elif activity.activity_type == 'team_followed' %}
+                                <i class="fas fa-heart"></i>
+                                {% else %}
+                                <i class="fas fa-bell"></i>
+                                {% endif %}
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-description">{{ activity.description }}</div>
+                                <div class="activity-time">{{ activity.created_at|timesince }} ago</div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-3 text-muted">
+                            <small>No recent activity</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Team Members -->
+                <div class="sidebar-card">
+                    <div class="sidebar-title">
+                        <i class="fas fa-users"></i>
+                        Team Members
+                        <span class="badge bg-secondary">{{ team.members.count }}</span>
+                    </div>
+                    
+                    <div class="members-list">
+                        {% for member in team.members.all|slice:":6" %}
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="comment-avatar me-3">
+                                {{ member.user.first_name|first|upper|default:member.user.username|first|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-semibold">{{ member.user.get_full_name|default:member.user.username }}</div>
+                                {% if team.is_captain member %}
+                                <small class="text-primary">
+                                    <i class="fas fa-crown"></i> Captain
+                                </small>
+                                {% else %}
+                                <small class="text-muted">Member</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% if team.members.count > 6 %}
+                        <div class="text-center">
+                            <a href="{% url 'teams:detail' team.slug %}" class="btn btn-sm btn-outline-primary">
+                                View All Members
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Banner Upload Modal -->
+{% if is_captain %}
+<div class="modal fade" id="bannerUploadModal" tabindex="-1" aria-labelledby="bannerUploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bannerUploadModalLabel">Upload Team Banner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'teams_social:upload_banner' team.slug %}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    {{ banner_form.banner_image }}
+                    <small class="form-text text-muted">
+                        Recommended size: 1200x400 pixels. Maximum file size: 5MB.
+                    </small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload Banner</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle follow functionality
+async function toggleFollow(teamSlug) {
+    try {
+        const response = await fetch(`/${teamSlug}/follow/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            const followBtn = document.querySelector('.btn-follow, .btn-following');
+            const followText = document.getElementById('follow-text');
+            const followerCount = document.getElementById('follower-count');
+            
+            if (data.following) {
+                followBtn.className = 'btn btn-social btn-following';
+                followBtn.innerHTML = '<i class="fas fa-check"></i> <span id="follow-text">Following</span>';
+            } else {
+                followBtn.className = 'btn btn-social btn-follow';
+                followBtn.innerHTML = '<i class="fas fa-plus"></i> <span id="follow-text">Follow</span>';
+            }
+            
+            followerCount.textContent = data.follower_count;
+        }
+    } catch (error) {
+        console.error('Error toggling follow:', error);
+    }
+}
+
+// Toggle post like
+async function toggleLike(postId, teamSlug) {
+    try {
+        const response = await fetch(`/${teamSlug}/posts/${postId}/like/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            const likeBtn = document.querySelector(`[data-post-id="${postId}"] .like-btn`);
+            const likeCount = likeBtn.querySelector('.like-count');
+            
+            if (data.liked) {
+                likeBtn.classList.add('liked');
+            } else {
+                likeBtn.classList.remove('liked');
+            }
+            
+            likeCount.textContent = data.like_count;
+        }
+    } catch (error) {
+        console.error('Error toggling like:', error);
+    }
+}
+
+// Toggle comments visibility
+function toggleComments(postId) {
+    const commentsSection = document.getElementById(`comments-${postId}`);
+    if (commentsSection.style.display === 'none') {
+        commentsSection.style.display = 'block';
+    } else {
+        commentsSection.style.display = 'none';
+    }
+}
+
+// Load more posts
+async function loadMorePosts(page) {
+    try {
+        const response = await fetch(`{{ team.slug }}/posts/feed/?page=${page}`);
+        const data = await response.json();
+        
+        // Add new posts to container
+        const container = document.getElementById('posts-container');
+        data.posts.forEach(post => {
+            const postElement = createPostElement(post);
+            container.appendChild(postElement);
+        });
+        
+        // Update load more button
+        if (!data.has_next) {
+            document.querySelector('.load-more-btn').style.display = 'none';
+        } else {
+            document.querySelector('.load-more-btn').onclick = () => loadMorePosts(data.current_page + 1);
+        }
+    } catch (error) {
+        console.error('Error loading more posts:', error);
+    }
+}
+
+// Post type selector
+document.querySelectorAll('.post-type-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Remove active class from all buttons
+        document.querySelectorAll('.post-type-btn').forEach(b => b.classList.remove('active'));
+        // Add active class to clicked button
+        this.classList.add('active');
+        
+        // Check the corresponding radio button
+        const radioId = this.getAttribute('for');
+        document.getElementById(radioId).checked = true;
+    });
+});
+
+// Auto-resize textareas
+document.querySelectorAll('textarea').forEach(textarea => {
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+});
+
+// Real-time activity updates (optional WebSocket integration)
+// This would require WebSocket setup in Django
+/*
+const activitySocket = new WebSocket(
+    'ws://' + window.location.host + '/ws/teams/{{ team.slug }}/activity/'
+);
+
+activitySocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    updateActivityFeed(data.activity);
+};
+*/
+</script>
+{% endblock %}

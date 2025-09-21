@@ -77,7 +77,8 @@ class TournamentSettingsInline(admin.StackedInline):
     _FORMAT = ("tournament_type",)
     _SCHEDULING = ("round_duration_mins", "round_gap_mins")
     _ENTRY = (
-        "min_team_size", "max_team_size", "allow_substitutes", "entry_fee_bdt",
+        # Removed duplicate team size fields - use TournamentRegistrationPolicy instead
+        # entry_fee_bdt is now in main Tournament model
         "prize_pool_bdt", "prize_type", "prize_distribution_text",
     )
     _CORE_TOGGLES = ("invite_only", "auto_check_in", "automatic_scheduling_enabled", "custom_format_enabled", "payment_gateway_enabled")
@@ -105,7 +106,7 @@ class TournamentSettingsInline(admin.StackedInline):
 
         add("Format (optional)", self._FORMAT)
         add("Scheduling (optional)", self._SCHEDULING, "Optional round timing used for auto scheduling.")
-        add("Entry & Prize (optional)", self._ENTRY)
+        add("Prize Pool & Entry Fee (optional)", self._ENTRY, "Configure tournament entry fees and prize distribution.")
         add("Core Toggles (optional)", self._CORE_TOGGLES)
         add("Visibility & Region (optional)", self._VISIBILITY)
         add("Rules & Media (optional)", self._MEDIA)
@@ -124,20 +125,15 @@ class HasEntryFeeFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         val = self.value()
         names = [f.name for f in Tournament._meta.get_fields()]
+        
         if val == "yes":
-            try:
-                return queryset.filter(settings__entry_fee_bdt__gt=0)
-            except Exception:
-                pass
+            # Check if Tournament model has entry_fee_bdt field
             if "entry_fee_bdt" in names:
                 return queryset.filter(entry_fee_bdt__gt=0)
             return queryset.none()
 
         if val == "no":
-            try:
-                return queryset.filter(settings__entry_fee_bdt__isnull=True) | queryset.filter(settings__entry_fee_bdt=0)
-            except Exception:
-                pass
+            # Check if Tournament model has entry_fee_bdt field
             if "entry_fee_bdt" in names:
                 return queryset.filter(entry_fee_bdt__isnull=True) | queryset.filter(entry_fee_bdt=0)
             return queryset

@@ -20,13 +20,14 @@ from .cards import annotate_cards, compute_my_states, related_tournaments
 Tournament = apps.get_model("tournaments", "Tournament")
 Registration = apps.get_model("tournaments", "Registration")
 
-# Optional/forgiving team models (work with either app label)
 def _get_model(app_label: str, name: str):
+    """Safe get_model that returns None if missing."""
     try:
         return apps.get_model(app_label, name)
     except Exception:
         return None
 
+# Optional/forgiving team models (handles multiple app labels)
 Team = _get_model("tournaments", "Team") or _get_model("teams", "Team")
 TeamMembership = _get_model("tournaments", "TeamMembership") or _get_model("teams", "TeamMembership")
 
@@ -68,12 +69,10 @@ def _team_already_registered(t: Any, team: Any) -> bool:
     """True if this team (or any of its members) is already registered for t."""
     if not team:
         return False
-    # Prefer a direct FK on Registration if present
     try:
         return Registration.objects.filter(tournament=t, team=team).exists()
     except Exception:
         pass
-    # Fallback by members
     try:
         members = TeamMembership.objects.filter(team=team).values_list("user_id", flat=True)
         return Registration.objects.filter(tournament=t, user_id__in=list(members)).exists()
@@ -83,10 +82,7 @@ def _team_already_registered(t: Any, team: Any) -> bool:
 
 # -------------------------- HUB --------------------------
 def hub(request: HttpRequest) -> HttpResponse:
-    """
-    Tournaments landing page with featured rows + search/filter.
-    Lightweight and empty-safe. Uses annotate_cards() for dc_* fields.
-    """
+    """Landing page with featured rows + search/filter (empty-safe)."""
     q      = request.GET.get("q") or ""
     status = request.GET.get("status")
     start  = request.GET.get("start")
@@ -95,7 +91,7 @@ def hub(request: HttpRequest) -> HttpResponse:
 
     base = Tournament.objects.all().order_by("-id")
 
-    # Text search across common fields
+    # Search
     if q:
         base = base.filter(
             Q(title__icontains=q) |
@@ -104,7 +100,7 @@ def hub(request: HttpRequest) -> HttpResponse:
             Q(description__icontains=q)
         )
 
-    # Filters (best-effort)
+    # Filters
     if status == "open" and hasattr(Tournament, "is_open"):
         base = base.filter(is_open=True)
     elif status == "live" and hasattr(Tournament, "status"):
@@ -128,7 +124,7 @@ def hub(request: HttpRequest) -> HttpResponse:
     elif sort == "fee_asc" and hasattr(Tournament, "fee_amount"):
         base = base.order_by("fee_amount")
 
-    # Curated rows (best-effort)
+    # Feature rows (best-effort)
     live_qs: List[Any] = list(base.filter(status__iexact="live")[:6]) if hasattr(Tournament, "status") else []
     starting_soon_qs: List[Any] = []
     new_this_week_qs: List[Any] = []
@@ -149,17 +145,16 @@ def hub(request: HttpRequest) -> HttpResponse:
         field = "entry_fee_bdt" if hasattr(Tournament, "entry_fee_bdt") else "entry_fee"
         free_qs = list(base.filter(**{field: 0})[:6])
 
-    # Main grid (first page)
     tournaments = list(base[:24])
 
-    # Annotate all querysets for cards (dc_* fields)
+    # Card annotations
     annotate_cards(tournaments)
     annotate_cards(live_qs)
     annotate_cards(starting_soon_qs)
     annotate_cards(new_this_week_qs)
     annotate_cards(free_qs)
 
-    # Browse-by-game meta with counts
+    # Browse-by-game meta
     games = []
     for key, g in GAME_REGISTRY.items():
         cnt = base.filter(game=key).count() if hasattr(Tournament, "game") else 0
@@ -169,10 +164,8 @@ def hub(request: HttpRequest) -> HttpResponse:
             "count": cnt,
         })
 
-    # My registration states for the visible grid
     my_states = compute_my_states(request, tournaments)
 
-    # Light stats (best-effort)
     stats = {"total_active": 0}
     try:
         stats["total_active"] = base.filter(is_open=True).count() if hasattr(Tournament, "is_open") else base.count()
@@ -195,9 +188,7 @@ def hub(request: HttpRequest) -> HttpResponse:
 
 # ---------------------- LIST BY GAME ----------------------
 def list_by_game(request: HttpRequest, game: str) -> HttpResponse:
-    """
-    Game-specific listing with search/filter/sort.
-    """
+    """Game-specific listing with search/filter/sort."""
     base = Tournament.objects.all()
     if hasattr(Tournament, "game"):
         base = base.filter(game=game)
@@ -234,7 +225,6 @@ def list_by_game(request: HttpRequest, game: str) -> HttpResponse:
     tournaments = list(base[:36])
     annotate_cards(tournaments)
 
-    # game visual meta
     gslug = game
     gm = GAME_REGISTRY.get(gslug, {"name": game.title(), "primary": "#7c3aed"})
     total = base.count()
@@ -254,9 +244,9 @@ def list_by_game(request: HttpRequest, game: str) -> HttpResponse:
 def detail(request: HttpRequest, slug: str) -> HttpResponse:
     """
     Premium esports detail page: hero, live media, bracket, participants, standings,
-    rules/policy accordions, contextual CTA, countdown, and related tournaments.
+    rules/policy tabs, contextual CTA, countdown, related tournaments.
 
-    Now team-aware: exposes flags for CTA logic (already registered / captain only).
+    Team-aware flags drive CTA & visibility, and prizes include merged coin amounts.
     """
     t = get_object_or_404(Tournament, slug=slug)
 
@@ -285,7 +275,11 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
     check_in_required = as_bool(getattr(getattr(t, "settings", None), "check_in_required", None), False)
 
     # Capacity / slots (best-effort)
-    cap_total = first(getattr(t, "capacity", None), getattr(getattr(t, "settings", None), "capacity", None))
+    cap_total = first(
+        getattr(t, "slot_size", None),
+        getattr(t, "capacity", None),
+        getattr(getattr(t, "settings", None), "capacity", None),
+    )
     reg_count = 0
     try:
         for name in ("registrations", "participants", "teams"):
@@ -338,24 +332,67 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
         live_info=live_info, coin_policy_text=coin_policy
     )
 
-    # active tab sanitized to a valid tab name
+    # active tab sanitized
     active_tab = (request.GET.get("tab") or "overview").lower()
     if active_tab not in tabs:
         active_tab = "overview"
 
-    # Related tournaments (same game, excluding self) — ready for cards
+    # Related tournaments
     related = related_tournaments(t, limit=8)
 
-    # PDF.js viewer config (theme-aware; templates may toggle light/dark)
+    # PDF.js viewer config
     pdf_viewer = build_pdf_viewer_config(t, theme="auto")
 
-    # -------- NEW: team-awareness for CTA visibility --------
+    # -------- Team-awareness for CTA/visibility --------
     is_team = _is_team_event(t)
     team, membership = _user_team(request.user)
     user_is_captain = _is_captain(membership)
     team_registered = _team_already_registered(t, team) if team else False
 
-    # Build context
+    is_registered_user = False
+    try:
+        if getattr(request.user, "is_authenticated", False):
+            is_registered_user = Registration.objects.filter(tournament=t, user=request.user).exists()
+            if team and not is_registered_user:
+                try:
+                    is_registered_user = Registration.objects.filter(tournament=t, team=team).exists()
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    now = timezone.now()
+    tournament_started = bool(starts_at and now >= starts_at)
+    tournament_finished = bool(ends_at and now >= ends_at)
+    can_view_sensitive = bool(is_registered_user and tournament_started)
+
+    # -------- Prizes + DeltaCoin merged into one list [{place, cash, coin}] --------
+    def _get_attr_chain(obj, names: List[str], default=None):
+        for n in names:
+            if hasattr(obj, n):
+                return getattr(obj, n)
+        return default
+
+    # Gather coin rewards (by place)
+    coin_by_place: Dict[int, Any] = {}
+    if hasattr(t, "settings"):
+        for i in range(1, 9):
+            coin = _get_attr_chain(t.settings, [f"coin_{i}", f"delta_coin_{i}", f"reward_coin_{i}"], None)
+            if coin is not None:
+                coin_by_place[i] = coin
+
+    # Build merged prizes list 1..8 (keep rows that have either cash or coin)
+    prizes: List[Dict[str, Any]] = []
+    for i in range(1, 9):
+        cash = _get_attr_chain(t, [f"prize_{i}_bdt", f"prize_{i}_amount", f"prize_{i}"], None)
+        if cash is None and hasattr(t, "settings"):
+            cash = _get_attr_chain(t.settings, [f"prize_{i}_bdt", f"prize_{i}_amount", f"prize_{i}"], None)
+        coin = coin_by_place.get(i)
+        if cash is not None or coin is not None:
+            prizes.append({"place": i, "cash": cash, "coin": coin})
+
+    prize_pool_fmt = fmt_money(prize_pool)
+
     ctx = {
         # hero & primary info
         "title": title,
@@ -369,7 +406,7 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
 
         # money & schedule
         "entry_fee": entry_fee, "entry_fee_fmt": fmt_money(entry_fee),
-        "prize_pool": prize_pool, "prize_pool_fmt": fmt_money(prize_pool),
+        "prize_pool": prize_pool, "prize_pool_fmt": prize_pool_fmt,
         "schedule": {
             "reg_open": reg_open, "reg_close": reg_close,
             "checkin_open": chk_open, "checkin_close": chk_close,
@@ -387,13 +424,13 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
         # sections
         "participants": participants,
         "standings": standings,
-        "prizes": [],  # optional normalized breakdown if you store it later
+        "prizes": prizes,                 # unified breakdown with coin merged
         "bracket_url": bracket_url,
-        "live": live_info,                 # {stream, status, viewers}
+        "live": live_info,                # {stream, status, viewers}
 
         # rules & policy
         "rules": {"text": rules_text, "extra": extra_rules, "pdf_url": rules_url, "pdf_name": rules_filename},
-        "pdf_viewer": pdf_viewer,          # <-- config for inline PDF.js viewer
+        "pdf_viewer": pdf_viewer,         # inline PDF.js viewer config
         "coin_policy": coin_policy,
 
         # UI/CTA
@@ -406,11 +443,15 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
             "show_live": bool(live_info.get("stream") or live_info.get("status") == "live"),
         },
 
-        # NEW: team-aware flags for template CTA logic
+        # Team-aware flags + visibility gates
         "is_team_event": is_team,
         "team": team,
         "user_is_captain": user_is_captain,
         "team_registered": team_registered,
+        "is_registered_user": is_registered_user,
+        "tournament_started": tournament_started,
+        "tournament_finished": tournament_finished,
+        "can_view_sensitive": can_view_sensitive,
 
         # tabs/nav
         "tabs": tabs,

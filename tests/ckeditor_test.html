@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CKEditor Visibility Test</title>
+    <link rel="stylesheet" href="/static/admin/css/ckeditor5_fix.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .description { color: #666; font-size: 14px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>CKEditor Visibility Test</h1>
+    
+    <div class="test-section">
+        <h3>Test: Short Description Field</h3>
+        <p class="description">This simulates the "short_description" field in Tournament admin</p>
+        
+        <div class="ck-editor__editable_inline" contenteditable="true" style="min-height: 200px;">
+            <p>Type your tournament description here. This text should be clearly visible and readable while you type...</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test: Additional Rules Field</h3>
+        <p class="description">This simulates the "additional_rules_richtext" field</p>
+        
+        <div class="ck-editor__editable_inline" contenteditable="true" style="min-height: 200px;">
+            <p>Enter tournament rules here. The text should remain visible and well-formatted as you type...</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Visual Check</h3>
+        <p>✅ Text should be clearly visible in both light and dark themes</p>
+        <p>✅ Editor should have proper borders and focus states</p>
+        <p>✅ Text should remain readable while typing</p>
+        <p>✅ Minimum height should be adequate (200px)</p>
+    </div>
+</body>
+</html>

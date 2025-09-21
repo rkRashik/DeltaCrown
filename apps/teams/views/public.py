@@ -18,6 +18,10 @@ from django.views.decorators.http import require_http_methods
 from urllib.parse import urlencode
 
 from ..models import Team, TeamMembership, TeamInvite
+from ..forms import (
+    TeamCreationForm, TeamEditForm, TeamInviteForm, 
+    TeamMemberManagementForm, TeamSettingsForm
+)
 
 
 # -------------------------
@@ -250,6 +254,11 @@ def team_list(request):
 # Team detail (public)
 # -------------------------
 def team_detail(request, slug: str):
+    # Redirect to the new social team page
+    from django.shortcuts import redirect
+    return redirect('teams:teams_social:team_social_detail', team_slug=slug)
+    
+    # Original team detail code (kept for reference)
     team_qs = _base_team_queryset()
     team = team_qs.filter(slug=slug).first() or get_object_or_404(team_qs, slug=slug)
 
@@ -308,35 +317,27 @@ def team_detail(request, slug: str):
 # -------------------------
 # Create team (public, auth)
 # -------------------------
-class TeamCreateForm(forms.ModelForm):
-    class Meta:
-        model = Team
-        # keep your original exclusions
-        exclude = ("name_ci", "tag_ci", "captain")
-
-
 @login_required
 @require_http_methods(["GET", "POST"])
 def create_team_view(request):
+    """Create a new team with the requesting user as captain."""
     profile = _ensure_profile(request.user)
 
     if request.method == "POST":
-        form = TeamCreateForm(request.POST, request.FILES)
+        form = TeamCreationForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
-            team = form.save(commit=False)
-            team.captain = profile
-            team.save()
-            messages.success(request, "Team created successfully.")
-            return redirect("teams:detail", slug=team.slug or team.id)
+            team = form.save()
+            messages.success(request, f"Team '{team.name}' created successfully!")
+            return redirect("teams:detail", slug=team.slug)
         else:
             messages.error(request, "Please correct the errors below.")
     else:
-        # prefill game from querystring if provided
+        # Pre-fill game from query string if provided
         initial = {}
-        game = (request.GET.get("game") or "").strip()
-        if game and hasattr(Team, "game"):
+        game = request.GET.get("game", "").strip()
+        if game:
             initial["game"] = game
-        form = TeamCreateForm(initial=initial)
+        form = TeamCreationForm(user=request.user, initial=initial)
 
     return render(request, "teams/create.html", {"form": form})
 
@@ -344,39 +345,78 @@ def create_team_view(request):
 # -------------------------
 # Manage team (captain only)
 # -------------------------
-class TeamEditForm(forms.ModelForm):
-    class Meta:
-        model = Team
-        exclude = ("name_ci", "tag_ci")
-
-
 @login_required
 @require_http_methods(["GET", "POST"])
 def manage_team_view(request, slug: str):
+    """Comprehensive team management view for team captains."""
     team = get_object_or_404(Team.objects.select_related("captain__user"), slug=slug)
     profile = _ensure_profile(request.user)
+    
     if not _is_captain(profile, team):
-        messages.error(request, "Only the captain can manage the team.")
+        messages.error(request, "Only the team captain can manage this team.")
         return redirect("teams:detail", slug=team.slug)
 
+    # Handle form submissions
     if request.method == "POST":
-        form = TeamEditForm(request.POST, request.FILES, instance=team)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Team updated.")
-            return redirect("teams:manage", slug=team.slug)
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = TeamEditForm(instance=team)
-
+        form_type = request.POST.get("form_type")
+        
+        if form_type == "edit_team":
+            form = TeamEditForm(request.POST, request.FILES, instance=team, user=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Team information updated successfully!")
+                return redirect("teams:manage", slug=team.slug)
+            else:
+                messages.error(request, "Please correct the errors in the team information form.")
+                
+        elif form_type == "invite_member":
+            invite_form = TeamInviteForm(request.POST, team=team, sender=request.user)
+            if invite_form.is_valid():
+                invite_form.save()
+                messages.success(request, f"Invitation sent successfully!")
+                return redirect("teams:manage", slug=team.slug)
+            else:
+                messages.error(request, "Please correct the errors in the invitation form.")
+                
+        elif form_type == "manage_members":
+            member_form = TeamMemberManagementForm(request.POST, team=team, user=request.user)
+            if member_form.is_valid():
+                member_form.save()
+                messages.success(request, "Member management action completed successfully!")
+                return redirect("teams:manage", slug=team.slug)
+            else:
+                messages.error(request, "Please correct the errors in the member management form.")
+                
+        elif form_type == "team_settings":
+            settings_form = TeamSettingsForm(request.POST, instance=team, user=request.user)
+            if settings_form.is_valid():
+                settings_form.save()
+                messages.success(request, "Team settings updated successfully!")
+                return redirect("teams:manage", slug=team.slug)
+            else:
+                messages.error(request, "Please correct the errors in the settings form.")
+    
+    # Initialize forms for GET request
+    edit_form = TeamEditForm(instance=team, user=request.user)
+    invite_form = TeamInviteForm(team=team, sender=request.user)
+    member_form = TeamMemberManagementForm(team=team, user=request.user)
+    settings_form = TeamSettingsForm(instance=team, user=request.user)
+    
+    # Get team data
     pending_invites = team.invites.filter(status="PENDING").select_related("invited_user__user")
+    members = team.memberships.filter(status="ACTIVE").select_related("user__user")
+    
+    context = {
+        "team": team,
+        "edit_form": edit_form,
+        "invite_form": invite_form,
+        "member_form": member_form,
+        "settings_form": settings_form,
+        "pending_invites": pending_invites,
+        "members": members,
+    }
 
-    return render(
-        request,
-        "teams/manage.html",
-        {"team": team, "form": form, "pending_invites": pending_invites},
-    )
+    return render(request, "teams/manage.html", context)
 
 
 # -------------------------
@@ -385,43 +425,26 @@ def manage_team_view(request, slug: str):
 @login_required
 @require_http_methods(["GET", "POST"])
 def invite_member_view(request, slug: str):
+    """Send invitation to new team member."""
     team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        messages.error(request, "Only the team captain can invite members.")
+        return redirect("teams:detail", slug=team.slug)
 
     if request.method == "POST":
-        actor = _ensure_profile(request.user)
-        if not _is_captain(actor, team):
-            messages.error(request, "Only the team captain can invite members.")
-            return redirect(reverse("teams:detail", kwargs={"slug": team.slug}))
+        form = TeamInviteForm(request.POST, team=team, sender=request.user)
+        if form.is_valid():
+            invite = form.save()
+            messages.success(request, f"Invitation sent to {invite.invited_user.user.username}!")
+            return redirect("teams:detail", slug=team.slug)
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = TeamInviteForm(team=team, sender=request.user)
 
-        username = (request.POST.get("username") or "").strip()
-        email = (request.POST.get("email") or "").strip()
-        msg = (request.POST.get("message") or "").strip()
-
-        User = get_user_model()
-        target_user = None
-        if username:
-            target_user = User.objects.filter(username=username).first()
-        if not target_user and email:
-            target_user = User.objects.filter(email=email).first()
-
-        if not target_user:
-            messages.error(request, "User not found by username/email.")
-            return redirect(reverse("teams:invite_member", kwargs={"slug": team.slug}))
-
-        target_profile = _ensure_profile(target_user)
-        invite, _created = TeamInvite.objects.get_or_create(
-            team=team,
-            invited_user=target_profile,
-            defaults={"invited_by": actor, "message": msg, "status": "PENDING"},
-        )
-        if not getattr(invite, "token", ""):
-            invite.token = uuid4().hex
-            invite.save(update_fields=["token"])
-
-        messages.success(request, f"Invite sent to {target_user.username}.")
-        return redirect(reverse("teams:detail", kwargs={"slug": team.slug}))
-
-    return render(request, "teams/invite_member.html", {"team": team})
+    return render(request, "teams/invite_member.html", {"team": team, "form": form})
 
 
 @login_required
@@ -527,17 +550,156 @@ def join_team_view(request, slug: str):
 
 
 # -------------------------
-# Kick member (captain only) - lightweight stub
+# Team member management
 # -------------------------
 @login_required
-@require_http_methods(["POST", "GET"])
+@require_http_methods(["POST"])
 def kick_member_view(request, slug: str, profile_id: int):
+    """Remove a member from the team (captain only)."""
     team = get_object_or_404(Team, slug=slug)
-    actor = _ensure_profile(request.user)
-    if not _is_captain(actor, team):
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
         messages.error(request, "Only the team captain can remove members.")
         return redirect("teams:detail", slug=team.slug)
 
-    TeamMembership.objects.filter(team=team, profile_id=profile_id).delete()
-    messages.success(request, "Member removed.")
+    try:
+        membership = get_object_or_404(TeamMembership, team=team, profile_id=profile_id)
+        member_name = membership.user.user.username
+        membership.delete()
+        messages.success(request, f"Member {member_name} has been removed from the team.")
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "Member not found in this team.")
+    
     return redirect("teams:detail", slug=team.slug)
+
+
+@login_required
+@require_http_methods(["POST"])
+def leave_team_view(request, slug: str):
+    """Allow a member to leave the team."""
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    # Captain cannot leave (must transfer captaincy first)
+    if _is_captain(profile, team):
+        messages.error(request, "As captain, you must transfer captaincy before leaving the team.")
+        return redirect("teams:manage", slug=team.slug)
+    
+    try:
+        membership = get_object_or_404(TeamMembership, team=team, user=profile)
+        membership.delete()
+        messages.success(request, f"You have left team {team.name}.")
+        return redirect("teams:list")
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You are not a member of this team.")
+        return redirect("teams:detail", slug=team.slug)
+
+
+@login_required
+@require_http_methods(["POST"])
+def transfer_captaincy_view(request, slug: str, profile_id: int):
+    """Transfer team captaincy to another member."""
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        messages.error(request, "Only the current captain can transfer captaincy.")
+        return redirect("teams:detail", slug=team.slug)
+    
+    try:
+        new_captain_membership = get_object_or_404(
+            TeamMembership, 
+            team=team, 
+            profile_id=profile_id,
+            status="ACTIVE"
+        )
+        
+        # Update team captain
+        team.captain = new_captain_membership.user
+        team.save()
+        
+        messages.success(
+            request, 
+            f"Team captaincy transferred to {new_captain_membership.user.user.username}."
+        )
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "Selected user is not an active member of this team.")
+    
+    return redirect("teams:detail", slug=team.slug)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def team_settings_view(request, slug: str):
+    """Team settings page for advanced configuration."""
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        messages.error(request, "Only the team captain can access team settings.")
+        return redirect("teams:detail", slug=team.slug)
+    
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "update_setting":
+            # Handle individual setting updates
+            for field in ['is_open', 'is_recruiting']:
+                if field in request.POST:
+                    setattr(team, field, request.POST.get(field) == 'true')
+            team.save()
+            messages.success(request, "Team settings updated successfully!")
+        return redirect("teams:settings", slug=team.slug)
+    
+    context = {
+        "team": team,
+        "members": team.memberships.filter(status="ACTIVE").select_related("user__user"),
+        "pending_invites": team.invites.filter(status="PENDING").select_related("invited_user__user"),
+    }
+    
+    return render(request, "teams/settings.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_team_view(request, slug: str):
+    """Delete a team permanently (captain only)."""
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        messages.error(request, "Only the team captain can delete the team.")
+        return redirect("teams:detail", slug=team.slug)
+    
+    confirm_name = request.POST.get("confirm_name", "").strip()
+    if confirm_name != team.name:
+        messages.error(request, "Team name confirmation does not match.")
+        return redirect("teams:settings", slug=team.slug)
+    
+    team_name = team.name
+    team.delete()
+    messages.success(request, f"Team '{team_name}' has been permanently deleted.")
+    return redirect("teams:list")
+
+
+@login_required
+@require_http_methods(["POST"])
+def cancel_invite_view(request, slug: str):
+    """Cancel a pending team invitation."""
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        messages.error(request, "Only the team captain can cancel invitations.")
+        return redirect("teams:detail", slug=team.slug)
+    
+    invite_id = request.POST.get("invite_id")
+    try:
+        invite = get_object_or_404(TeamInvite, id=invite_id, team=team, status="PENDING")
+        invited_user_name = invite.invited_user.display_name
+        invite.delete()
+        messages.success(request, f"Invitation to {invited_user_name} has been cancelled.")
+    except TeamInvite.DoesNotExist:
+        messages.error(request, "Invitation not found or already processed.")
+    
+    return redirect("teams:manage", slug=team.slug)
