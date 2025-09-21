@@ -75,6 +75,7 @@ def team_social_detail(request, team_slug):
         'banner_form': banner_form,
         'user_profile': user_profile,
         'follower_count': team.get_follower_count(),
+        'already_in_team_for_game': False,  # TODO: implement game-specific team check
     }
     
     return render(request, 'teams/team_social_detail.html', context)

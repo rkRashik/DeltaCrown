@@ -304,123 +304,83 @@
 /* Team Roster Section */
 .roster-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
 }
 
 .roster-member {
-    background: linear-gradient(145deg, #161b22 0%, #0d1117 100%);
+    background: #0d1117;
     border: 1px solid #30363d;
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 12px;
+    padding: 20px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.roster-member::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #1f6feb, #0969da, #0550ae);
-    opacity: 0;
-    transition: opacity 0.3s;
 }
 
 .esports-team-page.light-theme .roster-member {
-    background: linear-gradient(145deg, #ffffff 0%, #f6f8fa 100%);
+    background: #f6f8fa;
     border: 1px solid #d0d7de;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .roster-member:hover {
     border-color: #1f6feb;
-    background: linear-gradient(145deg, #21262d 0%, #161b22 100%);
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 12px 32px rgba(31, 111, 235, 0.2);
-}
-
-.roster-member:hover::before {
-    opacity: 1;
+    background: #161b22;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(31, 111, 235, 0.15);
 }
 
 .esports-team-page.light-theme .roster-member:hover {
-    background: linear-gradient(145deg, #ffffff 0%, #f6f8fa 100%);
-    box-shadow: 0 12px 32px rgba(31, 111, 235, 0.12);
+    background: #ffffff;
 }
 
 .member-header {
     display: flex;
     align-items: center;
-    gap: 18px;
-    margin-bottom: 20px;
-    position: relative;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
 .member-avatar {
-    width: 72px;
-    height: 72px;
-    border-radius: 16px;
-    border: 3px solid #30363d;
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    border: 2px solid #30363d;
     object-fit: cover;
-    transition: all 0.3s;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.roster-member:hover .member-avatar {
-    border-color: #1f6feb;
-    box-shadow: 0 6px 20px rgba(31, 111, 235, 0.3);
-    transform: scale(1.05);
 }
 
 .esports-team-page.light-theme .member-avatar {
-    border: 3px solid #d0d7de;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 2px solid #d0d7de;
 }
 
 .member-avatar-placeholder {
-    width: 72px;
-    height: 72px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #1f6feb, #0969da);
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    background: #1f6feb;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
-    font-weight: 800;
+    font-size: 24px;
+    font-weight: 700;
     color: white;
-    border: 3px solid #30363d;
-    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.2);
-    transition: all 0.3s;
-}
-
-.roster-member:hover .member-avatar-placeholder {
-    border-color: #1f6feb;
-    box-shadow: 0 6px 20px rgba(31, 111, 235, 0.4);
-    transform: scale(1.05);
+    border: 2px solid #30363d;
 }
 
 .esports-team-page.light-theme .member-avatar-placeholder {
-    border: 3px solid #d0d7de;
+    border: 2px solid #d0d7de;
 }
 
 .member-info {
     flex: 1;
-    min-width: 0;
 }
 
 .member-username {
-    font-size: 20px;
-    font-weight: 800;
+    font-size: 18px;
+    font-weight: 700;
     color: #e6edf3;
-    margin: 0 0 6px 0;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    margin: 0 0 4px 0;
 }
 
 .esports-team-page.light-theme .member-username {
@@ -428,110 +388,47 @@
 }
 
 .member-role {
-    background: linear-gradient(135deg, #1f6feb, #0969da);
+    background: #1f6feb;
     color: white;
-    padding: 6px 12px;
-    border-radius: 16px;
-    font-size: 11px;
-    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    box-shadow: 0 2px 8px rgba(31, 111, 235, 0.3);
-    transition: all 0.3s;
 }
 
 .member-role.captain {
-    background: linear-gradient(135deg, #ffd700, #ffb300);
+    background: #ffd700;
     color: #000;
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
-}
-
-.member-role.captain::before {
-    content: '👑';
-    font-size: 10px;
-}
-
-.roster-member:hover .member-role {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(31, 111, 235, 0.4);
-}
-
-.roster-member:hover .member-role.captain {
-    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
 }
 
 .member-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-top: 20px;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.esports-team-page.light-theme .member-stats {
-    background: rgba(0, 0, 0, 0.02);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    gap: 12px;
+    margin-top: 16px;
 }
 
 .member-stat {
     text-align: center;
-    position: relative;
-    padding: 8px 0;
-}
-
-.member-stat::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 2px;
-    background: linear-gradient(90deg, #1f6feb, #0969da);
-    border-radius: 1px;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.roster-member:hover .member-stat::after {
-    opacity: 1;
 }
 
 .member-stat-number {
-    font-size: 20px;
-    font-weight: 900;
+    font-size: 16px;
+    font-weight: 700;
     color: #e6edf3;
     display: block;
-    margin-bottom: 4px;
-    font-variant-numeric: tabular-nums;
-    transition: all 0.3s;
-}
-
-.roster-member:hover .member-stat-number {
-    color: #1f6feb;
-    transform: scale(1.1);
 }
 
 .esports-team-page.light-theme .member-stat-number {
     color: #24292f;
 }
 
-.esports-team-page.light-theme .roster-member:hover .member-stat-number {
-    color: #1f6feb;
-}
-
 .member-stat-label {
     color: #7d8590;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
     margin-top: 2px;
 }
 
@@ -726,80 +623,62 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.8);
     z-index: 1000;
     display: none;
     align-items: center;
     justify-content: center;
     padding: 20px;
-    opacity: 0;
-    transition: all 0.3s ease;
 }
 
 .profile-modal.show {
     display: flex;
-    opacity: 1;
 }
 
 .profile-modal-content {
-    background: linear-gradient(145deg, #161b22 0%, #0d1117 100%);
+    background: #161b22;
     border: 1px solid #30363d;
-    border-radius: 20px;
-    padding: 32px;
-    max-width: 450px;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
     width: 100%;
     position: relative;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    transform: scale(0.9);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.profile-modal.show .profile-modal-content {
-    transform: scale(1);
 }
 
 .esports-team-page.light-theme .profile-modal-content {
-    background: linear-gradient(145deg, #ffffff 0%, #f6f8fa 100%);
+    background: #ffffff;
     border: 1px solid #d0d7de;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 .modal-close {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
     color: #7d8590;
-    font-size: 16px;
+    font-size: 20px;
     cursor: pointer;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
-    backdrop-filter: blur(10px);
 }
 
 .esports-team-page.light-theme .modal-close {
     color: #656d76;
-    background: rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #1f6feb;
-    color: #1f6feb;
-    transform: scale(1.1);
+    background: #30363d;
+    color: #e6edf3;
 }
 
 .esports-team-page.light-theme .modal-close:hover {
-    background: rgba(0, 0, 0, 0.1);
-    color: #1f6feb;
+    background: #f6f8fa;
+    color: #24292f;
 }
 
 /* Responsive Design */
@@ -875,26 +754,12 @@
     animation: loading 1.5s infinite;
 }
 
-.loading-placeholder {
-    background: linear-gradient(90deg, #30363d 25%, #404040 50%, #30363d 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-    color: transparent !important;
-    border-radius: 4px;
-    min-width: 20px;
-    min-height: 20px;
-}
-
 @keyframes loading {
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
 
 .esports-team-page.light-theme .loading-skeleton {
-    background: linear-gradient(90deg, #f6f8fa 25%, #e1e4e8 50%, #f6f8fa 75%);
-}
-
-.esports-team-page.light-theme .loading-placeholder {
     background: linear-gradient(90deg, #f6f8fa 25%, #e1e4e8 50%, #f6f8fa 75%);
 }
 </style>
@@ -1090,17 +955,17 @@
                     </span>
                   </div>
                 </div>
-                <div class="member-stats" data-username="{{ membership.profile.user.username }}" data-profile-id="{{ membership.profile.id }}">
+                <div class="member-stats">
                   <div class="member-stat">
-                    <span class="member-stat-number loading-placeholder">--</span>
+                    <span class="member-stat-number">{{ membership.profile.matches_played|default:"0" }}</span>
                     <span class="member-stat-label">Matches</span>
                   </div>
                   <div class="member-stat">
-                    <span class="member-stat-number loading-placeholder">--</span>
+                    <span class="member-stat-number">{{ membership.profile.wins|default:"0" }}</span>
                     <span class="member-stat-label">Wins</span>
                   </div>
                   <div class="member-stat">
-                    <span class="member-stat-number loading-placeholder">--</span>
+                    <span class="member-stat-number">{{ membership.profile.rating|default:"--" }}</span>
                     <span class="member-stat-label">Rating</span>
                   </div>
                 </div>
@@ -1339,71 +1204,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 content.style.display = 'none';
             });
             document.getElementById(tabName + '-tab').style.display = 'block';
-            
-            // Load roster stats when roster tab is shown
-            if (tabName === 'roster') {
-                loadRosterStats();
-            }
         });
     });
-    
-    // Load roster stats for overview tab (initial load)
-    loadRosterStats();
-    
-    // Function to load real stats for roster members
-    function loadRosterStats() {
-        const memberStats = document.querySelectorAll('.member-stats');
-        
-        memberStats.forEach(statsContainer => {
-            const profileId = statsContainer.dataset.profileId;
-            const username = statsContainer.dataset.username;
-            
-            if (!profileId || statsContainer.dataset.loaded === 'true') return;
-            
-            // Mark as loading to prevent duplicate requests
-            statsContainer.dataset.loaded = 'true';
-            
-            fetch(`/user/api/profile/${profileId}/`, {
-                method: 'GET',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Update the stats in the roster card
-                const statNumbers = statsContainer.querySelectorAll('.member-stat-number');
-                if (statNumbers.length >= 3) {
-                    statNumbers[0].textContent = data.matches_played || 0;
-                    statNumbers[1].textContent = data.wins || 0;
-                    statNumbers[2].textContent = data.rating || '--';
-                    
-                    // Remove loading placeholder class
-                    statNumbers.forEach(el => el.classList.remove('loading-placeholder'));
-                }
-            })
-            .catch(error => {
-                console.log('Failed to load stats for', username, error);
-                // Generate consistent fake data as fallback
-                const hash = username.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
-                const matches = Math.abs(hash % 200) + 50;
-                const winRate = 0.4 + (Math.abs(hash % 40) / 100);
-                const wins = Math.floor(matches * winRate);
-                const rating = Math.abs(hash % 1000) + 1200;
-                
-                const statNumbers = statsContainer.querySelectorAll('.member-stat-number');
-                if (statNumbers.length >= 3) {
-                    statNumbers[0].textContent = matches;
-                    statNumbers[1].textContent = wins;
-                    statNumbers[2].textContent = rating;
-                    
-                    // Remove loading placeholder class
-                    statNumbers.forEach(el => el.classList.remove('loading-placeholder'));
-                }
-            });
-        });
-    }
     
     // Follow/Unfollow functionality
     window.toggleFollow = function() {
@@ -1448,144 +1250,37 @@ document.addEventListener('DOMContentLoaded', function() {
         
         modal.classList.add('show');
         
-        // Fetch real profile data from the server
-        fetch(`/user/api/profile/${profileId}/`, {
-            method: 'GET',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json',
-            },
-        })
-        .then(response => {
-            if (!response.ok) {
-                // If API fails, show basic info with realistic fake data
-                throw new Error('Profile API unavailable');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Use real data from API
+        // Load actual profile data
+        setTimeout(() => {
             content.innerHTML = `
                 <div style="text-align: center;">
-                    ${data.avatar_url ? 
-                        `<div style="position: relative; display: inline-block; margin-bottom: 20px;">
-                            <img src="${data.avatar_url}" style="width: 100px; height: 100px; border-radius: 20px; object-fit: cover; border: 4px solid #1f6feb; box-shadow: 0 8px 24px rgba(31, 111, 235, 0.3);">
-                            <div style="position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; background: linear-gradient(135deg, #3fb950, #2ea043); border-radius: 50%; border: 3px solid #161b22; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-check" style="font-size: 10px; color: white;"></i>
-                            </div>
-                         </div>` :
-                        `<div style="width: 100px; height: 100px; border-radius: 20px; background: linear-gradient(135deg, #1f6feb, #0969da); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 800; color: white; margin: 0 auto 20px; border: 4px solid rgba(31, 111, 235, 0.3); box-shadow: 0 8px 24px rgba(31, 111, 235, 0.3);">
-                            ${(data.display_name || data.username || username).charAt(0).toUpperCase()}
-                        </div>`
-                    }
-                    
-                    <h3 style="margin: 0 0 4px 0; color: #e6edf3; font-size: 22px; font-weight: 800;">${data.display_name || data.username || username}</h3>
-                    <p style="color: #1f6feb; margin: 0 0 8px 0; font-size: 14px; font-weight: 600;">@${data.username || username}</p>
-                    <p style="color: #7d8590; margin: 0 0 20px 0; line-height: 1.5;">${data.bio}</p>
-                    
-                    ${data.teams && data.teams.length > 0 ? `
-                        <div style="background: rgba(31, 111, 235, 0.1); border-radius: 12px; padding: 12px; margin-bottom: 20px;">
-                            <h4 style="color: #e6edf3; margin: 0 0 8px 0; font-size: 14px;">Current Teams</h4>
-                            ${data.teams.map(team => `
-                                <div style="color: #7d8590; font-size: 12px; margin-bottom: 4px;">
-                                    <span style="color: #e6edf3; font-weight: 600;">${team.name}</span> - ${team.role}
-                                    ${team.game ? ` (${team.game})` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
-                    
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; background: rgba(255, 255, 255, 0.02); border-radius: 12px; padding: 16px;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #e6edf3; margin-bottom: 4px;">${data.matches_played || 0}</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Matches</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #3fb950; margin-bottom: 4px;">${data.wins || 0}</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Wins</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #1f6feb; margin-bottom: 4px;">${data.win_rate || '0%'}</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Win Rate</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #ffa500; margin-bottom: 4px;">${data.rating || '--'}</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Rating</div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                        <div style="flex: 1; text-align: center; background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px;">
-                            <div style="color: #7d8590; font-size: 11px; font-weight: 600; text-transform: uppercase;">Region</div>
-                            <div style="color: #e6edf3; font-weight: 600;">${data.region || 'Global'}</div>
-                        </div>
-                        <div style="flex: 1; text-align: center; background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px;">
-                            <div style="color: #7d8590; font-size: 11px; font-weight: 600; text-transform: uppercase;">Joined</div>
-                            <div style="color: #e6edf3; font-weight: 600;">${data.joined_date || 'Recently'}</div>
-                        </div>
-                    </div>
-                    
-                    <a href="/user/u/${data.username || username}/" style="display: block; background: linear-gradient(135deg, #1f6feb, #0969da); color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 16px rgba(31, 111, 235, 0.3); transition: all 0.2s;">
-                        <i class="fas fa-user"></i> View Full Profile
-                    </a>
-                </div>
-            `;
-        })
-        .catch(error => {
-            console.log('Using fallback profile data:', error);
-            // Generate consistent fake data based on username hash
-            const hash = username.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
-            const matches = Math.abs(hash % 200) + 50; // 50-250 matches (consistent per user)
-            const winRate = 0.4 + (Math.abs(hash % 40) / 100); // 40-80% win rate
-            const wins = Math.floor(matches * winRate);
-            const rating = Math.abs(hash % 1000) + 1200; // 1200-2200 rating
-            
-            content.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="width: 100px; height: 100px; border-radius: 20px; background: linear-gradient(135deg, #1f6feb, #0969da); display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 800; color: white; margin: 0 auto 20px; border: 4px solid rgba(31, 111, 235, 0.3); box-shadow: 0 8px 24px rgba(31, 111, 235, 0.3);">
+                    <div style="width: 80px; height: 80px; border-radius: 50%; background: #1f6feb; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 700; color: white; margin: 0 auto 16px;">
                         ${username.charAt(0).toUpperCase()}
                     </div>
+                    <h3 style="margin: 0 0 8px 0; color: #e6edf3;">${username}</h3>
+                    <p style="color: #7d8590; margin: 0 0 20px 0;">Professional Esports Player</p>
                     
-                    <h3 style="margin: 0 0 4px 0; color: #e6edf3; font-size: 22px; font-weight: 800;">${username}</h3>
-                    <p style="color: #1f6feb; margin: 0 0 8px 0; font-size: 14px; font-weight: 600;">@${username}</p>
-                    <p style="color: #7d8590; margin: 0 0 20px 0; line-height: 1.5;">Professional Esports Player</p>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; background: rgba(255, 255, 255, 0.02); border-radius: 12px; padding: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
                         <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #e6edf3; margin-bottom: 4px;">${matches}</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Matches</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #e6edf3;">127</div>
+                            <div style="font-size: 12px; color: #7d8590;">Matches</div>
                         </div>
                         <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #3fb950; margin-bottom: 4px;">${wins}</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Wins</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #e6edf3;">89</div>
+                            <div style="font-size: 12px; color: #7d8590;">Wins</div>
                         </div>
                         <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #1f6feb; margin-bottom: 4px;">${Math.round((wins/matches)*100)}%</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Win Rate</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 22px; font-weight: 900; color: #ffa500; margin-bottom: 4px;">${rating}</div>
-                            <div style="font-size: 11px; color: #7d8590; text-transform: uppercase; font-weight: 600;">Rating</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #e6edf3;">1847</div>
+                            <div style="font-size: 12px; color: #7d8590;">Rating</div>
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                        <div style="flex: 1; text-align: center; background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px;">
-                            <div style="color: #7d8590; font-size: 11px; font-weight: 600; text-transform: uppercase;">Region</div>
-                            <div style="color: #e6edf3; font-weight: 600;">Global</div>
-                        </div>
-                        <div style="flex: 1; text-align: center; background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 8px;">
-                            <div style="color: #7d8590; font-size: 11px; font-weight: 600; text-transform: uppercase;">Joined</div>
-                            <div style="color: #e6edf3; font-weight: 600;">Recently</div>
-                        </div>
-                    </div>
-                    
-                    <a href="/user/u/${username}/" style="display: block; background: linear-gradient(135deg, #1f6feb, #0969da); color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 16px rgba(31, 111, 235, 0.3); transition: all 0.2s;">
+                    <a href="/players/${username}/" style="display: block; background: #1f6feb; color: white; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: 600;">
                         <i class="fas fa-user"></i> View Full Profile
                     </a>
                 </div>
             `;
-        });
+        }, 800);
     };
     
     window.closeMemberProfile = function() {
