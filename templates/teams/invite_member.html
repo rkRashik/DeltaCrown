@@ -1,111 +1,888 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Invite Member to {{ team.name }} — DeltaCrown{% endblock %}
+{% block title %}Invite Member to {{ team.name }} — Professional Recruitment{% endblock %}
+
+{% block extra_head %}
+<style>
+/* 🏆 VLR.gg INSPIRED PROFESSIONAL TEAM INVITE SYSTEM 🏆 */
+.professional-invite-system {
+    background: #0d1117;
+    min-height: 100vh;
+    color: #e6edf3;
+}
+
+.professional-invite-system.light-theme {
+    background: #ffffff;
+    color: #24292f;
+}
+
+.invite-header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 24px 0;
+    margin-bottom: 32px;
+}
+
+.professional-invite-system.light-theme .invite-header {
+    background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+}
+
+.header-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.team-invite-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.team-logo-header {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    object-fit: cover;
+}
+
+.professional-invite-system.light-theme .team-logo-header {
+    border: 1px solid #d0d7de;
+}
+
+.team-logo-placeholder-header {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: #1f6feb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+}
+
+.invite-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e6edf3;
+    margin: 0 0 4px 0;
+}
+
+.professional-invite-system.light-theme .invite-title {
+    color: #24292f;
+}
+
+.invite-subtitle {
+    color: #7d8590;
+    font-size: 14px;
+    margin: 0;
+}
+
+.professional-invite-system.light-theme .invite-subtitle {
+    color: #656d76;
+}
+
+.back-btn {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+
+.professional-invite-system.light-theme .back-btn {
+    background: #ffffff;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+}
+
+.back-btn:hover {
+    background: #30363d;
+    color: #e6edf3;
+    text-decoration: none;
+}
+
+.professional-invite-system.light-theme .back-btn:hover {
+    background: #f6f8fa;
+    color: #24292f;
+}
+
+.invite-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.invite-methods {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.invite-method {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.professional-invite-system.light-theme .invite-method {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.invite-method:hover {
+    border-color: #1f6feb;
+    background: #21262d;
+}
+
+.professional-invite-system.light-theme .invite-method:hover {
+    border-color: #1f6feb;
+    background: #f6f8fa;
+}
+
+.invite-method.active {
+    border-color: #1f6feb;
+    background: rgba(31, 111, 235, 0.05);
+}
+
+.method-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #1f6feb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    margin-bottom: 16px;
+}
+
+.method-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 8px;
+}
+
+.professional-invite-system.light-theme .method-title {
+    color: #24292f;
+}
+
+.method-desc {
+    color: #7d8590;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.professional-invite-system.light-theme .method-desc {
+    color: #656d76;
+}
+
+.invite-form {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.professional-invite-system.light-theme .invite-form {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.form-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.professional-invite-system.light-theme .form-section-title {
+    color: #24292f;
+}
+
+.search-section {
+    margin-bottom: 24px;
+}
+
+.search-input {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 12px 16px 12px 40px;
+    color: #e6edf3;
+    font-size: 14px;
+    position: relative;
+}
+
+.professional-invite-system.light-theme .search-input {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292f;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #1f6feb;
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7d8590;
+    font-size: 14px;
+}
+
+.professional-invite-system.light-theme .search-icon {
+    color: #656d76;
+}
+
+.search-results {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    margin-top: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.professional-invite-system.light-theme .search-results {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #30363d;
+    transition: background-color 0.2s;
+}
+
+.professional-invite-system.light-theme .result-item {
+    border-bottom: 1px solid #d0d7de;
+}
+
+.result-item:last-child {
+    border-bottom: none;
+}
+
+.result-item:hover {
+    background: #161b22;
+}
+
+.professional-invite-system.light-theme .result-item:hover {
+    background: #f6f8fa;
+}
+
+.result-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+}
+
+.professional-invite-system.light-theme .result-avatar {
+    border: 1px solid #d0d7de;
+}
+
+.result-info {
+    flex: 1;
+}
+
+.result-name {
+    font-weight: 600;
+    color: #e6edf3;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.professional-invite-system.light-theme .result-name {
+    color: #24292f;
+}
+
+.result-details {
+    color: #7d8590;
+    font-size: 12px;
+}
+
+.professional-invite-system.light-theme .result-details {
+    color: #656d76;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 8px;
+}
+
+.professional-invite-system.light-theme .form-label {
+    color: #24292f;
+}
+
+.form-input {
+    width: 100%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 12px 16px;
+    color: #e6edf3;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.professional-invite-system.light-theme .form-input {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292f;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #1f6feb;
+    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
+}
+
+.form-textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.form-help {
+    color: #7d8590;
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+.professional-invite-system.light-theme .form-help {
+    color: #656d76;
+}
+
+.form-error {
+    color: #f85149;
+    font-size: 12px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.invite-preview {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.professional-invite-system.light-theme .invite-preview {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+}
+
+.preview-title {
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+.professional-invite-system.light-theme .preview-title {
+    color: #24292f;
+}
+
+.preview-content {
+    color: #7d8590;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.professional-invite-system.light-theme .preview-content {
+    color: #656d76;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 20px;
+    border-top: 1px solid #30363d;
+}
+
+.professional-invite-system.light-theme .form-actions {
+    border-top: 1px solid #d0d7de;
+}
+
+.btn-primary {
+    background: #1f6feb;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    background: #1a5dc7;
+}
+
+.btn-secondary {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.professional-invite-system.light-theme .btn-secondary {
+    background: #ffffff;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+}
+
+.btn-secondary:hover {
+    background: #30363d;
+    color: #e6edf3;
+    text-decoration: none;
+}
+
+.professional-invite-system.light-theme .btn-secondary:hover {
+    background: #f6f8fa;
+    color: #24292f;
+}
+
+.selected-player {
+    background: #0d1117;
+    border: 1px solid #1f6feb;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.professional-invite-system.light-theme .selected-player {
+    background: #ffffff;
+    border: 1px solid #1f6feb;
+}
+
+.selected-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+}
+
+.professional-invite-system.light-theme .selected-avatar {
+    border: 1px solid #d0d7de;
+}
+
+.selected-info {
+    flex: 1;
+}
+
+.selected-name {
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 2px;
+}
+
+.professional-invite-system.light-theme .selected-name {
+    color: #24292f;
+}
+
+.selected-details {
+    color: #7d8590;
+    font-size: 12px;
+}
+
+.professional-invite-system.light-theme .selected-details {
+    color: #656d76;
+}
+
+.remove-btn {
+    background: #da3633;
+    color: white;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.remove-btn:hover {
+    background: #b91c1c;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .invite-methods {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="container py-8">
-  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' parent_label=team.name parent_href=team.get_absolute_url current_label='Invite Member' %}
-  
-  <header class="flex items-center justify-between mb-6">
-    <div class="flex items-center gap-3">
-      {% if team.logo %}
-        <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="w-12 h-12 rounded-lg object-cover">
-      {% endif %}
-      <div>
-        <h1 class="sec-h">Invite Member to {{ team.name }}</h1>
-        <p class="text-muted">Send an invitation to join your team</p>
-      </div>
-    </div>
-    <a href="{% url 'teams:detail' team.slug %}" class="btn-secondary">
-      <i class="fas fa-arrow-left mr-2"></i>Back to Team
-    </a>
-  </header>
-
-  <div class="max-w-2xl">
-    <div class="glass p-6 rounded-2xl">
-      <form method="post" class="space-y-6">
-        {% csrf_token %}
-        
-        {% if form.non_field_errors %}
-          <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-            {% for error in form.non_field_errors %}
-              <p class="text-red-400 text-sm">{{ error }}</p>
-            {% endfor %}
+<div class="professional-invite-system">
+  <div class="invite-header">
+    <div class="header-content">
+      <div class="team-invite-info">
+        {% if team.logo %}
+          <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo-header">
+        {% else %}
+          <div class="team-logo-placeholder-header">
+            {{ team.name|first|upper }}
           </div>
         {% endif %}
+        <div>
+          <h1 class="invite-title">Invite Members to {{ team.name }}</h1>
+          <div class="invite-subtitle">Recruit top talent for your professional esports team</div>
+        </div>
+      </div>
+      
+      <a href="{{ team.get_absolute_url }}" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+        Back to Team
+      </a>
+    </div>
+  </div>
 
-        <div class="space-y-4">
-          {% for field in form %}
-            <div>
-              <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-200 mb-2">
-                {{ field.label }}
-                {% if field.field.required %}<span class="text-red-400">*</span>{% endif %}
-              </label>
-              
-              {% if field.name == 'message' %}
-                <textarea 
-                  name="{{ field.name }}" 
-                  id="{{ field.id_for_label }}"
-                  rows="4"
-                  placeholder="Optional message for the invitation..."
-                  class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >{{ field.value|default:'' }}</textarea>
-              {% else %}
-                <input 
-                  type="{{ field.field.widget.input_type|default:'text' }}" 
-                  name="{{ field.name }}" 
-                  id="{{ field.id_for_label }}"
-                  value="{{ field.value|default:'' }}"
-                  class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  {% if field.field.required %}required{% endif %}
-                  {% if field.name == 'username' %}placeholder="Enter username to invite"{% endif %}
-                />
-              {% endif %}
-              
-              {% if field.help_text %}
-                <p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
-              {% endif %}
-              
-              {% if field.errors %}
-                {% for error in field.errors %}
-                  <p class="text-red-400 text-xs mt-1">{{ error }}</p>
-                {% endfor %}
-              {% endif %}
-            </div>
-          {% endfor %}
+  <div class="invite-container">
+    <!-- Invitation Methods -->
+    <div class="invite-methods">
+      <div class="invite-method active" data-method="search">
+        <div class="method-icon">
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="method-title">Search Players</div>
+        <div class="method-desc">Find and invite specific players by username or email address</div>
+      </div>
+      
+      <div class="invite-method" data-method="link">
+        <div class="method-icon">
+          <i class="fas fa-link"></i>
+        </div>
+        <div class="method-title">Invitation Link</div>
+        <div class="method-desc">Generate a shareable link for players to join your team</div>
+      </div>
+    </div>
+
+    <!-- Search & Invite Form -->
+    <div class="invite-form" id="search-form">
+      <h3 class="form-section-title">
+        <i class="fas fa-users"></i>
+        Player Search & Invitation
+      </h3>
+
+      <form method="post">
+        {% csrf_token %}
+        
+        <!-- Player Search -->
+        <div class="search-section">
+          <label class="form-label">Find Players</label>
+          <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="Search by username or email..."
+              id="player-search"
+            />
+          </div>
+          <div class="search-results" id="search-results" style="display: none;">
+            <!-- Results will be populated here -->
+          </div>
+          <div class="form-help">Start typing to search for players to invite</div>
         </div>
 
-        <div class="flex gap-3">
-          <button type="submit" class="btn-primary flex-1 sm:flex-none">
-            <i class="fas fa-paper-plane mr-2"></i>Send Invitation
-          </button>
-          <a href="{% url 'teams:manage' team.slug %}" class="btn-ghost flex-1 sm:flex-none text-center">
-            <i class="fas fa-cogs mr-2"></i>Team Management
+        <!-- Selected Players -->
+        <div id="selected-players">
+          <!-- Selected players will appear here -->
+        </div>
+
+        <!-- Invitation Message -->
+        <div class="form-group">
+          <label for="message" class="form-label">Personal Message (Optional)</label>
+          <textarea 
+            name="message" 
+            id="message"
+            class="form-input form-textarea"
+            placeholder="Add a personal message to your invitation..."
+          ></textarea>
+          <div class="form-help">Customize your invitation with a personal message to increase acceptance rate</div>
+        </div>
+
+        <!-- Role Selection -->
+        <div class="form-group">
+          <label for="role" class="form-label">Assign Role</label>
+          <select name="role" id="role" class="form-input">
+            <option value="member">Member</option>
+            <option value="player">Player</option>
+            <option value="substitute">Substitute</option>
+            <option value="coach">Coach</option>
+            <option value="analyst">Analyst</option>
+          </select>
+          <div class="form-help">Choose the role this member will have in your team</div>
+        </div>
+
+        <!-- Invitation Preview -->
+        <div class="invite-preview">
+          <div class="preview-title">Invitation Preview</div>
+          <div class="preview-content">
+            <strong>{{ user.username }}</strong> has invited you to join <strong>{{ team.name }}</strong> as a <span id="role-preview">Member</span>.<br><br>
+            <span id="message-preview">Join our professional esports team and compete at the highest level!</span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <a href="{{ team.get_absolute_url }}" class="btn-secondary">
+            <i class="fas fa-times"></i>
+            Cancel
           </a>
+          <button type="submit" class="btn-primary" id="send-invites">
+            <i class="fas fa-paper-plane"></i>
+            Send Invitations
+          </button>
         </div>
       </form>
     </div>
 
-    <!-- Invitation Tips -->
-    <div class="mt-6 glass p-4 rounded-lg">
-      <h3 class="text-lg font-semibold text-white mb-3">Invitation Tips</h3>
-      <ul class="space-y-2 text-sm text-gray-300">
-        <li class="flex items-start gap-2">
-          <i class="fas fa-info-circle text-blue-400 mt-1"></i>
-          <span>Enter the exact username of the player you want to invite</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <i class="fas fa-envelope text-green-400 mt-1"></i>
-          <span>The invited player will receive a notification and can accept or decline</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <i class="fas fa-clock text-yellow-400 mt-1"></i>
-          <span>Invitations expire after 7 days if not responded to</span>
-        </li>
-      </ul>
+    <!-- Invitation Link Form -->
+    <div class="invite-form" id="link-form" style="display: none;">
+      <h3 class="form-section-title">
+        <i class="fas fa-link"></i>
+        Team Invitation Link
+      </h3>
+      
+      <div class="form-group">
+        <label class="form-label">Shareable Invitation Link</label>
+        <div style="display: flex; gap: 8px;">
+          <input 
+            type="text" 
+            class="form-input" 
+            value="{{ request.build_absolute_uri }}/teams/{{ team.slug }}/join/"
+            readonly
+            id="invite-link"
+          />
+          <button type="button" class="btn-primary" onclick="copyLink()">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+        <div class="form-help">Share this link with players you want to invite to your team</div>
+      </div>
+      
+      <div style="background: rgba(31, 111, 235, 0.1); border: 1px solid #1f6feb; border-radius: 6px; padding: 16px;">
+        <div style="color: #1f6feb; font-weight: 600; margin-bottom: 8px;">
+          <i class="fas fa-info-circle"></i> Link Settings
+        </div>
+        <div style="color: #7d8590; font-size: 14px;">
+          This invitation link allows anyone with the link to request to join your team. 
+          You can approve or deny requests from your team management dashboard.
+        </div>
+      </div>
     </div>
   </div>
-</section>
-{% endblock %}
+</div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Method switching
+    const methods = document.querySelectorAll('.invite-method');
+    const searchForm = document.getElementById('search-form');
+    const linkForm = document.getElementById('link-form');
+    
+    methods.forEach(method => {
+        method.addEventListener('click', function() {
+            methods.forEach(m => m.classList.remove('active'));
+            this.classList.add('active');
+            
+            const methodType = this.dataset.method;
+            if (methodType === 'search') {
+                searchForm.style.display = 'block';
+                linkForm.style.display = 'none';
+            } else {
+                searchForm.style.display = 'none';
+                linkForm.style.display = 'block';
+            }
+        });
+    });
+    
+    // Player search
+    const searchInput = document.getElementById('player-search');
+    const searchResults = document.getElementById('search-results');
+    let selectedPlayers = [];
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (query.length >= 2) {
+            // Simulate search results
+            setTimeout(() => {
+                showSearchResults([
+                    {id: 1, username: 'ProPlayer1', email: 'pro1@example.com', avatar: null},
+                    {id: 2, username: 'EliteGamer', email: 'elite@example.com', avatar: null},
+                    {id: 3, username: 'ChampionX', email: 'champ@example.com', avatar: null}
+                ]);
+            }, 300);
+        } else {
+            searchResults.style.display = 'none';
+        }
+    });
+    
+    function showSearchResults(players) {
+        searchResults.innerHTML = '';
+        players.forEach(player => {
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            item.innerHTML = `
+                <div class="result-avatar" style="background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">
+                    ${player.username.charAt(0).toUpperCase()}
+                </div>
+                <div class="result-info">
+                    <div class="result-name">${player.username}</div>
+                    <div class="result-details">${player.email}</div>
+                </div>
+            `;
+            item.addEventListener('click', () => selectPlayer(player));
+            searchResults.appendChild(item);
+        });
+        searchResults.style.display = 'block';
+    }
+    
+    function selectPlayer(player) {
+        if (selectedPlayers.find(p => p.id === player.id)) return;
+        
+        selectedPlayers.push(player);
+        updateSelectedPlayers();
+        searchInput.value = '';
+        searchResults.style.display = 'none';
+    }
+    
+    function updateSelectedPlayers() {
+        const container = document.getElementById('selected-players');
+        container.innerHTML = '';
+        
+        selectedPlayers.forEach(player => {
+            const item = document.createElement('div');
+            item.className = 'selected-player';
+            item.innerHTML = `
+                <div class="selected-avatar" style="background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">
+                    ${player.username.charAt(0).toUpperCase()}
+                </div>
+                <div class="selected-info">
+                    <div class="selected-name">${player.username}</div>
+                    <div class="selected-details">${player.email}</div>
+                </div>
+                <button type="button" class="remove-btn" onclick="removePlayer(${player.id})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(item);
+        });
+    }
+    
+    window.removePlayer = function(playerId) {
+        selectedPlayers = selectedPlayers.filter(p => p.id !== playerId);
+        updateSelectedPlayers();
+    };
+    
+    // Preview updates
+    const roleSelect = document.getElementById('role');
+    const messageInput = document.getElementById('message');
+    const rolePreview = document.getElementById('role-preview');
+    const messagePreview = document.getElementById('message-preview');
+    
+    roleSelect.addEventListener('change', function() {
+        rolePreview.textContent = this.options[this.selectedIndex].text;
+    });
+    
+    messageInput.addEventListener('input', function() {
+        const text = this.value.trim();
+        messagePreview.textContent = text || 'Join our professional esports team and compete at the highest level!';
+    });
+    
+    // Copy link function
+    window.copyLink = function() {
+        const linkInput = document.getElementById('invite-link');
+        linkInput.select();
+        document.execCommand('copy');
+        
+        const btn = event.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
+    };
+});
+</script>
+{% endblock %}

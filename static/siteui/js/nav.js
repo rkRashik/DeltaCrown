@@ -83,9 +83,12 @@
     };
 
     const close = ({ focusButton } = { focusButton: false }) => {
-      menu.hidden = true;
       menu.removeAttribute('data-open');
       button.setAttribute('aria-expanded', 'false');
+      // Wait for animation to complete before hiding
+      setTimeout(() => {
+        menu.hidden = true;
+      }, 300);
       if (focusButton) {
         button.focus({ preventScroll: true });
       }

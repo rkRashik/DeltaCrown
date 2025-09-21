@@ -1,297 +1,795 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Manage {{ team.name }} — DeltaCrown{% endblock %}
+{% block title %}Manage {{ team.name }} — Professional Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+/* 🏆 VLR.gg INSPIRED PROFESSIONAL TEAM MANAGEMENT 🏆 */
+.professional-manage-team {
+    background: #0d1117;
+    min-height: 100vh;
+    color: #e6edf3;
+}
+
+.professional-manage-team.light-theme {
+    background: #ffffff;
+    color: #24292f;
+}
+
+.manage-header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 24px 0;
+    margin-bottom: 32px;
+}
+
+.professional-manage-team.light-theme .manage-header {
+    background: #f6f8fa;
+    border-bottom: 1px solid #d0d7de;
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.team-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.team-logo-small {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    object-fit: cover;
+}
+
+.professional-manage-team.light-theme .team-logo-small {
+    border: 1px solid #d0d7de;
+}
+
+.team-logo-placeholder-small {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: #1f6feb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+}
+
+.header-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e6edf3;
+    margin: 0 0 4px 0;
+}
+
+.professional-manage-team.light-theme .header-title {
+    color: #24292f;
+}
+
+.header-subtitle {
+    color: #7d8590;
+    font-size: 14px;
+    margin: 0;
+}
+
+.professional-manage-team.light-theme .header-subtitle {
+    color: #656d76;
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-header {
+    background: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+
+.professional-manage-team.light-theme .btn-header {
+    background: #ffffff;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+}
+
+.btn-header:hover {
+    background: #30363d;
+    color: #e6edf3;
+    text-decoration: none;
+}
+
+.professional-manage-team.light-theme .btn-header:hover {
+    background: #f6f8fa;
+    color: #24292f;
+}
+
+.btn-primary-header {
+    background: #1f6feb;
+    color: white;
+    border: none;
+}
+
+.btn-primary-header:hover {
+    background: #1a5dc7;
+    color: white;
+}
+
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.dashboard-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.professional-manage-team.light-theme .dashboard-card {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e6edf3;
+    margin: 0;
+}
+
+.professional-manage-team.light-theme .card-title {
+    color: #24292f;
+}
+
+.card-action {
+    color: #1f6feb;
+    font-size: 14px;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.card-action:hover {
+    text-decoration: underline;
+}
+
+.info-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #30363d;
+}
+
+.professional-manage-team.light-theme .info-item {
+    border-bottom: 1px solid #d0d7de;
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: #7d8590;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.professional-manage-team.light-theme .info-label {
+    color: #656d76;
+}
+
+.info-value {
+    color: #e6edf3;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.professional-manage-team.light-theme .info-value {
+    color: #24292f;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.status-active {
+    background: rgba(63, 185, 80, 0.15);
+    color: #3fb950;
+}
+
+.status-inactive {
+    background: rgba(248, 81, 73, 0.15);
+    color: #f85149;
+}
+
+.members-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.member-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+}
+
+.professional-manage-team.light-theme .member-item {
+    background: #f6f8fa;
+    border: 1px solid #d0d7de;
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+}
+
+.professional-manage-team.light-theme .member-avatar {
+    border: 1px solid #d0d7de;
+}
+
+.member-name {
+    font-weight: 600;
+    color: #e6edf3;
+    font-size: 14px;
+}
+
+.professional-manage-team.light-theme .member-name {
+    color: #24292f;
+}
+
+.member-role {
+    color: #7d8590;
+    font-size: 12px;
+}
+
+.professional-manage-team.light-theme .member-role {
+    color: #656d76;
+}
+
+.member-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-btn {
+    background: none;
+    border: 1px solid #30363d;
+    color: #7d8590;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 12px;
+}
+
+.professional-manage-team.light-theme .action-btn {
+    border: 1px solid #d0d7de;
+    color: #656d76;
+}
+
+.action-btn:hover {
+    background: #30363d;
+    color: #e6edf3;
+}
+
+.professional-manage-team.light-theme .action-btn:hover {
+    background: #f6f8fa;
+    color: #24292f;
+}
+
+.action-btn.danger:hover {
+    background: #da3633;
+    color: white;
+    border-color: #da3633;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.quick-action-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    color: #e6edf3;
+    transition: all 0.2s;
+}
+
+.professional-manage-team.light-theme .quick-action-card {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+    color: #24292f;
+}
+
+.quick-action-card:hover {
+    background: #21262d;
+    border-color: #1f6feb;
+    color: #e6edf3;
+    text-decoration: none;
+}
+
+.professional-manage-team.light-theme .quick-action-card:hover {
+    background: #f6f8fa;
+    border-color: #1f6feb;
+    color: #24292f;
+}
+
+.quick-action-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+    color: #1f6feb;
+}
+
+.quick-action-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.quick-action-desc {
+    font-size: 12px;
+    color: #7d8590;
+}
+
+.professional-manage-team.light-theme .quick-action-desc {
+    color: #656d76;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.professional-manage-team.light-theme .stat-card {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.stat-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: #e6edf3;
+    margin-bottom: 4px;
+}
+
+.professional-manage-team.light-theme .stat-number {
+    color: #24292f;
+}
+
+.stat-label {
+    color: #7d8590;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.professional-manage-team.light-theme .stat-label {
+    color: #656d76;
+}
+
+.activity-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.professional-manage-team.light-theme .activity-section {
+    background: #ffffff;
+    border: 1px solid #d0d7de;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #30363d;
+}
+
+.professional-manage-team.light-theme .activity-item {
+    border-bottom: 1px solid #d0d7de;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: #1f6feb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 600;
+    color: #e6edf3;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.professional-manage-team.light-theme .activity-title {
+    color: #24292f;
+}
+
+.activity-time {
+    color: #7d8590;
+    font-size: 12px;
+}
+
+.professional-manage-team.light-theme .activity-time {
+    color: #656d76;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .header-actions {
+        justify-content: center;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<section class="container py-8">
-  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' parent_label=team.name parent_href=team.get_absolute_url current_label='Manage' %}
-  
-  <header class="flex items-center justify-between mb-6">
-    <div class="flex items-center gap-3">
-      {% if team.logo %}
-        <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="w-12 h-12 rounded-lg object-cover">
-      {% endif %}
-      <div>
-        <h1 class="sec-h">Manage {{ team.name }}</h1>
-        <p class="text-muted">Team captain dashboard</p>
-      </div>
-    </div>
-    <div class="flex gap-2">
-      <a href="{% url 'teams:settings' team.slug %}" class="btn-ghost">
-        <i class="fas fa-cog mr-2"></i>Settings
-      </a>
-      <a href="{% url 'teams:detail' team.slug %}" class="btn-secondary">
-        <i class="fas fa-arrow-left mr-2"></i>Back to Team
-      </a>
-    </div>
-  </header>
-
-  <div class="grid lg:grid-cols-2 gap-6">
-    <!-- Team Information -->
-    <div class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-semibold text-white">Team Information</h3>
-        <button onclick="toggleForm('edit-team-form')" class="btn-ghost btn-sm">
-          <i class="fas fa-edit mr-1"></i>Edit
-        </button>
-      </div>
-
-      <div id="edit-team-form" class="hidden">
-        <form method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-          <input type="hidden" name="form_type" value="edit_team">
-          
-          {% if edit_form.non_field_errors %}
-            <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
-              {% for error in edit_form.non_field_errors %}
-                <p class="text-red-400 text-sm">{{ error }}</p>
-              {% endfor %}
-            </div>
-          {% endif %}
-
-          <div class="grid gap-4">
-            {% for field in edit_form %}
-              <div>
-                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-200 mb-2">
-                  {{ field.label }}
-                  {% if field.field.required %}<span class="text-red-400">*</span>{% endif %}
-                </label>
-                {% if field.name == 'description' %}
-                  <textarea 
-                    name="{{ field.name }}" 
-                    id="{{ field.id_for_label }}"
-                    rows="3"
-                    class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >{{ field.value|default:'' }}</textarea>
-                {% elif field.name == 'logo' %}
-                  <input 
-                    type="file" 
-                    name="{{ field.name }}" 
-                    id="{{ field.id_for_label }}"
-                    accept="image/*"
-                    class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600"
-                  />
-                {% elif field.field.widget.input_type == 'checkbox' %}
-                  <div class="flex items-center space-x-3">
-                    <input 
-                      type="checkbox" 
-                      name="{{ field.name }}" 
-                      id="{{ field.id_for_label }}"
-                      {% if field.value %}checked{% endif %}
-                      class="w-4 h-4 text-blue-600 bg-white/10 border-white/20 rounded focus:ring-blue-500 focus:ring-2"
-                    />
-                    <span class="text-sm text-gray-200">{{ field.help_text }}</span>
-                  </div>
-                {% else %}
-                  <input 
-                    type="{{ field.field.widget.input_type|default:'text' }}" 
-                    name="{{ field.name }}" 
-                    id="{{ field.id_for_label }}"
-                    value="{{ field.value|default:'' }}"
-                    class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    {% if field.field.required %}required{% endif %}
-                  />
-                {% endif %}
-                {% if field.errors %}
-                  {% for error in field.errors %}
-                    <p class="text-red-400 text-xs mt-1">{{ error }}</p>
-                  {% endfor %}
-                {% endif %}
-              </div>
-            {% endfor %}
-            
-            <div class="flex gap-2">
-              <button type="submit" class="btn-primary">Save Changes</button>
-              <button type="button" onclick="toggleForm('edit-team-form')" class="btn-ghost">Cancel</button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <div id="team-info-display">
-        <div class="space-y-3 text-sm">
-          <div>
-            <span class="text-gray-400">Name:</span>
-            <span class="text-white ml-2">{{ team.name }}</span>
-          </div>
-          <div>
-            <span class="text-gray-400">Tag:</span>
-            <span class="text-white ml-2">{{ team.tag }}</span>
-          </div>
-          {% if team.game %}
-          <div>
-            <span class="text-gray-400">Game:</span>
-            <span class="text-white ml-2">{{ team.get_game_display }}</span>
-          </div>
-          {% endif %}
-          {% if team.description %}
-          <div>
-            <span class="text-gray-400">Description:</span>
-            <p class="text-white mt-1">{{ team.description }}</p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <!-- Team Members -->
-    <div class="glass p-6 rounded-2xl">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-semibold text-white">Team Members</h3>
-        <span class="text-sm text-gray-400">{{ members.count }} members</span>
-      </div>
-
-      <div class="space-y-3">
-        {% for membership in members %}
-          <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-            <div class="flex items-center gap-3">
-              {% if membership.user.avatar %}
-                <img src="{{ membership.user.avatar.url }}" alt="{{ membership.user.display_name }}" class="w-8 h-8 rounded-full">
-              {% else %}
-                <div class="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center">
-                  <i class="fas fa-user text-gray-300 text-sm"></i>
-                </div>
-              {% endif %}
-              <div>
-                <p class="text-white font-medium">{{ membership.user.display_name }}</p>
-                <p class="text-gray-400 text-xs">{{ membership.get_role_display }}</p>
-              </div>
-            </div>
-            
-            {% if membership.user != team.captain %}
-              <div class="flex gap-1">
-                <form method="post" class="inline" onsubmit="return confirm('Transfer captaincy to {{ membership.user.display_name }}?');">
-                  {% csrf_token %}
-                  <input type="hidden" name="form_type" value="transfer_captaincy">
-                  <button type="submit" name="member_id" value="{{ membership.user.id }}" class="btn-ghost btn-xs" title="Transfer Captaincy">
-                    <i class="fas fa-crown"></i>
-                  </button>
-                </form>
-                <form method="post" class="inline" onsubmit="return confirm('Remove {{ membership.user.display_name }} from the team?');">
-                  {% csrf_token %}
-                  <input type="hidden" name="form_type" value="kick_member">
-                  <button type="submit" name="member_id" value="{{ membership.user.id }}" class="btn-ghost btn-xs text-red-400 hover:text-red-300" title="Remove Member">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </form>
-              </div>
-            {% else %}
-              <span class="text-yellow-400 text-xs font-medium">
-                <i class="fas fa-crown mr-1"></i>Captain
-              </span>
-            {% endif %}
-          </div>
-        {% empty %}
-          <p class="text-gray-400 text-center py-4">No members yet</p>
-        {% endfor %}
-      </div>
-    </div>
-
-    <!-- Invite Members -->
-    <div class="glass p-6 rounded-2xl">
-      <h3 class="text-xl font-semibold text-white mb-4">Invite Members</h3>
-
-      <form method="post" class="space-y-4">
-        {% csrf_token %}
-        <input type="hidden" name="form_type" value="invite_member">
-        
-        {% if invite_form.non_field_errors %}
-          <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-            {% for error in invite_form.non_field_errors %}
-              <p class="text-red-400 text-sm">{{ error }}</p>
-            {% endfor %}
+<div class="professional-manage-team">
+  <div class="manage-header">
+    <div class="header-content">
+      <div class="team-info">
+        {% if team.logo %}
+          <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo-small">
+        {% else %}
+          <div class="team-logo-placeholder-small">
+            {{ team.name|first|upper }}
           </div>
         {% endif %}
+        <div>
+          <h1 class="header-title">{{ team.name }} Management</h1>
+          <div class="header-subtitle">Professional Team Dashboard</div>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <a href="{{ team.get_absolute_url }}" class="btn-header">
+          <i class="fas fa-arrow-left"></i>
+          Back to Team
+        </a>
+        <a href="{% url 'teams:settings' team.slug %}" class="btn-header">
+          <i class="fas fa-cog"></i>
+          Settings
+        </a>
+        <a href="{% url 'teams:invite_member' team.slug %}" class="btn-header btn-primary-header">
+          <i class="fas fa-user-plus"></i>
+          Invite Members
+        </a>
+      </div>
+    </div>
+  </div>
 
-        {% for field in invite_form %}
-          <div>
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-200 mb-2">
-              {{ field.label }}
-              {% if field.field.required %}<span class="text-red-400">*</span>{% endif %}
-            </label>
-            {% if field.name == 'message' %}
-              <textarea 
-                name="{{ field.name }}" 
-                id="{{ field.id_for_label }}"
-                rows="3"
-                placeholder="Optional message for the invitation..."
-                class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >{{ field.value|default:'' }}</textarea>
-            {% else %}
-              <input 
-                type="{{ field.field.widget.input_type|default:'text' }}" 
-                name="{{ field.name }}" 
-                id="{{ field.id_for_label }}"
-                value="{{ field.value|default:'' }}"
-                class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                {% if field.field.required %}required{% endif %}
-                {% if field.name == 'username' %}placeholder="Enter username"{% endif %}
-              />
-            {% endif %}
-            {% if field.help_text %}
-              <p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
-            {% endif %}
-            {% if field.errors %}
-              {% for error in field.errors %}
-                <p class="text-red-400 text-xs mt-1">{{ error }}</p>
-              {% endfor %}
-            {% endif %}
-          </div>
-        {% endfor %}
-
-        <button type="submit" class="btn-primary w-full">
-          <i class="fas fa-paper-plane mr-2"></i>Send Invitation
-        </button>
-      </form>
+  <div class="dashboard-container">
+    <!-- Team Statistics -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">{{ team.members.count }}</div>
+        <div class="stat-label">Team Members</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ team.tournaments_played|default:"0" }}</div>
+        <div class="stat-label">Tournaments</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ team.wins|default:"0" }}</div>
+        <div class="stat-label">Wins</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">{{ team.power_rank|default:"--" }}</div>
+        <div class="stat-label">Ranking</div>
+      </div>
     </div>
 
-    <!-- Pending Invitations -->
-    <div class="glass p-6 rounded-2xl">
-      <h3 class="text-xl font-semibold text-white mb-4">Pending Invitations</h3>
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <a href="{% url 'teams:invite_member' team.slug %}" class="quick-action-card">
+        <div class="quick-action-icon">
+          <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="quick-action-title">Invite Players</div>
+        <div class="quick-action-desc">Add new members to your roster</div>
+      </a>
       
-      {% if pending_invites %}
-        <div class="space-y-3">
-          {% for invite in pending_invites %}
-            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-              <div>
-                <p class="text-white font-medium">{{ invite.invited_user.display_name }}</p>
-                <p class="text-gray-400 text-xs">Invited {{ invite.created_at|timesince }} ago</p>
-                {% if invite.message %}
-                  <p class="text-gray-300 text-xs mt-1">"{{ invite.message }}"</p>
+      <a href="{% url 'teams:settings' team.slug %}" class="quick-action-card">
+        <div class="quick-action-icon">
+          <i class="fas fa-cog"></i>
+        </div>
+        <div class="quick-action-title">Team Settings</div>
+        <div class="quick-action-desc">Configure team preferences</div>
+      </a>
+      
+      <a href="#" class="quick-action-card">
+        <div class="quick-action-icon">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <div class="quick-action-title">Tournaments</div>
+        <div class="quick-action-desc">Register for competitions</div>
+      </a>
+      
+      <a href="#" class="quick-action-card">
+        <div class="quick-action-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="quick-action-title">Analytics</div>
+        <div class="quick-action-desc">View performance statistics</div>
+      </a>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      <!-- Team Information -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h3 class="card-title">Team Information</h3>
+          <a href="#" class="card-action" onclick="toggleEdit('team-info')">
+            <i class="fas fa-edit"></i> Edit
+          </a>
+        </div>
+        
+        <ul class="info-list">
+          <li class="info-item">
+            <span class="info-label">Team Name</span>
+            <span class="info-value">{{ team.name }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-label">Tag</span>
+            <span class="info-value">[{{ team.tag }}]</span>
+          </li>
+          <li class="info-item">
+            <span class="info-label">Game</span>
+            <span class="info-value">{{ team.game }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-label">Status</span>
+            {% if team.is_recruiting %}
+              <span class="info-value status-badge status-active">Recruiting</span>
+            {% else %}
+              <span class="info-value status-badge status-inactive">Closed</span>
+            {% endif %}
+          </li>
+          <li class="info-item">
+            <span class="info-label">Privacy</span>
+            {% if team.is_open %}
+              <span class="info-value status-badge status-active">Public</span>
+            {% else %}
+              <span class="info-value status-badge status-inactive">Private</span>
+            {% endif %}
+          </li>
+          <li class="info-item">
+            <span class="info-label">Founded</span>
+            <span class="info-value">{{ team.created_at|date:"M d, Y" }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Team Members -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h3 class="card-title">Team Roster ({{ team.members.count }})</h3>
+          <a href="{% url 'teams:invite_member' team.slug %}" class="card-action">
+            <i class="fas fa-plus"></i> Add Member
+          </a>
+        </div>
+        
+        <div class="members-grid">
+          {% for member in team.members.all %}
+            <div class="member-item">
+              <div class="member-info">
+                {% if member.user.profile.avatar %}
+                  <img src="{{ member.user.profile.avatar.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                {% else %}
+                  <div class="member-avatar" style="background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">
+                    {{ member.user.username|first|upper }}
+                  </div>
                 {% endif %}
+                <div>
+                  <div class="member-name">{{ member.user.username }}</div>
+                  <div class="member-role">{{ member.role|default:"Member" }}</div>
+                </div>
               </div>
-              <div class="flex gap-1">
-                <form method="post" class="inline" onsubmit="return confirm('Cancel invitation to {{ invite.invited_user.display_name }}?');">
-                  {% csrf_token %}
-                  <input type="hidden" name="form_type" value="cancel_invite">
-                  <button type="submit" name="invite_id" value="{{ invite.id }}" class="btn-ghost btn-xs text-red-400 hover:text-red-300" title="Cancel Invitation">
+              
+              <div class="member-actions">
+                <button class="action-btn" title="Edit Role">
+                  <i class="fas fa-edit"></i>
+                </button>
+                {% if member.user != user %}
+                  <button class="action-btn danger" title="Remove Member">
                     <i class="fas fa-times"></i>
                   </button>
-                </form>
+                {% endif %}
               </div>
+            </div>
+          {% empty %}
+            <div style="text-align: center; padding: 20px; color: #7d8590;">
+              <i class="fas fa-users" style="font-size: 24px; margin-bottom: 8px;"></i>
+              <div>No team members yet</div>
             </div>
           {% endfor %}
         </div>
-      {% else %}
-        <p class="text-gray-400 text-center py-4">No pending invitations</p>
-      {% endif %}
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-section">
+      <h3 class="card-title" style="margin-bottom: 20px;">Recent Activity</h3>
+      
+      <div class="activity-item">
+        <div class="activity-icon">
+          <i class="fas fa-user-plus"></i>
+        </div>
+        <div class="activity-content">
+          <div class="activity-title">Team created</div>
+          <div class="activity-time">{{ team.created_at|timesince }} ago</div>
+        </div>
+      </div>
+      
+      {% for member in team.members.all|slice:":3" %}
+        <div class="activity-item">
+          <div class="activity-icon">
+            <i class="fas fa-user-check"></i>
+          </div>
+          <div class="activity-content">
+            <div class="activity-title">{{ member.user.username }} joined the team</div>
+            <div class="activity-time">{{ member.joined_at|timesince|default:"Recently" }} ago</div>
+          </div>
+        </div>
+      {% endfor %}
+      
+      <div style="text-align: center; margin-top: 16px;">
+        <a href="#" class="card-action">View All Activity</a>
+      </div>
     </div>
   </div>
-</section>
+</div>
 
 <script>
-function toggleForm(formId) {
-  const form = document.getElementById(formId);
-  const display = document.getElementById('team-info-display');
-  
-  if (form.classList.contains('hidden')) {
-    form.classList.remove('hidden');
-    display.classList.add('hidden');
-  } else {
-    form.classList.add('hidden');
-    display.classList.remove('hidden');
-  }
-}
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle edit forms
+    window.toggleEdit = function(sectionId) {
+        // Implementation for toggling edit forms
+        console.log('Toggle edit for:', sectionId);
+    };
+    
+    // Member management
+    const memberActions = document.querySelectorAll('.member-actions button');
+    memberActions.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const action = this.title;
+            const memberName = this.closest('.member-item').querySelector('.member-name').textContent;
+            
+            if (action === 'Remove Member') {
+                if (confirm(`Are you sure you want to remove ${memberName} from the team?`)) {
+                    // Implementation for removing member
+                    console.log('Remove member:', memberName);
+                }
+            } else if (action === 'Edit Role') {
+                // Implementation for editing member role
+                console.log('Edit role for:', memberName);
+            }
+        });
+    });
+});
 </script>
 {% endblock %}
