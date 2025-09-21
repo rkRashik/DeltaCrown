@@ -1,39 +1,111 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Invite Member — Teams{% endblock %}
+{% block title %}Invite Member to {{ team.name }} — DeltaCrown{% endblock %}
 
 {% block content %}
-<main class="container mx-auto px-4 max-w-7xl py-8">
-  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
-    <a class="link-nav" href="/teams/">Teams</a> / <span>Invite Member</span>
-  </nav>
+<section class="container py-8">
+  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' parent_label=team.name parent_href=team.get_absolute_url current_label='Invite Member' %}
+  
+  <header class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      {% if team.logo %}
+        <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="w-12 h-12 rounded-lg object-cover">
+      {% endif %}
+      <div>
+        <h1 class="sec-h">Invite Member to {{ team.name }}</h1>
+        <p class="text-muted">Send an invitation to join your team</p>
+      </div>
+    </div>
+    <a href="{% url 'teams:detail' team.slug %}" class="btn-secondary">
+      <i class="fas fa-arrow-left mr-2"></i>Back to Team
+    </a>
+  </header>
 
-  <h1 class="text-2xl font-bold">Invite Member</h1>
+  <div class="max-w-2xl">
+    <div class="glass p-6 rounded-2xl">
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+          <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+            {% for error in form.non_field_errors %}
+              <p class="text-red-400 text-sm">{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
 
-  <section class="glass rounded-2xl p-6 mt-4 max-w-2xl">
-    <form method="post" class="grid gap-4">
-      {% csrf_token %}
-      <div>
-        <label class="label-text" for="username">Username</label>
-        <input class="input" type="text" id="username" name="username" placeholder="alice" value="{{ request.POST.username }}">
-        <p class="text-xs text-muted mt-1">Enter a username or an email below.</p>
-        {% if form and form.errors.username %}<div class="error-message">{{ form.errors.username }}</div>{% endif %}
-      </div>
-      <div>
-        <label class="label-text" for="email">Email</label>
-        <input class="input" type="email" id="email" name="email" placeholder="user@example.com" value="{{ request.POST.email }}">
-        {% if form and form.errors.email %}<div class="error-message">{{ form.errors.email }}</div>{% endif %}
-      </div>
-      <div>
-        <label class="label-text" for="message">Message (optional)</label>
-        <textarea class="textarea" id="message" name="message" rows="3" placeholder="Hey, join our team!">{{ request.POST.message }}</textarea>
-      </div>
-      <div class="flex gap-2">
-        <button class="btn-primary" type="submit">Send Invite</button>
-        <a class="btn-ghost" href="{% if team and team.slug %}/teams/{{ team.slug }}/{% else %}/teams/{% endif %}">Back to Team</a>
-      </div>
-    </form>
-  </section>
-</main>
+        <div class="space-y-4">
+          {% for field in form %}
+            <div>
+              <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-200 mb-2">
+                {{ field.label }}
+                {% if field.field.required %}<span class="text-red-400">*</span>{% endif %}
+              </label>
+              
+              {% if field.name == 'message' %}
+                <textarea 
+                  name="{{ field.name }}" 
+                  id="{{ field.id_for_label }}"
+                  rows="4"
+                  placeholder="Optional message for the invitation..."
+                  class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >{{ field.value|default:'' }}</textarea>
+              {% else %}
+                <input 
+                  type="{{ field.field.widget.input_type|default:'text' }}" 
+                  name="{{ field.name }}" 
+                  id="{{ field.id_for_label }}"
+                  value="{{ field.value|default:'' }}"
+                  class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  {% if field.field.required %}required{% endif %}
+                  {% if field.name == 'username' %}placeholder="Enter username to invite"{% endif %}
+                />
+              {% endif %}
+              
+              {% if field.help_text %}
+                <p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
+              {% endif %}
+              
+              {% if field.errors %}
+                {% for error in field.errors %}
+                  <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+                {% endfor %}
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="flex gap-3">
+          <button type="submit" class="btn-primary flex-1 sm:flex-none">
+            <i class="fas fa-paper-plane mr-2"></i>Send Invitation
+          </button>
+          <a href="{% url 'teams:manage' team.slug %}" class="btn-ghost flex-1 sm:flex-none text-center">
+            <i class="fas fa-cogs mr-2"></i>Team Management
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Invitation Tips -->
+    <div class="mt-6 glass p-4 rounded-lg">
+      <h3 class="text-lg font-semibold text-white mb-3">Invitation Tips</h3>
+      <ul class="space-y-2 text-sm text-gray-300">
+        <li class="flex items-start gap-2">
+          <i class="fas fa-info-circle text-blue-400 mt-1"></i>
+          <span>Enter the exact username of the player you want to invite</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <i class="fas fa-envelope text-green-400 mt-1"></i>
+          <span>The invited player will receive a notification and can accept or decline</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <i class="fas fa-clock text-yellow-400 mt-1"></i>
+          <span>Invitations expire after 7 days if not responded to</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
 {% endblock %}
 

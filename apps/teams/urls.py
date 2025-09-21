@@ -1,5 +1,5 @@
 # apps/teams/urls.py
-from django.urls import path
+from django.urls import path, include
 from .views.public import (
     team_list,
     team_detail,
@@ -12,6 +12,10 @@ from .views.public import (
     manage_team_view,
     join_team_view,
     kick_member_view,
+    transfer_captaincy_view,
+    team_settings_view,
+    delete_team_view,
+    cancel_invite_view,
 )
 
 app_name = "teams"
@@ -33,6 +37,10 @@ urlpatterns = [
     path("<slug:slug>/leave/", leave_team_view, name="leave"),
     path("<slug:slug>/join/", join_team_view, name="join"),
     path("<slug:slug>/kick/<int:profile_id>/", kick_member_view, name="kick"),
+    path("<slug:slug>/transfer/<int:profile_id>/", transfer_captaincy_view, name="transfer_captaincy"),
+    path("<slug:slug>/settings/", team_settings_view, name="settings"),
+    path("<slug:slug>/delete/", delete_team_view, name="delete"),
+    path("<slug:slug>/cancel-invite/", cancel_invite_view, name="cancel_invite"),
 
     # Invites
     path("invites/", my_invites, name="my_invites"),
@@ -40,4 +48,7 @@ urlpatterns = [
     path("invitations/", my_invites, name="invitations"),
     path("invites/<str:token>/accept/", accept_invite_view, name="accept_invite"),
     path("invites/<str:token>/decline/", decline_invite_view, name="decline_invite"),
+    
+    # Social features - include with namespace
+    path("", include(("apps.teams.urls_social", "teams_social"), namespace="teams_social")),
 ]

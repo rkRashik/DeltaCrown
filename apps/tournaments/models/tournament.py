@@ -147,7 +147,13 @@ class Tournament(models.Model):
     @property
     def register_url(self) -> str | None:
         if getattr(self, "slug", None):
-            return f"/tournaments/{self.slug}/register/"
+            # Import the helper function to get the correct registration URL
+            try:
+                from ..views.helpers import register_url
+                return register_url(self)
+            except Exception:
+                # Fallback to unified registration
+                return f"/tournaments/register-new/{self.slug}/"
         return None
 
     @property

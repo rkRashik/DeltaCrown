@@ -65,8 +65,12 @@
                 {% endif %}
               </div>
               <div class="hc-cta">
-                <a class="cta-primary" href="{{ t.dc_register_url|default:'#' }}">Register</a>
-                <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">View</a>
+                <a class="cta-primary" href="{{ t.register_url }}">
+                  <i class="fa-solid fa-user-plus"></i> Register
+                </a>
+                <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
+                  <i class="fa-solid fa-eye"></i> View
+                </a>
               </div>
             {% endwith %}
             {% else %}

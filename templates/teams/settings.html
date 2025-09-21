@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team.name }} Settings — DeltaCrown{% endblock %}
+
+{% block content %}
+<section class="container py-8">
+  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' parent_label=team.name parent_href=team.get_absolute_url current_label='Settings' %}
+  
+  <header class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+      {% if team.logo %}
+        <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="w-12 h-12 rounded-lg object-cover">
+      {% endif %}
+      <div>
+        <h1 class="sec-h">{{ team.name }} Settings</h1>
+        <p class="text-muted">Advanced team configuration</p>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'teams:manage' team.slug %}" class="btn-secondary">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Manage
+      </a>
+    </div>
+  </header>
+
+  <div class="grid lg:grid-cols-3 gap-6">
+    <!-- Team Privacy & Access -->
+    <div class="glass p-6 rounded-2xl">
+      <h3 class="text-xl font-semibold text-white mb-4">Privacy & Access</h3>
+      
+      <div class="space-y-4">
+        <div class="p-4 bg-white/5 rounded-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white font-medium">Open Team</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" {% if team.is_open %}checked{% endif %} class="sr-only peer" onchange="updateTeamSetting('is_open', this.checked)">
+              <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+          <p class="text-gray-400 text-sm">Allow users to join directly without invitation</p>
+        </div>
+
+        <div class="p-4 bg-white/5 rounded-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-white font-medium">Recruiting</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" {% if team.is_recruiting %}checked{% endif %} class="sr-only peer" onchange="updateTeamSetting('is_recruiting', this.checked)">
+              <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+          <p class="text-gray-400 text-sm">Show team in recruiting lists and allow recruitment</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team Statistics -->
+    <div class="glass p-6 rounded-2xl">
+      <h3 class="text-xl font-semibold text-white mb-4">Team Statistics</h3>
+      
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="text-center p-3 bg-white/5 rounded-lg">
+            <div class="text-2xl font-bold text-blue-400">{{ members.count }}</div>
+            <div class="text-gray-400 text-sm">Members</div>
+          </div>
+          <div class="text-center p-3 bg-white/5 rounded-lg">
+            <div class="text-2xl font-bold text-green-400">{{ team.tournaments_count|default:0 }}</div>
+            <div class="text-gray-400 text-sm">Tournaments</div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div class="text-center p-3 bg-white/5 rounded-lg">
+            <div class="text-2xl font-bold text-yellow-400">{{ team.wins_count|default:0 }}</div>
+            <div class="text-gray-400 text-sm">Wins</div>
+          </div>
+          <div class="text-center p-3 bg-white/5 rounded-lg">
+            <div class="text-2xl font-bold text-red-400">{{ team.losses_count|default:0 }}</div>
+            <div class="text-gray-400 text-sm">Losses</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="glass p-6 rounded-2xl border border-red-500/20">
+      <h3 class="text-xl font-semibold text-red-400 mb-4">Danger Zone</h3>
+      
+      <div class="space-y-4">
+        <div class="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <h4 class="text-white font-medium mb-2">Transfer Captaincy</h4>
+          <p class="text-gray-400 text-sm mb-3">Transfer team ownership to another member</p>
+          {% if members.count > 1 %}
+            <button onclick="showTransferModal()" class="btn-secondary btn-sm">
+              Transfer Captaincy
+            </button>
+          {% else %}
+            <p class="text-gray-500 text-xs">Need at least one other member to transfer captaincy</p>
+          {% endif %}
+        </div>
+
+        <div class="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <h4 class="text-white font-medium mb-2">Delete Team</h4>
+          <p class="text-gray-400 text-sm mb-3">Permanently delete this team and all associated data</p>
+          <button onclick="showDeleteModal()" class="btn bg-red-600 hover:bg-red-700 text-white btn-sm">
+            Delete Team
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="glass p-6 rounded-2xl mt-6">
+    <h3 class="text-xl font-semibold text-white mb-4">Recent Activity</h3>
+    
+    <div class="space-y-3">
+      {% if pending_invites %}
+        {% for invite in pending_invites %}
+          <div class="flex items-center gap-3 p-3 bg-white/5 rounded-lg">
+            <div class="w-2 h-2 bg-yellow-400 rounded-full"></div>
+            <div class="flex-1">
+              <p class="text-white text-sm">Invitation sent to <span class="font-medium">{{ invite.invited_user.display_name }}</span></p>
+              <p class="text-gray-400 text-xs">{{ invite.created_at|timesince }} ago</p>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-gray-400 text-center py-4">No recent activity</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- Transfer Captaincy Modal -->
+<div id="transferModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+  <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+    <h3 class="text-xl font-semibold text-white mb-4">Transfer Captaincy</h3>
+    <p class="text-gray-300 mb-4">Select a member to transfer team captaincy to:</p>
+    
+    <form method="post" action="{% url 'teams:transfer_captaincy' team.slug 0 %}">
+      {% csrf_token %}
+      <div class="space-y-2 mb-4">
+        {% for member in members %}
+          {% if member.user != team.captain %}
+            <label class="flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer">
+              <input type="radio" name="member_id" value="{{ member.user.id }}" class="text-blue-600">
+              <div class="flex items-center gap-2">
+                {% if member.user.avatar %}
+                  <img src="{{ member.user.avatar.url }}" alt="{{ member.user.display_name }}" class="w-6 h-6 rounded-full">
+                {% else %}
+                  <div class="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center">
+                    <i class="fas fa-user text-gray-300 text-xs"></i>
+                  </div>
+                {% endif %}
+                <span class="text-white">{{ member.user.display_name }}</span>
+              </div>
+            </label>
+          {% endif %}
+        {% endfor %}
+      </div>
+      
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Transfer</button>
+        <button type="button" onclick="hideTransferModal()" class="btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Team Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+  <div class="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+    <h3 class="text-xl font-semibold text-red-400 mb-4">Delete Team</h3>
+    <p class="text-gray-300 mb-4">This action cannot be undone. This will permanently delete the team "{{ team.name }}" and all associated data.</p>
+    
+    <form method="post" action="{% url 'teams:delete' team.slug %}">
+      {% csrf_token %}
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-200 mb-2">
+          Type "{{ team.name }}" to confirm:
+        </label>
+        <input 
+          type="text" 
+          name="confirm_name"
+          required
+          class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+          placeholder="Team name"
+        />
+      </div>
+      
+      <div class="flex gap-2">
+        <button type="submit" class="btn bg-red-600 hover:bg-red-700 text-white">Delete Team</button>
+        <button type="button" onclick="hideDeleteModal()" class="btn-ghost">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function updateTeamSetting(setting, value) {
+  // This would typically make an AJAX call to update the setting
+  // For now, we'll implement it as a form submission
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{% url "teams:settings" team.slug %}';
+  
+  const csrfInput = document.createElement('input');
+  csrfInput.type = 'hidden';
+  csrfInput.name = 'csrfmiddlewaretoken';
+  csrfInput.value = '{{ csrf_token }}';
+  
+  const settingInput = document.createElement('input');
+  settingInput.type = 'hidden';
+  settingInput.name = setting;
+  settingInput.value = value;
+  
+  const actionInput = document.createElement('input');
+  actionInput.type = 'hidden';
+  actionInput.name = 'action';
+  actionInput.value = 'update_setting';
+  
+  form.appendChild(csrfInput);
+  form.appendChild(settingInput);
+  form.appendChild(actionInput);
+  document.body.appendChild(form);
+  form.submit();
+}
+
+function showTransferModal() {
+  document.getElementById('transferModal').classList.remove('hidden');
+  document.getElementById('transferModal').classList.add('flex');
+}
+
+function hideTransferModal() {
+  document.getElementById('transferModal').classList.add('hidden');
+  document.getElementById('transferModal').classList.remove('flex');
+}
+
+function showDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('hidden');
+  document.getElementById('deleteModal').classList.add('flex');
+}
+
+function hideDeleteModal() {
+  document.getElementById('deleteModal').classList.add('hidden');
+  document.getElementById('deleteModal').classList.remove('flex');
+}
+</script>
+{% endblock %}

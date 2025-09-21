@@ -1,0 +1,434 @@
+/* Team Social Features - Facebook-like Modern Design */
+
+/* Banner Section */
+.team-banner-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.team-banner-placeholder {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    height: 400px;
+}
+
+.banner-upload-btn {
+    transition: all 0.3s ease;
+}
+
+.banner-upload-btn:hover {
+    backdrop-filter: blur(15px);
+    transform: translateY(-2px);
+}
+
+/* Team Info Bar */
+.team-info-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.team-logo {
+    transition: transform 0.3s ease;
+}
+
+.team-logo:hover {
+    transform: scale(1.05);
+}
+
+.team-stats .stat {
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+.team-stats .stat:hover {
+    color: var(--bs-primary) !important;
+}
+
+/* Post Creation Card */
+.post-creation-card {
+    border-radius: 15px;
+    transition: box-shadow 0.3s ease;
+}
+
+.post-creation-card:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.post-creation-card .form-control {
+    border: none;
+    background: #f8f9fa;
+    border-radius: 25px;
+    padding: 12px 20px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.post-creation-card .form-control:focus {
+    background: white;
+    box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    border: 2px solid #0d6efd;
+}
+
+.post-creation-card textarea.form-control {
+    border-radius: 15px;
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Post Cards */
+.post-card {
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef !important;
+}
+
+.post-card:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    transform: translateY(-2px);
+}
+
+.post-header .author-name {
+    color: #1c1e21;
+    text-decoration: none;
+}
+
+.post-header .author-name:hover {
+    text-decoration: underline;
+}
+
+.post-meta {
+    color: #65676b !important;
+}
+
+.post-content {
+    color: #1c1e21;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.post-title {
+    color: #1c1e21;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+/* Media Grid */
+.post-media .media-item {
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.post-media img {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.post-media img:hover {
+    transform: scale(1.02);
+}
+
+/* Engagement */
+.engagement-stats {
+    font-size: 14px;
+    color: #65676b;
+}
+
+.like-faces {
+    margin-right: 8px;
+}
+
+/* Action Buttons */
+.post-actions .action-btn {
+    border: none !important;
+    color: #65676b !important;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.post-actions .action-btn:hover {
+    background-color: #f0f2f5 !important;
+    color: #1877f2 !important;
+}
+
+.post-actions .action-btn.active,
+.post-actions .like-btn.text-danger {
+    color: #e74c3c !important;
+}
+
+.post-actions .like-btn.active:hover {
+    background-color: rgba(231, 76, 60, 0.1) !important;
+}
+
+/* Comments */
+.comment-input {
+    border: 1px solid #ccd0d5;
+    background: #f0f2f5;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.comment-input:focus {
+    background: white;
+    border-color: #1877f2;
+    box-shadow: none;
+}
+
+.comment-bubble {
+    background: #f0f2f5 !important;
+    border-radius: 16px;
+    max-width: 85%;
+}
+
+.comment-item {
+    margin-bottom: 8px;
+}
+
+.comment-content {
+    align-items: flex-start;
+}
+
+.view-more-comments {
+    font-size: 13px;
+    padding-left: 52px;
+    text-decoration: none !important;
+}
+
+.view-more-comments:hover {
+    text-decoration: underline !important;
+}
+
+/* Sidebar Cards */
+.team-info-card, .members-card, .activity-card {
+    border-radius: 15px;
+    border: 1px solid #e4e6ea;
+}
+
+.team-info-card .card-header,
+.members-card .card-header,
+.activity-card .card-header {
+    background: #f8f9fa !important;
+    border-radius: 15px 15px 0 0 !important;
+    border-bottom: 1px solid #e4e6ea;
+    font-weight: 600;
+}
+
+/* Member Items */
+.member-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f2f5;
+    transition: background-color 0.2s ease;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.member-item:hover {
+    background-color: #f8f9fa;
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.member-name {
+    color: #1c1e21;
+    font-size: 14px;
+}
+
+/* Activity Feed */
+.activity-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e7f3ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.activity-icon i {
+    color: #1877f2;
+    font-size: 14px;
+}
+
+.activity-text {
+    color: #1c1e21;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* User Avatar Component */
+.user-avatar {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.avatar-placeholder {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: bold;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+/* Avatar Sizes */
+.avatar-xs {
+    width: 24px;
+    height: 24px;
+}
+
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.avatar-md {
+    width: 48px;
+    height: 48px;
+}
+
+.avatar-lg {
+    width: 64px;
+    height: 64px;
+}
+
+.avatar-xl {
+    width: 96px;
+    height: 96px;
+}
+
+/* Follow Button */
+.follow-btn {
+    min-width: 100px;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.follow-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+/* Badges and Tags */
+.badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .team-banner-section {
+        height: 250px;
+    }
+    
+    .team-info-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .team-actions {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .team-stats {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 1rem !important;
+    }
+    
+    .post-creation-card .row {
+        flex-direction: column;
+    }
+    
+    .post-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Loading States */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.post-card, .comment-item {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #65676b;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Modern Form Styling */
+.form-control:focus {
+    border-color: #1877f2;
+    box-shadow: 0 0 0 0.2rem rgba(24, 119, 242, 0.25);
+}
+
+.form-select:focus {
+    border-color: #1877f2;
+    box-shadow: 0 0 0 0.2rem rgba(24, 119, 242, 0.25);
+}
+
+/* Modal Enhancements */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1.5rem;
+}

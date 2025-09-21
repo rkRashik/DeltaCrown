@@ -33,7 +33,7 @@
 .neo-hero .bg .grid {
   position:absolute; inset:0;
   background:
-    linear-gradient(rgba(255,255,255,.06), rgba(255,255,255,.02)),
+    linear-gradient( rgba(255,255,255,.06), rgba(255,255,255,.02) ),
     radial-gradient(1200px 700px at 10% -10%, rgba(56,189,248,.15), transparent 60%),
     radial-gradient(1000px 600px at 90% -10%, rgba(168,85,247,.15), transparent 60%),
     radial-gradient(1000px 600px at 50% 120%, rgba(250,204,21,.12), transparent 60%);
@@ -41,7 +41,7 @@
 }
 :root[data-theme="light"] .neo-hero .bg .grid {
   background:
-    linear-gradient(rgba(4,18,44,.05), rgba(4,18,44,.02)),
+    linear-gradient( rgba(4,18,44,.05), rgba(4,18,44,.02) ),
     radial-gradient(1200px 700px at 10% -10%, rgba(56,189,248,.18), transparent 60%),
     radial-gradient(1000px 600px at 90% -10%, rgba(168,85,247,.18), transparent 60%),
     radial-gradient(1000px 600px at 50% 120%, rgba(250,204,21,.16), transparent 60%);
@@ -92,10 +92,11 @@
 }
 .btn-neo:hover { transform: translateY(-1px); }
 .btn-neo.big { padding: .9rem 1.2rem; font-size: 1.05rem; }
-.btn-neo.ghost { background: transparent; border:1px solid var(--neo-border); color: var(--neo-text); box-shadow:none; }
+.btn-neo.btn-ghost,
+.btn-neo.btn-ghost:hover { background: transparent; border:1px solid var(--neo-border); color: var(--neo-text); box-shadow:none; }
 .btn-neo.wfull { width:100%; }
 
-/* micro “spark” */
+/* micro “spark” (positioned by JS) */
 .btn-neo::after {
   content:""; position:absolute; inset:0;
   background: radial-gradient(300px 160px at var(--mx) var(--my), rgba(255,255,255,.30), transparent 55%);
@@ -116,6 +117,9 @@
 .tabs { position: sticky; top: .5rem; z-index: 5; display:flex; gap:.35rem; flex-wrap: wrap; margin-bottom:.8rem; }
 .tab { background: transparent; border:1px solid var(--neo-border); color:var(--neo-text); border-radius:.6rem; padding:.45rem .7rem; cursor:pointer; font-weight:700; }
 .tab.is-active { background: var(--neo-chip); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+/* micro pulse on tab click (added by JS) */
+.tab.pulse { animation: pulse .22s ease-out; }
+@keyframes pulse { from { transform: scale(.98);} to { transform: scale(1);} }
 
 .pane { display:none; }
 .pane.is-active { display:block; animation: fade .28s ease-out; }
@@ -146,7 +150,7 @@
 .embed.live iframe { height: 360px; }
 
 .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
-@media (max-width: 900px) { \.grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } } /* fixed typo here */
 
 .prizegrid { display:grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap:.6rem; }
 .prize { padding:.8rem; border:1px solid var(--neo-border); border-radius:.6rem; background: rgba(255,255,255,.04); display:flex; align-items:center; justify-content:space-between; }
@@ -186,3 +190,43 @@
 .tab:focus,
 .btn-neo:focus,
 a.btn-neo:focus { outline: none; box-shadow: var(--focus-ring, 0 0 0 3px rgba(56,189,248,.35)); }
+
+/* ====== NEW: Podium styling for Prizes ====== */
+.podium { margin: .6rem 0 1rem; }
+.podium-row {
+  display:grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap:.6rem; align-items:end;
+}
+.podium .slot {
+  position:relative; border:1px solid var(--neo-border);
+  background: rgba(255,255,255,.04);
+  border-radius:.8rem; padding: .8rem .6rem 1rem;
+  text-align:center; box-shadow: inset 0 -24px 60px rgba(0,0,0,.12);
+}
+.podium .slot.first { transform: translateY(-6px); }
+.podium .slot .rank {
+  position:absolute; top:-12px; left:50%; transform: translateX(-50%);
+  width: 34px; height: 34px; border-radius:999px;
+  background: var(--neo-grad); color:#0b1220; font-weight:900; display:grid; place-items:center;
+  box-shadow: var(--neo-shadow);
+}
+.podium .slot .reward { margin-top: .6rem; display:grid; gap:.2rem; }
+.podium .cash { font-size: 1.15rem; font-weight:900; }
+.podium .coin { font-size:.95rem; color: var(--neo-muted); }
+
+/* ====== NEW: Locked/gated card ====== */
+.locked {
+  border:1px dashed var(--neo-border);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,.03),
+    rgba(255,255,255,.03) 10px,
+    rgba(255,255,255,.02) 10px,
+    rgba(255,255,255,.02) 20px
+  );
+  border-radius:.8rem; padding:.8rem;
+}
+
+/* ====== NEW: PDF viewer spacing helper ====== */
+.pdfwrap { margin-top: .6rem; }

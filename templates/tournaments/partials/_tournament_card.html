@@ -50,24 +50,42 @@
     <div class="dc-actions">
       <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}" aria-label="View details">View</a>
 
-      {# Registered/Continue/Receipt logic from my_states (optional) #}
+      {# Enhanced registration logic with new unified system #}
       {% if state and state.registered %}
         {% if state.cta == 'continue' and state.cta_url %}
-          <a class="dc-btn" href="{{ state.cta_url }}">Continue</a>
-          <span class="dc-badge dc-badge-registered" aria-label="You are registered">Registered</span>
+          <a class="dc-btn" href="{{ state.cta_url }}">
+            <i class="fa-solid fa-play"></i> Continue
+          </a>
+          <span class="dc-badge dc-badge-registered" aria-label="You are registered">
+            <i class="fa-solid fa-check"></i> Registered
+          </span>
         {% elif state.cta == 'receipt' and state.cta_url %}
-          <a class="dc-btn" href="{{ state.cta_url }}">Receipt</a>
-          <span class="dc-badge dc-badge-registered" aria-label="You are registered">Registered</span>
+          <a class="dc-btn" href="{{ state.cta_url }}">
+            <i class="fa-solid fa-receipt"></i> Receipt
+          </a>
+          <span class="dc-badge dc-badge-registered" aria-label="You are registered">
+            <i class="fa-solid fa-check"></i> Registered
+          </span>
         {% else %}
-          <button class="dc-btn" disabled aria-disabled="true">Registered</button>
+          <button class="dc-btn" disabled aria-disabled="true">
+            <i class="fa-solid fa-check"></i> Registered
+          </button>
         {% endif %}
       {% else %}
         {% if t.dc_status in 'open opening filling' or t.dc_status == 'open' or t.dc_status == 'opening' or t.dc_status == 'filling' %}
-          <a class="dc-btn" href="{{ t.dc_register_url|default:'#' }}">Register</a>
+          <a class="dc-btn" href="{{ t.register_url }}">
+            <i class="fa-solid fa-user-plus"></i> Register
+          </a>
         {% elif t.dc_status == 'live' %}
-          <a class="dc-btn" href="{{ t.dc_url|default:'#' }}#live">Watch</a>
+          <a class="dc-btn" href="{{ t.dc_url|default:'#' }}#live">
+            <i class="fa-solid fa-eye"></i> Watch
+          </a>
         {% else %}
-          <button class="dc-btn" disabled aria-disabled="true">{{ t.dc_status|default:"Closed"|title }}</button>
+          <button class="dc-btn" disabled aria-disabled="true">
+            {% if t.dc_status == 'closed' %}<i class="fa-solid fa-lock"></i> Closed
+            {% elif t.dc_status == 'finished' %}<i class="fa-solid fa-flag-checkered"></i> Finished
+            {% else %}{{ t.dc_status|default:"Closed"|title }}{% endif %}
+          </button>
         {% endif %}
       {% endif %}
     </div>

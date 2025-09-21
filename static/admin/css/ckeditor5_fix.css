@@ -1,17 +1,105 @@
-﻿.ck-editor__editable_inline {
-    min-height: 180px;
-    color: var(--body-fg, #111);
-    background-color: var(--body-bg, #fff);
-    padding: 12px;
+﻿/* CKEditor 5 Visibility and Readability Improvements */
+.ck-editor__editable_inline {
+    min-height: 200px !important;
+    color: var(--body-fg, #111) !important;
+    background-color: var(--body-bg, #fff) !important;
+    padding: 15px !important;
     border-radius: 6px;
+    border: 1px solid #ddd !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
 }
 
 .ck-editor__editable_inline:focus {
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.35);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.35) !important;
+    border-color: #79adf4 !important;
+    outline: none !important;
 }
 
 .ck.ck-editor__main > .ck-editor__editable {
-    font-family: inherit;
-    font-size: 0.95rem;
-    line-height: 1.6;
+    font-family: inherit !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+}
+
+/* Improve toolbar visibility */
+.ck.ck-toolbar {
+    border: 1px solid #ddd !important;
+    background: #f8f9fa !important;
+    padding: 8px !important;
+    border-radius: 6px 6px 0 0 !important;
+}
+
+/* Ensure toolbar buttons are visible */
+.ck.ck-toolbar .ck-button {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: #333 !important;
+    padding: 4px 8px !important;
+    margin: 2px !important;
+    border-radius: 4px !important;
+    font-size: 13px !important;
+}
+
+.ck.ck-toolbar .ck-button:hover {
+    background: #e9ecef !important;
+    border-color: #ddd !important;
+}
+
+.ck.ck-toolbar .ck-button.ck-on {
+    background: #007cba !important;
+    color: white !important;
+    border-color: #005a87 !important;
+}
+
+.ck.ck-toolbar .ck-button .ck-icon {
+    color: inherit !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* Dropdown and separator styling */
+.ck.ck-toolbar .ck-dropdown__button {
+    background: transparent !important;
+    color: #333 !important;
+    border: 1px solid transparent !important;
+    padding: 4px 8px !important;
+}
+
+.ck.ck-toolbar .ck-toolbar__separator {
+    background: #ddd !important;
+    width: 1px !important;
+    margin: 4px 6px !important;
+}
+
+/* Fix placeholder text visibility */
+.ck.ck-editor__editable_inline .ck-placeholder::before {
+    color: #999 !important;
+    font-style: italic;
+}
+
+/* Ensure content is visible while typing */
+.ck-content p,
+.ck-content h1,
+.ck-content h2,
+.ck-content h3,
+.ck-content li,
+.ck-content div {
+    color: var(--body-fg, #111) !important;
+    margin: 0.5em 0 !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .ck-editor__editable_inline {
+        background-color: var(--body-bg, #2b2b2b) !important;
+        color: var(--body-fg, #fff) !important;
+        border-color: #555 !important;
+    }
+    
+    .ck.ck-toolbar {
+        background: #3a3a3a !important;
+        border-color: #555 !important;
+    }
 }

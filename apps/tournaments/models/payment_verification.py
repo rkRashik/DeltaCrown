@@ -40,6 +40,14 @@ class PaymentVerification(models.Model):
         blank=True,
         help_text="Transaction ID from bKash/Nagad/Rocket",
     )
+    
+    # Reference number for internal tracking (optional for backward compatibility)
+    reference_number = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text="Internal reference number for payment tracking",
+    )
 
     amount_bdt = models.PositiveIntegerField(null=True, blank=True)
     note = models.CharField(max_length=255, blank=True)

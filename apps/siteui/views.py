@@ -132,68 +132,65 @@ def _get_model(candidates):
     return None
 
 def community(request):
-    Thread = _get_model([('forums', 'Thread'), ('forums', 'Post'), ('forums', 'Topic')])
-    Tournament = _get_model([('tournaments', 'Tournament')])
-    User = _get_model([('auth', 'User'), ('accounts', 'User'), ('users', 'User')])
-
-    # Threads/feed
-    threads = []
-    if Thread:
-        try:
-            qs = Thread.objects.all().order_by('-id')  # safe ordering
-            threads = list(qs[:20])
-        except Exception:
-            threads = []
-
-    # Popular tags (optional; keep simple/fallback)
-    popular_tags = []  # You can compute real tag counts later
-
-    # Top users (fallback ordering)
-    top_users = []
-    if User:
-        try:
-            qs = User.objects.all().order_by('-date_joined')
-            top_users = list(qs[:8])
-        except Exception:
-            top_users = []
-
-    # Upcoming tournaments / events (fallback)
-    upcoming_tournaments = []
-    if Tournament:
-        try:
-            upcoming_tournaments = list(Tournament.objects.all().order_by('-id')[:6])
-        except Exception:
-            upcoming_tournaments = []
-
-    # Optional extra panels (safe defaults)
-    scrims = []
-    events = []
-    creators = []
-    clips = []
-    qa = []
-
-    # KPIs (simple fallbacks)
-    online_count = 42
-    posts_today = len(threads)
-    scrims_open = len(scrims)
-    events_upcoming = len(events) or len(upcoming_tournaments)
+    """
+    Community hub displaying team posts and social activity
+    """
+    from django.core.paginator import Paginator
+    from django.db import models
+    from apps.teams.models.social import TeamPost
+    from apps.teams.models import Team
+    
+    # Get search and filter parameters
+    search_query = request.GET.get('q', '')
+    current_game = request.GET.get('game', '')
+    
+    # Base queryset for public team posts
+    posts = TeamPost.objects.filter(
+        visibility='public'
+    ).select_related(
+        'team', 'author', 'author__user'
+    ).prefetch_related(
+        'media', 'likes', 'comments'
+    ).order_by('-created_at')
+    
+    # Apply search filter
+    if search_query:
+        posts = posts.filter(
+            models.Q(title__icontains=search_query) | 
+            models.Q(content__icontains=search_query) |
+            models.Q(team__name__icontains=search_query)
+        )
+    
+    # Apply game filter
+    if current_game:
+        posts = posts.filter(team__game=current_game)
+    
+    # Get available games for filter dropdown
+    games = Team.objects.values_list('game', flat=True).distinct()
+    games = [game for game in games if game]  # Remove empty values
+    
+    # Paginate posts (10 per page)
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    posts = paginator.get_page(page_number)
+    
+    # Get featured teams for sidebar
+    featured_teams = Team.objects.filter(
+        is_verified=True
+    ).select_related().order_by('?')[:5]  # Random featured teams
+    
+    if not featured_teams.exists():
+        # Fallback to recent teams if no verified teams
+        featured_teams = Team.objects.order_by('-created_at')[:5]
 
     context = {
-        'threads': threads,
-        'popular_tags': popular_tags,
-        'top_users': top_users,
-        'upcoming_tournaments': upcoming_tournaments,
-        'events': events,
-        'scrims': scrims,
-        'creators': creators,
-        'clips': clips,
-        'qa': qa,
-        'online_count': online_count,
-        'posts_today': posts_today,
-        'scrims_open': scrims_open,
-        'events_upcoming': events_upcoming,
+        'posts': posts,
+        'search_query': search_query,
+        'current_game': current_game,
+        'games': games,
+        'featured_teams': featured_teams,
     }
-    return render(request, 'community.html', context)
+    return render(request, 'pages/community.html', context)
 
 
 # ---- Helpers ----------------------------------------------------------------

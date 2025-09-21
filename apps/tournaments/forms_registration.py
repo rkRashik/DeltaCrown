@@ -76,6 +76,42 @@ class _BaseRegForm(forms.Form):
         # Gentle autofill: if initial missing and request has data, we do not override here.
         # (Your view already passes initial profile data.)
 
+    def _validate_tournament_slots(self):
+        """
+        Check if tournament has available slots for new registrations.
+        """
+        if not self.tournament:
+            return
+            
+        slot_size = getattr(self.tournament, "slot_size", None)
+        if slot_size is None or slot_size <= 0:
+            return  # No slot limit set
+        
+        # Get current registration count
+        try:
+            current_count = Registration.objects.filter(
+                tournament=self.tournament
+            ).count()
+            
+            # Try to get confirmed registrations if status field exists
+            try:
+                confirmed_count = Registration.objects.filter(
+                    tournament=self.tournament, 
+                    status="CONFIRMED"
+                ).count()
+                current_count = confirmed_count
+            except:
+                pass  # Fallback to total count
+                
+        except Exception:
+            return  # Skip validation if can't query
+        
+        if current_count >= slot_size:
+            from django.core.exceptions import ValidationError
+            raise ValidationError(
+                f"This tournament is full! ({current_count}/{slot_size} slots taken)"
+            )
+
     def _add_dynamic_fields(self):
         """
         Dynamically attach fields according to toggles on tournament.settings
@@ -173,6 +209,10 @@ class SoloRegistrationForm(_BaseRegForm):
 
     def clean(self):
         cd = super().clean()
+        
+        # Check tournament slot availability
+        self._validate_tournament_slots()
+        
         # If organizer requires rules agree (added dynamically), ensure it's True
         if "agree_rules" in self.fields and not cd.get("agree_rules"):
             self.add_error("agree_rules", "You must agree to the rules to continue.")
@@ -207,6 +247,10 @@ class TeamRegistrationForm(_BaseRegForm):
 
     def clean(self):
         cd = super().clean()
+        
+        # Check tournament slot availability
+        self._validate_tournament_slots()
+        
         if "agree_rules" in self.fields and not cd.get("agree_rules"):
             self.add_error("agree_rules", "Team must accept the rules to continue.")
         return cd

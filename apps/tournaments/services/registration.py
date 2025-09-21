@@ -101,6 +101,34 @@ def _send_email_safe(subject: str, message: str, to: Iterable[str]):
         pass
 
 
+def _check_slot_availability(tournament):
+    """
+    Validates that the tournament has available slots for new registrations.
+    Raises ValidationError if tournament is full.
+    """
+    Registration = _get_model("tournaments", "Registration")
+    if not Registration:
+        return  # Skip validation if model not available
+    
+    slot_size = getattr(tournament, "slot_size", None)
+    if slot_size is None:
+        return  # No slot limit set
+    if slot_size <= 0:
+        # Zero or negative slots means no registrations allowed
+        raise ValidationError("Registration is not allowed for this tournament.")
+    
+    # Count current registrations - use all registrations, not just confirmed
+    # since we're preventing new registrations, not just confirmed ones
+    current_registrations = Registration.objects.filter(tournament=tournament)
+    confirmed_count = current_registrations.count()
+    
+    if confirmed_count >= slot_size:
+        raise ValidationError(
+            f"Tournament is full. Maximum slots: {slot_size}, "
+            f"Current registrations: {confirmed_count}"
+        )
+
+
 def _maybe_create_payment(method: Optional[str], ref: Optional[str], amount_bdt: Optional[float], proof_file=None):
     """
     Legacy hook: if a separate Payment app is present, create a record.
@@ -135,6 +163,9 @@ def register_valorant_team(data: TeamRegistrationInput):
     policy = _get_policy(tournament)
     if policy and policy.mode not in ("team", "duo"):
         raise ValidationError("This tournament is not configured for team registrations.")
+    
+    # Check slot availability for team registrations
+    _check_slot_availability(tournament)
 
     team = Team.objects.get(pk=data.team_id)
     # NOTE: Registration model has no 'created_by' field; don't pass it.
@@ -179,6 +210,9 @@ def register_efootball_player(data: SoloRegistrationInput):
     policy = _get_policy(tournament)
     if policy and policy.mode not in ("solo", "duo"):
         raise ValidationError("This tournament is not configured for solo/duo registrations.")
+    
+    # Check slot availability for solo registrations
+    _check_slot_availability(tournament)
 
     user_profile = UserProfile.objects.get(pk=data.user_id)
     # NOTE: Registration model has no 'created_by' field; don't pass it.

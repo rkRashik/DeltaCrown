@@ -1,300 +1,667 @@
 ﻿{% extends "base.html" %}
 {% load static %}
+{% load team_social_tags %}
 {% block title %}{{ public_user.username|default:user.username|default:"Player" }} - Profile | DeltaCrown{% endblock %}
 
+{% block extra_head %}
+<link href="{% static 'siteui/css/team-social.css' %}" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<main id="profile" class="min-h-screen">
+<div class="user-profile-page">
+  <!-- Profile Header/Banner Section -->
+  <div class="profile-banner-section position-relative">
+    {% if profile.banner_image %}
+      <img src="{{ profile.banner_image.url }}" alt="{{ public_user.username }} Banner" class="profile-banner w-100">
+    {% else %}
+      <div class="profile-banner-placeholder d-flex align-items-center justify-content-center">
+        <div class="text-center text-white">
+          <i class="fas fa-user-circle fa-4x mb-3"></i>
+          <h3>{{ public_user.get_full_name|default:public_user.username }}</h3>
+          <p class="mb-0">Esports Player</p>
+        </div>
+      </div>
+    {% endif %}
+    
+    <!-- Gradient Overlay -->
+    <div class="banner-overlay"></div>
+  </div>
 
-  <!-- ===== HERO / BANNER ===== -->
-  <section class="relative overflow-hidden">
-    <!-- gradient blooms -->
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0 opacity-70">
-      <div class="absolute -top-28 left-1/2 -translate-x-1/2 h-[36rem] w-[36rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(99,102,241,.28), transparent 70%);"></div>
-      <div class="absolute -bottom-36 left-1/3 h-[28rem] w-[28rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(56,189,248,.22), transparent 70%);"></div>
-      <div class="absolute -bottom-16 right-0 h-[30rem] w-[30rem] rounded-full blur-3xl"
-           style="background: radial-gradient(closest-side, rgba(16,185,129,.18), transparent 70%);"></div>
-    </div>
-
-    <div class="relative container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-10">
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-        <!-- Avatar + identity -->
-        <div class="flex items-center gap-4">
-          <img
-            src="{% if profile and profile.avatar %}{{ profile.avatar.url }}{% else %}/static/siteui/svg/logo-deltacrown.svg{% endif %}"
-            alt=""
-            class="h-20 w-20 rounded-2xl object-cover ring-1 ring-white/10 bg-white/5" />
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                {{ profile.display_name|default:public_user.get_full_name|default:public_user.username|default:"Player" }}
-              </h1>
+  <!-- Profile Info Bar -->
+  <div class="profile-info-bar bg-white shadow-sm">
+    <div class="container">
+      <div class="profile-info-content d-flex align-items-center py-4">
+        <div class="profile-avatar me-4">
+          {% if profile and profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="{{ public_user.username }}" 
+                 class="profile-photo rounded-circle border border-4 border-white shadow">
+          {% else %}
+            <div class="profile-photo-placeholder rounded-circle border border-4 border-white shadow 
+                        d-flex align-items-center justify-content-center bg-primary text-white">
+              <span class="h2 mb-0 fw-bold">{{ public_user.username|first|upper }}</span>
             </div>
-            <p class="mt-1 text-white/70">
-              {{ profile.bio|default:"Competitive gamer on DeltaCrown" }}
-            </p>
-            <p class="mt-1 text-white/60 text-sm">
+          {% endif %}
+        </div>
+        
+        <div class="profile-details flex-grow-1">
+          <h1 class="profile-name h3 mb-1 d-flex align-items-center">
+            {{ profile.display_name|default:public_user.get_full_name|default:public_user.username }}
+            {% if profile.is_verified %}
+              <i class="fas fa-check-circle text-primary ms-2" title="Verified Player"></i>
+            {% endif %}
+          </h1>
+          <p class="profile-bio text-muted mb-2">{{ profile.bio|default:"Competitive gamer on DeltaCrown" }}</p>
+          <div class="profile-stats d-flex gap-4 text-muted">
+            <span class="stat d-flex align-items-center">
+              <i class="fas fa-calendar-alt me-1"></i>
               Joined {{ public_user.date_joined|date:"M Y" }}
-              {% if profile and profile.region %} - {{ profile.get_region_display|default:profile.region }}{% endif %}
-            </p>
+            </span>
+            {% if profile and profile.region %}
+            <span class="stat d-flex align-items-center">
+              <i class="fas fa-map-marker-alt me-1"></i>
+              {{ profile.get_region_display|default:profile.region }}
+            </span>
+            {% endif %}
+            {% if stats and stats.matches %}
+            <span class="stat d-flex align-items-center">
+              <i class="fas fa-gamepad me-1"></i>
+              <strong>{{ stats.matches }}</strong>&nbsp;Matches
+            </span>
+            {% endif %}
+            {% if stats and stats.win_rate %}
+            <span class="stat d-flex align-items-center">
+              <i class="fas fa-trophy me-1"></i>
+              <strong>{{ stats.win_rate }}%</strong>&nbsp;Win Rate
+            </span>
+            {% endif %}
           </div>
         </div>
-
-        <!-- Actions -->
-        <div class="flex flex-wrap items-center gap-3">
+        
+        <div class="profile-actions d-flex gap-2">
           {% if request.user.is_authenticated and request.user.username != public_user.username %}
-            <button id="btn-follow" class="btn btn-primary"
-                    data-following="false">Follow</button>
-            <a href="/messages/new/?to={{ public_user.username|default:user.username }}" class="btn btn-secondary">Message</a>
+            <button id="btn-follow" class="btn btn-outline-primary follow-btn" data-following="false">
+              <i class="fas fa-user-plus me-1"></i> Follow
+            </button>
+            <a href="/messages/new/?to={{ public_user.username }}" class="btn btn-success">
+              <i class="fas fa-envelope me-1"></i> Message
+            </a>
+          {% elif request.user == public_user %}
+            <a href="{% url 'user_profile:edit' %}" class="btn btn-outline-primary">
+              <i class="fas fa-edit me-1"></i> Edit Profile
+            </a>
           {% endif %}
-          <button id="btn-copy" class="btn btn-ghost">Copy profile link</button>
-          <a href="/user/me/edit/" class="btn btn-ghost">Edit profile</a>
+          <button id="btn-copy" class="btn btn-outline-secondary" data-url="{{ request.build_absolute_uri }}">
+            <i class="fas fa-link me-1"></i> Share
+          </button>
         </div>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ===== STATS STRIP ===== -->
-  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div class="card bg-white/5 ring-1 ring-white/10">
-        <div class="p-5">
-          <p class="text-xs uppercase tracking-wide text-white/60">Matches</p>
-          <p class="mt-1 text-3xl font-extrabold text-white">{% if stats and stats.matches %}{{ stats.matches }}{% else %}-{% endif %}</p>
+  <!-- Main Content Area -->
+  <div class="container mt-4">
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="fas fa-gamepad fa-2x text-primary mb-2"></i>
+            <h3 class="mb-1">{% if stats and stats.matches %}{{ stats.matches }}{% else %}0{% endif %}</h3>
+            <p class="text-muted small mb-0">Total Matches</p>
+          </div>
         </div>
       </div>
-      <div class="card bg-white/5 ring-1 ring-white/10">
-        <div class="p-5">
-          <p class="text-xs uppercase tracking-wide text-white/60">Win rate</p>
-          <p class="mt-1 text-3xl font-extrabold text-white">
-            {% if stats and stats.win_rate %}{{ stats.win_rate }}%{% else %}-{% endif %}
-          </p>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
+            <h3 class="mb-1">{% if stats and stats.win_rate %}{{ stats.win_rate }}%{% else %}0%{% endif %}</h3>
+            <p class="text-muted small mb-0">Win Rate</p>
+          </div>
         </div>
       </div>
-      <div class="card bg-white/5 ring-1 ring-white/10">
-        <div class="p-5">
-          <p class="text-xs uppercase tracking-wide text-white/60">Rank</p>
-          <p class="mt-1 text-3xl font-extrabold text-white">{% if stats and stats.rank %}{{ stats.rank }}{% else %}-{% endif %}</p>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="fas fa-medal fa-2x text-success mb-2"></i>
+            <h3 class="mb-1">{{ achievements|length|default:"0" }}</h3>
+            <p class="text-muted small mb-0">Achievements</p>
+          </div>
         </div>
       </div>
-      <div class="card bg-white/5 ring-1 ring-white/10">
-        <div class="p-5">
-          <p class="text-xs uppercase tracking-wide text-white/60">Achievements</p>
-          <p class="mt-1 text-3xl font-extrabold text-white">{{ achievements|length|default:"0" }}</p>
+      <div class="col-md-3 col-6 mb-3">
+        <div class="card text-center border-0 shadow-sm">
+          <div class="card-body p-4">
+            <i class="fas fa-users fa-2x text-info mb-2"></i>
+            <h3 class="mb-1">{{ teams|length|default:"0" }}</h3>
+            <p class="text-muted small mb-0">Teams</p>
+          </div>
         </div>
       </div>
     </div>
-  </section>
 
-  <!-- ===== TABS ===== -->
-  <section class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-    <div class="card bg-white/5 ring-1 ring-white/10">
-      <div class="p-4 border-b border-white/10">
-        <nav class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Profile sections">
-          <button class="tab-btn" role="tab" aria-selected="true" data-tab="overview">Overview</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="matches">Matches</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="teams">Teams</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="highlights">Highlights</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="achievements">Achievements</button>
-          <button class="tab-btn" role="tab" aria-selected="false" data-tab="social">Social</button>
-        </nav>
+    <!-- Navigation Tabs -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-0">
+        <ul class="nav nav-tabs card-header-tabs border-0" id="profileTabs" role="tablist">
+          <li class="nav-item">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+              <i class="fas fa-user me-1"></i> Overview
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button" role="tab">
+              <i class="fas fa-gamepad me-1"></i> Matches
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="teams-tab" data-bs-toggle="tab" data-bs-target="#teams" type="button" role="tab">
+              <i class="fas fa-users me-1"></i> Teams
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="achievements-tab" data-bs-toggle="tab" data-bs-target="#achievements" type="button" role="tab">
+              <i class="fas fa-trophy me-1"></i> Achievements
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="social-tab" data-bs-toggle="tab" data-bs-target="#social" type="button" role="tab">
+              <i class="fas fa-share-alt me-1"></i> Social
+            </button>
+          </li>
+        </ul>
       </div>
+    </div>
 
-      <!-- === OVERVIEW === -->
-      <section id="tab-overview" role="tabpanel" class="p-5 sm:p-6">
-        <div class="grid gap-6 lg:grid-cols-3">
-          <!-- About -->
-          <article class="lg:col-span-2 card bg-white/5 ring-1 ring-white/10">
-            <div class="p-6">
-              <h3 class="text-lg font-semibold text-white">About</h3>
-              <p class="mt-2 text-white/80">
-                {{ profile.bio|default:"This player hasn't added a bio yet." }}
-              </p>
-            </div>
-          </article>
-
-          <!-- Quick meta -->
-          <aside class="card bg-white/5 ring-1 ring-white/10">
-            <div class="p-6">
-              <h3 class="text-lg font-semibold text-white">Quick info</h3>
-              <dl class="mt-3 space-y-2 text-white/80">
-                <div class="flex justify-between gap-6">
-                  <dt class="text-white/60">Main game</dt>
-                  <dd>-</dd>
-                </div>
-                <div class="flex justify-between gap-6">
-                  <dt class="text-white/60">Region</dt>
-                  <dd>{% if profile %}{{ profile.get_region_display|default:profile.region|default:"BD" }}{% else %}-{% endif %}</dd>
-                </div>
-                <div class="flex justify-between gap-6">
-                  <dt class="text-white/60">Playstyle</dt>
-                  <dd>-</dd>
-                </div>
-                <div class="flex justify-between gap-6">
-                  <dt class="text-white/60">Member since</dt>
-                  <dd>{{ public_user.date_joined|date:"M j, Y" }}</dd>
-                </div>
-              </dl>
-            </div>
-          </aside>
-
-          <!-- Recent activity -->
-          <article class="lg:col-span-3 card bg-white/5 ring-1 ring-white/10">
-            <div class="p-6">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-white">Recent activity</h3>
-                <a href="/user/u/{{ public_user.username|default:user.username }}/?tab=matches"
-                   class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4">See all</a>
+    <!-- Tab Content -->
+    <div class="tab-content" id="profileTabsContent">
+      <!-- Overview Tab -->
+      <div class="tab-pane fade show active" id="overview" role="tabpanel">
+        <div class="row">
+          <div class="col-lg-8">
+            <!-- About Section -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="fas fa-info-circle text-primary me-2"></i> About</h5>
               </div>
-              <div class="mt-4 grid gap-4 md:grid-cols-2">
-                {% for act in activity|default:'' %}
-                <div class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-4">
-                  <p class="text-white/80">
-                    {{ act.text }}
-                  </p>
-                  <p class="text-xs text-white/50 mt-1">{{ act.ts|date:"M j, g:i A" }}</p>
+              <div class="card-body">
+                <p class="text-muted">{{ profile.bio|default:"This player hasn't added a bio yet." }}</p>
+                
+                <div class="row mt-4">
+                  <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Gaming IDs</h6>
+                    <div class="gaming-ids">
+                      {% if profile.riot_id %}
+                      <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-gamepad text-danger me-2" style="width: 20px;"></i>
+                        <span class="small"><strong>Riot ID:</strong> {{ profile.riot_id }}</span>
+                      </div>
+                      {% endif %}
+                      {% if profile.efootball_id %}
+                      <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-futbol text-success me-2" style="width: 20px;"></i>
+                        <span class="small"><strong>eFootball:</strong> {{ profile.efootball_id }}</span>
+                      </div>
+                      {% endif %}
+                      {% if profile.discord_id %}
+                      <div class="d-flex align-items-center mb-2">
+                        <i class="fab fa-discord text-primary me-2" style="width: 20px;"></i>
+                        <span class="small"><strong>Discord:</strong> {{ profile.discord_id }}</span>
+                      </div>
+                      {% endif %}
+                      {% if not profile.riot_id and not profile.efootball_id and not profile.discord_id %}
+                      <p class="text-muted small">No gaming IDs added yet.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Details</h6>
+                    <div class="profile-details-list">
+                      <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Region:</span>
+                        <span class="small">{{ profile.get_region_display|default:profile.region|default:"Not specified" }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Member since:</span>
+                        <span class="small">{{ public_user.date_joined|date:"M j, Y" }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Last seen:</span>
+                        <span class="small">{{ public_user.last_login|date:"M j, Y"|default:"Never" }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="fas fa-clock text-primary me-2"></i> Recent Activity</h5>
+              </div>
+              <div class="card-body">
+                {% for act in activity %}
+                <div class="activity-item d-flex mb-3 pb-3 border-bottom">
+                  <div class="activity-icon me-3">
+                    <i class="fas fa-circle text-primary"></i>
+                  </div>
+                  <div class="activity-content flex-grow-1">
+                    <p class="mb-1 small">{{ act.text }}</p>
+                    <small class="text-muted">{{ act.ts|date:"M j, g:i A" }}</small>
+                  </div>
                 </div>
                 {% empty %}
-                <div class="rounded-2xl ring-1 ring-white/10 bg-white/5 p-4 text-white/80">
-                  No recent activity yet.
+                <div class="text-center py-4">
+                  <i class="fas fa-history fa-2x text-muted mb-3"></i>
+                  <p class="text-muted">No recent activity</p>
                 </div>
                 {% endfor %}
               </div>
             </div>
-          </article>
-        </div>
-      </section>
+          </div>
 
-      <!-- === MATCHES === -->
-      <section id="tab-matches" role="tabpanel" class="hidden p-5 sm:p-6">
-        <h3 class="text-lg font-semibold text-white">Match history</h3>
-        <div class="mt-4 grid gap-4 md:grid-cols-2">
-          {% for m in match_history|default:'' %}
-          <article class="card bg-white/5 ring-1 ring-white/10">
-            <div class="p-5">
-              <div class="flex items-center justify-between">
-                <h4 class="text-white font-medium">{{ m.tournament_name|default:"Tournament" }}</h4>
-                <span class="chip">{{ m.result|default:"-" }}</span>
+          <div class="col-lg-4">
+            <!-- Quick Info Card -->
+            <div class="card border-0 shadow-sm mb-4">
+              <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="fas fa-user text-primary me-2"></i> Profile Info</h5>
               </div>
-              <p class="text-white/70 text-sm mt-1">{{ m.game|default:"-" }} &bull; {{ m.played_at|date:"M j, g:i A" }}</p>
-              <p class="text-white/80 mt-2 line-clamp-2">{{ m.summary|default:"" }}</p>
-              <div class="mt-3 flex gap-3">
-                <a class="btn btn-ghost" href="{{ m.url|default:'#' }}">Details</a>
-                {% if m.vod_url %}<a class="btn btn-secondary" href="{{ m.vod_url }}" target="_blank" rel="noopener">Watch</a>{% endif %}
-              </div>
-            </div>
-          </article>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            No matches yet.
-          </div></div>
-          {% endfor %}
-        </div>
-      </section>
-
-      <!-- === TEAMS === -->
-      <section id="tab-teams" role="tabpanel" class="hidden p-5 sm:p-6">
-        <div class="flex items-end justify-between">
-          <h3 class="text-lg font-semibold text-white">Teams</h3>
-          <a class="text-sm text-cyan-300 hover:text-cyan-200 underline underline-offset-4" href="/teams/">Browse teams</a>
-        </div>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {% for t in teams|default:'' %}
-          <a href="{{ t.url|default:'#' }}" class="card bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition block">
-            <div class="p-5">
-              <div class="flex items-center gap-3">
-                <img src="{{ t.logo_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" alt="" class="h-10 w-10 rounded-xl ring-1 ring-white/10 object-cover">
-                <div>
-                  <h4 class="text-white font-medium">{{ t.name }}</h4>
-                  <p class="text-white/60 text-sm">{{ t.role|default:"Member" }}</p>
+              <div class="card-body">
+                <div class="profile-info-item d-flex justify-content-between align-items-center py-2">
+                  <span class="text-muted small">Username</span>
+                  <span class="small fw-bold">{{ public_user.username }}</span>
                 </div>
+                <div class="profile-info-item d-flex justify-content-between align-items-center py-2">
+                  <span class="text-muted small">Display Name</span>
+                  <span class="small">{{ profile.display_name|default:"Not set" }}</span>
+                </div>
+                {% if show_email and profile.email %}
+                <div class="profile-info-item d-flex justify-content-between align-items-center py-2">
+                  <span class="text-muted small">Email</span>
+                  <span class="small">{{ public_user.email }}</span>
+                </div>
+                {% endif %}
+                {% if show_phone and profile.phone %}
+                <div class="profile-info-item d-flex justify-content-between align-items-center py-2">
+                  <span class="text-muted small">Phone</span>
+                  <span class="small">{{ profile.phone }}</span>
+                </div>
+                {% endif %}
               </div>
-              <div class="mt-3 text-white/70 text-sm">{{ t.members_count|default:"-" }} members</div>
             </div>
-          </a>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            Not on any teams yet.
-          </div></div>
-          {% endfor %}
-        </div>
-      </section>
 
-      <!-- === HIGHLIGHTS === -->
-      <section id="tab-highlights" role="tabpanel" class="hidden p-5 sm:p-6">
-        <h3 class="text-lg font-semibold text-white">Highlights</h3>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {% for h in highlights|default:'' %}
-          <article class="card bg-white/5 ring-1 ring-white/10 overflow-hidden">
-            {% if h.thumb_url %}
-              <img src="{{ h.thumb_url }}" alt="" class="w-full h-40 object-cover">
+            <!-- Teams Quick View -->
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="fas fa-users text-primary me-2"></i> Teams</h5>
+              </div>
+              <div class="card-body">
+                {% for team in teams|slice:":3" %}
+                <div class="team-quick-item d-flex align-items-center mb-3">
+                  <img src="{{ team.logo_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" 
+                       alt="{{ team.name }}" class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                  <div class="flex-grow-1">
+                    <h6 class="mb-0 small fw-bold">{{ team.name }}</h6>
+                    <p class="text-muted small mb-0">{{ team.role|default:"Member" }}</p>
+                  </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-3">
+                  <i class="fas fa-users fa-2x text-muted mb-2"></i>
+                  <p class="text-muted small mb-0">Not on any teams yet</p>
+                </div>
+                {% endfor %}
+                
+                {% if teams|length > 3 %}
+                <button class="btn btn-outline-primary btn-sm w-100 mt-2" onclick="document.getElementById('teams-tab').click()">
+                  View All Teams
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matches Tab -->
+      <div class="tab-pane fade" id="matches" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white border-0">
+            <h5 class="mb-0"><i class="fas fa-gamepad text-primary me-2"></i> Match History</h5>
+          </div>
+          <div class="card-body">
+            {% if match_history %}
+              <div class="row g-3">
+                {% for match in match_history %}
+                <div class="col-md-6">
+                  <div class="card border-0 bg-light">
+                    <div class="card-body p-3">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0 fw-bold">{{ match.tournament_name }}</h6>
+                        <span class="badge {% if match.result == 'Win' %}bg-success{% elif match.result == 'Loss' %}bg-danger{% else %}bg-secondary{% endif %}">
+                          {{ match.result }}
+                        </span>
+                      </div>
+                      <p class="text-muted small mb-2">
+                        <i class="fas fa-gamepad me-1"></i>{{ match.game }} • 
+                        <i class="fas fa-clock me-1"></i>{{ match.played_at|date:"M j, g:i A" }}
+                      </p>
+                      {% if match.summary %}
+                      <p class="small mb-2">{{ match.summary|truncatechars:100 }}</p>
+                      {% endif %}
+                      <a href="{{ match.url }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye me-1"></i>View Details
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-gamepad fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Matches Yet</h5>
+                <p class="text-muted">This player hasn't participated in any matches.</p>
+              </div>
             {% endif %}
-            <div class="p-5">
-              <h4 class="text-white font-medium">{{ h.title|default:"Highlight" }}</h4>
-              <p class="text-white/70 text-sm mt-1 line-clamp-2">{{ h.summary|default:"" }}</p>
-              <div class="mt-3 flex gap-3">
-                {% if h.url %}<a class="btn btn-primary" href="{{ h.url }}" target="_blank" rel="noopener">Watch</a>{% endif %}
-                {% if h.forum_url %}<a class="btn btn-ghost" href="{{ h.forum_url }}">Discuss</a>{% endif %}
-              </div>
-            </div>
-          </article>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            No highlights yet.
-          </div></div>
-          {% endfor %}
+          </div>
         </div>
-      </section>
+      </div>
 
-      <!-- === ACHIEVEMENTS === -->
-      <section id="tab-achievements" role="tabpanel" class="hidden p-5 sm:p-6">
-        <h3 class="text-lg font-semibold text-white">Achievements</h3>
-        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {% for a in achievements|default:'' %}
-          <article class="card bg-white/5 ring-1 ring-white/10">
-            <div class="p-5">
-              <div class="flex items-center gap-3">
-                <div class="h-9 w-9 rounded-xl bg-amber-400/20 grid place-items-center ring-1 ring-white/10">
-                  <!-- medal -->
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" class="text-amber-200"><path d="M12 2 7 7h3v6h4V7h3zM12 15a5 5 0 1 0 5 5 5 5 0 0 0-5-5Z"/></svg>
+      <!-- Teams Tab -->
+      <div class="tab-pane fade" id="teams" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-users text-primary me-2"></i> Teams</h5>
+            <a href="{% url 'teams:list' %}" class="btn btn-outline-primary btn-sm">
+              <i class="fas fa-search me-1"></i>Browse Teams
+            </a>
+          </div>
+          <div class="card-body">
+            {% if teams %}
+              <div class="row g-3">
+                {% for team in teams %}
+                <div class="col-md-6 col-lg-4">
+                  <div class="card border-0 bg-light h-100">
+                    <div class="card-body p-3">
+                      <div class="d-flex align-items-center mb-3">
+                        <img src="{{ team.logo_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" 
+                             alt="{{ team.name }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                        <div class="flex-grow-1">
+                          <h6 class="mb-0 fw-bold">{{ team.name }}</h6>
+                          <small class="text-muted">{{ team.role|default:"Member" }}</small>
+                        </div>
+                      </div>
+                      <p class="text-muted small mb-2">
+                        <i class="fas fa-users me-1"></i>{{ team.members_count|default:"0" }} members
+                      </p>
+                      <a href="{{ team.url }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-eye me-1"></i>View Team
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                <h4 class="text-white font-medium">{{ a.title }}</h4>
+                {% endfor %}
               </div>
-              <p class="text-white/70 text-sm mt-2">{{ a.description|default:"" }}</p>
-              <p class="text-white/50 text-xs mt-1">Earned {{ a.earned_at|date:"M j, Y" }}</p>
-            </div>
-          </article>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            No achievements yet.
-          </div></div>
-          {% endfor %}
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Teams Yet</h5>
+                <p class="text-muted">This player isn't part of any teams.</p>
+                <a href="{% url 'teams:list' %}" class="btn btn-primary">
+                  <i class="fas fa-search me-1"></i>Browse Teams
+                </a>
+              </div>
+            {% endif %}
+          </div>
         </div>
-      </section>
+      </div>
 
-      <!-- === SOCIAL === -->
-      <section id="tab-social" role="tabpanel" class="hidden p-5 sm:p-6">
-        <h3 class="text-lg font-semibold text-white">Social links</h3>
-        <div class="mt-4 grid gap-4 md:grid-cols-2">
-          {% for s in social|default:'' %}
-          <a href="{{ s.url }}" target="_blank" rel="noopener" class="card bg-white/5 ring-1 ring-white/10 hover:ring-white/20 transition block">
-            <div class="p-5">
-              <h4 class="text-white font-medium">{{ s.platform }}</h4>
-              <p class="text-white/70 text-sm mt-1">{{ s.handle }}</p>
-            </div>
-          </a>
-          {% empty %}
-          <div class="card bg-white/5 ring-1 ring-white/10"><div class="p-6 text-white/80">
-            No social links added.
-          </div></div>
-          {% endfor %}
+      <!-- Achievements Tab -->
+      <div class="tab-pane fade" id="achievements" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white border-0">
+            <h5 class="mb-0"><i class="fas fa-trophy text-primary me-2"></i> Achievements</h5>
+          </div>
+          <div class="card-body">
+            {% if achievements %}
+              <div class="row g-3">
+                {% for achievement in achievements %}
+                <div class="col-md-6 col-lg-4">
+                  <div class="card border-0 bg-light h-100">
+                    <div class="card-body p-4 text-center">
+                      <div class="achievement-icon mb-3">
+                        <div class="rounded-circle bg-warning bg-opacity-25 d-inline-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px;">
+                          <i class="fas fa-trophy fa-2x text-warning"></i>
+                        </div>
+                      </div>
+                      <h6 class="fw-bold">{{ achievement.title }}</h6>
+                      <p class="text-muted small mb-2">{{ achievement.description }}</p>
+                      <small class="text-muted">
+                        <i class="fas fa-calendar me-1"></i>{{ achievement.earned_at|date:"M j, Y" }}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-trophy fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Achievements Yet</h5>
+                <p class="text-muted">This player hasn't earned any achievements.</p>
+              </div>
+            {% endif %}
+          </div>
         </div>
-      </section>
+      </div>
+
+      <!-- Social Tab -->
+      <div class="tab-pane fade" id="social" role="tabpanel">
+        <div class="card border-0 shadow-sm">
+          <div class="card-header bg-white border-0">
+            <h5 class="mb-0"><i class="fas fa-share-alt text-primary me-2"></i> Social Links</h5>
+          </div>
+          <div class="card-body">
+            {% if social or profile.youtube_link or profile.twitch_link or profile.discord_id %}
+              <div class="row g-3">
+                {% if profile.youtube_link %}
+                <div class="col-md-6">
+                  <a href="{{ profile.youtube_link }}" target="_blank" rel="noopener" class="card border-0 bg-danger bg-opacity-10 text-decoration-none h-100">
+                    <div class="card-body p-4 text-center">
+                      <i class="fab fa-youtube fa-3x text-danger mb-3"></i>
+                      <h6 class="text-dark mb-0">YouTube</h6>
+                      <small class="text-muted">Watch content</small>
+                    </div>
+                  </a>
+                </div>
+                {% endif %}
+                
+                {% if profile.twitch_link %}
+                <div class="col-md-6">
+                  <a href="{{ profile.twitch_link }}" target="_blank" rel="noopener" class="card border-0 bg-primary bg-opacity-10 text-decoration-none h-100">
+                    <div class="card-body p-4 text-center">
+                      <i class="fab fa-twitch fa-3x text-primary mb-3"></i>
+                      <h6 class="text-dark mb-0">Twitch</h6>
+                      <small class="text-muted">Watch streams</small>
+                    </div>
+                  </a>
+                </div>
+                {% endif %}
+                
+                {% if profile.discord_id %}
+                <div class="col-md-6">
+                  <div class="card border-0 bg-info bg-opacity-10 h-100">
+                    <div class="card-body p-4 text-center">
+                      <i class="fab fa-discord fa-3x text-info mb-3"></i>
+                      <h6 class="text-dark mb-0">Discord</h6>
+                      <small class="text-muted">{{ profile.discord_id }}</small>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+                
+                {% for link in social %}
+                <div class="col-md-6">
+                  <a href="{{ link.url }}" target="_blank" rel="noopener" class="card border-0 bg-light text-decoration-none h-100">
+                    <div class="card-body p-4 text-center">
+                      <i class="fas fa-link fa-3x text-secondary mb-3"></i>
+                      <h6 class="text-dark mb-0">{{ link.platform }}</h6>
+                      <small class="text-muted">{{ link.handle|default:"Visit link" }}</small>
+                    </div>
+                  </a>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-share-alt fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Social Links</h5>
+                <p class="text-muted">This player hasn't added any social links yet.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
-  </section>
-</main>
+  </div>
+</div>
 
-<!-- Page script -->
-<script defer src="{% static 'siteui/js/profile.js' %}"></script>
+<!-- Profile CSS -->
+<style>
+.profile-banner-section {
+  height: 300px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-banner {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-banner-placeholder {
+  height: 100%;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  position: relative;
+}
+
+.banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(transparent 60%, rgba(0,0,0,0.3));
+}
+
+.profile-info-bar {
+  margin-top: -80px;
+  position: relative;
+  z-index: 5;
+}
+
+.profile-photo, .profile-photo-placeholder {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+}
+
+.profile-photo-placeholder {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+  color: #0d6efd;
+  border-bottom: 2px solid #0d6efd;
+  background: none;
+}
+
+.nav-tabs .nav-link:hover {
+  border: none;
+  color: #0d6efd;
+}
+
+@media (max-width: 768px) {
+  .profile-banner-section {
+    height: 200px;
+  }
+  
+  .profile-info-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .profile-actions {
+    justify-content: center;
+  }
+  
+  .profile-photo, .profile-photo-placeholder {
+    width: 80px;
+    height: 80px;
+  }
+}
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Copy profile link functionality
+    const copyBtn = document.getElementById('btn-copy');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            const url = this.dataset.url || window.location.href;
+            navigator.clipboard.writeText(url).then(function() {
+                // Show success feedback
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                copyBtn.classList.add('btn-success');
+                copyBtn.classList.remove('btn-outline-secondary');
+                
+                setTimeout(function() {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.classList.remove('btn-success');
+                    copyBtn.classList.add('btn-outline-secondary');
+                }, 2000);
+            });
+        });
+    }
+    
+    // Follow button functionality (placeholder)
+    const followBtn = document.getElementById('btn-follow');
+    if (followBtn) {
+        followBtn.addEventListener('click', function() {
+            const isFollowing = this.dataset.following === 'true';
+            
+            if (isFollowing) {
+                this.innerHTML = '<i class="fas fa-user-plus me-1"></i> Follow';
+                this.dataset.following = 'false';
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-outline-primary');
+            } else {
+                this.innerHTML = '<i class="fas fa-user-check me-1"></i> Following';
+                this.dataset.following = 'true';
+                this.classList.remove('btn-outline-primary');
+                this.classList.add('btn-danger');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

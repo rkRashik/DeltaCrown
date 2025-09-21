@@ -62,6 +62,9 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
             if name in fields:
                 cols.append(name)
         cols.append("fee_column")
+        # Add slot information if slot_size field exists
+        if "slot_size" in fields:
+            cols.append("slots_column")
         return tuple(cols)
 
     def get_list_filter(self, request):
@@ -95,8 +98,12 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
             sched_rows.append(tuple(pair1))
         if pair2:
             sched_rows.append(tuple(pair2))
+        # Add slot_size to schedule section
+        slot_field = _fields_if_exist(Tournament, "slot_size")
+        if slot_field:
+            sched_rows.append(tuple(slot_field))
         if sched_rows:
-            fsets.append(("Schedule (optional)", {"fields": tuple(sched_rows), "description": "Optional start/end timing; set later if unknown."}))
+            fsets.append(("Schedule & Capacity", {"fields": tuple(sched_rows), "description": "Tournament timing and registration limits. Set slot_size to limit registrations."}))
 
         entry = _fields_if_exist(Tournament, "entry_fee_bdt", "entry_fee", "bank_instructions")
         if entry:
@@ -178,6 +185,13 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         if hasattr(obj, "entry_fee"):
             return getattr(obj, "entry_fee")
         return None
+
+    @admin.display(description="Slots")
+    def slots_column(self, obj: Tournament):
+        try:
+            return getattr(obj, "slots_text", None) or "No limit"
+        except Exception:
+            return "—"
 
     actions = (
         "action_generate_bracket_safe",

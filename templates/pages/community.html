@@ -1,9 +1,404 @@
 {% extends "base.html" %}
-{% block title %}Community — DeltaCrown{% endblock %}
+{% load static %}
+{% load team_social_tags %}
+{% block title %}Community Hub — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link href="{% static 'siteui/css/team-social.css' %}" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<section class="container py-14">
-  <h1 class="sec-h">Community</h1>
-  <p class="text-muted max-w-3xl">Join us on Discord, watch streams, and be part of the movement.</p>
-  <a class="btn-secondary mt-6" href="https://discord.com/" rel="noopener">Join Discord</a>
-</section>
+<div class="community-hub">
+  <!-- Hero Section -->
+  <div class="community-hero bg-primary text-white py-5 mb-4">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h1 class="display-5 fw-bold mb-3">
+            <i class="fas fa-users me-3"></i>Community Hub
+          </h1>
+          <p class="lead mb-4">
+            Connect with teams, discover talent, and stay updated with the latest from the DeltaCrown esports community.
+          </p>
+          <div class="d-flex gap-3 flex-wrap">
+            <a href="{% url 'teams:list' %}" class="btn btn-light btn-lg">
+              <i class="fas fa-search me-2"></i>Find Teams
+            </a>
+            <a href="{% url 'teams:create' %}" class="btn btn-outline-light btn-lg">
+              <i class="fas fa-plus me-2"></i>Create Team
+            </a>
+            <a href="https://discord.com/" target="_blank" rel="noopener" class="btn btn-outline-light btn-lg">
+              <i class="fab fa-discord me-2"></i>Join Discord
+            </a>
+          </div>
+        </div>
+        <div class="col-lg-4 text-center">
+          <div class="community-stats">
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="stat-card bg-white bg-opacity-10 rounded-3 p-3">
+                  <h3 class="mb-1">{{ posts.paginator.count|default:"0" }}</h3>
+                  <small>Community Posts</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-card bg-white bg-opacity-10 rounded-3 p-3">
+                  <h3 class="mb-1">{{ featured_teams|length|default:"0" }}</h3>
+                  <small>Active Teams</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="row">
+      <!-- Main Feed -->
+      <div class="col-lg-8">
+        <!-- Filters -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-3">
+            <form method="get" class="d-flex gap-3 align-items-center flex-wrap">
+              <div class="flex-grow-1">
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0">
+                    <i class="fas fa-search text-muted"></i>
+                  </span>
+                  <input type="search" name="q" class="form-control border-start-0" 
+                         placeholder="Search posts, teams, or content..." 
+                         value="{{ search_query|default:'' }}">
+                </div>
+              </div>
+              <select name="game" class="form-select" style="width: auto;">
+                <option value="">All Games</option>
+                {% for game in games %}
+                <option value="{{ game }}" {% if game == current_game %}selected{% endif %}>
+                  {{ game|title }}
+                </option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter me-1"></i>Filter
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Community Posts Feed -->
+        <div class="posts-feed">
+          {% for post in posts %}
+          <div class="card post-card mb-4 border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pb-0">
+              <div class="post-header d-flex justify-content-between align-items-start">
+                <div class="post-author d-flex">
+                  <a href="{% url 'teams:teams_social:team_social_detail' post.team.slug %}" class="text-decoration-none">
+                    {% if post.team.logo %}
+                      <img src="{{ post.team.logo.url }}" alt="{{ post.team.name }}" 
+                           class="rounded me-3" style="width: 48px; height: 48px; object-fit: cover;">
+                    {% else %}
+                      <div class="rounded bg-primary text-white d-flex align-items-center justify-content-center me-3" 
+                           style="width: 48px; height: 48px;">
+                        <span class="fw-bold">{{ post.team.name|first|upper }}</span>
+                      </div>
+                    {% endif %}
+                  </a>
+                  <div class="author-info">
+                    <h6 class="mb-0 fw-bold">
+                      <a href="{% url 'teams:teams_social:team_social_detail' post.team.slug %}" class="text-decoration-none text-dark">
+                        {{ post.team.name }}
+                      </a>
+                      {% if post.team.is_verified %}
+                        <i class="fas fa-check-circle text-primary ms-1" title="Verified Team"></i>
+                      {% endif %}
+                    </h6>
+                    <div class="post-meta d-flex align-items-center text-muted small">
+                      <span>by {{ post.author.user.get_full_name|default:post.author.user.username }}</span>
+                      <span class="mx-2">•</span>
+                      <span>{{ post.created_at|timesince }} ago</span>
+                      <span class="mx-2">•</span>
+                      <i class="fas fa-gamepad me-1"></i>
+                      <span>{{ post.team.get_game_display|default:post.team.game }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="post-options">
+                  <a href="{% url 'teams:teams_social:team_social_detail' post.team.slug %}" 
+                     class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i>View Team
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body pt-2">
+              {% if post.title %}
+              <h5 class="post-title mb-2">{{ post.title }}</h5>
+              {% endif %}
+              
+              <div class="post-content mb-3">
+                {{ post.content|linebreaksbr|truncatechars:300 }}
+                {% if post.content|length > 300 %}
+                  <a href="{% url 'teams:teams_social:team_social_detail' post.team.slug %}" class="text-primary">
+                    Read more...
+                  </a>
+                {% endif %}
+              </div>
+
+              <!-- Post Media Preview -->
+              {% if post.media.exists %}
+              <div class="post-media mb-3">
+                <div class="row g-2">
+                  {% for media in post.media.all|slice:":2" %}
+                  <div class="col-{% if post.media.count == 1 %}12{% else %}6{% endif %}">
+                    <img src="{{ media.file.url }}" alt="{{ media.alt_text }}" 
+                         class="img-fluid rounded w-100" style="object-fit: cover; height: 150px;">
+                  </div>
+                  {% endfor %}
+                  {% if post.media.count > 2 %}
+                  <div class="col-6 position-relative">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex align-items-center justify-content-center rounded">
+                      <span class="text-white fw-bold">+{{ post.media.count|add:"-2" }} more</span>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
+              <!-- Engagement Stats -->
+              <div class="engagement-stats d-flex justify-content-between align-items-center py-2 border-top border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                  {% if post.likes.count > 0 %}
+                  <span class="text-muted small">
+                    <i class="fas fa-heart text-danger me-1"></i>
+                    {{ post.likes.count }} {{ post.likes.count|pluralize:"like,likes" }}
+                  </span>
+                  {% endif %}
+                  {% if post.comments.count > 0 %}
+                  <span class="text-muted small">
+                    <i class="fas fa-comment me-1"></i>
+                    {{ post.comments.count }} {{ post.comments.count|pluralize:"comment,comments" }}
+                  </span>
+                  {% endif %}
+                </div>
+                <span class="text-muted small">
+                  {{ post.created_at|date:"M j, Y" }}
+                </span>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="post-actions d-flex justify-content-around py-2">
+                <a href="{% url 'teams:teams_social:team_social_detail' post.team.slug %}" 
+                   class="btn btn-link text-decoration-none text-muted flex-fill text-center">
+                  <i class="fas fa-heart me-1"></i> Like
+                </a>
+                <a href="{% url 'teams:teams_social:team_social_detail' post.team.slug %}" 
+                   class="btn btn-link text-decoration-none text-muted flex-fill text-center">
+                  <i class="fas fa-comment me-1"></i> Comment
+                </a>
+                <button class="btn btn-link text-decoration-none text-muted flex-fill text-center share-btn" 
+                        data-url="{% url 'teams:teams_social:team_social_detail' post.team.slug %}">
+                  <i class="fas fa-share me-1"></i> Share
+                </button>
+              </div>
+            </div>
+          </div>
+          {% empty %}
+          <!-- Empty State -->
+          <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+              <i class="fas fa-comments fa-3x text-muted mb-4"></i>
+              <h4 class="text-muted mb-3">No Community Posts Yet</h4>
+              <p class="text-muted mb-4">
+                Be the first to share something with the community! Join a team or create your own to start posting.
+              </p>
+              <div class="d-flex gap-2 justify-content-center">
+                <a href="{% url 'teams:list' %}" class="btn btn-primary">
+                  <i class="fas fa-search me-1"></i>Find Teams
+                </a>
+                <a href="{% url 'teams:create' %}" class="btn btn-outline-primary">
+                  <i class="fas fa-plus me-1"></i>Create Team
+                </a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if posts.has_other_pages %}
+        <nav aria-label="Community posts pagination" class="mt-4">
+          <ul class="pagination justify-content-center">
+            {% if posts.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_game %}game={{ current_game }}&{% endif %}page={{ posts.previous_page_number }}">
+                  <i class="fas fa-chevron-left"></i> Previous
+                </a>
+              </li>
+            {% endif %}
+            
+            <li class="page-item active">
+              <span class="page-link">
+                Page {{ posts.number }} of {{ posts.paginator.num_pages }}
+              </span>
+            </li>
+            
+            {% if posts.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% if current_game %}game={{ current_game }}&{% endif %}page={{ posts.next_page_number }}">
+                  Next <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="col-lg-4">
+        <!-- Community Stats -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-0">
+            <h5 class="mb-0"><i class="fas fa-chart-bar text-primary me-2"></i>Community Stats</h5>
+          </div>
+          <div class="card-body">
+            <div class="stat-row d-flex justify-content-between align-items-center py-2">
+              <span class="text-muted">Total Posts</span>
+              <span class="fw-bold">{{ posts.paginator.count|default:"0" }}</span>
+            </div>
+            <div class="stat-row d-flex justify-content-between align-items-center py-2">
+              <span class="text-muted">Active Teams</span>
+              <span class="fw-bold">{{ featured_teams|length|default:"0" }}</span>
+            </div>
+            <div class="stat-row d-flex justify-content-between align-items-center py-2">
+              <span class="text-muted">Games Played</span>
+              <span class="fw-bold">{{ games|length|default:"0" }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Featured Teams -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-0">
+            <h5 class="mb-0"><i class="fas fa-star text-warning me-2"></i>Featured Teams</h5>
+          </div>
+          <div class="card-body">
+            {% for team in featured_teams %}
+            <div class="featured-team-item d-flex align-items-center mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+              <a href="{% url 'teams:teams_social:team_social_detail' team.slug %}">
+                {% if team.logo %}
+                  <img src="{{ team.logo.url }}" alt="{{ team.name }}" 
+                       class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                {% else %}
+                  <div class="rounded bg-primary text-white d-flex align-items-center justify-content-center me-3" 
+                       style="width: 40px; height: 40px;">
+                    <span class="small fw-bold">{{ team.name|first|upper }}</span>
+                  </div>
+                {% endif %}
+              </a>
+              <div class="flex-grow-1">
+                <h6 class="mb-0">
+                  <a href="{% url 'teams:teams_social:team_social_detail' team.slug %}" 
+                     class="text-decoration-none text-dark">{{ team.name }}</a>
+                  {% if team.is_verified %}
+                    <i class="fas fa-check-circle text-primary ms-1" title="Verified Team"></i>
+                  {% endif %}
+                </h6>
+                <small class="text-muted">
+                  {{ team.get_game_display|default:team.game }} • {{ team.members.count }} members
+                </small>
+              </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-3">
+              <i class="fas fa-users fa-2x text-muted mb-2"></i>
+              <p class="text-muted small mb-0">No teams yet</p>
+            </div>
+            {% endfor %}
+            
+            <a href="{% url 'teams:list' %}" class="btn btn-outline-primary btn-sm w-100 mt-2">
+              <i class="fas fa-eye me-1"></i>View All Teams
+            </a>
+          </div>
+        </div>
+
+        <!-- Join Discord -->
+        <div class="card border-0 shadow-sm bg-primary text-white">
+          <div class="card-body text-center p-4">
+            <i class="fab fa-discord fa-3x mb-3"></i>
+            <h5 class="mb-2">Join Our Discord</h5>
+            <p class="mb-3 small">Connect with other players, find teammates, and stay updated!</p>
+            <a href="https://discord.com/" target="_blank" rel="noopener" 
+               class="btn btn-light btn-sm">
+              <i class="fab fa-discord me-1"></i>Join Now
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.community-hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-card {
+  backdrop-filter: blur(10px);
+}
+
+.featured-team-item:hover {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+  transition: all 0.3s ease;
+}
+
+.share-btn:hover {
+  color: var(--bs-primary) !important;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Share functionality
+    document.querySelectorAll('.share-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const url = this.dataset.url;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Check out this team on DeltaCrown',
+                    url: url
+                });
+            } else {
+                // Fallback: copy to clipboard
+                navigator.clipboard.writeText(window.location.origin + url).then(() => {
+                    // Show feedback
+                    const originalIcon = this.querySelector('i').className;
+                    this.querySelector('i').className = 'fas fa-check me-1';
+                    this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+                    
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fas fa-share me-1"></i> Share';
+                    }, 2000);
+                });
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -88,6 +88,8 @@ class TournamentRegistrationPolicyInline(admin.StackedInline):
     can_delete = False
     extra = 0
     fk_name = "tournament"
+    verbose_name = "Registration Policy"
+    verbose_name_plural = "Registration Policy"
 
     def get_fields(self, request, obj=None):
         return _fields_if_exist(
@@ -96,6 +98,17 @@ class TournamentRegistrationPolicyInline(admin.StackedInline):
             "team_size_min",
             "team_size_max", "allow_substitutes",
         )
+    
+    def get_fieldsets(self, request, obj=None):
+        fields = self.get_fields(request, obj)
+        if fields:
+            return [
+                ("Team Registration Settings", {
+                    "fields": tuple(fields),
+                    "description": "Configure how teams register for this tournament. Team size settings are used for validation during registration."
+                })
+            ]
+        return None
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)

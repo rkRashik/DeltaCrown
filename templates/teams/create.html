@@ -12,24 +12,141 @@
   </header>
 
   <div class="glass p-6 rounded-2xl">
-    <form method="post" enctype="multipart/form-data" class="grid gap-4">
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
       {% csrf_token %}
-      {{ form.non_field_errors }}
+      
+      {% if form.non_field_errors %}
+        <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+          {% for error in form.non_field_errors %}
+            <p class="text-red-400 text-sm">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {% for field in form %}
-          <div class="flex flex-col">
-            <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<p class="text-muted text-xs mt-1">{{ field.help_text }}</p>{% endif %}
-            {% for e in field.errors %}<p class="text-red-400 text-xs">{{ e }}</p>{% endfor %}
-          </div>
-        {% endfor %}
+      <!-- Basic Information -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold text-white border-b border-white/10 pb-2">Team Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {% for field in form %}
+            {% if field.name in "name,tag,game" %}
+              <div class="{% if field.name == 'name' %}md:col-span-2{% endif %}">
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-200 mb-2">
+                  {{ field.label }}
+                  {% if field.field.required %}<span class="text-red-400">*</span>{% endif %}
+                </label>
+                {% if field.name == 'game' %}
+                  <select name="{{ field.name }}" id="{{ field.id_for_label }}" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for choice in field.field.choices %}
+                      <option value="{{ choice.0 }}" {% if choice.0 == field.value %}selected{% endif %}>{{ choice.1 }}</option>
+                    {% endfor %}
+                  </select>
+                {% else %}
+                  <input 
+                    type="{{ field.field.widget.input_type|default:'text' }}" 
+                    name="{{ field.name }}" 
+                    id="{{ field.id_for_label }}"
+                    value="{{ field.value|default:'' }}"
+                    class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    {% if field.field.required %}required{% endif %}
+                    {% if field.name == 'tag' %}maxlength="5" placeholder="e.g. DC"{% endif %}
+                    {% if field.name == 'name' %}maxlength="50" placeholder="Enter your team name"{% endif %}
+                  />
+                {% endif %}
+                {% if field.help_text %}
+                  <p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
+                {% endif %}
+                {% if field.errors %}
+                  {% for error in field.errors %}
+                    <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
       </div>
 
-      <div class="flex gap-2 mt-2">
-        <button type="submit" class="btn-primary">Create Team</button>
-        <a href="/teams/" class="btn-ghost">Cancel</a>
+      <!-- Description and Logo -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold text-white border-b border-white/10 pb-2">Team Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {% for field in form %}
+            {% if field.name in "description,logo" %}
+              <div class="{% if field.name == 'description' %}md:col-span-2{% endif %}">
+                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-200 mb-2">
+                  {{ field.label }}
+                  {% if field.field.required %}<span class="text-red-400">*</span>{% endif %}
+                </label>
+                {% if field.name == 'description' %}
+                  <textarea 
+                    name="{{ field.name }}" 
+                    id="{{ field.id_for_label }}"
+                    rows="3"
+                    class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Describe your team's goals and style..."
+                  >{{ field.value|default:'' }}</textarea>
+                {% else %}
+                  <input 
+                    type="file" 
+                    name="{{ field.name }}" 
+                    id="{{ field.id_for_label }}"
+                    accept="image/*"
+                    class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600"
+                  />
+                {% endif %}
+                {% if field.help_text %}
+                  <p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
+                {% endif %}
+                {% if field.errors %}
+                  {% for error in field.errors %}
+                    <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+                  {% endfor %}
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Team Settings -->
+      <div class="space-y-4">
+        <h3 class="text-lg font-semibold text-white border-b border-white/10 pb-2">Team Settings</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {% for field in form %}
+            {% if field.name in "is_open,is_recruiting" %}
+              <div class="flex items-center space-x-3">
+                <input 
+                  type="checkbox" 
+                  name="{{ field.name }}" 
+                  id="{{ field.id_for_label }}"
+                  {% if field.value %}checked{% endif %}
+                  class="w-4 h-4 text-blue-600 bg-white/10 border-white/20 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <label for="{{ field.id_for_label }}" class="text-sm font-medium text-gray-200">
+                  {{ field.label }}
+                </label>
+                {% if field.help_text %}
+                  <p class="text-xs text-gray-400">{{ field.help_text }}</p>
+                {% endif %}
+              </div>
+              {% if field.errors %}
+                {% for error in field.errors %}
+                  <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+                {% endfor %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-4">
+        <button type="submit" class="btn-primary flex-1 sm:flex-none">
+          <i class="fas fa-plus mr-2"></i>
+          Create Team
+        </button>
+        <a href="{% url 'teams:list' %}" class="btn-ghost flex-1 sm:flex-none text-center">
+          Cancel
+        </a>
       </div>
     </form>
   </div>

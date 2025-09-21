@@ -3,6 +3,7 @@ from django.urls import path
 
 from .views.public import hub, list_by_game, detail
 from .views.registration import register
+from .views.registration_unified import unified_register, valorant_register, efootball_register
 
 app_name = "tournaments"
 
@@ -34,6 +35,15 @@ urlpatterns = [
 
     # Register (e.g. /tournaments/register/valorant-delta-masters/)
     path("register/<slug:slug>/", register, name="register"),
+    
+    # Unified Registration (new system)
+    path("register-new/<slug:slug>/", unified_register, name="unified_register"),
+    
+    # Valorant-specific registration
+    path("valorant/<slug:slug>/", valorant_register, name="valorant_register"),
+    
+    # eFootball-specific registration
+    path("efootball/<slug:slug>/", efootball_register, name="efootball_register"),
 ]
 
 # Optional: My Matches surface and helpers

@@ -219,7 +219,30 @@ def banner_url(obj: Any) -> Optional[str]:
 
 def register_url(t: Any) -> str:
     try:
-        return reverse("tournaments:register", args=[t.slug])
+        # Import the team tournament detection function
+        from apps.tournaments.views.registration_unified import _is_team_tournament
+        
+        # Check if this is a team tournament first
+        is_team = _is_team_tournament(t)
+        
+        # If it's a solo tournament, always use unified registration
+        if not is_team:
+            return reverse("tournaments:unified_register", args=[t.slug])
+        
+        # For team tournaments, check game type for specialized forms
+        game_name = str(getattr(t, 'game', '')).lower()
+        game_type = str(getattr(t, 'game_type', '')).lower()
+        
+        # Check if this is a Valorant team tournament
+        if 'valorant' in game_name or 'valorant' in game_type:
+            return reverse("tournaments:valorant_register", args=[t.slug])
+        
+        # Check if this is an eFootball team tournament
+        if any(keyword in game_name or keyword in game_type for keyword in ['efootball', 'e-football', 'football', 'fifa', 'pes']):
+            return reverse("tournaments:efootball_register", args=[t.slug])
+        
+        # Use unified registration for other team tournaments
+        return reverse("tournaments:unified_register", args=[t.slug])
     except Exception:
         return getattr(t, "register_url", None) or f"/tournaments/{getattr(t,'slug',slugify(str(t)))}/register/"
 
