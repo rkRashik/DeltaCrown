@@ -51,7 +51,7 @@ class DCLoginView(LoginView):
 
 
 class DCLogoutView(LogoutView):
-    next_page = reverse_lazy("homepage")
+    next_page = reverse_lazy("siteui:homepage")
 
 
 class SignUpView(FormView):

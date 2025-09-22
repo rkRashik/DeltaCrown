@@ -1,0 +1,705 @@
+{% extends "base.html" %}
+{% load static %}
+{% load team_social_tags %}
+{% block title %}{{ profile.display_name|default:profile_user.username|default:"Player" }} - Profile | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link href="{% static 'siteui/css/team-social.css' %}" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+/* 🎮 PROFILE DASHBO                        <a href="{% url 'teams:list' %}" class="secondary-btn" style="padding: 8px 15px; font-size: 0.8rem;">
+                            <i class="fas fa-search"></i> Find Teams
+                        </a> - PERSONAL VIEW 🎮 */
+.profile-dashboard {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #000000 100%);
+    min-height: 100vh;
+    padding: 20px 0;
+}
+
+.dashboard-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Profile Header */
+.profile-header {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 25px;
+    padding: 40px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #ff006e, #8338ec, #3a86ff, #06ffa5);
+    border-radius: 25px 25px 0 0;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+    object-fit: cover;
+}
+
+.profile-details h1 {
+    color: white;
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin: 0 0 10px 0;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+}
+
+.profile-details .username {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+.profile-details .bio {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+    max-width: 500px;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* Dashboard Cards */
+.dashboard-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 25px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 255, 255, 0.2);
+    border-color: rgba(0, 255, 255, 0.3);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.card-title {
+    color: white;
+    font-size: 1.4rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.card-title i {
+    background: linear-gradient(45deg, #ff006e, #8338ec);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    background: linear-gradient(45deg, #ff006e, #8338ec);
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 0, 110, 0.4);
+    color: white;
+    text-decoration: none;
+}
+
+.secondary-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.1);
+}
+
+/* Team Cards */
+.team-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.team-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.2);
+}
+
+.team-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.team-logo {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.team-info h4 {
+    color: white;
+    font-weight: 600;
+    margin: 0 0 5px 0;
+}
+
+.team-role {
+    color: rgba(0, 255, 255, 0.8);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.captain-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #000;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+/* Stats Grid */
+.stats-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.stat-mini-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-number {
+    color: white;
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 5px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Match History List */
+.match-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.match-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(5px);
+}
+
+.match-item.win {
+    border-left-color: #00d4aa;
+}
+
+.match-item.loss {
+    border-left-color: #ff4757;
+}
+
+.match-result {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-align: center;
+    min-width: 60px;
+}
+
+.result-win {
+    background: linear-gradient(45deg, #00d4aa, #01a085);
+    color: white;
+}
+
+.result-loss {
+    background: linear-gradient(45deg, #ff4757, #ff3838);
+    color: white;
+}
+
+/* Activity Feed */
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(45deg, #ff006e, #8338ec);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-text {
+    color: white;
+    font-size: 0.9rem;
+    margin: 0 0 4px 0;
+}
+
+.activity-time {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-info {
+        text-align: center;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .profile-details h1 {
+        font-size: 1.8rem;
+    }
+    
+    .dashboard-container {
+        padding: 0 15px;
+    }
+    
+    .profile-header {
+        padding: 25px;
+    }
+    
+    .quick-actions {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-dashboard">
+    <div class="dashboard-container">
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-info">
+                {% if profile and profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="{{ profile_user.username }}" class="profile-avatar">
+                {% else %}
+                    <div class="profile-avatar" style="background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 800; color: white;">
+                        {{ profile_user.username|first|upper }}
+                    </div>
+                {% endif %}
+                
+                <div class="profile-details">
+                    <h1>{{ profile.display_name|default:profile_user.get_full_name|default:profile_user.username }}</h1>
+                    <div class="username">@{{ profile_user.username }}</div>
+                    {% if profile.bio %}
+                        <div class="bio">{{ profile.bio }}</div>
+                    {% endif %}
+                    
+                    <div class="quick-actions" style="margin-top: 20px;">
+                        <a href="{% url 'user_profile:edit' %}" class="action-btn">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </a>
+                        <a href="{% url 'user_profile:my_tournaments' %}" class="action-btn secondary-btn">
+                            <i class="fas fa-trophy"></i> My Tournaments
+                        </a>
+                        <a href="#" class="action-btn secondary-btn">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Main Content -->
+            <div class="main-content">
+                
+                <!-- Current Teams -->
+                {% if current_teams %}
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-users"></i> My Teams</h2>
+                        <a href="{% url 'teams:teams:team_list' %}" class="secondary-btn" style="padding: 8px 15px; font-size: 0.8rem;">
+                            <i class="fas fa-plus"></i> Join Team
+                        </a>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                        {% for team_membership in current_teams %}
+                        <div class="team-card">
+                            {% if team_membership.is_captain %}
+                                <div class="captain-badge">
+                                    <i class="fas fa-crown"></i> CAPTAIN
+                                </div>
+                            {% endif %}
+                            
+                            <div class="team-header">
+                                {% if team_membership.logo_url %}
+                                    <img src="{{ team_membership.logo_url }}" alt="{{ team_membership.team.name }}" class="team-logo">
+                                {% else %}
+                                    <div class="team-logo" style="background: linear-gradient(45deg, #ff006e, #8338ec); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; color: white;">
+                                        {{ team_membership.team.name|first|upper }}
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="team-info">
+                                    <h4>{{ team_membership.team.name }}</h4>
+                                    <div class="team-role">{{ team_membership.role }}</div>
+                                    {% if team_membership.game %}
+                                        <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; margin-top: 3px;">
+                                            <i class="fas fa-gamepad"></i> {{ team_membership.game }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">
+                                <span><i class="fas fa-calendar"></i> Joined {{ team_membership.joined_at|date:"M j, Y" }}</span>
+                                <span><i class="fas fa-users"></i> {{ team_membership.team.members_count|default:"--" }} members</span>
+                            </div>
+                            
+                            <div style="display: flex; gap: 10px;">
+                                <a href="{% url 'teams:teams_social:team_social_detail' team_membership.team.slug %}" class="action-btn" style="flex: 1; text-align: center; padding: 8px 12px; font-size: 0.8rem;">
+                                    <i class="fas fa-arrow-right"></i> View Team
+                                </a>
+                                {% if team_membership.is_captain %}
+                                <a href="{% url 'teams:teams:team_settings' team_membership.team.slug %}" class="secondary-btn" style="padding: 8px 12px; font-size: 0.8rem;">
+                                    <i class="fas fa-cog"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Upcoming Matches -->
+                {% if upcoming_matches %}
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title"><i class="fas fa-gamepad"></i> Upcoming Matches</h2>
+                        <a href="/tournaments/" class="secondary-btn" style="padding: 8px 15px; font-size: 0.8rem;">
+                            View All
+                        </a>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        {% for match in upcoming_matches|slice:":5" %}
+                        <div class="match-item">
+                            <div class="match-result" style="background: rgba(0, 212, 255, 0.2); color: #00d4ff;">
+                                UPCOMING
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="color: white; font-weight: 500; margin-bottom: 4px;">
+                                    {{ match.tournament.name }}
+                                </div>
+                                <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">
+                                    Round {{ match.round_no }} • {{ match.created_at|date:"M j, g:i A" }}
+                                </div>
+                            </div>
+                            <a href="#" class="secondary-btn" style="padding: 6px 12px; font-size: 0.8rem;">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- No Teams Message -->
+                {% if not current_teams %}
+                <div class="dashboard-card">
+                    <div style="text-align: center; padding: 40px 20px;">
+                        <i class="fas fa-users" style="font-size: 4rem; color: rgba(255, 255, 255, 0.2); margin-bottom: 20px;"></i>
+                        <h3 style="color: rgba(255, 255, 255, 0.8); margin-bottom: 15px;">Join Your First Team</h3>
+                        <p style="color: rgba(255, 255, 255, 0.6); margin-bottom: 25px;">Connect with other players and compete in team tournaments.</p>
+                        <a href="{% url 'teams:list' %}" class="action-btn">
+                            <i class="fas fa-search"></i> Browse Teams
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                
+                <!-- Quick Stats -->
+                <div class="dashboard-card">
+                    <h3 class="card-title"><i class="fas fa-chart-line"></i> Quick Stats</h3>
+                    <div class="stats-mini-grid">
+                        <div class="stat-mini-card">
+                            <div class="stat-number">{{ current_teams|length|default:"0" }}</div>
+                            <div class="stat-label">Teams</div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-number">{{ upcoming_matches|length|default:"0" }}</div>
+                            <div class="stat-label">Matches</div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-number">{{ wallet_balance|default:"0" }}</div>
+                            <div class="stat-label">Coins</div>
+                        </div>
+                        <div class="stat-mini-card">
+                            <div class="stat-number">{{ total_orders|default:"0" }}</div>
+                            <div class="stat-label">Orders</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gaming IDs -->
+                {% if profile.riot_id or profile.efootball_id or profile.discord_id %}
+                <div class="dashboard-card">
+                    <h3 class="card-title"><i class="fas fa-gamepad"></i> Gaming IDs</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        {% if profile.riot_id %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <span style="color: rgba(255, 255, 255, 0.7);"><i class="fas fa-fire"></i> Riot ID:</span>
+                            <span style="color: #ff4757; font-weight: 600;">{{ profile.riot_id }}</span>
+                        </div>
+                        {% endif %}
+                        {% if profile.efootball_id %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <span style="color: rgba(255, 255, 255, 0.7);"><i class="fas fa-futbol"></i> eFootball:</span>
+                            <span style="color: #2ed573; font-weight: 600;">{{ profile.efootball_id }}</span>
+                        </div>
+                        {% endif %}
+                        {% if profile.discord_id %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                            <span style="color: rgba(255, 255, 255, 0.7);"><i class="fab fa-discord"></i> Discord:</span>
+                            <span style="color: #7289da; font-weight: 600;">{{ profile.discord_id }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- DeltaCoin Wallet -->
+                <div class="dashboard-card">
+                    <h3 class="card-title"><i class="fas fa-coins"></i> DeltaCoin Wallet</h3>
+                    
+                    <div style="text-align: center; padding: 20px; background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 15px; margin-bottom: 20px;">
+                        <div style="font-size: 2.5rem; font-weight: 800; color: #ffd700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.6); margin-bottom: 5px;">
+                            {{ wallet_balance|default:"0" }}
+                        </div>
+                        <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem;">DeltaCoins Balance</div>
+                    </div>
+                    
+                    {% if recent_transactions %}
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="color: rgba(255, 255, 255, 0.8); font-size: 1rem; margin-bottom: 10px;">Recent Transactions</h4>
+                        {% for transaction in recent_transactions|slice:":5" %}
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                            <div>
+                                <div style="color: white; font-size: 0.9rem;">{{ transaction.get_reason_display }}</div>
+                                <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ transaction.created_at|date:"M j, g:i A" }}</div>
+                            </div>
+                            <div style="font-weight: 600; {% if transaction.amount > 0 %}color: #00d4aa{% else %}color: #ff4757{% endif %};">
+                                {% if transaction.amount > 0 %}+{% endif %}{{ transaction.amount }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <a href="/economy/" class="action-btn secondary-btn" style="justify-content: center; width: 100%;">
+                        <i class="fas fa-wallet"></i> View Wallet
+                    </a>
+                </div>
+
+                <!-- Recent Orders -->
+                {% if recent_orders %}
+                <div class="dashboard-card">
+                    <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Recent Orders</h3>
+                    
+                    {% for order in recent_orders|slice:":3" %}
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; margin-bottom: 10px;">
+                        <div>
+                            <div style="color: white; font-size: 0.9rem; font-weight: 500;">Order #{{ order.id }}</div>
+                            <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ order.items.count }} items • {{ order.created_at|date:"M j" }}</div>
+                        </div>
+                        <div>
+                            <div style="color: #ffd700; font-weight: 600;">${{ order.total_price }}</div>
+                            <div style="color: {% if order.status == 'completed' %}#00d4aa{% elif order.status == 'shipped' %}#3a86ff{% elif order.status == 'paid' %}#ffd700{% else %}#ff6b6b{% endif %}; font-size: 0.8rem; text-align: right;">{{ order.get_status_display }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <a href="/shop/orders/" class="action-btn secondary-btn" style="justify-content: center; width: 100%; margin-top: 10px;">
+                        <i class="fas fa-list"></i> View All Orders
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- Quick Links -->
+                <div class="dashboard-card">
+                    <h3 class="card-title"><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <a href="{% url 'teams:create' %}" class="action-btn secondary-btn" style="justify-content: center;">
+                            <i class="fas fa-plus"></i> Create Team
+                        </a>
+                        <a href="/tournaments/" class="action-btn secondary-btn" style="justify-content: center;">
+                            <i class="fas fa-trophy"></i> Join Tournament
+                        </a>
+                        <a href="/shop/" class="action-btn secondary-btn" style="justify-content: center;">
+                            <i class="fas fa-shopping-cart"></i> Visit Shop
+                        </a>
+                        <a href="{% url 'user_profile:public_profile' profile_user.username %}" class="action-btn secondary-btn" style="justify-content: center;">
+                            <i class="fas fa-eye"></i> View Public Profile
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth hover animations to cards
+    document.querySelectorAll('.team-card, .dashboard-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Add click effects to buttons
+    document.querySelectorAll('.action-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+        });
+    });
+});
+</script>
+{% endblock %}

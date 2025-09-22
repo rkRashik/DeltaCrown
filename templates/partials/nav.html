@@ -115,12 +115,12 @@
         </span>
       </a>
 
-      <button class="nav-icon-btn nav-mobile-toggle" type="button" data-open-drawer="main-drawer" aria-label="Open navigation menu" aria-controls="main-drawer" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 6h16" />
-          <path d="M4 12h16" />
-          <path d="M4 18h16" />
-        </svg>
+      <button class="mobile-nav-toggle" type="button" aria-label="Open navigation menu" aria-expanded="false" data-open-drawer="main-drawer">
+        <span class="hamburger">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </span>
       </button>
     </div>
 
@@ -292,5 +292,5 @@
     </div>
   </nav>
 
-  {% include "partials/mobile_nav.html" %}
+  {% include "partials/mobile_nav_modern.html" %}
 </header>

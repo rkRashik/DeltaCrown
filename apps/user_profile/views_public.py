@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, Count
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -97,6 +98,203 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             # Be resilient to any unexpected data
             social = []
 
+    # Get team memberships for the user
+    teams = []
+    current_teams = []
+    team_history = []
+    
+    try:
+        if profile:
+            from apps.teams.models import TeamMembership, Team
+            
+            # Get active team memberships
+            active_memberships = TeamMembership.objects.filter(
+                profile=profile, 
+                status=TeamMembership.Status.ACTIVE
+            ).select_related('team').order_by('-joined_at')
+            
+            for membership in active_memberships:
+                team_data = {
+                    'team': membership.team,
+                    'role': membership.get_role_display(),
+                    'role_code': membership.role,
+                    'joined_at': membership.joined_at,
+                    'is_captain': membership.role == TeamMembership.Role.CAPTAIN,
+                    'game': membership.team.get_game_display() if membership.team.game else None,
+                    'logo_url': membership.team.logo.url if membership.team.logo else None,
+                }
+                current_teams.append(team_data)
+                teams.append(team_data)
+            
+            # Get team history (past teams)
+            past_memberships = TeamMembership.objects.filter(
+                profile=profile, 
+                status__in=[TeamMembership.Status.REMOVED]
+            ).select_related('team').order_by('-joined_at')[:5]
+            
+            for membership in past_memberships:
+                team_data = {
+                    'team': membership.team,
+                    'role': membership.get_role_display(),
+                    'joined_at': membership.joined_at,
+                    'left_team': True,
+                    'game': membership.team.get_game_display() if membership.team.game else None,
+                    'logo_url': membership.team.logo.url if membership.team.logo else None,
+                }
+                team_history.append(team_data)
+                
+    except Exception as e:
+        # Fail gracefully if team models aren't available
+        print(f"Error loading team data: {e}")
+        teams = []
+        current_teams = []
+        team_history = []
+    
+    # Get tournament registrations
+    tournament_history = []
+    upcoming_tournaments = []
+    
+    try:
+        if profile:
+            from apps.tournaments.models import Registration, Tournament
+            
+            # Get tournament registrations
+            registrations = Registration.objects.filter(
+                Q(user=profile) | Q(team__memberships__profile=profile, team__memberships__status='ACTIVE')
+            ).select_related('tournament').distinct().order_by('-created_at')[:10]
+            
+            for reg in registrations:
+                tournament_data = {
+                    'tournament': reg.tournament,
+                    'registered_at': reg.created_at,
+                    'as_team': reg.team is not None,
+                    'team': reg.team,
+                    'status': getattr(reg, 'status', 'registered')
+                }
+                
+                # Check if tournament is upcoming or past
+                if reg.tournament.registration_end and reg.tournament.registration_end > timezone.now():
+                    upcoming_tournaments.append(tournament_data)
+                else:
+                    tournament_history.append(tournament_data)
+                    
+    except Exception as e:
+        # Fail gracefully if tournament models aren't available
+        print(f"Error loading tournament data: {e}")
+        tournament_history = []
+        upcoming_tournaments = []
+    
+    # Get economy information
+    wallet_balance = 0
+    recent_transactions = []
+    
+    try:
+        if profile:
+            from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+            
+            # Get or create wallet
+            wallet, created = DeltaCrownWallet.objects.get_or_create(profile=profile)
+            wallet_balance = wallet.cached_balance
+            
+            # Get recent transactions
+            recent_transactions = DeltaCrownTransaction.objects.filter(
+                wallet=wallet
+            ).select_related('tournament', 'registration', 'match').order_by('-created_at')[:10]
+            
+    except Exception as e:
+        print(f"Error loading economy data: {e}")
+        wallet_balance = 0
+        recent_transactions = []
+    
+    # Get ecommerce information  
+    recent_orders = []
+    total_orders = 0
+    
+    try:
+        if profile:
+            from apps.ecommerce.models import Order
+            
+            # Get recent orders
+            recent_orders = Order.objects.filter(
+                user=profile
+            ).prefetch_related('items__product').order_by('-created_at')[:5]
+            
+            total_orders = Order.objects.filter(user=profile).count()
+            
+    except Exception as e:
+        print(f"Error loading ecommerce data: {e}")
+        recent_orders = []
+        total_orders = 0
+    
+    # Get recent activity/achievements
+    achievements = []
+    activity = []
+    
+    try:
+        if profile:
+            # Get team posts by user
+            from apps.teams.models.social import TeamPost, TeamActivity
+            
+            recent_posts = TeamPost.objects.filter(
+                author=profile,
+                published_at__isnull=False
+            ).select_related('team').order_by('-published_at')[:5]
+            
+            for post in recent_posts:
+                activity.append({
+                    'type': 'team_post',
+                    'description': f'Posted in {post.team.name}',
+                    'title': post.title or post.content[:50] + '...' if len(post.content) > 50 else post.content,
+                    'date': post.published_at,
+                    'team': post.team,
+                    'url': f'/teams/{post.team.slug}/social/'
+                })
+            
+            # Get recent team activities involving this user
+            team_activities = TeamActivity.objects.filter(
+                actor=profile,
+                is_public=True
+            ).select_related('team').order_by('-created_at')[:5]
+            
+            for act in team_activities:
+                activity.append({
+                    'type': 'team_activity', 
+                    'description': act.description,
+                    'date': act.created_at,
+                    'team': act.team,
+                    'url': f'/teams/{act.team.slug}/'
+                })
+            
+            # Add coin transactions to activity
+            for transaction in recent_transactions[:3]:
+                activity.append({
+                    'type': 'coin_transaction',
+                    'description': f'{transaction.get_reason_display()}',
+                    'title': f'{"+" if transaction.amount > 0 else ""}{transaction.amount} DeltaCoins',
+                    'date': transaction.created_at,
+                    'amount': transaction.amount,
+                    'tournament': transaction.tournament,
+                    'url': f'/economy/transactions/' if transaction.tournament else None
+                })
+            
+            # Add ecommerce orders to activity  
+            for order in recent_orders[:2]:
+                activity.append({
+                    'type': 'ecommerce_order',
+                    'description': f'Order #{order.id} - {order.get_status_display()}',
+                    'title': f'${order.total_price} • {order.items.count()} items',
+                    'date': order.created_at,
+                    'order': order,
+                    'url': f'/shop/orders/{order.id}/'
+                })
+            
+            # Sort activity by date
+            activity.sort(key=lambda x: x['date'], reverse=True)
+                
+    except Exception as e:
+        print(f"Error loading activity data: {e}")
+        activity = []
+
     context = {
         "public_user": user,
         "profile": profile,
@@ -113,11 +311,20 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         # added pipeline data
         "stats": stats,
         "match_history": match_history,
-        "activity": [],
-        "teams": [],
+        "activity": activity,
+        "teams": teams,
+        "current_teams": current_teams,
+        "team_history": team_history,
+        "tournament_history": tournament_history,
+        "upcoming_tournaments": upcoming_tournaments,
         "highlights": [],
-        "achievements": [],
+        "achievements": achievements,
         "social": social,
+        # economy & ecommerce data
+        "wallet_balance": wallet_balance,
+        "recent_transactions": recent_transactions,
+        "recent_orders": recent_orders,
+        "total_orders": total_orders,
     }
 
     return render(request, "users/public_profile.html", context)

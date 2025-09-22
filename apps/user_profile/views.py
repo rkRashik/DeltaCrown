@@ -140,6 +140,80 @@ def profile_view(request, username):
 
     # Try showing user's upcoming matches widget on their private dashboard/profile page
     upcoming = _get_upcoming_matches_for_user(user, limit=5)
+    
+    # Get team information
+    teams = []
+    current_teams = []
+    
+    try:
+        if profile:
+            from apps.teams.models import TeamMembership
+            
+            # Get active team memberships
+            active_memberships = TeamMembership.objects.filter(
+                profile=profile, 
+                status=TeamMembership.Status.ACTIVE
+            ).select_related('team').order_by('-joined_at')
+            
+            for membership in active_memberships:
+                team_data = {
+                    'team': membership.team,
+                    'role': membership.get_role_display(),
+                    'role_code': membership.role,
+                    'joined_at': membership.joined_at,
+                    'is_captain': membership.role == TeamMembership.Role.CAPTAIN,
+                    'game': membership.team.get_game_display() if membership.team.game else None,
+                    'logo_url': membership.team.logo.url if membership.team.logo else None,
+                }
+                current_teams.append(team_data)
+                teams.append(team_data)
+                
+    except Exception as e:
+        print(f"Error loading team data: {e}")
+        teams = []
+        current_teams = []
+
+    # Get economy information
+    wallet_balance = 0
+    recent_transactions = []
+    
+    try:
+        if profile:
+            from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+            
+            # Get or create wallet
+            wallet, created = DeltaCrownWallet.objects.get_or_create(profile=profile)
+            wallet_balance = wallet.cached_balance
+            
+            # Get recent transactions
+            recent_transactions = DeltaCrownTransaction.objects.filter(
+                wallet=wallet
+            ).select_related('tournament', 'registration', 'match').order_by('-created_at')[:10]
+            
+    except Exception as e:
+        print(f"Error loading economy data: {e}")
+        wallet_balance = 0
+        recent_transactions = []
+    
+    # Get ecommerce information  
+    recent_orders = []
+    total_orders = 0
+    
+    try:
+        if profile:
+            from apps.ecommerce.models import Order
+            
+            # Get recent orders
+            recent_orders = Order.objects.filter(
+                user=profile
+            ).prefetch_related('items__product').order_by('-created_at')[:5]
+            
+            total_orders = Order.objects.filter(user=profile).count()
+            
+    except Exception as e:
+        print(f"Error loading ecommerce data: {e}")
+        recent_orders = []
+        total_orders = 0
 
     return render(
         request,
@@ -148,6 +222,12 @@ def profile_view(request, username):
             "profile_user": user,
             "profile": profile,
             "upcoming_matches": upcoming,
+            "teams": teams,
+            "current_teams": current_teams,
+            "wallet_balance": wallet_balance,
+            "recent_transactions": recent_transactions,
+            "recent_orders": recent_orders,
+            "total_orders": total_orders,
         },
     )
 

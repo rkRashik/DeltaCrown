@@ -9,6 +9,8 @@ from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage
 from django.db.models import Q
 from .utils.embeds import build_embed_url
+from django.http import JsonResponse
+from django.urls import reverse
 
 
 
@@ -114,12 +116,7 @@ def about(request):
     }
     return render(request, "about.html", {"stats": stats})
 
-def community(request):
-    # Optionally fetch forum categories / events
-    return render(request, "community.html", {
-        "forum_categories": [],
-        "upcoming_events": [],
-    })
+
 
 
 def _get_model(candidates):
@@ -133,19 +130,28 @@ def _get_model(candidates):
 
 def community(request):
     """
-    Community hub displaying team posts and social activity
+    Community hub displaying both user posts and team posts
     """
     from django.core.paginator import Paginator
     from django.db import models
+    from django.contrib.auth.decorators import login_required
     from apps.teams.models.social import TeamPost
     from apps.teams.models import Team
+    from .models import CommunityPost
+    from .forms import CommunityPostCreateForm
+    from itertools import chain
+    from operator import attrgetter
+    
+    # Handle POST requests for creating community posts
+    if request.method == 'POST' and request.user.is_authenticated:
+        return handle_community_post_creation(request)
     
     # Get search and filter parameters
     search_query = request.GET.get('q', '')
     current_game = request.GET.get('game', '')
     
     # Base queryset for public team posts
-    posts = TeamPost.objects.filter(
+    team_posts = TeamPost.objects.filter(
         visibility='public'
     ).select_related(
         'team', 'author', 'author__user'
@@ -153,24 +159,113 @@ def community(request):
         'media', 'likes', 'comments'
     ).order_by('-created_at')
     
-    # Apply search filter
+    # Base queryset for public community posts
+    community_posts = CommunityPost.objects.filter(
+        visibility='public',
+        is_approved=True
+    ).select_related(
+        'author', 'author__user'
+    ).prefetch_related(
+        'media', 'likes', 'comments'
+    ).order_by('-created_at')
+    
+    # Apply search filter to both post types
     if search_query:
-        posts = posts.filter(
+        team_posts = team_posts.filter(
             models.Q(title__icontains=search_query) | 
             models.Q(content__icontains=search_query) |
             models.Q(team__name__icontains=search_query)
         )
+        community_posts = community_posts.filter(
+            models.Q(title__icontains=search_query) | 
+            models.Q(content__icontains=search_query) |
+            models.Q(author__user__username__icontains=search_query) |
+            models.Q(author__user__first_name__icontains=search_query) |
+            models.Q(author__user__last_name__icontains=search_query)
+        )
     
-    # Apply game filter
+    # Apply game filter to both post types
     if current_game:
-        posts = posts.filter(team__game=current_game)
+        team_posts = team_posts.filter(team__game=current_game)
+        community_posts = community_posts.filter(game=current_game)
     
-    # Get available games for filter dropdown
-    games = Team.objects.values_list('game', flat=True).distinct()
-    games = [game for game in games if game]  # Remove empty values
+    # Get available games for filter dropdown with proper mapping
+    raw_games = Team.objects.values_list('game', flat=True).distinct()
+    raw_games = [game for game in raw_games if game]  # Remove empty values
     
-    # Paginate posts (10 per page)
-    paginator = Paginator(posts, 10)
+    # Game mapping to handle duplicates and provide proper display info
+    game_mapping = {
+        'valorant': {
+            'display_name': 'Valorant',
+            'logo': 'img/game_logos/Valorant_logo.jpg',
+            'aliases': ['valorant', 'Valorant', 'VALORANT']
+        },
+        'efootball': {
+            'display_name': 'eFootball',
+            'logo': 'img/game_logos/efootball_logo.jpeg',
+            'aliases': ['efootball', 'eFootball', 'Efootball', 'EFOOTBALL']
+        },
+        'cs2': {
+            'display_name': 'Counter-Strike 2',
+            'logo': 'img/game_logos/CS2_logo.jpeg',
+            'aliases': ['cs2', 'CS2', 'counter-strike 2', 'Counter-Strike 2']
+        },
+        'fc26': {
+            'display_name': 'FC 26',
+            'logo': 'img/game_logos/fc26_logo.jpg',
+            'aliases': ['fc26', 'FC26', 'fc 26', 'FC 26']
+        },
+        'pubg': {
+            'display_name': 'PUBG',
+            'logo': 'img/game_logos/PUBG_logo.jpg',
+            'aliases': ['pubg', 'PUBG', 'pubg mobile', 'PUBG Mobile']
+        },
+        'mobile_legends': {
+            'display_name': 'Mobile Legends',
+            'logo': 'img/game_logos/mobile_legend_logo.jpeg',
+            'aliases': ['mobile legends', 'Mobile Legends', 'mobile_legends', 'ml']
+        }
+    }
+    
+    # Create unique games list based on raw data
+    unique_games = {}
+    for raw_game in raw_games:
+        # Find matching game in mapping
+        matched_key = None
+        for key, game_info in game_mapping.items():
+            if raw_game.lower() in [alias.lower() for alias in game_info['aliases']]:
+                matched_key = key
+                break
+        
+        if matched_key and matched_key not in unique_games:
+            unique_games[matched_key] = game_mapping[matched_key]
+            unique_games[matched_key]['raw_name'] = raw_game
+    
+    games = list(unique_games.values())
+    
+    # Combine and sort posts by creation date
+    # Add a post_type attribute to differentiate in templates
+    for post in team_posts:
+        post.post_type = 'team'
+        post.display_author = post.team.name
+        post.author_avatar = post.team.logo
+        post.author_url = f"/teams/{post.team.slug}/"
+    
+    for post in community_posts:
+        post.post_type = 'user'
+        post.display_author = post.author.user.get_full_name() or post.author.user.username
+        post.author_avatar = getattr(post.author, 'avatar', None)
+        post.author_url = f"/profile/{post.author.user.username}/"
+    
+    # Combine posts and sort by creation date
+    all_posts = sorted(
+        chain(team_posts, community_posts),
+        key=attrgetter('created_at'),
+        reverse=True
+    )
+    
+    # Paginate combined posts (10 per page)
+    paginator = Paginator(all_posts, 10)
     page_number = request.GET.get('page')
     posts = paginator.get_page(page_number)
     
@@ -189,8 +284,66 @@ def community(request):
         'current_game': current_game,
         'games': games,
         'featured_teams': featured_teams,
+        'community_post_form': CommunityPostCreateForm(),
     }
     return render(request, 'pages/community.html', context)
+
+
+def handle_community_post_creation(request):
+    """Handle AJAX request for creating community posts"""
+    from django.http import JsonResponse
+    from django.urls import reverse
+    from .models import CommunityPostMedia
+    from .forms import CommunityPostCreateForm
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        form = CommunityPostCreateForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Get or create user profile
+            user_profile = getattr(request.user, 'profile', None)
+            if not user_profile:
+                # If no profile exists, create one
+                from apps.user_profile.models import UserProfile
+                user_profile, created = UserProfile.objects.get_or_create(
+                    user=request.user,
+                    defaults={'display_name': request.user.get_full_name() or request.user.username}
+                )
+            
+            # Create the community post
+            post = form.save(commit=False)
+            post.author = user_profile
+            post.save()
+            
+            # Handle multiple file uploads
+            files = request.FILES.getlist('media_files')
+            for file in files:
+                CommunityPostMedia.objects.create(
+                    post=post,
+                    file=file,
+                    media_type='image' if file.content_type.startswith('image/') else 'video'
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Post created successfully!',
+                'redirect': reverse('siteui:community')
+            })
+        else:
+            return JsonResponse({
+                'error': 'Invalid form data',
+                'errors': form.errors
+            }, status=400)
+    
+    except Exception as e:
+        return JsonResponse({
+            'error': f'An error occurred: {str(e)}'
+        }, status=500)
 
 
 # ---- Helpers ----------------------------------------------------------------

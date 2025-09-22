@@ -484,6 +484,12 @@
     </div>
     
     <div class="stat-card">
+      <div class="stat-icon">💰</div>
+      <div class="stat-number" id="coins-counter">{{ wallet_balance|default:"0" }}</div>
+      <div class="stat-label">DeltaCoins</div>
+    </div>
+    
+    <div class="stat-card">
       <div class="stat-icon">⚡</div>
       <div class="stat-number" id="rank-counter">{{ profile.current_rank|default:"Unranked" }}</div>
       <div class="stat-label">Current Rank</div>
@@ -596,6 +602,110 @@
       </div>
 
       
+      <!-- Current Team Membership (if any) -->
+      {% if current_teams %}
+      <div class="gaming-card">
+        <h2 class="card-title"><i class="fas fa-users"></i> Team Memberships</h2>
+        <div class="card-content">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            {% for team_membership in current_teams|slice:":3" %}
+            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; position: relative;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 15px 40px rgba(0, 255, 255, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+              {% if team_membership.is_captain %}
+              <div style="position: absolute; top: 10px; right: 10px; background: linear-gradient(45deg, #ffd700, #ffed4e); color: #000; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                <i class="fas fa-crown"></i> CAPTAIN
+              </div>
+              {% endif %}
+              
+              <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                {% if team_membership.logo_url %}
+                  <img src="{{ team_membership.logo_url }}" 
+                       alt="{{ team_membership.team.name }}" style="width: 50px; height: 50px; border-radius: 12px; object-fit: cover; margin-right: 12px; border: 2px solid rgba(255, 255, 255, 0.1);">
+                {% else %}
+                  <div style="width: 50px; height: 50px; border-radius: 12px; margin-right: 12px; border: 2px solid rgba(255, 255, 255, 0.1); background: linear-gradient(45deg, #ff006e, #8338ec); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; color: white;">
+                    {{ team_membership.team.name|first|upper }}
+                  </div>
+                {% endif %}
+                <div>
+                  <h4 style="color: white; font-weight: 600; margin: 0 0 3px 0; font-size: 1.1rem;">{{ team_membership.team.name }}</h4>
+                  <div style="color: rgba(0, 255, 255, 0.8); font-weight: 500; font-size: 0.9rem;">{{ team_membership.role }}</div>
+                  {% if team_membership.game %}
+                    <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; margin-top: 2px;">
+                      <i class="fas fa-gamepad"></i> {{ team_membership.game }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <a href="{% url 'teams:teams_social:team_social_detail' team_membership.team.slug %}" class="action-btn" style="font-size: 0.8rem; padding: 8px 18px; width: 100%; text-align: center; display: block; text-decoration: none;">
+                <i class="fas fa-arrow-right"></i> View Team
+              </a>
+            </div>
+            {% endfor %}
+          </div>
+          
+          {% if current_teams|length > 3 %}
+          <div style="text-align: center; margin-top: 20px;">
+            <button class="tab-button" data-tab="teams" style="background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 255, 255, 0.2);">
+              View All Teams ({{ current_teams|length }})
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tournament Activity -->
+      {% if upcoming_tournaments or tournament_history %}
+      <div class="gaming-card">
+        <h2 class="card-title"><i class="fas fa-trophy"></i> Tournament Activity</h2>
+        <div class="card-content">
+          {% if upcoming_tournaments %}
+            <h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+              <i class="fas fa-clock" style="color: #00d4ff;"></i> Upcoming Tournaments
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px;">
+              {% for tournament in upcoming_tournaments|slice:":3" %}
+              <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: rgba(0, 212, 255, 0.1); border-radius: 12px; border-left: 4px solid #00d4ff;">
+                <div style="width: 35px; height: 35px; background: linear-gradient(45deg, #00d4ff, #0099cc); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-trophy" style="color: white; font-size: 0.9rem;"></i>
+                </div>
+                <div style="flex-grow: 1;">
+                  <p style="color: white; margin: 0; font-weight: 500; font-size: 0.95rem;">{{ tournament.tournament.name }}</p>
+                  <small style="color: rgba(255, 255, 255, 0.7);">
+                    {% if tournament.as_team %}with {{ tournament.team.name }}{% else %}Solo Entry{% endif %}
+                    • Registered {{ tournament.registered_at|date:"M j" }}
+                  </small>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          
+          {% if tournament_history %}
+            <h3 style="color: rgba(255, 255, 255, 0.9); font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+              <i class="fas fa-history" style="color: #ff6b6b;"></i> Recent Tournaments
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              {% for tournament in tournament_history|slice:":3" %}
+              <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border-left: 4px solid rgba(255, 255, 255, 0.2);">
+                <div style="width: 35px; height: 35px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-medal" style="color: rgba(255, 255, 255, 0.8); font-size: 0.9rem;"></i>
+                </div>
+                <div style="flex-grow: 1;">
+                  <p style="color: white; margin: 0; font-weight: 500; font-size: 0.95rem;">{{ tournament.tournament.name }}</p>
+                  <small style="color: rgba(255, 255, 255, 0.6);">
+                    {% if tournament.as_team %}with {{ tournament.team.name }}{% else %}Solo{% endif %}
+                    • {{ tournament.registered_at|date:"M j, Y" }}
+                  </small>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+      
       <div class="gaming-card">
         <h2 class="card-title"><i class="fas fa-clock"></i> Recent Activity</h2>
         <div class="card-content">
@@ -603,13 +713,36 @@
             <div style="display: flex; flex-direction: column; gap: 15px;">
               {% for act in activity|slice:":5" %}
               <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 15px; border-left: 4px solid #00d4ff;">
-                <div style="width: 40px; height: 40px; background: linear-gradient(45deg, #ff006e, #8338ec); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                  <i class="fas fa-bolt" style="color: white;"></i>
+                <div style="width: 40px; height: 40px; {% if act.type == 'coin_transaction' %}background: {% if act.amount > 0 %}linear-gradient(45deg, #00d4aa, #01a085){% else %}linear-gradient(45deg, #ff4757, #ff3838){% endif %}{% elif act.type == 'ecommerce_order' %}background: linear-gradient(45deg, #ffd700, #ffed4e){% else %}background: linear-gradient(45deg, #ff006e, #8338ec){% endif %}; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                  {% if act.type == 'team_post' %}
+                    <i class="fas fa-edit" style="color: white;"></i>
+                  {% elif act.type == 'team_activity' %}
+                    <i class="fas fa-users" style="color: white;"></i>
+                  {% elif act.type == 'coin_transaction' %}
+                    <i class="fas fa-coins" style="color: white;"></i>
+                  {% elif act.type == 'ecommerce_order' %}
+                    <i class="fas fa-shopping-cart" style="color: {% if act.type == 'ecommerce_order' %}#000{% else %}white{% endif %};"></i>
+                  {% else %}
+                    <i class="fas fa-bolt" style="color: white;"></i>
+                  {% endif %}
                 </div>
                 <div style="flex-grow: 1;">
-                  <p style="color: white; margin: 0; font-weight: 500;">{{ act.text }}</p>
-                  <small style="color: rgba(255, 255, 255, 0.6);">{{ act.ts|date:"M j, g:i A" }}</small>
+                  <p style="color: white; margin: 0; font-weight: 500;">{{ act.description }}</p>
+                  {% if act.title %}
+                    <p style="color: rgba(255, 255, 255, 0.8); margin: 4px 0 0 0; font-size: 0.9rem;">"{{ act.title }}"</p>
+                  {% endif %}
+                  <div style="display: flex; align-items: center; gap: 15px; margin-top: 5px;">
+                    <small style="color: rgba(255, 255, 255, 0.6);">{{ act.date|date:"M j, g:i A" }}</small>
+                    {% if act.team %}
+                      <small style="color: rgba(0, 255, 255, 0.8);"><i class="fas fa-users"></i> {{ act.team.name }}</small>
+                    {% endif %}
+                  </div>
                 </div>
+                {% if act.url %}
+                <a href="{{ act.url }}" style="color: rgba(0, 255, 255, 0.8); text-decoration: none;">
+                  <i class="fas fa-external-link-alt"></i>
+                </a>
+                {% endif %}
               </div>
               {% endfor %}
             </div>
@@ -696,42 +829,120 @@
 
     <!-- 👥 Teams Section -->
     <div class="tab-content" id="teams-content" style="display: none;">
+      <!-- Current Teams -->
+      {% if current_teams %}
+      <div class="gaming-card">
+        <h2 class="card-title"><i class="fas fa-users"></i> Current Teams</h2>
+        <div class="card-content">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            {% for team_membership in current_teams %}
+            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 25px; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; position: relative;" onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 20px 50px rgba(0, 255, 255, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+              {% if team_membership.is_captain %}
+              <div style="position: absolute; top: 15px; right: 15px; background: linear-gradient(45deg, #ffd700, #ffed4e); color: #000; padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; font-weight: 600;">
+                <i class="fas fa-crown"></i> CAPTAIN
+              </div>
+              {% endif %}
+              
+              <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                {% if team_membership.logo_url %}
+                  <img src="{{ team_membership.logo_url }}" 
+                       alt="{{ team_membership.team.name }}" style="width: 70px; height: 70px; border-radius: 15px; object-fit: cover; margin-right: 15px; border: 2px solid rgba(255, 255, 255, 0.1);">
+                {% else %}
+                  <div style="width: 70px; height: 70px; border-radius: 15px; margin-right: 15px; border: 2px solid rgba(255, 255, 255, 0.1); background: linear-gradient(45deg, #ff006e, #8338ec); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800; color: white;">
+                    {{ team_membership.team.name|first|upper }}
+                  </div>
+                {% endif %}
+                <div>
+                  <h4 style="color: white; font-weight: 600; margin: 0 0 5px 0;">{{ team_membership.team.name }}</h4>
+                  {% if team_membership.team.tag %}
+                    <div style="color: rgba(0, 255, 255, 0.6); font-size: 0.9rem; margin-bottom: 5px;">[{{ team_membership.team.tag }}]</div>
+                  {% endif %}
+                  <span style="color: rgba(0, 255, 255, 0.8); font-weight: 500; font-size: 0.9rem;">{{ team_membership.role }}</span>
+                  {% if team_membership.game %}
+                    <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; margin-top: 2px;">
+                      <i class="fas fa-gamepad"></i> {{ team_membership.game }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 10px;">
+                <span style="color: rgba(255, 255, 255, 0.6); font-size: 0.9rem;">
+                  <i class="fas fa-calendar"></i> Joined {{ team_membership.joined_at|date:"M j, Y" }}
+                </span>
+                <span style="color: rgba(255, 255, 255, 0.6); font-size: 0.9rem;">
+                  <i class="fas fa-users"></i> {{ team_membership.team.members_count|default:"--" }} members
+                </span>
+              </div>
+              
+              <div style="display: flex; gap: 10px;">
+                <a href="{% url 'teams:teams_social:team_social_detail' team_membership.team.slug %}" class="action-btn" style="font-size: 0.9rem; padding: 10px 20px; flex: 1; text-align: center;">
+                  <i class="fas fa-arrow-right"></i> View Team
+                </a>
+                {% if team_membership.team.allow_followers %}
+                <button class="action-btn secondary-btn" style="font-size: 0.9rem; padding: 10px 15px;" title="Follow Team">
+                  <i class="fas fa-heart"></i>
+                </button>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Team History -->
+      {% if team_history %}
+      <div class="gaming-card">
+        <h2 class="card-title"><i class="fas fa-history"></i> Team History</h2>
+        <div class="card-content">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+            {% for team_membership in team_history %}
+            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 15px; padding: 20px; border: 1px solid rgba(255, 255, 255, 0.08); transition: all 0.3s ease; opacity: 0.8;" onmouseover="this.style.opacity='1'; this.style.transform='translateY(-3px)'" onmouseout="this.style.opacity='0.8'; this.style.transform='translateY(0)'">
+              <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                {% if team_membership.logo_url %}
+                  <img src="{{ team_membership.logo_url }}" 
+                       alt="{{ team_membership.team.name }}" style="width: 50px; height: 50px; border-radius: 12px; object-fit: cover; margin-right: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                {% else %}
+                  <div style="width: 50px; height: 50px; border-radius: 12px; margin-right: 12px; border: 1px solid rgba(255, 255, 255, 0.1); background: linear-gradient(45deg, #666, #888); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 600; color: white;">
+                    {{ team_membership.team.name|first|upper }}
+                  </div>
+                {% endif %}
+                <div>
+                  <h5 style="color: rgba(255, 255, 255, 0.9); font-weight: 600; margin: 0 0 3px 0; font-size: 1rem;">{{ team_membership.team.name }}</h5>
+                  <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">{{ team_membership.role }}</div>
+                  {% if team_membership.game %}
+                    <div style="color: rgba(255, 255, 255, 0.5); font-size: 0.8rem;"><i class="fas fa-gamepad"></i> {{ team_membership.game }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div style="color: rgba(255, 255, 255, 0.5); font-size: 0.8rem;">
+                <i class="fas fa-clock"></i> Member from {{ team_membership.joined_at|date:"M Y" }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- No Teams State -->
+      {% if not current_teams and not team_history %}
       <div class="gaming-card">
         <h2 class="card-title"><i class="fas fa-users"></i> Team Affiliations</h2>
         <div class="card-content">
-          {% if teams %}
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-              {% for team in teams %}
-              <div style="background: rgba(255, 255, 255, 0.05); border-radius: 20px; padding: 25px; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 20px 50px rgba(0, 255, 255, 0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                  <img src="{{ team.logo_url|default:'/static/siteui/svg/logo-deltacrown.svg' }}" 
-                       alt="{{ team.name }}" style="width: 60px; height: 60px; border-radius: 15px; object-fit: cover; margin-right: 15px; border: 2px solid rgba(255, 255, 255, 0.1);">
-                  <div>
-                    <h4 style="color: white; font-weight: 600; margin: 0;">{{ team.name }}</h4>
-                    <span style="color: rgba(0, 255, 255, 0.8); font-weight: 500;">{{ team.role|default:"Member" }}</span>
-                  </div>
-                </div>
-                <div style="color: rgba(255, 255, 255, 0.6); margin-bottom: 20px;">
-                  <i class="fas fa-users"></i> {{ team.members_count|default:"5" }} members
-                </div>
-                <a href="{{ team.url }}" class="action-btn" style="font-size: 0.9rem; padding: 10px 25px;">
-                  <i class="fas fa-arrow-right"></i> View Team
-                </a>
-              </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div style="text-align: center; padding: 60px 0;">
-              <i class="fas fa-users" style="font-size: 4rem; color: rgba(255, 255, 255, 0.2); margin-bottom: 20px;"></i>
-              <h3 style="color: rgba(255, 255, 255, 0.8); margin-bottom: 10px;">No Team Memberships</h3>
-              <p style="color: rgba(255, 255, 255, 0.5);">This player is currently flying solo.</p>
-              <a href="/teams/" class="action-btn" style="margin-top: 20px;">
-                <i class="fas fa-search"></i> Browse Teams
-              </a>
-            </div>
-          {% endif %}
+          <div style="text-align: center; padding: 60px 0;">
+            <i class="fas fa-users" style="font-size: 4rem; color: rgba(255, 255, 255, 0.2); margin-bottom: 20px;"></i>
+            <h3 style="color: rgba(255, 255, 255, 0.8); margin-bottom: 10px;">No Team Memberships</h3>
+            <p style="color: rgba(255, 255, 255, 0.5);">This player is currently flying solo or team information is private.</p>
+            <a href="{% url 'teams:list' %}" class="action-btn" style="margin-top: 20px;">
+              <i class="fas fa-search"></i> Browse Teams
+            </a>
+          </div>
         </div>
       </div>
+      {% endif %}
     </div>
 
     <!-- 🛡️ Gaming Arsenal Section -->
