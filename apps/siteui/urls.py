@@ -11,4 +11,5 @@ urlpatterns = [
     path("community/", views.community, name="community"),
     path("community/create-post/", views.handle_community_post_creation, name="create_community_post"),
     path("watch/", views.watch, name="watch"),
+    path("newsletter/subscribe/", views.newsletter_subscribe, name="newsletter_subscribe"),
 ]
