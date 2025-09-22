@@ -1,0 +1,485 @@
+/**
+ * 🎮 VALORANT TOURNAMENT REGISTRATION STYLES 🎮
+ * Professional CSS for Valorant tournament registration forms
+ * Extracted from inline code for better maintainability and reusability
+ */
+
+/* Valorant Gaming Theme */
+:root {
+  --valorant-red: #ff4655;
+  --valorant-blue: #0f1419;
+  --valorant-dark: #0f1419;
+  --valorant-light: #ece8e1;
+  --valorant-accent: #53212b;
+  --gaming-gradient: linear-gradient(135deg, #0f1419 0%, #53212b 50%, #ff4655 100%);
+  --card-shadow: 0 8px 32px rgba(255, 70, 85, 0.15);
+  --glow-effect: 0 0 20px rgba(255, 70, 85, 0.3);
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+/* Dark mode (default) */
+body {
+  background: linear-gradient(135deg, #0f1419 0%, #1a1d23 100%);
+  color: var(--valorant-light);
+}
+
+/* Light mode compatibility */
+@media (prefers-color-scheme: light) {
+  :root {
+    --valorant-light: #2d3748;
+    --valorant-dark: #f7fafc;
+    --card-shadow: 0 8px 32px rgba(255, 70, 85, 0.25);
+  }
+  
+  body {
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    color: var(--valorant-light);
+  }
+  
+  .form-container {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 70, 85, 0.3);
+  }
+  
+  .form-section {
+    border-bottom: 1px solid rgba(255, 70, 85, 0.2);
+  }
+  
+  .form-input {
+    background: rgba(0, 0, 0, 0.05);
+    border: 2px solid rgba(255, 70, 85, 0.4);
+    color: var(--valorant-light);
+  }
+  
+  .form-input:focus {
+    background: rgba(255, 70, 85, 0.08);
+  }
+  
+  .player-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 70, 85, 0.3);
+  }
+  
+  .info-note {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #2c5aa0;
+  }
+}
+
+.valorant-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.valorant-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.valorant-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 3rem;
+  font-weight: 900;
+  background: var(--gaming-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.valorant-subtitle {
+  font-size: 1.2rem;
+  color: #a8a8a8;
+  margin-bottom: 0.5rem;
+}
+
+.tournament-info-banner {
+  background: rgba(255, 70, 85, 0.1);
+  border: 2px solid var(--valorant-red);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.form-container {
+  background: rgba(15, 20, 25, 0.9);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  overflow: hidden;
+}
+
+.form-section {
+  padding: 2rem;
+  border-bottom: 1px solid rgba(255, 70, 85, 0.1);
+}
+
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.section-number {
+  background: var(--valorant-red);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  margin-right: 1rem;
+  font-family: 'Orbitron', monospace;
+}
+
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--valorant-light);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.form-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 768px) {
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  position: relative;
+}
+
+.form-label {
+  display: block;
+  font-weight: 500;
+  color: var(--valorant-light);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-label .required {
+  color: var(--valorant-red);
+  margin-left: 4px;
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 70, 85, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--valorant-light);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--valorant-red);
+  background: rgba(255, 70, 85, 0.05);
+  box-shadow: var(--glow-effect);
+}
+
+.form-input::placeholder {
+  color: #666;
+}
+
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ff4655' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.file-upload-zone {
+  border: 2px dashed rgba(255, 70, 85, 0.3);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background: rgba(255, 70, 85, 0.02);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-upload-zone:hover {
+  border-color: var(--valorant-red);
+  background: rgba(255, 70, 85, 0.05);
+}
+
+.player-roster {
+  background: rgba(255, 70, 85, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.player-card {
+  background: rgba(15, 20, 25, 0.8);
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.player-card:last-child {
+  margin-bottom: 0;
+}
+
+.player-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: between;
+  margin-bottom: 1rem;
+}
+
+.player-role-badge {
+  background: var(--valorant-red);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.player-role-badge.substitute {
+  background: #fbbf24;
+  color: #000;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 1rem;
+  background: rgba(255, 70, 85, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 70, 85, 0.2);
+  margin: 1rem 0;
+}
+
+.checkbox-input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--valorant-red);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.rules-section {
+  background: rgba(255, 70, 85, 0.08);
+  border: 1px solid rgba(255, 70, 85, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.rules-link {
+  color: var(--valorant-red);
+  text-decoration: underline;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.rules-link:hover {
+  color: #ff6b7a;
+}
+
+.submit-section {
+  background: var(--gaming-gradient);
+  padding: 2rem;
+  text-align: center;
+}
+
+.submit-button {
+  background: var(--valorant-red);
+  color: white;
+  border: none;
+  padding: 16px 48px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Orbitron', monospace;
+  box-shadow: 0 4px 20px rgba(255, 70, 85, 0.3);
+}
+
+.submit-button:hover {
+  background: #ff6b7a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255, 70, 85, 0.4);
+}
+
+.submit-button:active {
+  transform: translateY(0);
+}
+
+.add-player-btn {
+  background: transparent;
+  border: 2px solid var(--valorant-red);
+  color: var(--valorant-red);
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 1rem 0;
+}
+
+.add-player-btn:hover {
+  background: var(--valorant-red);
+  color: white;
+}
+
+.info-note {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  color: #93c5fd;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  padding: 12px;
+  color: #fca5a5;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.validation-error {
+  color: #f87171;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: none;
+}
+
+.validation-success {
+  color: #4ade80;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: none;
+}
+
+.form-input.error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.05);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
+}
+
+.form-input.success {
+  border-color: #22c55e !important;
+  background: rgba(34, 197, 94, 0.05);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2);
+}
+
+.form-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.loading {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-loading {
+  position: relative;
+}
+
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  animation: pulse 2s infinite;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-section {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.form-section:nth-child(2) { animation-delay: 0.1s; }
+.form-section:nth-child(3) { animation-delay: 0.2s; }
+.form-section:nth-child(4) { animation-delay: 0.3s; }
+.form-section:nth-child(5) { animation-delay: 0.4s; }
+
+/* Gaming effects */
+.form-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gaming-gradient);
+  z-index: 1;
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(255, 70, 85, 0.5);
+}
