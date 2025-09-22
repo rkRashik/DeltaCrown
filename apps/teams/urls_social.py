@@ -12,6 +12,9 @@ urlpatterns = [
     
     # Post management
     path('<slug:team_slug>/posts/create/', social.create_team_post, name='create_post'),
+    path('<slug:team_slug>/posts/<int:post_id>/edit/', social.edit_team_post, name='edit_post'),
+    path('<slug:team_slug>/posts/<int:post_id>/delete/', social.delete_team_post, name='delete_post'),
+    path('<slug:team_slug>/posts/<int:post_id>/media/<int:media_id>/delete/', social.delete_post_media, name='delete_post_media'),
     path('<slug:team_slug>/posts/<int:post_id>/comment/', social.create_post_comment, name='create_comment'),
     path('<slug:team_slug>/posts/<int:post_id>/like/', social.toggle_post_like, name='toggle_like'),
     

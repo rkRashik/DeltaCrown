@@ -98,26 +98,52 @@ def create_team_post(request, team_slug):
             post = form.save()
             
             # Handle media uploads if any
-            if request.FILES:
-                media_form = TeamPostMediaForm(request.POST, request.FILES, post=post)
-                if media_form.is_valid():
-                    media_form.save()
+            if 'media' in request.FILES:
+                media_files = request.FILES.getlist('media')
+                for media_file in media_files:
+                    # Create TeamPostMedia instance for each file
+                    from ..models.social import TeamPostMedia
+                    import os
+                    
+                    # Determine media type based on file extension
+                    file_extension = os.path.splitext(media_file.name)[1].lower()
+                    if file_extension in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+                        media_type = 'image'
+                    elif file_extension in ['.mp4', '.mov', '.avi', '.webm']:
+                        media_type = 'video'
+                    else:
+                        media_type = 'document'
+                    
+                    # Create media object
+                    TeamPostMedia.objects.create(
+                        post=post,
+                        file=media_file,
+                        media_type=media_type,
+                        file_size=media_file.size
+                    )
             
             # Create activity
             TeamActivity.objects.create(
                 team=team,
-                activity_type='post_created',
-                user=user_profile,
+                activity_type='post_published',
+                actor=user_profile,
                 description=f"{user_profile.user.get_full_name() or user_profile.user.username} created a new post",
-                metadata={'post_id': post.id, 'post_title': post.title}
+                related_post=post
             )
             
             messages.success(request, "Post created successfully!")
             
-        return redirect('teams:team_social_detail', team_slug=team.slug)
+        return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
     else:
-        messages.error(request, "Error creating post. Please check your input.")
-        return redirect('teams:team_social_detail', team_slug=team.slug)
+        # Debug: show specific form errors
+        error_messages = []
+        for field, errors in form.errors.items():
+            for error in errors:
+                error_messages.append(f"{field}: {error}")
+        
+        error_text = "Form errors: " + "; ".join(error_messages) if error_messages else "Unknown form validation error"
+        messages.error(request, f"Error creating post: {error_text}")
+        return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
 
 
 @login_required
@@ -166,7 +192,7 @@ def create_post_comment(request, team_slug, post_id):
             return JsonResponse({'success': False, 'errors': form.errors})
         messages.error(request, "Error adding comment.")
     
-    return redirect('teams:team_social_detail', team_slug=team.slug)
+    return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
 
 
 @login_required
@@ -210,7 +236,7 @@ def toggle_post_like(request, team_slug, post_id):
             'like_count': like_count
         })
     
-    return redirect('teams:team_social_detail', team_slug=team.slug)
+    return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
 
 
 @login_required
@@ -245,7 +271,7 @@ def toggle_team_follow(request, team_slug):
         })
     
     messages.success(request, message)
-    return redirect('teams:team_social_detail', team_slug=team.slug)
+    return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
 
 
 @login_required
@@ -276,7 +302,7 @@ def upload_team_banner(request, team_slug):
     else:
         messages.error(request, "Error uploading banner. Please check your image.")
     
-    return redirect('teams:team_social_detail', team_slug=team.slug)
+    return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
 
 
 @login_required
@@ -348,3 +374,128 @@ def team_activity_feed(request, team_slug):
         activities_data.append(activity_data)
     
     return JsonResponse({'activities': activities_data})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_team_post(request, team_slug, post_id):
+    """Edit an existing team post."""
+    team = get_object_or_404(Team, slug=team_slug)
+    post = get_object_or_404(TeamPost, id=post_id, team=team)
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    
+    # Check permissions - only post author can edit
+    if post.author != user_profile:
+        messages.error(request, "You can only edit your own posts.")
+        return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
+    
+    if request.method == 'POST':
+        form = TeamPostForm(request.POST, request.FILES, instance=post, team=team, author=user_profile)
+        
+        if form.is_valid():
+            with transaction.atomic():
+                updated_post = form.save()
+                updated_post.is_edited = True
+                updated_post.save()
+                
+                # Handle new media uploads if any
+                if 'media' in request.FILES:
+                    media_files = request.FILES.getlist('media')
+                    for media_file in media_files:
+                        from ..models.social import TeamPostMedia
+                        import os
+                        
+                        # Determine media type based on file extension
+                        file_extension = os.path.splitext(media_file.name)[1].lower()
+                        if file_extension in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+                            media_type = 'image'
+                        elif file_extension in ['.mp4', '.mov', '.avi', '.webm']:
+                            media_type = 'video'
+                        else:
+                            media_type = 'document'
+                        
+                        # Create media object
+                        TeamPostMedia.objects.create(
+                            post=updated_post,
+                            file=media_file,
+                            media_type=media_type,
+                            file_size=media_file.size
+                        )
+                
+                messages.success(request, "Post updated successfully!")
+                return redirect('teams:teams_social:team_social_detail', team_slug=team.slug)
+        else:
+            # Debug: show specific form errors
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            
+            error_text = "Form errors: " + "; ".join(error_messages) if error_messages else "Unknown form validation error"
+            print(f"DEBUG - Form data: {request.POST}")
+            print(f"DEBUG - Form errors: {form.errors}")
+            print(f"DEBUG - Form is_valid: {form.is_valid()}")
+            messages.error(request, f"Error updating post: {error_text}")
+    else:
+        form = TeamPostForm(instance=post, team=team, author=user_profile)
+    
+    context = {
+        'team': team,
+        'post': post,
+        'form': form,
+        'user_profile': user_profile,
+        'is_editing': True,
+    }
+    
+    return render(request, 'teams/edit_post.html', context)
+
+
+@login_required
+@require_POST
+def delete_team_post(request, team_slug, post_id):
+    """Delete a team post."""
+    team = get_object_or_404(Team, slug=team_slug)
+    post = get_object_or_404(TeamPost, id=post_id, team=team)
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    
+    # Check permissions - post author or team captain can delete
+    if post.author != user_profile and not team.is_captain(user_profile):
+        return JsonResponse({"error": "You don't have permission to delete this post."}, status=403)
+    
+    try:
+        post.delete()
+        
+        # Create activity for deletion (if not deleting own post)
+        if post.author != user_profile:
+            TeamActivity.objects.create(
+                team=team,
+                activity_type='post_deleted',
+                actor=user_profile,
+                description=f"{user_profile.user.get_full_name() or user_profile.user.username} deleted a team post"
+            )
+        
+        return JsonResponse({"success": True, "message": "Post deleted successfully."})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def delete_post_media(request, team_slug, post_id, media_id):
+    """Delete a specific media file from a post."""
+    team = get_object_or_404(Team, slug=team_slug)
+    post = get_object_or_404(TeamPost, id=post_id, team=team)
+    user_profile = get_object_or_404(UserProfile, user=request.user)
+    
+    # Check permissions - only post author can delete media
+    if post.author != user_profile:
+        return JsonResponse({"error": "You can only delete media from your own posts."}, status=403)
+    
+    try:
+        from ..models.social import TeamPostMedia
+        media = get_object_or_404(TeamPostMedia, id=media_id, post=post)
+        media.delete()
+        
+        return JsonResponse({"success": True, "message": "Media deleted successfully."})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

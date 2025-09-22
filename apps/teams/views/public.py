@@ -653,11 +653,11 @@ def team_settings_view(request, slug: str):
     
     context = {
         "team": team,
-        "members": team.memberships.filter(status="ACTIVE").select_related("user__user"),
+        "members": team.memberships.filter(status="ACTIVE").select_related("profile__user"),
         "pending_invites": team.invites.filter(status="PENDING").select_related("invited_user__user"),
     }
     
-    return render(request, "teams/settings.html", context)
+    return render(request, "teams/settings_clean.html", context)
 
 
 @login_required
@@ -703,3 +703,159 @@ def cancel_invite_view(request, slug: str):
         messages.error(request, "Invitation not found or already processed.")
     
     return redirect("teams:manage", slug=team.slug)
+
+
+# ========================
+# New Professional Team Management Views
+# ========================
+
+@login_required
+@require_http_methods(["POST"])
+def update_team_info_view(request, slug: str):
+    """Update team information via AJAX."""
+    import json
+    from django.http import JsonResponse
+    
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        return JsonResponse({"error": "Only captains can edit team information."}, status=403)
+    
+    try:
+        team.name = request.POST.get('name', team.name).strip()
+        team.description = request.POST.get('description', team.description)
+        team.region = request.POST.get('region', team.region)
+        team.primary_game = request.POST.get('primary_game', team.primary_game)
+        
+        if 'logo' in request.FILES:
+            team.logo = request.FILES['logo']
+        if 'banner' in request.FILES:
+            team.banner_image = request.FILES['banner']
+        
+        team.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_privacy_view(request, slug: str):
+    """Update team privacy settings via AJAX."""
+    from django.http import JsonResponse
+    
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        return JsonResponse({"error": "Only captains can edit privacy settings."}, status=403)
+    
+    try:
+        team.is_public = request.POST.get('is_public') == 'on'
+        team.allow_join_requests = request.POST.get('allow_join_requests') == 'on'
+        team.show_statistics = request.POST.get('show_statistics') == 'on'
+        team.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def kick_member_ajax_view(request, slug: str):
+    """Kick a team member via AJAX."""
+    import json
+    from django.http import JsonResponse
+    
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        return JsonResponse({"error": "Only captains can kick members."}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        
+        User = get_user_model()
+        target_user = get_object_or_404(User, username=username)
+        target_profile = _get_profile(target_user)
+        
+        if not target_profile:
+            return JsonResponse({"error": "User profile not found."}, status=404)
+        
+        membership = get_object_or_404(TeamMembership, team=team, profile=target_profile)
+        
+        if membership.role == 'captain':
+            return JsonResponse({"error": "Cannot kick team captain."}, status=400)
+        
+        membership.delete()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def transfer_captaincy_ajax_view(request, slug: str):
+    """Transfer captaincy via AJAX."""
+    import json
+    from django.http import JsonResponse
+    
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        return JsonResponse({"error": "Only captains can transfer captaincy."}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        new_captain_username = data.get('new_captain')
+        
+        User = get_user_model()
+        new_captain_user = get_object_or_404(User, username=new_captain_username)
+        new_captain_profile = _get_profile(new_captain_user)
+        
+        if not new_captain_profile:
+            return JsonResponse({"error": "New captain profile not found."}, status=404)
+        
+        # Check if user is team member
+        new_captain_membership = get_object_or_404(TeamMembership, team=team, profile=new_captain_profile)
+        
+        # Transfer captaincy
+        current_captain_membership = TeamMembership.objects.get(team=team, profile=profile)
+        current_captain_membership.role = 'member'
+        current_captain_membership.save()
+        
+        new_captain_membership.role = 'captain'
+        new_captain_membership.save()
+        
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def leave_team_ajax_view(request, slug: str):
+    """Leave team via AJAX."""
+    from django.http import JsonResponse
+    
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    try:
+        membership = get_object_or_404(TeamMembership, team=team, profile=profile)
+        
+        if membership.role == 'captain' and team.members.count() > 1:
+            return JsonResponse({"error": "Transfer captaincy before leaving the team."}, status=400)
+        elif membership.role == 'captain' and team.members.count() == 1:
+            # Last member and captain, delete team
+            team.delete()
+        else:
+            membership.delete()
+        
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

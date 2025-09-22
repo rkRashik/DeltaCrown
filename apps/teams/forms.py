@@ -159,6 +159,7 @@ class TeamInviteForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         self.team = kwargs.pop('team', None)
+        self.sender = kwargs.pop('sender', None)
         super().__init__(*args, **kwargs)
 
     def clean_username_or_email(self):
@@ -282,6 +283,11 @@ class TeamSettingsForm(forms.ModelForm):
                 'placeholder': 'https://linktr.ee/your-team'
             })
         }
+
+    def __init__(self, *args, **kwargs):
+        # Extract user parameter if provided (for compatibility)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
 
     def clean_banner_image(self):
         image = self.cleaned_data.get('banner_image')

@@ -5,7 +5,9 @@
 
 {% block content %}
 <section class="container py-8">
-  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' parent_label=team.name parent_href=team.get_absolute_url current_label='Settings' %}
+  {% csrf_token %}
+  {% url 'teams:detail' team.slug as team_url %}
+  {% include 'components/breadcrumbs.html' with root_label='Teams' root_href='/teams/' parent_label=team.name parent_href=team_url current_label='Settings' %}
   
   <header class="flex items-center justify-between mb-6">
     <div class="flex items-center gap-3">
@@ -61,22 +63,22 @@
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <div class="text-center p-3 bg-white/5 rounded-lg">
-            <div class="text-2xl font-bold text-blue-400">{{ members.count }}</div>
+            <div class="text-2xl font-bold text-blue-400">{{ members|length }}</div>
             <div class="text-gray-400 text-sm">Members</div>
           </div>
           <div class="text-center p-3 bg-white/5 rounded-lg">
-            <div class="text-2xl font-bold text-green-400">{{ team.tournaments_count|default:0 }}</div>
+            <div class="text-2xl font-bold text-green-400">0</div>
             <div class="text-gray-400 text-sm">Tournaments</div>
           </div>
         </div>
         
         <div class="grid grid-cols-2 gap-4">
           <div class="text-center p-3 bg-white/5 rounded-lg">
-            <div class="text-2xl font-bold text-yellow-400">{{ team.wins_count|default:0 }}</div>
+            <div class="text-2xl font-bold text-yellow-400">0</div>
             <div class="text-gray-400 text-sm">Wins</div>
           </div>
           <div class="text-center p-3 bg-white/5 rounded-lg">
-            <div class="text-2xl font-bold text-red-400">{{ team.losses_count|default:0 }}</div>
+            <div class="text-2xl font-bold text-red-400">0</div>
             <div class="text-gray-400 text-sm">Losses</div>
           </div>
         </div>
@@ -204,12 +206,12 @@ function updateTeamSetting(setting, value) {
   // For now, we'll implement it as a form submission
   const form = document.createElement('form');
   form.method = 'POST';
-  form.action = '{% url "teams:settings" team.slug %}';
+  form.action = window.location.pathname;
   
   const csrfInput = document.createElement('input');
   csrfInput.type = 'hidden';
   csrfInput.name = 'csrfmiddlewaretoken';
-  csrfInput.value = '{{ csrf_token }}';
+  csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
   
   const settingInput = document.createElement('input');
   settingInput.type = 'hidden';

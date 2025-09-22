@@ -21,7 +21,21 @@ def team_media_upload_path(instance, filename):
     """Generate upload path for team media files."""
     ext = filename.split('.')[-1]
     filename = f"{uuid.uuid4().hex}.{ext}"
-    return f"teams/{instance.team.slug or instance.team.id}/media/{filename}"
+    
+    # Safety check - handle both direct team access and post->team access
+    try:
+        if hasattr(instance, 'team'):
+            team = instance.team
+        elif hasattr(instance, 'post') and hasattr(instance.post, 'team'):
+            team = instance.post.team
+        else:
+            # Fallback to a generic path
+            return f"teams/unknown/media/{filename}"
+        
+        return f"teams/{team.slug or team.id}/media/{filename}"
+    except:
+        # Ultimate fallback
+        return f"teams/fallback/media/{filename}"
 
 
 def team_banner_upload_path(instance, filename):
@@ -99,6 +113,10 @@ class TeamPost(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     published_at = models.DateTimeField(null=True, blank=True)
+    is_edited = models.BooleanField(
+        default=False,
+        help_text="Indicates if this post has been edited after creation"
+    )
     
     class Meta:
         ordering = ['-is_pinned', '-created_at']

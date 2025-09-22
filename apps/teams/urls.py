@@ -16,6 +16,12 @@ from .views.public import (
     team_settings_view,
     delete_team_view,
     cancel_invite_view,
+    # New professional management views
+    update_team_info_view,
+    update_privacy_view,
+    kick_member_ajax_view,
+    transfer_captaincy_ajax_view,
+    leave_team_ajax_view,
 )
 
 app_name = "teams"
@@ -41,6 +47,13 @@ urlpatterns = [
     path("<slug:slug>/settings/", team_settings_view, name="settings"),
     path("<slug:slug>/delete/", delete_team_view, name="delete"),
     path("<slug:slug>/cancel-invite/", cancel_invite_view, name="cancel_invite"),
+    
+    # New professional management endpoints
+    path("<slug:slug>/update-info/", update_team_info_view, name="update_team_info"),
+    path("<slug:slug>/update-privacy/", update_privacy_view, name="update_privacy"),
+    path("<slug:slug>/kick-member/", kick_member_ajax_view, name="kick_member"),
+    path("<slug:slug>/transfer-captaincy/", transfer_captaincy_ajax_view, name="transfer_captaincy"),
+    path("<slug:slug>/leave-team/", leave_team_ajax_view, name="leave_team"),
 
     # Invites
     path("invites/", my_invites, name="my_invites"),

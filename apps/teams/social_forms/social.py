@@ -57,6 +57,10 @@ class TeamPostForm(forms.ModelForm):
             post.team = self.team
         if self.author:
             post.author = self.author
+        # Set published_at to current time for immediate publication
+        if not post.published_at:
+            from django.utils import timezone
+            post.published_at = timezone.now()
         if commit:
             post.save()
         return post

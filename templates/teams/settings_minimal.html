@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.name }} Settings — DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="container py-8">
+  <h1>{{ team.name }} Settings</h1>
+  <p>Team Slug: {{ team.slug }}</p>
+  <p>Team ID: {{ team.id }}</p>
+  
+  <div>
+    <h3>Basic Info</h3>
+    <p>Name: {{ team.name }}</p>
+    <p>Created: {{ team.created_at }}</p>
+  </div>
+  
+  <div>
+    <h3>Members ({{ members|length }})</h3>
+    {% for member in members %}
+      <p>{{ member.user.user.username }}</p>
+    {% endfor %}
+  </div>
+  
+  <div>
+    <h3>Pending Invites ({{ pending_invites|length }})</h3>
+    {% for invite in pending_invites %}
+      <p>{{ invite.invited_user.user.username }}</p>
+    {% endfor %}
+  </div>
+  
+  <div>
+    <a href="{% url 'teams:detail' team.slug %}">Back to Team</a>
+  </div>
+</div>
+{% endblock %}

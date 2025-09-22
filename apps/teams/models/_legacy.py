@@ -97,6 +97,14 @@ class Team(models.Model):
     allow_posts = models.BooleanField(default=True, help_text="Allow team members to post")
     allow_followers = models.BooleanField(default=True, help_text="Allow users to follow this team")
     posts_require_approval = models.BooleanField(default=False, help_text="Posts need captain approval")
+    
+    # Privacy and management settings
+    is_active = models.BooleanField(default=True, help_text="Team is active and visible")
+    is_public = models.BooleanField(default=True, help_text="Team profile is public")
+    allow_join_requests = models.BooleanField(default=True, help_text="Allow users to request to join")
+    show_statistics = models.BooleanField(default=True, help_text="Show team statistics publicly")
+    primary_game = models.CharField(max_length=20, blank=True, default="", help_text="Primary game for team")
+    banner = models.ImageField(upload_to="teams/banners/", blank=True, null=True, help_text="Team banner image")
 
     class Meta:
         db_table = "teams_team"
@@ -158,6 +166,22 @@ class Team(models.Model):
         if self.tag and self.name:
             return f"{self.name} ({self.tag})"
         return self.name or f"Team #{self.pk}"
+    
+    @property
+    def members(self):
+        """Get all team members (for template compatibility)"""
+        from .membership import TeamMembership
+        return self.memberships.filter(status=TeamMembership.Status.ACTIVE).select_related('profile__user')
+    
+    @property
+    def captains(self):
+        """Get team captains (for template compatibility)"""
+        from .membership import TeamMembership
+        captain_memberships = self.memberships.filter(
+            status=TeamMembership.Status.ACTIVE,
+            role=TeamMembership.Role.CAPTAIN
+        ).select_related('profile__user')
+        return [membership.profile for membership in captain_memberships]
     
     def get_absolute_url(self):
         """Get team detail URL"""
