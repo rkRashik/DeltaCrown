@@ -9,8 +9,6 @@ from django.conf import settings
 from django.core.paginator import Paginator, EmptyPage
 from django.db.models import Q
 from .utils.embeds import build_embed_url
-from django.http import JsonResponse
-from django.urls import reverse
 
 
 

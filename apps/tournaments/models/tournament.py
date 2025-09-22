@@ -4,7 +4,7 @@ from django.utils.text import slugify
 from django.urls import reverse
 from django_ckeditor_5.fields import CKEditor5Field
 
-from .paths import tournament_banner_path, rules_pdf_path  # rules_pdf_path kept for compat if used anywhere
+from .paths import tournament_banner_path  # rules_pdf_path kept for compat if used anywhere
 
 
 # Module-level enum to avoid indentation bleed inside the model class

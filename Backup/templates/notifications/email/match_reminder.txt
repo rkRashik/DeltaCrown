@@ -1,7 +1,0 @@
-{{ tournament_name }} — Match reminder
-
-{% if start_at %}Your match at {{ start_at }} is coming up.{% else %}Your match is coming up.{% endif %}
-
-Open details: {{ cta_url }}
-
-— DeltaCrown
