@@ -105,6 +105,16 @@ class Team(models.Model):
     show_statistics = models.BooleanField(default=True, help_text="Show team statistics publicly")
     primary_game = models.CharField(max_length=20, blank=True, default="", help_text="Primary game for team")
     banner = models.ImageField(upload_to="teams/banners/", blank=True, null=True, help_text="Team banner image")
+    
+    # Team Achievement Points System
+    total_points = models.PositiveIntegerField(
+        default=0, 
+        help_text="Total ranking points earned by this team (read-only, calculated automatically)"
+    )
+    adjust_points = models.IntegerField(
+        default=0, 
+        help_text="Manual points adjustment (can be positive or negative)"
+    )
 
     class Meta:
         db_table = "teams_team"

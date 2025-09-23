@@ -1,654 +1,138 @@
-{% extends "base.html" %}
+{% extends "base_no_footer.html" %}
 {% load static %}
 
 {% block title %}Teams — DeltaCrown{% endblock %}
 
 {% block extra_head %}
-<style>
-/* � VLR.gg INSPIRED PROFESSIONAL ESPORTS DESIGN � */
-.professional-teams-page {
-    background: #0d1117;
-    min-height: 100vh;
-    color: #e6edf3;
-}
-
-.professional-teams-page.light-theme {
-    background: #ffffff;
-    color: #24292f;
-}
-
-/* Professional Header Section */
-.teams-header {
-    padding: 40px 0 20px;
-    border-bottom: 1px solid #21262d;
-}
-
-.professional-teams-page.light-theme .teams-header {
-    border-bottom: 1px solid #d0d7de;
-}
-
-.teams-title {
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: #e6edf3;
-    margin-bottom: 8px;
-}
-
-.professional-teams-page.light-theme .teams-title {
-    color: #24292f;
-}
-
-.teams-subtitle {
-    color: #7d8590;
-    font-size: 1rem;
-    margin-bottom: 0;
-}
-
-.professional-teams-page.light-theme .teams-subtitle {
-    color: #656d76;
-}
-
-/* Professional Search & Filter Bar */
-.search-control-bar {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 30px 0;
-}
-
-.professional-teams-page.light-theme .search-control-bar {
-    background: #f6f8fa;
-    border: 1px solid #d0d7de;
-}
-
-.search-input {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: #e6edf3;
-    font-size: 14px;
-    transition: border-color 0.2s;
-    width: 100%;
-}
-
-.professional-teams-page.light-theme .search-input {
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-    color: #24292f;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #1f6feb;
-    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
-}
-
-.search-input::placeholder {
-    color: #7d8590;
-}
-
-.professional-teams-page.light-theme .search-input::placeholder {
-    color: #656d76;
-}
-
-.filter-select {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 12px 16px;
-    color: #e6edf3;
-    font-size: 14px;
-    transition: border-color 0.2s;
-}
-
-.professional-teams-page.light-theme .filter-select {
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-    color: #24292f;
-}
-
-.filter-select:focus {
-    outline: none;
-    border-color: #1f6feb;
-    box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.1);
-}
-
-.action-btn {
-    background: #1f6feb;
-    border: none;
-    color: white;
-    padding: 8px 20px;
-    border-radius: 8px;
-    font-weight: 500;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.action-btn:hover {
-    background: #1a5dc7;
-    color: white;
-    text-decoration: none;
-}
-
-.action-btn.secondary {
-    background: #21262d;
-    color: #e6edf3;
-    border: 1px solid #30363d;
-}
-
-.professional-teams-page.light-theme .action-btn.secondary {
-    background: #ffffff;
-    color: #24292f;
-    border: 1px solid #d0d7de;
-}
-
-.action-btn.secondary:hover {
-    background: #30363d;
-    color: #e6edf3;
-}
-
-.professional-teams-page.light-theme .action-btn.secondary:hover {
-    background: #f6f8fa;
-    color: #24292f;
-}
-
-/* Professional Team Rankings List */
-.teams-rankings {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 30px;
-}
-
-.professional-teams-page.light-theme .teams-rankings {
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-}
-
-.ranking-header {
-    background: #21262d;
-    padding: 16px 24px;
-    border-bottom: 1px solid #30363d;
-    display: grid;
-    grid-template-columns: 60px 1fr 120px 100px 100px auto;
-    gap: 20px;
-    align-items: center;
-    font-weight: 600;
-    font-size: 14px;
-    color: #7d8590;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.professional-teams-page.light-theme .ranking-header {
-    background: #f6f8fa;
-    border-bottom: 1px solid #d0d7de;
-    color: #656d76;
-}
-
-.team-row {
-    display: grid;
-    grid-template-columns: 60px 1fr 120px 100px 100px auto;
-    gap: 20px;
-    align-items: center;
-    padding: 16px 24px;
-    border-bottom: 1px solid #30363d;
-    transition: background-color 0.2s;
-    cursor: pointer;
-}
-
-.professional-teams-page.light-theme .team-row {
-    border-bottom: 1px solid #d0d7de;
-}
-
-.team-row:last-child {
-    border-bottom: none;
-}
-
-.team-row:hover {
-    background: #21262d;
-}
-
-.professional-teams-page.light-theme .team-row:hover {
-    background: #f6f8fa;
-}
-
-.rank-number {
-    font-size: 18px;
-    font-weight: 700;
-    color: #e6edf3;
-    text-align: center;
-}
-
-.professional-teams-page.light-theme .rank-number {
-    color: #24292f;
-}
-
-.rank-number.top-3 {
-    color: #f85149;
-    font-size: 20px;
-}
-
-.professional-teams-page.light-theme .rank-number.top-3 {
-    color: #d1242f;
-}
-
-.team-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.team-logo {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    object-fit: cover;
-    border: 1px solid #30363d;
-}
-
-.professional-teams-page.light-theme .team-logo {
-    border: 1px solid #d0d7de;
-}
-
-.team-logo-placeholder {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background: #1f6feb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: white;
-    border: 1px solid #30363d;
-}
-
-.professional-teams-page.light-theme .team-logo-placeholder {
-    border: 1px solid #d0d7de;
-}
-
-.team-name {
-    color: #e6edf3;
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0;
-    text-decoration: none;
-}
-
-.professional-teams-page.light-theme .team-name {
-    color: #24292f;
-}
-
-.team-tag {
-    color: #7d8590;
-    font-size: 14px;
-    font-weight: 400;
-}
-
-.professional-teams-page.light-theme .team-tag {
-    color: #656d76;
-}
-
-.team-region {
-    color: #7d8590;
-    font-size: 14px;
-    font-weight: 400;
-}
-
-.professional-teams-page.light-theme .team-region {
-    color: #656d76;
-}
-
-.team-members {
-    color: #e6edf3;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.professional-teams-page.light-theme .team-members {
-    color: #24292f;
-}
-
-.team-score {
-    color: #e6edf3;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.professional-teams-page.light-theme .team-score {
-    color: #24292f;
-}
-
-.team-score.high {
-    color: #3fb950;
-}
-
-.professional-teams-page.light-theme .team-score.high {
-    color: #1a7f37;
-}
-
-.team-actions {
-    display: flex;
-    gap: 8px;
-    justify-content: flex-end;
-}
-
-.team-badge {
-    background: #1f6feb;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
-.team-badge.verified {
-    background: #3fb950;
-}
-
-.team-badge.recruiting {
-    background: #f85149;
-}
-
-.professional-teams-page.light-theme .team-badge.recruiting {
-    background: #d1242f;
-}
-
-.btn-view {
-    background: #1f6feb;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: background-color 0.2s;
-}
-
-.btn-view:hover {
-    background: #1a5dc7;
-    color: white;
-    text-decoration: none;
-}
-
-.btn-apply {
-    background: #21262d;
-    color: #e6edf3;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-    text-decoration: none;
-    border: 1px solid #30363d;
-    transition: background-color 0.2s;
-}
-
-.professional-teams-page.light-theme .btn-apply {
-    background: #ffffff;
-    color: #24292f;
-    border: 1px solid #d0d7de;
-}
-
-.btn-apply:hover {
-    background: #30363d;
-    color: #e6edf3;
-    text-decoration: none;
-}
-
-.professional-teams-page.light-theme .btn-apply:hover {
-    background: #f6f8fa;
-    color: #24292f;
-}
-
-/* Professional Sidebar */
-.teams-sidebar {
-    position: sticky;
-    top: 80px;
-}
-
-.sidebar-card {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.professional-teams-page.light-theme .sidebar-card {
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-}
-
-.sidebar-title {
-    color: #e6edf3;
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.professional-teams-page.light-theme .sidebar-title {
-    color: #24292f;
-}
-
-.sidebar-title i {
-    color: #7d8590;
-    font-size: 16px;
-}
-
-.professional-teams-page.light-theme .sidebar-title i {
-    color: #656d76;
-}
-
-.filter-option {
-    display: block;
-    color: #7d8590;
-    text-decoration: none;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-bottom: 4px;
-    transition: all 0.2s ease;
-    font-size: 14px;
-}
-
-.professional-teams-page.light-theme .filter-option {
-    color: #656d76;
-}
-
-.filter-option:hover,
-.filter-option.active {
-    background: #21262d;
-    color: #e6edf3;
-    text-decoration: none;
-}
-
-.professional-teams-page.light-theme .filter-option:hover,
-.professional-teams-page.light-theme .filter-option.active {
-    background: #f6f8fa;
-    color: #24292f;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 80px 20px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 25px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.empty-state i {
-    font-size: 4rem;
-    color: rgba(255, 255, 255, 0.3);
-    margin-bottom: 20px;
-}
-
-.empty-state h3 {
-    color: white;
-    margin-bottom: 10px;
-}
-
-.empty-state p {
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 30px;
-}
-
-/* Pagination */
-.pagination-container {
-    display: flex;
-    justify-content: center;
-    margin: 30px 0;
-}
-
-.pagination {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 8px;
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.professional-teams-page.light-theme .pagination {
-    background: #ffffff;
-    border: 1px solid #d0d7de;
-}
-
-.page-link {
-    color: #7d8590;
-    text-decoration: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-    font-size: 14px;
-}
-
-.professional-teams-page.light-theme .page-link {
-    color: #656d76;
-}
-
-.page-link:hover {
-    background: #21262d;
-    color: #e6edf3;
-    text-decoration: none;
-}
-
-.professional-teams-page.light-theme .page-link:hover {
-    background: #f6f8fa;
-    color: #24292f;
-}
-
-.page-stat {
-    color: #e6edf3;
-    font-weight: 500;
-    font-size: 14px;
-}
-
-.professional-teams-page.light-theme .page-stat {
-    color: #24292f;
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-    .main-content {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-    
-    .teams-sidebar {
-        position: static;
-        order: -1;
-    }
-}
-
-@media (max-width: 768px) {
-    .teams-title { 
-        font-size: 1.8rem; 
-    }
-    
-    .search-control-bar form {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .ranking-header,
-    .team-row {
-        grid-template-columns: 40px 1fr auto;
-        gap: 12px;
-        padding: 12px 16px;
-    }
-    
-    .ranking-header .hide-mobile,
-    .team-row .hide-mobile {
-        display: none;
-    }
-    
-    .team-actions {
-        flex-direction: column;
-        gap: 4px;
-    }
-}
-
-@media (max-width: 480px) {
-    .teams-header {
-        padding: 20px 0 15px;
-    }
-    
-    .search-control-bar {
-        margin: 20px 0;
-        padding: 16px;
-    }
-}
-
-/* Loading Animation */
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-.loading { 
-    animation: pulse 2s infinite; 
-}
-</style>
+<link rel="stylesheet" href="{% static 'siteui/css/teams-list.css' %}?v=5.0">
+<link rel="preload" href="{% static 'siteui/js/teams-list.js' %}" as="script">
 {% endblock %}
 
 {% block content %}
 <div class="professional-teams-page">
   <!-- Professional Header Section -->
   <div class="teams-header">
-    <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
+    <div class="container">
       <h1 class="teams-title">Team Rankings</h1>
       <p class="teams-subtitle">Professional esports teams ranked by performance and achievements</p>
     </div>
   </div>
 
-  <div style="max-width: 1200px; margin: 0 auto; padding: 0 20px;">
-    <!-- Professional Search & Filter Control Bar -->
-    <div class="search-control-bar">
-      <form method="get" id="teams-search-form" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 16px; align-items: end;">
+  <!-- Mobile Second Navbar (visible only on mobile) -->
+  <div class="mobile-second-navbar" id="mobile-navbar">
+    <div class="mobile-nav-content">
+      <!-- Mobile Search -->
+      <div class="mobile-search-wrapper">
+        <input type="search" id="mobile-search" name="q" value="{{ query }}"
+               placeholder="Search teams..." class="mobile-search-input">
+        <button class="mobile-search-btn" type="button">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+      
+      <!-- Mobile Filter Buttons -->
+      <div class="mobile-filter-buttons">
+        <button class="mobile-filter-btn" data-filter="game">
+          <i class="fas fa-gamepad"></i>
+          <span>Game</span>
+        </button>
+        <button class="mobile-filter-btn" data-filter="sort">
+          <i class="fas fa-sort"></i>
+          <span>Sort</span>
+        </button>
+        <button class="mobile-filter-btn" data-filter="actions">
+          <i class="fas fa-plus"></i>
+          <span>Quick</span>
+        </button>
+        <button class="mobile-filter-btn" id="toggle-sidebar">
+          <i class="fas fa-chart-bar"></i>
+          <span>Stats</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Team Ranking Rules Section -->
+    <div class="ranking-rules-section">
+      <div class="rules-header">
+        <h3>
+          <i class="fas fa-info-circle"></i>
+          Team Ranking System
+        </h3>
+        <button class="rules-toggle" id="rules-toggle">
+          <i class="fas fa-chevron-down"></i>
+        </button>
+      </div>
+      
+      <div class="rules-content" id="rules-content">
+        <div class="rules-grid">
+          <div class="rule-category">
+            <h4><i class="fas fa-trophy"></i> Tournament Performance</h4>
+            <div class="rule-items">
+              <div class="rule-item">
+                <span class="rule-name">Tournament Victory</span>
+                <span class="rule-points">{{ ranking_settings.tournament_victory_points }} points</span>
+              </div>
+              <div class="rule-item">
+                <span class="rule-name">Runner-up</span>
+                <span class="rule-points">{{ ranking_settings.runner_up_points }} points</span>
+              </div>
+              <div class="rule-item">
+                <span class="rule-name">Top 4 Finish</span>
+                <span class="rule-points">{{ ranking_settings.top4_finish_points }} points</span>
+              </div>
+              <div class="rule-item">
+                <span class="rule-name">Top 8 Finish</span>
+                <span class="rule-points">{{ ranking_settings.top8_finish_points }} points</span>
+              </div>
+              <div class="rule-item">
+                <span class="rule-name">Tournament Participation</span>
+                <span class="rule-points">{{ ranking_settings.participation_points }} points</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="rule-category">
+            <h4><i class="fas fa-users"></i> Team Bonuses</h4>
+            <div class="rule-items">
+              <div class="rule-item">
+                <span class="rule-name">Per Active Member</span>
+                <span class="rule-points">{{ ranking_settings.member_bonus_points }} points</span>
+              </div>
+              <div class="rule-item">
+                <span class="rule-name">Team Age Bonus</span>
+                <span class="rule-points">{{ ranking_settings.age_bonus_points }}/month</span>
+              </div>
+              <div class="rule-item">
+                <span class="rule-name">Multiplier Cap</span>
+                <span class="rule-points">{{ ranking_settings.multiplier_cap }}x</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="rules-note">
+          <i class="fas fa-lightbulb"></i>
+          <p>Rankings are calculated using configurable point values and updated in real-time based on tournament results and team activity.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Desktop Search & Filter Control Bar -->
+    <div class="search-control-bar desktop-only">
+      <form method="get" id="teams-search-form" class="search-form">
         <!-- Search Input -->
-        <div>
-          <label for="q" style="display: block; color: #7d8590; font-weight: 500; margin-bottom: 6px; font-size: 14px;">Search Teams</label>
+        <div class="form-group">
+          <label for="q" class="form-label">Search Teams</label>
           <input type="search" id="q" name="q" value="{{ query }}"
             placeholder="Team name or tag..."
             class="search-input">
         </div>
 
         <!-- Game Filter -->
-        <div>
-          <label for="game" style="display: block; color: #7d8590; font-weight: 500; margin-bottom: 6px; font-size: 14px;">Game</label>
+        <div class="form-group">
+          <label for="game" class="form-label">Game</label>
           <select id="game" name="game" class="filter-select">
             <option value="">All Games</option>
             {% for game in games %}
@@ -658,8 +142,8 @@
         </div>
 
         <!-- Sort Options -->
-        <div>
-          <label for="sort" style="display: block; color: #7d8590; font-weight: 500; margin-bottom: 6px; font-size: 14px;">Sort By</label>
+        <div class="form-group">
+          <label for="sort" class="form-label">Sort By</label>
           <select name="sort" id="sort" class="filter-select">
             <option value="powerrank" {% if sort == "powerrank" %}selected{% endif %}>Ranking</option>
             <option value="recent" {% if sort == "recent" %}selected{% endif %}>Recent</option>
@@ -669,80 +153,264 @@
         </div>
 
         <!-- Action Buttons -->
-        <div style="display: flex; gap: 8px;">
-          <button type="submit" class="action-btn">Filter</button>
-          <a href="{% url 'teams:create' %}" class="action-btn secondary">Create</a>
+        <div class="action-buttons">
+          <button type="submit" class="action-btn primary">
+            <i class="fas fa-filter"></i>
+            Filter
+          </button>
+          <a href="{% url 'teams:create' %}" class="action-btn secondary">
+            <i class="fas fa-plus"></i>
+            Create Team
+          </a>
         </div>
       </form>
     </div>
 
-    <div class="main-content" style="display: grid; grid-template-columns: 1fr 280px; gap: 24px;">
+    <!-- Mobile Filter Overlays -->
+    <div class="mobile-filter-overlays">
+      <!-- Game Filter Overlay -->
+      <div class="mobile-overlay" id="game-overlay">
+        <div class="mobile-overlay-content">
+          <div class="mobile-overlay-header">
+            <h3>Select Game</h3>
+            <button class="mobile-overlay-close">&times;</button>
+          </div>
+          <div class="mobile-overlay-body">
+            <div class="mobile-filter-option active" data-value="">All Games</div>
+            {% for game in games %}
+              <div class="mobile-filter-option {% if active_game == game %}active{% endif %}" data-value="{{ game }}">
+                {{ game }}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Sort Filter Overlay -->
+      <div class="mobile-overlay" id="sort-overlay">
+        <div class="mobile-overlay-content">
+          <div class="mobile-overlay-header">
+            <h3>Sort Teams By</h3>
+            <button class="mobile-overlay-close">&times;</button>
+          </div>
+          <div class="mobile-overlay-body">
+            <div class="mobile-filter-option {% if sort == 'powerrank' %}active{% endif %}" data-value="powerrank">Ranking</div>
+            <div class="mobile-filter-option {% if sort == 'recent' %}active{% endif %}" data-value="recent">Recent</div>
+            <div class="mobile-filter-option {% if sort == 'members' %}active{% endif %}" data-value="members">Members</div>
+            <div class="mobile-filter-option {% if sort == 'az' %}active{% endif %}" data-value="az">Name</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Overlay -->
+      <div class="mobile-overlay" id="actions-overlay">
+        <div class="mobile-overlay-content">
+          <div class="mobile-overlay-header">
+            <h3>Quick Actions</h3>
+            <button class="mobile-overlay-close">&times;</button>
+          </div>
+          <div class="mobile-overlay-body">
+            <!-- Primary Actions -->
+            <div class="mobile-action-section">
+              <div class="mobile-action-section-title">Team Management</div>
+              <a href="{% url 'teams:create' %}" class="mobile-action-item primary">
+                <i class="fas fa-plus-circle"></i>
+                <div class="mobile-action-content">
+                  <span class="mobile-action-label">Create New Team</span>
+                  <span class="mobile-action-desc">Start building your esports team</span>
+                </div>
+              </a>
+              {% if user.is_authenticated %}
+                <a href="#" class="mobile-action-item">
+                  <i class="fas fa-users"></i>
+                  <div class="mobile-action-content">
+                    <span class="mobile-action-label">My Teams</span>
+                    <span class="mobile-action-desc">View and manage your teams</span>
+                  </div>
+                </a>
+              {% endif %}
+            </div>
+            
+            <!-- Secondary Actions -->
+            <div class="mobile-action-section">
+              <div class="mobile-action-section-title">Invitations</div>
+              <a href="{% url 'teams:invitations' %}" class="mobile-action-item">
+                <i class="fas fa-paper-plane"></i>
+                <div class="mobile-action-content">
+                  <span class="mobile-action-label">Send Invitations</span>
+                  <span class="mobile-action-desc">Invite players to your team</span>
+                </div>
+              </a>
+              <a href="{% url 'teams:my_invites' %}" class="mobile-action-item">
+                <i class="fas fa-inbox"></i>
+                <div class="mobile-action-content">
+                  <span class="mobile-action-label">My Invites</span>
+                  <span class="mobile-action-desc">View received invitations</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
       <!-- Main Teams Rankings -->
-      <div>
+      <div class="teams-list-container">
         {% if object_list %}
           <div class="teams-rankings">
             <!-- Rankings Header -->
             <div class="ranking-header">
-              <div>Rank</div>
-              <div>Team</div>
-              <div class="hide-mobile">Region</div>
-              <div class="hide-mobile">Members</div>
-              <div class="hide-mobile">Score</div>
-              <div>Actions</div>
+              <div class="rank-col">Rank</div>
+              <div class="team-col">Team</div>
+              <div class="game-col desktop-only">Game</div>
+              <div class="members-col desktop-only">Members</div>
+              <div class="points-col desktop-only">Points</div>
+              <div class="actions-col">Actions</div>
             </div>
             
             <!-- Team Rankings List -->
             {% for team in object_list %}
-              <div class="team-row" onclick="location.href='{{ team.get_absolute_url }}'">
-                <!-- Rank Number -->
-                <div class="rank-number {% if forloop.counter <= 3 %}top-3{% endif %}">
-                  {{ forloop.counter }}
-                </div>
-                
-                <!-- Team Info -->
-                <div class="team-info">
-                  {% if team.logo %}
-                    <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo">
-                  {% else %}
-                    <div class="team-logo-placeholder">
-                      {{ team.name|first|upper }}
+              <div class="team-card" data-team-id="{{ team.id }}">
+                <!-- Desktop Row Layout -->
+                <div class="desktop-team-row desktop-only" onclick="window.location.href='{{ team.get_absolute_url }}'">
+                  <div class="rank-number {% if forloop.counter <= 3 %}top-3{% endif %}">
+                    {{ forloop.counter }}
+                  </div>
+                  
+                  <div class="team-info-desktop">
+                    {% if team.logo %}
+                      <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo" loading="lazy">
+                    {% else %}
+                      <div class="team-logo-placeholder">
+                        {{ team.name|first|upper }}
+                      </div>
+                    {% endif %}
+                    <div class="team-details">
+                      <div class="team-name">{{ team.name }}</div>
+                      {% if team.tag %}
+                        <div class="team-tag">[{{ team.tag }}]</div>
+                      {% endif %}
                     </div>
-                  {% endif %}
-                  <div>
-                    <div class="team-name">{{ team.name }}</div>
-                    {% if team.tag %}
-                      <div class="team-tag">[{{ team.tag }}]</div>
+                  </div>
+                  
+                  <div class="team-game">
+                    {% if team.game %}
+                      <div class="game-info">
+                        {% if team.game == 'valorant' %}
+                          <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="game-logo">
+                          <span>Valorant</span>
+                        {% elif team.game == 'efootball' %}
+                          <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="game-logo">
+                          <span>eFootball</span>
+                        {% elif team.game == 'cs2' %}
+                          <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike 2" class="game-logo">
+                          <span>CS2</span>
+                        {% elif team.game == 'pubg' %}
+                          <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="game-logo">
+                          <span>PUBG</span>
+                        {% elif team.game == 'mlbb' %}
+                          <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="game-logo">
+                          <span>MLBB</span>
+                        {% elif team.game == 'fc26' %}
+                          <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA SPORTS FC 26" class="game-logo">
+                          <span>FC 26</span>
+                        {% else %}
+                          <span>{{ team.game|title }}</span>
+                        {% endif %}
+                      </div>
+                    {% else %}
+                      <span class="no-game">--</span>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="team-members">{{ team.memberships.count }}</div>
+                  
+                  <div class="team-points">
+                    <div class="points-display">
+                      <span class="points-value">{{ team.total_points|default:0 }}</span>
+                      <span class="points-label">pts</span>
+                    </div>
+                  </div>
+                  
+                  <div class="team-actions-desktop" onclick="event.stopPropagation()">
+                    <a href="{{ team.get_absolute_url }}" class="btn-view">View</a>
+                    {% if team.allow_join_requests %}
+                      <a href="{% url 'teams:join' team.id %}" class="btn-apply">Apply</a>
                     {% endif %}
                   </div>
                 </div>
-                
-                <!-- Region -->
-                <div class="team-region hide-mobile">
-                  {{ team.region|default:"Global" }}
-                </div>
-                
-                <!-- Members -->
-                <div class="team-members hide-mobile">
-                  {{ team.members.count }}
-                </div>
-                
-                <!-- Score -->
-                <div class="team-score hide-mobile {% if team.power_rank > 1800 %}high{% endif %}">
-                  {{ team.power_rank|default:"--" }}
-                </div>
-                
-                <!-- Actions -->
-                <div class="team-actions" onclick="event.stopPropagation()">
-                  {% if team.is_verified %}
-                    <span class="team-badge verified">✓</span>
-                  {% endif %}
-                  {% if team.recruiting %}
-                    <span class="team-badge recruiting">Recruiting</span>
-                  {% endif %}
-                  <a href="{{ team.get_absolute_url }}" class="btn-view">View</a>
-                  {% if team.recruiting %}
-                    <a href="{% url 'teams:join' team.id %}" class="btn-apply">Apply</a>
-                  {% endif %}
+
+                <!-- Mobile Card Layout -->
+                <div class="mobile-team-card mobile-only" onclick="window.location.href='{{ team.get_absolute_url }}'">
+                  <div class="mobile-card-header">
+                    <div class="rank-badge {% if forloop.counter <= 3 %}top-3{% endif %}">
+                      #{{ forloop.counter }}
+                    </div>
+                    
+                    <div class="team-badges">
+                      {% if team.allow_join_requests %}
+                        <span class="team-badge recruiting" title="Recruiting">
+                          <i class="fas fa-user-plus"></i>
+                        </span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="mobile-card-content">
+                    <div class="team-avatar">
+                      {% if team.logo %}
+                        <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo-mobile" loading="lazy">
+                      {% else %}
+                        <div class="team-logo-placeholder-mobile">
+                          {{ team.name|first|upper }}
+                        </div>
+                      {% endif %}
+                    </div>
+
+                    <div class="team-info-mobile">
+                      <div class="team-name-mobile">{{ team.name }}</div>
+                      {% if team.tag %}
+                        <div class="team-tag-mobile">[{{ team.tag }}]</div>
+                      {% endif %}
+                      
+                      <div class="team-stats-mobile">
+                        <div class="stat-item">
+                          <i class="fas fa-users"></i>
+                          <span>{{ team.memberships.count }} members</span>
+                        </div>
+                        <div class="stat-item">
+                          <i class="fas fa-map-marker-alt"></i>
+                          <span>{{ team.region|default:"Global" }}</span>
+                        </div>
+                        {% if team.achievements_count > 0 %}
+                          <div class="stat-item">
+                            <i class="fas fa-trophy"></i>
+                            <span>{{ team.achievements_count }} achievement{{ team.achievements_count|pluralize }}</span>
+                          </div>
+                        {% endif %}
+                        {% if team.tournament_wins > 0 %}
+                          <div class="stat-item tournament-wins">
+                            <i class="fas fa-crown"></i>
+                            <span>{{ team.tournament_wins }} tournament win{{ team.tournament_wins|pluralize }}</span>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mobile-card-actions">
+                    <a href="{{ team.get_absolute_url }}" class="mobile-btn mobile-btn-view">
+                      <i class="fas fa-eye"></i>
+                      <span>View Team</span>
+                    </a>
+                    {% if team.allow_join_requests %}
+                      <a href="{% url 'teams:join' team.id %}" class="mobile-btn mobile-btn-apply">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Apply</span>
+                      </a>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
             {% endfor %}
@@ -753,78 +421,118 @@
             <div class="pagination-container">
               <nav class="pagination">
                 {% if page_obj.has_previous %}
-                  <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if active_game %}game={{ active_game }}&{% endif %}sort={{ sort }}&page={{ page_obj.previous_page_number }}">‹ Previous</a>
+                  <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if active_game %}game={{ active_game }}&{% endif %}sort={{ sort }}&page={{ page_obj.previous_page_number }}">
+                    <i class="fas fa-chevron-left"></i>
+                    <span class="desktop-only">Previous</span>
+                  </a>
                 {% endif %}
-                <span class="page-stat">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+                <span class="page-stat">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
                 {% if page_obj.has_next %}
-                  <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if active_game %}game={{ active_game }}&{% endif %}sort={{ sort }}&page={{ page_obj.next_page_number }}">Next ›</a>
+                  <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if active_game %}game={{ active_game }}&{% endif %}sort={{ sort }}&page={{ page_obj.next_page_number }}">
+                    <span class="desktop-only">Next</span>
+                    <i class="fas fa-chevron-right"></i>
+                  </a>
                 {% endif %}
               </nav>
             </div>
           {% endif %}
         {% else %}
           <div class="empty-state">
-            <i class="fas fa-users"></i>
+            <div class="empty-state-icon">
+              <i class="fas fa-users"></i>
+            </div>
             <h3>No Teams Found</h3>
             <p>No teams match your current filters. Try adjusting your search criteria.</p>
-            <a href="{% url 'teams:create' %}" class="action-btn">Create Team</a>
+            <a href="{% url 'teams:create' %}" class="action-btn primary">
+              <i class="fas fa-plus"></i>
+              Create Team
+            </a>
           </div>
         {% endif %}
       </div>
 
       <!-- Professional Sidebar -->
-      <div class="teams-sidebar">
-        <!-- Statistics Card -->
-        <div class="sidebar-card">
-          <h4 class="sidebar-title">
-            <i class="fas fa-chart-bar"></i>
-            Statistics
-          </h4>
-          <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #30363d;">
-              <span style="color: #7d8590; font-size: 14px;">Total Teams</span>
-              <span style="color: #e6edf3; font-weight: 600; font-size: 14px;">{{ paginator.count|default:"0" }}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #30363d;">
-              <span style="color: #7d8590; font-size: 14px;">Active</span>
-              <span style="color: #3fb950; font-weight: 600; font-size: 14px;">{{ active_teams|default:"0" }}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
-              <span style="color: #7d8590; font-size: 14px;">Recruiting</span>
-              <span style="color: #1f6feb; font-weight: 600; font-size: 14px;">{{ recruiting_teams|default:"0" }}</span>
-            </div>
+      <div class="teams-sidebar" id="teams-sidebar">
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay mobile-only" id="sidebar-overlay"></div>
+        
+        <div class="sidebar-content">
+          <!-- Mobile Sidebar Header -->
+          <div class="sidebar-header mobile-only">
+            <h3>Team Stats & Filters</h3>
+            <button class="sidebar-close" id="sidebar-close">
+              <i class="fas fa-times"></i>
+            </button>
           </div>
-        </div>
 
-        <!-- Quick Actions Card -->
-        <div class="sidebar-card">
-          <h4 class="sidebar-title">
-            <i class="fas fa-plus"></i>
-            Actions
-          </h4>
-          <div>
-            <a href="{% url 'teams:create' %}" class="filter-option">Create Team</a>
-            <a href="{% url 'teams:invitations' %}" class="filter-option">Invitations</a>
-            <a href="{% url 'teams:my_invites' %}" class="filter-option">My Invites</a>
-            {% if user.is_authenticated %}
-              <a href="#" class="filter-option">My Teams</a>
-            {% endif %}
-          </div>
-        </div>
-
-        <!-- Games Filter Card -->
-        <div class="sidebar-card">
-          <h4 class="sidebar-title">
-            <i class="fas fa-gamepad"></i>
-            Games
-          </h4>
-          <div>
-            <a href="?" class="filter-option {% if not active_game %}active{% endif %}">All Games</a>
-            {% for game in games %}
-              <a href="?game={{ game }}" class="filter-option {% if active_game == game %}active{% endif %}">
-                {{ game }}
+          <!-- Quick Actions Card -->
+          <div class="sidebar-card desktop-only">
+            <h4 class="sidebar-title">
+              <i class="fas fa-plus"></i>
+              Quick Actions
+            </h4>
+            <div class="sidebar-links">
+              <a href="{% url 'teams:create' %}" class="filter-option">
+                <i class="fas fa-plus"></i>
+                Create Team
               </a>
-            {% endfor %}
+              <a href="{% url 'teams:invitations' %}" class="filter-option">
+                <i class="fas fa-envelope"></i>
+                Invitations
+              </a>
+              <a href="{% url 'teams:my_invites' %}" class="filter-option">
+                <i class="fas fa-inbox"></i>
+                My Invites
+              </a>
+              {% if user.is_authenticated %}
+                <a href="#" class="filter-option">
+                  <i class="fas fa-users"></i>
+                  My Teams
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Team Stats & Filters -->
+          <div class="sidebar-card">
+            <h4 class="sidebar-title">
+              <i class="fas fa-chart-bar"></i>
+              Team Stats & Filters
+            </h4>
+            <div class="sidebar-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total Teams</span>
+                <span class="stat-value">{{ paginator.count|default:"0" }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Active</span>
+                <span class="stat-value success">{{ active_teams|default:"0" }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Recruiting</span>
+                <span class="stat-value primary">{{ recruiting_teams|default:"0" }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Games Filter Card -->
+          <div class="sidebar-card desktop-only">
+            <h4 class="sidebar-title">
+              <i class="fas fa-gamepad"></i>
+              Filter by Game
+            </h4>
+            <div class="sidebar-links">
+              <a href="?" class="filter-option {% if not active_game %}active{% endif %}">
+                <i class="fas fa-globe"></i>
+                All Games
+              </a>
+              {% for game in games %}
+                <a href="?game={{ game }}" class="filter-option {% if active_game == game %}active{% endif %}">
+                  <i class="fas fa-gamepad"></i>
+                  {{ game }}
+                </a>
+              {% endfor %}
+            </div>
           </div>
         </div>
       </div>
@@ -832,5 +540,35 @@
   </div>
 </div>
 
-<script src="{% static 'siteui/js/teams-list.js' %}" defer></script>
+<!-- Mobile Backdrop for Overlays -->
+<div class="mobile-backdrop" id="mobile-backdrop"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'siteui/js/teams-list.js' %}?v=5.0" defer></script>
+<script>
+// Initialize teams list functionality when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎮 Teams List v2.0 - DOM loaded, initializing...');
+    
+    // Initialize immediately after DOM is ready
+    if (typeof TeamsListManager !== 'undefined') {
+        console.log('✅ TeamsListManager found, initializing...');
+        window.teamsManager = new TeamsListManager();
+    } else {
+        console.log('⏳ Waiting for TeamsListManager to load...');
+        // Wait for deferred script
+        setTimeout(function() {
+            if (typeof TeamsListManager !== 'undefined') {
+                console.log('✅ TeamsListManager loaded, initializing...');
+                window.teamsManager = new TeamsListManager();
+            } else {
+                console.error('❌ TeamsListManager failed to load!');
+                console.error('Check if teams-list.js is accessible at:', document.querySelector('script[src*="teams-list.js"]')?.src);
+            }
+        }, 200);
+    }
+});
+</script>
 {% endblock %}

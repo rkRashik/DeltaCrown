@@ -4,10 +4,12 @@ from __future__ import annotations
 from django.contrib import admin, messages
 from django.contrib.admin.sites import AlreadyRegistered
 from django.db.models import QuerySet
+from django import forms
 
 from ..models import Team, TeamMembership, TeamInvite
 from .exports import export_teams_csv
 from .inlines import TeamMembershipInline, TeamInviteInline
+from .widgets import TeamPointsCalculatorWidget, ReadOnlyPointsWidget
 
 # Optional imports: presets
 _HAS_PRESETS = False
@@ -39,17 +41,64 @@ def _safe_register(model, admin_class) -> None:
 
 
 # -----------------------
+# Team Form with Custom Widgets
+# -----------------------
+class TeamAdminForm(forms.ModelForm):
+    """Custom form for Team admin with points calculator widgets."""
+    
+    class Meta:
+        model = Team
+        fields = '__all__'
+        widgets = {
+            'total_points': ReadOnlyPointsWidget(),
+            'adjust_points': TeamPointsCalculatorWidget(attrs={
+                'placeholder': 'Enter points to add or subtract'
+            }),
+        }
+
+# -----------------------
 # Team admin (single source of truth)
 # -----------------------
 class TeamAdmin(admin.ModelAdmin):
     """
-    Safe Team admin that avoids referencing fields that may not exist
-    across legacy states and development branches.
+    Enhanced Team admin with points management and responsive design.
     """
-    list_display = ("id", "name", "tag", "game_display", "captain_display", "members_count")
-    search_fields = ("name", "tag")
+    form = TeamAdminForm
+    list_display = ("id", "name", "tag", "game_display", "total_points_display", "captain_display", "members_count")
+    list_filter = ("game", "is_verified", "is_featured", "is_active")
+    search_fields = ("name", "tag", "region")
     inlines = [TeamMembershipInline, TeamInviteInline]
-    actions = ["export_as_csv", "action_make_preset_from_team"]
+    actions = ["export_as_csv", "action_make_preset_from_team", "recalculate_points"]
+    
+    fieldsets = (
+        ("Basic Information", {
+            "fields": ("name", "tag", "description", "logo", "game", "region"),
+            "classes": ("wide",)
+        }),
+        ("Team Achievement Points", {
+            "fields": ("total_points", "adjust_points"),
+            "classes": ("wide", "team-points-section"),
+            "description": "Manage team ranking points. Total Points is automatically calculated. Use Adjust Points with Add/Minus buttons to manually modify points."
+        }),
+        ("Team Management", {
+            "fields": ("captain", "is_active", "allow_join_requests"),
+            "classes": ("collapse",)
+        }),
+        ("Social & Media", {
+            "fields": ("banner_image", "roster_image", "twitter", "instagram", "discord", "youtube", "twitch", "linktree"),
+            "classes": ("collapse", "wide")
+        }),
+        ("Team Settings", {
+            "fields": ("is_verified", "is_featured", "is_public", "show_statistics", "allow_posts", "allow_followers", "posts_require_approval"),
+            "classes": ("collapse",)
+        }),
+        ("Advanced", {
+            "fields": ("slug", "primary_game", "banner", "created_at", "updated_at"),
+            "classes": ("collapse",)
+        })
+    )
+    
+    readonly_fields = ("created_at", "updated_at")
 
     def get_queryset(self, request):
         # Keep it simple and portable across schema variants.
@@ -61,7 +110,19 @@ class TeamAdmin(admin.ModelAdmin):
 
     def game_display(self, obj: Team) -> str:
         # 'game' may be absent on some legacy rows; render blank gracefully.
-        return getattr(obj, "game", "") or ""
+        game = getattr(obj, "game", "") or ""
+        if game:
+            # Add game logo if available
+            game_logos = {
+                'valorant': '🎯 Valorant',
+                'efootball': '⚽ eFootball', 
+                'cs2': '🔫 CS2',
+                'pubg': '🏝️ PUBG',
+                'mlbb': '🏰 MLBB',
+                'fc26': '⚽ FC 26'
+            }
+            return game_logos.get(game.lower(), game.title())
+        return ""
     game_display.short_description = "Game"
 
     def captain_display(self, obj: Team) -> str:
@@ -72,9 +133,59 @@ class TeamAdmin(admin.ModelAdmin):
         except Exception:
             return str(cap) if cap else ""
     captain_display.short_description = "Captain"
+    
+    def total_points_display(self, obj: Team) -> str:
+        """Display total points with formatting."""
+        total = getattr(obj, "total_points", 0)
+        if total >= 1000:
+            return f"{total:,.0f} pts"
+        return f"{total} pts"
+    total_points_display.short_description = "Points"
+    total_points_display.admin_order_field = "total_points"
 
     def export_as_csv(self, request, queryset: QuerySet[Team]):
         return export_teams_csv(self, request, queryset)
+    
+    @admin.action(description="Recalculate team points")
+    def recalculate_points(self, request, queryset: QuerySet[Team]):
+        """Recalculate points for selected teams based on achievements."""
+        updated_count = 0
+        
+        for team in queryset:
+            try:
+                # Get team achievements and calculate points
+                # This is a placeholder - you would integrate with your ranking system
+                old_total = getattr(team, 'total_points', 0)
+                
+                # For now, just ensure adjust_points is applied to total_points
+                adjust = getattr(team, 'adjust_points', 0)
+                new_total = max(0, adjust)  # Base points + adjustments
+                
+                if old_total != new_total:
+                    team.total_points = new_total
+                    team.save(update_fields=['total_points'])
+                    updated_count += 1
+                    
+            except Exception as e:
+                self.message_user(
+                    request,
+                    f"Error updating {team.name}: {str(e)}",
+                    level=messages.ERROR
+                )
+                continue
+        
+        if updated_count > 0:
+            self.message_user(
+                request,
+                f"Successfully recalculated points for {updated_count} team(s).",
+                level=messages.SUCCESS
+            )
+        else:
+            self.message_user(
+                request,
+                "No teams required point updates.",
+                level=messages.INFO
+            )
 
     # ---------- NEW: Create/Update Preset from Team ----------
     @admin.action(description="Create/Update Preset from Team")

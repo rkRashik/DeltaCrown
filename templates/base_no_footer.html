@@ -1,0 +1,73 @@
+{% load static %}
+<!doctype html>
+<html lang="en" data-theme="system" class="h-full">
+  <head>
+    <!-- Preconnect for Google auth fonts/icons -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <meta name="theme-color" content="#0b1220">
+
+    <!-- Basic OG -->
+    <meta property="og:site_name" content="DeltaCrown">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}DeltaCrown{% endblock %}">
+    <meta property="og:image" content="{% static 'siteui/og/default.png' %}">
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {% include "partials/seo_meta.html" %}
+    <title>{% block title %}DeltaCrown — Bangladesh's Esports Superbrand{% endblock %}</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{% static 'siteui/js/tailwind-config.js' %}"></script>
+
+    <!-- Site CSS -->
+    <link rel="preload" href="{% static 'siteui/css/tokens.css' %}" as="style" />
+    <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/base.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/components.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/effects.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/nav.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {# 🔽 allow pages to inject extra CSS (e.g., tournaments-detail.css) #}
+    {% block extra_head %}{% endblock %}
+  </head>
+  <body class="min-h-full bg-body text-body antialiased">
+    <a href="#main" class="skip-link">Skip to main content</a>
+
+    {% include "partials/nav.html" %}
+
+    <main id="main" tabindex="-1">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- NO FOOTER - This is the main difference from base.html -->
+    {% include "partials/toasts.html" %}
+
+    <!-- Site JS -->
+    <script src="{% static 'siteui/js/theme.js' %}"></script>
+    <script src="{% static 'siteui/js/esports-theme-toggle.js' %}"></script>
+    <script src="{% static 'siteui/js/components.js' %}"></script>
+    <script src="{% static 'siteui/js/motion.js' %}"></script>
+    <script src="{% static 'siteui/js/tournaments.js' %}"></script>
+    <script src="{% static 'siteui/js/tournaments-list.js' %}"></script>
+    <script src="{% static 'siteui/js/teams.js' %}"></script>
+    <script src="{% static 'siteui/js/auth.js' %}"></script>
+    <script src="{% static 'siteui/js/micro.js' %}"></script>
+    <script src="{% static 'siteui/js/nav.js' %}"></script>
+    <script src="{% static 'siteui/js/reg_wizard.js' %}"></script>
+
+    {% if messages %}
+    <script id="dj-messages" type="application/json">[
+      {% for message in messages %}
+        {"level":"{{ message.tags|default:'info' }}","text":"{{ message|escapejs }}"}{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ]</script>
+    {% endif %}
+
+    {# 🔽 allow pages to inject extra JS (e.g., tournament-detail.js) #}
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

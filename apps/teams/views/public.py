@@ -18,6 +18,7 @@ from django.views.decorators.http import require_http_methods
 from urllib.parse import urlencode
 
 from ..models import Team, TeamMembership, TeamInvite
+from ..models.ranking_settings import TeamRankingSettings
 from ..forms import (
     TeamCreationForm, TeamEditForm, TeamInviteForm, 
     TeamMemberManagementForm, TeamSettingsForm
@@ -81,11 +82,15 @@ def _user_teams_by_game(user) -> Dict[str, Optional[Team]]:
 
 def _base_team_queryset():
     """
-    Common queryset with safe annotations:
-    - members_count: Count of memberships
-    - recent_activity_at: best-effort activity timestamp (updated_at|created_at|Now)
-    - trophies/tournaments_played/wins/losses placeholders (0) — extend later if you add stats joins
+    Common queryset with configurable tournament-based ranking annotations.
+    Uses TeamRankingSettings for point calculations.
     """
+    from django.db.models import Case, When, IntegerField
+    from ..models import TeamRankingSettings
+    
+    # Get active ranking settings
+    ranking_settings = TeamRankingSettings.get_active_settings()
+    
     qs = Team.objects.all().distinct()
 
     # Captain relation is optional in some installs; guard select_related
@@ -94,11 +99,57 @@ def _base_team_queryset():
     except Exception:
         pass
 
-    # Annotated count must not clash with Team.members_count @property
-    qs = qs.annotate(memberships_count=Coalesce(Count("memberships", distinct=True), Value(0)))
+    # Annotated counts for proper ranking
+    qs = qs.annotate(
+        # Count active memberships
+        memberships_count=Coalesce(Count("memberships", distinct=True), Value(0)),
+        
+        # Count total achievements
+        achievements_count=Coalesce(Count("achievements", distinct=True), Value(0)),
+        
+        # Count tournament wins (WINNER placements)
+        tournament_wins=Coalesce(
+            Count("achievements", filter=Q(achievements__placement="WINNER"), distinct=True), 
+            Value(0)
+        ),
+        
+        # Count runner-up positions
+        runner_up_count=Coalesce(
+            Count("achievements", filter=Q(achievements__placement="RUNNER_UP"), distinct=True),
+            Value(0)
+        ),
+        
+        # Count top 4 finishes
+        top4_count=Coalesce(
+            Count("achievements", filter=Q(achievements__placement="TOP4"), distinct=True),
+            Value(0)
+        ),
+        
+        # Count top 8 finishes
+        top8_count=Coalesce(
+            Count("achievements", filter=Q(achievements__placement="TOP8"), distinct=True),
+            Value(0)
+        ),
+        
+        # Calculate configurable ranking score
+        calculated_ranking_score=Coalesce(
+            Case(
+                When(achievements__placement="WINNER", then=Value(ranking_settings.tournament_victory_points)),
+                When(achievements__placement="RUNNER_UP", then=Value(ranking_settings.runner_up_points)),
+                When(achievements__placement="TOP4", then=Value(ranking_settings.top4_finish_points)),
+                When(achievements__placement="TOP8", then=Value(ranking_settings.top8_finish_points)),
+                When(achievements__placement="PARTICIPANT", then=Value(ranking_settings.participation_points)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            Value(0)
+        )
+    )
+    
+    # Add ranking settings to context for template access
+    qs.ranking_settings = ranking_settings
 
-    # recent_activity_at: prefer updated_at, else created_at, else Now()
-    # We can't inspect fields at DB level here, so we try F() in order and fall back.
+    # Recent activity timestamp fallback
     recent_expr = None
     for cand in ("updated_at", "edited_at", "created_at"):
         if hasattr(Team, cand):
@@ -173,9 +224,9 @@ def _apply_filters(request, qs):
 
 def _apply_sort(request, qs):
     """
-    Sorting keys:
-    - powerrank (default): tournaments_played, wins, losses asc, trophies, members_count, recent_activity_at
-    - recent: recent_activity_at desc
+    Sorting keys based on configurable tournament achievements:
+    - powerrank (default): calculated ranking score, tournament wins, achievements
+    - recent: recent_activity_at desc  
     - members: members_count desc
     - az: name asc
     """
@@ -186,15 +237,18 @@ def _apply_sort(request, qs):
         return qs.order_by("-memberships_count", "name")
     if sort == "az":
         return qs.order_by("name")
-    # powerrank proxy ordering (tuple order as composite score stand-in)
+    
+    # Configurable tournament-based ranking
     return qs.order_by(
-        "-tournaments_played",
-        "-wins",
-        "losses",
-        "-trophies",
-        "-memberships_count",
-        "-recent_activity_at",
-        "name",
+        "-calculated_ranking_score",  # Primary: calculated score from settings
+        "-tournament_wins",           # Tournament victories
+        "-runner_up_count",          # Runner-up positions  
+        "-top4_count",               # Top 4 finishes
+        "-top8_count",               # Top 8 finishes
+        "-achievements_count",        # Total achievements
+        "-memberships_count",         # Team size bonus
+        "-created_at",               # Team age (establishment)
+        "name",                      # Alphabetical tiebreaker
     )
 
 
@@ -205,8 +259,13 @@ def team_list(request):
     """
     Public teams index with search, filters, sorting, and pagination.
     Also prepares 'my_teams_by_game' for the top row.
+    Enhanced for mobile-responsive design with comprehensive statistics.
     """
     qs = _base_team_queryset()
+    
+    # Get total count before filtering for statistics
+    total_teams = Team.objects.count()
+    
     qs = _apply_filters(request, qs)
     qs = _apply_sort(request, qs)
 
@@ -224,10 +283,35 @@ def team_list(request):
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
+    # Enhanced statistics for sidebar
+    active_teams = Team.objects.filter(is_active=True).count()
+    recruiting_teams = Team.objects.filter(
+        is_active=True,
+        allow_join_requests=True
+    ).count()
+    
+    # Add power_rank calculation to teams
+    teams_with_ranking = []
+    for team in page_obj.object_list:
+        # Calculate power ranking based on tournaments and activity
+        power_rank = _calculate_team_power_rank(team)
+        team.power_rank = power_rank
+        
+        # Add recruiting status for template
+        team.recruiting = getattr(team, 'allow_join_requests', False) and getattr(team, 'is_active', True)
+        
+        teams_with_ranking.append(team)
+
+    # Enhanced games list with proper display names
+    games_list = [{"code": code, "name": name} for code, name in GAMES]
+
+    # Get ranking settings for rules display
+    ranking_settings = TeamRankingSettings.get_active_settings()
+    
     ctx = {
         # collection
-        "teams": page_obj.object_list,           # backward compatible
-        "object_list": page_obj.object_list,     # for new templates
+        "teams": teams_with_ranking,              # backward compatible
+        "object_list": teams_with_ranking,        # for new templates
         "page_obj": page_obj,
         "paginator": paginator,
         "base_qs": base_qs,
@@ -244,10 +328,61 @@ def team_list(request):
             "open_to_join": (request.GET.get("open") or "") in ("1", "true", "True", "on"),
         },
         # sidebar + my teams row
-        "games": GAMES,
+        "games": [code for code, name in GAMES],  # codes for filters
+        "games_list": games_list,                  # full games with names
         "my_teams_by_game": _user_teams_by_game(request.user),
+        # enhanced statistics
+        "total_teams": total_teams,
+        "active_teams": active_teams,
+        "recruiting_teams": recruiting_teams,
+        # ranking system
+        "ranking_settings": ranking_settings,
     }
     return render(request, "teams/list.html", ctx)
+
+
+def _calculate_team_power_rank(team):
+    """
+    Calculate team power ranking based on various factors:
+    - Tournament participation
+    - Team achievements 
+    - Team member count
+    - Team activity level
+    - Verified status
+    """
+    base_score = 1000  # Starting score
+    
+    # Member count bonus (active teams with more members get higher rank)
+    member_count = getattr(team, 'members_count', 0)
+    member_bonus = min(member_count * 50, 400)  # Max 400 bonus for 8+ members
+    
+    # Activity bonus based on recent updates
+    activity_bonus = 0
+    if hasattr(team, 'updated_at') and team.updated_at:
+        days_since_update = (timezone.now() - team.updated_at).days
+        if days_since_update <= 7:
+            activity_bonus = 200
+        elif days_since_update <= 30:
+            activity_bonus = 100
+        elif days_since_update <= 90:
+            activity_bonus = 50
+    
+    # Verified team bonus
+    verified_bonus = 300 if getattr(team, 'is_verified', False) else 0
+    
+    # Tournament participation bonus (placeholder - can be enhanced with real tournament data)
+    tournament_bonus = getattr(team, 'tournaments_played', 0) * 25
+    wins_bonus = getattr(team, 'wins', 0) * 10
+    
+    # Social engagement bonus
+    social_bonus = 0
+    if hasattr(team, 'followers_count'):
+        social_bonus = min(team.followers_count * 2, 200)  # Max 200 for social engagement
+    
+    total_score = (base_score + member_bonus + activity_bonus + 
+                  verified_bonus + tournament_bonus + wins_bonus + social_bonus)
+    
+    return max(total_score, 0)  # Ensure non-negative score
 
 
 # -------------------------
