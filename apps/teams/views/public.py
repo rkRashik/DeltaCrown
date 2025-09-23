@@ -31,12 +31,12 @@ from ..forms import (
 GAMES = [
     ("valorant", "Valorant"),
     ("efootball", "eFootball"),
-    ("pubg", "PUBG Mobile"),
+    ("pubg", "PUBG"),
     ("freefire", "Free Fire"),
-    ("codm", "Call of Duty Mobile"),
-    ("mlbb", "Mobile Legends"),
-    ("csgo", "CS2/CS:GO"),
-    ("fc26", "FC 26"),
+    ("mlbb", "Mobile Legends: Bang Bang"),
+    ("csgo", "Counter-Strike"),
+    ("cs2", "Counter-Strike 2"),
+    ("fc26", "EA Sports FC 26"),
 ]
 
 
@@ -229,17 +229,35 @@ def _apply_sort(request, qs):
     - recent: recent_activity_at desc  
     - members: members_count desc
     - az: name asc
+    - game: primary_game asc (alphabetical by game name)
+    - points: total_points desc (highest points first)
+    
+    Optional 'order' parameter can be 'asc' or 'desc' to override default ordering.
     """
     sort = (request.GET.get("sort") or "powerrank").lower()
-    if sort == "recent":
-        return qs.order_by("-recent_activity_at", "name")
-    if sort == "members":
-        return qs.order_by("-memberships_count", "name")
-    if sort == "az":
-        return qs.order_by("name")
+    order = (request.GET.get("order") or "").lower()
     
-    # Configurable tournament-based ranking
-    return qs.order_by(
+    # Determine if we should reverse the default ordering
+    reverse_order = order == "desc" if order in ("asc", "desc") else False
+    
+    if sort == "recent":
+        base_order = ["-recent_activity_at", "name"]
+        return qs.order_by(*_apply_order_direction(base_order, reverse_order, default_desc=True))
+    if sort == "members":
+        base_order = ["-memberships_count", "name"]
+        return qs.order_by(*_apply_order_direction(base_order, reverse_order, default_desc=True))
+    if sort == "az":
+        base_order = ["name"]
+        return qs.order_by(*_apply_order_direction(base_order, reverse_order, default_desc=False))
+    if sort == "game":
+        base_order = ["primary_game", "name"]
+        return qs.order_by(*_apply_order_direction(base_order, reverse_order, default_desc=False))
+    if sort == "points":
+        base_order = ["-total_points", "-adjust_points", "name"]
+        return qs.order_by(*_apply_order_direction(base_order, reverse_order, default_desc=True))
+    
+    # Configurable tournament-based ranking (powerrank)
+    base_order = [
         "-calculated_ranking_score",  # Primary: calculated score from settings
         "-tournament_wins",           # Tournament victories
         "-runner_up_count",          # Runner-up positions  
@@ -249,7 +267,36 @@ def _apply_sort(request, qs):
         "-memberships_count",         # Team size bonus
         "-created_at",               # Team age (establishment)
         "name",                      # Alphabetical tiebreaker
-    )
+    ]
+    return qs.order_by(*_apply_order_direction(base_order, reverse_order, default_desc=True))
+
+
+def _apply_order_direction(base_order, reverse_order, default_desc=True):
+    """
+    Helper to apply order direction to a list of order fields.
+    
+    Args:
+        base_order: List of field names with optional '-' prefix
+        reverse_order: Boolean to reverse the default ordering
+        default_desc: Boolean indicating if the default is descending
+    
+    Returns:
+        List of field names with proper '-' prefixes
+    """
+    if not reverse_order:
+        return base_order
+    
+    # Reverse the ordering by toggling '-' prefix on primary fields
+    result = []
+    for field in base_order:
+        if field.startswith('-'):
+            # Remove '-' to make ascending
+            result.append(field[1:])
+        else:
+            # Add '-' to make descending
+            result.append('-' + field)
+    
+    return result
 
 
 # -------------------------

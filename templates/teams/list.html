@@ -53,72 +53,6 @@
   </div>
 
   <div class="container">
-    <!-- Team Ranking Rules Section -->
-    <div class="ranking-rules-section">
-      <div class="rules-header">
-        <h3>
-          <i class="fas fa-info-circle"></i>
-          Team Ranking System
-        </h3>
-        <button class="rules-toggle" id="rules-toggle">
-          <i class="fas fa-chevron-down"></i>
-        </button>
-      </div>
-      
-      <div class="rules-content" id="rules-content">
-        <div class="rules-grid">
-          <div class="rule-category">
-            <h4><i class="fas fa-trophy"></i> Tournament Performance</h4>
-            <div class="rule-items">
-              <div class="rule-item">
-                <span class="rule-name">Tournament Victory</span>
-                <span class="rule-points">{{ ranking_settings.tournament_victory_points }} points</span>
-              </div>
-              <div class="rule-item">
-                <span class="rule-name">Runner-up</span>
-                <span class="rule-points">{{ ranking_settings.runner_up_points }} points</span>
-              </div>
-              <div class="rule-item">
-                <span class="rule-name">Top 4 Finish</span>
-                <span class="rule-points">{{ ranking_settings.top4_finish_points }} points</span>
-              </div>
-              <div class="rule-item">
-                <span class="rule-name">Top 8 Finish</span>
-                <span class="rule-points">{{ ranking_settings.top8_finish_points }} points</span>
-              </div>
-              <div class="rule-item">
-                <span class="rule-name">Tournament Participation</span>
-                <span class="rule-points">{{ ranking_settings.participation_points }} points</span>
-              </div>
-            </div>
-          </div>
-          
-          <div class="rule-category">
-            <h4><i class="fas fa-users"></i> Team Bonuses</h4>
-            <div class="rule-items">
-              <div class="rule-item">
-                <span class="rule-name">Per Active Member</span>
-                <span class="rule-points">{{ ranking_settings.member_bonus_points }} points</span>
-              </div>
-              <div class="rule-item">
-                <span class="rule-name">Team Age Bonus</span>
-                <span class="rule-points">{{ ranking_settings.age_bonus_points }}/month</span>
-              </div>
-              <div class="rule-item">
-                <span class="rule-name">Multiplier Cap</span>
-                <span class="rule-points">{{ ranking_settings.multiplier_cap }}x</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="rules-note">
-          <i class="fas fa-lightbulb"></i>
-          <p>Rankings are calculated using configurable point values and updated in real-time based on tournament results and team activity.</p>
-        </div>
-      </div>
-    </div>
-
     <!-- Desktop Search & Filter Control Bar -->
     <div class="search-control-bar desktop-only">
       <form method="get" id="teams-search-form" class="search-form">
@@ -136,7 +70,19 @@
           <select id="game" name="game" class="filter-select">
             <option value="">All Games</option>
             {% for game in games %}
-              <option value="{{ game }}" {% if active_game == game %}selected{% endif %}>{{ game }}</option>
+              {% if game != 'codm' %}
+                <option value="{{ game }}" {% if active_game == game %}selected{% endif %}>
+                  {% if game == 'valorant' %}Valorant
+                  {% elif game == 'efootball' %}eFootball
+                  {% elif game == 'pubg' %}PUBG
+                  {% elif game == 'freefire' %}Free Fire
+                  {% elif game == 'mlbb' %}Mobile Legends: Bang Bang
+                  {% elif game == 'csgo' or game == 'cs2' %}Counter-Strike
+                  {% elif game == 'fc26' %}EA Sports FC 26
+                  {% else %}{{ game|title }}
+                  {% endif %}
+                </option>
+              {% endif %}
             {% endfor %}
           </select>
         </div>
@@ -147,8 +93,10 @@
           <select name="sort" id="sort" class="filter-select">
             <option value="powerrank" {% if sort == "powerrank" %}selected{% endif %}>Ranking</option>
             <option value="recent" {% if sort == "recent" %}selected{% endif %}>Recent</option>
+            <option value="az" {% if sort == "az" %}selected{% endif %}>Team Name</option>
+            <option value="game" {% if sort == "game" %}selected{% endif %}>Game</option>
             <option value="members" {% if sort == "members" %}selected{% endif %}>Members</option>
-            <option value="az" {% if sort == "az" %}selected{% endif %}>Name</option>
+            <option value="points" {% if sort == "points" %}selected{% endif %}>Points</option>
           </select>
         </div>
 
@@ -178,9 +126,37 @@
           <div class="mobile-overlay-body">
             <div class="mobile-filter-option active" data-value="">All Games</div>
             {% for game in games %}
-              <div class="mobile-filter-option {% if active_game == game %}active{% endif %}" data-value="{{ game }}">
-                {{ game }}
-              </div>
+              {% if game != 'codm' %}
+                <div class="mobile-filter-option {% if active_game == game %}active{% endif %}" data-value="{{ game }}">
+                  <div class="mobile-game-filter-item">
+                    {% if game == 'valorant' %}
+                      <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="mobile-game-logo">
+                      <span>Valorant</span>
+                    {% elif game == 'efootball' %}
+                      <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="mobile-game-logo">
+                      <span>eFootball</span>
+                    {% elif game == 'pubg' %}
+                      <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="mobile-game-logo">
+                      <span>PUBG</span>
+                    {% elif game == 'freefire' %}
+                      <i class="fas fa-fire"></i>
+                      <span>Free Fire</span>
+                    {% elif game == 'mlbb' %}
+                      <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="mobile-game-logo">
+                      <span>Mobile Legends: Bang Bang</span>
+                    {% elif game == 'csgo' or game == 'cs2' %}
+                      <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike" class="mobile-game-logo">
+                      <span>Counter-Strike</span>
+                    {% elif game == 'fc26' %}
+                      <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="mobile-game-logo">
+                      <span>EA Sports FC 26</span>
+                    {% else %}
+                      <i class="fas fa-gamepad"></i>
+                      <span>{{ game|title }}</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
             {% endfor %}
           </div>
         </div>
@@ -196,8 +172,10 @@
           <div class="mobile-overlay-body">
             <div class="mobile-filter-option {% if sort == 'powerrank' %}active{% endif %}" data-value="powerrank">Ranking</div>
             <div class="mobile-filter-option {% if sort == 'recent' %}active{% endif %}" data-value="recent">Recent</div>
+            <div class="mobile-filter-option {% if sort == 'az' %}active{% endif %}" data-value="az">Team Name</div>
+            <div class="mobile-filter-option {% if sort == 'game' %}active{% endif %}" data-value="game">Game</div>
             <div class="mobile-filter-option {% if sort == 'members' %}active{% endif %}" data-value="members">Members</div>
-            <div class="mobile-filter-option {% if sort == 'az' %}active{% endif %}" data-value="az">Name</div>
+            <div class="mobile-filter-option {% if sort == 'points' %}active{% endif %}" data-value="points">Points</div>
           </div>
         </div>
       </div>
@@ -261,11 +239,56 @@
           <div class="teams-rankings">
             <!-- Rankings Header -->
             <div class="ranking-header">
-              <div class="rank-col">Rank</div>
-              <div class="team-col">Team</div>
-              <div class="game-col desktop-only">Game</div>
-              <div class="members-col desktop-only">Members</div>
-              <div class="points-col desktop-only">Points</div>
+              <div class="rank-col">
+                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=powerrank{% if sort == 'powerrank' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'powerrank' %}active{% endif %}">
+                  Rank
+                  {% if sort == 'powerrank' %}
+                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
+                  {% else %}
+                    <i class="fas fa-sort"></i>
+                  {% endif %}
+                </a>
+              </div>
+              <div class="team-col">
+                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=az{% if sort == 'az' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'az' %}active{% endif %}">
+                  Team
+                  {% if sort == 'az' %}
+                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
+                  {% else %}
+                    <i class="fas fa-sort"></i>
+                  {% endif %}
+                </a>
+              </div>
+              <div class="game-col desktop-only">
+                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=game{% if sort == 'game' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'game' %}active{% endif %}">
+                  Game
+                  {% if sort == 'game' %}
+                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
+                  {% else %}
+                    <i class="fas fa-sort"></i>
+                  {% endif %}
+                </a>
+              </div>
+              <div class="members-col desktop-only">
+                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=members{% if sort == 'members' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'members' %}active{% endif %}">
+                  Members
+                  {% if sort == 'members' %}
+                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
+                  {% else %}
+                    <i class="fas fa-sort"></i>
+                  {% endif %}
+                </a>
+              </div>
+              <div class="points-col desktop-only">
+                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=points{% if sort == 'points' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'points' %}active{% endif %}">
+                  Points
+                  {% if sort == 'points' %}
+                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
+                  {% else %}
+                    <i class="fas fa-sort"></i>
+                  {% endif %}
+                </a>
+              </div>
               <div class="actions-col">Actions</div>
             </div>
             
@@ -527,10 +550,37 @@
                 All Games
               </a>
               {% for game in games %}
-                <a href="?game={{ game }}" class="filter-option {% if active_game == game %}active{% endif %}">
-                  <i class="fas fa-gamepad"></i>
-                  {{ game }}
-                </a>
+                {% if game != 'codm' %}
+                  <a href="?game={{ game }}" class="filter-option {% if active_game == game %}active{% endif %}">
+                    <div class="game-filter-item">
+                      {% if game == 'valorant' %}
+                        <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="game-logo-filter">
+                        <span>Valorant</span>
+                      {% elif game == 'efootball' %}
+                        <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="game-logo-filter">
+                        <span>eFootball</span>
+                      {% elif game == 'pubg' %}
+                        <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="game-logo-filter">
+                        <span>PUBG</span>
+                      {% elif game == 'freefire' %}
+                        <i class="fas fa-fire"></i>
+                        <span>Free Fire</span>
+                      {% elif game == 'mlbb' %}
+                        <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="game-logo-filter">
+                        <span>Mobile Legends: Bang Bang</span>
+                      {% elif game == 'csgo' or game == 'cs2' %}
+                        <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike" class="game-logo-filter">
+                        <span>Counter-Strike</span>
+                      {% elif game == 'fc26' %}
+                        <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="game-logo-filter">
+                        <span>EA Sports FC 26</span>
+                      {% else %}
+                        <i class="fas fa-gamepad"></i>
+                        <span>{{ game|title }}</span>
+                      {% endif %}
+                    </div>
+                  </a>
+                {% endif %}
               {% endfor %}
             </div>
           </div>

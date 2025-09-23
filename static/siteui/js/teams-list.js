@@ -459,12 +459,56 @@ class TeamsListManager {
   }
 
   /**
-   * RULES SECTION TOGGLE
+   * RULES SECTION TOGGLE (Sidebar Version)
    */
   setupRulesToggle() {
     const rulesToggle = document.getElementById('rules-toggle');
     const rulesContent = document.getElementById('rules-content');
-    const rulesHeader = document.querySelector('.rules-header');
+    
+    if (!rulesToggle || !rulesContent) return;
+    
+    // Set initial state - collapsed by default (inline style sets display: none)
+    rulesToggle.classList.remove('active');
+    
+    // Toggle handler
+    const toggleRules = () => {
+      const isHidden = rulesContent.style.display === 'none';
+      
+      if (isHidden) {
+        // Expand
+        rulesContent.style.display = 'block';
+        rulesContent.classList.add('show');
+        rulesToggle.classList.add('active');
+      } else {
+        // Collapse
+        rulesContent.style.display = 'none';
+        rulesContent.classList.remove('show');
+        rulesToggle.classList.remove('active');
+      }
+    };
+    
+    // Event listeners
+    rulesToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleRules();
+    });
+    
+    // Keyboard support
+    rulesToggle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleRules();
+      }
+    });
+  }
+
+  /**
+   * LEGACY RULES TOGGLE (if needed for other pages)
+   */
+  setupLegacyRulesToggle() {
+    const rulesToggle = document.querySelector('.ranking-rules-section .rules-toggle');
+    const rulesContent = document.querySelector('.ranking-rules-section .rules-content');
     
     if (!rulesToggle || !rulesContent) return;
     
