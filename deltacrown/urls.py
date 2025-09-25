@@ -63,5 +63,10 @@ except Exception:
 urlpatterns = [u for u in urlpatterns if u is not None]
 
 if settings.DEBUG:
+    # Serve static files from STATICFILES_DIRS during development
+    from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+    urlpatterns += staticfiles_urlpatterns()
+    # Also serve collected static files for network access
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    # Serve media files
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

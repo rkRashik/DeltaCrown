@@ -1,611 +1,581 @@
-/**
- * 🎮 TEAMS LIST MANAGER - MOBILE-FIRST JAVASCRIPT 🎮
- * Clean, professional JavaScript for teams listing with mobile optimization
- * Version: 2.0 - Completely rewritten for better functionality
- */
+﻿(function () {
+  'use strict';
 
-class TeamsListManager {
-  constructor() {
-    this.isMobile = window.innerWidth < 768;
-    this.searchTimeout = null;
-    this.activeOverlay = null;
-    
-    // Initialize immediately
-    this.init();
-    
-    console.log('✅ Teams List Manager initialized successfully');
-  }
+  const READY_STATES = ['interactive', 'complete'];
+  const DEFAULT_SORT_ORDER = {
+    powerrank: 'desc',
+    recent: 'desc',
+    members: 'desc',
+    points: 'desc',
+    az: 'asc',
+    game: 'asc',
+    newest: 'desc'
+  };
 
-  init() {
-    this.setupSearch();
-    this.setupMobileNavigation();
-    this.setupFilters();
-    this.setupTeamInteractions();
-    this.setupResponsiveHandlers();
-    this.setupKeyboardNavigation();
-    this.setupRulesToggle();
-  }
+  const supportsAsyncNav = Boolean(
+    window.history && typeof window.history.pushState === 'function' &&
+    typeof window.fetch === 'function' && typeof window.DOMParser === 'function'
+  );
 
-  /**
-   * SEARCH FUNCTIONALITY
-   */
-  setupSearch() {
-    // Desktop search
-    const desktopSearchInput = document.getElementById('q');
-    if (desktopSearchInput) {
-      desktopSearchInput.addEventListener('input', this.handleSearch.bind(this));
+  const escapeAttr = (value) => {
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+      return CSS.escape(value);
     }
+    return String(value).replace(/[\"\]/g, '\$&');
+  };
 
-    // Mobile search
-    const mobileSearchInput = document.getElementById('mobile-search');
-    if (mobileSearchInput) {
-      mobileSearchInput.addEventListener('input', this.handleMobileSearch.bind(this));
-    }
+  const state = {
+    searchTimer: null,
+    isFetching: false,
+    listContainer: null,
+    loader: null,
+    form: null,
+    gameSelect: null,
+    sortSelect: null,
+    orderInput: null,
+    desktopSearch: null,
+    mobileSearch: null,
+    overlays: {},
+    activeOverlay: null,
+    activeOverlayButton: null,
+    backdrop: null,
+    sidebar: null,
+    sidebarOverlay: null,
+    sidebarToggle: null,
+    sidebarClose: null,
+    body: null,
+    scrollLockCount: 0,
+    storedOverflow: ''
+  };
 
-    // Mobile search button
-    const mobileSearchBtn = document.querySelector('.mobile-search-btn');
-    if (mobileSearchBtn) {
-      mobileSearchBtn.addEventListener('click', this.handleMobileSearchSubmit.bind(this));
-    }
+  function init() {
+    const doc = document;
+    const form = doc.getElementById('teams-search-form');
 
-    // Form submissions
-    const searchForm = document.getElementById('teams-search-form');
-    if (searchForm) {
-      searchForm.addEventListener('submit', this.handleFormSubmit.bind(this));
-    }
-  }
-
-  handleSearch(event) {
-    const query = event.target.value;
-    
-    // Debounce search
-    clearTimeout(this.searchTimeout);
-    this.searchTimeout = setTimeout(() => {
-      this.performSearch(query);
-    }, 300);
-  }
-
-  handleMobileSearch(event) {
-    const query = event.target.value;
-    
-    // Update desktop search input if exists
-    const desktopInput = document.getElementById('q');
-    if (desktopInput && desktopInput.value !== query) {
-      desktopInput.value = query;
-    }
-
-    // Perform search with debounce
-    clearTimeout(this.searchTimeout);
-    this.searchTimeout = setTimeout(() => {
-      this.performSearch(query);
-    }, 300);
-  }
-
-  handleMobileSearchSubmit(event) {
-    event.preventDefault();
-    const mobileInput = document.getElementById('mobile-search');
-    if (mobileInput) {
-      this.performSearch(mobileInput.value);
-    }
-  }
-
-  performSearch(query) {
-    // Get current form data
-    const form = document.getElementById('teams-search-form');
-    if (!form) return;
-
-    const formData = new FormData(form);
-    formData.set('q', query);
-
-    // Build URL with parameters
-    const params = new URLSearchParams(formData);
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-
-    // Navigate to new URL (this will reload the page with search results)
-    window.location.href = newUrl;
-  }
-
-  handleFormSubmit(event) {
-    // Allow normal form submission
-    console.log('🔍 Form submitted');
-  }
-
-  /**
-   * MOBILE NAVIGATION
-   */
-  setupMobileNavigation() {
-    // Mobile filter buttons
-    const filterButtons = document.querySelectorAll('.mobile-filter-btn');
-    filterButtons.forEach(button => {
-      button.addEventListener('click', this.handleMobileFilterClick.bind(this));
-    });
-
-    // Mobile overlay close buttons
-    const closeButtons = document.querySelectorAll('.mobile-overlay-close');
-    closeButtons.forEach(button => {
-      button.addEventListener('click', this.closeMobileOverlay.bind(this));
-    });
-
-    // Sidebar toggle for mobile
-    const sidebarToggle = document.getElementById('toggle-sidebar');
-    if (sidebarToggle) {
-      sidebarToggle.addEventListener('click', this.toggleMobileSidebar.bind(this));
-    }
-
-    // Sidebar close button
-    const sidebarClose = document.getElementById('sidebar-close');
-    if (sidebarClose) {
-      sidebarClose.addEventListener('click', this.closeMobileSidebar.bind(this));
-    }
-
-    // Backdrop click to close overlays
-    const backdrop = document.getElementById('mobile-backdrop');
-    if (backdrop) {
-      backdrop.addEventListener('click', this.closeMobileOverlay.bind(this));
-    }
-
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-    if (sidebarOverlay) {
-      sidebarOverlay.addEventListener('click', this.closeMobileSidebar.bind(this));
-    }
-  }
-
-  handleMobileFilterClick(event) {
-    const button = event.currentTarget;
-    const filterType = button.dataset.filter;
-
-    if (filterType === 'actions') {
-      this.showMobileOverlay('actions-overlay');
-    } else if (filterType === 'game') {
-      this.showMobileOverlay('game-overlay');
-    } else if (filterType === 'sort') {
-      this.showMobileOverlay('sort-overlay');
-    }
-
-    // Add active state
-    document.querySelectorAll('.mobile-filter-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    button.classList.add('active');
-  }
-
-  showMobileOverlay(overlayId) {
-    const overlay = document.getElementById(overlayId);
-    
-    if (overlay) {
-      // Close any existing overlay first
-      this.closeMobileOverlay();
-      
-      this.activeOverlay = overlay;
-      
-      // Add active state with smooth animation
-      requestAnimationFrame(() => {
-        overlay.classList.add('active');
-        
-        // Add haptic feedback on supported devices
-        if (navigator.vibrate) {
-          navigator.vibrate(50);
-        }
-      });
-      
-      // Prevent body scrolling
-      document.body.style.overflow = 'hidden';
-      
-      // Focus trap for accessibility
-      this.trapFocus(overlay);
-      
-      // Add escape key listener
-      this.addEscapeListener();
-    }
-  }
-
-  closeMobileOverlay() {
-    if (this.activeOverlay) {
-      // Add closing animation
-      this.activeOverlay.classList.add('closing');
-      
-      setTimeout(() => {
-        this.activeOverlay.classList.remove('active', 'closing');
-        this.activeOverlay = null;
-      }, 200);
-    }
-
-    // Restore body scrolling
-    document.body.style.overflow = '';
-
-    // Remove active state from filter buttons with animation
-    document.querySelectorAll('.mobile-filter-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    
-    // Remove escape listener
-    this.removeEscapeListener();
-  }
-
-  trapFocus(element) {
-    const focusableElements = element.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    }
-  }
-
-  addEscapeListener() {
-    this.escapeHandler = (e) => {
-      if (e.key === 'Escape') {
-        this.closeMobileOverlay();
-      }
-    };
-    document.addEventListener('keydown', this.escapeHandler);
-  }
-
-  removeEscapeListener() {
-    if (this.escapeHandler) {
-      document.removeEventListener('keydown', this.escapeHandler);
-      this.escapeHandler = null;
-    }
-  }
-
-  toggleMobileSidebar() {
-    const sidebar = document.getElementById('teams-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    
-    if (sidebar && overlay) {
-      sidebar.classList.add('active');
-      overlay.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    }
-  }
-
-  closeMobileSidebar() {
-    const sidebar = document.getElementById('teams-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    
-    if (sidebar && overlay) {
-      sidebar.classList.remove('active');
-      overlay.classList.remove('active');
-      document.body.style.overflow = '';
-    }
-  }
-
-  /**
-   * FILTER FUNCTIONALITY
-   */
-  setupFilters() {
-    // Desktop filter selects
-    const gameSelect = document.getElementById('game');
-    const sortSelect = document.getElementById('sort');
-
-    if (gameSelect) {
-      gameSelect.addEventListener('change', this.handleFilterChange.bind(this));
-    }
-
-    if (sortSelect) {
-      sortSelect.addEventListener('change', this.handleFilterChange.bind(this));
-    }
-
-    // Mobile filter options
-    const mobileFilterOptions = document.querySelectorAll('.mobile-filter-option');
-    mobileFilterOptions.forEach(option => {
-      option.addEventListener('click', this.handleMobileFilterSelect.bind(this));
-    });
-
-    // Sidebar filter links
-    const filterLinks = document.querySelectorAll('.filter-option');
-    filterLinks.forEach(link => {
-      link.addEventListener('click', this.handleSidebarFilterClick.bind(this));
-    });
-  }
-
-  handleFilterChange(event) {
-    // Submit form when filter changes
-    const form = document.getElementById('teams-search-form');
-    if (form) {
-      form.submit();
-    }
-  }
-
-  handleMobileFilterSelect(event) {
-    event.preventDefault();
-    const option = event.currentTarget;
-    const value = option.dataset.value;
-    const overlayId = option.closest('.mobile-overlay').id;
-
-    // Update corresponding form field
-    if (overlayId === 'game-overlay') {
-      const gameSelect = document.getElementById('game');
-      if (gameSelect) {
-        gameSelect.value = value;
-        this.handleFilterChange({ target: gameSelect });
-      }
-    } else if (overlayId === 'sort-overlay') {
-      const sortSelect = document.getElementById('sort');
-      if (sortSelect) {
-        sortSelect.value = value;
-        this.handleFilterChange({ target: sortSelect });
-      }
-    }
-
-    this.closeMobileOverlay();
-  }
-
-  handleSidebarFilterClick(event) {
-    // Allow normal navigation for sidebar links
-    console.log('📊 Sidebar filter clicked:', event.currentTarget.textContent);
-  }
-
-  /**
-   * TEAM INTERACTIONS
-   */
-  setupTeamInteractions() {
-    // Team row clicks
-    const teamRows = document.querySelectorAll('.team-row');
-    teamRows.forEach(row => {
-      row.addEventListener('click', this.handleTeamRowClick.bind(this));
-    });
-
-    // Action button clicks (prevent event bubbling)
-    const actionButtons = document.querySelectorAll('.team-actions a, .team-actions button');
-    actionButtons.forEach(button => {
-      button.addEventListener('click', this.handleActionClick.bind(this));
-    });
-
-    // Add loading states to action buttons
-    const viewButtons = document.querySelectorAll('.btn-view');
-    const applyButtons = document.querySelectorAll('.btn-apply');
-    
-    viewButtons.forEach(button => {
-      button.addEventListener('click', this.addLoadingState.bind(this));
-    });
-    
-    applyButtons.forEach(button => {
-      button.addEventListener('click', this.addLoadingState.bind(this));
-    });
-  }
-
-  handleTeamRowClick(event) {
-    // Don't navigate if clicking on action buttons
-    if (event.target.closest('.team-actions')) {
+    if (!form) {
       return;
     }
 
-    const row = event.currentTarget;
-    const teamId = row.dataset.teamId;
-    
-    if (teamId) {
-      // Add visual feedback
-      row.style.transform = 'scale(0.98)';
-      row.style.transition = 'transform 0.1s ease';
-      
-      setTimeout(() => {
-        row.style.transform = '';
-      }, 100);
-
-      // Navigate to team detail (you'll need to implement this based on your URL structure)
-      console.log('🏆 Navigate to team:', teamId);
-    }
-  }
-
-  handleActionClick(event) {
-    // Prevent event bubbling to team row
-    event.stopPropagation();
-    console.log('🎯 Action clicked:', event.currentTarget.textContent);
-  }
-
-  addLoadingState(event) {
-    const button = event.currentTarget;
-    const originalText = button.innerHTML;
-    
-    // Add loading state
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    button.disabled = true;
-    
-    // Remove loading state after 2 seconds (adjust based on your needs)
-    setTimeout(() => {
-      button.innerHTML = originalText;
-      button.disabled = false;
-    }, 2000);
-  }
-
-  /**
-   * RESPONSIVE HANDLING
-   */
-  setupResponsiveHandlers() {
-    window.addEventListener('resize', this.handleResize.bind(this));
-    this.handleResize(); // Initial check
-  }
-
-  handleResize() {
-    const wasMobile = this.isMobile;
-    this.isMobile = window.innerWidth < 768;
-
-    // Close overlays when switching to desktop
-    if (wasMobile && !this.isMobile) {
-      this.closeMobileOverlay();
-      this.closeMobileSidebar();
-    }
-
-    // Update mobile navbar visibility
-    this.updateMobileNavbar();
-  }
-
-  updateMobileNavbar() {
-    const mobileNavbar = document.querySelector('.mobile-second-navbar');
-    if (mobileNavbar) {
-      mobileNavbar.style.display = this.isMobile ? 'block' : 'none';
-    }
-  }
-
-  /**
-   * KEYBOARD NAVIGATION
-   */
-  setupKeyboardNavigation() {
-    document.addEventListener('keydown', this.handleKeyDown.bind(this));
-  }
-
-  handleKeyDown(event) {
-    // Escape key to close overlays
-    if (event.key === 'Escape') {
-      this.closeMobileOverlay();
-      this.closeMobileSidebar();
-    }
-
-    // Enter key on team rows
-    if (event.key === 'Enter' && event.target.classList.contains('team-row')) {
-      event.target.click();
-    }
-  }
-
-  /**
-   * RULES SECTION TOGGLE (Sidebar Version)
-   */
-  setupRulesToggle() {
-    const rulesToggle = document.getElementById('rules-toggle');
-    const rulesContent = document.getElementById('rules-content');
-    
-    if (!rulesToggle || !rulesContent) return;
-    
-    // Set initial state - collapsed by default (inline style sets display: none)
-    rulesToggle.classList.remove('active');
-    
-    // Toggle handler
-    const toggleRules = () => {
-      const isHidden = rulesContent.style.display === 'none';
-      
-      if (isHidden) {
-        // Expand
-        rulesContent.style.display = 'block';
-        rulesContent.classList.add('show');
-        rulesToggle.classList.add('active');
-      } else {
-        // Collapse
-        rulesContent.style.display = 'none';
-        rulesContent.classList.remove('show');
-        rulesToggle.classList.remove('active');
-      }
+    state.form = form;
+    state.body = doc.body;
+    state.listContainer = doc.querySelector('.teams-list-container');
+    state.loader = doc.getElementById('teams-loading');
+    state.gameSelect = doc.getElementById('game');
+    state.sortSelect = doc.getElementById('sort');
+    state.orderInput = doc.getElementById('order-input');
+    state.desktopSearch = doc.getElementById('q');
+    state.mobileSearch = doc.getElementById('mobile-search');
+    state.backdrop = doc.getElementById('mobile-backdrop');
+    state.overlays = {
+      game: doc.getElementById('game-overlay'),
+      sort: doc.getElementById('sort-overlay'),
+      actions: doc.getElementById('actions-overlay')
     };
-    
-    // Event listeners
-    rulesToggle.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleRules();
-    });
-    
-    // Keyboard support
-    rulesToggle.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleRules();
+    state.sidebar = doc.getElementById('teams-sidebar');
+    state.sidebarOverlay = doc.getElementById('sidebar-overlay');
+    state.sidebarToggle = doc.getElementById('toggle-sidebar');
+    state.sidebarClose = doc.getElementById('sidebar-close');
+
+    bindFormControls(doc);
+    bindOverlayControls(doc);
+    bindSidebarControls(doc);
+    bindGlobalKeyHandler(doc);
+
+    if (supportsAsyncNav) {
+      bindAsyncNavigation(doc);
+      if (!window.history.state || typeof window.history.state.url === 'undefined') {
+        window.history.replaceState({ url: window.location.href }, '', window.location.href);
       }
-    });
+    }
   }
 
-  /**
-   * LEGACY RULES TOGGLE (if needed for other pages)
-   */
-  setupLegacyRulesToggle() {
-    const rulesToggle = document.querySelector('.ranking-rules-section .rules-toggle');
-    const rulesContent = document.querySelector('.ranking-rules-section .rules-content');
-    
-    if (!rulesToggle || !rulesContent) return;
-    
-    // Set initial state - collapsed by default
-    rulesContent.classList.remove('active');
-    rulesToggle.classList.remove('active');
-    
-    // Toggle handler
-    const toggleRules = () => {
-      const isActive = rulesContent.classList.contains('active');
-      
-      if (isActive) {
-        // Collapse
-        rulesContent.classList.remove('active');
-        rulesToggle.classList.remove('active');
-      } else {
-        // Expand
-        rulesContent.classList.add('active');
-        rulesToggle.classList.add('active');
-        
-        // Smooth scroll to rules section on mobile
-        if (this.isMobile) {
-          setTimeout(() => {
-            rulesHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 100);
-        }
-      }
-      
-      // Analytics tracking (if available)
-      if (typeof gtag !== 'undefined') {
-        gtag('event', 'rules_toggle', {
-          'event_category': 'Teams',
-          'event_label': isActive ? 'collapse' : 'expand'
-        });
-      }
-    };
-    
-    // Add click handlers
-    rulesToggle.addEventListener('click', toggleRules);
-    rulesHeader.addEventListener('click', toggleRules);
-    
-    // Keyboard accessibility
-    rulesHeader.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleRules();
-      }
-    });
-    
-    // Add ARIA attributes
-    rulesHeader.setAttribute('tabindex', '0');
-    rulesHeader.setAttribute('role', 'button');
-    rulesHeader.setAttribute('aria-expanded', 'false');
-    rulesContent.setAttribute('aria-hidden', 'true');
-    
-    // Update ARIA on toggle
-    const originalToggle = toggleRules;
-    const toggleWithAria = () => {
-      originalToggle();
-      const isExpanded = rulesContent.classList.contains('active');
-      rulesHeader.setAttribute('aria-expanded', isExpanded.toString());
-      rulesContent.setAttribute('aria-hidden', (!isExpanded).toString());
-    };
-    
-    rulesToggle.removeEventListener('click', toggleRules);
-    rulesHeader.removeEventListener('click', toggleRules);
-    rulesToggle.addEventListener('click', toggleWithAria);
-    rulesHeader.addEventListener('click', toggleWithAria);
-  }
+  function bindFormControls(doc) {
+    if (state.sortSelect && state.orderInput && !state.orderInput.value) {
+      setOrderValue(state.sortSelect.value);
+    }
 
-  /**
-   * UTILITY METHODS
-   */
-  debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  }
+    if (state.desktopSearch) {
+      state.desktopSearch.addEventListener('input', (event) => {
+        queueSearchSubmit(event.target.value);
+      });
+    }
 
-  // Add smooth scroll behavior for mobile navigation
-  smoothScrollTo(element) {
-    if (element) {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
+    if (state.mobileSearch) {
+      state.mobileSearch.addEventListener('input', (event) => {
+        queueSearchSubmit(event.target.value);
+      });
+    }
+
+    const mobileSearchBtn = doc.querySelector('.mobile-search-btn');
+    if (mobileSearchBtn) {
+      mobileSearchBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        clearTimeout(state.searchTimer);
+        submitForm();
+      });
+    }
+
+    if (state.gameSelect) {
+      state.gameSelect.addEventListener('change', () => {
+        submitForm();
+      });
+    }
+
+    if (state.sortSelect) {
+      state.sortSelect.addEventListener('change', () => {
+        setOrderValue(state.sortSelect.value);
+        submitForm();
       });
     }
   }
-}
 
-// Export for potential external use
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = TeamsListManager;
-}
+  function bindOverlayControls(doc) {
+    hideBackdrop();
+
+    doc.querySelectorAll('.mobile-overlay-close').forEach((button) => {
+      button.addEventListener('click', closeOverlay);
+    });
+
+    if (state.backdrop) {
+      state.backdrop.addEventListener('click', closeOverlay);
+    }
+
+    doc.querySelectorAll('.mobile-filter-btn[data-filter]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const key = button.getAttribute('data-filter');
+        openOverlay(state.overlays[key], button);
+      });
+    });
+
+    if (state.overlays.game) {
+      state.overlays.game.querySelectorAll('.mobile-filter-option').forEach((option) => {
+        option.addEventListener('click', () => {
+          const value = option.getAttribute('data-value') || '';
+          updateOverlayActiveState(state.overlays.game, value);
+          submitSelectValue(state.gameSelect, value);
+          closeOverlay();
+        });
+      });
+      updateOverlayActiveState(state.overlays.game, state.gameSelect?.value || '');
+    }
+
+    if (state.overlays.sort) {
+      state.overlays.sort.querySelectorAll('.mobile-filter-option').forEach((option) => {
+        option.addEventListener('click', () => {
+          const value = option.getAttribute('data-value') || '';
+          updateOverlayActiveState(state.overlays.sort, value);
+          submitSelectValue(state.sortSelect, value);
+          closeOverlay();
+        });
+      });
+      updateOverlayActiveState(state.overlays.sort, state.sortSelect?.value || '');
+    }
+  }
+
+  function bindSidebarControls() {
+    if (state.sidebarToggle) {
+      state.sidebarToggle.addEventListener('click', () => {
+        if (!state.sidebar) {
+          return;
+        }
+        if (state.sidebar.classList.contains('active')) {
+          closeSidebar();
+        } else {
+          openSidebar();
+        }
+      });
+    }
+
+    if (state.sidebarClose) {
+      state.sidebarClose.addEventListener('click', closeSidebar);
+    }
+
+    if (state.sidebarOverlay) {
+      state.sidebarOverlay.addEventListener('click', closeSidebar);
+    }
+  }
+
+  function bindGlobalKeyHandler(doc) {
+    doc.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      if (state.activeOverlay) {
+        closeOverlay();
+        return;
+      }
+      if (state.sidebar && state.sidebar.classList.contains('active')) {
+        closeSidebar();
+      }
+    });
+  }
+
+  function bindAsyncNavigation(doc) {
+    state.form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      handleNavigate(buildUrlFromForm());
+    });
+
+    doc.addEventListener('click', (event) => {
+      const anchor = event.target.closest('a[data-async="true"]');
+      if (!anchor) {
+        return;
+      }
+      const href = anchor.getAttribute('href');
+      if (!href || anchor.getAttribute('target') === '_blank' || href.startsWith('#') || href.startsWith('javascript:')) {
+        return;
+      }
+      event.preventDefault();
+      const absoluteUrl = new URL(href, window.location.origin).toString();
+      handleNavigate(absoluteUrl);
+    });
+
+    window.addEventListener('popstate', (event) => {
+      const url = event.state?.url || window.location.href;
+      handleNavigate(url, { push: false, scroll: false });
+    });
+  }
+
+  function queueSearchSubmit(value) {
+    syncSearchInputs(value);
+    clearTimeout(state.searchTimer);
+    state.searchTimer = window.setTimeout(() => submitForm(), 400);
+  }
+
+  function syncSearchInputs(value) {
+    if (state.desktopSearch && state.desktopSearch.value !== value) {
+      state.desktopSearch.value = value;
+    }
+    if (state.mobileSearch && state.mobileSearch.value !== value) {
+      state.mobileSearch.value = value;
+    }
+  }
+
+  function submitForm() {
+    if (supportsAsyncNav) {
+      handleNavigate(buildUrlFromForm());
+      return;
+    }
+
+    if (typeof state.form.requestSubmit === 'function') {
+      state.form.requestSubmit();
+    } else {
+      state.form.submit();
+    }
+  }
+
+  function buildUrlFromForm() {
+    if (!state.form) {
+      return window.location.pathname;
+    }
+
+    const action = state.form.getAttribute('action') || window.location.pathname;
+    const params = new URLSearchParams();
+    const formData = new FormData(state.form);
+
+    for (const [key, rawValue] of formData.entries()) {
+      if (rawValue === null || rawValue === undefined) {
+        continue;
+      }
+      const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+      if (value === '') {
+        continue;
+      }
+      params.append(key, value);
+    }
+
+    const queryString = params.toString();
+    return queryString ? `${action}?${queryString}` : action;
+  }
+
+  function submitSelectValue(select, value) {
+    if (!select) {
+      return;
+    }
+    if (select.value !== value) {
+      select.value = value;
+    }
+    if (select === state.sortSelect) {
+      setOrderValue(value);
+    }
+    submitForm();
+  }
+
+  function setOrderValue(sortValue) {
+    if (!state.orderInput) {
+      return;
+    }
+    const defaultOrder = DEFAULT_SORT_ORDER[sortValue];
+    state.orderInput.value = defaultOrder || 'asc';
+  }
+
+  function lockScroll() {
+    if (!state.body) {
+      return;
+    }
+    if (state.scrollLockCount === 0) {
+      state.storedOverflow = state.body.style.overflow;
+      state.body.style.overflow = 'hidden';
+    }
+    state.scrollLockCount += 1;
+  }
+
+  function releaseScroll() {
+    if (!state.body || state.scrollLockCount === 0) {
+      return;
+    }
+    state.scrollLockCount -= 1;
+    if (state.scrollLockCount === 0) {
+      state.body.style.overflow = state.storedOverflow;
+    }
+  }
+
+  function showBackdrop() {
+    if (!state.backdrop) {
+      return;
+    }
+    state.backdrop.style.display = 'block';
+    state.backdrop.classList.add('active');
+  }
+
+  function hideBackdrop() {
+    if (!state.backdrop) {
+      return;
+    }
+    state.backdrop.classList.remove('active');
+    state.backdrop.style.display = 'none';
+  }
+
+  function openOverlay(overlay, button) {
+    if (!overlay) {
+      return;
+    }
+    if (state.activeOverlay === overlay) {
+      closeOverlay();
+      return;
+    }
+    closeOverlay();
+    state.activeOverlay = overlay;
+    state.activeOverlayButton = button || null;
+    overlay.classList.add('active');
+    if (state.activeOverlayButton) {
+      state.activeOverlayButton.classList.add('active');
+    }
+    overlay.addEventListener('click', handleOverlayBackdropClick);
+    document.addEventListener('keydown', handleOverlayEscape);
+    showBackdrop();
+    lockScroll();
+  }
+
+  function closeOverlay() {
+    if (!state.activeOverlay) {
+      return;
+    }
+    state.activeOverlay.classList.remove('active');
+    state.activeOverlay.removeEventListener('click', handleOverlayBackdropClick);
+    state.activeOverlay = null;
+    if (state.activeOverlayButton) {
+      state.activeOverlayButton.classList.remove('active');
+      state.activeOverlayButton = null;
+    }
+    hideBackdrop();
+    document.removeEventListener('keydown', handleOverlayEscape);
+    releaseScroll();
+  }
+
+  function handleOverlayBackdropClick(event) {
+    if (event.target === state.activeOverlay) {
+      closeOverlay();
+    }
+  }
+
+  function handleOverlayEscape(event) {
+    if (event.key === 'Escape') {
+      closeOverlay();
+    }
+  }
+
+  function openSidebar() {
+    if (!state.sidebar) {
+      return;
+    }
+    state.sidebar.classList.add('active');
+    state.sidebarOverlay?.classList.add('active');
+    lockScroll();
+  }
+
+  function closeSidebar() {
+    if (!state.sidebar) {
+      return;
+    }
+    state.sidebar.classList.remove('active');
+    state.sidebarOverlay?.classList.remove('active');
+    releaseScroll();
+  }
+
+  function updateOverlayActiveState(overlay, value) {
+    if (!overlay) {
+      return;
+    }
+    overlay.querySelectorAll('.mobile-filter-option').forEach((option) => {
+      const optionValue = option.getAttribute('data-value') || '';
+      option.classList.toggle('active', optionValue === value);
+    });
+  }
+
+  function handleNavigate(url, options = {}) {
+    if (!supportsAsyncNav || !url) {
+      window.location.href = url;
+      return;
+    }
+
+    if (state.isFetching) {
+      return;
+    }
+
+    state.isFetching = true;
+    clearTimeout(state.searchTimer);
+    closeOverlay();
+    closeSidebar();
+    showLoading();
+
+    fetch(url, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.text();
+      })
+      .then((html) => {
+        if (!applyPageUpdate(html)) {
+          window.location.href = url;
+          return;
+        }
+
+        if (options.push !== false) {
+          window.history.pushState({ url }, '', url);
+        } else if (options.replace) {
+          window.history.replaceState({ url }, '', url);
+        }
+
+        if (options.scroll !== false && state.listContainer) {
+          const topOffset = Math.max(state.listContainer.offsetTop - 80, 0);
+          window.scrollTo({ top: topOffset, behavior: 'smooth' });
+        }
+      })
+      .catch((error) => {
+        console.error('[teams-list] navigation failed', error);
+        window.location.href = url;
+      })
+      .finally(() => {
+        state.isFetching = false;
+        hideLoading();
+      });
+  }
+
+  function applyPageUpdate(html) {
+    const parser = new DOMParser();
+    const nextDoc = parser.parseFromString(html, 'text/html');
+    const newList = nextDoc.querySelector('.teams-list-container');
+
+    if (!newList || !state.listContainer) {
+      return false;
+    }
+
+    state.listContainer.innerHTML = newList.innerHTML;
+    state.listContainer = document.querySelector('.teams-list-container');
+
+    const nextOrderInput = nextDoc.getElementById('order-input');
+    if (state.orderInput && nextOrderInput) {
+      state.orderInput.value = nextOrderInput.value || '';
+    }
+
+    const nextSortSelect = nextDoc.getElementById('sort');
+    if (state.sortSelect && nextSortSelect) {
+      state.sortSelect.value = nextSortSelect.value;
+      Array.from(state.sortSelect.options).forEach((option) => {
+        option.selected = option.value === nextSortSelect.value;
+      });
+      setOrderValue(nextSortSelect.value);
+    }
+
+    const nextGameSelect = nextDoc.getElementById('game');
+    if (state.gameSelect && nextGameSelect) {
+      state.gameSelect.value = nextGameSelect.value;
+      Array.from(state.gameSelect.options).forEach((option) => {
+        option.selected = option.value === nextGameSelect.value;
+      });
+    }
+
+    const nextQuery = nextDoc.getElementById('q');
+    const queryValue = nextQuery ? nextQuery.value : '';
+    if (state.desktopSearch) {
+      state.desktopSearch.value = queryValue || '';
+    }
+    if (state.mobileSearch) {
+      state.mobileSearch.value = queryValue || '';
+    }
+
+    updateSidebarLinks(nextDoc);
+    updateOverlayActiveState(state.overlays.game, state.gameSelect?.value || '');
+    updateOverlayActiveState(state.overlays.sort, state.sortSelect?.value || '');
+
+    const newTitle = nextDoc.querySelector('title');
+    if (newTitle) {
+      document.title = newTitle.textContent.trim();
+    }
+
+    return true;
+  }
+
+  function updateSidebarLinks(nextDoc) {
+    if (!state.sidebar) {
+      return;
+    }
+
+    const currentLinks = state.sidebar.querySelectorAll('.filter-option[data-game]');
+    if (!currentLinks.length) {
+      return;
+    }
+
+    const nextSidebar = nextDoc.getElementById('teams-sidebar');
+    if (!nextSidebar) {
+      return;
+    }
+
+    currentLinks.forEach((link) => {
+      const gameCode = link.getAttribute('data-game') || '';
+      const replacement = nextSidebar.querySelector(`.filter-option[data-game="${escapeAttr(gameCode)}"]`);
+      if (replacement) {
+        link.className = replacement.className;
+        link.setAttribute('href', replacement.getAttribute('href'));
+        link.setAttribute('data-async', replacement.getAttribute('data-async') || 'true');
+      }
+    });
+
+    const currentStats = state.sidebar.querySelector('.sidebar-stats');
+    const nextStats = nextSidebar.querySelector('.sidebar-stats');
+    if (currentStats && nextStats) {
+      currentStats.innerHTML = nextStats.innerHTML;
+    }
+  }
+
+  function showLoading() {
+    state.loader?.classList.add('active');
+    state.listContainer?.classList.add('is-loading');
+  }
+
+  function hideLoading() {
+    state.loader?.classList.remove('active');
+    state.listContainer?.classList.remove('is-loading');
+  }
+
+  if (READY_STATES.includes(document.readyState)) {
+    init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  }
+})();

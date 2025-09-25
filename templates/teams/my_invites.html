@@ -17,7 +17,7 @@
           <li class="border border-line rounded-xl p-3 flex items-center justify-between">
             <div>
               <div class="font-semibold">{% firstof inv.team.name inv.team.tag "Team" %}</div>
-              <div class="text-sm text-muted">Invited by {% firstof inv.invited_by.user.username inv.invited_by.display_name "Captain" %}</div>
+              <div class="text-sm text-muted">Invited by {% firstof inv.inviter.user.username inv.inviter.display_name "Captain" %}</div>
             </div>
             <div class="flex gap-2">
               {% if inv.token %}

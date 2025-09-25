@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Team Rankings - DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/teams-list-modern.css' %}">
+{% endblock %}
+
+{% block content %}
+<main id="main" class="teams-modern-page">
+  <header class="teams-modern-header">
+    <div class="header-top">
+      <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="{% url 'teams:hub' %}" class="breadcrumb-link">Teams Hub</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Rankings</span>
+      </nav>
+      <div class="theme-toggle">
+        <button id="theme-toggle-btn" type="button" aria-label="Toggle light and dark theme">
+          <span class="icon-sun" aria-hidden="true">&#9728;</span>
+          <span class="icon-moon" aria-hidden="true">&#9790;</span>
+        </button>
+      </div>
+    </div>
+    <div class="header-body">
+      <div class="header-copy">
+        <h1>Professional Team Rankings</h1>
+        <p class="subtitle">Scout elite rosters, filter by title and region, and spot squads recruiting right now.</p>
+      </div>
+    </div>
+    <dl class="teams-modern-stats">
+      <div class="stat-card">
+        <dt>Total Teams</dt>
+        <dd>{{ total_teams|intcomma }}</dd>
+        <span class="stat-foot">Active and public</span>
+      </div>
+      <div class="stat-card">
+        <dt>Matching Filters</dt>
+        <dd>{{ filtered_total|intcomma }}</dd>
+        <span class="stat-foot">In this view</span>
+      </div>
+      <div class="stat-card">
+        <dt>Recruiting Now</dt>
+        <dd>{{ filtered_recruiting|intcomma }}</dd>
+        <span class="stat-foot">Open to join requests</span>
+      </div>
+      <div class="stat-card">
+        <dt>Avg Roster Size</dt>
+        <dd>{{ avg_members|floatformat:1 }}</dd>
+        <span class="stat-foot">Across filtered teams</span>
+      </div>
+    </dl>
+  </header>
+
+  <section class="teams-modern-filters" aria-labelledby="teams-filter-heading">
+    <h2 id="teams-filter-heading" class="visually-hidden">Filter teams</h2>
+    <form method="get" class="teams-modern-filters-form" id="teams-filter-form">
+      <div class="filter-field filter-field--wide">
+        <label for="filter-q">Search</label>
+        <input type="search" id="filter-q" name="q" value="{{ filters.q }}" placeholder="Search team name or tag" class="teams-modern-input" autocomplete="off" data-auto-submit="debounced">
+      </div>
+      <div class="filter-field">
+        <label for="filter-game">Game</label>
+        <select id="filter-game" name="game" class="teams-modern-select" data-auto-submit="change">
+          <option value="">All games</option>
+          {% for code, label in game_options %}
+            <option value="{{ code }}" {% if code == filters.game %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="filter-region">Region</label>
+        <select id="filter-region" name="region" class="teams-modern-select" data-auto-submit="change">
+          <option value="">All regions</option>
+          {% for region in region_options %}
+            <option value="{{ region.value }}" {% if region.value == filters.region %}selected{% endif %}>{{ region.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="filter-sort">Sort</label>
+        <select id="filter-sort" name="sort" class="teams-modern-select" data-auto-submit="change">
+          {% for option in sort_options %}
+            <option value="{{ option.value }}" {% if option.value == filters.sort %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="filter-order">Order</label>
+        <select id="filter-order" name="order" class="teams-modern-select" data-auto-submit="change">
+          <option value="">Default</option>
+          {% for option in order_options %}
+            <option value="{{ option.value }}" {% if option.value == filters.order %}selected{% endif %}>{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="filter-min-members">Min members</label>
+        <input type="number" id="filter-min-members" name="min_members" min="0" step="1" value="{{ filters.min_members }}" class="teams-modern-input" data-auto-submit="change">
+      </div>
+      <div class="filter-field">
+        <label for="filter-max-members">Max members</label>
+        <input type="number" id="filter-max-members" name="max_members" min="0" step="1" value="{{ filters.max_members }}" class="teams-modern-input" data-auto-submit="change">
+      </div>
+      <div class="filter-field">
+        <label for="filter-founded-from">Founded from</label>
+        <input type="number" id="filter-founded-from" name="founded_year_from" min="1900" max="2099" step="1" value="{{ filters.founded_year_from }}" class="teams-modern-input" data-auto-submit="change">
+      </div>
+      <div class="filter-field">
+        <label for="filter-founded-to">Founded to</label>
+        <input type="number" id="filter-founded-to" name="founded_year_to" min="1900" max="2099" step="1" value="{{ filters.founded_year_to }}" class="teams-modern-input" data-auto-submit="change">
+      </div>
+      <div class="filter-toggles">
+        <label class="filter-checkbox">
+          <input type="checkbox" name="recruiting" value="1" {% if filters.recruiting %}checked{% endif %} data-auto-submit="toggle">
+          <span>Recruiting only</span>
+        </label>
+        <label class="filter-checkbox">
+          <input type="checkbox" name="verified" value="1" {% if filters.verified %}checked{% endif %} data-auto-submit="toggle">
+          <span>Verified teams</span>
+        </label>
+        <label class="filter-checkbox">
+          <input type="checkbox" name="featured" value="1" {% if filters.featured %}checked{% endif %} data-auto-submit="toggle">
+          <span>Featured</span>
+        </label>
+      </div>
+      <div class="filters-actions">
+        <button type="submit" class="teams-modern-btn">Apply filters</button>
+        <a href="{{ clear_filters_url }}" class="teams-modern-link">Clear all</a>
+      </div>
+    </form>
+    {% if active_filters %}
+      <div class="active-filter-chips" aria-live="polite">
+        {% for chip in active_filters %}
+          <a href="{{ chip.url }}" class="filter-chip">
+            <span class="chip-label">{{ chip.label }}</span>
+            <span class="chip-remove" aria-hidden="true">&times;</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <div class="filters-summary">
+      <span>{{ total_points|intcomma }} total ranking points in view</span>
+      <span>{{ filtered_verified|intcomma }} verified teams</span>
+    </div>
+  </section>
+
+  <section class="teams-modern-list" aria-live="polite">
+    {% for team in teams %}
+      <article class="team-card-modern" tabindex="0">
+        <header class="team-card-header">
+          <div class="team-card-identity">
+            <div class="team-card-rank">
+              <span class="rank-number">#{{ team.rank_position }}</span>
+              {% if team.recruiting %}
+                <span class="badge badge--recruiting">Recruiting</span>
+              {% endif %}
+              {% if team.is_verified %}
+                <span class="badge badge--verified">Verified</span>
+              {% endif %}
+            </div>
+            <div class="team-card-avatar">
+              {% if team.logo %}
+                <img src="{{ team.logo.url }}" alt="{{ team.name }} logo">
+              {% else %}
+                <img src="{% static 'siteui/img/default-team.svg' %}" alt="{{ team.name }} logo">
+              {% endif %}
+            </div>
+            <div class="team-card-title">
+              <h2 class="team-card-name">
+                {{ team.name }}
+                {% if team.tag %}<span class="team-card-tag">[{{ team.tag }}]</span>{% endif %}
+              </h2>
+              <p class="team-card-meta">
+                {{ team.get_game_display|default:"Multi-game" }}
+                {% if team.region %}
+                  &bull; {{ team.region|title }}
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          <div class="team-card-actions">
+            <a href="{% url 'teams:detail' team.slug %}" class="team-card-link">View roster</a>
+          </div>
+        </header>
+        <dl class="team-card-body">
+          <div class="card-metric">
+            <dt>Power rank</dt>
+            <dd>{{ team.power_rank|intcomma }}</dd>
+          </div>
+          <div class="card-metric">
+            <dt>Points</dt>
+            <dd>{{ team.points_total|intcomma }}</dd>
+          </div>
+          <div class="card-metric">
+            <dt>Members</dt>
+            <dd>{{ team.memberships_count }}</dd>
+          </div>
+          <div class="card-metric">
+            <dt>Last active</dt>
+            <dd>
+              {% if team.recent_activity_at %}
+                {{ team.recent_activity_at|timesince }} ago
+              {% else %}
+                N/A
+              {% endif %}
+            </dd>
+          </div>
+        </dl>
+      </article>
+    {% empty %}
+      <div class="no-teams">
+        <p>No teams match these filters yet.</p>
+        <a href="{% url 'teams:create' %}" class="teams-modern-btn">Create a team</a>
+      </div>
+    {% endfor %}
+  </section>
+
+  {% if page_obj.has_other_pages %}
+    <nav class="teams-modern-pagination" aria-label="Teams pagination">
+      <ul class="pagination-list">
+        {% if page_obj.has_previous %}
+          <li><a class="page-link" href="?{{ pagination_query }}page={{ page_obj.previous_page_number }}">Prev</a></li>
+        {% else %}
+          <li class="disabled"><span class="page-link disabled">Prev</span></li>
+        {% endif %}
+        {% for page_number in pagination_window %}
+          {% if page_number %}
+            {% if page_number == page_obj.number %}
+              <li class="active"><span class="page-link active">{{ page_number }}</span></li>
+            {% else %}
+              <li><a class="page-link" href="?{{ pagination_query }}page={{ page_number }}">{{ page_number }}</a></li>
+            {% endif %}
+          {% else %}
+            <li class="disabled"><span class="page-link disabled">...</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <li><a class="page-link" href="?{{ pagination_query }}page={{ page_obj.next_page_number }}">Next</a></li>
+        {% else %}
+          <li class="disabled"><span class="page-link disabled">Next</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/teams-list-modern.js' %}" defer></script>
+{% endblock %}

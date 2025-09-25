@@ -1,0 +1,28 @@
+{% load static %}
+<article class="team-card-modern" tabindex="0">
+  <div class="team-card-header">
+    {% if team.logo %}
+      <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-card-logo">
+    {% else %}
+      <img src="{% static 'siteui/img/default-team.svg' %}" alt="{{ team.name }} logo" class="team-card-logo">
+    {% endif %}
+    <div class="team-card-info">
+      <h2 class="team-card-name">{{ team.name }}</h2>
+      <span class="team-card-game">{{ team.get_game_display|default:"Multi-Game" }}</span>
+    </div>
+    <span class="team-card-rank">#{{ team.rank_position|default:"--" }}</span>
+  </div>
+  <div class="team-card-body">
+    <div class="team-card-points">
+      <span class="label">Points</span>
+      <span class="value">{{ team.total_points|default:"0" }}</span>
+    </div>
+    <div class="team-card-members">
+      <span class="label">Members</span>
+      <span class="value">{{ team.memberships_count|default:"0" }}</span>
+    </div>
+    <div class="team-card-actions">
+      <a href="{% url 'teams:detail' team.slug %}" class="team-card-link">View</a>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,316 @@
+{% extends "base_no_footer.html" %}
+{% load static %}
+
+{% block title %}Team Rankings — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/teams-list-two-column.css' %}?v=1.0">
+<link rel="preload" href="{% static 'siteui/js/teams-list-two-column.js' %}" as="script">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% endblock %}
+
+{% block content %}
+<div class="teams-page-wrapper">
+  <!-- Mobile Sidebar Toggle -->
+  <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" aria-label="Open filters">
+    <i class="fas fa-filter"></i>
+  </button>
+
+  <!-- Sidebar Overlay for Mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="teams-page-container">
+    <!-- LEFT SIDEBAR - Quick Actions, Filters, Stats -->
+    <aside class="left-sidebar" id="left-sidebar">
+      <!-- Mobile Close Button -->
+      <button class="sidebar-close" id="sidebar-close" aria-label="Close filters">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <!-- Quick Actions Section -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">
+          <i class="fas fa-bolt"></i>
+          Quick Actions
+        </h3>
+        <div class="quick-actions">
+          <a href="{% url 'teams:create' %}" class="action-button primary">
+            <i class="fas fa-plus"></i>
+            Create New Team
+          </a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'teams:my_invites' %}" class="action-button">
+              <i class="fas fa-envelope"></i>
+              My Invitations
+            </a>
+            <a href="#" class="action-button">
+              <i class="fas fa-users"></i>
+              My Teams
+            </a>
+          {% else %}
+            <a href="{% url 'account_login' %}" class="action-button">
+              <i class="fas fa-sign-in-alt"></i>
+              Login to Join Teams
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Filter by Game Section -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">
+          <i class="fas fa-gamepad"></i>
+          Filter by Game
+        </h3>
+        <div class="game-filters">
+          <a href="?{% if query %}q={{ query }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if order %}order={{ order }}{% endif %}" 
+             class="game-filter-item {% if not active_game %}active{% endif %}" 
+             data-game="">
+            <i class="fas fa-globe"></i>
+            <span>All Games</span>
+            <div class="game-count">{{ paginator.count|default:"0" }}</div>
+          </a>
+          
+          {% for game_code, game_name in games %}
+            {% if game_code != 'codm' %}
+              <a href="?game={{ game_code }}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if order %}&order={{ order }}{% endif %}" 
+                 class="game-filter-item {% if active_game == game_code %}active{% endif %}" 
+                 data-game="{{ game_code }}">
+                {% if game_code == 'valorant' %}
+                  <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="game-logo-small">
+                  <span>Valorant</span>
+                {% elif game_code == 'efootball' %}
+                  <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="game-logo-small">
+                  <span>eFootball</span>
+                {% elif game_code == 'pubg' %}
+                  <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="game-logo-small">
+                  <span>PUBG</span>
+                {% elif game_code == 'freefire' %}
+                  <i class="fas fa-fire"></i>
+                  <span>Free Fire</span>
+                {% elif game_code == 'mlbb' %}
+                  <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="game-logo-small">
+                  <span>Mobile Legends</span>
+                {% elif game_code == 'csgo' or game_code == 'cs2' %}
+                  <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike" class="game-logo-small">
+                  <span>Counter-Strike</span>
+                {% elif game_code == 'fc26' %}
+                  <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="game-logo-small">
+                  <span>EA Sports FC 26</span>
+                {% else %}
+                  <i class="fas fa-gamepad"></i>
+                  <span>{{ game_name }}</span>
+                {% endif %}
+                <div class="game-count">12</div> <!-- This would be dynamic based on team count per game -->
+              </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Team Stats Section -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">
+          <i class="fas fa-chart-bar"></i>
+          Team Stats
+        </h3>
+        <div class="team-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ paginator.count|default:"0" }}</div>
+            <div class="stat-label">Total Teams</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ active_teams|default:"0" }}</div>
+            <div class="stat-label">Active</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ recruiting_teams|default:"0" }}</div>
+            <div class="stat-label">Recruiting</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">5</div>
+            <div class="stat-label">Games</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Ranking System Info -->
+      <div class="sidebar-section">
+        <div class="ranking-system">
+          <h3>
+            <i class="fas fa-trophy"></i>
+            Ranking System
+          </h3>
+          <p>Teams are ranked based on tournament performance, member activity, and achievements.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT CONTENT - Team List with Top 10 + Load More -->
+    <main class="right-content">
+      <!-- Content Header -->
+      <header class="content-header">
+        <h1 class="content-title">Team Rankings</h1>
+        <p class="content-subtitle">
+          Showing {% if paginator.count %}{{ paginator.count }}{% else %}0{% endif %} professional esports teams
+          {% if active_game %}in {{ active_game|title }}{% endif %}
+        </p>
+      </header>
+
+      <!-- Search and Sort Bar -->
+      <div class="search-sort-bar">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input type="search" 
+                 class="search-input" 
+                 placeholder="Search teams by name or tag..." 
+                 value="{{ query }}"
+                 id="team-search"
+                 autocomplete="off">
+        </div>
+        <select class="sort-select" id="sort-select">
+          <option value="powerrank" {% if sort == "powerrank" %}selected{% endif %}>Best Ranking</option>
+          <option value="recent" {% if sort == "recent" %}selected{% endif %}>Most Recent</option>
+          <option value="az" {% if sort == "az" %}selected{% endif %}>Team Name (A-Z)</option>
+          <option value="members" {% if sort == "members" %}selected{% endif %}>Most Members</option>
+          <option value="points" {% if sort == "points" %}selected{% endif %}>Highest Points</option>
+          <option value="game" {% if sort == "game" %}selected{% endif %}>Game Type</option>
+        </select>
+      </div>
+
+      <!-- Team List Container with Infinite Scroll -->
+      <div class="team-list-container" id="team-list-container">
+        {% if object_list %}
+          <div class="team-list" id="team-list">
+            {% for team in object_list %}
+              <article class="team-card {% if forloop.counter <= 3 %}top-rank{% endif %}" 
+                       data-team-id="{{ team.id }}"
+                       onclick="window.location.href='{{ team.get_absolute_url }}';"
+                       style="cursor: pointer;">
+                
+                <!-- Team Header -->
+                <header class="team-header">
+                  <div class="team-rank {% if forloop.counter <= 3 %}top-3{% endif %}">
+                    {{ forloop.counter }}
+                  </div>
+                  
+                  {% if team.logo %}
+                    <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo" loading="lazy">
+                  {% else %}
+                    <div class="team-logo-placeholder">
+                      {{ team.name|first|upper }}
+                    </div>
+                  {% endif %}
+                  
+                  <div class="team-info">
+                    <h2 class="team-name">{{ team.name }}</h2>
+                    {% if team.tag %}
+                      <div class="team-tag">[{{ team.tag }}]</div>
+                    {% endif %}
+                    {% if team.game %}
+                      <div class="team-game-badge">
+                        {% if team.game == 'valorant' %}
+                          <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="team-game-logo">
+                          <span>Valorant</span>
+                        {% elif team.game == 'efootball' %}
+                          <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="team-game-logo">
+                          <span>eFootball</span>
+                        {% elif team.game == 'cs2' %}
+                          <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike 2" class="team-game-logo">
+                          <span>Counter-Strike 2</span>
+                        {% elif team.game == 'pubg' %}
+                          <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="team-game-logo">
+                          <span>PUBG</span>
+                        {% elif team.game == 'mlbb' %}
+                          <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="team-game-logo">
+                          <span>Mobile Legends</span>
+                        {% elif team.game == 'fc26' %}
+                          <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="team-game-logo">
+                          <span>EA Sports FC 26</span>
+                        {% else %}
+                          <i class="fas fa-gamepad"></i>
+                          <span>{{ team.game|title }}</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </header>
+
+                <!-- Team Stats Row -->
+                <div class="team-stats-row">
+                  <div class="team-stat">
+                    <div class="team-stat-value">{{ team.memberships.count }}</div>
+                    <div class="team-stat-label">Members</div>
+                  </div>
+                  <div class="team-stat">
+                    <div class="team-stat-value">{{ team.total_points|default:0 }}</div>
+                    <div class="team-stat-label">Points</div>
+                  </div>
+                  <div class="team-stat">
+                    <div class="team-stat-value">{{ team.tournament_wins|default:0 }}</div>
+                    <div class="team-stat-label">Wins</div>
+                  </div>
+                  <div class="team-stat">
+                    <div class="team-stat-value">{{ team.region|default:"Global"|truncatechars:8 }}</div>
+                    <div class="team-stat-label">Region</div>
+                  </div>
+                </div>
+
+                <!-- Team Actions -->
+                <div class="team-actions" onclick="event.stopPropagation();">
+                  <a href="{{ team.get_absolute_url }}" class="team-action-btn secondary">
+                    <i class="fas fa-eye"></i>
+                    View Details
+                  </a>
+                  {% if team.allow_join_requests %}
+                    <a href="{% url 'teams:join' team.slug %}" class="team-action-btn primary">
+                      <i class="fas fa-user-plus"></i>
+                      Join Team
+                    </a>
+                  {% endif %}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+
+          <!-- Load More Button Container -->
+          {% if paginator.num_pages > 1 and page_obj.has_next %}
+            <div class="load-more-container">
+              <button class="load-more-btn" id="load-more-btn" data-next-page="{{ page_obj.next_page_number }}">
+                <span class="load-more-text">Load More Teams</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
+            </div>
+          {% endif %}
+
+        {% else %}
+          <!-- Empty State -->
+          <div class="empty-state">
+            <div class="empty-state-icon">
+              <i class="fas fa-users"></i>
+            </div>
+            <h3>No Teams Found</h3>
+            <p>{% if query or active_game %}No teams match your current search criteria.{% else %}No teams are currently registered on the platform.{% endif %}</p>
+            <a href="{% url 'teams:create' %}" class="team-action-btn primary">
+              <i class="fas fa-plus"></i>
+              Create First Team
+            </a>
+          </div>
+        {% endif %}
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Skip Link for Accessibility -->
+<a href="#team-list" class="skip-link">Skip to team list</a>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/teams-list-two-column.js' %}?v=1.0" defer></script>
+{% endblock %}

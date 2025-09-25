@@ -1,307 +1,517 @@
-{% extends "base_no_footer.html" %}
+﻿{% extends "base_no_footer.html" %}
 {% load static %}
 
-{% block title %}Teams — DeltaCrown{% endblock %}
+{% block title %}Team Rankings — DeltaCrown{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'siteui/css/teams-list.css' %}?v=5.0">
-<link rel="preload" href="{% static 'siteui/js/teams-list.js' %}" as="script">
+<link rel="stylesheet" href="{% static 'siteui/css/teams-list-two-column.css' %}?v=1.0">
+<link rel="preload" href="{% static 'siteui/js/teams-list-two-column.js' %}" as="script">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 {% endblock %}
 
 {% block content %}
-<div class="professional-teams-page">
-  <!-- Professional Header Section -->
-  <div class="teams-header">
-    <div class="container">
-      <h1 class="teams-title">Team Rankings</h1>
-      <p class="teams-subtitle">Professional esports teams ranked by performance and achievements</p>
-    </div>
-  </div>
+<div class="teams-page-wrapper">
+  <!-- Mobile Sidebar Toggle -->
+  <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" aria-label="Open filters">
+    <i class="fas fa-filter"></i>
+  </button>
 
-  <!-- Mobile Second Navbar (visible only on mobile) -->
-  <div class="mobile-second-navbar" id="mobile-navbar">
-    <div class="mobile-nav-content">
-      <!-- Mobile Search -->
-      <div class="mobile-search-wrapper">
-        <input type="search" id="mobile-search" name="q" value="{{ query }}"
-               placeholder="Search teams..." class="mobile-search-input">
-        <button class="mobile-search-btn" type="button">
-          <i class="fas fa-search"></i>
-        </button>
-      </div>
-      
-      <!-- Mobile Filter Buttons -->
-      <div class="mobile-filter-buttons">
-        <button class="mobile-filter-btn" data-filter="game">
-          <i class="fas fa-gamepad"></i>
-          <span>Game</span>
-        </button>
-        <button class="mobile-filter-btn" data-filter="sort">
-          <i class="fas fa-sort"></i>
-          <span>Sort</span>
-        </button>
-        <button class="mobile-filter-btn" data-filter="actions">
-          <i class="fas fa-plus"></i>
-          <span>Quick</span>
-        </button>
-        <button class="mobile-filter-btn" id="toggle-sidebar">
-          <i class="fas fa-chart-bar"></i>
-          <span>Stats</span>
-        </button>
-      </div>
-    </div>
-  </div>
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark theme">
+    <i class="fas fa-sun theme-icon-light"></i>
+    <i class="fas fa-moon theme-icon-dark"></i>
+  </button>
 
-  <div class="container">
-    <!-- Desktop Search & Filter Control Bar -->
-    <div class="search-control-bar desktop-only">
-      <form method="get" id="teams-search-form" class="search-form">
-        <!-- Search Input -->
-        <div class="form-group">
-          <label for="q" class="form-label">Search Teams</label>
-          <input type="search" id="q" name="q" value="{{ query }}"
-            placeholder="Team name or tag..."
-            class="search-input">
-        </div>
+  <!-- Sidebar Overlay for Mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-        <!-- Game Filter -->
-        <div class="form-group">
-          <label for="game" class="form-label">Game</label>
-          <select id="game" name="game" class="filter-select">
-            <option value="">All Games</option>
-            {% for game in games %}
-              {% if game != 'codm' %}
-                <option value="{{ game }}" {% if active_game == game %}selected{% endif %}>
-                  {% if game == 'valorant' %}Valorant
-                  {% elif game == 'efootball' %}eFootball
-                  {% elif game == 'pubg' %}PUBG
-                  {% elif game == 'freefire' %}Free Fire
-                  {% elif game == 'mlbb' %}Mobile Legends: Bang Bang
-                  {% elif game == 'csgo' or game == 'cs2' %}Counter-Strike
-                  {% elif game == 'fc26' %}EA Sports FC 26
-                  {% else %}{{ game|title }}
-                  {% endif %}
-                </option>
-              {% endif %}
-            {% endfor %}
-          </select>
-        </div>
+  <div class="teams-page-container">
+    <!-- LEFT SIDEBAR - Quick Actions, Filters, Stats -->
+    <aside class="left-sidebar" id="left-sidebar">
+      <!-- Mobile Close Button -->
+      <button class="sidebar-close" id="sidebar-close" aria-label="Close filters">
+        <i class="fas fa-times"></i>
+      </button>
 
-        <!-- Sort Options -->
-        <div class="form-group">
-          <label for="sort" class="form-label">Sort By</label>
-          <select name="sort" id="sort" class="filter-select">
-            <option value="powerrank" {% if sort == "powerrank" %}selected{% endif %}>Ranking</option>
-            <option value="recent" {% if sort == "recent" %}selected{% endif %}>Recent</option>
-            <option value="az" {% if sort == "az" %}selected{% endif %}>Team Name</option>
-            <option value="game" {% if sort == "game" %}selected{% endif %}>Game</option>
-            <option value="members" {% if sort == "members" %}selected{% endif %}>Members</option>
-            <option value="points" {% if sort == "points" %}selected{% endif %}>Points</option>
-          </select>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button type="submit" class="action-btn primary">
-            <i class="fas fa-filter"></i>
-            Filter
-          </button>
-          <a href="{% url 'teams:create' %}" class="action-btn secondary">
+      <!-- Quick Actions Section -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">
+          <i class="fas fa-bolt"></i>
+          Quick Actions
+        </h3>
+        <div class="quick-actions">
+          <a href="{% url 'teams:create' %}" class="action-button primary">
             <i class="fas fa-plus"></i>
-            Create Team
+            Create New Team
           </a>
+          {% if user.is_authenticated %}
+            <a href="{% url 'teams:my_invites' %}" class="action-button">
+              <i class="fas fa-envelope"></i>
+              My Invitations
+            </a>
+            <a href="#" class="action-button">
+              <i class="fas fa-users"></i>
+              My Teams
+            </a>
+          {% else %}
+            <a href="/admin/login/" class="action-button">
+              <i class="fas fa-sign-in-alt"></i>
+              Login to Join Teams
+            </a>
+          {% endif %}
         </div>
-      </form>
-    </div>
+      </div>
 
-    <!-- Mobile Filter Overlays -->
-    <div class="mobile-filter-overlays">
-      <!-- Game Filter Overlay -->
-      <div class="mobile-overlay" id="game-overlay">
-        <div class="mobile-overlay-content">
-          <div class="mobile-overlay-header">
-            <h3>Select Game</h3>
-            <button class="mobile-overlay-close">&times;</button>
+      <!-- Filter by Game Section -->
+      <div class="sidebar-section">
+        <button class="sidebar-title filter-toggle" id="game-filter-toggle" aria-expanded="true">
+          <div class="filter-title-content">
+            <i class="fas fa-gamepad"></i>
+            <span>Filter by Game</span>
           </div>
-          <div class="mobile-overlay-body">
-            <div class="mobile-filter-option active" data-value="">All Games</div>
-            {% for game in games %}
-              {% if game != 'codm' %}
-                <div class="mobile-filter-option {% if active_game == game %}active{% endif %}" data-value="{{ game }}">
-                  <div class="mobile-game-filter-item">
-                    {% if game == 'valorant' %}
-                      <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="mobile-game-logo">
-                      <span>Valorant</span>
-                    {% elif game == 'efootball' %}
-                      <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="mobile-game-logo">
-                      <span>eFootball</span>
-                    {% elif game == 'pubg' %}
-                      <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="mobile-game-logo">
-                      <span>PUBG</span>
-                    {% elif game == 'freefire' %}
-                      <i class="fas fa-fire"></i>
-                      <span>Free Fire</span>
-                    {% elif game == 'mlbb' %}
-                      <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="mobile-game-logo">
-                      <span>Mobile Legends: Bang Bang</span>
-                    {% elif game == 'csgo' or game == 'cs2' %}
-                      <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike" class="mobile-game-logo">
-                      <span>Counter-Strike</span>
-                    {% elif game == 'fc26' %}
-                      <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="mobile-game-logo">
-                      <span>EA Sports FC 26</span>
-                    {% else %}
-                      <i class="fas fa-gamepad"></i>
-                      <span>{{ game|title }}</span>
-                    {% endif %}
+          <i class="fas fa-chevron-down filter-chevron"></i>
+        </button>
+        <div class="game-filters expanded" id="game-filters">
+          <div class="games-grid-filter">
+            <!-- All Games Filter -->
+            <a href="?{% if query %}q={{ query }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if order %}order={{ order }}{% endif %}" 
+               class="game-filter-card {% if not active_game %}active{% endif %}" 
+               data-game="">
+              <div class="game-filter-banner" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+              <div class="game-filter-overlay">
+                <div class="game-filter-logo" style="background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%); display: flex; align-items: center; justify-content: center;">
+                  <i class="fas fa-globe" style="font-size: 12px; color: white;"></i>
+                </div>
+                <div class="game-filter-info">
+                  <div class="game-filter-name">All Games</div>
+                  <div class="game-filter-count">
+                    <i class="fas fa-shield-alt"></i>
+                    {{ paginator.count|default:"0" }} teams
+                  </div>
+                </div>
+              </div>
+              <div class="game-filter-action">View All</div>
+            </a>
+            
+            <!-- Individual Game Filters -->
+            {% for game_info in games_list %}
+            <a href="?game={{ game_info.code }}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if order %}&order={{ order }}{% endif %}" 
+               class="game-filter-card {% if active_game == game_info.code %}active{% endif %}" 
+               data-game="{{ game_info.code }}">
+              {% if game_info.code == 'valorant' %}
+                <img src="{% static 'img/game_cards/Valorant.jpg' %}" alt="Valorant" class="game-filter-banner">
+                <div class="game-filter-overlay">
+                  <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant Logo" class="game-filter-logo">
+                  <div class="game-filter-info">
+                    <div class="game-filter-name">Valorant</div>
+                    <div class="game-filter-count">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ game_info.team_count|default:"0" }} teams
+                    </div>
+                  </div>
+                </div>
+              {% elif game_info.code == 'cs2' %}
+                <img src="{% static 'img/game_cards/CS2.jpg' %}" alt="Counter-Strike 2" class="game-filter-banner">
+                <div class="game-filter-overlay">
+                  <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="CS2 Logo" class="game-filter-logo">
+                  <div class="game-filter-info">
+                    <div class="game-filter-name">Counter-Strike 2</div>
+                    <div class="game-filter-count">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ game_info.team_count|default:"0" }} teams
+                    </div>
+                  </div>
+                </div>
+              {% elif game_info.code == 'efootball' %}
+                <img src="{% static 'img/game_cards/efootball.jpeg' %}" alt="eFootball" class="game-filter-banner">
+                <div class="game-filter-overlay">
+                  <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball Logo" class="game-filter-logo">
+                  <div class="game-filter-info">
+                    <div class="game-filter-name">eFootball</div>
+                    <div class="game-filter-count">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ game_info.team_count|default:"0" }} teams
+                    </div>
+                  </div>
+                </div>
+              {% elif game_info.code == 'fc26' %}
+                <img src="{% static 'img/game_cards/FC26.jpg' %}" alt="FC 26" class="game-filter-banner">
+                <div class="game-filter-overlay">
+                  <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="FC 26 Logo" class="game-filter-logo">
+                  <div class="game-filter-info">
+                    <div class="game-filter-name">FC 26</div>
+                    <div class="game-filter-count">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ game_info.team_count|default:"0" }} teams
+                    </div>
+                  </div>
+                </div>
+              {% elif game_info.code == 'mlbb' %}
+                <img src="{% static 'img/game_cards/MobileLegend.jpg' %}" alt="Mobile Legends" class="game-filter-banner">
+                <div class="game-filter-overlay">
+                  <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends Logo" class="game-filter-logo">
+                  <div class="game-filter-info">
+                    <div class="game-filter-name">Mobile Legends</div>
+                    <div class="game-filter-count">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ game_info.team_count|default:"0" }} teams
+                    </div>
+                  </div>
+                </div>
+              {% elif game_info.code == 'pubg' %}
+                <img src="{% static 'img/game_cards/PUBG.jpeg' %}" alt="PUBG" class="game-filter-banner">
+                <div class="game-filter-overlay">
+                  <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG Logo" class="game-filter-logo">
+                  <div class="game-filter-info">
+                    <div class="game-filter-name">PUBG</div>
+                    <div class="game-filter-count">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ game_info.team_count|default:"0" }} teams
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="game-filter-banner" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                <div class="game-filter-overlay">
+                  <div class="game-filter-logo" style="background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);"></div>
+                  <div class="game-filter-info">
+                    <div class="game-filter-name">{{ game_info.name }}</div>
+                    <div class="game-filter-count">
+                      <i class="fas fa-shield-alt"></i>
+                      {{ game_info.team_count|default:"0" }} teams
+                    </div>
                   </div>
                 </div>
               {% endif %}
+              <div class="game-filter-action">View Teams</div>
+            </a>
+            {% endfor %}
+        </div>
+      </div>
+
+      <!-- Team Stats Section -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">
+          <i class="fas fa-chart-bar"></i>
+          Team Stats
+        </h3>
+        <div class="team-stats">
+          <div class="stat-card">
+            <div class="stat-value">{{ total_teams|default:"0" }}</div>
+            <div class="stat-label">Total Teams</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ active_teams|default:"0" }}</div>
+            <div class="stat-label">Active</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ recruiting_teams|default:"0" }}</div>
+            <div class="stat-label">Recruiting</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">{{ games_list|length|default:"0" }}</div>
+            <div class="stat-label">Games</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Ranking System Info -->
+      <div class="sidebar-section">
+        <div class="ranking-system">
+          <h3 class="ranking-title">
+            <i class="fas fa-trophy"></i>
+            Ranking Algorithm
+          </h3>
+          <div class="ranking-explanation">
+            <p class="ranking-description">Rankings are calculated using multiple performance metrics:</p>
+            
+            <div class="ranking-formula">
+              <div class="formula-title">
+                <i class="fas fa-calculator"></i>
+                <span>Power Score Formula</span>
+              </div>
+              <div class="formula-breakdown">
+                <div class="formula-item">
+                  <span class="formula-component">Base Score:</span>
+                  <span class="formula-value">1000 pts</span>
+                </div>
+                <div class="formula-item">
+                  <span class="formula-component">Members (×50):</span>
+                  <span class="formula-value">Up to +400</span>
+                </div>
+                <div class="formula-item">
+                  <span class="formula-component">Tournament Wins:</span>
+                  <span class="formula-value">+500 each</span>
+                </div>
+                <div class="formula-item">
+                  <span class="formula-component">Recent Activity:</span>
+                  <span class="formula-value">+200</span>
+                </div>
+                <div class="formula-item">
+                  <span class="formula-component">Verified Status:</span>
+                  <span class="formula-value">+300</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="ranking-factors">
+              <div class="ranking-factor">
+                <i class="fas fa-medal"></i>
+                <span>Tournament Performance</span>
+                <small>Major factor</small>
+              </div>
+              <div class="ranking-factor">
+                <i class="fas fa-users"></i>
+                <span>Team Size & Activity</span>
+                <small>Growth indicator</small>
+              </div>
+              <div class="ranking-factor">
+                <i class="fas fa-certificate"></i>
+                <span>Official Recognition</span>
+                <small>Trust signal</small>
+              </div>
+            </div>
+            
+            <div class="ranking-update">
+              <i class="fas fa-sync-alt"></i>
+              <small>Rankings update in real-time based on team performance</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT CONTENT - Team List with Top 10 + Load More -->
+    <main class="right-content" id="teams-page-container">
+      <!-- Enhanced Hero Section -->
+      <header class="esports-hero-section">
+        <div class="hero-background">
+          <div class="hero-particles"></div>
+          <div class="hero-gradient"></div>
+        </div>
+        
+        <div class="hero-content">
+          <div class="hero-text">
+            <h1 class="hero-title">
+              <span class="hero-title-main">Elite Esports</span>
+              <span class="hero-title-accent">Team Rankings</span>
+            </h1>
+            <p class="hero-subtitle">
+              Discover and join the most competitive gaming teams across 
+              <span class="hero-highlight">{{ games_list|length }}</span> different esports titles
+            </p>
+            <div class="hero-stats">
+              <div class="hero-stat">
+                <span class="hero-stat-number">{{ total_teams|default:"0" }}</span>
+                <span class="hero-stat-label">Active Teams</span>
+              </div>
+              <div class="hero-stat">
+                <span class="hero-stat-number">{{ recruiting_teams|default:"0" }}</span>
+                <span class="hero-stat-label">Recruiting</span>
+              </div>
+              <div class="hero-stat">
+                <span class="hero-stat-number">{{ games_list|length|default:"0" }}</span>
+                <span class="hero-stat-label">Games</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="hero-cta">
+            <a href="{% url 'teams:create' %}" class="hero-btn primary">
+              <i class="fas fa-rocket"></i>
+              Create Team
+            </a>
+            {% if user.is_authenticated %}
+              <a href="{% url 'teams:my_invites' %}" class="hero-btn secondary">
+                <i class="fas fa-envelope"></i>
+                My Invitations
+              </a>
+              <button type="button" class="hero-btn secondary" id="show-my-teams-btn">
+                <i class="fas fa-users"></i>
+                My Teams
+              </button>
+            {% else %}
+              <a href="/admin/login/" class="hero-btn secondary">
+                <i class="fas fa-sign-in-alt"></i>
+                Join Platform
+              </a>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="hero-visual">
+          <!-- Animated projectiles for esports vibe -->
+          <div class="projectile"></div>
+          <div class="projectile"></div>
+          <div class="projectile"></div>
+          
+          <div class="floating-games">
+            {% for game_info in games_list|slice:":6" %}
+              <div class="floating-game-icon" style="animation-delay: {{ forloop.counter0|add:1 }}s;" data-game="{{ game_info.code }}">
+                {% if game_info.code == 'valorant' %}
+                  <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant">
+                {% elif game_info.code == 'efootball' %}
+                  <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball">
+                {% elif game_info.code == 'cs2' or game_info.code == 'csgo' %}
+                  <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike">
+                {% elif game_info.code == 'pubg' %}
+                  <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG">
+                {% elif game_info.code == 'mlbb' %}
+                  <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends">
+                {% elif game_info.code == 'fc26' %}
+                  <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26">
+                {% else %}
+                  <i class="fas fa-gamepad"></i>
+                {% endif %}
+              </div>
             {% endfor %}
           </div>
         </div>
-      </div>
+      </header>
 
-      <!-- Sort Filter Overlay -->
-      <div class="mobile-overlay" id="sort-overlay">
-        <div class="mobile-overlay-content">
-          <div class="mobile-overlay-header">
-            <h3>Sort Teams By</h3>
-            <button class="mobile-overlay-close">&times;</button>
-          </div>
-          <div class="mobile-overlay-body">
-            <div class="mobile-filter-option {% if sort == 'powerrank' %}active{% endif %}" data-value="powerrank">Ranking</div>
-            <div class="mobile-filter-option {% if sort == 'recent' %}active{% endif %}" data-value="recent">Recent</div>
-            <div class="mobile-filter-option {% if sort == 'az' %}active{% endif %}" data-value="az">Team Name</div>
-            <div class="mobile-filter-option {% if sort == 'game' %}active{% endif %}" data-value="game">Game</div>
-            <div class="mobile-filter-option {% if sort == 'members' %}active{% endif %}" data-value="members">Members</div>
-            <div class="mobile-filter-option {% if sort == 'points' %}active{% endif %}" data-value="points">Points</div>
+      <!-- My Teams Section (Initially Hidden) -->
+      {% if user.is_authenticated %}
+      <div class="my-teams-section" id="my-teams-section" style="display: none;">
+        <div class="my-teams-header">
+          <h2 class="my-teams-title">
+            <i class="fas fa-user-shield"></i>
+            My Teams
+          </h2>
+          <button type="button" class="close-my-teams" id="close-my-teams">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="my-teams-content" id="my-teams-content">
+          <!-- Content will be loaded via AJAX -->
+          <div class="loading-teams">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span>Loading your teams...</span>
           </div>
         </div>
       </div>
+      {% endif %}
 
-      <!-- Actions Overlay -->
-      <div class="mobile-overlay" id="actions-overlay">
-        <div class="mobile-overlay-content">
-          <div class="mobile-overlay-header">
-            <h3>Quick Actions</h3>
-            <button class="mobile-overlay-close">&times;</button>
-          </div>
-          <div class="mobile-overlay-body">
-            <!-- Primary Actions -->
-            <div class="mobile-action-section">
-              <div class="mobile-action-section-title">Team Management</div>
-              <a href="{% url 'teams:create' %}" class="mobile-action-item primary">
-                <i class="fas fa-plus-circle"></i>
-                <div class="mobile-action-content">
-                  <span class="mobile-action-label">Create New Team</span>
-                  <span class="mobile-action-desc">Start building your esports team</span>
-                </div>
-              </a>
-              {% if user.is_authenticated %}
-                <a href="#" class="mobile-action-item">
-                  <i class="fas fa-users"></i>
-                  <div class="mobile-action-content">
-                    <span class="mobile-action-label">My Teams</span>
-                    <span class="mobile-action-desc">View and manage your teams</span>
-                  </div>
-                </a>
+      <!-- Content Navigation -->
+      <div class="content-navigation">
+        <div class="nav-breadcrumb">
+          <span class="nav-current">Team Rankings</span>
+          <span class="nav-info">
+            Showing {% if paginator.count %}{{ paginator.count }}{% else %}0{% endif %} teams
+            {% if active_game %}in {{ active_game|title }}{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <!-- Game Icon Filter Bar -->
+      <div class="game-icon-filter-bar">
+        <div class="game-filter-label">
+          <i class="fas fa-gamepad"></i>
+          <span>Filter by Game:</span>
+        </div>
+        <div class="game-icon-filters">
+          <a href="?{% if query %}q={{ query }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if order %}order={{ order }}{% endif %}" 
+             class="game-icon-filter {% if not active_game %}active{% endif %}" 
+             data-game=""
+             title="All Games">
+            <div class="game-icon-circle all-games">
+              <i class="fas fa-globe"></i>
+            </div>
+            <span class="game-icon-label">All</span>
+          </a>
+          
+          {% for game_info in games_list %}
+          <a href="?game={{ game_info.code }}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if order %}&order={{ order }}{% endif %}" 
+             class="game-icon-filter {% if active_game == game_info.code %}active{% endif %}" 
+             data-game="{{ game_info.code }}"
+             title="{{ game_info.name }} ({{ game_info.team_count }} teams)">
+            <div class="game-icon-circle">
+              {% if game_info.code == 'valorant' %}
+                <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant">
+              {% elif game_info.code == 'cs2' %}
+                <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike 2">
+              {% elif game_info.code == 'efootball' %}
+                <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball">
+              {% elif game_info.code == 'fc26' %}
+                <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="FC 26">
+              {% elif game_info.code == 'mlbb' %}
+                <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends">
+              {% elif game_info.code == 'pubg' %}
+                <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG">
+              {% else %}
+                <i class="fas fa-gamepad"></i>
               {% endif %}
             </div>
-            
-            <!-- Secondary Actions -->
-            <div class="mobile-action-section">
-              <div class="mobile-action-section-title">Invitations</div>
-              <a href="{% url 'teams:invitations' %}" class="mobile-action-item">
-                <i class="fas fa-paper-plane"></i>
-                <div class="mobile-action-content">
-                  <span class="mobile-action-label">Send Invitations</span>
-                  <span class="mobile-action-desc">Invite players to your team</span>
-                </div>
-              </a>
-              <a href="{% url 'teams:my_invites' %}" class="mobile-action-item">
-                <i class="fas fa-inbox"></i>
-                <div class="mobile-action-content">
-                  <span class="mobile-action-label">My Invites</span>
-                  <span class="mobile-action-desc">View received invitations</span>
-                </div>
-              </a>
-            </div>
+            <span class="game-icon-label">{{ game_info.name }}</span>
+            <span class="game-team-count">{{ game_info.team_count }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Search and Sort Bar -->
+      <div class="search-sort-bar">
+        <div class="search-input-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input type="search" 
+                 class="search-input" 
+                 placeholder="Search teams by name or tag..." 
+                 value="{{ query }}"
+                 id="team-search"
+                 autocomplete="off">
+          <button type="button" class="search-clear-btn" id="search-clear" style="display: none;" aria-label="Clear search">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="sort-controls">
+          <div class="sort-group">
+            <label for="sort-select" class="sort-label">Sort by:</label>
+            <select class="sort-select" id="sort-select">
+              <option value="rank_high" {% if sort == "rank_high" %}selected{% endif %}>Ranking (High to Low)</option>
+              <option value="rank_low" {% if sort == "rank_low" %}selected{% endif %}>Ranking (Low to High)</option>
+              <option value="points_high" {% if sort == "points_high" %}selected{% endif %}>Points (High to Low)</option>
+              <option value="points_low" {% if sort == "points_low" %}selected{% endif %}>Points (Low to High)</option>
+              <option value="members_high" {% if sort == "members_high" %}selected{% endif %}>Members (High to Low)</option>
+              <option value="members_low" {% if sort == "members_low" %}selected{% endif %}>Members (Low to High)</option>
+              <option value="name_az" {% if sort == "name_az" %}selected{% endif %}>Name (A to Z)</option>
+              <option value="name_za" {% if sort == "name_za" %}selected{% endif %}>Name (Z to A)</option>
+              <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest First</option>
+              <option value="oldest" {% if sort == "oldest" %}selected{% endif %}>Oldest First</option>
+            </select>
+          </div>
+          
+          <button type="button" class="sort-direction-toggle" id="sort-direction-toggle" aria-label="Toggle sort direction" title="Toggle sort direction">
+            <i class="fas fa-sort-amount-down" id="sort-direction-icon"></i>
+          </button>
+          
+          <div class="view-options">
+            <button type="button" class="view-toggle" data-view="grid" aria-label="Grid view" title="Grid view">
+              <i class="fas fa-th"></i>
+            </button>
+            <button type="button" class="view-toggle active" data-view="list" aria-label="List view" title="List view">
+              <i class="fas fa-list"></i>
+            </button>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="main-content">
-      <!-- Main Teams Rankings -->
-      <div class="teams-list-container">
+      <!-- Team List Container with Infinite Scroll -->
+      <div class="team-list-container" id="team-list-container">
         {% if object_list %}
-          <div class="teams-rankings">
-            <!-- Rankings Header -->
-            <div class="ranking-header">
-              <div class="rank-col">
-                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=powerrank{% if sort == 'powerrank' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'powerrank' %}active{% endif %}">
-                  Rank
-                  {% if sort == 'powerrank' %}
-                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
-                  {% else %}
-                    <i class="fas fa-sort"></i>
-                  {% endif %}
-                </a>
-              </div>
-              <div class="team-col">
-                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=az{% if sort == 'az' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'az' %}active{% endif %}">
-                  Team
-                  {% if sort == 'az' %}
-                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
-                  {% else %}
-                    <i class="fas fa-sort"></i>
-                  {% endif %}
-                </a>
-              </div>
-              <div class="game-col desktop-only">
-                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=game{% if sort == 'game' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'game' %}active{% endif %}">
-                  Game
-                  {% if sort == 'game' %}
-                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
-                  {% else %}
-                    <i class="fas fa-sort"></i>
-                  {% endif %}
-                </a>
-              </div>
-              <div class="members-col desktop-only">
-                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=members{% if sort == 'members' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'members' %}active{% endif %}">
-                  Members
-                  {% if sort == 'members' %}
-                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
-                  {% else %}
-                    <i class="fas fa-sort"></i>
-                  {% endif %}
-                </a>
-              </div>
-              <div class="points-col desktop-only">
-                <a href="?{% if request.GET.game %}game={{ request.GET.game }}&{% endif %}{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}sort=points{% if sort == 'points' and order != '-' %}&order=-{% endif %}" class="sort-link {% if sort == 'points' %}active{% endif %}">
-                  Points
-                  {% if sort == 'points' %}
-                    <i class="fas fa-chevron-{% if order == '-' %}down{% else %}up{% endif %}"></i>
-                  {% else %}
-                    <i class="fas fa-sort"></i>
-                  {% endif %}
-                </a>
-              </div>
-              <div class="actions-col">Actions</div>
-            </div>
-            
-            <!-- Team Rankings List -->
+          <div class="team-list" id="team-list">
             {% for team in object_list %}
-              <div class="team-card" data-team-id="{{ team.id }}">
-                <!-- Desktop Row Layout -->
-                <div class="desktop-team-row desktop-only" onclick="window.location.href='{{ team.get_absolute_url }}'">
-                  <div class="rank-number {% if forloop.counter <= 3 %}top-3{% endif %}">
-                    {{ forloop.counter }}
+              <article class="team-card {% if forloop.counter <= 3 %}top-rank{% endif %}" 
+                       data-team-id="{{ team.id }}"
+                       onclick="window.location.href='{{ team.get_absolute_url }}';"
+                       style="cursor: pointer;">
+                
+                <!-- Team Header - Compact Layout -->
+                <header class="team-header">
+                  <div class="team-rank {% if team.rank_position <= 3 %}top-3{% endif %}">
+                    #{{ team.rank_position|default:forloop.counter }}
                   </div>
                   
-                  <div class="team-info-desktop">
+                  <div class="team-logo-container">
                     {% if team.logo %}
                       <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo" loading="lazy">
                     {% else %}
@@ -309,316 +519,321 @@
                         {{ team.name|first|upper }}
                       </div>
                     {% endif %}
-                    <div class="team-details">
-                      <div class="team-name">{{ team.name }}</div>
-                      {% if team.tag %}
-                        <div class="team-tag">[{{ team.tag }}]</div>
-                      {% endif %}
-                    </div>
                   </div>
                   
-                  <div class="team-game">
+                  <div class="team-main-info">
+                    <div class="team-name-section">
+                      <h2 class="team-name">{{ team.name }}</h2>
+                      {% if team.tag %}
+                        <span class="team-tag">[{{ team.tag }}]</span>
+                      {% endif %}
+                    </div>
+                    
                     {% if team.game %}
-                      <div class="game-info">
+                      <div class="team-game-badge">
                         {% if team.game == 'valorant' %}
-                          <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="game-logo">
+                          <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="team-game-logo">
                           <span>Valorant</span>
                         {% elif team.game == 'efootball' %}
-                          <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="game-logo">
+                          <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="team-game-logo">
                           <span>eFootball</span>
                         {% elif team.game == 'cs2' %}
-                          <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike 2" class="game-logo">
-                          <span>CS2</span>
+                          <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike 2" class="team-game-logo">
+                          <span>Counter-Strike 2</span>
                         {% elif team.game == 'pubg' %}
-                          <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="game-logo">
+                          <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="team-game-logo">
                           <span>PUBG</span>
                         {% elif team.game == 'mlbb' %}
-                          <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="game-logo">
-                          <span>MLBB</span>
+                          <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="team-game-logo">
+                          <span>Mobile Legends</span>
                         {% elif team.game == 'fc26' %}
-                          <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA SPORTS FC 26" class="game-logo">
-                          <span>FC 26</span>
+                          <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="team-game-logo">
+                          <span>EA Sports FC 26</span>
                         {% else %}
+                          <i class="fas fa-gamepad"></i>
                           <span>{{ team.game|title }}</span>
                         {% endif %}
                       </div>
-                    {% else %}
-                      <span class="no-game">--</span>
                     {% endif %}
                   </div>
-                  
-                  <div class="team-members">{{ team.memberships.count }}</div>
-                  
-                  <div class="team-points">
-                    <div class="points-display">
-                      <span class="points-value">{{ team.total_points|default:0 }}</span>
-                      <span class="points-label">pts</span>
-                    </div>
+                </header>
+
+                <!-- Team Stats - Compact -->
+                <div class="team-stats">
+                  <div class="team-stat-item">
+                    <span class="stat-value">{{ team.memberships.count|default:0 }}</span>
+                    <span class="stat-label">Members</span>
                   </div>
-                  
-                  <div class="team-actions-desktop" onclick="event.stopPropagation()">
-                    <a href="{{ team.get_absolute_url }}" class="btn-view">View</a>
-                    {% if team.allow_join_requests %}
-                      <a href="{% url 'teams:join' team.id %}" class="btn-apply">Apply</a>
-                    {% endif %}
+                  <div class="team-stat-item">
+                    <span class="stat-value">{{ team.total_points|default:0 }}</span>
+                    <span class="stat-label">Points</span>
+                  </div>
+                  <div class="team-stat-item">
+                    <span class="stat-value">{{ team.tournament_wins|default:0 }}</span>
+                    <span class="stat-label">Wins</span>
+                  </div>
+                  <div class="team-stat-item">
+                    <span class="stat-value">{{ team.region|default:"Global"|truncatechars:6 }}</span>
+                    <span class="stat-label">Region</span>
                   </div>
                 </div>
 
-                <!-- Mobile Card Layout -->
-                <div class="mobile-team-card mobile-only" onclick="window.location.href='{{ team.get_absolute_url }}'">
-                  <div class="mobile-card-header">
-                    <div class="rank-badge {% if forloop.counter <= 3 %}top-3{% endif %}">
-                      #{{ forloop.counter }}
-                    </div>
-                    
-                    <div class="team-badges">
-                      {% if team.allow_join_requests %}
-                        <span class="team-badge recruiting" title="Recruiting">
-                          <i class="fas fa-user-plus"></i>
-                        </span>
-                      {% endif %}
-                    </div>
+                <!-- Power Rank Indicator -->
+                {% if team.power_rank %}
+                <div class="power-rank-indicator">
+                  <div class="power-rank-score">
+                    <i class="fas fa-bolt"></i>
+                    <span class="power-score">{{ team.power_rank|floatformat:0 }}</span>
                   </div>
+                  <div class="power-rank-label">Power Score</div>
+                </div>
+                {% endif %}
 
-                  <div class="mobile-card-content">
-                    <div class="team-avatar">
-                      {% if team.logo %}
-                        <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo-mobile" loading="lazy">
-                      {% else %}
-                        <div class="team-logo-placeholder-mobile">
-                          {{ team.name|first|upper }}
-                        </div>
-                      {% endif %}
-                    </div>
-
-                    <div class="team-info-mobile">
-                      <div class="team-name-mobile">{{ team.name }}</div>
-                      {% if team.tag %}
-                        <div class="team-tag-mobile">[{{ team.tag }}]</div>
-                      {% endif %}
-                      
-                      <div class="team-stats-mobile">
-                        <div class="stat-item">
-                          <i class="fas fa-users"></i>
-                          <span>{{ team.memberships.count }} members</span>
-                        </div>
-                        <div class="stat-item">
-                          <i class="fas fa-map-marker-alt"></i>
-                          <span>{{ team.region|default:"Global" }}</span>
-                        </div>
-                        {% if team.achievements_count > 0 %}
-                          <div class="stat-item">
-                            <i class="fas fa-trophy"></i>
-                            <span>{{ team.achievements_count }} achievement{{ team.achievements_count|pluralize }}</span>
-                          </div>
-                        {% endif %}
-                        {% if team.tournament_wins > 0 %}
-                          <div class="stat-item tournament-wins">
-                            <i class="fas fa-crown"></i>
-                            <span>{{ team.tournament_wins }} tournament win{{ team.tournament_wins|pluralize }}</span>
-                          </div>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="mobile-card-actions">
-                    <a href="{{ team.get_absolute_url }}" class="mobile-btn mobile-btn-view">
-                      <i class="fas fa-eye"></i>
-                      <span>View Team</span>
+                <!-- Team Actions -->
+                <div class="team-actions" onclick="event.stopPropagation();">
+                  <a href="{{ team.get_absolute_url }}" class="team-action-btn secondary">
+                    <i class="fas fa-eye"></i>
+                    View Details
+                  </a>
+                  {% if team.allow_join_requests %}
+                    <a href="{% url 'teams:join' team.slug %}" class="team-action-btn primary">
+                      <i class="fas fa-user-plus"></i>
+                      Join Team
                     </a>
-                    {% if team.allow_join_requests %}
-                      <a href="{% url 'teams:join' team.id %}" class="mobile-btn mobile-btn-apply">
-                        <i class="fas fa-paper-plane"></i>
-                        <span>Apply</span>
-                      </a>
-                    {% endif %}
-                  </div>
+                  {% endif %}
                 </div>
-              </div>
+              </article>
             {% endfor %}
           </div>
 
-          <!-- Pagination -->
-          {% if paginator.num_pages > 1 %}
-            <div class="pagination-container">
-              <nav class="pagination">
-                {% if page_obj.has_previous %}
-                  <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if active_game %}game={{ active_game }}&{% endif %}sort={{ sort }}&page={{ page_obj.previous_page_number }}">
-                    <i class="fas fa-chevron-left"></i>
-                    <span class="desktop-only">Previous</span>
-                  </a>
-                {% endif %}
-                <span class="page-stat">{{ page_obj.number }} / {{ paginator.num_pages }}</span>
-                {% if page_obj.has_next %}
-                  <a class="page-link" href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if active_game %}game={{ active_game }}&{% endif %}sort={{ sort }}&page={{ page_obj.next_page_number }}">
-                    <span class="desktop-only">Next</span>
-                    <i class="fas fa-chevron-right"></i>
-                  </a>
-                {% endif %}
-              </nav>
+          <!-- Load More Button Container -->
+          {% if paginator.num_pages > 1 and page_obj.has_next %}
+            <div class="load-more-container">
+              <button class="load-more-btn" id="load-more-btn" data-next-page="{{ page_obj.next_page_number }}">
+                <span class="load-more-text">Load More Teams</span>
+                <i class="fas fa-chevron-down"></i>
+              </button>
             </div>
           {% endif %}
+
         {% else %}
+          <!-- Empty State -->
           <div class="empty-state">
             <div class="empty-state-icon">
               <i class="fas fa-users"></i>
             </div>
             <h3>No Teams Found</h3>
-            <p>No teams match your current filters. Try adjusting your search criteria.</p>
-            <a href="{% url 'teams:create' %}" class="action-btn primary">
+            <p>{% if query or active_game %}No teams match your current search criteria.{% else %}No teams are currently registered on the platform.{% endif %}</p>
+            <a href="{% url 'teams:create' %}" class="team-action-btn primary">
               <i class="fas fa-plus"></i>
-              Create Team
+              Create First Team
             </a>
           </div>
         {% endif %}
-      </div>
 
-      <!-- Professional Sidebar -->
-      <div class="teams-sidebar" id="teams-sidebar">
-        <!-- Mobile Sidebar Overlay -->
-        <div class="sidebar-overlay mobile-only" id="sidebar-overlay"></div>
-        
-        <div class="sidebar-content">
-          <!-- Mobile Sidebar Header -->
-          <div class="sidebar-header mobile-only">
-            <h3>Team Stats & Filters</h3>
-            <button class="sidebar-close" id="sidebar-close">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-
-          <!-- Quick Actions Card -->
-          <div class="sidebar-card desktop-only">
-            <h4 class="sidebar-title">
-              <i class="fas fa-plus"></i>
-              Quick Actions
-            </h4>
-            <div class="sidebar-links">
-              <a href="{% url 'teams:create' %}" class="filter-option">
-                <i class="fas fa-plus"></i>
-                Create Team
-              </a>
-              <a href="{% url 'teams:invitations' %}" class="filter-option">
-                <i class="fas fa-envelope"></i>
-                Invitations
-              </a>
-              <a href="{% url 'teams:my_invites' %}" class="filter-option">
-                <i class="fas fa-inbox"></i>
-                My Invites
-              </a>
-              {% if user.is_authenticated %}
-                <a href="#" class="filter-option">
-                  <i class="fas fa-users"></i>
-                  My Teams
-                </a>
-              {% endif %}
-            </div>
-          </div>
-
-          <!-- Team Stats & Filters -->
-          <div class="sidebar-card">
-            <h4 class="sidebar-title">
-              <i class="fas fa-chart-bar"></i>
-              Team Stats & Filters
-            </h4>
-            <div class="sidebar-stats">
-              <div class="stat-item">
-                <span class="stat-label">Total Teams</span>
-                <span class="stat-value">{{ paginator.count|default:"0" }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Active</span>
-                <span class="stat-value success">{{ active_teams|default:"0" }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Recruiting</span>
-                <span class="stat-value primary">{{ recruiting_teams|default:"0" }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Games Filter Card -->
-          <div class="sidebar-card desktop-only">
-            <h4 class="sidebar-title">
-              <i class="fas fa-gamepad"></i>
-              Filter by Game
-            </h4>
-            <div class="sidebar-links">
-              <a href="?" class="filter-option {% if not active_game %}active{% endif %}">
-                <i class="fas fa-globe"></i>
-                All Games
-              </a>
-              {% for game in games %}
-                {% if game != 'codm' %}
-                  <a href="?game={{ game }}" class="filter-option {% if active_game == game %}active{% endif %}">
-                    <div class="game-filter-item">
-                      {% if game == 'valorant' %}
-                        <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="game-logo-filter">
-                        <span>Valorant</span>
-                      {% elif game == 'efootball' %}
-                        <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="game-logo-filter">
-                        <span>eFootball</span>
-                      {% elif game == 'pubg' %}
-                        <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="game-logo-filter">
-                        <span>PUBG</span>
-                      {% elif game == 'freefire' %}
-                        <i class="fas fa-fire"></i>
-                        <span>Free Fire</span>
-                      {% elif game == 'mlbb' %}
-                        <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="game-logo-filter">
-                        <span>Mobile Legends: Bang Bang</span>
-                      {% elif game == 'csgo' or game == 'cs2' %}
-                        <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike" class="game-logo-filter">
-                        <span>Counter-Strike</span>
-                      {% elif game == 'fc26' %}
-                        <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="game-logo-filter">
-                        <span>EA Sports FC 26</span>
-                      {% else %}
-                        <i class="fas fa-gamepad"></i>
-                        <span>{{ game|title }}</span>
-                      {% endif %}
-                    </div>
-                  </a>
-                {% endif %}
-              {% endfor %}
-            </div>
-          </div>
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loading-overlay">
+          <div class="loading-spinner"></div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </div>
 
-<!-- Mobile Backdrop for Overlays -->
-<div class="mobile-backdrop" id="mobile-backdrop"></div>
-
+<!-- Skip Link for Accessibility -->
+<a href="#team-list" class="skip-link">Skip to team list</a>
 {% endblock %}
 
 {% block extra_js %}
-    <script src="{% static 'siteui/js/teams-list.js' %}?v=5.0" defer></script>
+<script src="{% static 'siteui/js/teams-list-two-column.js' %}?v=1.0" defer></script>
 <script>
-// Initialize teams list functionality when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎮 Teams List v2.0 - DOM loaded, initializing...');
+    // Enhanced projectile interaction system
+    initProjectileSystem();
     
-    // Initialize immediately after DOM is ready
-    if (typeof TeamsListManager !== 'undefined') {
-        console.log('✅ TeamsListManager found, initializing...');
-        window.teamsManager = new TeamsListManager();
-    } else {
-        console.log('⏳ Waiting for TeamsListManager to load...');
-        // Wait for deferred script
-        setTimeout(function() {
-            if (typeof TeamsListManager !== 'undefined') {
-                console.log('✅ TeamsListManager loaded, initializing...');
-                window.teamsManager = new TeamsListManager();
+    // My Teams functionality
+    const showMyTeamsBtn = document.getElementById('show-my-teams-btn');
+    const myTeamsSection = document.getElementById('my-teams-section');
+    
+    if (showMyTeamsBtn && myTeamsSection) {
+        showMyTeamsBtn.addEventListener('click', function() {
+            const isHidden = myTeamsSection.style.display === 'none' || 
+                            myTeamsSection.style.display === '';
+            
+            if (isHidden) {
+                myTeamsSection.style.display = 'block';
+                showMyTeamsBtn.innerHTML = '<i class="fas fa-users"></i> Hide My Teams';
+                
+                // Load user teams via AJAX if not already loaded
+                if (!myTeamsSection.dataset.loaded) {
+                    loadMyTeams();
+                    myTeamsSection.dataset.loaded = 'true';
+                }
             } else {
-                console.error('❌ TeamsListManager failed to load!');
-                console.error('Check if teams-list.js is accessible at:', document.querySelector('script[src*="teams-list.js"]')?.src);
+                myTeamsSection.style.display = 'none';
+                showMyTeamsBtn.innerHTML = '<i class="fas fa-users"></i> My Teams';
             }
-        }, 200);
+        });
+    }
+    
+    function loadMyTeams() {
+        const loadingIndicator = myTeamsSection.querySelector('.my-teams-loading');
+        const contentContainer = myTeamsSection.querySelector('.my-teams-content');
+        
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'block';
+        }
+        
+        // Fetch user teams
+        fetch('/teams/my-teams-data/', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+            
+            if (data.teams && data.teams.length > 0) {
+                displayMyTeams(data.teams, contentContainer);
+            } else {
+                displayNoTeams(contentContainer);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading teams:', error);
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+            displayError(contentContainer);
+        });
+    }
+    
+    function displayMyTeams(teams, container) {
+        if (!container) return;
+        
+        let html = '<div class="my-teams-grid">';
+        teams.forEach(team => {
+            html += `
+                <div class="my-team-card">
+                    <div class="my-team-header">
+                        ${team.logo ? `<img src="${team.logo}" alt="${team.name}" class="my-team-logo">` : 
+                                    `<div class="my-team-logo-placeholder"><i class="fas fa-shield-alt"></i></div>`}
+                        <div class="my-team-info">
+                            <h4 class="my-team-name">${team.name}</h4>
+                            <p class="my-team-game">${team.game_display}</p>
+                        </div>
+                    </div>
+                    <div class="my-team-stats">
+                        <span class="my-team-role ${team.role}">${team.role}</span>
+                        <span class="my-team-members">${team.members_count} members</span>
+                    </div>
+                    <div class="my-team-actions">
+                        <a href="${team.url}" class="btn-team-view">View Team</a>
+                        ${team.can_manage ? `<a href="${team.manage_url}" class="btn-team-manage">Manage</a>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+    }
+    
+    function displayNoTeams(container) {
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="my-teams-empty">
+                <div class="empty-state-icon">
+                    <i class="fas fa-users-slash"></i>
+                </div>
+                <h4>No Teams Yet</h4>
+                <p>You haven't joined any teams yet. Start by creating your own or joining an existing team!</p>
+                <div class="empty-actions">
+                    <a href="/teams/create/" class="hero-btn primary">
+                        <i class="fas fa-plus"></i>
+                        Create Team
+                    </a>
+                    <a href="#team-list-container" class="hero-btn secondary">
+                        <i class="fas fa-search"></i>
+                        Browse Teams
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+    
+    function displayError(container) {
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="my-teams-error">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4>Error Loading Teams</h4>
+                <p>There was a problem loading your teams. Please try again.</p>
+                <button onclick="loadMyTeams()" class="hero-btn secondary">
+                    <i class="fas fa-refresh"></i>
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+    
+    // Enhanced projectile interaction system
+    function initProjectileSystem() {
+        const floatingIcons = document.querySelectorAll('.floating-game-icon');
+        const projectiles = document.querySelectorAll('.projectile');
+        
+        // Add collision detection for projectiles and floating icons
+        if (projectiles.length > 0 && floatingIcons.length > 0) {
+            setInterval(() => {
+                projectiles.forEach(projectile => {
+                    const projectileRect = projectile.getBoundingClientRect();
+                    
+                    floatingIcons.forEach(icon => {
+                        const iconRect = icon.getBoundingClientRect();
+                        
+                        // Simple collision detection
+                        if (projectileRect.left < iconRect.right && 
+                            projectileRect.right > iconRect.left && 
+                            projectileRect.top < iconRect.bottom && 
+                            projectileRect.bottom > iconRect.top) {
+                            
+                            // Add hit effect
+                            icon.classList.add('hit');
+                            setTimeout(() => {
+                                icon.classList.remove('hit');
+                            }, 600);
+                        }
+                    });
+                });
+            }, 100);
+        }
+        
+        // Add click-to-filter functionality to floating game icons
+        floatingIcons.forEach(icon => {
+            icon.addEventListener('click', function() {
+                const gameCode = this.dataset.game;
+                if (gameCode) {
+                    // Build URL with current query params
+                    const url = new URL(window.location);
+                    url.searchParams.set('game', gameCode);
+                    window.location.href = url.toString();
+                }
+            });
+            
+            // Add cursor pointer
+            icon.style.cursor = 'pointer';
+        });
     }
 });
 </script>
 {% endblock %}
+

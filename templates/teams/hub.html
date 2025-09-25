@@ -1,0 +1,1235 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Teams Hub - DeltaCrown Esports{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* Clean Modern Team Hub Design */
+* {
+  box-sizing: border-box;
+}
+
+.team-hub {
+  background: #0a0a0f;
+  min-height: 100vh;
+  color: #ffffff;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.hub-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Compact Header Section */
+.header-section {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 40px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+}
+
+.header-info {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.page-title i {
+  color: #00d4ff;
+  font-size: 32px;
+}
+
+.page-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  max-width: 500px;
+}
+
+.header-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.header-stat {
+  text-align: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-width: 100px;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #00d4ff;
+  display: block;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* Quick Actions Bar */
+.quick-actions {
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 20px 0;
+}
+
+.actions-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actions-left {
+  display: flex;
+  gap: 16px;
+}
+
+.actions-right {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Main Content Grid */
+.hub-content {
+  padding: 40px 0;
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 32px;
+}
+
+/* Content Areas */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Clean Section Cards */
+.section-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.section-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.section-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title i {
+  color: #00d4ff;
+  font-size: 16px;
+}
+
+.section-action {
+  color: #00d4ff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(0, 212, 255, 0.1);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section-action:hover {
+  background: rgba(0, 212, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.section-content {
+  padding: 24px;
+}
+
+/* My Teams Section */
+.my-teams-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.team-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.team-card:hover::before {
+  left: 100%;
+}
+
+.team-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #4ecdc4;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(78, 205, 196, 0.2);
+}
+
+.team-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.team-card:hover .team-logo {
+  transform: rotate(5deg) scale(1.1);
+  border-color: #4ecdc4;
+}
+
+.team-info h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: #ffffff;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.team-meta {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-badge {
+  background: rgba(78, 205, 196, 0.2);
+  color: #4ecdc4;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.create-team-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border-radius: 16px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.create-team-card:hover {
+  border-color: #4ecdc4;
+  color: #4ecdc4;
+  background: rgba(78, 205, 196, 0.05);
+  transform: scale(1.02);
+}
+
+.create-team-card i {
+  font-size: 24px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Enhanced Invitations */
+.invitation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.invitation-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.invitation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #ffd700, #ffc107);
+  animation: pulse 2s infinite;
+}
+
+.invitation-card:hover {
+  transform: translateX(5px);
+  border-color: #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%);
+}
+
+.invitation-info {
+  flex: 1;
+}
+
+.invitation-team {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #ffffff;
+  font-size: 16px;
+}
+
+.invitation-meta {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.invitation-meta i {
+  color: #ffd700;
+}
+
+.invitation-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-accept {
+  background: #238636;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-decline {
+  background: #da3633;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Enhanced Top Teams Leaderboard */
+.team-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.team-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.team-rank-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24, #6c5ce7);
+  background-size: 100% 500%;
+  animation: rankGradient 3s ease infinite;
+}
+
+@keyframes rankGradient {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 0% 100%; }
+}
+
+.team-rank-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #4ecdc4;
+  transform: translateX(8px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.rank-number {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ffd700;
+  width: 40px;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  position: relative;
+}
+
+.rank-number.top-3 {
+  background: linear-gradient(45deg, #ffd700, #ff6b6b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.team-rank-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.team-rank-item:hover .team-rank-logo {
+  transform: rotate(5deg) scale(1.1);
+  border-color: #4ecdc4;
+}
+
+.team-rank-info {
+  flex: 1;
+}
+
+.team-rank-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.team-rank-meta {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-rank-badge {
+  background: rgba(78, 205, 196, 0.2);
+  color: #4ecdc4;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.team-rank-points {
+  font-size: 18px;
+  font-weight: 700;
+  background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trophy-icon {
+  color: #ffd700;
+  font-size: 16px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-5px); }
+  60% { transform: translateY(-3px); }
+}
+
+/* Modern Game Cards */
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.game-card {
+  position: relative;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+  text-decoration: none;
+  color: white;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-card:hover {
+  transform: translateY(-2px);
+  border-color: #00d4ff;
+}
+
+.game-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%);
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+}
+
+.game-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(255,255,255,0.3);
+  flex-shrink: 0;
+}
+
+.game-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.game-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-team-count {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.game-action {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 212, 255, 0.2);
+  color: #00d4ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.game-card:hover .game-action {
+  opacity: 1;
+}
+
+/* Game Statistics Grid */
+.game-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.game-stat-card {
+  text-align: center;
+  padding: 24px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.game-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24, #6c5ce7);
+  background-size: 200% 100%;
+  animation: colorSlide 3s ease infinite;
+}
+
+@keyframes colorSlide {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.game-stat-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #4ecdc4;
+  transform: translateY(-5px);
+}
+
+.game-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #ffffff;
+}
+
+.game-count-number {
+  font-size: 28px;
+  font-weight: 900;
+  color: #4ecdc4;
+  text-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+}
+
+/* Modern Clean Buttons */
+.btn-primary {
+  background: #00d4ff;
+  color: #0a0a0f;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #00b8e6;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #00d4ff;
+  color: #00d4ff;
+}
+
+.btn-small {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.btn-accept {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-accept:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+}
+
+.btn-decline {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-decline:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #656d76;
+}
+
+.dark .empty-state {
+  color: #8b949e;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .hub-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hub-container {
+    padding: 0 16px;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .header-stats {
+    justify-content: center;
+    gap: 16px;
+  }
+  
+  .actions-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .actions-left {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .games-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .section-content {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 28px;
+  }
+  
+  .header-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .actions-left {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .games-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .game-card {
+    height: 100px;
+  }
+  
+  .section-header {
+    padding: 16px 20px;
+  }
+  
+  .section-content {
+    padding: 16px;
+  }
+}
+
+/* Loading Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.section-card {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.section-card:nth-child(1) { animation-delay: 0.1s; }
+.section-card:nth-child(2) { animation-delay: 0.2s; }
+.section-card:nth-child(3) { animation-delay: 0.3s; }
+.section-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4ecdc4, #45b7d1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #45b7d1, #4ecdc4);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="team-hub">
+  <!-- Compact Header -->
+  <section class="header-section">
+    <div class="hub-container">
+      <div class="header-content">
+        <div class="header-info">
+          <h1 class="page-title">
+            <i class="fas fa-shield-alt"></i>
+            Teams Hub
+          </h1>
+          <p class="page-subtitle">
+            Join competitive teams, participate in tournaments, and climb the rankings in Bangladesh's premier esports platform.
+          </p>
+        </div>
+        <div class="header-stats">
+          <div class="header-stat">
+            <span class="stat-number">{{ total_teams }}</span>
+            <span class="stat-label">Teams</span>
+          </div>
+          <div class="header-stat">
+            <span class="stat-number">{{ total_players }}</span>
+            <span class="stat-label">Players</span>
+          </div>
+          <div class="header-stat">
+            <span class="stat-number">{{ active_tournaments }}</span>
+            <span class="stat-label">Tournaments</span>
+          </div>
+          <div class="header-stat">
+            <span class="stat-number">{{ game_stats|length }}</span>
+            <span class="stat-label">Games</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Actions Bar -->
+  <section class="quick-actions">
+    <div class="hub-container">
+      <div class="actions-content">
+        <div class="actions-left">
+          <a href="{% url 'teams:create' %}" class="btn-primary">
+            <i class="fas fa-plus"></i>
+            Create Team
+          </a>
+          <a href="{% url 'teams:list' %}" class="btn-secondary">
+            <i class="fas fa-trophy"></i>
+            View Rankings
+          </a>
+          {% if user.is_authenticated %}
+          <a href="{% url 'teams:my_invites' %}" class="btn-secondary">
+            <i class="fas fa-envelope"></i>
+            My Invitations
+            {% if pending_invites %}
+              <span style="background: #ff4757; color: white; border-radius: 10px; padding: 2px 6px; font-size: 11px; margin-left: 4px;">{{ pending_invites|length }}</span>
+            {% endif %}
+          </a>
+          {% endif %}
+        </div>
+        <div class="actions-right">
+          <div style="color: rgba(255,255,255,0.6); font-size: 14px;">
+            <i class="fas fa-users"></i>
+            {{ total_teams }} teams active
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <div class="hub-container">
+    <div class="hub-content">
+      <div class="hub-grid">
+        
+        <!-- Left Column: Main Content -->
+        <div class="main-content">
+          
+          <!-- My Teams Section -->
+          {% if user.is_authenticated %}
+          <div class="section-card">
+            <div class="section-header">
+              <h2 class="section-title">
+                <i class="fas fa-shield-alt"></i>
+                My Teams
+              </h2>
+              <a href="{% url 'teams:create' %}" class="section-action">
+                <i class="fas fa-plus"></i>
+                Create New Team
+              </a>
+            </div>
+            <div class="section-content">
+              {% if my_teams %}
+                <div class="my-teams-grid">
+                  {% for team in my_teams %}
+                  <a href="{% url 'teams:detail' slug=team.slug %}" class="team-card">
+                    {% if team.logo %}
+                      <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="team-logo">
+                    {% else %}
+                      <div class="team-logo"></div>
+                    {% endif %}
+                    <div class="team-info">
+                      <h3>{{ team.name }}</h3>
+                      <div class="team-meta">
+                        <span class="team-badge">{{ team.get_game_display|default:"Multi-Game" }}</span>
+                        <i class="fas fa-users"></i> {{ team.memberships_count|default:0 }} members
+                      </div>
+                    </div>
+                  </a>
+                  {% endfor %}
+                  
+                  {% if my_teams|length < 8 %}
+                  <a href="{% url 'teams:create' %}" class="create-team-card">
+                    <i class="fas fa-plus"></i>
+                    <span>Create New Team</span>
+                  </a>
+                  {% endif %}
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <i class="fas fa-users" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                  <h3>No Teams Yet</h3>
+                  <p>Create your first team or accept an invitation to get started!</p>
+                  <div class="action-buttons">
+                    <a href="{% url 'teams:create' %}" class="btn-primary">
+                      <i class="fas fa-plus"></i>
+                      Create Team
+                    </a>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Top Teams Preview -->
+          <div class="section-card">
+            <div class="section-header">
+              <h2 class="section-title">
+                <i class="fas fa-medal"></i>
+                Top Teams Leaderboard
+              </h2>
+              <a href="{% url 'teams:list' %}" class="section-action">
+                <i class="fas fa-trophy"></i> View Full Rankings
+              </a>
+            </div>
+            <div class="section-content">
+              {% if top_teams %}
+                <div class="team-rank-list">
+                  {% for team in top_teams %}
+                  <a href="{% url 'teams:detail' slug=team.slug %}" class="team-rank-item">
+                    <div class="rank-number {% if forloop.counter <= 3 %}top-3{% endif %}">
+                      {% if forloop.counter == 1 %}👑{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}{{ forloop.counter }}{% endif %}
+                    </div>
+                    {% if team.logo %}
+                      <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="team-rank-logo">
+                    {% else %}
+                      <div class="team-rank-logo"></div>
+                    {% endif %}
+                    <div class="team-rank-info">
+                      <h3 class="team-rank-name">{{ team.name }}</h3>
+                      <div class="team-rank-meta">
+                        <span class="team-rank-badge">{{ team.get_game_display|default:"Multi-Game" }}</span>
+                        <i class="fas fa-users"></i> {{ team.memberships_count|default:0 }} members
+                      </div>
+                    </div>
+                    <div class="team-rank-points">
+                      <i class="fas fa-trophy trophy-icon"></i>
+                      {{ team.total_points|default:0 }} pts
+                    </div>
+                  </a>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <p>No teams ranked yet. Be the first to create a competitive team!</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="sidebar-content">
+          
+          <!-- Invitations -->
+          {% if user.is_authenticated and pending_invites %}
+          <div class="section-card">
+            <div class="section-header">
+              <h3 class="section-title">
+                <i class="fas fa-envelope"></i>
+                Team Invitations
+              </h3>
+              <a href="{% url 'teams:my_invites' %}" class="section-action">
+                <i class="fas fa-eye"></i>
+                View All
+              </a>
+            </div>
+            <div class="section-content">
+              <div class="invitation-list">
+                {% for invite in pending_invites %}
+                <div class="invitation-card">
+                  <div class="invitation-info">
+                    <div class="invitation-team">{{ invite.team.name }}</div>
+                    <div class="invitation-meta">
+                      <i class="fas fa-user-tie"></i>
+                      From {{ invite.inviter.user.username }} • 
+                      <i class="fas fa-clock"></i>
+                      {{ invite.created_at|timesince }} ago
+                    </div>
+                  </div>
+                  <div class="invitation-actions">
+                    <a href="{% url 'teams:accept_invite' token=invite.token %}" class="btn-accept">Accept</a>
+                    <a href="{% url 'teams:decline_invite' token=invite.token %}" class="btn-decline">Decline</a>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Games Section -->
+          <div class="section-card">
+            <div class="section-header">
+              <h3 class="section-title">
+                <i class="fas fa-gamepad"></i>
+                Games
+              </h3>
+              <a href="{% url 'teams:list' %}" class="section-action">
+                <i class="fas fa-external-link-alt"></i>
+                Browse All
+              </a>
+            </div>
+            <div class="section-content">
+              {% if game_stats %}
+                <div class="games-grid">
+                  {% for game in game_stats %}
+                  <a href="{% url 'teams:list' %}?game={{ game.code }}" class="game-card">
+                    {% if game.code == 'valorant' %}
+                      <img src="{% static 'img/game_cards/Valorant.jpg' %}" alt="Valorant" class="game-banner">
+                    {% elif game.code == 'cs2' %}
+                      <img src="{% static 'img/game_cards/CS2.jpg' %}" alt="Counter-Strike 2" class="game-banner">
+                    {% elif game.code == 'efootball' %}
+                      <img src="{% static 'img/game_cards/efootball.jpeg' %}" alt="eFootball" class="game-banner">
+                    {% elif game.code == 'fc26' %}
+                      <img src="{% static 'img/game_cards/FC26.jpg' %}" alt="FC 26" class="game-banner">
+                    {% elif game.code == 'mlbb' %}
+                      <img src="{% static 'img/game_cards/MobileLegend.jpg' %}" alt="Mobile Legends" class="game-banner">
+                    {% elif game.code == 'pubg' %}
+                      <img src="{% static 'img/game_cards/PUBG.jpeg' %}" alt="PUBG" class="game-banner">
+                    {% else %}
+                      <div class="game-banner" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
+                    {% endif %}
+                    
+                    <div class="game-overlay">
+                      {% if game.code == 'valorant' %}
+                        <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant Logo" class="game-logo">
+                      {% elif game.code == 'cs2' %}
+                        <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="CS2 Logo" class="game-logo">
+                      {% elif game.code == 'efootball' %}
+                        <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball Logo" class="game-logo">
+                      {% elif game.code == 'fc26' %}
+                        <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="FC 26 Logo" class="game-logo">
+                      {% elif game.code == 'mlbb' %}
+                        <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends Logo" class="game-logo">
+                      {% elif game.code == 'pubg' %}
+                        <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG Logo" class="game-logo">
+                      {% else %}
+                        <div class="game-logo" style="background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);"></div>
+                      {% endif %}
+                      
+                      <div class="game-info">
+                        <div class="game-name">{{ game.name }}</div>
+                        <div class="game-team-count">
+                          <i class="fas fa-shield-alt"></i>
+                          {{ game.team_count }} teams
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="game-action">View Teams</div>
+                  </a>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <i class="fas fa-gamepad" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                  <p>No games available yet.</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="section-card">
+            <div class="section-header">
+              <h3 class="section-title">
+                <i class="fas fa-bolt"></i>
+                Quick Actions
+              </h3>
+            </div>
+            <div class="section-content">
+              <div class="action-buttons" style="flex-direction: column;">
+                <a href="{% url 'teams:create' %}" class="btn-primary">
+                  <i class="fas fa-plus-circle"></i>
+                  Create Team
+                </a>
+                <a href="{% url 'teams:list' %}" class="btn-secondary">
+                  <i class="fas fa-chart-line"></i>
+                  View Rankings
+                </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'teams:my_invites' %}" class="btn-secondary">
+                  <i class="fas fa-envelope-open"></i>
+                  My Invitations
+                </a>
+                {% else %}
+                <a href="{% url 'account_login' %}" class="btn-secondary">
+                  <i class="fas fa-sign-in-alt"></i>
+                  Login to Join
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -34,6 +34,10 @@ _export_all_from(public)
 _export_all_from(manage)
 _export_all_from(social)
 
+# Import ajax module for AJAX endpoints
+from . import ajax as ajax  # noqa: F401
+_export_all_from(ajax)
+
 # ---------------------------------------------------------------------------
 # Compatibility: ensure `team_index` exists at the package level
 # ---------------------------------------------------------------------------

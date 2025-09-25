@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">DeltaCrown Premium Animated Logo</title>
+  <desc id="desc">A premium golden crown rising from the delta with neon accents and animated shine.</desc>
+
+  <defs>
+    <!-- Brand palette -->
+    <linearGradient id="gradCrown" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#6C00FF"/>
+      <stop offset="100%" stop-color="#00E5FF"/>
+    </linearGradient>
+
+    <!-- Metallic highlight overlay -->
+    <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(255,255,255,0)" />
+      <stop offset="50%" stop-color="rgba(255,255,255,0.9)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+    </linearGradient>
+
+    <!-- Shine mask sweeping across -->
+    <mask id="shineMask">
+      <rect x="-100" y="0" width="456" height="256" fill="black"/>
+      <rect id="shineBar" x="-140" y="0" width="80" height="256" fill="white" transform="skewX(-20)">
+        <animate attributeName="x" values="-140;340;-140" dur="4.5s" repeatCount="indefinite"/>
+      </rect>
+    </mask>
+
+    <!-- Soft neon glow filter (works everywhere) -->
+    <filter id="glowViolet" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glowGold" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <style>
+      .crown-fill { fill: url(#gradCrown); }
+      .crown-stroke { fill: none; stroke: #111; stroke-opacity: .35; stroke-width: 2; }
+      .gem { fill: #FFD700; }
+      .base { fill: url(#gradCrown); }
+    </style>
+  </defs>
+
+  <!-- GROUP: Crown -->
+  <g filter="url(#glowViolet)">
+    <!-- Crown body (more symmetric + fuller cheeks) -->
+    <g transform="translate(0,0)">
+      <path class="crown-fill" d="M32 198 L68 94 L110 138 L128 96 L146 138 L188 94 L224 198 Z">
+        <!-- Gentle float -->
+        <animateTransform attributeName="transform" type="translate"
+          values="0,6;0,0;0,6" dur="4s" repeatCount="indefinite"/>
+      </path>
+      <!-- Inner definition stroke -->
+      <path class="crown-stroke" d="M32 198 L68 94 L110 138 L128 96 L146 138 L188 94 L224 198 Z"/>
+      <!-- Specular sweep over crown -->
+      <g mask="url(#shineMask)">
+        <path d="M32 198 L68 94 L110 138 L128 96 L146 138 L188 94 L224 198 Z" fill="url(#spec)"/>
+      </g>
+    </g>
+
+    <!-- Gems with pulse (offset timings) -->
+    <g filter="url(#glowGold)">
+      <circle cx="68"  cy="78" r="12" class="gem">
+        <animate attributeName="r" values="12;16;12" dur="2.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="128" cy="52" r="16" class="gem">
+        <animate attributeName="r" values="16;22;16" dur="2.0s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="188" cy="78" r="12" class="gem">
+        <animate attributeName="r" values="12;16;12" dur="2.2s" begin="0.5s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+
+  <!-- GROUP: Base (slight parallax vs crown) -->
+  <g>
+    <rect x="48" y="200" width="160" height="20" rx="5" class="base">
+      <animate attributeName="width" values="160;176;160" dur="3.8s" repeatCount="indefinite"/>
+    </rect>
+    <!-- Shine line over base -->
+    <rect x="48" y="200" width="160" height="20" rx="5" fill="url(#spec)" mask="url(#shineMask)"/>
+  </g>
+</svg>
