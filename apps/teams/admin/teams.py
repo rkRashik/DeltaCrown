@@ -7,9 +7,7 @@ from django.db.models import QuerySet
 from django import forms
 
 from ..models import Team, TeamMembership, TeamInvite
-from .exports import export_teams_csv
 from .inlines import TeamMembershipInline, TeamInviteInline
-from .widgets import TeamPointsCalculatorWidget, ReadOnlyPointsWidget
 
 # Optional imports: presets
 _HAS_PRESETS = False
@@ -50,8 +48,8 @@ class TeamAdminForm(forms.ModelForm):
         model = Team
         fields = '__all__'
         widgets = {
-            'total_points': ReadOnlyPointsWidget(),
-            'adjust_points': TeamPointsCalculatorWidget(attrs={
+            'total_points': forms.NumberInput(attrs={'readonly': True}),
+            'adjust_points': forms.NumberInput(attrs={
                 'placeholder': 'Enter points to add or subtract'
             }),
         }
@@ -68,7 +66,7 @@ class TeamAdmin(admin.ModelAdmin):
     list_filter = ("game", "is_verified", "is_featured", "is_active")
     search_fields = ("name", "tag", "region")
     inlines = [TeamMembershipInline, TeamInviteInline]
-    actions = ["export_as_csv", "action_make_preset_from_team", "recalculate_points"]
+    actions = ["action_make_preset_from_team", "recalculate_points"]
     
     fieldsets = (
         ("Basic Information", {
@@ -143,8 +141,7 @@ class TeamAdmin(admin.ModelAdmin):
     total_points_display.short_description = "Points"
     total_points_display.admin_order_field = "total_points"
 
-    def export_as_csv(self, request, queryset: QuerySet[Team]):
-        return export_teams_csv(self, request, queryset)
+
     
     @admin.action(description="Recalculate team points")
     def recalculate_points(self, request, queryset: QuerySet[Team]):

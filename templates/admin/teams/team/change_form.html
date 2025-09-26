@@ -1,0 +1,337 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .ranking-controls {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .ranking-controls h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+        
+        .quick-adjust-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .quick-adjust-btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-adjust-btn.positive {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .quick-adjust-btn.positive:hover {
+            background: #c3e6cb;
+        }
+        
+        .quick-adjust-btn.negative {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .quick-adjust-btn.negative:hover {
+            background: #f5c6cb;
+        }
+        
+        .custom-adjust {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .custom-adjust input {
+            width: 100px;
+            padding: 5px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+        }
+        
+        .custom-adjust button {
+            padding: 8px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .custom-adjust button:hover {
+            background: #0056b3;
+        }
+        
+        .points-preview {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block field_sets %}
+    {{ block.super }}
+    
+    {% if original and original.pk %}
+        <fieldset class="module aligned">
+            <h2>🏆 Team Ranking Management</h2>
+            <div class="ranking-controls">
+                <h3>📊 Current Points: <span id="current-points">{{ original.total_points|default:0 }}</span></h3>
+                
+                <!-- Quick Adjustment Buttons -->
+                <div class="quick-adjust-section">
+                    <h4>Quick Adjustments</h4>
+                    <div class="quick-adjust-buttons">
+                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(10, 'Quick +10 points')">+10</button>
+                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(25, 'Quick +25 points')">+25</button>
+                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(50, 'Tournament participation bonus')">+50</button>
+                        <button type="button" class="quick-adjust-btn positive" onclick="adjustPoints(100, 'Achievement bonus')">+100</button>
+                        <button type="button" class="quick-adjust-btn negative" onclick="adjustPoints(-10, 'Quick -10 points')">-10</button>
+                        <button type="button" class="quick-adjust-btn negative" onclick="adjustPoints(-25, 'Quick -25 points')">-25</button>
+                        <button type="button" class="quick-adjust-btn negative" onclick="adjustPoints(-50, 'Penalty deduction')">-50</button>
+                    </div>
+                </div>
+                
+                <!-- Custom Adjustment -->
+                <div class="custom-adjust-section">
+                    <h4>Custom Adjustment</h4>
+                    <div class="custom-adjust">
+                        <input type="number" id="custom-points" placeholder="±Points" min="-9999" max="9999">
+                        <input type="text" id="custom-reason" placeholder="Reason for adjustment" style="flex: 1;">
+                        <button type="button" onclick="adjustCustomPoints()">Apply</button>
+                    </div>
+                </div>
+                
+                <!-- Points Preview -->
+                <div id="points-preview" class="points-preview" style="display: none;">
+                    <strong>Preview:</strong> <span id="preview-text"></span>
+                </div>
+                
+                <!-- Messages -->
+                <div id="adjustment-messages"></div>
+                
+                <!-- Export and Actions -->
+                <div style="margin-top: 20px; text-align: center; border-top: 1px solid #dee2e6; padding-top: 15px;">
+                    <a href="{% url 'admin:teams_teamrankingbreakdown_export_history' original.pk %}" 
+                       class="button" style="margin-right: 10px;">
+                        📊 Export Point History
+                    </a>
+                    <button type="button" onclick="recalculatePoints()" class="button" style="margin-right: 10px;">
+                        🔄 Recalculate Points
+                    </button>
+                    <a href="{% url 'admin:teams_teamrankinghistory_changelist' %}?team__id__exact={{ original.pk }}" 
+                       class="button">
+                        📋 View Full History
+                    </a>
+                </div>
+            </div>
+        </fieldset>
+    {% endif %}
+{% endblock %}
+
+{% block extrajs %}
+    {{ block.super }}
+    <script>
+        // Get CSRF token
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+        
+        // Show message
+        function showMessage(message, type = 'success') {
+            const messagesDiv = document.getElementById('adjustment-messages');
+            const messageClass = type === 'success' ? 'success-message' : 'error-message';
+            messagesDiv.innerHTML = `<div class="${messageClass}">${message}</div>`;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messagesDiv.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Update points display
+        function updatePointsDisplay(newPoints) {
+            document.getElementById('current-points').textContent = newPoints;
+        }
+        
+        // Show points preview
+        function showPreview(adjustment, reason) {
+            const currentPoints = parseInt(document.getElementById('current-points').textContent);
+            const newPoints = currentPoints + adjustment;
+            const previewDiv = document.getElementById('points-preview');
+            const previewText = document.getElementById('preview-text');
+            
+            previewText.innerHTML = `${currentPoints} ${adjustment >= 0 ? '+' : ''}${adjustment} = <strong>${newPoints}</strong> (${reason})`;
+            previewDiv.style.display = 'block';
+            
+            // Auto-hide preview after 3 seconds
+            setTimeout(() => {
+                previewDiv.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Adjust points via AJAX
+        function adjustPoints(adjustment, reason) {
+            const teamId = {{ original.pk|default:0 }};
+            if (!teamId) return;
+            
+            showPreview(adjustment, reason);
+            
+            // Confirm adjustment
+            if (!confirm(`Adjust points by ${adjustment >= 0 ? '+' : ''}${adjustment}?\n\nReason: ${reason}`)) {
+                return;
+            }
+            
+            // Send AJAX request
+            fetch(`/admin/teams/team/${teamId}/adjust-points/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify({
+                    points_adjustment: adjustment,
+                    reason: reason
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updatePointsDisplay(data.new_total);
+                    showMessage(`Successfully adjusted points by ${adjustment >= 0 ? '+' : ''}${adjustment}. New total: ${data.new_total}`);
+                    
+                    // Refresh the page after 2 seconds to show updated breakdown
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage(data.error || 'Failed to adjust points', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error communicating with server', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        // Adjust custom points
+        function adjustCustomPoints() {
+            const pointsInput = document.getElementById('custom-points');
+            const reasonInput = document.getElementById('custom-reason');
+            
+            const adjustment = parseInt(pointsInput.value);
+            const reason = reasonInput.value.trim();
+            
+            if (isNaN(adjustment) || adjustment === 0) {
+                showMessage('Please enter a valid point adjustment (not zero)', 'error');
+                return;
+            }
+            
+            if (!reason) {
+                showMessage('Please provide a reason for the adjustment', 'error');
+                return;
+            }
+            
+            adjustPoints(adjustment, reason);
+            
+            // Clear inputs
+            pointsInput.value = '';
+            reasonInput.value = '';
+        }
+        
+        // Recalculate points
+        function recalculatePoints() {
+            const teamId = {{ original.pk|default:0 }};
+            if (!teamId) return;
+            
+            if (!confirm('Recalculate all points for this team? This will update points based on current criteria.')) {
+                return;
+            }
+            
+            fetch(`/admin/teams/team/${teamId}/recalculate-points/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updatePointsDisplay(data.new_total);
+                    showMessage(`Points recalculated! Change: ${data.points_change >= 0 ? '+' : ''}${data.points_change}. New total: ${data.new_total}`);
+                    
+                    // Refresh the page after 2 seconds
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage(data.error || 'Failed to recalculate points', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error communicating with server', 'error');
+                console.error('Error:', error);
+            });
+        }
+        
+        // Auto-refresh points every 30 seconds (optional)
+        setInterval(function() {
+            const teamId = {{ original.pk|default:0 }};
+            if (!teamId) return;
+            
+            fetch(`/admin/teams/team/${teamId}/get-points/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.points !== parseInt(document.getElementById('current-points').textContent)) {
+                    updatePointsDisplay(data.points);
+                    showMessage('Points updated automatically', 'success');
+                }
+            })
+            .catch(error => {
+                console.log('Auto-refresh error:', error);
+            });
+        }, 30000);
+    </script>
+{% endblock %}

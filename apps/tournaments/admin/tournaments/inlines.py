@@ -6,7 +6,6 @@ from typing import List
 from django.contrib import admin
 
 from ...models import Match
-from ...models_registration_policy import TournamentRegistrationPolicy
 
 
 def _present_fields(model) -> set[str]:
@@ -18,18 +17,7 @@ def _fields_if_exist(model, *names) -> List[str]:
     return [n for n in names if n in present]
 
 
-def _mode_choices_for_game(game_value: str | None):
-    if not game_value:
-        return list(TournamentRegistrationPolicy.MODE_CHOICES)
-    g = (game_value or "").strip().lower()
-    if g == "valorant":
-        return [(TournamentRegistrationPolicy.MODE_TEAM, "Team")]
-    if g == "efootball":
-        return [
-            (TournamentRegistrationPolicy.MODE_SOLO, "Solo (1v1)"),
-            (TournamentRegistrationPolicy.MODE_DUO, "Duo (2v2)"),
-        ]
-    return list(TournamentRegistrationPolicy.MODE_CHOICES)
+
 
 
 class _DynamicFieldsInlineMixin:
@@ -83,43 +71,6 @@ class CompactMatchInline(_DynamicFieldsInlineMixin, admin.TabularInline):
         return qs.order_by("round_no", "position")
 
 
-class TournamentRegistrationPolicyInline(admin.StackedInline):
-    model = TournamentRegistrationPolicy
-    can_delete = False
-    extra = 0
-    fk_name = "tournament"
-    verbose_name = "Registration Policy"
-    verbose_name_plural = "Registration Policy"
 
-    def get_fields(self, request, obj=None):
-        return _fields_if_exist(
-            self.model,
-            "mode",
-            "team_size_min",
-            "team_size_max", "allow_substitutes",
-        )
-    
-    def get_fieldsets(self, request, obj=None):
-        fields = self.get_fields(request, obj)
-        if fields:
-            return [
-                ("Team Registration Settings", {
-                    "fields": tuple(fields),
-                    "description": "Configure how teams register for this tournament. Team size settings are used for validation during registration."
-                })
-            ]
-        return None
-
-    def get_formset(self, request, obj=None, **kwargs):
-        formset = super().get_formset(request, obj, **kwargs)
-        try:
-            base_fields = formset.form.base_fields
-            if "registration_mode" in base_fields:
-                base_fields["registration_mode"].choices = _mode_choices_for_game(
-                    getattr(obj, "game", None)
-                )
-        except Exception:
-            pass
-        return formset
 
 

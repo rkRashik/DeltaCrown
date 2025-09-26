@@ -15,22 +15,7 @@ from .helpers import (
     live_stream_info, bracket_url_of, build_tabs, hero_meta_for, slugify_game,
     GAME_REGISTRY, build_pdf_viewer_config,
 )
-# Stub functions for removed cards module
-def annotate_cards(tournaments):
-    """Stub for card annotation functionality."""
-    return tournaments
-
-def compute_my_states(request, tournaments):
-    """Stub for user state computation."""
-    return {}
-
-def related_tournaments(tournament, limit=8):
-    """Stub for related tournament functionality."""
-    return Tournament.objects.filter(
-        game=tournament.game
-    ).exclude(
-        id=tournament.id
-    ).order_by('-registration_start')[:limit]
+from .cards import annotate_cards, compute_my_states, related_tournaments
 
 Tournament = apps.get_model("tournaments", "Tournament")
 Registration = apps.get_model("tournaments", "Registration")

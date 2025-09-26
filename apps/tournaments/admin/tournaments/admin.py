@@ -16,7 +16,6 @@ except NotRegistered:
 from .inlines import (
     RegistrationInline,
     CompactMatchInline,
-    TournamentRegistrationPolicyInline,
     _present_fields, _fields_if_exist,
 )
 from .mixins import AdminLinkMixin, ExportBracketMixin, ActionsMixin
@@ -124,8 +123,6 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
 
     def get_inline_instances(self, request, obj=None):
         instances = []
-
-        instances.append(TournamentRegistrationPolicyInline(self.model, self.admin_site))
 
         try:
             from ..components import TournamentSettingsInline, ValorantConfigInline, EfootballConfigInline

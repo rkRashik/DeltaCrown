@@ -1,20 +1,16 @@
 """
-Teams Forms Module - Social Forms Package
+Social Forms Module for Teams App
 """
-
-# Import social forms  
-from .social import (
+from .forms import (
     TeamPostForm,
     TeamPostCommentForm, 
-    TeamPostMediaForm,
     TeamFollowForm,
     TeamBannerForm
 )
 
 __all__ = [
     'TeamPostForm',
-    'TeamPostCommentForm', 
-    'TeamPostMediaForm',
-    'TeamFollowForm',
+    'TeamPostCommentForm',
+    'TeamFollowForm', 
     'TeamBannerForm'
 ]

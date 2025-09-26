@@ -17,9 +17,11 @@ from .presets import EfootballTeamPreset, ValorantTeamPreset, ValorantPlayerPres
 from .achievement import TeamAchievement  # noqa: F401
 from .stats import TeamStats  # noqa: F401
 from .ranking_settings import TeamRankingSettings  # noqa: F401
+from .ranking import RankingCriteria, TeamRankingHistory, TeamRankingBreakdown  # noqa: F401
 
 __all__ = [name for name in (
     "Team", "TeamMembership", "TeamInvite", "team_logo_path",
     "TEAM_MAX_ROSTER", "EfootballTeamPreset", "ValorantTeamPreset", "ValorantPlayerPreset",
-    "TeamAchievement", "TeamStats", "TeamRankingSettings"
+    "TeamAchievement", "TeamStats", "TeamRankingSettings",
+    "RankingCriteria", "TeamRankingHistory", "TeamRankingBreakdown"
 ) if name in globals()]

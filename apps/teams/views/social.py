@@ -18,8 +18,9 @@ from ..models.social import (
     TeamPost, TeamPostComment, TeamPostLike, 
     TeamFollower, TeamActivity
 )
-from ..social_forms import (
-    TeamPostForm, TeamPostCommentForm, TeamPostMediaForm,
+# Import proper social forms
+from ..social_forms.forms import (
+    TeamPostForm, TeamPostCommentForm, 
     TeamFollowForm, TeamBannerForm
 )
 from apps.user_profile.models import UserProfile

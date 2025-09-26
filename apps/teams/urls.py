@@ -73,6 +73,6 @@ urlpatterns = [
     path("invites/<str:token>/accept/", accept_invite_view, name="accept_invite"),
     path("invites/<str:token>/decline/", decline_invite_view, name="decline_invite"),
     
-    # Social features - include with namespace
-    path("", include(("apps.teams.urls_social", "teams_social"), namespace="teams_social")),
+    # Social features namespace
+    path("", include("apps.teams.urls_social", namespace="teams_social")),
 ]
