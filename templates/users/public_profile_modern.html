@@ -118,7 +118,19 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
     border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Ensure consistent avatar rendering across navigation and profile */
+.profile-avatar img,
+.profile-avatar-img {
+    object-fit: cover !important;
+    object-position: center !important;
+    transform: none !important;
 }
 
 .profile-main-info {
@@ -282,33 +294,210 @@
 
 .teams-grid {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 1.5rem;
 }
 
 .team-card {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
+    border-radius: var(--radius-xl);
+    padding: 0;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
 }
 
+/* Team banner background */
+.team-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        var(--team-banner-url, 
+        linear-gradient(135deg, 
+            rgba(59, 130, 246, 0.1), 
+            rgba(139, 92, 246, 0.1), 
+            rgba(16, 185, 129, 0.1)
+        ));
+    background-size: cover;
+    background-position: center;
+    filter: blur(1px) brightness(0.7);
+    z-index: 1;
+}
+
+/* Content overlay */
 .team-card::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 2px;
+    height: 100%;
+    background: 
+        linear-gradient(to bottom, 
+            rgba(30, 41, 59, 0.85) 0%,
+            rgba(30, 41, 59, 0.75) 50%, 
+            rgba(30, 41, 59, 0.9) 100%
+        );
+    z-index: 2;
+}
+
+/* Top border accent */
+.team-card-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
     background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    z-index: 3;
 }
 
 .team-card:hover {
-    background: rgba(255, 255, 255, 0.05);
     border-color: var(--primary-color);
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+}
+
+.team-card:hover::before {
+    background: 
+        linear-gradient(to bottom, 
+            rgba(30, 41, 59, 0.9) 0%,
+            rgba(30, 41, 59, 0.8) 50%, 
+            rgba(30, 41, 59, 0.95) 100%
+        );
+}
+
+.team-card-content {
+    padding: 1.5rem;
+    position: relative;
+    z-index: 3;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Enhanced team header with proper spacing */
+.team-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.team-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.team-info h4 {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin: 0 0 0.75rem 0;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced meta section */
+.team-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: auto 0 0 0;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    backdrop-filter: blur(10px);
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.game-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--success-color), rgba(16, 185, 129, 0.8));
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.team-actions {
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 3;
+    backdrop-filter: blur(15px);
+}
+
+.team-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.team-btn.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    border: 2px solid transparent;
+    transform: translateY(0);
+}
+
+.team-btn.primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.team-btn.secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-light);
+}
+
+.team-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
 }
 
 .team-header {
@@ -419,6 +608,9 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     box-shadow: var(--shadow-md);
+    z-index: 4;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 215, 0, 0.3);
 }
 
 .stats-grid {
@@ -460,26 +652,255 @@
     letter-spacing: 0.05em;
 }
 
+/* DeltaCoin specific styling */
+.deltacoin-card {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.05));
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.deltacoin-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.deltacoin-icon {
+    color: #f59e0b;
+    font-size: 1.5rem;
+    animation: coinSpin 3s ease-in-out infinite;
+}
+
+.deltacoin-card .stat-number {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0;
+}
+
+.deltacoin-card:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(251, 191, 36, 0.1));
+    border-color: #f59e0b;
+}
+
+.deltacoin-card:hover .deltacoin-icon {
+    transform: scale(1.1);
+    animation-duration: 1s;
+}
+
+@keyframes coinSpin {
+    0%, 100% { transform: rotateY(0deg); }
+    50% { transform: rotateY(180deg); }
+}
+
+/* DeltaCoin Transactions Styling */
+.deltacoin-balance {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.05));
+    border-radius: var(--radius-md);
+    color: #f59e0b;
+    font-weight: 700;
+    font-size: 0.875rem;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.transactions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.transaction-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-light);
+}
+
+.transaction-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.transaction-icon.positive {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1));
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.transaction-icon.negative {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.transaction-content {
+    flex: 1;
+}
+
+.transaction-description {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.transaction-date {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.transaction-amount {
+    font-weight: 700;
+    font-size: 0.875rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.transaction-amount.positive {
+    color: #10b981;
+}
+
+.transaction-amount.negative {
+    color: #ef4444;
+}
+
 .gaming-ids {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .gaming-id {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 1rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.gaming-id::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--primary-color), var(--accent-color));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .gaming-id:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.06);
     border-color: var(--primary-color);
+    transform: translateX(4px);
+}
+
+.gaming-id:hover::before {
+    opacity: 1;
+}
+
+.gaming-id-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-md);
+    transition: transform 0.3s ease;
+}
+
+.gaming-id:hover .gaming-id-icon {
+    transform: scale(1.1);
+}
+
+.gaming-id-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.gaming-id-info .platform {
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.gaming-id-info .id {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+}
+
+.social-link-external {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+}
+
+.gaming-id:hover .social-link-external {
+    color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--primary-color);
+    transform: translateX(2px) scale(1.05);
+}
+
+/* Social links section header styling */
+.social-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.social-section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.1), transparent);
 }
 
 .gaming-id-label {
@@ -772,7 +1193,7 @@
             <!-- Left Column -->
             <div class="main-column">
                 
-                <!-- Teams Section -->
+                <!-- Enhanced Teams Section -->
                 {% if current_teams %}
                 <div class="profile-card slide-in-left">
                     <div class="card-header">
@@ -784,44 +1205,94 @@
                     
                     <div class="teams-grid">
                         {% for team_membership in current_teams %}
-                        <div class="team-card">
+                        <div class="team-card" {% if team_membership.team.banner %}style="--team-banner-url: url('{{ team_membership.team.banner.url }}')"{% endif %}>
+                            <div class="team-card-border"></div>
+                            
                             {% if team_membership.is_captain %}
                                 <div class="captain-badge">
                                     <i class="fas fa-crown"></i> CAPTAIN
                                 </div>
                             {% endif %}
                             
-                            <div class="team-header">
-                                {% if team_membership.logo_url %}
-                                    <div class="team-logo">
-                                        <img src="{{ team_membership.logo_url }}" alt="{{ team_membership.team.name }}">
-                                    </div>
-                                {% else %}
-                                    <div class="team-logo">
-                                        {{ team_membership.team.name|first|upper }}
-                                    </div>
-                                {% endif %}
-                                
-                                <div class="team-info">
-                                    <h4>{{ team_membership.team.name }}</h4>
-                                    <div class="team-role">{{ team_membership.role }}</div>
-                                    {% if team_membership.game %}
-                                        <div class="team-game">
-                                            <i class="fas fa-gamepad"></i> {{ team_membership.game }}
+                            <div class="team-card-content">
+                                <div class="team-header">
+                                    {% if team_membership.logo_url %}
+                                        <div class="team-logo">
+                                            <img src="{{ team_membership.logo_url }}" alt="{{ team_membership.team.name }}">
+                                        </div>
+                                    {% else %}
+                                        <div class="team-logo">
+                                            {{ team_membership.team.name|first|upper }}
                                         </div>
                                     {% endif %}
+                                    
+                                    <div class="team-info">
+                                        <h4>{{ team_membership.team.name }}</h4>
+                                        <div style="display: flex; gap: 0.5rem; margin: 0.5rem 0;">
+                                            <span class="role-badge">
+                                                {% if team_membership.is_captain %}
+                                                    <i class="fas fa-crown"></i>
+                                                {% else %}
+                                                    <i class="fas fa-user"></i>
+                                                {% endif %}
+                                                {{ team_membership.role }}
+                                            </span>
+                                            {% if team_membership.game %}
+                                            <span class="game-badge">
+                                                <i class="fas fa-gamepad"></i> {{ team_membership.game }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div class="team-meta">
-                                <span><i class="fas fa-calendar"></i> Joined {{ team_membership.joined_at|date:"M j, Y" }}</span>
-                                <span><i class="fas fa-users"></i> {{ team_membership.team.members_count|default:"--" }} members</span>
+                                
+                                <div class="team-meta">
+                                    <span><i class="fas fa-calendar"></i> Joined {{ team_membership.joined_at|date:"M j, Y" }}</span>
+                                    <span><i class="fas fa-users"></i> {{ team_membership.team.members_count|default:"--" }} members</span>
+                                </div>
                             </div>
                             
                             <div class="team-actions">
                                 <a href="{% url 'teams:teams_social:team_social_detail' team_membership.team.slug %}" class="team-btn primary">
                                     <i class="fas fa-arrow-right"></i> View Team
                                 </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- DeltaCoin Transactions -->
+                {% if recent_transactions %}
+                <div class="profile-card slide-in-left">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-coins" style="color: #f59e0b;"></i>
+                            Recent Transactions
+                        </h2>
+                        <div class="deltacoin-balance">
+                            <i class="fas fa-wallet"></i>
+                            {{ wallet_balance|default:"0" }} DeltaCoins
+                        </div>
+                    </div>
+                    
+                    <div class="transactions-list">
+                        {% for transaction in recent_transactions|slice:":5" %}
+                        <div class="transaction-item">
+                            <div class="transaction-icon {% if transaction.amount > 0 %}positive{% else %}negative{% endif %}">
+                                {% if transaction.amount > 0 %}
+                                    <i class="fas fa-plus"></i>
+                                {% else %}
+                                    <i class="fas fa-minus"></i>
+                                {% endif %}
+                            </div>
+                            <div class="transaction-content">
+                                <div class="transaction-description">{{ transaction.get_reason_display }}</div>
+                                <div class="transaction-date">{{ transaction.created_at|date:"M j, g:i A" }}</div>
+                            </div>
+                            <div class="transaction-amount {% if transaction.amount > 0 %}positive{% else %}negative{% endif %}">
+                                {% if transaction.amount > 0 %}+{% endif %}{{ transaction.amount }}
                             </div>
                         </div>
                         {% endfor %}
@@ -896,9 +1367,12 @@
                             <div class="stat-number">{{ stats.total_matches|default:"0" }}</div>
                             <div class="stat-label">Matches</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-number">{{ wallet_balance|default:"0" }}</div>
-                            <div class="stat-label">Coins</div>
+                        <div class="stat-card deltacoin-card">
+                            <div class="deltacoin-display">
+                                <i class="fas fa-coins deltacoin-icon"></i>
+                                <div class="stat-number">{{ wallet_balance|default:"0" }}</div>
+                            </div>
+                            <div class="stat-label">DeltaCoins</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-number">{{ total_orders|default:"0" }}</div>
@@ -907,80 +1381,106 @@
                     </div>
                 </div>
                 
-                <!-- Gaming IDs -->
+                <!-- Enhanced Gaming IDs & Social Links -->
                 {% if show_socials %}
-                    {% if profile.riot_id or profile.efootball_id or profile.discord_id %}
+                    {% if profile.riot_id or profile.efootball_id or profile.discord_id or profile.youtube_link or profile.twitch_link %}
                     <div class="profile-card slide-in-right">
                         <div class="card-header">
                             <h3 class="card-title">
                                 <i class="fas fa-gamepad"></i>
-                                Gaming IDs
+                                Gaming & Social
                             </h3>
                         </div>
                         
                         <div class="gaming-ids">
-                            {% if profile.riot_id %}
-                            <div class="gaming-id">
-                                <div class="gaming-id-label">
-                                    <i class="fas fa-fire" style="color: #ff4757;"></i>
-                                    <span>Riot ID</span>
+                            <!-- Gaming IDs Section -->
+                            {% if profile.riot_id or profile.efootball_id or profile.discord_id %}
+                            <div style="margin-bottom: 1.5rem;">
+                                {% if profile.riot_id %}
+                                <div class="gaming-id">
+                                    <div class="gaming-id-icon" style="background: linear-gradient(135deg, #ff4757, #ff6b7d);">
+                                        <i class="fas fa-fire"></i>
+                                    </div>
+                                    <div class="gaming-id-info">
+                                        <div class="platform">Riot Games</div>
+                                        <div class="id">{{ profile.riot_id }}</div>
+                                    </div>
+                                    <div class="social-link-external" style="opacity: 0.5;">
+                                        <i class="fas fa-gamepad"></i>
+                                    </div>
                                 </div>
-                                <div class="gaming-id-value">{{ profile.riot_id }}</div>
+                                {% endif %}
+                                
+                                {% if profile.efootball_id %}
+                                <div class="gaming-id">
+                                    <div class="gaming-id-icon" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                                        <i class="fas fa-futbol"></i>
+                                    </div>
+                                    <div class="gaming-id-info">
+                                        <div class="platform">eFootball</div>
+                                        <div class="id">{{ profile.efootball_id }}</div>
+                                    </div>
+                                    <div class="social-link-external" style="opacity: 0.5;">
+                                        <i class="fas fa-gamepad"></i>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if profile.discord_id %}
+                                <div class="gaming-id">
+                                    <div class="gaming-id-icon" style="background: linear-gradient(135deg, #7289da, #5865F2);">
+                                        <i class="fab fa-discord"></i>
+                                    </div>
+                                    <div class="gaming-id-info">
+                                        <div class="platform">Discord</div>
+                                        <div class="id">{{ profile.discord_id }}</div>
+                                    </div>
+                                    <div class="social-link-external" style="opacity: 0.5;">
+                                        <i class="fas fa-comments"></i>
+                                    </div>
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
                             
-                            {% if profile.efootball_id %}
-                            <div class="gaming-id">
-                                <div class="gaming-id-label">
-                                    <i class="fas fa-futbol" style="color: #2ecc71;"></i>
-                                    <span>eFootball ID</span>
+                            <!-- Social Links Section -->
+                            {% if profile.youtube_link or profile.twitch_link %}
+                            <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                                <div class="social-section-header">
+                                    <i class="fas fa-share-alt"></i>
+                                    Social Links
                                 </div>
-                                <div class="gaming-id-value">{{ profile.efootball_id }}</div>
+                                
+                                {% if profile.youtube_link %}
+                                <a href="{{ profile.youtube_link }}" target="_blank" class="gaming-id" style="text-decoration: none;">
+                                    <div class="gaming-id-icon" style="background: linear-gradient(135deg, #ff0000, #cc0000);">
+                                        <i class="fab fa-youtube"></i>
+                                    </div>
+                                    <div class="gaming-id-info">
+                                        <div class="platform">YouTube</div>
+                                        <div class="id">View Channel</div>
+                                    </div>
+                                    <div class="social-link-external">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </div>
+                                </a>
+                                {% endif %}
+                                
+                                {% if profile.twitch_link %}
+                                <a href="{{ profile.twitch_link }}" target="_blank" class="gaming-id" style="text-decoration: none;">
+                                    <div class="gaming-id-icon" style="background: linear-gradient(135deg, #9146ff, #772ce8);">
+                                        <i class="fab fa-twitch"></i>
+                                    </div>
+                                    <div class="gaming-id-info">
+                                        <div class="platform">Twitch</div>
+                                        <div class="id">View Stream</div>
+                                    </div>
+                                    <div class="social-link-external">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </div>
+                                </a>
+                                {% endif %}
                             </div>
-                            {% endif %}
-                            
-                            {% if profile.discord_id %}
-                            <div class="gaming-id">
-                                <div class="gaming-id-label">
-                                    <i class="fab fa-discord" style="color: #7289da;"></i>
-                                    <span>Discord</span>
-                                </div>
-                                <div class="gaming-id-value">{{ profile.discord_id }}</div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Social Links -->
-                    {% if profile.youtube_link or profile.twitch_link %}
-                    <div class="profile-card slide-in-right">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-link"></i>
-                                Social Links
-                            </h3>
-                        </div>
-                        
-                        <div class="gaming-ids">
-                            {% if profile.youtube_link %}
-                            <a href="{{ profile.youtube_link }}" target="_blank" class="gaming-id" style="text-decoration: none;">
-                                <div class="gaming-id-label">
-                                    <i class="fab fa-youtube" style="color: #ff0000;"></i>
-                                    <span>YouTube</span>
-                                </div>
-                                <i class="fas fa-external-link-alt" style="color: var(--text-muted);"></i>
-                            </a>
-                            {% endif %}
-                            
-                            {% if profile.twitch_link %}
-                            <a href="{{ profile.twitch_link }}" target="_blank" class="gaming-id" style="text-decoration: none;">
-                                <div class="gaming-id-label">
-                                    <i class="fab fa-twitch" style="color: #9146ff;"></i>
-                                    <span>Twitch</span>
-                                </div>
-                                <i class="fas fa-external-link-alt" style="color: var(--text-muted);"></i>
-                            </a>
                             {% endif %}
                         </div>
                     </div>
