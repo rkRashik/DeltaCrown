@@ -16,6 +16,9 @@ urlpatterns = [
     # API endpoints
     path("api/profile/<str:profile_id>/", profile_api, name="profile_api"),
 
+    # Modern profile page (primary)
+    path("profile/", profile_view, name="profile"),
+    
     # Legacy private profile page (kept for compatibility)
-    path("<str:username>/", profile_view, name="profile"),
+    path("<str:username>/", profile_view, name="profile_legacy"),
 ]

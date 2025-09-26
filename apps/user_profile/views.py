@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from .models import UserProfile
+from .forms import UserProfileForm
 
 
 def _get_upcoming_matches_for_user(user, limit=5):
@@ -46,32 +47,7 @@ def _get_upcoming_matches_for_user(user, limit=5):
         return []
 
 
-class ProfileForm(forms.ModelForm):
-    class Meta:
-        from .models import UserProfile  # local import keeps file order flexible
-        model = UserProfile
-        fields = [
-            # existing profile fields you already had:
-            "display_name", "region", "avatar", "bio",
-            "discord_id", "riot_id", "efootball_id",
-            # NEW: privacy flags (these exist per your migrations)
-            "is_private", "show_email", "show_phone", "show_socials",
-        ]
-        widgets = {
-            "display_name": forms.TextInput(attrs={"class": "form-control"}),
-            "region": forms.Select(attrs={"class": "form-select"}),
-            "avatar": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "bio": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-            "discord_id": forms.TextInput(attrs={"class": "form-control"}),
-            "riot_id": forms.TextInput(attrs={"class": "form-control", "placeholder": "Name#TAG"}),
-            "efootball_id": forms.TextInput(attrs={"class": "form-control"}),
-
-            # Accessible checkboxes for privacy flags
-            "is_private": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-            "show_email": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-            "show_phone": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-            "show_socials": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-        }
+# ProfileForm moved to forms.py as UserProfileForm
         help_texts = {
             "is_private": "Hide entire profile from public.",
             "show_email": "Allow showing my email on public profile.",
@@ -83,8 +59,8 @@ class ProfileForm(forms.ModelForm):
 
 class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = UserProfile
-    form_class = ProfileForm
-    template_name = "user_profile/profile_edit.html"
+    form_class = UserProfileForm
+    template_name = "users/profile_edit_modern.html"
     success_url = reverse_lazy("user_profile:edit")  # stay on the edit page
 
     class Meta:
@@ -134,8 +110,13 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
 User = get_user_model()
 
 
-def profile_view(request, username):
-    user = get_object_or_404(User, username=username)
+@login_required  
+def profile_view(request, username=None):
+    if username is None:
+        # If no username provided, show current user's profile
+        user = request.user
+    else:
+        user = get_object_or_404(User, username=username)
     profile = getattr(user, "userprofile", None) or getattr(user, "profile", None)
 
     # Try showing user's upcoming matches widget on their private dashboard/profile page
@@ -217,7 +198,7 @@ def profile_view(request, username):
 
     return render(
         request,
-        "user_profile/profile.html",
+        "user_profile/profile_modern.html",
         {
             "profile_user": user,
             "profile": profile,

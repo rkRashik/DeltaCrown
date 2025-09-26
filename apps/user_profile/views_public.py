@@ -327,7 +327,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         "total_orders": total_orders,
     }
 
-    return render(request, "users/public_profile.html", context)
+    return render(request, "users/public_profile_modern.html", context)
 
 
 def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:

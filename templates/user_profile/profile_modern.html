@@ -1,0 +1,970 @@
+{% extends "base_no_footer.html" %}
+{% load static %}
+{% load team_social_tags %}
+{% block title %}{{ profile.display_name|default:profile_user.username|default:"Player" }} - Profile | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<style>
+:root {
+    --primary-color: #3b82f6;
+    --primary-light: #60a5fa;
+    --primary-dark: #1d4ed8;
+    --accent-color: #8b5cf6;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --error-color: #ef4444;
+    
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #64748b;
+    
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-tertiary: #334155;
+    --bg-card: rgba(30, 41, 59, 0.8);
+    --bg-overlay: rgba(15, 23, 42, 0.95);
+    
+    --border-color: rgba(148, 163, 184, 0.1);
+    --border-light: rgba(148, 163, 184, 0.2);
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+}
+
+/* Modern Profile Layout */
+.profile-container {
+    background: var(--bg-primary);
+    min-height: 100vh;
+    padding: 0;
+    position: relative;
+}
+
+.profile-container::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Hero Section with Asymmetrical Layout */
+.profile-hero {
+    position: relative;
+    z-index: 1;
+    padding: 2rem 0;
+    background: linear-gradient(135deg, 
+        rgba(59, 130, 246, 0.1) 0%, 
+        rgba(139, 92, 246, 0.1) 50%, 
+        rgba(16, 185, 129, 0.1) 100%);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.hero-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 3rem;
+    align-items: center;
+}
+
+.profile-avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid var(--primary-color);
+    padding: 4px;
+    background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    box-shadow: var(--shadow-xl);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-avatar:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.25);
+}
+
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.profile-main-info {
+    flex: 1;
+}
+
+.profile-name {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(135deg, var(--text-primary), var(--primary-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.profile-username {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.profile-bio {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    max-width: 600px;
+}
+
+.profile-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.meta-item i {
+    color: var(--primary-color);
+}
+
+.profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.action-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    border: 2px solid transparent;
+    min-width: 160px;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+}
+
+.action-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+}
+
+.action-btn.secondary {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border-color: var(--border-light);
+    backdrop-filter: blur(10px);
+}
+
+.action-btn.secondary:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+
+/* Main Content Grid */
+.profile-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 3rem;
+    position: relative;
+    z-index: 1;
+}
+
+/* Card Styles */
+.profile-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+}
+
+.profile-card:hover {
+    border-color: var(--border-light);
+    box-shadow: var(--shadow-xl);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+.card-title i {
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.card-action {
+    padding: 0.5rem 1rem;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.card-action:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Team Cards */
+.teams-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.team-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.team-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+}
+
+.team-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.team-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.team-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    color: white;
+    font-weight: 700;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.team-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+}
+
+.team-info h4 {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0 0 0.25rem 0;
+}
+
+.team-role {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.team-game {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+.team-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.team-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.team-btn {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.team-btn.primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.team-btn.primary:hover {
+    background: var(--primary-dark);
+}
+
+.team-btn.secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.team-btn.secondary:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Captain Badge */
+.captain-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #1a1a1a;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-md);
+}
+
+/* Stats Section */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary-color);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Gaming IDs Section */
+.gaming-ids {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.gaming-id {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s ease;
+}
+
+.gaming-id:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary-color);
+}
+
+.gaming-id-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.gaming-id-value {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* Recent Activity */
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-item:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.activity-time {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.empty-state p {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .profile-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .hero-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        text-align: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .profile-content,
+    .hero-content {
+        padding: 1.5rem 1rem;
+    }
+    
+    .profile-name {
+        font-size: 2rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-meta {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .profile-actions {
+        width: 100%;
+    }
+}
+
+/* Smooth Animations */
+.fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-in-left {
+    animation: slideInLeft 0.8s ease-out forwards;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.slide-in-right {
+    animation: slideInRight 0.8s ease-out forwards;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Hero Section -->
+    <section class="profile-hero">
+        <div class="hero-content fade-in">
+            <!-- Avatar Section -->
+            <div class="profile-avatar-section slide-in-left">
+                {% if profile and profile.avatar %}
+                    <div class="profile-avatar">
+                        <img src="{{ profile.avatar.url }}" alt="{{ profile_user.username }}">
+                    </div>
+                {% else %}
+                    <div class="profile-avatar">
+                        {{ profile_user.username|first|upper }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Main Info -->
+            <div class="profile-main-info">
+                <h1 class="profile-name">{{ profile.display_name|default:profile_user.get_full_name|default:profile_user.username }}</h1>
+                <div class="profile-username">@{{ profile_user.username }}</div>
+                
+                {% if profile.bio %}
+                    <div class="profile-bio">{{ profile.bio }}</div>
+                {% endif %}
+                
+                <div class="profile-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Joined {{ profile_user.date_joined|date:"M Y" }}</span>
+                    </div>
+                    {% if profile.region %}
+                        <div class="meta-item">
+                            <i class="fas fa-globe"></i>
+                            <span>{{ profile.get_region_display }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="meta-item">
+                        <i class="fas fa-users"></i>
+                        <span>{{ current_teams|length }} Team{{ current_teams|length|pluralize }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="profile-actions slide-in-right">
+                <a href="{% url 'user_profile:edit' %}" class="action-btn primary">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </a>
+                <a href="{% url 'user_profile:my_tournaments' %}" class="action-btn secondary">
+                    <i class="fas fa-trophy"></i> Tournaments
+                </a>
+                <a href="#" class="action-btn secondary">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="profile-content">
+        <!-- Left Column - Main Content -->
+        <div class="main-column">
+            
+            <!-- Teams Section -->
+            {% if current_teams %}
+            <div class="profile-card slide-in-left">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-users"></i>
+                        My Teams
+                    </h2>
+                    <a href="{% url 'teams:list' %}" class="card-action">
+                        <i class="fas fa-plus"></i> Join Team
+                    </a>
+                </div>
+                
+                <div class="teams-grid">
+                    {% for team_membership in current_teams %}
+                    <div class="team-card">
+                        {% if team_membership.is_captain %}
+                            <div class="captain-badge">
+                                <i class="fas fa-crown"></i> CAPTAIN
+                            </div>
+                        {% endif %}
+                        
+                        <div class="team-header">
+                            {% if team_membership.logo_url %}
+                                <div class="team-logo">
+                                    <img src="{{ team_membership.logo_url }}" alt="{{ team_membership.team.name }}">
+                                </div>
+                            {% else %}
+                                <div class="team-logo">
+                                    {{ team_membership.team.name|first|upper }}
+                                </div>
+                            {% endif %}
+                            
+                            <div class="team-info">
+                                <h4>{{ team_membership.team.name }}</h4>
+                                <div class="team-role">{{ team_membership.role }}</div>
+                                {% if team_membership.game %}
+                                    <div class="team-game">
+                                        <i class="fas fa-gamepad"></i> {{ team_membership.game }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="team-meta">
+                            <span><i class="fas fa-calendar"></i> Joined {{ team_membership.joined_at|date:"M j, Y" }}</span>
+                            <span><i class="fas fa-users"></i> {{ team_membership.team.members_count|default:"--" }} members</span>
+                        </div>
+                        
+                        <div class="team-actions">
+                            <a href="{% url 'teams:teams_social:team_social_detail' team_membership.team.slug %}" class="team-btn primary">
+                                <i class="fas fa-arrow-right"></i> View Team
+                            </a>
+                            {% if team_membership.is_captain %}
+                            <a href="{% url 'teams:settings' team_membership.team.slug %}" class="team-btn secondary">
+                                <i class="fas fa-cog"></i> Manage
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            <div class="profile-card slide-in-left">
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h3>Join Your First Team</h3>
+                    <p>Connect with other players and compete in team tournaments to start your esports journey.</p>
+                    <a href="{% url 'teams:list' %}" class="action-btn primary">
+                        <i class="fas fa-search"></i> Browse Teams
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Recent Activity -->
+            {% if upcoming_matches %}
+            <div class="profile-card slide-in-left">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-clock"></i>
+                        Recent Activity
+                    </h2>
+                    <a href="/tournaments/" class="card-action">View All</a>
+                </div>
+                
+                <div class="recent-activity">
+                    {% for match in upcoming_matches|slice:":5" %}
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">{{ match.tournament.name }}</div>
+                            <div class="activity-time">Round {{ match.round_no }} • {{ match.created_at|date:"M j, g:i A" }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Column - Sidebar -->
+        <div class="sidebar-column">
+            
+            <!-- Quick Stats -->
+            <div class="profile-card slide-in-right">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Quick Stats
+                    </h3>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ current_teams|length|default:"0" }}</div>
+                        <div class="stat-label">Teams</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ upcoming_matches|length|default:"0" }}</div>
+                        <div class="stat-label">Matches</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ wallet_balance|default:"0" }}</div>
+                        <div class="stat-label">Coins</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ total_orders|default:"0" }}</div>
+                        <div class="stat-label">Orders</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gaming IDs -->
+            {% if profile.riot_id or profile.efootball_id or profile.discord_id %}
+            <div class="profile-card slide-in-right">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-gamepad"></i>
+                        Gaming IDs
+                    </h3>
+                </div>
+                
+                <div class="gaming-ids">
+                    {% if profile.riot_id %}
+                    <div class="gaming-id">
+                        <div class="gaming-id-label">
+                            <i class="fas fa-fire" style="color: #ff4757;"></i>
+                            <span>Riot ID</span>
+                        </div>
+                        <div class="gaming-id-value">{{ profile.riot_id }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.efootball_id %}
+                    <div class="gaming-id">
+                        <div class="gaming-id-label">
+                            <i class="fas fa-futbol" style="color: #2ecc71;"></i>
+                            <span>eFootball ID</span>
+                        </div>
+                        <div class="gaming-id-value">{{ profile.efootball_id }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if profile.discord_id %}
+                    <div class="gaming-id">
+                        <div class="gaming-id-label">
+                            <i class="fab fa-discord" style="color: #7289da;"></i>
+                            <span>Discord</span>
+                        </div>
+                        <div class="gaming-id-value">{{ profile.discord_id }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Social Links -->
+            {% if profile.youtube_link or profile.twitch_link %}
+            <div class="profile-card slide-in-right">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-link"></i>
+                        Social Links
+                    </h3>
+                </div>
+                
+                <div class="gaming-ids">
+                    {% if profile.youtube_link %}
+                    <a href="{{ profile.youtube_link }}" target="_blank" class="gaming-id" style="text-decoration: none;">
+                        <div class="gaming-id-label">
+                            <i class="fab fa-youtube" style="color: #ff0000;"></i>
+                            <span>YouTube</span>
+                        </div>
+                        <i class="fas fa-external-link-alt" style="color: var(--text-muted);"></i>
+                    </a>
+                    {% endif %}
+                    
+                    {% if profile.twitch_link %}
+                    <a href="{{ profile.twitch_link }}" target="_blank" class="gaming-id" style="text-decoration: none;">
+                        <div class="gaming-id-label">
+                            <i class="fab fa-twitch" style="color: #9146ff;"></i>
+                            <span>Twitch</span>
+                        </div>
+                        <i class="fas fa-external-link-alt" style="color: var(--text-muted);"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Add smooth scrolling and entrance animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Stagger animation for cards
+    const cards = document.querySelectorAll('.profile-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+    });
+    
+    // Add hover effects for interactive elements
+    const teamCards = document.querySelectorAll('.team-card');
+    teamCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+    });
+});
+</script>
+{% endblock %}
