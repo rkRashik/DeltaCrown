@@ -1,0 +1,66 @@
+{% load game_assets %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Assets Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .game-test { 
+            border: 1px solid #ddd; 
+            margin: 10px 0; 
+            padding: 15px; 
+            border-radius: 8px;
+        }
+        .logo { width: 60px; height: 60px; object-fit: contain; }
+        .icon { width: 30px; height: 30px; object-fit: contain; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Game Assets Configuration Test</h1>
+    
+    <div class="game-test">
+        <h2>VALORANT</h2>
+        <p><strong>Logo:</strong> <img src="{% game_logo 'VALORANT' %}" alt="Valorant Logo" class="logo"></p>
+        <p><strong>Icon:</strong> <img src="{% game_icon 'VALORANT' %}" alt="Valorant Icon" class="icon"></p>
+        <p><strong>Card:</strong> {% game_card 'VALORANT' %}</p>
+        <p><strong>Colors:</strong> 
+            <span style="background-color: {% game_color_primary 'VALORANT' %}; color: white; padding: 4px 8px;">
+                Primary: {% game_color_primary 'VALORANT' %}
+            </span>
+            <span style="background-color: {% game_color_secondary 'VALORANT' %}; color: white; padding: 4px 8px;">
+                Secondary: {% game_color_secondary 'VALORANT' %}
+            </span>
+        </p>
+    </div>
+    
+    <div class="game-test">
+        <h2>eFootball</h2>
+        <p><strong>Logo:</strong> <img src="{% game_logo 'EFOOTBALL' %}" alt="eFootball Logo" class="logo"></p>
+        <p><strong>Icon:</strong> <img src="{% game_icon 'EFOOTBALL' %}" alt="eFootball Icon" class="icon"></p>
+        <p><strong>Card:</strong> {% game_card 'EFOOTBALL' %}</p>
+    </div>
+    
+    <div class="game-test">
+        <h2>MLBB</h2>
+        <p><strong>Logo:</strong> <img src="{% game_logo 'MLBB' %}" alt="MLBB Logo" class="logo"></p>
+        <p><strong>Icon:</strong> <img src="{% game_icon 'MLBB' %}" alt="MLBB Icon" class="icon"></p>
+    </div>
+    
+    <div class="game-test">
+        <h2>All Games List</h2>
+        <ul>
+        {% for game_code, game_data in GAMES.items %}
+            <li>
+                <strong>{{ game_code }}</strong>: {{ game_data.display_name }}
+                <img src="{% game_logo game_code %}" alt="{{ game_data.display_name }} Logo" class="icon">
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+    
+    <h2>✅ Test Results</h2>
+    <p>If you can see game logos and icons above, the centralized game assets system is working correctly!</p>
+    
+    <p><a href="/">← Back to Home</a></p>
+</body>
+</html>

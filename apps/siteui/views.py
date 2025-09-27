@@ -66,12 +66,12 @@ def home(request):
         "payout_accuracy": 98,  # default showcase value
     }
     games_strip = [
-        {"slug": "efootball", "name": "eFootball", "image": "img/efootball.jpeg"},
-        {"slug": "valorant", "name": "Valorant", "image": "img/Valorant.jpg"},
-        {"slug": "fc26", "name": "FC 26", "image": "img/FC26.jpg"},
-        {"slug": "pubg", "name": "PUBG Mobile", "image": "img/PUBG.jpeg"},
-        {"slug": "mlbb", "name": "Mobile Legend", "image": "img/MobileLegend.jpg"},
-        {"slug": "cs2", "name": "CS2", "image": "img/CS2.jpg"},
+        {"slug": "efootball", "name": "eFootball", "image": "img/game_cards/efootball.jpeg"},
+        {"slug": "valorant", "name": "Valorant", "image": "img/game_cards/Valorant.jpg"},
+        {"slug": "fc26", "name": "FC 26", "image": "img/game_cards/FC26.jpg"},
+        {"slug": "pubg", "name": "PUBG Mobile", "image": "img/game_cards/PUBG.jpeg"},
+        {"slug": "mlbb", "name": "Mobile Legend", "image": "img/game_cards/MobileLegend.jpg"},
+        {"slug": "cs2", "name": "CS2", "image": "img/game_cards/CS2.jpg"},
     ]
 
     ctx = {
@@ -81,7 +81,7 @@ def home(request):
         "timeline": get_timeline(6),
         "games_strip": games_strip,
     }
-    return render(request, "home.html", ctx)
+    return render(request, "home_modern.html", ctx)
 
 
 def privacy(request):

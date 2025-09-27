@@ -31,17 +31,14 @@ from .utils import (
 
 
 # -------------------------
-# Constants (games shown in UI)
+# Game configuration using centralized assets system
 # -------------------------
+from apps.common.game_assets import GAMES as GAME_ASSETS
+
+# Generate games list from centralized configuration
 GAMES = [
-    ("valorant", "Valorant"),
-    ("efootball", "eFootball"),
-    ("pubg", "PUBG"),
-    ("freefire", "Free Fire"),
-    ("mlbb", "Mobile Legends: Bang Bang"),
-    ("csgo", "Counter-Strike"),
-    ("cs2", "Counter-Strike 2"),
-    ("fc26", "EA Sports FC 26"),
+    (code.lower(), data['display_name'])
+    for code, data in GAME_ASSETS.items()
 ]
 
 SORT_OPTIONS = [

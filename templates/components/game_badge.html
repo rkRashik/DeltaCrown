@@ -1,0 +1,10 @@
+{% comment %}
+Game Badge Component
+Usage: {% include "components/game_badge.html" with game_code="VALORANT" %}
+{% endcomment %}
+{% load game_assets %}
+
+<div class="game-badge" data-game="{{ game_code|lower }}">
+    <img src="{% game_logo game_code %}" alt="{{ game_code|title }}" class="game-badge-logo">
+    <span class="game-badge-name">{% with game_data=GAMES|get_item:game_code %}{{ game_data.display_name|default:game_code|title }}{% endwith %}</span>
+</div>

@@ -110,16 +110,15 @@ class TeamAdmin(admin.ModelAdmin):
         # 'game' may be absent on some legacy rows; render blank gracefully.
         game = getattr(obj, "game", "") or ""
         if game:
-            # Add game logo if available
-            game_logos = {
-                'valorant': '🎯 Valorant',
-                'efootball': '⚽ eFootball', 
-                'cs2': '🔫 CS2',
-                'pubg': '🏝️ PUBG',
-                'mlbb': '🏰 MLBB',
-                'fc26': '⚽ FC 26'
-            }
-            return game_logos.get(game.lower(), game.title())
+            # Use centralized game assets system
+            from apps.common.game_assets import get_game_data
+            try:
+                game_data = get_game_data(game.upper())
+                if game_data:
+                    return f"� {game_data['display_name']}"
+            except (KeyError, AttributeError):
+                pass
+            return f"🎮 {game.title()}"
         return ""
     game_display.short_description = "Game"
 

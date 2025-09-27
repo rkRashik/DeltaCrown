@@ -1,5 +1,6 @@
 ﻿{% extends "base_no_footer.html" %}
 {% load static %}
+{% load game_assets %}
 
 {% block title %}Team Rankings — DeltaCrown{% endblock %}
 
@@ -98,82 +99,12 @@
             <a href="?game={{ game_info.code }}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}{% if order %}&order={{ order }}{% endif %}" 
                class="game-filter-card {% if active_game == game_info.code %}active{% endif %}" 
                data-game="{{ game_info.code }}">
-              {% if game_info.code == 'valorant' %}
-                <img src="{% static 'img/game_cards/Valorant.jpg' %}" alt="Valorant" class="game-filter-banner">
+              
+              <!-- Use centralized game assets system -->
+              {% with game_code=game_info.code|upper %}
+                <img src="{% game_card game_code %}" alt="{{ game_info.name }}" class="game-filter-banner">
                 <div class="game-filter-overlay">
-                  <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant Logo" class="game-filter-logo">
-                  <div class="game-filter-info">
-                    <div class="game-filter-name">Valorant</div>
-                    <div class="game-filter-count">
-                      <i class="fas fa-shield-alt"></i>
-                      {{ game_info.team_count|default:"0" }} teams
-                    </div>
-                  </div>
-                </div>
-              {% elif game_info.code == 'cs2' %}
-                <img src="{% static 'img/game_cards/CS2.jpg' %}" alt="Counter-Strike 2" class="game-filter-banner">
-                <div class="game-filter-overlay">
-                  <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="CS2 Logo" class="game-filter-logo">
-                  <div class="game-filter-info">
-                    <div class="game-filter-name">Counter-Strike 2</div>
-                    <div class="game-filter-count">
-                      <i class="fas fa-shield-alt"></i>
-                      {{ game_info.team_count|default:"0" }} teams
-                    </div>
-                  </div>
-                </div>
-              {% elif game_info.code == 'efootball' %}
-                <img src="{% static 'img/game_cards/efootball.jpeg' %}" alt="eFootball" class="game-filter-banner">
-                <div class="game-filter-overlay">
-                  <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball Logo" class="game-filter-logo">
-                  <div class="game-filter-info">
-                    <div class="game-filter-name">eFootball</div>
-                    <div class="game-filter-count">
-                      <i class="fas fa-shield-alt"></i>
-                      {{ game_info.team_count|default:"0" }} teams
-                    </div>
-                  </div>
-                </div>
-              {% elif game_info.code == 'fc26' %}
-                <img src="{% static 'img/game_cards/FC26.jpg' %}" alt="FC 26" class="game-filter-banner">
-                <div class="game-filter-overlay">
-                  <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="FC 26 Logo" class="game-filter-logo">
-                  <div class="game-filter-info">
-                    <div class="game-filter-name">FC 26</div>
-                    <div class="game-filter-count">
-                      <i class="fas fa-shield-alt"></i>
-                      {{ game_info.team_count|default:"0" }} teams
-                    </div>
-                  </div>
-                </div>
-              {% elif game_info.code == 'mlbb' %}
-                <img src="{% static 'img/game_cards/MobileLegend.jpg' %}" alt="Mobile Legends" class="game-filter-banner">
-                <div class="game-filter-overlay">
-                  <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends Logo" class="game-filter-logo">
-                  <div class="game-filter-info">
-                    <div class="game-filter-name">Mobile Legends</div>
-                    <div class="game-filter-count">
-                      <i class="fas fa-shield-alt"></i>
-                      {{ game_info.team_count|default:"0" }} teams
-                    </div>
-                  </div>
-                </div>
-              {% elif game_info.code == 'pubg' %}
-                <img src="{% static 'img/game_cards/PUBG.jpeg' %}" alt="PUBG" class="game-filter-banner">
-                <div class="game-filter-overlay">
-                  <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG Logo" class="game-filter-logo">
-                  <div class="game-filter-info">
-                    <div class="game-filter-name">PUBG</div>
-                    <div class="game-filter-count">
-                      <i class="fas fa-shield-alt"></i>
-                      {{ game_info.team_count|default:"0" }} teams
-                    </div>
-                  </div>
-                </div>
-              {% else %}
-                <div class="game-filter-banner" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);"></div>
-                <div class="game-filter-overlay">
-                  <div class="game-filter-logo" style="background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);"></div>
+                  <img src="{% game_logo game_code %}" alt="{{ game_info.name }} Logo" class="game-filter-logo">
                   <div class="game-filter-info">
                     <div class="game-filter-name">{{ game_info.name }}</div>
                     <div class="game-filter-count">
@@ -182,7 +113,7 @@
                     </div>
                   </div>
                 </div>
-              {% endif %}
+              {% endwith %}
               <div class="game-filter-action">View Teams</div>
             </a>
             {% endfor %}
@@ -348,21 +279,9 @@
           <div class="floating-games">
             {% for game_info in games_list|slice:":6" %}
               <div class="floating-game-icon" style="animation-delay: {{ forloop.counter0|add:1 }}s;" data-game="{{ game_info.code }}">
-                {% if game_info.code == 'valorant' %}
-                  <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant">
-                {% elif game_info.code == 'efootball' %}
-                  <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball">
-                {% elif game_info.code == 'cs2' or game_info.code == 'csgo' %}
-                  <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike">
-                {% elif game_info.code == 'pubg' %}
-                  <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG">
-                {% elif game_info.code == 'mlbb' %}
-                  <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends">
-                {% elif game_info.code == 'fc26' %}
-                  <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26">
-                {% else %}
-                  <i class="fas fa-gamepad"></i>
-                {% endif %}
+                {% with game_code=game_info.code|upper %}
+                  <img src="{% game_logo game_code %}" alt="{{ game_info.name }}">
+                {% endwith %}
               </div>
             {% endfor %}
           </div>
@@ -425,21 +344,9 @@
              data-game="{{ game_info.code }}"
              title="{{ game_info.name }} ({{ game_info.team_count }} teams)">
             <div class="game-icon-circle">
-              {% if game_info.code == 'valorant' %}
-                <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant">
-              {% elif game_info.code == 'cs2' %}
-                <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike 2">
-              {% elif game_info.code == 'efootball' %}
-                <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball">
-              {% elif game_info.code == 'fc26' %}
-                <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="FC 26">
-              {% elif game_info.code == 'mlbb' %}
-                <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends">
-              {% elif game_info.code == 'pubg' %}
-                <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG">
-              {% else %}
-                <i class="fas fa-gamepad"></i>
-              {% endif %}
+              {% with game_code=game_info.code|upper %}
+                <img src="{% game_logo game_code %}" alt="{{ game_info.name }}">
+              {% endwith %}
             </div>
             <span class="game-icon-label">{{ game_info.name }}</span>
             <span class="game-team-count">{{ game_info.team_count }}</span>
@@ -531,28 +438,10 @@
                     
                     {% if team.game %}
                       <div class="team-game-badge">
-                        {% if team.game == 'valorant' %}
-                          <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant" class="team-game-logo">
-                          <span>Valorant</span>
-                        {% elif team.game == 'efootball' %}
-                          <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball" class="team-game-logo">
-                          <span>eFootball</span>
-                        {% elif team.game == 'cs2' %}
-                          <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="Counter-Strike 2" class="team-game-logo">
-                          <span>Counter-Strike 2</span>
-                        {% elif team.game == 'pubg' %}
-                          <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG" class="team-game-logo">
-                          <span>PUBG</span>
-                        {% elif team.game == 'mlbb' %}
-                          <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="Mobile Legends" class="team-game-logo">
-                          <span>Mobile Legends</span>
-                        {% elif team.game == 'fc26' %}
-                          <img src="{% static 'img/game_logos/fc26_logo.jpg' %}" alt="EA Sports FC 26" class="team-game-logo">
-                          <span>EA Sports FC 26</span>
-                        {% else %}
-                          <i class="fas fa-gamepad"></i>
+                        {% with game_code=team.game|upper %}
+                          <img src="{% game_logo game_code %}" alt="{{ team.game|title }}" class="team-game-logo">
                           <span>{{ team.game|title }}</span>
-                        {% endif %}
+                        {% endwith %}
                       </div>
                     {% endif %}
                   </div>

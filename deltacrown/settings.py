@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 
     # Local apps
+    "apps.common",
     "apps.corelib",
     "apps.teams",
     "apps.tournaments.apps.TournamentsConfig",
@@ -94,6 +95,8 @@ TEMPLATES = [
 
                 "apps.notifications.context_processors.notification_counts",
                 "apps.common.context.ui_settings",
+                "apps.common.context_processors.game_assets_context",
+                "apps.common.context_homepage.homepage_context",
                 "apps.siteui.context.site_settings",
                 "apps.siteui.nav_context.nav_context",
 

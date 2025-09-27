@@ -59,6 +59,15 @@ def healthz(request):
     """
     return JsonResponse({"status": "ok"})
 
+
+def test_game_assets(request):
+    """
+    Test page for centralized game assets system.
+    Shows all configured games and their logos/icons.
+    """
+    from apps.common.game_assets import GAMES
+    return render(request, "test_game_assets.html", {"GAMES": GAMES})
+
 # --------------- Tournaments: List & Detail (safe optional) ---------------
 
 def tournaments_list(request):

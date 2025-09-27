@@ -5,7 +5,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from .views import healthz
+from .views import healthz, test_game_assets
 from django.views.generic import TemplateView
 from apps.players import views as player_views
 from apps.search import views as search_views
@@ -18,6 +18,7 @@ urlpatterns = [
     # Root + health
     path("", include("apps.siteui.urls")),
     path("healthz/", healthz, name="healthz"),
+    path("test-game-assets/", test_game_assets, name="test_game_assets"),
     path("admin/", admin.site.urls),
     path("account/", include(("apps.accounts.urls", "account"), namespace="account")),
 

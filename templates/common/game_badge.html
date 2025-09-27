@@ -1,0 +1,7 @@
+<!-- Game Badge Component -->
+<span class="game-badge {{ css_class }}">
+    <img src="{{ logo_url }}" alt="{{ game.display_name }}" class="game-icon">
+    {% if show_name %}
+        {{ game.display_name }}
+    {% endif %}
+</span>
