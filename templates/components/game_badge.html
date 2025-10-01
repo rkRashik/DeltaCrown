@@ -2,7 +2,7 @@
 Game Badge Component
 Usage: {% include "components/game_badge.html" with game_code="VALORANT" %}
 {% endcomment %}
-{% load game_assets %}
+{% load game_assets dict_utils %}
 
 <div class="game-badge" data-game="{{ game_code|lower }}">
     <img src="{% game_logo game_code %}" alt="{{ game_code|title }}" class="game-badge-logo">

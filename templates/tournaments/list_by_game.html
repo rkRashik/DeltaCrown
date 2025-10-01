@@ -53,7 +53,7 @@
     {% if tournaments %}
       <div class="dc-grid">
         {% for t in tournaments %}
-          {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_item:t.id %}
+          {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
         {% endfor %}
       </div>
     {% else %}

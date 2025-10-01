@@ -15,22 +15,128 @@ from .helpers import (
     live_stream_info, bracket_url_of, build_tabs, hero_meta_for, slugify_game,
     GAME_REGISTRY, build_pdf_viewer_config,
 )
-# Stub functions for removed cards module
+# Annotation functions for tournament cards
 def annotate_cards(tournaments):
-    """Stub for card annotation functionality."""
+    """Add dc_* fields to tournament objects for template compatibility."""
+    for t in tournaments:
+        # Basic fields
+        t.dc_title = getattr(t, 'name', '') or 'Untitled Tournament'
+        t.dc_url = getattr(t, 'get_absolute_url', lambda: '#')()
+        t.dc_game = getattr(t, 'game_name', '') or getattr(t, 'game', '')
+        t.dc_banner_url = getattr(t, 'banner_url', None)
+        
+        # Financial fields
+        entry_fee = getattr(t, 'entry_fee_bdt', None) or getattr(t, 'entry_fee', None)
+        t.dc_fee_amount = float(entry_fee) if entry_fee is not None else 0.0
+        
+        prize_pool = getattr(t, 'prize_pool_bdt', None) or getattr(t, 'prize_pool', None)
+        t.dc_prize_amount = float(prize_pool) if prize_pool is not None else None
+        
+        # Status and timing
+        t.dc_status = _compute_display_status(t)
+        
+        # Slots information
+        slots_total = getattr(t, 'slot_size', None) or getattr(t, 'slots_total', None)
+        slots_taken = getattr(t, 'slots_taken', None) or 0
+        t.dc_slots_capacity = slots_total
+        t.dc_slots_current = slots_taken
+        
+        # Registration URL (don't override property, just ensure it exists)
+        if not hasattr(t, 'register_url') or not getattr(t, 'register_url', None):
+            t._register_url = f'/tournaments/register-enhanced/{getattr(t, "slug", "")}'
+        
+        # Date fields for templates
+        t.starts_at = getattr(t, 'start_at', None)
+        
     return tournaments
 
+def _compute_display_status(tournament):
+    """Compute user-friendly status for tournament cards."""
+    from django.utils import timezone
+    
+    now = timezone.now()
+    status = getattr(tournament, 'status', '').upper()
+    
+    # Check if registration is open
+    if hasattr(tournament, 'registration_open') and tournament.registration_open:
+        return 'open'
+    
+    # Check schedule-based status
+    start_at = getattr(tournament, 'start_at', None)
+    end_at = getattr(tournament, 'end_at', None)
+    
+    if start_at and end_at:
+        if now < start_at:
+            return 'open' if status == 'PUBLISHED' else 'closed'
+        elif start_at <= now <= end_at:
+            return 'live'
+        elif now > end_at:
+            return 'finished'
+    
+    # Fallback to model status
+    if status == 'PUBLISHED':
+        return 'open'
+    elif status == 'RUNNING':
+        return 'live'
+    elif status == 'COMPLETED':
+        return 'finished'
+    else:
+        return 'closed'
+
 def compute_my_states(request, tournaments):
-    """Stub for user state computation."""
-    return {}
+    """Compute user registration states for tournaments."""
+    if not getattr(request.user, 'is_authenticated', False):
+        return {}
+    
+    states = {}
+    for t in tournaments:
+        tournament_id = getattr(t, 'id', None)
+        if not tournament_id:
+            continue
+            
+        try:
+            # Check if user is registered
+            registration = Registration.objects.filter(
+                tournament=t,
+                user=request.user
+            ).first()
+            
+            if registration:
+                reg_status = getattr(registration, 'status', '').upper()
+                states[tournament_id] = {
+                    'registered': True,
+                    'status': reg_status,
+                    'cta': 'continue' if reg_status == 'CONFIRMED' else 'receipt',
+                    'cta_url': f'/tournaments/{getattr(t, "slug", "")}/dashboard/'
+                }
+            else:
+                states[tournament_id] = {
+                    'registered': False,
+                    'status': None,
+                    'cta': 'register',
+                    'cta_url': getattr(t, 'register_url', '#')
+                }
+        except Exception:
+            states[tournament_id] = {
+                'registered': False, 
+                'status': None,
+                'cta': 'register',
+                'cta_url': '#'
+            }
+    
+    return states
 
 def related_tournaments(tournament, limit=8):
-    """Stub for related tournament functionality."""
-    return Tournament.objects.filter(
-        game=tournament.game
-    ).exclude(
-        id=tournament.id
-    ).order_by('-registration_start')[:limit]
+    """Get related tournaments by game."""
+    try:
+        return Tournament.objects.filter(
+            game=tournament.game,
+            status='PUBLISHED'
+        ).exclude(
+            id=tournament.id
+        ).order_by('-created_at')[:limit]
+    except Exception:
+        return Tournament.objects.none()
 
 Tournament = apps.get_model("tournaments", "Tournament")
 Registration = apps.get_model("tournaments", "Registration")
@@ -140,25 +246,57 @@ def hub(request: HttpRequest) -> HttpResponse:
         base = base.order_by("fee_amount")
 
     # Feature rows (best-effort)
-    live_qs: List[Any] = list(base.filter(status__iexact="live")[:6]) if hasattr(Tournament, "status") else []
+    live_qs: List[Any] = []
     starting_soon_qs: List[Any] = []
     new_this_week_qs: List[Any] = []
     free_qs: List[Any] = []
+    
+    now = timezone.now()
+    
+    # Live tournaments - check both status and timing
+    if hasattr(Tournament, "status"):
+        live_by_status = list(base.filter(status__iexact="RUNNING")[:3])
+        live_qs.extend(live_by_status)
+    
+    # Also check for tournaments that should be live based on timing
+    if hasattr(Tournament, "start_at") and hasattr(Tournament, "end_at"):
+        live_by_time = list(base.filter(
+            start_at__lte=now,
+            end_at__gte=now,
+            status="PUBLISHED"
+        ).exclude(id__in=[t.id for t in live_qs])[:3])
+        live_qs.extend(live_by_time)
+    
+    live_qs = live_qs[:6]  # Limit to 6 total
 
-    if hasattr(Tournament, "starts_at"):
-        now = timezone.now()
+    if hasattr(Tournament, "start_at"):
         soon = now + timezone.timedelta(days=7)
-        starting_soon_qs = list(base.filter(starts_at__gte=now, starts_at__lte=soon).order_by("starts_at")[:6])
-        if hasattr(Tournament, "created_at"):
-            new_this_week_qs = list(base.filter(created_at__gte=now - timezone.timedelta(days=7))[:6])
-        else:
-            new_this_week_qs = list(base[:6])
+        starting_soon_qs = list(base.filter(
+            start_at__gte=now, 
+            start_at__lte=soon,
+            status="PUBLISHED"
+        ).order_by("start_at")[:6])
+        
+    if hasattr(Tournament, "created_at"):
+        week_ago = now - timezone.timedelta(days=7)
+        new_this_week_qs = list(base.filter(
+            created_at__gte=week_ago,
+            status="PUBLISHED"
+        ).order_by("-created_at")[:6])
+    else:
+        new_this_week_qs = list(base.filter(status="PUBLISHED")[:6])
 
-    if hasattr(Tournament, "fee_amount"):
-        free_qs = list(base.filter(fee_amount=0)[:6])
-    elif hasattr(Tournament, "entry_fee_bdt") or hasattr(Tournament, "entry_fee"):
-        field = "entry_fee_bdt" if hasattr(Tournament, "entry_fee_bdt") else "entry_fee"
-        free_qs = list(base.filter(**{field: 0})[:6])
+    # Free tournaments
+    if hasattr(Tournament, "entry_fee_bdt"):
+        free_qs = list(base.filter(
+            entry_fee_bdt__isnull=True,
+            status="PUBLISHED"
+        )[:6])
+        if not free_qs:
+            free_qs = list(base.filter(
+                entry_fee_bdt=0,
+                status="PUBLISHED"
+            )[:6])
 
     tournaments = list(base[:24])
 
@@ -169,23 +307,75 @@ def hub(request: HttpRequest) -> HttpResponse:
     annotate_cards(new_this_week_qs)
     annotate_cards(free_qs)
 
-    # Browse-by-game meta
+    # Browse-by-game meta - use actual tournament game choices
     games = []
-    for key, g in GAME_REGISTRY.items():
-        cnt = base.filter(game=key).count() if hasattr(Tournament, "game") else 0
-        games.append({
-            "slug": key, "name": g["name"],
-            "primary": g["primary"], "image": g.get("card_image"),
-            "count": cnt,
-        })
+    if hasattr(Tournament, "Game"):
+        # Use the model's game choices
+        for game_choice in Tournament.Game.choices:
+            game_key = game_choice[0]  # valorant, efootball, etc.
+            game_display = game_choice[1]  # Valorant, eFootball Mobile, etc.
+            
+            # Get count of published tournaments for this game
+            cnt = base.filter(game=game_key, status="PUBLISHED").count()
+            
+            # Get registry data or use defaults
+            g = GAME_REGISTRY.get(game_key, {})
+            games.append({
+                "slug": game_key, 
+                "name": game_display,
+                "primary": g.get("primary", "#7c3aed"), 
+                "image": g.get("card_image"),
+                "count": cnt,
+            })
+    else:
+        # Fallback to registry only
+        for key, g in GAME_REGISTRY.items():
+            cnt = base.filter(game=key).count() if hasattr(Tournament, "game") else 0
+            games.append({
+                "slug": key, "name": g["name"],
+                "primary": g["primary"], "image": g.get("card_image"),
+                "count": cnt,
+            })
 
     my_states = compute_my_states(request, tournaments)
 
-    stats = {"total_active": 0}
+    # Real stats from database
+    stats = {}
     try:
-        stats["total_active"] = base.filter(is_open=True).count() if hasattr(Tournament, "is_open") else base.count()
-    except Exception:
-        pass
+        # Active tournaments (published and registration open or running)
+        active_count = base.filter(
+            status__in=["PUBLISHED", "RUNNING"]
+        ).count()
+        stats["total_active"] = active_count
+        
+        # Players this month (from registrations)
+        from datetime import datetime
+        this_month_start = datetime(now.year, now.month, 1, tzinfo=now.tzinfo)
+        players_this_month = Registration.objects.filter(
+            created_at__gte=this_month_start
+        ).values('user').distinct().count()
+        stats["players_this_month"] = f"{players_this_month:,}"
+        
+        # Prize pool this month (from published tournaments)
+        from django.db.models import Sum
+        prize_sum = base.filter(
+            status="PUBLISHED",
+            created_at__gte=this_month_start,
+            prize_pool_bdt__isnull=False
+        ).aggregate(total=Sum('prize_pool_bdt'))['total']
+        
+        if prize_sum:
+            stats["prize_pool_month"] = f"{int(prize_sum):,}"
+        else:
+            stats["prize_pool_month"] = "0"
+            
+    except Exception as e:
+        # Fallback values
+        stats = {
+            "total_active": base.filter(status="PUBLISHED").count(),
+            "players_this_month": "0",
+            "prize_pool_month": "0"
+        }
 
     ctx = {
         "q": q, "sort": sort,

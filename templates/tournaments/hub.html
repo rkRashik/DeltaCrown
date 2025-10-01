@@ -107,7 +107,7 @@
   {% if tournaments %}
     <div class="grid">
       {% for t in tournaments %}
-        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_item:t.id %}
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
       {% endfor %}
     </div>
   {% else %}
@@ -123,7 +123,7 @@
   <div class="carousel">
     {% for t in starting_soon %}
       <div class="carousel-item">
-        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_item:t.id %}
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
       </div>
     {% endfor %}
   </div>
@@ -136,7 +136,7 @@
   </section>
   <div class="grid">
     {% for t in new_this_week %}
-      {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_item:t.id %}
+      {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
     {% endfor %}
   </div>
   {% endif %}

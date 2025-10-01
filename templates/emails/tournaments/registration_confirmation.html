@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Registration Confirmation - {{ tournament.name }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .header { background: linear-gradient(135deg, #C9A96E, #F4E4BC); padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .tournament-info { background: white; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .payment-info { background: #e8f4f8; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3; }
+        .footer { background: #333; color: white; padding: 20px; text-align: center; }
+        .btn { background: #C9A96E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏆 DeltaCrown Tournament Registration</h1>
+        <h2>{{ tournament.name }}</h2>
+    </div>
+    
+    <div class="content">
+        <p>Hello {{ user.display_name|default:user.user.username }},</p>
+        
+        <p>Thank you for registering for our tournament! Your registration has been received and is currently pending payment verification.</p>
+        
+        <div class="tournament-info">
+            <h3>Tournament Details</h3>
+            <ul>
+                <li><strong>Game:</strong> {{ tournament.get_game_display }}</li>
+                <li><strong>Start Date:</strong> {{ tournament.start_at|date:"F d, Y \a\t g:i A" }}</li>
+                <li><strong>Entry Fee:</strong> ৳{{ tournament.entry_fee_bdt|default:0 }}</li>
+                <li><strong>Prize Pool:</strong> ৳{{ tournament.prize_pool_bdt|default:0 }}</li>
+                <li><strong>Slots:</strong> {{ tournament.slots_taken }}/{{ tournament.slot_size }}</li>
+            </ul>
+        </div>
+        
+        {% if tournament.entry_fee_bdt > 0 %}
+        <div class="payment-info">
+            <h3>💳 Payment Instructions</h3>
+            <p>Please complete your payment using any of the following methods:</p>
+            <ul>
+                <li><strong>bKash:</strong> 01XXXXXXXXX</li>
+                <li><strong>Nagad:</strong> 01XXXXXXXXX</li>
+                <li><strong>Rocket:</strong> 01XXXXXXXXX</li>
+            </ul>
+            <p><strong>Reference:</strong> DC-{{ tournament.id }}-{{ registration.id }}</p>
+            <p>After payment, reply with your transaction ID through the tournament portal.</p>
+        </div>
+        {% endif %}
+        
+        <p>
+            <a href="{{ tournament.get_absolute_url }}" class="btn">View Tournament Details</a>
+        </p>
+        
+        <p>We'll confirm your registration once payment is verified. Good luck and see you in the tournament!</p>
+    </div>
+    
+    <div class="footer">
+        <p><strong>DeltaCrown</strong> - Bangladesh's Premier Esports Platform</p>
+        <p>For support, contact us at support@deltacrown.com</p>
+    </div>
+</body>
+</html>
+    
