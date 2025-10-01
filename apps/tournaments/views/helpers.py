@@ -221,17 +221,36 @@ def register_url(t: Any) -> str:
     """
     Generate appropriate registration URL based on tournament game and type.
     Routes to specific registration templates:
-    - Valorant tournaments → valorant_register.html
-    - eFootball tournaments → efootball_register.html  
-    - Solo tournaments → enhanced_solo_register.html
-    - Team tournaments → enhanced_team_register.html
+    - Valorant team tournaments → valorant_register.html
+    - eFootball duo tournaments → efootball_register.html  
+    - 1v1 solo tournaments → enhanced_solo_register.html
+    - Other team tournaments → enhanced_team_register.html
     """
     try:
-        # Get game information
+        # Get game and tournament information
         game_name = str(getattr(t, 'game', '')).lower()
         game_type = str(getattr(t, 'game_type', '')).lower()
+        tournament_mode = str(getattr(t, 'mode', '')).lower()
+        tournament_name = str(getattr(t, 'name', '')).lower()
         
-        # Game-specific registration forms (always take precedence)
+        # Check for 1v1 indicators FIRST (highest priority)
+        is_1v1 = (
+            '1v1' in tournament_mode or
+            '1v1' in tournament_name or
+            '1 v 1' in tournament_name or
+            'solo' in tournament_mode or
+            'solo' in tournament_name or
+            'individual' in tournament_mode or
+            getattr(t, 'team_size', 0) == 1 or
+            getattr(t, 'min_team_size', 0) == 1 or
+            getattr(t, 'max_team_size', 0) == 1
+        )
+        
+        # If it's explicitly 1v1, route to solo registration regardless of game
+        if is_1v1:
+            return reverse("tournaments:enhanced_register", args=[t.slug]) + "?type=solo"
+        
+        # Game-specific registration forms for TEAM tournaments
         if 'valorant' in game_name or 'valorant' in game_type:
             return reverse("tournaments:valorant_register", args=[t.slug])
         
@@ -243,16 +262,18 @@ def register_url(t: Any) -> str:
             from apps.tournaments.views.registration_unified import _is_team_tournament
             is_team = _is_team_tournament(t)
         except Exception:
-            # Fallback team detection
+            # Fallback team detection (only if > 1 players required)
             is_team = False
-            team_indicators = ['team_size', 'min_team_size', 'max_team_size', 'team_mode']
+            team_indicators = ['team_size', 'min_team_size', 'max_team_size']
             for indicator in team_indicators:
                 if hasattr(t, indicator):
                     value = getattr(t, indicator)
-                    if value and (isinstance(value, int) and value > 1 or 
-                                 isinstance(value, bool) and value):
+                    if value and isinstance(value, int) and value > 1:
                         is_team = True
                         break
+            # Check team_mode boolean
+            if hasattr(t, 'team_mode') and getattr(t, 'team_mode'):
+                is_team = True
         
         # Route to enhanced registration based on tournament type
         if is_team:

@@ -27,6 +27,7 @@ from .enums import BracketVisibility
 # Models
 from .tournament import Tournament
 from .registration import Registration
+from .registration_request import RegistrationRequest
 from .bracket import Bracket
 from .match import Match
 from .tournament_settings import TournamentSettings
@@ -49,6 +50,7 @@ __all__ = [
     # models
     "Tournament",
     "Registration",
+    "RegistrationRequest",
     "Bracket",
     "Match",
     "TournamentSettings",
@@ -56,4 +58,5 @@ __all__ = [
     "MatchComment",
     "MatchDispute",
     "MatchDisputeEvidence",
+    "PaymentVerification",
 ]

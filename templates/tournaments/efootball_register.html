@@ -447,6 +447,40 @@ body {
         {% endfor %}
     {% endif %}
 
+    {# Check registration status #}
+    {% if already_registered %}
+        <div class="bg-green-500/10 border border-green-500/30 p-6 rounded-lg text-center mb-6">
+            <h2 class="text-2xl font-bold text-green-400 mb-2">✓ Already Registered</h2>
+            <p class="text-green-300">Your team is already registered for this tournament.</p>
+        </div>
+    {% elif pending_request %}
+        <div class="bg-yellow-500/10 border border-yellow-500/30 p-6 rounded-lg text-center mb-6">
+            <h2 class="text-2xl font-bold text-yellow-400 mb-2">⏳ Request Pending</h2>
+            <p class="text-yellow-300">You've requested your team captain to register for this tournament.</p>
+            <p class="text-yellow-200 text-sm mt-2">Waiting for captain approval...</p>
+        </div>
+    {% elif user_team and not is_captain %}
+        <div class="bg-blue-500/10 border border-blue-500/30 p-6 rounded-lg mb-6">
+            <h2 class="text-2xl font-bold text-blue-400 mb-3">⚽ Request Team Registration</h2>
+            <p class="text-blue-300 mb-4">You're not the captain of {{ user_team.name }}. Request your captain to register for this tournament.</p>
+            
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="request_approval">
+                
+                <div class="form-group">
+                    <label class="form-label">Message to Captain (Optional)</label>
+                    <textarea name="request_message" rows="3" class="form-input" 
+                              placeholder="Add a message for your captain..."></textarea>
+                </div>
+                
+                <button type="submit" class="submit-button w-full">
+                    📨 Send Registration Request to Captain
+                </button>
+            </form>
+        </div>
+    {% endif %}
+
     <!-- Header Section -->
     <div class="efootball-header">
         <h1 class="efootball-title glow-text">eFootball Tournament</h1>
@@ -476,6 +510,9 @@ body {
         </div>
     </div>
 
+    {# Only show registration form for captains or users without a team #}
+    {% if not already_registered and not pending_request %}
+        {% if not user_team or is_captain %}
     <!-- Registration Form -->
     <form method="post" enctype="multipart/form-data" class="form-container">
         {% csrf_token %}
@@ -487,38 +524,51 @@ body {
         <div class="form-section">
             <div class="section-header">
                 <div class="section-number">1</div>
-                <h3 class="section-title">Team Information</h3>
+                <h3 class="section-title">Duo Team Information</h3>
             </div>
             
             {% if user_team %}
-                <div class="info-note mb-4">
+                <div class="info-note mb-4 bg-green-500/5 border-green-500/20">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="text-efootball-green">⚽</span>
-                        <strong>Existing Team Found: {{ user_team.name }}</strong>
+                        <strong>Using Existing Duo: {{ user_team.name }}</strong>
                     </div>
-                    <div class="text-sm">Your duo team information has been automatically loaded. You can update it below if needed.</div>
+                    <div class="text-sm text-gray-300">
+                        Registering with your saved eFootball duo. Team details are locked to maintain consistency.
+                        {% if team_members %}
+                        <br><strong class="text-white">Duo Partners ({{ team_members|length }}):</strong> 
+                        {% for member in team_members %}{{ member.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        {% endif %}
+                    </div>
                 </div>
+                <input type="hidden" name="use_existing_team" value="true">
+                <input type="hidden" name="team_id" value="{{ user_team.id }}">
             {% else %}
-                <div class="info-note mb-4">
+                <div class="info-note mb-4 bg-blue-500/5 border-blue-500/20">
                     <div class="flex items-center gap-2 mb-2">
                         <span class="text-efootball-green">➕</span>
                         <strong>Create New eFootball Duo</strong>
                     </div>
-                    <div class="text-sm">You don't have an eFootball team yet. Create one below for this tournament.</div>
+                    <div class="text-sm text-gray-300">
+                        Create a new 2-player team for this tournament. You'll become the team captain automatically.
+                    </div>
                 </div>
             {% endif %}
             
             <div class="form-grid form-grid-2">
                 <div class="form-group">
                     <label class="form-label">
-                        Team Name <span class="required">*</span>
+                        Duo Team Name <span class="required">*</span>
                     </label>
                     <input type="text" name="team_name" class="form-input" 
                            value="{% if user_team %}{{ user_team.name }}{% endif %}"
-                           placeholder="Enter your duo team name" required>
+                           placeholder="Enter your duo team name" required
+                           {% if user_team %}readonly title="Team name is locked for existing duos"{% endif %}>
+                    {% if not user_team %}
                     <div class="info-note">
-                        This name will appear on the tournament bracket and all official communications.
+                        Choose a unique name for your eFootball duo (e.g., "FC Strikers", "Goal Masters")
                     </div>
+                    {% endif %}
                 </div>
                 
                 <div class="form-group">
@@ -527,37 +577,44 @@ body {
                     </label>
                     <input type="text" name="team_tag" class="form-input" 
                            value="{% if user_team %}{{ user_team.tag|default:'' }}{% endif %}"
-                           placeholder="e.g., FC, EFC" maxlength="5">
+                           placeholder="e.g., FC, EFC, STK" maxlength="5"
+                           {% if user_team %}readonly title="Team tag is locked for existing duos"{% endif %}>
+                    {% if not user_team %}
                     <div class="info-note">
-                        A short abbreviation of your team name (max 5 characters).
+                        Short abbreviation (max 5 chars) - e.g., "FC", "EFC", "STK"
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Team Logo <span class="text-gray-400">(Optional)</span></label>
                 <div class="file-upload-zone">
-                    <input type="file" name="team_logo" accept="image/*" style="display: none;" id="team-logo-input">
+                    <input type="file" name="team_logo" accept="image/*" style="display: none;" id="team-logo-input"
+                           {% if user_team %}disabled title="Logo cannot be changed during registration"{% endif %}>
                     <label for="team-logo-input" class="cursor-pointer">
                         {% if user_team and user_team.logo %}
                             <img src="{{ user_team.logo.url }}" alt="Current team logo" class="max-h-16 mb-2 mx-auto">
-                            <div class="font-medium">Click to change team logo</div>
+                            <div class="font-medium text-gray-400">Duo logo (locked)</div>
+                        {% elif user_team %}
+                            <div class="text-gray-400 text-2xl mb-2">⚽</div>
+                            <div class="font-medium text-gray-400">No logo set</div>
                         {% else %}
                             <div class="text-efootball-green text-2xl mb-2">⚽</div>
                             <div class="font-medium">Click to upload team logo</div>
+                            <div class="text-sm text-gray-400 mt-1">PNG, JPG up to 5MB (Recommended: 512x512px)</div>
                         {% endif %}
-                        <div class="text-sm text-gray-400 mt-1">PNG, JPG up to 5MB</div>
                     </label>
                 </div>
             </div>
             
             {% if not user_team %}
                 <div class="checkbox-group">
-                    <input type="checkbox" name="save_team" class="checkbox-input" checked>
-                    <label class="text-sm">
-                        <span class="font-medium text-efootball-light">Save this duo team to my profile for future tournaments</span>
+                    <input type="checkbox" name="save_team" class="checkbox-input" id="save-duo-check" checked>
+                    <label for="save-duo-check" class="text-sm cursor-pointer">
+                        <span class="font-medium text-efootball-light">💾 Save this duo to my profile</span>
                         <div class="text-gray-400 mt-1">
-                            This will create a permanent duo team that you can use across multiple eFootball tournaments.
+                            Recommended: Creates a permanent duo for future eFootball tournaments and easier management.
                         </div>
                     </label>
                 </div>
@@ -580,23 +637,25 @@ body {
                     <label class="form-label">
                         Full Name <span class="required">*</span>
                     </label>
-                    <input type="text" name="captain_full_name" class="form-input" 
-                           placeholder="Enter captain's full name" required>
+              <input type="text" name="captain_full_name" class="form-input" 
+                  placeholder="Enter captain's full name" required
+                  value="{{ prefill.full_name|default:'' }}">
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">
                         Email Address <span class="required">*</span>
                     </label>
-                    <input type="email" name="captain_email" class="form-input" 
-                           placeholder="captain@example.com" required>
+              <input type="email" name="captain_email" class="form-input" 
+                  placeholder="captain@example.com" required
+                  value="{{ prefill.email|default:'' }}" {% if lock_email %}readonly{% endif %}>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label" for="captain_efootball_id">
                         eFootball ID <span class="required">*</span>
                     </label>
-                    <input type="text" 
+              <input type="text" 
                            name="captain_efootball_id" 
                            id="captain_efootball_id"
                            class="form-input" 
@@ -606,6 +665,7 @@ body {
                            maxlength="50"
                            title="Enter your eFootball game ID as it appears in-game"
                            aria-describedby="efootball-id-help efootball-id-error">
+              <script>document.addEventListener('DOMContentLoaded',function(){var f=document.getElementById('captain_efootball_id');if(f&&'{{ prefill.efootball_id|default:'' }}'){f.value='{{ prefill.efootball_id|escapejs }}';}});</script>
                     <div class="info-note" id="efootball-id-help">
                         Enter your eFootball game ID or Konami ID exactly as it appears in-game.
                     </div>
@@ -616,8 +676,9 @@ body {
                     <label class="form-label">
                         Discord ID <span class="required">*</span>
                     </label>
-                    <input type="text" name="captain_discord" class="form-input" 
-                           placeholder="Username#1234" required>
+              <input type="text" name="captain_discord" class="form-input" 
+                  placeholder="Username#1234" required
+                  value="{{ prefill.discord_id|default:'' }}">
                     <div class="info-note">
                         Your Discord username with discriminator for tournament communications.
                     </div>
@@ -672,23 +733,23 @@ body {
                     <div class="form-grid form-grid-2">
                         <div class="form-group">
                             <label class="form-label">Full Name <span class="required">*</span></label>
-                            <input type="text" name="player_1_name" class="form-input" required 
-                                   placeholder="Same as captain name above">
+                <input type="text" name="player_1_name" class="form-input" required 
+                    placeholder="Same as captain name above" value="{{ prefill.full_name|default:'' }}">
                         </div>
                         <div class="form-group">
                             <label class="form-label">eFootball ID <span class="required">*</span></label>
-                            <input type="text" name="player_1_efootball_id" class="form-input" required
-                                   placeholder="Same as captain eFootball ID above">
+                <input type="text" name="player_1_efootball_id" class="form-input" required
+                    placeholder="Same as captain eFootball ID above" value="{{ prefill.efootball_id|default:'' }}">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Discord ID <span class="required">*</span></label>
-                            <input type="text" name="player_1_discord" class="form-input" required
-                                   placeholder="Same as captain Discord above">
+                <input type="text" name="player_1_discord" class="form-input" required
+                    placeholder="Same as captain Discord above" value="{{ prefill.discord_id|default:'' }}">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Email <span class="required">*</span></label>
-                            <input type="email" name="player_1_email" class="form-input" required
-                                   placeholder="Same as captain email above">
+                <input type="email" name="player_1_email" class="form-input" required
+                    placeholder="Same as captain email above" value="{{ prefill.email|default:'' }}">
                         </div>
                     </div>
                 </div>
@@ -896,6 +957,8 @@ body {
             </div>
         </div>
     </form>
+        {% endif %}
+    {% endif %}
 </div>
 
 <script>
@@ -1055,29 +1118,65 @@ function setupTeamDataSync() {
 }
 
 function loadExistingTeamData(teamMembers) {
+    console.log('Auto-filling eFootball duo members:', teamMembers);
+    
     teamMembers.forEach((member, index) => {
         if (index === 0) {
-            // Captain (Player 1) - auto-populated
+            // Captain (Player 1) - auto-populated from profile and team
             if (member.name) {
                 const nameInput = document.querySelector('input[name="captain_full_name"]');
-                if (nameInput) nameInput.value = member.name;
+                if (nameInput && !nameInput.value) nameInput.value = member.name;
             }
             if (member.email) {
                 const emailInput = document.querySelector('input[name="captain_email"]');
-                if (emailInput) emailInput.value = member.email;
+                if (emailInput && !emailInput.value) emailInput.value = member.email;
+            }
+            if (member.efootball_id) {
+                const efootballInput = document.querySelector('input[name="captain_efootball_id"]');
+                if (efootballInput && !efootballInput.value) efootballInput.value = member.efootball_id;
+            }
+            if (member.discord_id) {
+                const discordInput = document.querySelector('input[name="captain_discord"]');
+                if (discordInput && !discordInput.value) discordInput.value = member.discord_id;
+            }
+            if (member.phone) {
+                const phoneInput = document.querySelector('input[name="captain_phone"]');
+                if (phoneInput && !phoneInput.value) phoneInput.value = member.phone;
+            }
+            if (member.country) {
+                const countryInput = document.querySelector('select[name="captain_country"]');
+                if (countryInput) countryInput.value = member.country;
             }
         } else if (index === 1) {
-            // Player 2 (Partner)
+            // Player 2 (Partner) - auto-fill from team member
             if (member.name) {
                 const nameInput = document.querySelector('input[name="player_2_name"]');
-                if (nameInput) nameInput.value = member.name;
+                if (nameInput && !nameInput.value) nameInput.value = member.name;
+            }
+            if (member.efootball_id) {
+                const efootballInput = document.querySelector('input[name="player_2_efootball_id"]');
+                if (efootballInput && !efootballInput.value) efootballInput.value = member.efootball_id;
+            }
+            if (member.discord_id) {
+                const discordInput = document.querySelector('input[name="player_2_discord"]');
+                if (discordInput && !discordInput.value) discordInput.value = member.discord_id;
             }
             if (member.email) {
                 const emailInput = document.querySelector('input[name="player_2_email"]');
-                if (emailInput) emailInput.value = member.email;
+                if (emailInput && !emailInput.value) emailInput.value = member.email;
+            }
+            if (member.phone) {
+                const phoneInput = document.querySelector('input[name="player_2_phone"]');
+                if (phoneInput && !phoneInput.value) phoneInput.value = member.phone;
+            }
+            if (member.country) {
+                const countryInput = document.querySelector('select[name="player_2_country"]');
+                if (countryInput) countryInput.value = member.country;
             }
         }
     });
+    
+    console.log(`Auto-filled ${teamMembers.length} duo members`);
 }
 
 function initializeProgressTracking() {

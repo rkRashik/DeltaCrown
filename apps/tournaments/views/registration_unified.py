@@ -22,6 +22,24 @@ from django.core.exceptions import ValidationError
 
 from .helpers import read_title, read_fee_amount, coin_policy_of, rules_pdf_of, maybe_text
 
+# Use service for creating registrations + emails
+try:
+    from apps.tournaments.services.enhanced_registration import create_registration_with_email
+except Exception:  # pragma: no cover
+    create_registration_with_email = None
+
+# Use service for registration requests
+try:
+    from apps.tournaments.services.registration_request import create_registration_request
+except Exception:  # pragma: no cover
+    create_registration_request = None
+
+# Use service for registration requests
+try:
+    from apps.tournaments.services.registration_request import create_registration_request
+except Exception:  # pragma: no cover
+    create_registration_request = None
+
 # Models
 Tournament = apps.get_model("tournaments", "Tournament")
 Registration = apps.get_model("tournaments", "Registration")
@@ -346,34 +364,61 @@ def valorant_register(request: HttpRequest, slug: str) -> HttpResponse:
     payment_config = _get_payment_config(tournament)
     tournament_rules = _get_tournament_rules(tournament)
     
-    # Check if user has an existing Valorant team
+    # Check if user has an existing Valorant team (use UserProfile-based membership)
     user_team = None
+    is_captain = False
     team_members = []
-    if Team and TeamMembership:
+    profile = _get_user_profile(request.user)
+    if Team and TeamMembership and profile:
         try:
-            # Look for user's team membership
             membership = TeamMembership.objects.select_related("team").filter(
-                user=request.user,
-                team__name__icontains="valorant"  # Basic Valorant team detection
+                profile=profile,
+                status="ACTIVE",
+                team__game="valorant",
             ).first()
-            
             if membership:
                 user_team = membership.team
-                # Get all team members
-                team_memberships = TeamMembership.objects.select_related("user").filter(
-                    team=user_team
-                ).order_by("-is_captain", "id")
-                
-                for mem in team_memberships:
+                is_captain = getattr(membership, "role", "").upper() == "CAPTAIN"
+                # Gather members with full details
+                for mem in TeamMembership.objects.select_related("profile__user").filter(team=user_team, status="ACTIVE").order_by("-role", "joined_at"):
+                    u = getattr(mem.profile, "user", None)
+                    p = getattr(mem, "profile", None)
+                    full_name = (getattr(u, "get_full_name", lambda: "")() or getattr(u, "username", "")).strip() if u else ""
+                    email = getattr(u, "email", "") if u else ""
                     team_members.append({
-                        "name": getattr(mem.user, 'first_name', '') + ' ' + getattr(mem.user, 'last_name', ''),
-                        "email": getattr(mem.user, 'email', ''),
-                        "is_captain": getattr(mem, 'is_captain', False),
-                        # Add more fields as needed
+                        "name": full_name,
+                        "email": email,
+                        "riot_id": getattr(p, "riot_id", "") if p else "",
+                        "discord_id": getattr(p, "discord_id", "") if p else "",
+                        "phone": getattr(p, "phone", "") if p else "",
+                        "country": getattr(p, "country", "") if p else "",
+                        "is_captain": getattr(mem, "role", "").upper() == "CAPTAIN",
                     })
         except Exception:
             pass
     
+    # Prefill from profile/user
+    prefill = {
+        "full_name": (getattr(request.user, "get_full_name", lambda: "")() or getattr(request.user, "username", "")).strip(),
+        "email": getattr(request.user, "email", "") or "",
+        "discord_id": getattr(profile, "discord_id", "") if profile else "",
+        "riot_id": getattr(profile, "riot_id", "") if profile else "",
+    }
+
+    # Check for existing registration or pending request
+    already_registered = False
+    pending_request = None
+    if user_team:
+        from apps.tournaments.models import Registration, RegistrationRequest
+        already_registered = Registration.objects.filter(tournament=tournament, team=user_team).exists()
+        if not already_registered and not is_captain:
+            pending_request = RegistrationRequest.objects.filter(
+                tournament=tournament,
+                team=user_team,
+                requester=profile,
+                status=RegistrationRequest.Status.PENDING
+            ).first()
+
     context = {
         "tournament": tournament,
         "title": title,
@@ -382,12 +427,40 @@ def valorant_register(request: HttpRequest, slug: str) -> HttpResponse:
         "tournament_rules": tournament_rules,
         "user_team": user_team,
         "team_members": team_members,
+        "prefill": prefill,
+        "lock_email": True,
+        "is_captain": is_captain,
+        "already_registered": already_registered,
+        "pending_request": pending_request,
     }
     
     # Handle form submission
     if request.method == "POST":
         # Honeypot protection
         if request.POST.get("website", "").strip():
+            return redirect(reverse("tournaments:valorant_register", kwargs={"slug": slug}))
+        
+        # Handle non-captain request for approval
+        if request.POST.get("action") == "request_approval" and user_team and not is_captain:
+            try:
+                if create_registration_request:
+                    request_message = request.POST.get("request_message", "").strip()
+                    create_registration_request(
+                        requester=profile,
+                        tournament=tournament,
+                        team=user_team,
+                        message=request_message or "Please approve registration for this tournament."
+                    )
+                    messages.success(
+                        request,
+                        "Your request has been sent to your team captain. You will be notified when they respond."
+                    )
+                else:
+                    messages.error(request, "Request feature is not available.")
+            except ValidationError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f"Failed to send request: {str(e)}")
             return redirect(reverse("tournaments:valorant_register", kwargs={"slug": slug}))
         
         try:
@@ -496,83 +569,34 @@ def valorant_register(request: HttpRequest, slug: str) -> HttpResponse:
                     if not payment_data["payer_account_number"]:
                         raise ValidationError("Account number is required")
                 
-                # Handle team creation/saving
+                # Captain-only registration when a team exists
+                if user_team and not is_captain:
+                    raise ValidationError("Only the team captain can register the team")
+
+                # Handle team creation/saving using UserProfile-based helpers
                 save_team = request.POST.get("save_team") == "on"
-                team = None
-                
-                if Team:
-                    if save_team or user_team:
-                        # Create or update permanent team
-                        if user_team:
-                            # Update existing team
-                            team = user_team
-                            team.name = team_data["team_name"]
-                            team.tag = team_data["team_tag"] or ""
-                            if team_data["team_logo"]:
-                                team.logo = team_data["team_logo"]
-                            team.save()
-                        else:
-                            # Create new permanent team
-                            team, created = Team.objects.get_or_create(
-                                name=team_data["team_name"],
-                                defaults={
-                                    "captain": request.user,
-                                    "tag": team_data["team_tag"] or "",
-                                    "description": f"Valorant team",
-                                }
-                            )
-                            
-                            if not created:
-                                # Team exists, check if user is captain
-                                if team.captain != request.user:
-                                    raise ValidationError("A team with this name already exists")
-                            
-                            # Handle team logo upload
-                            if team_data["team_logo"]:
-                                team.logo = team_data["team_logo"]
-                                team.save()
-                            
-                            # Create team membership for captain
-                            if TeamMembership:
-                                TeamMembership.objects.get_or_create(
-                                    team=team,
-                                    user=request.user,
-                                    defaults={
-                                        "is_captain": True,
-                                        "role": "captain"
-                                    }
-                                )
+                team = user_team
+                if not team:
+                    if not save_team:
+                        # For Valorant, we require a real team (enforced by signals); create one
+                        team = _create_team_for_user(request.user, team_data["team_name"], team_data.get("team_logo"), game="valorant")
+                        # Optional: set tag/logo
+                        if team and team_data.get("team_tag"):
+                            team.tag = team_data["team_tag"]
+                            team.save(update_fields=["tag"])            
                     else:
-                        # Tournament-only team (not saved to profile)
-                        team, created = Team.objects.get_or_create(
-                            name=f"{team_data['team_name']} - {tournament.name}",
-                            defaults={
-                                "captain": request.user,
-                                "tag": team_data["team_tag"] or "",
-                                "description": f"Tournament team for {tournament.name}",
-                            }
-                        )
+                        team = _create_team_for_user(request.user, team_data["team_name"], team_data.get("team_logo"), game="valorant")
                 
-                # Create registration
-                reg_data = {
-                    "tournament": tournament,
-                    "user": request.user,
-                    "display_name": captain_data["full_name"],
-                    "phone": captain_data["phone"],
-                    "email": captain_data["email"],
-                    "in_game_id": captain_data["riot_id"],
-                }
-                
-                if team:
-                    reg_data["team"] = team
-                
-                # Add payment info if provided
-                if payment_data.get("payment_reference"):
-                    reg_data["payment_reference"] = payment_data["payment_reference"]
-                if payment_data.get("payer_account_number"):
-                    reg_data["payment_sender"] = payment_data["payer_account_number"]
-                
-                registration = Registration.objects.create(**reg_data)
+                # Create registration via service (ensures email + payment verification)
+                if create_registration_with_email:
+                    registration = create_registration_with_email(
+                        tournament=tournament,
+                        team=team,
+                        payment_method=payment_data.get("payment_method"),
+                        payment_reference=payment_data.get("payment_reference"),
+                    )
+                else:
+                    registration = Registration.objects.create(tournament=tournament, team=team, status="PENDING")
                 
                 # Store additional Valorant-specific data in registration notes or custom fields
                 valorant_data = {
@@ -639,33 +663,59 @@ def efootball_register(request: HttpRequest, slug: str) -> HttpResponse:
     payment_config = _get_payment_config(tournament)
     tournament_rules = _get_tournament_rules(tournament)
     
-    # Check if user has an existing eFootball team
+    # Check if user has an existing eFootball team for this game (UserProfile-based)
     user_team = None
+    is_captain = False
     team_members = []
-    if Team and TeamMembership:
+    profile = _get_user_profile(request.user)
+    if Team and TeamMembership and profile:
         try:
-            # Look for user's eFootball team membership
             membership = TeamMembership.objects.select_related("team").filter(
-                user=request.user,
-                team__name__icontains="efootball"  # Basic eFootball team detection
+                profile=profile,
+                status="ACTIVE",
+                team__game="efootball",
             ).first()
-            
             if membership:
                 user_team = membership.team
-                # Get all team members (should be exactly 2 for eFootball)
-                team_memberships = TeamMembership.objects.select_related("user").filter(
-                    team=user_team
-                ).order_by("-is_captain", "id")
-                
-                for mem in team_memberships:
+                is_captain = getattr(membership, "role", "").upper() == "CAPTAIN"
+                for mem in TeamMembership.objects.select_related("profile__user").filter(team=user_team, status="ACTIVE").order_by("-role", "joined_at"):
+                    u = getattr(mem.profile, "user", None)
+                    p = getattr(mem, "profile", None)
+                    full_name = (getattr(u, "get_full_name", lambda: "")() or getattr(u, "username", "")).strip() if u else ""
+                    email = getattr(u, "email", "") if u else ""
                     team_members.append({
-                        "name": getattr(mem.user, 'first_name', '') + ' ' + getattr(mem.user, 'last_name', ''),
-                        "email": getattr(mem.user, 'email', ''),
-                        "is_captain": getattr(mem, 'is_captain', False),
-                        # Add more fields as needed
+                        "name": full_name,
+                        "email": email,
+                        "efootball_id": getattr(p, "efootball_id", "") if p else "",
+                        "discord_id": getattr(p, "discord_id", "") if p else "",
+                        "phone": getattr(p, "phone", "") if p else "",
+                        "country": getattr(p, "country", "") if p else "",
+                        "is_captain": getattr(mem, "role", "").upper() == "CAPTAIN",
                     })
         except Exception:
             pass
+    
+    # Prefill from profile/user
+    prefill = {
+        "full_name": (getattr(request.user, "get_full_name", lambda: "")() or getattr(request.user, "username", "")).strip(),
+        "email": getattr(request.user, "email", "") or "",
+        "discord_id": getattr(profile, "discord_id", "") if profile else "",
+        "efootball_id": getattr(profile, "efootball_id", "") if profile else "",
+    }
+
+    # Check for existing registration or pending request
+    already_registered = False
+    pending_request = None
+    if user_team:
+        from apps.tournaments.models import Registration, RegistrationRequest
+        already_registered = Registration.objects.filter(tournament=tournament, team=user_team).exists()
+        if not already_registered and not is_captain:
+            pending_request = RegistrationRequest.objects.filter(
+                tournament=tournament,
+                team=user_team,
+                requester=profile,
+                status=RegistrationRequest.Status.PENDING
+            ).first()
     
     context = {
         "tournament": tournament,
@@ -675,12 +725,40 @@ def efootball_register(request: HttpRequest, slug: str) -> HttpResponse:
         "tournament_rules": tournament_rules,
         "user_team": user_team,
         "team_members": team_members,
+        "prefill": prefill,
+        "lock_email": True,
+        "is_captain": is_captain,
+        "already_registered": already_registered,
+        "pending_request": pending_request,
     }
     
     # Handle form submission
     if request.method == "POST":
         # Honeypot protection
         if request.POST.get("website", "").strip():
+            return redirect(reverse("tournaments:efootball_register", kwargs={"slug": slug}))
+        
+        # Handle non-captain request for approval
+        if request.POST.get("action") == "request_approval" and user_team and not is_captain:
+            try:
+                if create_registration_request:
+                    request_message = request.POST.get("request_message", "").strip()
+                    create_registration_request(
+                        requester=profile,
+                        tournament=tournament,
+                        team=user_team,
+                        message=request_message or "Please approve registration for this tournament."
+                    )
+                    messages.success(
+                        request,
+                        "Your request has been sent to your team captain. You will be notified when they respond."
+                    )
+                else:
+                    messages.error(request, "Request feature is not available.")
+            except ValidationError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f"Failed to send request: {str(e)}")
             return redirect(reverse("tournaments:efootball_register", kwargs={"slug": slug}))
         
         try:
@@ -785,83 +863,33 @@ def efootball_register(request: HttpRequest, slug: str) -> HttpResponse:
                     if not payment_data["payer_account_number"]:
                         raise ValidationError("Account number is required")
                 
-                # Handle team creation/saving
+                # Captain-only registration when a team exists
+                if user_team and not is_captain:
+                    raise ValidationError("Only the team captain can register the team")
+
+                # Handle team creation/saving using UserProfile-based helpers
                 save_team = request.POST.get("save_team") == "on"
-                team = None
-                
-                if Team:
-                    if save_team or user_team:
-                        # Create or update permanent team
-                        if user_team:
-                            # Update existing team
-                            team = user_team
-                            team.name = team_data["team_name"]
-                            team.tag = team_data["team_tag"] or ""
-                            if team_data["team_logo"]:
-                                team.logo = team_data["team_logo"]
-                            team.save()
-                        else:
-                            # Create new permanent team
-                            team, created = Team.objects.get_or_create(
-                                name=team_data["team_name"],
-                                defaults={
-                                    "captain": request.user,
-                                    "tag": team_data["team_tag"] or "",
-                                    "description": f"eFootball duo team",
-                                }
-                            )
-                            
-                            if not created:
-                                # Team exists, check if user is captain
-                                if team.captain != request.user:
-                                    raise ValidationError("A team with this name already exists")
-                            
-                            # Handle team logo upload
-                            if team_data["team_logo"]:
-                                team.logo = team_data["team_logo"]
-                                team.save()
-                            
-                            # Create team membership for captain
-                            if TeamMembership:
-                                TeamMembership.objects.get_or_create(
-                                    team=team,
-                                    user=request.user,
-                                    defaults={
-                                        "is_captain": True,
-                                        "role": "captain"
-                                    }
-                                )
+                team = user_team
+                if not team:
+                    if not save_team:
+                        # For eFootball team tournaments we still need an entity; create one
+                        team = _create_team_for_user(request.user, team_data["team_name"], team_data.get("team_logo"), game="efootball")
+                        if team and team_data.get("team_tag"):
+                            team.tag = team_data["team_tag"]
+                            team.save(update_fields=["tag"])            
                     else:
-                        # Tournament-only team (not saved to profile)
-                        team, created = Team.objects.get_or_create(
-                            name=f"{team_data['team_name']} - {tournament.name}",
-                            defaults={
-                                "captain": request.user,
-                                "tag": team_data["team_tag"] or "",
-                                "description": f"Tournament team for {tournament.name}",
-                            }
-                        )
+                        team = _create_team_for_user(request.user, team_data["team_name"], team_data.get("team_logo"), game="efootball")
                 
-                # Create registration
-                reg_data = {
-                    "tournament": tournament,
-                    "user": request.user,
-                    "display_name": captain_data["full_name"],
-                    "phone": captain_data["phone"],
-                    "email": captain_data["email"],
-                    "in_game_id": captain_data["efootball_id"],
-                }
-                
-                if team:
-                    reg_data["team"] = team
-                
-                # Add payment info if provided
-                if payment_data.get("payment_reference"):
-                    reg_data["payment_reference"] = payment_data["payment_reference"]
-                if payment_data.get("payer_account_number"):
-                    reg_data["payment_sender"] = payment_data["payer_account_number"]
-                
-                registration = Registration.objects.create(**reg_data)
+                # Create registration via service (ensures email + payment verification)
+                if create_registration_with_email:
+                    registration = create_registration_with_email(
+                        tournament=tournament,
+                        team=team,
+                        payment_method=payment_data.get("payment_method"),
+                        payment_reference=payment_data.get("payment_reference"),
+                    )
+                else:
+                    registration = Registration.objects.create(tournament=tournament, team=team, status="PENDING")
                 
                 # Store additional eFootball-specific data
                 efootball_data = {
@@ -998,7 +1026,8 @@ def unified_register(request: HttpRequest, slug: str) -> HttpResponse:
         
         # Check if already registered as individual
         try:
-            if Registration.objects.filter(tournament=tournament, user=request.user).exists():
+            prof = _get_user_profile(request.user)
+            if prof and Registration.objects.filter(tournament=tournament, user=prof).exists():
                 context["status"] = "already_registered"
                 context["redirect_url"] = reverse("tournaments:detail", kwargs={"slug": slug})
                 return render(request, "tournaments/registration_status.html", context)

@@ -173,15 +173,30 @@ def create_registration_with_email(tournament, user_profile=None, team=None, pay
         
         registration = Registration.objects.create(**reg_data)
         
-        # Create payment verification if payment details provided
+        # Create or update payment verification if payment details provided
         if payment_method or payment_reference:
             from apps.tournaments.models import PaymentVerification
-            PaymentVerification.objects.create(
+            pv_defaults = {
+                "method": payment_method or PaymentVerification.Method.BKASH,
+                "transaction_id": payment_reference or "",
+                "status": PaymentVerification.Status.PENDING,
+            }
+            pv, created = PaymentVerification.objects.get_or_create(
                 registration=registration,
-                method=payment_method,
-                transaction_id=payment_reference,
-                status='PENDING'
+                defaults=pv_defaults,
             )
+            if not created:
+                # Update provided fields on existing PV
+                changed = False
+                if payment_method and pv.method != payment_method:
+                    pv.method = payment_method
+                    changed = True
+                if payment_reference and pv.transaction_id != payment_reference:
+                    pv.transaction_id = payment_reference
+                    changed = True
+                if changed:
+                    pv.status = PaymentVerification.Status.PENDING
+                    pv.save(update_fields=["method", "transaction_id", "status", "updated_at"]) if hasattr(pv, "updated_at") else pv.save()
         
         # Send confirmation email
         send_registration_confirmation_email(registration)
@@ -206,7 +221,7 @@ def confirm_payment_and_notify(registration):
             pv = registration.payment_verification
             pv.status = 'VERIFIED'
             pv.verified_at = timezone.now()
-            pv.save()
+            pv.save(update_fields=["status", "verified_at", "updated_at"]) if hasattr(pv, "updated_at") else pv.save()
         
         # Send confirmation email
         send_payment_confirmation_email(registration)

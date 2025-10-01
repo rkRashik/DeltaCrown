@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 
@@ -56,6 +57,21 @@ class Registration(models.Model):
             models.Index(fields=["tournament", "status"]),
             models.Index(fields=["payment_status"]),
         ]
+        # Prevent duplicate registrations at the DB level (solo or team)
+        constraints = [
+            # Unique (tournament, user) when user is set
+            UniqueConstraint(
+                fields=["tournament", "user"],
+                condition=Q(user__isnull=False),
+                name="uq_registration_tournament_user_not_null",
+            ),
+            # Unique (tournament, team) when team is set
+            UniqueConstraint(
+                fields=["tournament", "team"],
+                condition=Q(team__isnull=False),
+                name="uq_registration_tournament_team_not_null",
+            ),
+        ]
 
     def __str__(self):
         who = getattr(self.user, "display_name", None) or getattr(self.team, "tag", None) or "Reg"
@@ -67,3 +83,35 @@ class Registration(models.Model):
             raise ValidationError("Registration must have either a user or a team.")
         if self.user and self.team:
             raise ValidationError("Registration cannot have both a user and a team.")
+
+        # No duplicate registrations for the same tournament
+        try:
+            if self.user_id:
+                exists = (
+                    Registration.objects.filter(
+                        tournament=self.tournament, user_id=self.user_id
+                    )
+                    .exclude(pk=self.pk)
+                    .exists()
+                )
+                if exists:
+                    raise ValidationError({
+                        "user": "You are already registered for this tournament."
+                    })
+            if self.team_id:
+                exists = (
+                    Registration.objects.filter(
+                        tournament=self.tournament, team_id=self.team_id
+                    )
+                    .exclude(pk=self.pk)
+                    .exists()
+                )
+                if exists:
+                    raise ValidationError({
+                        "team": "This team is already registered for this tournament."
+                    })
+        except ValidationError:
+            raise
+        except Exception:
+            # Fail-soft: rely on DB constraints if available
+            pass
