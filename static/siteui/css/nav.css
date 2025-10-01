@@ -186,6 +186,7 @@ body.has-mobile-drawer-open {
   font-size: 15px;
   transition: opacity var(--nav-transition);
   min-height: 40px;
+  height: 100%;
 }
 
 .brand:hover {
@@ -205,6 +206,7 @@ body.has-mobile-drawer-open {
   width: 48px;
   height: 48px;
   flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .brand-logo {
@@ -257,16 +259,24 @@ body.dark-theme .brand-logo:hover {
 
 .brand-wordmark {
   display: none;
+  align-items: center;
+  height: 48px;
+  vertical-align: middle;
 }
 
 @media (min-width: 1025px) {
   .brand-wordmark {
-    display: block;
+    display: flex;
+    align-items: center;
+    height: 48px;
+    vertical-align: middle;
   }
-  
   .brand-wordmark-img {
-    height: 32px;
-    width: auto;
+  height: 32px;
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 6px;
   }
 }
 
@@ -1830,7 +1840,7 @@ body.has-mobile-drawer-open {
   
   .profile-avatar {
     width: 32px;
-    height: 32px;
+  height: 44px;
   }
 
   .nav__search-input::placeholder {

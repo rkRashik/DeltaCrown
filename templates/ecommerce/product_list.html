@@ -1,41 +1,446 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Store — DeltaCrown{% endblock %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ecommerce/css/store.css' %}">
+<link rel="stylesheet" href="{% static 'ecommerce/css/product-list.css' %}">
+{% endblock %}
 
 {% block content %}
-<main class="container mx-auto px-4 max-w-7xl py-8">
-  <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
-    <a class="link-nav" href="/">Home</a> / <span>Store</span>
-  </nav>
-
-  <h1 class="text-2xl font-bold">Store</h1>
-
-  <section class="glass rounded-2xl p-6 mt-4">
-    {% if products %}
-      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {% for p in products %}
-          <li class="card">
-            <div class="card-body">
-              <div class="card-title">{{ p.name }}</div>
-              <p class="text-muted mb-2">{{ p.description|default:"" }}</p>
-              <div class="flex items-center justify-between mt-2">
-                <span class="font-semibold">{{ p.price }} DCC</span>
-                {% if p.id %}
-                  <a class="btn-primary" href="/ecommerce/add/{{ p.id }}/">Add to cart</a>
-                {% endif %}
-              </div>
+<div class="product-list-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container">
+            <div class="header-content">
+                <h1 class="page-title">
+                    {% if current_filters.category %}
+                        {% for category in categories %}
+                            {% if category.slug == current_filters.category %}{{ category.name }}{% endif %}
+                        {% endfor %}
+                    {% elif query %}
+                        Search Results for "{{ query }}"
+                    {% else %}
+                        All Products
+                    {% endif %}
+                </h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'ecommerce:store_home' %}">CrownStore</a></li>
+                        {% if current_filters.category %}
+                        <li class="breadcrumb-item active">
+                            {% for category in categories %}
+                                {% if category.slug == current_filters.category %}{{ category.name }}{% endif %}
+                            {% endfor %}
+                        </li>
+                        {% else %}
+                        <li class="breadcrumb-item active">Products</li>
+                        {% endif %}
+                    </ol>
+                </nav>
             </div>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <div class="text-center">
-        <img src="{% static 'siteui/svg/empty/empty-products.svg' %}" alt="No products" class="mx-auto mb-3 opacity-80" width="220" height="150">
-        <p class="text-muted">No products available yet.</p>
-      </div>
-    {% endif %}
-  </section>
-</main>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <!-- Sidebar Filters -->
+            <div class="col-lg-3">
+                <div class="filters-sidebar">
+                    <div class="filters-header">
+                        <h3>Filters</h3>
+                        <a href="{% url 'ecommerce:product_list' %}" class="clear-filters">Clear All</a>
+                    </div>
+
+                    <!-- Search Filter -->
+                    <div class="filter-section">
+                        <h4>Search</h4>
+                        <form method="get" class="search-form">
+                            <div class="search-input-group">
+                                <input type="text" name="q" value="{{ query }}" placeholder="Search products..." class="form-control">
+                                <button type="submit" class="btn-search">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <!-- Preserve other filters -->
+                            {% for key, value in current_filters.items %}
+                                {% if key != 'q' and value %}
+                                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                                {% endif %}
+                            {% endfor %}
+                        </form>
+                    </div>
+
+                    <!-- Categories Filter -->
+                    <div class="filter-section">
+                        <h4>Categories</h4>
+                        <div class="filter-options">
+                            {% for category in categories %}
+                            <div class="filter-option">
+                                <input type="radio" id="cat-{{ category.slug }}" name="category" value="{{ category.slug }}"
+                                    {% if current_filters.category == category.slug %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="cat-{{ category.slug }}">
+                                    {{ category.name }}
+                                    <span class="product-count">({{ category.products.count }})</span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Product Type Filter -->
+                    <div class="filter-section">
+                        <h4>Product Type</h4>
+                        <div class="filter-options">
+                            <div class="filter-option">
+                                <input type="radio" id="type-physical" name="type" value="physical"
+                                    {% if current_filters.type == 'physical' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="type-physical">Physical Products</label>
+                            </div>
+                            <div class="filter-option">
+                                <input type="radio" id="type-digital" name="type" value="digital"
+                                    {% if current_filters.type == 'digital' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="type-digital">Digital Products</label>
+                            </div>
+                            <div class="filter-option">
+                                <input type="radio" id="type-subscription" name="type" value="subscription"
+                                    {% if current_filters.type == 'subscription' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="type-subscription">Subscriptions</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price Range Filter -->
+                    <div class="filter-section">
+                        <h4>Price Range</h4>
+                        <div class="price-range-inputs">
+                            <div class="price-input-group">
+                                <label>Min Price</label>
+                                <input type="number" name="min_price" value="{{ current_filters.min_price }}" 
+                                    placeholder="0" class="form-control" onchange="updateFilters()">
+                            </div>
+                            <div class="price-input-group">
+                                <label>Max Price</label>
+                                <input type="number" name="max_price" value="{{ current_filters.max_price }}" 
+                                    placeholder="999" class="form-control" onchange="updateFilters()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rarity Filter -->
+                    <div class="filter-section">
+                        <h4>Rarity</h4>
+                        <div class="filter-options">
+                            <div class="filter-option">
+                                <input type="radio" id="rarity-common" name="rarity" value="common"
+                                    {% if current_filters.rarity == 'common' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="rarity-common">
+                                    <span class="rarity-badge common">Common</span>
+                                </label>
+                            </div>
+                            <div class="filter-option">
+                                <input type="radio" id="rarity-rare" name="rarity" value="rare"
+                                    {% if current_filters.rarity == 'rare' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="rarity-rare">
+                                    <span class="rarity-badge rare">Rare</span>
+                                </label>
+                            </div>
+                            <div class="filter-option">
+                                <input type="radio" id="rarity-epic" name="rarity" value="epic"
+                                    {% if current_filters.rarity == 'epic' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="rarity-epic">
+                                    <span class="rarity-badge epic">Epic</span>
+                                </label>
+                            </div>
+                            <div class="filter-option">
+                                <input type="radio" id="rarity-legendary" name="rarity" value="legendary"
+                                    {% if current_filters.rarity == 'legendary' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="rarity-legendary">
+                                    <span class="rarity-badge legendary">Legendary</span>
+                                </label>
+                            </div>
+                            <div class="filter-option">
+                                <input type="radio" id="rarity-mythic" name="rarity" value="mythic"
+                                    {% if current_filters.rarity == 'mythic' %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="rarity-mythic">
+                                    <span class="rarity-badge mythic">Mythic</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Brands Filter -->
+                    {% if brands %}
+                    <div class="filter-section">
+                        <h4>Brands</h4>
+                        <div class="filter-options">
+                            {% for brand in brands %}
+                            <div class="filter-option">
+                                <input type="radio" id="brand-{{ brand.slug }}" name="brand" value="{{ brand.slug }}"
+                                    {% if current_filters.brand == brand.slug %}checked{% endif %}
+                                    onchange="updateFilters()">
+                                <label for="brand-{{ brand.slug }}">{{ brand.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="col-lg-9">
+                <!-- Toolbar -->
+                <div class="products-toolbar">
+                    <div class="toolbar-left">
+                        <span class="results-count">
+                            {{ page_obj.paginator.count }} product{{ page_obj.paginator.count|pluralize }} found
+                        </span>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="sort-options">
+                            <label for="sort-select">Sort by:</label>
+                            <select id="sort-select" name="sort" onchange="updateFilters()" class="form-select">
+                                <option value="newest" {% if current_filters.sort == 'newest' %}selected{% endif %}>Newest First</option>
+                                <option value="price_low" {% if current_filters.sort == 'price_low' %}selected{% endif %}>Price: Low to High</option>
+                                <option value="price_high" {% if current_filters.sort == 'price_high' %}selected{% endif %}>Price: High to Low</option>
+                                <option value="name" {% if current_filters.sort == 'name' %}selected{% endif %}>Name A-Z</option>
+                                <option value="rating" {% if current_filters.sort == 'rating' %}selected{% endif %}>Highest Rated</option>
+                            </select>
+                        </div>
+                        <div class="view-options">
+                            <button class="view-btn grid-view active" data-view="grid">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="view-btn list-view" data-view="list">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="products-grid" id="products-container">
+                    {% if page_obj.object_list %}
+                        {% for product in page_obj.object_list %}
+                        <div class="product-item">
+                            <div class="product-card">
+                                <div class="product-image">
+                                    <a href="{% url 'ecommerce:product_detail' product.slug %}">
+                                        {% if product.featured_image %}
+                                            <img src="{{ product.featured_image.url }}" alt="{{ product.name }}" class="main-image">
+                                        {% endif %}
+                                        {% if product.hover_image %}
+                                            <img src="{{ product.hover_image.url }}" alt="{{ product.name }}" class="hover-image">
+                                        {% endif %}
+                                    </a>
+                                    
+                                    <!-- Product Badges -->
+                                    <div class="product-badges">
+                                        {% if product.is_on_sale %}
+                                        <span class="badge sale-badge">-{{ product.discount_percentage }}%</span>
+                                        {% endif %}
+                                        {% if product.is_limited_edition %}
+                                        <span class="badge limited-badge">Limited</span>
+                                        {% endif %}
+                                        {% if product.is_member_exclusive %}
+                                        <span class="badge exclusive-badge">Members Only</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Product Actions -->
+                                    <div class="product-actions">
+                                        <button class="btn-action wishlist-btn" data-product-id="{{ product.id }}" title="Add to Wishlist">
+                                            <i class="far fa-heart"></i>
+                                        </button>
+                                        <button class="btn-action quick-view-btn" data-product-id="{{ product.id }}" title="Quick View">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn-action compare-btn" data-product-id="{{ product.id }}" title="Compare">
+                                            <i class="fas fa-balance-scale"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Rarity Indicator -->
+                                    <div class="rarity-indicator {{ product.rarity }}">
+                                        {{ product.get_rarity_display }}
+                                    </div>
+                                </div>
+                                
+                                <div class="product-info">
+                                    <div class="product-meta">
+                                        <span class="product-category">{{ product.category.name }}</span>
+                                        {% if product.brand %}
+                                        <span class="product-brand">{{ product.brand.name }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <h3 class="product-name">
+                                        <a href="{% url 'ecommerce:product_detail' product.slug %}">{{ product.name }}</a>
+                                    </h3>
+                                    
+                                    {% if product.short_description %}
+                                    <p class="product-description">{{ product.short_description|truncatewords:15 }}</p>
+                                    {% endif %}
+                                    
+                                    <!-- Product Rating -->
+                                    <div class="product-rating">
+                                        <div class="stars">
+                                            {% for i in "12345" %}
+                                                <i class="fas fa-star"></i>
+                                            {% endfor %}
+                                        </div>
+                                        <span class="rating-count">({{ product.reviews.count }})</span>
+                                    </div>
+                                    
+                                    <div class="product-pricing">
+                                        {% if product.is_on_sale %}
+                                            <span class="price-original">${{ product.original_price }}</span>
+                                        {% endif %}
+                                        <span class="price-current">${{ product.price }}</span>
+                                    </div>
+                                    
+                                    <!-- Stock Status -->
+                                    <div class="stock-status">
+                                        {% if product.is_in_stock %}
+                                            <span class="in-stock">
+                                                <i class="fas fa-check-circle"></i> In Stock
+                                            </span>
+                                        {% else %}
+                                            <span class="out-of-stock">
+                                                <i class="fas fa-times-circle"></i> Out of Stock
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="product-footer">
+                                        {% if product.is_in_stock %}
+                                        <form class="add-to-cart-form" data-product-id="{{ product.id }}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-primary add-to-cart-btn">
+                                                <i class="fas fa-shopping-cart"></i>
+                                                Add to Cart
+                                            </button>
+                                        </form>
+                                        {% else %}
+                                        <button class="btn btn-secondary" disabled>
+                                            <i class="fas fa-ban"></i>
+                                            Out of Stock
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-products">
+                            <div class="no-products-content">
+                                <i class="fas fa-search"></i>
+                                <h3>No products found</h3>
+                                <p>Try adjusting your filters or search terms</p>
+                                <a href="{% url 'ecommerce:product_list' %}" class="btn btn-primary">View All Products</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <div class="pagination-wrapper">
+                    <nav aria-label="Product pagination">
+                        <ul class="pagination">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% for key, value in current_filters.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% for key, value in current_filters.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% for key, value in current_filters.items %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'ecommerce/js/product-list.js' %}"></script>
+<script>
+function updateFilters() {
+    const form = document.createElement('form');
+    form.method = 'get';
+    form.action = '{% url "ecommerce:product_list" %}';
+    
+    // Collect all filter values
+    const filters = ['q', 'category', 'brand', 'min_price', 'max_price', 'type', 'rarity', 'sort'];
+    
+    filters.forEach(filter => {
+        const input = document.querySelector(`[name="${filter}"]`);
+        if (input && input.value) {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = filter;
+            hiddenInput.value = input.value;
+            form.appendChild(hiddenInput);
+        }
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// View toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const viewButtons = document.querySelectorAll('.view-btn');
+    const productsContainer = document.getElementById('products-container');
+    
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const view = this.dataset.view;
+            
+            // Update active button
+            viewButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update container class
+            productsContainer.className = view === 'list' ? 'products-list' : 'products-grid';
+        });
+    });
+});
+</script>
 {% endblock %}
 

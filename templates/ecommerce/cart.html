@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Shopping Cart - CrownStore{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ecommerce/css/store.css' %}">
+<link rel="stylesheet" href="{% static 'ecommerce/css/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cart-container">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-shopping-cart"></i>
+                Shopping Cart
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'ecommerce:store_home' %}">CrownStore</a></li>
+                    <li class="breadcrumb-item active">Cart</li>
+                </ol>
+            </nav>
+        </div>
+
+        {% if cart_items %}
+        <div class="row">
+            <!-- Cart Items -->
+            <div class="col-lg-8">
+                <div class="cart-items">
+                    <div class="cart-header">
+                        <h3>Your Items ({{ cart_items.count }})</h3>
+                        <button class="clear-cart-btn" onclick="clearCart()">
+                            <i class="fas fa-trash"></i>
+                            Clear Cart
+                        </button>
+                    </div>
+                    
+                    <div class="cart-items-list">
+                        {% for item in cart_items %}
+                        <div class="cart-item" data-item-id="{{ item.id }}">
+                            <div class="item-image">
+                                <a href="{% url 'ecommerce:product_detail' item.product.slug %}">
+                                    {% if item.product.featured_image %}
+                                        <img src="{{ item.product.featured_image.url }}" alt="{{ item.product.name }}">
+                                    {% endif %}
+                                </a>
+                            </div>
+                            
+                            <div class="item-details">
+                                <div class="item-info">
+                                    <h4 class="item-name">
+                                        <a href="{% url 'ecommerce:product_detail' item.product.slug %}">
+                                            {{ item.product.name }}
+                                        </a>
+                                    </h4>
+                                    
+                                    <div class="item-meta">
+                                        <span class="item-category">{{ item.product.category.name }}</span>
+                                        {% if item.variant %}
+                                        <span class="item-variant">{{ item.variant.name }}: {{ item.variant.value }}</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Product Features -->
+                                    <div class="item-features">
+                                        {% if item.product.is_digital %}
+                                        <span class="feature-badge digital">
+                                            <i class="fas fa-download"></i>
+                                            Digital
+                                        </span>
+                                        {% endif %}
+                                        
+                                        {% if item.product.is_limited_edition %}
+                                        <span class="feature-badge limited">
+                                            <i class="fas fa-gem"></i>
+                                            Limited
+                                        </span>
+                                        {% endif %}
+                                        
+                                        <span class="rarity-badge {{ item.product.rarity }}">
+                                            {{ item.product.get_rarity_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="item-actions">
+                                    <!-- Quantity Controls -->
+                                    <div class="quantity-controls">
+                                        <label>Quantity:</label>
+                                        <div class="quantity-input">
+                                            <button class="quantity-btn minus" data-action="decrease" data-item-id="{{ item.id }}">
+                                                <i class="fas fa-minus"></i>
+                                            </button>
+                                            <input type="number" class="quantity-field" value="{{ item.quantity }}" 
+                                                   min="1" max="10" data-item-id="{{ item.id }}">
+                                            <button class="quantity-btn plus" data-action="increase" data-item-id="{{ item.id }}">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Item Price -->
+                                    <div class="item-pricing">
+                                        <div class="unit-price">
+                                            <span class="price-label">Unit Price:</span>
+                                            <span class="price">${{ item.unit_price }}</span>
+                                        </div>
+                                        <div class="total-price">
+                                            <span class="price-label">Total:</span>
+                                            <span class="price" data-item-total="{{ item.id }}">${{ item.total_price }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="item-buttons">
+                                        <button class="btn-action save-later" data-item-id="{{ item.id }}">
+                                            <i class="far fa-heart"></i>
+                                            Save for Later
+                                        </button>
+                                        <button class="btn-action remove-item" data-item-id="{{ item.id }}">
+                                            <i class="fas fa-trash"></i>
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Recommended Products -->
+                <div class="recommended-products">
+                    <h3>You might also like</h3>
+                    <div class="recommended-grid">
+                        <!-- This would be populated with recommended products -->
+                        <div class="recommended-item">
+                            <div class="placeholder-card">
+                                <i class="fas fa-gamepad"></i>
+                                <p>Recommended products coming soon</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cart Summary -->
+            <div class="col-lg-4">
+                <div class="cart-summary">
+                    <h3>Order Summary</h3>
+                    
+                    <div class="summary-section">
+                        <div class="summary-row">
+                            <span>Subtotal ({{ cart.total_items }} items)</span>
+                            <span id="cart-subtotal">${{ cart.total_price }}</span>
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span>Shipping</span>
+                            <span id="shipping-cost">
+                                {% if cart.items.all|first.product.is_digital %}
+                                    FREE
+                                {% else %}
+                                    {% if cart.total_price >= 50 %}
+                                        FREE
+                                    {% else %}
+                                        $9.99
+                                    {% endif %}
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span>Tax</span>
+                            <span id="tax-amount">Calculated at checkout</span>
+                        </div>
+                        
+                        <!-- Coupon Section -->
+                        <div class="coupon-section">
+                            <div class="coupon-input">
+                                <input type="text" id="couponCode" placeholder="Enter coupon code" class="form-control">
+                                <button type="button" class="btn btn-outline-secondary" onclick="applyCoupon()">
+                                    Apply
+                                </button>
+                            </div>
+                            <div id="coupon-message" class="coupon-message"></div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="summary-row total-row">
+                            <span>Total</span>
+                            <span id="cart-total" class="total-amount">${{ cart.total_price }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Checkout Button -->
+                    <div class="checkout-section">
+                        <a href="{% url 'ecommerce:checkout' %}" class="btn btn-primary btn-lg checkout-btn">
+                            <i class="fas fa-lock"></i>
+                            Proceed to Checkout
+                        </a>
+                        
+                        <div class="payment-methods">
+                            <small>We accept:</small>
+                            <div class="payment-icons">
+                                <i class="fab fa-cc-visa"></i>
+                                <i class="fab fa-cc-mastercard"></i>
+                                <i class="fab fa-paypal"></i>
+                                <i class="fab fa-bitcoin"></i>
+                                <div class="delta-coins">
+                                    <i class="fas fa-coins"></i>
+                                    <span>DeltaCrown Coins</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Security Features -->
+                        <div class="security-features">
+                            <div class="security-item">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Secure Checkout</span>
+                            </div>
+                            <div class="security-item">
+                                <i class="fas fa-undo"></i>
+                                <span>30-Day Returns</span>
+                            </div>
+                            <div class="security-item">
+                                <i class="fas fa-medal"></i>
+                                <span>Quality Guaranteed</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- User Balance -->
+                    {% if user.is_authenticated %}
+                    <div class="user-balance">
+                        <div class="balance-info">
+                            <i class="fas fa-coins"></i>
+                            <span>Your DeltaCrown Coins: </span>
+                            <strong>{{ user.profile.delta_coins|default:0 }}</strong>
+                        </div>
+                        {% if user.profile.delta_coins < cart.total_price %}
+                        <small class="balance-note">
+                            You need ${{ cart.total_price|sub:user.profile.delta_coins }} more DeltaCrown Coins for this purchase
+                        </small>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Trust Badges -->
+                <div class="trust-badges">
+                    <div class="trust-item">
+                        <i class="fas fa-truck"></i>
+                        <div class="trust-text">
+                            <strong>Free Shipping</strong>
+                            <span>On orders over $50</span>
+                        </div>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fas fa-headset"></i>
+                        <div class="trust-text">
+                            <strong>24/7 Support</strong>
+                            <span>Expert customer service</span>
+                        </div>
+                    </div>
+                    <div class="trust-item">
+                        <i class="fas fa-award"></i>
+                        <div class="trust-text">
+                            <strong>Premium Quality</strong>
+                            <span>Esports-grade products</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Empty Cart -->
+        <div class="empty-cart">
+            <div class="empty-cart-content">
+                <div class="empty-cart-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <h2>Your cart is empty</h2>
+                <p>Looks like you haven't added any items to your cart yet.</p>
+                <p>Start exploring our premium collection!</p>
+                
+                <div class="empty-cart-actions">
+                    <a href="{% url 'ecommerce:store_home' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-shopping-bag"></i>
+                        Start Shopping
+                    </a>
+                    <a href="{% url 'ecommerce:product_list' %}?category=featured" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-star"></i>
+                        View Featured Items
+                    </a>
+                </div>
+                
+                <!-- Quick Categories -->
+                <div class="quick-categories">
+                    <h4>Popular Categories</h4>
+                    <div class="category-links">
+                        <a href="{% url 'ecommerce:product_list' %}?type=physical" class="category-link">
+                            <i class="fas fa-tshirt"></i>
+                            Merchandise
+                        </a>
+                        <a href="{% url 'ecommerce:product_list' %}?type=digital" class="category-link">
+                            <i class="fas fa-download"></i>
+                            Digital Products
+                        </a>
+                        <a href="{% url 'ecommerce:product_list' %}?type=subscription" class="category-link">
+                            <i class="fas fa-play"></i>
+                            Subscriptions
+                        </a>
+                        <a href="{% url 'ecommerce:product_list' %}?rarity=legendary" class="category-link">
+                            <i class="fas fa-gem"></i>
+                            Limited Edition
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Remove Item Modal -->
+<div class="modal fade" id="removeItemModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Remove Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove this item from your cart?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmRemove">Remove</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'ecommerce/js/cart.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Quantity controls
+    document.querySelectorAll('.quantity-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const itemId = this.dataset.itemId;
+            updateCartItem(itemId, action);
+        });
+    });
+    
+    // Quantity input changes
+    document.querySelectorAll('.quantity-field').forEach(input => {
+        input.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            const quantity = this.value;
+            updateCartItemQuantity(itemId, quantity);
+        });
+    });
+    
+    // Remove item buttons
+    document.querySelectorAll('.remove-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            showRemoveConfirmation(itemId);
+        });
+    });
+});
+
+function updateCartItem(itemId, action) {
+    fetch(`/ecommerce/cart/update/${itemId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `action=${action}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (data.removed) {
+                // Remove the item from DOM
+                document.querySelector(`[data-item-id="${itemId}"]`).remove();
+                
+                // Check if cart is empty
+                if (document.querySelectorAll('.cart-item').length === 0) {
+                    location.reload();
+                }
+            } else {
+                // Update quantity and prices
+                const quantityField = document.querySelector(`[data-item-id="${itemId}"] .quantity-field`);
+                const itemTotal = document.querySelector(`[data-item-total="${itemId}"]`);
+                
+                quantityField.value = data.quantity;
+                itemTotal.textContent = `$${data.item_total}`;
+                
+                // Update cart totals
+                updateCartTotals(data.cart_total);
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateCartItemQuantity(itemId, quantity) {
+    fetch(`/ecommerce/cart/update/${itemId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `quantity=${quantity}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const itemTotal = document.querySelector(`[data-item-total="${itemId}"]`);
+            itemTotal.textContent = `$${data.item_total}`;
+            updateCartTotals(data.cart_total);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateCartTotals(cartTotal) {
+    document.getElementById('cart-subtotal').textContent = `$${cartTotal}`;
+    document.getElementById('cart-total').textContent = `$${cartTotal}`;
+}
+
+function showRemoveConfirmation(itemId) {
+    const modal = new bootstrap.Modal(document.getElementById('removeItemModal'));
+    document.getElementById('confirmRemove').onclick = function() {
+        updateCartItem(itemId, 'remove');
+        modal.hide();
+    };
+    modal.show();
+}
+
+function applyCoupon() {
+    const couponCode = document.getElementById('couponCode').value;
+    const messageEl = document.getElementById('coupon-message');
+    
+    if (!couponCode) {
+        showCouponMessage('Please enter a coupon code', 'error');
+        return;
+    }
+    
+    fetch('/ecommerce/api/coupon/validate/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `code=${couponCode}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showCouponMessage(`Coupon applied: ${data.description}`, 'success');
+            // Update totals based on discount
+        } else {
+            showCouponMessage(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        showCouponMessage('Error validating coupon', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function showCouponMessage(message, type) {
+    const messageEl = document.getElementById('coupon-message');
+    messageEl.textContent = message;
+    messageEl.className = `coupon-message ${type}`;
+    
+    setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'coupon-message';
+    }, 5000);
+}
+
+function clearCart() {
+    if (confirm('Are you sure you want to clear your entire cart?')) {
+        // Implement clear cart functionality
+        location.reload();
+    }
+}
+</script>
+{% endblock %}

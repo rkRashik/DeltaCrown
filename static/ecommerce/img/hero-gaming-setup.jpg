@@ -1,0 +1,22 @@
+<!-- [PLACEHOLDER] Hero Gaming Setup Image -->
+<!-- Replace with high-quality gaming setup photo (1200x800px) -->
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C9A96E;stop-opacity:0.8" />
+      <stop offset="50%" style="stop-color:#8B7D3A;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#006A4E;stop-opacity:0.4" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#heroGrad)"/>
+  <circle cx="600" cy="400" r="150" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+  <text x="600" y="350" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">
+    🎮
+  </text>
+  <text x="600" y="420" font-family="Arial, sans-serif" font-size="24" fill="white" text-anchor="middle">
+    Premium Gaming Setup
+  </text>
+  <text x="600" y="450" font-family="Arial, sans-serif" font-size="16" fill="rgba(255,255,255,0.8)" text-anchor="middle">
+    Experience the Future of Gaming
+  </text>
+</svg>

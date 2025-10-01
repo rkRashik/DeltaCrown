@@ -24,32 +24,7 @@
         <!-- Brand Section -->
         <div class="brand-section">
           <div class="brand-logo">
-            <svg class="delta-crown-logo" viewBox="0 0 60 60" fill="none">
-              <defs>
-                <linearGradient id="crownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#00f5ff"/>
-                  <stop offset="50%" stop-color="#0099ff"/>
-                  <stop offset="100%" stop-color="#6366f1"/>
-                </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-              <!-- Crown Base -->
-              <rect x="10" y="45" width="40" height="6" rx="3" fill="url(#crownGradient)" filter="url(#glow)"/>
-              <!-- Crown Points -->
-              <path d="M15 45L20 25L25 35L30 15L35 35L40 25L45 45Z" fill="url(#crownGradient)" filter="url(#glow)"/>
-              <!-- Gems -->
-              <circle cx="30" cy="20" r="4" fill="#00f5ff" filter="url(#glow)"/>
-              <circle cx="22" cy="30" r="2.5" fill="#0099ff" filter="url(#glow)"/>
-              <circle cx="38" cy="30" r="2.5" fill="#0099ff" filter="url(#glow)"/>
-              <!-- Delta Triangle -->
-              <path d="M30 25L35 35L25 35Z" fill="#ffffff" opacity="0.9"/>
-            </svg>
+            <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown Logo" class="delta-crown-logo" style="height:60px; width:auto;" />
             <div class="brand-text">
               <h2 class="brand-name">DeltaCrown</h2>
               <span class="brand-tagline">Next-Gen Esports</span>

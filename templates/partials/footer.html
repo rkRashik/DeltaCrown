@@ -58,29 +58,7 @@
         <div class="footer-brand">
           <div class="brand-logo">
             <div class="logo-container">
-              <svg class="crown-logo" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="footerCrownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#00d4ff"/>
-                    <stop offset="50%" style="stop-color:#8b5cf6"/>
-                    <stop offset="100%" style="stop-color:#f59e0b"/>
-                  </linearGradient>
-                  <filter id="footerGlow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                    <feMerge>
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-                <circle cx="24" cy="24" r="20" fill="url(#footerCrownGradient)" opacity="0.1"/>
-                <rect x="8" y="32" width="32" height="4" rx="2" fill="url(#footerCrownGradient)"/>
-                <path d="M12 32L16 18L20 24L24 12L28 24L32 18L36 32Z" fill="url(#footerCrownGradient)" filter="url(#footerGlow)"/>
-                <circle cx="24" cy="16" r="3" fill="rgba(255,255,255,0.9)"/>
-                <circle cx="18" cy="22" r="2" fill="rgba(255,255,255,0.8)"/>
-                <circle cx="30" cy="22" r="2" fill="rgba(255,255,255,0.8)"/>
-                <path d="M24 20L28 26L20 26Z" fill="rgba(255,255,255,0.9)"/>
-              </svg>
+              <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="crown-logo" style="height:48px;max-width:100px;display:block;margin:auto;" />
             </div>
             <div class="brand-text">
               <h2 class="brand-name">DeltaCrown</h2>
@@ -136,7 +114,7 @@
               <span class="link-icon">📺</span>
               <span>Arena</span>
             </a></li>
-            <li><a href="/crowngear/" class="footer-link">
+            <li><a href="/crownstore/" class="footer-link">
               <span class="link-icon">🛒</span>
               <span>CrownStore</span>
             </a></li>

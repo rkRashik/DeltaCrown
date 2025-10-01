@@ -1,0 +1,627 @@
+{% extends "ecommerce/base_ecommerce.html" %}
+{% load static bd_filters %}
+
+{% block title %}CrownStore - Bangladesh's #1 Gaming Marketplace{% endblock %}
+
+{% block content %}
+<!-- Epic Gaming Hero Section -->
+<section class="epic-hero position-relative overflow-hidden">
+    <!-- Animated Background -->
+    <div class="hero-bg-animation position-absolute w-100 h-100">
+        <div class="floating-particles"></div>
+        <div class="gradient-overlay"></div>
+    </div>
+    
+    <div class="container position-relative" style="z-index: 10;">
+        <div class="row align-items-center min-vh-100 py-5">
+            <div class="col-lg-7" data-aos="fade-right">
+                <div class="hero-content text-white">
+                    <!-- Live Status Badge -->
+                    <div class="live-badge mb-4" data-aos="zoom-in">
+                        <span class="pulse-dot"></span>
+                        <span class="badge-text">🔥 50,000+ Gamers Shopping Live!</span>
+                    </div>
+                    
+                    <!-- Main Heading -->
+                    <h1 class="hero-main-title mb-4" data-aos="fade-up" data-aos-delay="200">
+                        <span class="text-white">Level Up Your</span><br>
+                        <span class="gradient-text">Gaming Empire</span><br>
+                        <span class="text-crown-gold">Win Every Battle</span>
+                    </h1>
+                    
+                    <!-- Subtitle with Icons -->
+                    <div class="hero-subtitle mb-4" data-aos="fade-up" data-aos-delay="300">
+                        <p class="lead text-white-75">
+                            🎮 Premium skins & characters • ⚡ Instant delivery • 💎 Legendary items • 🛡️ 100% authentic
+                        </p>
+                    </div>
+                    
+                    <!-- Gaming Stats -->
+                    <div class="gaming-stats row mb-4" data-aos="fade-up" data-aos-delay="400">
+                        <div class="col-4 text-center">
+                            <div class="stat-card">
+                                <h3 class="text-crown-gold fw-bold mb-1">50K+</h3>
+                                <small class="text-white-75">Pro Gamers</small>
+                            </div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="stat-card">
+                                <h3 class="text-crown-gold fw-bold mb-1">24/7</h3>
+                                <small class="text-white-75">Fast Support</small>
+                            </div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="stat-card">
+                                <h3 class="text-crown-gold fw-bold mb-1">⭐ 4.9</h3>
+                                <small class="text-white-75">Rating</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- CTA Buttons -->
+                    <div class="hero-cta-section mb-4" data-aos="fade-up" data-aos-delay="500">
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <a href="#featured-products" class="btn btn-crown-gold btn-lg px-4 py-3 fw-bold">
+                                <i class="fas fa-rocket me-2"></i>Start Shopping Now
+                            </a>
+                            <a href="#categories" class="btn btn-outline-light btn-lg px-4 py-3">
+                                <i class="fas fa-gamepad me-2"></i>Browse Games
+                            </a>
+                        </div>
+                        
+                        <!-- Special Offer Banner -->
+                        <div class="special-offer-banner">
+                            <span class="offer-text">💥 Limited Time: Get 20% OFF on first order!</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile Payment Preview -->
+                    <div class="payment-preview d-flex align-items-center gap-3" data-aos="fade-up" data-aos-delay="600">
+                        <span class="text-white-75">Pay instantly with:</span>
+                        <div class="payment-logos d-flex gap-2">
+                            <img src="{% static 'ecommerce/img/bkash-logo.png' %}" alt="bKash" width="45" height="30" class="payment-logo">
+                            <img src="{% static 'ecommerce/img/nagad-logo.png' %}" alt="Nagad" width="45" height="30" class="payment-logo">
+                            <img src="{% static 'ecommerce/img/rocket-logo.png' %}" alt="Rocket" width="45" height="30" class="payment-logo">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Hero Visual Section -->
+            <div class="col-lg-5 text-center" data-aos="fade-left" data-aos-delay="300">
+                <div class="hero-visual-container position-relative">
+                    <!-- Floating Game Cards -->
+                    <div class="floating-game-cards">
+                        <div class="game-card valorant-card" data-aos="zoom-in" data-aos-delay="700">
+                            <img src="{% static 'logos/valorant.svg' %}" alt="Valorant" width="40">
+                            <span class="game-name">Valorant</span>
+                        </div>
+                        <div class="game-card efootball-card" data-aos="zoom-in" data-aos-delay="800">
+                            <img src="{% static 'logos/efootball.svg' %}" alt="eFootball" width="40">
+                            <span class="game-name">eFootball</span>
+                        </div>
+                        <div class="game-card csgo-card" data-aos="zoom-in" data-aos-delay="900">
+                            <img src="{% static 'logos/csgo.svg' %}" alt="CSGO" width="40">
+                            <span class="game-name">CS:GO</span>
+                        </div>
+                        <div class="game-card codm-card" data-aos="zoom-in" data-aos-delay="1000">
+                            <img src="{% static 'logos/codm.svg' %}" alt="CODM" width="40">
+                            <span class="game-name">CODM</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Main Hero Image -->
+                    <div class="hero-main-visual" data-aos="zoom-in" data-aos-delay="600">
+                        <div class="glow-effect"></div>
+                        <img src="{% static 'ecommerce/img/hero-gaming-setup.jpg' %}" alt="Gaming Champion" class="hero-champion-img">
+                        
+                        <!-- Achievement Badges -->
+                        <div class="achievement-badge top-badge" data-aos="fade-down" data-aos-delay="1100">
+                            <i class="fas fa-trophy text-warning"></i>
+                            <span>Pro Level</span>
+                        </div>
+                        <div class="achievement-badge bottom-badge" data-aos="fade-up" data-aos-delay="1200">
+                            <i class="fas fa-fire text-danger"></i>
+                            <span>On Fire!</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+<!-- Modern Categories Section -->
+<section class="modern-categories" id="categories">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Shop by Category</h2>
+            <p class="section-subtitle">
+                Discover premium gaming gear, esports apparel, and digital services curated for Bangladesh gamers
+            </p>
+        </div>
+        
+        <div class="modern-category-grid">
+            {% for category in categories %}
+            <div class="modern-category-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:100 }}">
+                <div class="category-image-wrapper">
+                    {% if category.image %}
+                        <img src="{{ category.image.url }}" alt="{{ category.name }}">
+                    {% elif 'headset' in category.name|lower %}
+                        <img src="{% static 'ecommerce/img/categories/gaming-headsets.jpg' %}" alt="{{ category.name }}">
+                    {% elif 'mouse' in category.name|lower or 'mice' in category.name|lower %}
+                        <img src="{% static 'ecommerce/img/categories/gaming-mice.jpg' %}" alt="{{ category.name }}">
+                    {% elif 'keyboard' in category.name|lower %}
+                        <img src="{% static 'ecommerce/img/categories/keyboards.jpg' %}" alt="{{ category.name }}">
+                    {% else %}
+                        <div class="category-placeholder" style="background: linear-gradient(135deg, #C9A96E, #8B7D3A); height: 200px; display: flex; align-items: center; justify-content: center;">
+                            <i class="{{ category.icon|default:'fas fa-gamepad' }}" style="font-size: 3rem; color: white;"></i>
+                        </div>
+                    {% endif %}
+                    <div class="category-overlay"></div>
+                    <div class="category-badge">{{ category.get_category_type_display }}</div>
+                </div>
+                
+                <div class="modern-category-content">
+                    <h3 class="modern-category-title">{{ category.name }}</h3>
+                    <p class="modern-category-desc">{{ category.description|truncatewords:12 }}</p>
+                    
+                    <div class="category-stats">
+                        <div class="category-price">
+                            {% if category.products.exists %}
+                                From ৳{{ category.products.first.price|floatformat:0 }}
+                            {% else %}
+                                From ৳999
+                            {% endif %}
+                        </div>
+                        <div class="category-count">
+                            {{ category.products.count }} item{{ category.products.count|pluralize }}
+                        </div>
+                    </div>
+                    
+                    <a href="{% url 'ecommerce:category_detail' category.slug %}" class="btn category-btn">
+                        <i class="fas fa-arrow-right"></i> Explore Category
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+<section class="py-5 bg-light" id="featured">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Featured Products</h2>
+            <p class="section-subtitle">
+                Handpicked exclusives from our premium collection designed for Bangladesh gamers
+            </p>
+        </div>
+        
+        <div class="row">
+            {% for product in featured_products %}
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm border-0 product-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:100 }}">
+                    <div class="position-relative overflow-hidden">
+                        <a href="{% url 'ecommerce:product_detail' product.slug %}">
+                            {% if product.featured_image %}
+                                <img src="{{ product.featured_image.url }}" alt="{{ product.name }}" class="card-img-top" style="height: 250px; object-fit: cover;">
+                            {% elif 'headset' in product.name|lower %}
+                                <img src="{% static 'ecommerce/img/products/sample-headset.jpg' %}" alt="{{ product.name }}" class="card-img-top" style="height: 250px; object-fit: cover;">
+                            {% elif 'mouse' in product.name|lower %}
+                                <img src="{% static 'ecommerce/img/products/sample-mouse.jpg' %}" alt="{{ product.name }}" class="card-img-top" style="height: 250px; object-fit: cover;">
+                            {% else %}
+                                <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 250px; background: linear-gradient(135deg, #C9A96E, #8B7D3A);">
+                                    <i class="fas fa-gamepad text-white" style="font-size: 3rem;"></i>
+                                </div>
+                            {% endif %}
+                        </a>
+                            
+                        
+                        {% if product.is_on_sale %}
+                        <div class="position-absolute top-0 start-0 m-2">
+                            <span class="badge bg-danger">-{{ product.discount_percentage|floatformat:0 }}% OFF</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.is_featured %}
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge" style="background-color: var(--crown-primary);">Featured</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="position-absolute top-50 start-50 translate-middle opacity-0 product-hover-actions" style="transition: all 0.3s ease;">
+                            <div class="btn-group">
+                                <button class="btn btn-light btn-sm rounded-circle me-2 wishlist-btn" data-product-id="{{ product.id }}" title="Add to Wishlist">
+                                    <i class="fas fa-heart"></i>
+                                </button>
+                                <button class="btn btn-light btn-sm rounded-circle quick-view-btn" data-product-id="{{ product.id }}" title="Quick View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <div class="mb-2">
+                            <small class="text-muted">{{ product.category.name }}</small>
+                        </div>
+                        <h6 class="card-title fw-600 mb-2">
+                            <a href="{% url 'ecommerce:product_detail' product.slug %}" class="text-decoration-none text-dark">{{ product.name }}</a>
+                        </h6>
+                        <p class="card-text text-muted small mb-3">{{ product.short_description|truncatewords:8 }}</p>
+                        
+                        <div class="mt-auto">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div>
+                                    {% if product.is_on_sale %}
+                                        <span class="text-muted text-decoration-line-through small me-2">৳{{ product.original_price|floatformat:0 }}</span>
+                                    {% endif %}
+                                    <span class="fw-bold fs-5" style="color: var(--crown-primary);">৳{{ product.price|floatformat:0 }}</span>
+                                </div>
+                            </div>
+                            
+                            <form class="add-to-cart-form" data-product-id="{{ product.id }}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-crown w-100">
+                                    <i class="fas fa-shopping-cart me-1"></i>Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-box-open text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 text-muted">No Featured Products</h4>
+                    <p class="text-muted">Featured products will appear here once added to the store.</p>
+                    <a href="#" class="btn btn-crown">Add Products</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-5" data-aos="fade-up">
+            <a href="{% url 'ecommerce:product_list' %}" class="btn btn-crown btn-lg">
+                <i class="fas fa-th-large"></i> View All Products
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Limited Edition Section -->
+{% if limited_products %}
+<section class="limited-edition">
+    <div class="container">
+        <div class="section-header text-center" data-aos="fade-up">
+            <h2 class="section-title">
+                <i class="fas fa-gem"></i>
+                Limited Edition Drops
+            </h2>
+            <p class="section-subtitle">Exclusive items available for a limited time</p>
+        </div>
+        
+        <div class="limited-grid">
+            {% for product in limited_products %}
+            <div class="limited-item" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:100 }}">
+                <div class="limited-card">
+                    <div class="limited-image">
+                        <a href="{% url 'ecommerce:product_detail' product.slug %}">
+                            {% if product.featured_image %}
+                                <img src="{{ product.featured_image.url }}" alt="{{ product.name }}">
+                            {% endif %}
+                        </a>
+                        <div class="limited-overlay">
+                            <div class="limited-info">
+                                <h4>{{ product.name }}</h4>
+                                <p class="limited-price">{{ product.price|bdt_currency }}</p>
+                                <p class="limited-perspective">{{ product.price|gaming_time_friendly }}</p>
+                                {% if product.limited_quantity %}
+                                <div class="limited-stock">
+                                    Only {{ product.limited_quantity }} left
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{% url 'ecommerce:product_list' %}?type=limited" class="btn btn-outline-primary">
+                View All Limited Items
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Member Exclusive Section -->
+{% if user.is_authenticated and member_exclusive %}
+<section class="member-exclusive">
+    <div class="container">
+        <div class="section-header text-center" data-aos="fade-up">
+            <h2 class="section-title">
+                <i class="fas fa-crown"></i>
+                Member Exclusive
+            </h2>
+            <p class="section-subtitle">Premium items reserved for our elite members</p>
+        </div>
+        
+        <div class="exclusive-grid">
+            {% for product in member_exclusive %}
+            <div class="exclusive-item" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:100 }}">
+                <div class="product-card exclusive-card">
+                    <div class="product-image">
+                        <a href="{% url 'ecommerce:product_detail' product.slug %}">
+                            {% if product.featured_image %}
+                                <img src="{{ product.featured_image.url }}" alt="{{ product.name }}">
+                            {% endif %}
+                        </a>
+                        <div class="exclusive-badge">
+                            <i class="fas fa-crown"></i>
+                            Member Only
+                        </div>
+                    </div>
+                    <div class="product-info">
+                        <h4 class="product-name">{{ product.name }}</h4>
+                        <p class="product-price">{{ product.price|bdt_currency }}</p>
+                        <div class="product-badges-new">{% bd_market_badge product %}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Trust Indicators Section -->
+<section class="trust-indicators">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Why Choose CrownStore?</h2>
+            <p class="section-subtitle">
+                Trusted by 50,000+ gamers across Bangladesh for quality, reliability, and exceptional service
+            </p>
+        </div>
+        
+        <div class="trust-grid">
+            <div class="trust-item" data-aos="fade-up">
+                <i class="fas fa-shield-check trust-icon"></i>
+                <h3 class="trust-title">100% Authentic</h3>
+                <p class="trust-desc">All products are genuine and sourced directly from authorized dealers</p>
+            </div>
+            
+            <div class="trust-item" data-aos="fade-up" data-aos-delay="100">
+                <i class="fas fa-shipping-fast trust-icon"></i>
+                <h3 class="trust-title">Fast Delivery</h3>
+                <p class="trust-desc">Same-day delivery in Dhaka, 1-3 days nationwide across Bangladesh</p>
+            </div>
+            
+            <div class="trust-item" data-aos="fade-up" data-aos-delay="200">
+                <i class="fas fa-mobile-alt trust-icon"></i>
+                <h3 class="trust-title">Mobile Banking</h3>
+                <p class="trust-desc">Pay easily with bKash, Nagad, Rocket, or cash on delivery</p>
+            </div>
+            
+            <div class="trust-item" data-aos="fade-up" data-aos-delay="300">
+                <i class="fas fa-headset trust-icon"></i>
+                <h3 class="trust-title">24/7 Support</h3>
+                <p class="trust-desc">Round-the-clock customer support in Bengali and English</p>
+            </div>
+            
+            <div class="trust-item" data-aos="fade-up" data-aos-delay="400">
+                <i class="fas fa-medal trust-icon"></i>
+                <h3 class="trust-title">Pro Player Approved</h3>
+                <p class="trust-desc">Endorsed by top esports professionals across Bangladesh</p>
+            </div>
+            
+            <div class="trust-item" data-aos="fade-up" data-aos-delay="500">
+                <i class="fas fa-undo-alt trust-icon"></i>
+                <h3 class="trust-title">Easy Returns</h3>
+                <p class="trust-desc">Hassle-free 7-day return policy for all purchases</p>
+            </div>
+        </div>
+        
+        <!-- Payment Made Easy Section -->
+        <div class="payment-methods-section mt-5 pt-5">
+            <div class="section-header">
+                <h3 class="section-title">Payment Made Easy</h3>
+                <p class="section-subtitle">
+                    Choose from Bangladesh's most trusted payment methods - fast, secure, and convenient
+                </p>
+            </div>
+            
+            <div class="payment-grid">
+                <div class="payment-card bkash enhanced" data-aos="fade-up">
+                    <div class="payment-icon-wrapper">
+                        <img src="{% static 'ecommerce/img/bkash-logo.png' %}" alt="bKash" width="60" height="40">
+                    </div>
+                    <h4 class="payment-title">bKash</h4>
+                    <p class="payment-desc">Bangladesh's most trusted mobile financial service</p>
+                    <div class="payment-features">
+                        <span class="feature-tag">✓ Instant Payment</span>
+                        <span class="feature-tag">✓ Most Popular</span>
+                    </div>
+                    <span class="payment-badge featured">#1 Choice</span>
+                </div>
+                
+                <div class="payment-card nagad enhanced" data-aos="fade-up" data-aos-delay="100">
+                    <div class="payment-icon-wrapper">
+                        <img src="{% static 'ecommerce/img/nagad-logo.png' %}" alt="Nagad" width="60" height="40">
+                    </div>
+                    <h4 class="payment-title">Nagad</h4>
+                    <p class="payment-desc">Government-backed secure mobile banking</p>
+                    <div class="payment-features">
+                        <span class="feature-tag">✓ Govt Backed</span>
+                        <span class="feature-tag">✓ Secure</span>
+                    </div>
+                    <span class="payment-badge secure">Secure</span>
+                </div>
+                
+                <div class="payment-card rocket enhanced" data-aos="fade-up" data-aos-delay="200">
+                    <div class="payment-icon-wrapper">
+                        <img src="{% static 'ecommerce/img/rocket-logo.png' %}" alt="Rocket" width="60" height="40">
+                    </div>
+                    <h4 class="payment-title">Rocket</h4>
+                    <p class="payment-desc">Dutch-Bangla Bank's reliable mobile wallet</p>
+                    <div class="payment-features">
+                        <span class="feature-tag">✓ Quick Transfer</span>
+                        <span class="feature-tag">✓ Reliable</span>
+                    </div>
+                    <span class="payment-badge reliable">Trusted</span>
+                </div>
+                
+                <div class="payment-card cod enhanced" data-aos="fade-up" data-aos-delay="300">
+                    <div class="payment-icon-wrapper">
+                        <i class="fas fa-hand-holding-usd payment-icon"></i>
+                    </div>
+                    <h4 class="payment-title">Cash on Delivery</h4>
+                    <p class="payment-desc">Pay when you receive your gaming gear</p>
+                    <div class="payment-features">
+                        <span class="feature-tag">✓ No Advance</span>
+                        <span class="feature-tag">✓ Convenient</span>
+                    </div>
+                    <span class="payment-badge convenient">Easy</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter Signup -->
+<section class="newsletter-signup">
+    <div class="container">
+        <div class="newsletter-content" data-aos="fade-up">
+            <div class="newsletter-text">
+                <h3>Stay Updated</h3>
+                <p>Get notified about new drops, exclusive offers, and member-only events</p>
+            </div>
+            <form class="newsletter-form">
+                <div class="form-group">
+                    <input type="email" class="form-control" placeholder="Enter your email" required>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                        Subscribe
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- Quick View Modal -->
+<div class="modal fade" id="quickViewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Quick View</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="quickViewContent">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+<script src="{% static 'ecommerce/js/store.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize AOS
+    AOS.init({
+        duration: 800,
+        easing: 'ease-in-out',
+        once: true,
+        offset: 100
+    });
+    
+    // Modern add to cart functionality
+    document.querySelectorAll('.add-to-cart-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const productId = this.dataset.productId;
+            const btn = this.querySelector('.modern-add-to-cart, .add-to-cart-btn');
+            const originalText = btn.innerHTML;
+            
+            // Show loading state
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+            btn.disabled = true;
+            
+            // Simulate AJAX call (replace with actual implementation)
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> Added!';
+                btn.style.background = '#28a745';
+                
+                // Reset after 2 seconds
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.style.background = '';
+                }, 2000);
+            }, 1000);
+        });
+    });
+    
+    // Wishlist functionality
+    document.querySelectorAll('.wishlist-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            if (icon.classList.contains('far')) {
+                icon.classList.remove('far');
+                icon.classList.add('fas');
+                this.style.color = '#e74c3c';
+            } else {
+                icon.classList.remove('fas');
+                icon.classList.add('far');
+                this.style.color = '';
+            }
+        });
+    });
+    
+    // Newsletter signup
+    const newsletterForm = document.querySelector('.newsletter-form');
+    if (newsletterForm) {
+        newsletterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check"></i> Subscribed!';
+                btn.style.background = '#28a745';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    btn.style.background = '';
+                    this.reset();
+                }, 3000);
+            }, 1500);
+        });
+    }
+    }).mount();
+    
+    // Hero scroll indicator
+    document.querySelector('.scroll-indicator').addEventListener('click', function() {
+        document.querySelector('#categories').scrollIntoView({
+            behavior: 'smooth'
+        });
+    });
+});
+</script>
+{% endblock %}

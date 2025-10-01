@@ -1,0 +1,15 @@
+<!-- [PLACEHOLDER] Open Graph Image for Social Media -->
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ogGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C9A96E;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B7D3A;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#006A4E;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#ogGrad)"/>
+  <text x="600" y="250" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle">👑 CrownStore</text>
+  <text x="600" y="320" font-family="Arial, sans-serif" font-size="36" fill="rgba(255,255,255,0.9)" text-anchor="middle">Bangladesh's #1 Gaming Marketplace</text>
+  <text x="600" y="380" font-family="Arial, sans-serif" font-size="24" fill="rgba(255,255,255,0.8)" text-anchor="middle">bKash • Nagad • Rocket • Cash on Delivery</text>
+  <text x="600" y="450" font-family="Arial, sans-serif" font-size="20" fill="rgba(255,255,255,0.7)" text-anchor="middle">Authentic Gaming Gear • Fast Delivery • Mobile Banking</text>
+</svg>

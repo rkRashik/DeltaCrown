@@ -1,0 +1,847 @@
+/* CrownStore Modern Ecommerce Design - Bangladesh Mobile Banking Focus */
+
+/* Color Scheme for Bangladesh Market */
+:root {
+    --crown-primary: #C9A96E; /* Golden crown color */
+    --crown-secondary: #8B7D3A;
+    --bangladesh-green: #006A4E; /* Bangladesh flag green */
+    --bangladesh-red: #F42A41;   /* Bangladesh flag red */
+    --bkash-pink: #E2136E;       /* bKash brand color */
+    --nagad-orange: #F57C00;     /* Nagad brand color */
+    --rocket-purple: #7B1FA2;    /* Rocket brand color */
+    --modern-dark: #1a1a1a;
+    --modern-light: #f8f9fa;
+    --text-dark: #2c3e50;
+    --text-muted: #6c757d;
+    --border-light: #e9ecef;
+    --success-green: #28a745;
+    --warning-orange: #fd7e14;
+    --info-blue: #17a2b8;
+}
+
+/* Typography */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    color: var(--text-dark);
+}
+
+.display-1, .display-2, .display-3, .display-4 {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 700;
+}
+
+/* Modern Hero Section */
+.modern-hero {
+    background: linear-gradient(135deg, var(--crown-primary) 0%, var(--crown-secondary) 50%, var(--bangladesh-green) 100%);
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding: 100px 0 50px;
+}
+
+.modern-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>') repeat;
+    opacity: 0.3;
+}
+
+.hero-image img {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease;
+}
+
+.hero-image:hover img {
+    transform: translateY(-10px);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-badge {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 50px;
+    padding: 8px 20px;
+    display: inline-block;
+    margin-bottom: 20px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.hero-title {
+    font-size: 4rem;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 1.1;
+}
+
+.hero-title .crown-text {
+    color: #FFD700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 30px;
+    font-weight: 300;
+}
+
+.hero-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 40px 0;
+}
+
+.feature-item {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    color: #FFD700;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.feature-title {
+    color: white;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.feature-desc {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}
+
+.hero-cta {
+    margin-top: 40px;
+}
+
+.btn-crown {
+    background: linear-gradient(45deg, var(--crown-primary), var(--crown-secondary));
+    border: none;
+    color: white;
+    padding: 15px 40px;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 25px rgba(201, 169, 110, 0.3);
+    margin-right: 15px;
+}
+
+.btn-crown:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(201, 169, 110, 0.4);
+    color: white;
+}
+
+.btn-outline-crown {
+    border: 2px solid white;
+    color: white;
+    background: transparent;
+    padding: 13px 35px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-crown:hover {
+    background: white;
+    color: var(--crown-primary);
+}
+
+/* Bangladesh Payment Methods Section */
+.payment-methods {
+    background: var(--modern-light);
+    padding: 80px 0;
+    border-top: 1px solid var(--border-light);
+}
+
+.payment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    margin-top: 50px;
+}
+
+.payment-card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-light);
+}
+
+.payment-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.payment-card.bkash {
+    border-top: 4px solid var(--bkash-pink);
+}
+
+.payment-card.nagad {
+    border-top: 4px solid var(--nagad-orange);
+}
+
+.payment-card.rocket {
+    border-top: 4px solid var(--rocket-purple);
+}
+
+.payment-card.cod {
+    border-top: 4px solid var(--success-green);
+}
+
+.payment-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.payment-card.bkash .payment-icon {
+    color: var(--bkash-pink);
+}
+
+.payment-card.nagad .payment-icon {
+    color: var(--nagad-orange);
+}
+
+.payment-card.rocket .payment-icon {
+    color: var(--rocket-purple);
+}
+
+.payment-card.cod .payment-icon {
+    color: var(--success-green);
+}
+
+.payment-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-dark);
+}
+
+.payment-desc {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.payment-badge {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.payment-card.bkash .payment-badge {
+    background: rgba(226, 19, 110, 0.1);
+    color: var(--bkash-pink);
+}
+
+.payment-card.nagad .payment-badge {
+    background: rgba(245, 124, 0, 0.1);
+    color: var(--nagad-orange);
+}
+
+.payment-card.rocket .payment-badge {
+    background: rgba(123, 31, 162, 0.1);
+    color: var(--rocket-purple);
+}
+
+.payment-card.cod .payment-badge {
+    background: rgba(40, 167, 69, 0.1);
+    color: var(--success-green);
+}
+
+/* Modern Product Categories */
+.modern-categories {
+    padding: 80px 0;
+    background: white;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.section-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(45deg, var(--crown-primary), var(--crown-secondary));
+    border-radius: 2px;
+}
+
+.section-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.modern-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 50px;
+}
+
+.modern-category-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-light);
+    height: 100%;
+}
+
+.modern-category-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.category-image-wrapper {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+}
+
+.category-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.modern-category-card:hover .category-image-wrapper img {
+    transform: scale(1.1);
+}
+
+.category-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--crown-primary) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modern-category-card:hover .category-overlay {
+    opacity: 0.8;
+}
+
+.category-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.modern-category-content {
+    padding: 25px;
+}
+
+.modern-category-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-dark);
+}
+
+.modern-category-desc {
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.category-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.category-price {
+    font-weight: 600;
+    color: var(--crown-primary);
+}
+
+.category-count {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.category-btn {
+    background: var(--modern-light);
+    border: none;
+    color: var(--crown-primary);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.category-btn:hover {
+    background: var(--crown-primary);
+    color: white;
+}
+
+/* Featured Products Modern Design */
+.modern-featured {
+    padding: 80px 0;
+    background: var(--modern-light);
+}
+
+.product-carousel-modern {
+    position: relative;
+    margin-top: 50px;
+}
+
+.modern-product-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin: 15px;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.modern-product-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modern-product-image {
+    position: relative;
+    height: 250px;
+    overflow: hidden;
+}
+
+.modern-product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.modern-product-card:hover .modern-product-image img {
+    transform: scale(1.1);
+}
+
+.product-badges {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.product-badge {
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 500;
+    color: white;
+}
+
+.badge-new {
+    background: var(--success-green);
+}
+
+.badge-sale {
+    background: var(--bangladesh-red);
+}
+
+.badge-featured {
+    background: var(--crown-primary);
+}
+
+.product-actions {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modern-product-card:hover .product-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    background: var(--crown-primary);
+    transform: scale(1.1);
+}
+
+.modern-product-content {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.modern-product-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-dark);
+    line-height: 1.3;
+}
+
+.product-price-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.modern-product-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--crown-primary);
+}
+
+.original-price {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    font-size: 1rem;
+}
+
+.discount-badge {
+    background: var(--bangladesh-red);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.product-rating {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.rating-stars {
+    color: #ffc107;
+}
+
+.rating-count {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.modern-add-to-cart {
+    background: var(--crown-primary);
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.modern-add-to-cart:hover {
+    background: var(--crown-secondary);
+    transform: translateY(-2px);
+}
+
+/* Trust Indicators */
+.trust-indicators {
+    padding: 60px 0;
+    background: white;
+    border-top: 1px solid var(--border-light);
+}
+
+.trust-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+    margin-top: 40px;
+}
+
+.trust-item {
+    text-align: center;
+}
+
+.trust-icon {
+    font-size: 3rem;
+    color: var(--crown-primary);
+    margin-bottom: 20px;
+    display: block;
+}
+
+.trust-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-dark);
+}
+
+.trust-desc {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .hero-features {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .modern-category-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .payment-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .trust-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+    
+    .btn-crown, .btn-outline-crown {
+        display: block;
+        width: 100%;
+        margin: 10px 0;
+    }
+}
+
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .section-title {
+        font-size: 1.8rem;
+    }
+    
+    .trust-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .modern-product-card {
+        height: auto;
+    }
+}
+
+/* Loading and Animation States */
+.fade-in {
+    opacity: 0;
+    animation: fadeIn 0.8s ease forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+    }
+}
+
+.slide-up {
+    transform: translateY(30px);
+    opacity: 0;
+    animation: slideUp 0.8s ease forwards;
+}
+
+@keyframes slideUp {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Professional Hover Effects */
+.modern-category-card, .modern-product-card {
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.modern-category-card:hover, .modern-product-card:hover {
+    transform: translateY(-15px) scale(1.02);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    border: 3px solid rgba(201, 169, 110, 0.3);
+    border-radius: 50%;
+    border-top: 3px solid var(--crown-primary);
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Professional Button States */
+.btn-crown, .modern-add-to-cart, .category-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.btn-crown::before, .modern-add-to-cart::before, .category-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-crown:hover::before, .modern-add-to-cart:hover::before, .category-btn:hover::before {
+    left: 100%;
+}
+
+/* Enhanced Card Animations */
+@keyframes cardFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.payment-card:nth-child(odd) {
+    animation: cardFloat 6s ease-in-out infinite;
+}
+
+.payment-card:nth-child(even) {
+    animation: cardFloat 6s ease-in-out infinite reverse;
+}
+
+/* Professional Image Overlay */
+.category-image-wrapper::after, .modern-product-image::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, transparent 30%, rgba(201, 169, 110, 0.1) 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modern-category-card:hover .category-image-wrapper::after,
+.modern-product-card:hover .modern-product-image::after {
+    opacity: 1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--modern-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--crown-primary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--crown-secondary);
+}

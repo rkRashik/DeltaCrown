@@ -1,0 +1,8 @@
+<!-- [PLACEHOLDER] Gaming Mice Category Image -->
+<svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="300" fill="#34495e"/>
+  <ellipse cx="200" cy="150" rx="60" ry="40" fill="none" stroke="#C9A96E" stroke-width="4"/>
+  <text x="200" y="90" font-family="Arial, sans-serif" font-size="36" fill="#C9A96E" text-anchor="middle">🖱️</text>
+  <text x="200" y="240" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">Gaming Mice</text>
+  <text x="200" y="260" font-family="Arial, sans-serif" font-size="14" fill="#bdc3c7" text-anchor="middle">Precision Gaming Control</text>
+</svg>

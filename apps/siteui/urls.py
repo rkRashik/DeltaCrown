@@ -6,6 +6,7 @@ app_name = 'siteui'
 
 urlpatterns = [
     path("", home, name="homepage"),
+    path("", home, name="home"),  # Add alias for 'home' name
     path("ui/", ui_showcase, name="ui_showcase"),
     path("about/", views.about, name="about"),
     path("community/", views.community, name="community"),

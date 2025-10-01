@@ -1,0 +1,7 @@
+<!-- [PLACEHOLDER] Replace with actual CrownStore logo -->
+<svg width="200" height="60" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="60" fill="transparent"/>
+  <text x="40" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#C9A96E" text-anchor="middle">👑</text>
+  <text x="120" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">Crown</text>
+  <text x="180" y="35" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#C9A96E" text-anchor="middle">Store</text>
+</svg>

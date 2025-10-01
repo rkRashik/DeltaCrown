@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ product.name }} - CrownStore{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ecommerce/css/store.css' %}">
+<link rel="stylesheet" href="{% static 'ecommerce/css/product-detail.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/glide/3.4.1/css/glide.core.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="product-detail-container">
+    <!-- Breadcrumb -->
+    <div class="container">
+        <nav aria-label="breadcrumb" class="product-breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'ecommerce:store_home' %}">CrownStore</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'ecommerce:category_detail' product.category.slug %}">{{ product.category.name }}</a></li>
+                <li class="breadcrumb-item active">{{ product.name }}</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <!-- Product Images -->
+            <div class="col-lg-6">
+                <div class="product-gallery">
+                    <div class="main-image-container">
+                        <div class="main-image">
+                            {% if product.featured_image %}
+                                <img src="{{ product.featured_image.url }}" alt="{{ product.name }}" id="mainProductImage">
+                            {% endif %}
+                            
+                            <!-- Product Badges -->
+                            <div class="product-badges">
+                                {% if product.is_on_sale %}
+                                <span class="badge sale-badge">-{{ product.discount_percentage }}%</span>
+                                {% endif %}
+                                {% if product.is_limited_edition %}
+                                <span class="badge limited-badge">Limited Edition</span>
+                                {% endif %}
+                                {% if product.is_member_exclusive %}
+                                <span class="badge exclusive-badge">Members Only</span>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Rarity Indicator -->
+                            <div class="rarity-indicator {{ product.rarity }}">
+                                <span class="rarity-gem"></span>
+                                {{ product.get_rarity_display }}
+                            </div>
+                        </div>
+                        
+                        <!-- Image Zoom -->
+                        <div class="zoom-controls">
+                            <button class="zoom-btn" id="zoomBtn">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Thumbnail Gallery -->
+                    {% if product.images.all %}
+                    <div class="thumbnail-gallery">
+                        <div class="glide" id="thumbnail-glide">
+                            <div class="glide__track" data-glide-el="track">
+                                <ul class="glide__slides">
+                                    <li class="glide__slide">
+                                        <div class="thumbnail active" data-image="{{ product.featured_image.url }}">
+                                            <img src="{{ product.featured_image.url }}" alt="{{ product.name }}">
+                                        </div>
+                                    </li>
+                                    {% for image in product.images.all %}
+                                    <li class="glide__slide">
+                                        <div class="thumbnail" data-image="{{ image.image.url }}">
+                                            <img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}">
+                                        </div>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Product Info -->
+            <div class="col-lg-6">
+                <div class="product-info">
+                    <!-- Product Meta -->
+                    <div class="product-meta">
+                        <span class="product-category">{{ product.category.name }}</span>
+                        {% if product.brand %}
+                        <span class="product-brand">{{ product.brand.name }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Product Title -->
+                    <h1 class="product-title">{{ product.name }}</h1>
+                    
+                    <!-- Product Rating -->
+                    <div class="product-rating">
+                        <div class="stars">
+                            {% for i in "12345" %}
+                                <i class="fas fa-star {% if forloop.counter <= avg_rating %}active{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                        <span class="rating-text">{{ avg_rating }}/5</span>
+                        <span class="rating-count">({{ total_reviews }} review{{ total_reviews|pluralize }})</span>
+                    </div>
+                    
+                    <!-- Product Pricing -->
+                    <div class="product-pricing">
+                        {% if product.is_on_sale %}
+                            <span class="price-original">${{ product.original_price }}</span>
+                            <span class="discount-amount">Save ${{ product.discount_amount }}</span>
+                        {% endif %}
+                        <span class="price-current">${{ product.price }}</span>
+                    </div>
+                    
+                    <!-- Short Description -->
+                    {% if product.short_description %}
+                    <div class="short-description">
+                        <p>{{ product.short_description }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Product Variants -->
+                    {% if product.variants.all %}
+                    <div class="product-variants">
+                        {% regroup product.variants.all by name as variant_groups %}
+                        {% for group in variant_groups %}
+                        <div class="variant-group">
+                            <label class="variant-label">{{ group.grouper }}:</label>
+                            <div class="variant-options">
+                                {% for variant in group.list %}
+                                <div class="variant-option">
+                                    <input type="radio" id="variant-{{ variant.id }}" name="{{ group.grouper|lower }}" 
+                                           value="{{ variant.id }}" data-price="{{ variant.price_adjustment }}">
+                                    <label for="variant-{{ variant.id }}">{{ variant.value }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Stock Status -->
+                    <div class="stock-status">
+                        {% if product.is_in_stock %}
+                            <span class="in-stock">
+                                <i class="fas fa-check-circle"></i>
+                                {% if product.stock < 10 and product.track_stock %}
+                                    Only {{ product.stock }} left in stock
+                                {% else %}
+                                    In Stock
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            <span class="out-of-stock">
+                                <i class="fas fa-times-circle"></i>
+                                Out of Stock
+                            </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Add to Cart Section -->
+                    <div class="add-to-cart-section">
+                        {% if product.is_in_stock %}
+                        <form class="add-to-cart-form" data-product-id="{{ product.id }}">
+                            {% csrf_token %}
+                            <div class="quantity-selector">
+                                <label for="quantity">Quantity:</label>
+                                <div class="quantity-controls">
+                                    <button type="button" class="quantity-btn minus" data-action="decrease">-</button>
+                                    <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ product.stock|default:10 }}">
+                                    <button type="button" class="quantity-btn plus" data-action="increase">+</button>
+                                </div>
+                            </div>
+                            
+                            <div class="cart-actions">
+                                <button type="submit" class="btn btn-primary btn-lg add-to-cart-btn">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    Add to Cart
+                                </button>
+                                <button type="button" class="btn btn-outline-primary btn-lg buy-now-btn">
+                                    <i class="fas fa-bolt"></i>
+                                    Buy Now
+                                </button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <div class="out-of-stock-actions">
+                            <button class="btn btn-secondary btn-lg" disabled>
+                                <i class="fas fa-ban"></i>
+                                Out of Stock
+                            </button>
+                            <button class="btn btn-outline-secondary notify-btn">
+                                <i class="fas fa-bell"></i>
+                                Notify When Available
+                            </button>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Wishlist Button -->
+                        <button class="btn btn-outline-secondary wishlist-btn {% if in_wishlist %}active{% endif %}" 
+                                data-product-id="{{ product.id }}">
+                            <i class="{% if in_wishlist %}fas{% else %}far{% endif %} fa-heart"></i>
+                            {% if in_wishlist %}Remove from Wishlist{% else %}Add to Wishlist{% endif %}
+                        </button>
+                    </div>
+                    
+                    <!-- Product Features -->
+                    <div class="product-features">
+                        <div class="feature-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Secure Transaction</span>
+                        </div>
+                        {% if product.is_digital %}
+                        <div class="feature-item">
+                            <i class="fas fa-download"></i>
+                            <span>Instant Digital Delivery</span>
+                        </div>
+                        {% else %}
+                        <div class="feature-item">
+                            <i class="fas fa-shipping-fast"></i>
+                            <span>Free Shipping on Orders $50+</span>
+                        </div>
+                        {% endif %}
+                        <div class="feature-item">
+                            <i class="fas fa-medal"></i>
+                            <span>Premium Quality Guaranteed</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Social Share -->
+                    <div class="social-share">
+                        <span>Share:</span>
+                        <a href="#" class="share-btn twitter" data-platform="twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="share-btn facebook" data-platform="facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="share-btn discord" data-platform="discord">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Tabs -->
+        <div class="product-tabs-section">
+            <nav class="product-tabs">
+                <button class="tab-btn active" data-tab="description">Description</button>
+                <button class="tab-btn" data-tab="specifications">Specifications</button>
+                <button class="tab-btn" data-tab="reviews">Reviews ({{ total_reviews }})</button>
+                <button class="tab-btn" data-tab="shipping">Shipping & Returns</button>
+            </nav>
+            
+            <div class="tab-content">
+                <!-- Description Tab -->
+                <div class="tab-pane active" id="description">
+                    <div class="description-content">
+                        {{ product.description|linebreaks }}
+                        
+                        {% if product.compatible_games %}
+                        <div class="compatible-games">
+                            <h4>Compatible Games:</h4>
+                            <div class="game-tags">
+                                {% for game in product.compatible_games|split:"," %}
+                                <span class="game-tag">{{ game|title }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.esports_team %}
+                        <div class="esports-team">
+                            <h4>Official Team Merchandise:</h4>
+                            <span class="team-badge">{{ product.esports_team }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Specifications Tab -->
+                <div class="tab-pane" id="specifications">
+                    <div class="specifications-content">
+                        <table class="specs-table">
+                            <tr>
+                                <td>Product Type</td>
+                                <td>{{ product.get_product_type_display }}</td>
+                            </tr>
+                            <tr>
+                                <td>Category</td>
+                                <td>{{ product.category.name }}</td>
+                            </tr>
+                            {% if product.brand %}
+                            <tr>
+                                <td>Brand</td>
+                                <td>{{ product.brand.name }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td>Rarity</td>
+                                <td><span class="rarity-badge {{ product.rarity }}">{{ product.get_rarity_display }}</span></td>
+                            </tr>
+                            {% if product.is_limited_edition %}
+                            <tr>
+                                <td>Limited Edition</td>
+                                <td>Yes {% if product.limited_quantity %}({{ product.limited_quantity }} pieces){% endif %}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Reviews Tab -->
+                <div class="tab-pane" id="reviews">
+                    <div class="reviews-section">
+                        <!-- Review Summary -->
+                        <div class="review-summary">
+                            <div class="rating-overview">
+                                <div class="avg-rating">
+                                    <span class="rating-number">{{ avg_rating }}</span>
+                                    <div class="stars">
+                                        {% for i in "12345" %}
+                                            <i class="fas fa-star {% if forloop.counter <= avg_rating %}active{% endif %}"></i>
+                                        {% endfor %}
+                                    </div>
+                                    <span class="total-reviews">Based on {{ total_reviews }} review{{ total_reviews|pluralize }}</span>
+                                </div>
+                                
+                                <div class="rating-breakdown">
+                                    {% for rating, count in rating_counts.items %}
+                                    <div class="rating-bar">
+                                        <span class="rating-label">{{ rating }} star{{ rating|pluralize }}</span>
+                                        <div class="bar">
+                                            <div class="fill" style="width: {% if total_reviews %}{{ count|mul:100|div:total_reviews }}{% else %}0{% endif %}%"></div>
+                                        </div>
+                                        <span class="rating-count">{{ count }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Reviews List -->
+                        <div class="reviews-list">
+                            {% for review in reviews %}
+                            <div class="review-item">
+                                <div class="review-header">
+                                    <div class="reviewer-info">
+                                        <div class="reviewer-avatar">
+                                            {% if review.user.avatar %}
+                                                <img src="{{ review.user.avatar.url }}" alt="{{ review.user.display_name }}">
+                                            {% else %}
+                                                <div class="avatar-placeholder">
+                                                    {{ review.user.display_name|first }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="reviewer-details">
+                                            <h5 class="reviewer-name">{{ review.user.display_name }}</h5>
+                                            <div class="review-meta">
+                                                <div class="stars">
+                                                    {% for i in "12345" %}
+                                                        <i class="fas fa-star {% if forloop.counter <= review.rating %}active{% endif %}"></i>
+                                                    {% endfor %}
+                                                </div>
+                                                <span class="review-date">{{ review.created_at|date:"M d, Y" }}</span>
+                                                {% if review.is_verified_purchase %}
+                                                <span class="verified-purchase">
+                                                    <i class="fas fa-check-circle"></i> Verified Purchase
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="review-content">
+                                    <h6 class="review-title">{{ review.title }}</h6>
+                                    <p class="review-comment">{{ review.comment }}</p>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="no-reviews">
+                                <i class="fas fa-comment-slash"></i>
+                                <h4>No reviews yet</h4>
+                                <p>Be the first to review this product!</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Write Review Button -->
+                        {% if user.is_authenticated %}
+                        <div class="write-review-section">
+                            <button class="btn btn-outline-primary write-review-btn" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                                <i class="fas fa-edit"></i>
+                                Write a Review
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Shipping Tab -->
+                <div class="tab-pane" id="shipping">
+                    <div class="shipping-content">
+                        <div class="shipping-info">
+                            <h4>Shipping Information</h4>
+                            {% if product.is_digital %}
+                            <p><strong>Digital Product:</strong> Instant delivery via email after purchase confirmation.</p>
+                            {% else %}
+                            <ul>
+                                <li><strong>Standard Shipping:</strong> 5-7 business days - FREE on orders over $50</li>
+                                <li><strong>Express Shipping:</strong> 2-3 business days - $9.99</li>
+                                <li><strong>Overnight Shipping:</strong> Next business day - $19.99</li>
+                            </ul>
+                            {% endif %}
+                            
+                            <h4>Returns & Exchanges</h4>
+                            <ul>
+                                <li>30-day return policy for physical items</li>
+                                <li>Items must be unused and in original packaging</li>
+                                <li>Digital products are non-refundable unless defective</li>
+                                <li>Free return shipping for defective items</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Products -->
+        {% if related_products %}
+        <div class="related-products-section">
+            <h3>You Might Also Like</h3>
+            <div class="related-products-grid">
+                {% for related in related_products %}
+                <div class="related-product">
+                    <div class="product-card">
+                        <div class="product-image">
+                            <a href="{% url 'ecommerce:product_detail' related.slug %}">
+                                {% if related.featured_image %}
+                                    <img src="{{ related.featured_image.url }}" alt="{{ related.name }}">
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="product-info">
+                            <h4 class="product-name">
+                                <a href="{% url 'ecommerce:product_detail' related.slug %}">{{ related.name }}</a>
+                            </h4>
+                            <div class="product-price">${{ related.price }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Review Modal -->
+{% if user.is_authenticated %}
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Write a Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="reviewForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <div class="rating-input">
+                            {% for i in "12345" %}
+                            <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}">
+                            <label for="star{{ i }}"><i class="fas fa-star"></i></label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reviewTitle" class="form-label">Review Title</label>
+                        <input type="text" class="form-control" id="reviewTitle" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reviewComment" class="form-label">Your Review</label>
+                        <textarea class="form-control" id="reviewComment" name="comment" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/glide/3.4.1/glide.min.js"></script>
+<script src="{% static 'ecommerce/js/product-detail.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize thumbnail carousel
+    {% if product.images.all %}
+    new Glide('#thumbnail-glide', {
+        type: 'carousel',
+        perView: 4,
+        gap: 10,
+        breakpoints: {
+            768: { perView: 3 },
+            480: { perView: 2 }
+        }
+    }).mount();
+    {% endif %}
+    
+    // Product tabs
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabId = this.dataset.tab;
+            
+            // Update active tab button
+            tabBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Update active tab pane
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+    
+    // Quantity controls
+    const quantityInput = document.getElementById('quantity');
+    const minusBtn = document.querySelector('.quantity-btn.minus');
+    const plusBtn = document.querySelector('.quantity-btn.plus');
+    
+    if (minusBtn && plusBtn && quantityInput) {
+        minusBtn.addEventListener('click', function() {
+            const currentValue = parseInt(quantityInput.value);
+            if (currentValue > 1) {
+                quantityInput.value = currentValue - 1;
+            }
+        });
+        
+        plusBtn.addEventListener('click', function() {
+            const currentValue = parseInt(quantityInput.value);
+            const maxValue = parseInt(quantityInput.max);
+            if (currentValue < maxValue) {
+                quantityInput.value = currentValue + 1;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

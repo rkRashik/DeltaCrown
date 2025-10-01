@@ -1,0 +1,9 @@
+<!-- [PLACEHOLDER] Sample Gaming Mouse Product Image -->
+<svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="600" fill="#f8f9fa"/>
+  <ellipse cx="300" cy="300" rx="180" ry="120" fill="none" stroke="#C9A96E" stroke-width="8"/>
+  <text x="300" y="250" font-family="Arial, sans-serif" font-size="72" fill="#C9A96E" text-anchor="middle">🖱️</text>
+  <text x="300" y="400" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#2c3e50" text-anchor="middle">Gaming Mouse Elite</text>
+  <text x="300" y="430" font-family="Arial, sans-serif" font-size="18" fill="#6c757d" text-anchor="middle">Precision Gaming Control</text>
+  <text x="300" y="500" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#C9A96E" text-anchor="middle">৳4,200</text>
+</svg>

@@ -1,0 +1,24 @@
+<!-- Bangladesh Payment Methods -->
+<div class="bd-payment-methods">
+    <h4 class="payment-title">
+        <i class="fas fa-credit-card"></i>
+        Payment Methods in Bangladesh
+    </h4>
+    <div class="payment-methods-grid">
+        {% for method in methods %}
+            <div class="payment-method {% if method.popular %}popular{% endif %}">
+                <div class="payment-icon">
+                    <i class="{{ method.icon }}"></i>
+                </div>
+                <span class="payment-name">{{ method.name }}</span>
+                {% if method.popular %}
+                    <span class="popular-badge">Popular</span>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <div class="payment-note">
+        <i class="fas fa-info-circle"></i>
+        <span>All major Bangladeshi payment methods supported</span>
+    </div>
+</div>

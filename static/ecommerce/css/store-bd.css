@@ -1,0 +1,542 @@
+/* CrownStore Bangladesh Edition - Ultra Modern Styles */
+
+:root {
+    /* Bangladesh-inspired color palette */
+    --bd-green: #006A4E;
+    --bd-red: #F42A41;
+    --bd-gold: #FFD700;
+    --bd-dark: #0f1419;
+    --bd-darker: #0a0e13;
+    --bd-accent: #00d4ff;
+    --bd-purple: #8B5CF6;
+    
+    /* Modern gradients */
+    --bd-primary-gradient: linear-gradient(135deg, #006A4E 0%, #00d4ff 100%);
+    --bd-secondary-gradient: linear-gradient(135deg, #8B5CF6 0%, #FFD700 100%);
+    --bd-dark-gradient: linear-gradient(135deg, #0f1419 0%, #1a202c 100%);
+    
+    /* Glass morphism */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-backdrop: blur(10px);
+    
+    /* Shadows */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.3);
+    
+    /* Typography */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+    
+    /* Spacing */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+}
+
+/* Enhanced Hero Section */
+.store-hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    background: var(--bd-dark-gradient);
+    overflow: hidden;
+}
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+.hero-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bd-primary-gradient);
+    opacity: 0.1;
+    z-index: 1;
+}
+
+.hero-background::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
+    z-index: 2;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--space-8);
+}
+
+.hero-title {
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900;
+    margin-bottom: var(--space-6);
+    letter-spacing: -0.02em;
+}
+
+.crown-text {
+    background: var(--bd-secondary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
+}
+
+.store-text {
+    background: var(--bd-primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.3));
+}
+
+.hero-subtitle {
+    font-size: var(--font-size-2xl);
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+    color: #94a3b8;
+}
+
+.hero-description {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-8);
+    color: #64748b;
+    line-height: 1.7;
+}
+
+.hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+}
+
+.stat-item {
+    text-align: center;
+    padding: var(--space-4);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    backdrop-filter: var(--glass-backdrop);
+}
+
+.stat-number {
+    display: block;
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    background: var(--bd-secondary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-label {
+    font-size: var(--font-size-sm);
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Enhanced Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn-primary {
+    background: var(--bd-primary-gradient);
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--glass-bg);
+    color: white;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: var(--glass-backdrop);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    color: white;
+}
+
+.btn-lg {
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--font-size-lg);
+    border-radius: 16px;
+}
+
+/* Product Cards - Ultra Modern */
+.product-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: var(--space-6);
+    backdrop-filter: var(--glass-backdrop);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.product-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bd-primary-gradient);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+    border-color: rgba(0, 212, 255, 0.3);
+}
+
+.product-card:hover::before {
+    opacity: 0.05;
+}
+
+.product-image-container {
+    position: relative;
+    margin-bottom: var(--space-4);
+    border-radius: 16px;
+    overflow: hidden;
+    aspect-ratio: 1;
+}
+
+.product-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
+}
+
+/* Pricing - Bangladesh Style */
+.product-pricing {
+    margin: var(--space-4) 0;
+}
+
+.price-current {
+    font-size: var(--font-size-2xl);
+    font-weight: 800;
+    background: var(--bd-secondary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.price-original {
+    font-size: var(--font-size-lg);
+    color: #64748b;
+    text-decoration: line-through;
+    margin-right: var(--space-2);
+}
+
+.price-discount {
+    background: var(--bd-red);
+    color: white;
+    padding: var(--space-1) var(--space-2);
+    border-radius: 8px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    margin-left: var(--space-2);
+}
+
+/* Bangladesh Market Badges */
+.market-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    border-radius: 8px;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.market-badge.budget {
+    background: linear-gradient(45deg, #10b981, #34d399);
+    color: white;
+}
+
+.market-badge.student {
+    background: linear-gradient(45deg, #3b82f6, #60a5fa);
+    color: white;
+}
+
+.market-badge.exclusive {
+    background: linear-gradient(45deg, #8b5cf6, #a78bfa);
+    color: white;
+}
+
+.market-badge.limited {
+    background: linear-gradient(45deg, #ef4444, #f87171);
+    color: white;
+}
+
+.market-badge.featured {
+    background: linear-gradient(45deg, #f59e0b, #fbbf24);
+    color: white;
+}
+
+/* Payment Methods - Bangladesh */
+.bd-payment-methods {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: var(--space-6);
+    backdrop-filter: var(--glass-backdrop);
+    margin: var(--space-8) 0;
+}
+
+.payment-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    margin-bottom: var(--space-4);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.payment-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.payment-method {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.payment-method.popular {
+    border-color: var(--bd-green);
+    background: rgba(0, 106, 78, 0.1);
+}
+
+.payment-method:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.payment-icon {
+    font-size: var(--font-size-xl);
+    color: var(--bd-accent);
+}
+
+.payment-method.popular .payment-icon {
+    color: var(--bd-green);
+}
+
+.payment-name {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: white;
+}
+
+.popular-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--bd-green);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.payment-note {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: #94a3b8;
+    padding: var(--space-3);
+    background: rgba(0, 212, 255, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid var(--bd-accent);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-content {
+        padding: var(--space-4);
+    }
+    
+    .hero-title {
+        font-size: clamp(2rem, 10vw, 4rem);
+    }
+    
+    .hero-stats {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+    
+    .payment-methods-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .btn-lg {
+        padding: var(--space-3) var(--space-6);
+        font-size: var(--font-size-base);
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+/* Loading States */
+.loading-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bd-darker);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bd-primary-gradient);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bd-secondary-gradient);
+}
+
+/* Selection Styling */
+::selection {
+    background: var(--bd-accent);
+    color: white;
+}

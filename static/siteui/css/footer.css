@@ -108,21 +108,23 @@
 .footer-content {
     position: relative;
     z-index: 10;
-    padding: 80px 0 40px;
+    padding: 90px 0 50px;
 }
 
 .footer-container {
     max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 24px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: clamp(32px, 8vw, 80px);
+    padding-right: clamp(16px, 5vw, 48px);
 }
 
 /* Top Section */
 .footer-top {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    margin-bottom: 60px;
+    gap: 100px;
+    margin-bottom: 80px;
     align-items: start;
 }
 
@@ -134,13 +136,14 @@
 .brand-logo {
     display: flex;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 32px;
+    padding: 12px 0 12px 0;
 }
 
 .delta-crown-logo {
-    width: 56px;
-    height: 56px;
-    margin-right: 16px;
+    width: 60px;
+    height: 60px;
+    margin-right: 20px;
     filter: drop-shadow(0 0 20px rgba(0, 245, 255, 0.5));
 }
 

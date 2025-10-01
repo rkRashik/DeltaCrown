@@ -37,7 +37,7 @@ urlpatterns = [
     # Optional extras mounted if present
     path("notifications/", include("apps.notifications.urls")) if import_module else None,
     path("", include("apps.dashboard.urls")),
-    path("ecommerce/", include(("apps.ecommerce.urls", "ecommerce"), namespace="ecommerce")),
+    path("crownstore/", include(("apps.ecommerce.urls", "ecommerce"), namespace="ecommerce")),
     path("", include("apps.economy.urls")),
     path("ckeditor5/", include("django_ckeditor_5.urls")),
     path("players/<str:username>/", player_views.player_detail, name="player_detail"),

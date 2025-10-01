@@ -38,16 +38,16 @@
                     <i class="fas fa-trophy"></i>
                     <span>Bangladesh's #1 Esports Platform</span>
                 </div>
-                
+
                 <h1 class="hero-title">
                     Compete, Win, <span class="gradient-text">Dominate</span>
                 </h1>
-                
+
                 <p class="hero-description">
-                    Join thousands of gamers competing in professional tournaments. 
+                    Join thousands of gamers competing in professional tournaments.
                     Build your team, climb rankings, and win real cash prizes.
                 </p>
-                
+
                 <div class="hero-stats">
                     <div class="stat-item">
                         <div class="stat-number">{{ community_stats.players|default:"5,200"|floatformat:0 }}+</div>
@@ -62,7 +62,7 @@
                         <div class="stat-label">Tournaments</div>
                     </div>
                 </div>
-                
+
                 <div class="hero-actions">
                     <a href="/tournaments/" class="btn btn-primary">
                         <i class="fas fa-trophy"></i>
@@ -74,7 +74,7 @@
                     </a>
                 </div>
             </div>
-            
+
             <div class="hero-visual">
                 <div class="featured-tournament-card">
                     {% if featured_tournament %}
@@ -133,7 +133,7 @@
                 Compete across multiple game titles and prove your skills in various competitive environments.
             </p>
         </div>
-        
+
         <div class="games-grid">
             {% for game in games_strip %}
                 <div class="game-card" data-game="{{ game.slug }}">
@@ -146,13 +146,13 @@
                             <img src="{% game_logo game.slug|upper %}" alt="{{ game.name }} Logo" class="game-logo-img">
                         </div>
                     </div>
-                    
+
                     <div class="game-card-content">
                         <div class="game-info">
                             <h3 class="game-title">{{ game.name }}</h3>
                             <div class="game-category">{% game_category game.slug|upper %}</div>
                         </div>
-                        
+
                         <div class="game-stats">
                             <div class="stat-item">
                                 <i class="fas fa-trophy"></i>
@@ -171,9 +171,9 @@
                                 <span>Daily Matches</span>
                             </div>
                         </div>
-                        
+
                         <div class="game-actions">
-                            <a href="/tournaments/?game={{ game.slug }}" class="btn btn-game-primary" 
+                            <a href="/tournaments/?game={{ game.slug }}" class="btn btn-game-primary"
                                style="--game-color: {% game_color_primary game.slug|upper %}">
                                 <i class="fas fa-play"></i>
                                 Play Now
@@ -187,7 +187,7 @@
                 </div>
             {% endfor %}
         </div>
-        
+
         <div class="section-footer">
             <a href="/tournaments/" class="btn btn-outline-large">
                 <i class="fas fa-gamepad"></i>
@@ -210,7 +210,7 @@
                 Join ongoing competitions or register for upcoming tournaments across all supported games.
             </p>
         </div>
-        
+
         <div class="tournaments-grid">
             <!-- Featured Tournament -->
             {% if featured_tournament %}
@@ -246,7 +246,7 @@
                 </div>
             </div>
             {% endif %}
-            
+
             <!-- Upcoming Tournaments -->
             <div class="tournament-card upcoming">
                 <div class="tournament-status upcoming">
@@ -279,7 +279,7 @@
                     </a>
                 </div>
             </div>
-            
+
             <!-- CS2 Tournament -->
             <div class="tournament-card upcoming">
                 <div class="tournament-status upcoming">
@@ -313,7 +313,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="section-footer">
             <a href="/tournaments/" class="btn btn-outline-large">
                 <i class="fas fa-trophy"></i>
@@ -336,7 +336,7 @@
                 Stay updated with live matches, recent results, and upcoming tournaments across all games.
             </p>
         </div>
-        
+
         <div class="feed-hub">
             <!-- Live Matches -->
             <div class="feed-section">
@@ -377,7 +377,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Recent Results -->
             <div class="feed-section">
                 <div class="feed-header">
@@ -405,7 +405,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Upcoming Tournaments -->
             <div class="feed-section">
                 <div class="feed-header">
@@ -458,7 +458,7 @@
                 Meet the top-performing teams in our platform. Join them or build your own championship team.
             </p>
         </div>
-        
+
         <div class="teams-grid">
             <!-- Elite Team Cards with Enhanced Styling -->
             <div class="team-card elite-team" data-rank="1">
@@ -495,7 +495,7 @@
                     </a>
                 </div>
             </div>
-            
+
             <div class="team-card elite-team" data-rank="2">
                 <div class="team-rank runner-up">#2</div>
                 <div class="team-logo">
@@ -530,7 +530,7 @@
                     </a>
                 </div>
             </div>
-            
+
             <div class="team-card elite-team" data-rank="3">
                 <div class="team-rank third-place">#3</div>
                 <div class="team-logo">
@@ -566,7 +566,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="section-footer">
             <div class="cta-content">
                 <h3>Ready to Build Your Team?</h3>
@@ -599,7 +599,7 @@
                 Experience the most advanced esports platform in Bangladesh with professional-grade features.
             </p>
         </div>
-        
+
         <div class="features-grid">
             <div class="feature-card">
                 <div class="feature-icon">
@@ -610,7 +610,7 @@
                     Advanced anti-cheat systems and fair play monitoring ensure competitive integrity.
                 </p>
             </div>
-            
+
             <div class="feature-card">
                 <div class="feature-icon">
                     <i class="fas fa-money-bill-wave"></i>
@@ -620,7 +620,7 @@
                     Win real money prizes with instant payouts through mobile banking and cards.
                 </p>
             </div>
-            
+
             <div class="feature-card">
                 <div class="feature-icon">
                     <i class="fas fa-chart-line"></i>
@@ -630,7 +630,7 @@
                     Detailed statistics and skill ratings help you track your improvement over time.
                 </p>
             </div>
-            
+
             <div class="feature-card">
                 <div class="feature-icon">
                     <i class="fas fa-users-cog"></i>
@@ -640,7 +640,7 @@
                     Comprehensive team tools for recruitment, practice scheduling, and strategy planning.
                 </p>
             </div>
-            
+
             <div class="feature-card">
                 <div class="feature-icon">
                     <i class="fas fa-broadcast-tower"></i>
@@ -650,7 +650,7 @@
                     Watch tournaments live with professional commentary and analysis.
                 </p>
             </div>
-            
+
             <div class="feature-card">
                 <div class="feature-icon">
                     <i class="fas fa-mobile-alt"></i>
@@ -674,7 +674,7 @@
                     Join thousands of gamers competing for real prizes. Create your account and start your path to esports glory.
                 </p>
             </div>
-            
+
             <div class="cta-actions">
                 <a href="/account/signup/" class="btn btn-primary btn-large">
                     <i class="fas fa-user-plus"></i>
@@ -685,7 +685,7 @@
                     Explore Tournaments
                 </a>
             </div>
-            
+
             <div class="cta-features">
                 <div class="feature-item">
                     <i class="fas fa-check"></i>
