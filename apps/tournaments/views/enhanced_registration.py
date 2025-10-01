@@ -63,6 +63,13 @@ def enhanced_register(request, slug):
         return _handle_registration_submission(request, tournament, user_profile, is_team_tournament)
     
     # GET request - show registration form
+    # Check for type parameter to override detection
+    registration_type = request.GET.get('type', '')
+    if registration_type == 'team':
+        is_team_tournament = True
+    elif registration_type == 'solo':
+        is_team_tournament = False
+    
     if is_team_tournament:
         # Get user's team for this game
         user_team, membership, is_captain = _get_user_team_for_game(user_profile, tournament.game)

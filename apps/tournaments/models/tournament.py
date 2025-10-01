@@ -147,10 +147,10 @@ class Tournament(models.Model):
     @property
     def register_url(self) -> str | None:
         if getattr(self, "slug", None):
-            # Use enhanced registration system
+            # Use the helper function for consistent URL generation
             try:
-                from django.urls import reverse
-                return reverse("tournaments:enhanced_register", args=[self.slug])
+                from apps.tournaments.views.helpers import register_url
+                return register_url(self)
             except Exception:
                 # Fallback to enhanced registration path
                 return f"/tournaments/register-enhanced/{self.slug}/"
