@@ -1,0 +1,643 @@
+/**
+ * UI/UX Phase C: Mobile Responsiveness Enhancements
+ * 
+ * Features:
+ * - Touch-friendly tap targets (44x44px minimum)
+ * - Swipe gesture support for carousels
+ * - Mobile-optimized navigation
+ * - Bottom sheet modals
+ * - Pull-to-refresh indicator
+ * - Haptic feedback simulation
+ * 
+ * Browser Support: iOS Safari 12+, Chrome Mobile 90+, Samsung Internet
+ */
+
+/* ============================================
+   1. Touch Target Enhancements
+   ============================================ */
+
+/**
+ * Minimum touch target: 44x44px (Apple HIG, Material Design)
+ */
+@media (max-width: 768px) {
+    /* Buttons */
+    .btn,
+    .button,
+    button[type="submit"],
+    button[type="button"] {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 20px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Links in navigation */
+    nav a,
+    .nav-link,
+    .menu-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+    }
+
+    /* Form inputs */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    select,
+    textarea {
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom */
+        padding: 12px 16px;
+    }
+
+    /* Checkboxes and radios */
+    input[type="checkbox"],
+    input[type="radio"] {
+        min-width: 24px;
+        min-height: 24px;
+        cursor: pointer;
+    }
+
+    /* Increase tap target for small icons */
+    .icon-button,
+    .action-icon {
+        min-width: 44px;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* ============================================
+   2. Swipeable Carousels
+   ============================================ */
+
+/**
+ * Container for swipeable content
+ * JavaScript adds touch event handlers
+ */
+.swipeable-container {
+    position: relative;
+    overflow: hidden;
+    touch-action: pan-y pinch-zoom; /* Allow vertical scroll, prevent horizontal */
+}
+
+.swipeable-track {
+    display: flex;
+    transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    will-change: transform;
+}
+
+.swipeable-track.swiping {
+    transition: none; /* Disable transition during active swipe */
+}
+
+.swipeable-item {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+}
+
+/* Swipe indicators (dots) */
+.swipe-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 0;
+}
+
+.swipe-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.swipe-indicator.active {
+    width: 24px;
+    border-radius: 4px;
+    background-color: var(--primary-color, #4f46e5);
+}
+
+/* ============================================
+   3. Mobile Navigation Improvements
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Hamburger menu - larger tap target */
+    .mobile-menu-toggle {
+        min-width: 48px;
+        min-height: 48px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    /* Animated hamburger icon */
+    .hamburger-icon {
+        width: 24px;
+        height: 20px;
+        position: relative;
+        transform: rotate(0deg);
+        transition: 0.5s ease-in-out;
+    }
+
+    .hamburger-icon span {
+        display: block;
+        position: absolute;
+        height: 3px;
+        width: 100%;
+        background: currentColor;
+        border-radius: 3px;
+        opacity: 1;
+        left: 0;
+        transform: rotate(0deg);
+        transition: 0.25s ease-in-out;
+    }
+
+    .hamburger-icon span:nth-child(1) {
+        top: 0px;
+    }
+
+    .hamburger-icon span:nth-child(2),
+    .hamburger-icon span:nth-child(3) {
+        top: 8px;
+    }
+
+    .hamburger-icon span:nth-child(4) {
+        top: 16px;
+    }
+
+    /* Animated X state */
+    .mobile-menu-toggle.active .hamburger-icon span:nth-child(1),
+    .mobile-menu-toggle.active .hamburger-icon span:nth-child(4) {
+        opacity: 0;
+    }
+
+    .mobile-menu-toggle.active .hamburger-icon span:nth-child(2) {
+        transform: rotate(45deg);
+    }
+
+    .mobile-menu-toggle.active .hamburger-icon span:nth-child(3) {
+        transform: rotate(-45deg);
+    }
+
+    /* Full-screen mobile menu */
+    .mobile-menu-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .mobile-menu-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .mobile-menu {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 85%;
+        max-width: 400px;
+        height: 100vh;
+        background-color: white;
+        z-index: 1000;
+        transition: right 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-menu.active {
+        right: 0;
+    }
+
+    .mobile-menu-content {
+        padding: 24px 20px;
+    }
+
+    .mobile-menu-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .mobile-menu-close {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .mobile-menu nav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .mobile-menu nav a {
+        padding: 16px 20px;
+        border-radius: 8px;
+        transition: background-color 0.2s ease;
+    }
+
+    .mobile-menu nav a:hover,
+    .mobile-menu nav a:active {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+}
+
+/* ============================================
+   4. Bottom Sheet Modals (Mobile)
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Transform standard modals into bottom sheets */
+    .modal-dialog {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        max-width: 100%;
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    .modal.show .modal-dialog {
+        transform: translateY(0);
+    }
+
+    .modal-content {
+        border-radius: 16px 16px 0 0;
+        border: none;
+        max-height: 90vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Drag handle for bottom sheets */
+    .modal-content::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 2px;
+        margin: 8px auto;
+    }
+
+    /* Backdrop */
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* ============================================
+   5. Pull-to-Refresh Indicator
+   ============================================ */
+
+.pull-to-refresh-indicator {
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: top 0.3s ease;
+    pointer-events: none;
+}
+
+.pull-to-refresh-indicator.pulling {
+    top: 10px;
+}
+
+.pull-to-refresh-indicator.refreshing {
+    top: 10px;
+}
+
+.pull-to-refresh-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(79, 70, 229, 0.2);
+    border-top-color: #4f46e5;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================
+   6. Touch Feedback (Visual)
+   ============================================ */
+
+/**
+ * Simulate haptic feedback with visual cues
+ */
+@media (max-width: 768px) {
+    .touch-feedback {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .touch-feedback::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        pointer-events: none;
+        opacity: 0;
+    }
+
+    .touch-feedback:active::after {
+        transform: translate(-50%, -50%) scale(2);
+        opacity: 1;
+        transition: transform 0s, opacity 0s;
+    }
+
+    /* Alternative: Subtle scale animation */
+    .touch-scale:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+}
+
+/* ============================================
+   7. Improved Mobile Forms
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Form container spacing */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    /* Floating labels */
+    .form-floating {
+        position: relative;
+    }
+
+    .form-floating input,
+    .form-floating select,
+    .form-floating textarea {
+        padding-top: 24px;
+        padding-bottom: 8px;
+    }
+
+    .form-floating label {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        transition: all 0.2s ease;
+        pointer-events: none;
+        color: rgba(0, 0, 0, 0.6);
+    }
+
+    .form-floating input:focus ~ label,
+    .form-floating input:not(:placeholder-shown) ~ label,
+    .form-floating select:focus ~ label,
+    .form-floating select:not([value=""]) ~ label,
+    .form-floating textarea:focus ~ label,
+    .form-floating textarea:not(:placeholder-shown) ~ label {
+        top: 4px;
+        font-size: 12px;
+        color: var(--primary-color, #4f46e5);
+    }
+
+    /* Error states */
+    .form-group.error input,
+    .form-group.error select,
+    .form-group.error textarea {
+        border-color: #dc2626;
+    }
+
+    .form-error-message {
+        display: block;
+        margin-top: 6px;
+        font-size: 14px;
+        color: #dc2626;
+    }
+
+    /* Success states */
+    .form-group.success input,
+    .form-group.success select,
+    .form-group.success textarea {
+        border-color: #16a34a;
+    }
+}
+
+/* ============================================
+   8. Mobile-Optimized Cards
+   ============================================ */
+
+@media (max-width: 768px) {
+    .card,
+    .tournament-card,
+    .team-card {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 16px;
+    }
+
+    /* Swipeable card actions */
+    .card-swipeable {
+        position: relative;
+        transform: translateX(0);
+        transition: transform 0.3s ease;
+    }
+
+    .card-swipeable.swiped-left {
+        transform: translateX(-80px);
+    }
+
+    .card-swipeable.swiped-right {
+        transform: translateX(80px);
+    }
+
+    .card-actions-left,
+    .card-actions-right {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .card-actions-left {
+        left: 0;
+        background-color: #16a34a;
+    }
+
+    .card-actions-right {
+        right: 0;
+        background-color: #dc2626;
+    }
+}
+
+/* ============================================
+   9. Mobile-Friendly Tables
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Transform tables into card layout */
+    .table-mobile-cards {
+        display: block;
+    }
+
+    .table-mobile-cards thead {
+        display: none;
+    }
+
+    .table-mobile-cards tbody,
+    .table-mobile-cards tr {
+        display: block;
+    }
+
+    .table-mobile-cards tr {
+        margin-bottom: 16px;
+        padding: 16px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .table-mobile-cards td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .table-mobile-cards td:last-child {
+        border-bottom: none;
+    }
+
+    .table-mobile-cards td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.6);
+        margin-right: 16px;
+    }
+}
+
+/* ============================================
+   10. Safe Area Insets (iPhone X+)
+   ============================================ */
+
+@supports (padding-top: env(safe-area-inset-top)) {
+    .mobile-header {
+        padding-top: max(16px, env(safe-area-inset-top));
+    }
+
+    .mobile-footer {
+        padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+
+    .mobile-menu {
+        padding-top: max(24px, env(safe-area-inset-top));
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+}
+
+/* ============================================
+   11. Loading States (Mobile)
+   ============================================ */
+
+@media (max-width: 768px) {
+    .mobile-loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .mobile-loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid rgba(79, 70, 229, 0.2);
+        border-top-color: #4f46e5;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+}
+
+/* ============================================
+   12. Accessibility Improvements
+   ============================================ */
+
+@media (max-width: 768px) {
+    /* Focus visible for touch devices */
+    .btn:focus-visible,
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible {
+        outline: 2px solid #4f46e5;
+        outline-offset: 2px;
+    }
+
+    /* Skip to main content */
+    .skip-to-main {
+        position: absolute;
+        top: -60px;
+        left: 16px;
+        min-height: 44px;
+        padding: 12px 20px;
+        background-color: #4f46e5;
+        color: white;
+        border-radius: 4px;
+        z-index: 10000;
+        transition: top 0.3s ease;
+    }
+
+    .skip-to-main:focus {
+        top: 16px;
+    }
+}

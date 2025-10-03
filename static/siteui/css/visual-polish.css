@@ -1,0 +1,898 @@
+/**
+ * UI/UX Phase D: Visual Polish & Micro-interactions
+ * 
+ * Features:
+ * - Loading skeletons
+ * - Smooth transitions
+ * - Micro-animations
+ * - Hover effects
+ * - Focus states
+ * - Empty states
+ * - Success/error states
+ * - Progress indicators
+ * 
+ * Design System: Modern, accessible, performant
+ * Animation Duration: 150-300ms (optimal for perceived performance)
+ * 
+ * @version 1.0.0
+ */
+
+/* ============================================
+   1. Loading Skeletons
+   ============================================ */
+
+/**
+ * Skeleton screens for better perceived performance
+ */
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 0%,
+        #f8f8f8 50%,
+        #f0f0f0 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Skeleton shapes */
+.skeleton-text {
+    height: 16px;
+    margin-bottom: 8px;
+}
+
+.skeleton-text.large {
+    height: 24px;
+}
+
+.skeleton-text.small {
+    height: 12px;
+}
+
+.skeleton-title {
+    height: 32px;
+    width: 60%;
+    margin-bottom: 16px;
+}
+
+.skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.skeleton-avatar.large {
+    width: 64px;
+    height: 64px;
+}
+
+.skeleton-avatar.small {
+    width: 32px;
+    height: 32px;
+}
+
+.skeleton-button {
+    height: 40px;
+    width: 120px;
+    border-radius: 8px;
+}
+
+.skeleton-card {
+    padding: 20px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-image {
+    width: 100%;
+    height: 200px;
+    border-radius: 8px;
+}
+
+/* Tournament card skeleton */
+.skeleton-tournament-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-tournament-card .skeleton-image {
+    height: 150px;
+}
+
+/* ============================================
+   2. Smooth Transitions
+   ============================================ */
+
+/**
+ * Global transition defaults
+ */
+* {
+    transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Button transitions */
+.btn,
+button,
+.button {
+    transition: all 0.2s ease;
+}
+
+.btn:hover,
+button:hover,
+.button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active,
+button:active,
+.button:active {
+    transform: translateY(0);
+    transition-duration: 0.1s;
+}
+
+/* Link transitions */
+a {
+    transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+a:hover {
+    opacity: 0.8;
+}
+
+/* Card transitions */
+.card,
+.tournament-card,
+.team-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover,
+.tournament-card:hover,
+.team-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Input transitions */
+input,
+select,
+textarea {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--primary-color, #4f46e5);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    outline: none;
+}
+
+/* ============================================
+   3. Micro-animations
+   ============================================ */
+
+/**
+ * Fade in animation
+ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+/**
+ * Slide in from bottom
+ */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-in-up {
+    animation: slideInUp 0.4s ease;
+}
+
+/**
+ * Scale in
+ */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.scale-in {
+    animation: scaleIn 0.3s ease;
+}
+
+/**
+ * Bounce animation (subtle)
+ */
+@keyframes subtleBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.bounce-subtle {
+    animation: subtleBounce 0.6s ease;
+}
+
+/**
+ * Pulse animation
+ */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/**
+ * Shake animation (for errors)
+ */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+        transform: translateX(-4px);
+    }
+    20%, 40%, 60%, 80% {
+        transform: translateX(4px);
+    }
+}
+
+.shake {
+    animation: shake 0.5s ease;
+}
+
+/**
+ * Wiggle animation (for attention)
+ */
+@keyframes wiggle {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-3deg);
+    }
+    75% {
+        transform: rotate(3deg);
+    }
+}
+
+.wiggle {
+    animation: wiggle 0.5s ease;
+}
+
+/* ============================================
+   4. Enhanced Hover Effects
+   ============================================ */
+
+/**
+ * Glow effect on hover
+ */
+.hover-glow {
+    position: relative;
+    overflow: hidden;
+}
+
+.hover-glow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+}
+
+.hover-glow:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+/**
+ * Lift effect
+ */
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+/**
+ * Brightness effect
+ */
+.hover-brighten {
+    transition: filter 0.3s ease;
+}
+
+.hover-brighten:hover {
+    filter: brightness(1.1);
+}
+
+/**
+ * Border expand effect
+ */
+.hover-border-expand {
+    position: relative;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.hover-border-expand::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px solid var(--primary-color, #4f46e5);
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hover-border-expand:hover::after {
+    opacity: 1;
+}
+
+/* ============================================
+   5. Focus States (Accessibility)
+   ============================================ */
+
+/**
+ * Custom focus ring
+ */
+.focus-ring:focus-visible {
+    outline: 3px solid var(--primary-color, #4f46e5);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/**
+ * Animated focus ring
+ */
+@keyframes focusRing {
+    0% {
+        box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 0 8px rgba(79, 70, 229, 0);
+    }
+}
+
+.focus-ring-animated:focus {
+    animation: focusRing 0.6s ease;
+}
+
+/* ============================================
+   6. Empty States
+   ============================================ */
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 32px;
+    text-align: center;
+}
+
+.empty-state-icon {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 24px;
+    opacity: 0.4;
+}
+
+.empty-state-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.8);
+    margin-bottom: 12px;
+}
+
+.empty-state-description {
+    font-size: 16px;
+    color: rgba(0, 0, 0, 0.6);
+    margin-bottom: 24px;
+    max-width: 400px;
+}
+
+.empty-state-action {
+    margin-top: 16px;
+}
+
+/* Animated empty state */
+.empty-state.animated .empty-state-icon {
+    animation: fadeIn 0.6s ease, subtleBounce 1s ease 0.3s;
+}
+
+.empty-state.animated .empty-state-title {
+    animation: slideInUp 0.6s ease 0.2s backwards;
+}
+
+.empty-state.animated .empty-state-description {
+    animation: slideInUp 0.6s ease 0.3s backwards;
+}
+
+.empty-state.animated .empty-state-action {
+    animation: slideInUp 0.6s ease 0.4s backwards;
+}
+
+/* ============================================
+   7. Success/Error States
+   ============================================ */
+
+/**
+ * Alert animations
+ */
+.alert {
+    animation: slideInUp 0.4s ease;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.alert-success {
+    background-color: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+}
+
+.alert-error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+    animation: slideInUp 0.4s ease, shake 0.5s ease 0.2s;
+}
+
+.alert-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+}
+
+.alert-info {
+    background-color: #dbeafe;
+    color: #1e40af;
+    border-left: 4px solid #3b82f6;
+}
+
+/* Alert icon animations */
+.alert-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+}
+
+.alert-success .alert-icon {
+    animation: scaleIn 0.4s ease 0.2s backwards;
+}
+
+.alert-error .alert-icon {
+    animation: wiggle 0.5s ease 0.3s;
+}
+
+/* Dismissable alert */
+.alert-dismissable {
+    position: relative;
+    padding-right: 48px;
+}
+
+.alert-close {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.alert-close:hover {
+    opacity: 1;
+}
+
+/* ============================================
+   8. Progress Indicators
+   ============================================ */
+
+/**
+ * Linear progress bar
+ */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f46e5, #7c3aed);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animated shimmer effect */
+.progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/**
+ * Circular progress (spinner)
+ */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(79, 70, 229, 0.2);
+    border-top-color: #4f46e5;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner.small {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+}
+
+.spinner.large {
+    width: 56px;
+    height: 56px;
+    border-width: 5px;
+}
+
+/**
+ * Dots loader
+ */
+.dots-loader {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+.dots-loader span {
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary-color, #4f46e5);
+    border-radius: 50%;
+    animation: dotBounce 1.4s infinite ease-in-out both;
+}
+
+.dots-loader span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.dots-loader span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes dotBounce {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+/* ============================================
+   9. Badge & Tag Animations
+   ============================================ */
+
+.badge,
+.tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.badge:hover,
+.tag:hover {
+    transform: scale(1.05);
+}
+
+/* Badge variants */
+.badge-primary {
+    background-color: #ddd6fe;
+    color: #5b21b6;
+}
+
+.badge-success {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.badge-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.badge-danger {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Pulse badge (for notifications) */
+.badge-pulse {
+    position: relative;
+}
+
+.badge-pulse::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    background-color: inherit;
+    animation: pulseBadge 2s ease-in-out infinite;
+}
+
+@keyframes pulseBadge {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0;
+        transform: scale(1.3);
+    }
+}
+
+/* ============================================
+   10. Tooltip Animations
+   ============================================ */
+
+.tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 1000;
+}
+
+.tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Tooltip arrow */
+.tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+}
+
+/* ============================================
+   11. Image Loading Effects
+   ============================================ */
+
+.image-wrapper {
+    position: relative;
+    overflow: hidden;
+    background-color: #f0f0f0;
+}
+
+.image-wrapper img {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.image-wrapper img.loaded {
+    opacity: 1;
+}
+
+/* Blur-up loading effect */
+.image-blur-up {
+    filter: blur(20px);
+    transition: filter 0.4s ease;
+}
+
+.image-blur-up.loaded {
+    filter: blur(0);
+}
+
+/* ============================================
+   12. Stagger Animations
+   ============================================ */
+
+/**
+ * Stagger fade-in for lists
+ */
+.stagger-fade-in > * {
+    opacity: 0;
+    animation: fadeIn 0.4s ease forwards;
+}
+
+.stagger-fade-in > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-fade-in > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-fade-in > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-fade-in > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger-fade-in > *:nth-child(5) { animation-delay: 0.5s; }
+.stagger-fade-in > *:nth-child(n+6) { animation-delay: 0.6s; }
+
+/**
+ * Stagger slide-up for cards
+ */
+.stagger-slide-up > * {
+    opacity: 0;
+    animation: slideInUp 0.5s ease forwards;
+}
+
+.stagger-slide-up > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-slide-up > *:nth-child(2) { animation-delay: 0.15s; }
+.stagger-slide-up > *:nth-child(3) { animation-delay: 0.2s; }
+.stagger-slide-up > *:nth-child(4) { animation-delay: 0.25s; }
+.stagger-slide-up > *:nth-child(5) { animation-delay: 0.3s; }
+.stagger-slide-up > *:nth-child(n+6) { animation-delay: 0.35s; }
+
+/* ============================================
+   13. Dark Mode Support (Optional)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+    .skeleton {
+        background: linear-gradient(
+            90deg,
+            #2d2d2d 0%,
+            #3d3d3d 50%,
+            #2d2d2d 100%
+        );
+    }
+
+    .empty-state-title {
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .empty-state-description {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .tooltip {
+        background-color: rgba(255, 255, 255, 0.95);
+        color: black;
+    }
+
+    .tooltip::after {
+        border-color: rgba(255, 255, 255, 0.95) transparent transparent transparent;
+    }
+}
+
+/* ============================================
+   14. Performance Optimizations
+   ============================================ */
+
+/**
+ * Use GPU acceleration for animations
+ */
+.gpu-accelerated {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+}
+
+/**
+ * Reduce motion for accessibility
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
