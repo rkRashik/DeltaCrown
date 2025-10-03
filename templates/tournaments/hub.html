@@ -7,12 +7,16 @@
 <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
 <link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
 <link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}?v=1">
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
 <script src="{% static 'siteui/js/tournaments-hub-modern.js' %}?v=2"></script>
 <script src="{% static 'js/tournament-card-dynamic.js' %}?v=4"></script>
+<script src="{% static 'js/countdown-timer.js' %}?v=1"></script>
+<script src="{% static 'js/tournament-state-poller.js' %}?v=2"></script>
 {% endblock %}
 
 {% block content %}
@@ -73,6 +77,16 @@
                     <span><i class="fa-solid fa-tag"></i> {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount|intcomma }}{% endif %}</span>
                   {% endif %}
                 </div>
+                
+                {# Countdown Timer for LIVE tournament #}
+                {% if t.ends_at %}
+                  <div class="countdown-timer" 
+                       data-countdown-type="tournament-end"
+                       data-target-time="{{ t.ends_at|date:'c' }}"
+                       data-tournament-slug="{{ t.slug }}">
+                  </div>
+                {% endif %}
+                
                 <div class="hc-cta">
                   <a class="cta-primary" href="{{ t.register_url }}">
                     <i class="fa-solid fa-user-plus"></i> Join Now
@@ -95,6 +109,16 @@
                   {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
                   {% if t.dc_prize_pool %}<span><i class="fa-solid fa-trophy"></i> ৳{{ t.dc_prize_pool|intcomma }}</span>{% endif %}
                 </div>
+                
+                {# Countdown Timer for Featured tournament #}
+                {% if t.starts_at %}
+                  <div class="countdown-timer" 
+                       data-countdown-type="tournament-start"
+                       data-target-time="{{ t.starts_at|date:'c' }}"
+                       data-tournament-slug="{{ t.slug }}">
+                  </div>
+                {% endif %}
+                
                 <div class="hc-cta">
                   <a class="cta-primary" href="{{ t.register_url }}">
                     <i class="fa-solid fa-user-plus"></i> Register

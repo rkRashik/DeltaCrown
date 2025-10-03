@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-pro.css' %}?v=2" />
 <link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2" />
 <link rel="stylesheet" href="{% static 'css/tournament-state-poller.css' %}?v=1" />
+<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}?v=1" />
+<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}?v=1" />
 {% if ctx.pdf_viewer %}
 <link rel="stylesheet" href="{% static 'siteui/css/pdfjs-skin.css' %}?v=1" />
 {% endif %}
@@ -138,6 +140,33 @@
             <div class="sticky">
               <div class="card">
                 <h3 class="h3">Quick Facts</h3>
+                
+                {# Countdown Timer - Shows most relevant countdown #}
+                {% if schedule %}
+                  {% if schedule.registration_open_at and not ctx.t.registration_open %}
+                    {# Registration hasn't opened yet #}
+                    <div class="countdown-timer" 
+                         data-countdown-type="registration-open"
+                         data-target-time="{{ schedule.registration_open_at|date:'c' }}"
+                         data-tournament-slug="{{ ctx.t.slug }}">
+                    </div>
+                  {% elif schedule.registration_close_at and ctx.t.registration_open and not ctx.t.has_started %}
+                    {# Registration is open - show closing countdown #}
+                    <div class="countdown-timer" 
+                         data-countdown-type="registration-close"
+                         data-target-time="{{ schedule.registration_close_at|date:'c' }}"
+                         data-tournament-slug="{{ ctx.t.slug }}">
+                    </div>
+                  {% elif schedule.start_at and not ctx.t.has_started %}
+                    {# Registration closed - show tournament start countdown #}
+                    <div class="countdown-timer" 
+                         data-countdown-type="tournament-start"
+                         data-target-time="{{ schedule.start_at|date:'c' }}"
+                         data-tournament-slug="{{ ctx.t.slug }}">
+                    </div>
+                  {% endif %}
+                {% endif %}
+                
                 <dl class="meta compact">
                   {% if schedule %}
                     {# Phase 1 Schedule Data #}
@@ -157,8 +186,13 @@
                   {% if ctx.platform %}<div><dt>Platform</dt><dd>{{ ctx.platform }}</dd></div>{% endif %}
                   {% if ctx.region %}<div><dt>Region</dt><dd>{{ ctx.region }}</dd></div>{% endif %}
                   {% if capacity %}
-                    {# Phase 1 Capacity Data #}
-                    <div><dt>Slots</dt><dd>{{ capacity.current_teams }}/{{ capacity.max_teams }}</dd></div>
+                    {# Phase 1 Capacity Data - with live updates #}
+                    <div>
+                      <dt>Capacity</dt>
+                      <dd data-tournament-slots data-previous-count="0">
+                        {{ capacity.current_teams }}/{{ capacity.max_teams }}
+                      </dd>
+                    </div>
                   {% elif ctx.slots.capacity %}
                     {# Fallback to old context #}
                     <div><dt>Slots</dt><dd>{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }}</dd></div>
@@ -557,7 +591,8 @@
 <script src="{% static 'siteui/js/tournaments-hub-modern.js' %}?v=2"></script>
 <script src="{% static 'js/tournament-card-dynamic.js' %}?v=4"></script>
 <script src="{% static 'js/tournament-detail-modern.js' %}?v=4"></script>
-<script src="{% static 'js/tournament-state-poller.js' %}?v=1"></script>
+<script src="{% static 'js/countdown-timer.js' %}?v=1"></script>
+<script src="{% static 'js/tournament-state-poller.js' %}?v=2"></script>
 {% if ctx.pdf_viewer %}
   <script src="{% static 'siteui/pdfjs/pdf.js' %}"></script>
   <script>window.pdfjsLib && (pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'siteui/pdfjs/pdf.worker.js' %}");</script>
