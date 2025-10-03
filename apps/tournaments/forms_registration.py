@@ -56,25 +56,49 @@ class _BaseRegForm(forms.Form):
     Includes shared payment fields (optional; validated by the view when fee > 0).
     """
 
-    # Shared payment fields — the view reads these exact names
-    payment_method = forms.ChoiceField(
-        choices=(("bkash", "bKash"), ("nagad", "Nagad"), ("rocket", "Rocket"), ("bank", "Bank")),
-        required=False,
-        label="Payment Method"
-    )
-    payer_account_number = forms.CharField(required=False, label="Payer mobile/account")
-    payment_reference = forms.CharField(required=False, label="Transaction ID / Reference")
+    # Shared payment fields — only added if tournament has entry fee
+    # payment_method = forms.ChoiceField(...)  # Added dynamically
+    # payer_account_number = forms.CharField(...)  # Added dynamically
+    # payment_reference = forms.CharField(...)  # Added dynamically
 
     def __init__(self, *args, **kwargs):
         self.tournament = kwargs.pop("tournament", None)
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
 
+        # Add payment fields only if tournament has entry fee
+        self._add_payment_fields()
+        
         # Add organizer-defined fields dynamically
         self._add_dynamic_fields()
 
-        # Gentle autofill: if initial missing and request has data, we do not override here.
-        # (Your view already passes initial profile data.)
+    def _add_payment_fields(self):
+        """Add payment fields only if tournament has entry fee."""
+        if not self.tournament:
+            return
+        
+        # Check if tournament has entry fee
+        entry_fee = getattr(self.tournament, 'entry_fee', None) or getattr(self.tournament, 'entry_fee_bdt', None)
+        
+        if not entry_fee or entry_fee <= 0:
+            return  # No fee, don't add payment fields
+        
+        # Add payment fields
+        self.fields['payment_method'] = forms.ChoiceField(
+            choices=(("bkash", "bKash"), ("nagad", "Nagad"), ("rocket", "Rocket"), ("bank", "Bank")),
+            required=True,
+            label="Payment Method"
+        )
+        self.fields['payer_account_number'] = forms.CharField(
+            required=True, 
+            label="Payer mobile/account",
+            help_text="Your mobile number or account used for payment"
+        )
+        self.fields['payment_reference'] = forms.CharField(
+            required=True, 
+            label="Transaction ID / Reference",
+            help_text="Transaction ID from payment confirmation"
+        )
 
     def _validate_tournament_slots(self):
         """

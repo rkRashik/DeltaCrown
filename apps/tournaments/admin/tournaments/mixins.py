@@ -352,3 +352,261 @@ class ActionsMixin:
             except Exception as e:
                 messages.error(request, f"{t.name}: {e}")
         messages.success(request, f"Created {total} placement transaction(s).")
+
+    # ========== Status Management Actions ==========
+    
+    @admin.action(description="🔵 Publish selected tournaments")
+    def action_publish_tournaments(self, request: HttpRequest, queryset):
+        """Bulk publish tournaments (change status to PUBLISHED)."""
+        count = 0
+        errors = []
+        
+        for tournament in queryset:
+            try:
+                old_status = tournament.status
+                tournament.status = "PUBLISHED"
+                tournament.full_clean()  # Validate before saving
+                tournament.save(update_fields=['status', 'updated_at'])
+                
+                # Send notification if available
+                if notify_emit:
+                    try:
+                        notify_emit(
+                            event="tournament.published",
+                            data={"tournament_id": tournament.id, "slug": tournament.slug},
+                            recipient_user_ids=None  # Broadcast
+                        )
+                    except Exception:
+                        pass  # Don't fail if notification fails
+                
+                count += 1
+                messages.success(request, f"✅ Published: {tournament.name} ({old_status} → PUBLISHED)")
+                
+            except Exception as e:
+                errors.append(f"{tournament.name}: {str(e)}")
+        
+        if count:
+            messages.success(request, f"Successfully published {count} tournament(s).")
+        
+        for error in errors:
+            messages.error(request, error)
+    
+    @admin.action(description="🟢 Start selected tournaments")
+    def action_start_tournaments(self, request: HttpRequest, queryset):
+        """Bulk start tournaments (change status to RUNNING)."""
+        count = 0
+        errors = []
+        warnings = []
+        
+        for tournament in queryset:
+            try:
+                old_status = tournament.status
+                
+                # Validate transition
+                if old_status == "DRAFT":
+                    warnings.append(f"⚠️ {tournament.name}: Cannot start DRAFT tournament. Publish it first.")
+                    continue
+                
+                if old_status == "COMPLETED":
+                    warnings.append(f"⚠️ {tournament.name}: Tournament already completed.")
+                    continue
+                
+                # Check if there are registrations
+                reg_count = tournament.registrations.count() if hasattr(tournament, 'registrations') else 0
+                if reg_count == 0:
+                    warnings.append(f"⚠️ {tournament.name}: No registrations yet.")
+                
+                tournament.status = "RUNNING"
+                tournament.full_clean()
+                tournament.save(update_fields=['status', 'updated_at'])
+                
+                # Send notification
+                if notify_emit:
+                    try:
+                        notify_emit(
+                            event="tournament.started",
+                            data={"tournament_id": tournament.id, "slug": tournament.slug},
+                            recipient_user_ids=None
+                        )
+                    except Exception:
+                        pass
+                
+                count += 1
+                messages.success(request, f"✅ Started: {tournament.name} ({old_status} → RUNNING, {reg_count} registrations)")
+                
+            except Exception as e:
+                errors.append(f"{tournament.name}: {str(e)}")
+        
+        if count:
+            messages.success(request, f"Successfully started {count} tournament(s).")
+        
+        for warning in warnings:
+            messages.warning(request, warning)
+        
+        for error in errors:
+            messages.error(request, error)
+    
+    @admin.action(description="🔴 Complete selected tournaments")
+    def action_complete_tournaments(self, request: HttpRequest, queryset):
+        """Bulk complete tournaments (change status to COMPLETED)."""
+        count = 0
+        errors = []
+        warnings = []
+        
+        for tournament in queryset:
+            try:
+                old_status = tournament.status
+                
+                # Validate transition
+                if old_status in ["DRAFT", "PUBLISHED"]:
+                    warnings.append(f"⚠️ {tournament.name}: Cannot complete tournament that hasn't started. Status: {old_status}")
+                    continue
+                
+                if old_status == "COMPLETED":
+                    warnings.append(f"⚠️ {tournament.name}: Already completed.")
+                    continue
+                
+                tournament.status = "COMPLETED"
+                tournament.full_clean()
+                tournament.save(update_fields=['status', 'updated_at'])
+                
+                # Send notification
+                if notify_emit:
+                    try:
+                        notify_emit(
+                            event="tournament.completed",
+                            data={"tournament_id": tournament.id, "slug": tournament.slug},
+                            recipient_user_ids=None
+                        )
+                    except Exception:
+                        pass
+                
+                count += 1
+                messages.success(request, f"✅ Completed: {tournament.name} ({old_status} → COMPLETED)")
+                
+            except Exception as e:
+                errors.append(f"{tournament.name}: {str(e)}")
+        
+        if count:
+            messages.success(request, f"Successfully completed {count} tournament(s).")
+        
+        for warning in warnings:
+            messages.warning(request, warning)
+        
+        for error in errors:
+            messages.error(request, error)
+    
+    @admin.action(description="⚙️ Reset to DRAFT status")
+    def action_reset_to_draft(self, request: HttpRequest, queryset):
+        """Reset tournaments back to DRAFT status (use carefully)."""
+        count = 0
+        errors = []
+        
+        for tournament in queryset:
+            try:
+                old_status = tournament.status
+                tournament.status = "DRAFT"
+                tournament.full_clean()
+                tournament.save(update_fields=['status', 'updated_at'])
+                
+                count += 1
+                messages.warning(request, f"⚠️ Reset to DRAFT: {tournament.name} (was {old_status})")
+                
+            except Exception as e:
+                errors.append(f"{tournament.name}: {str(e)}")
+        
+        if count:
+            messages.warning(request, f"Reset {count} tournament(s) to DRAFT. They are now hidden from public.")
+        
+        for error in errors:
+            messages.error(request, error)
+    
+    @admin.action(description="📋 Clone/Copy selected tournaments")
+    def action_clone_tournaments(self, request: HttpRequest, queryset):
+        """Clone tournaments with all their settings and configurations."""
+        from django.utils.text import slugify
+        from datetime import datetime
+        
+        cloned_count = 0
+        errors = []
+        
+        for tournament in queryset:
+            try:
+                with transaction.atomic():
+                    # Get related objects before cloning
+                    old_settings = getattr(tournament, 'settings', None)
+                    old_valorant = getattr(tournament, 'valorant_config', None)
+                    old_efootball = getattr(tournament, 'efootball_config', None)
+                    old_bracket = getattr(tournament, 'bracket', None)
+                    
+                    # Clone tournament
+                    new_tournament = Tournament.objects.get(pk=tournament.pk)
+                    new_tournament.pk = None
+                    new_tournament.id = None
+                    new_tournament.name = f"{tournament.name} (Copy)"
+                    new_tournament.slug = f"{tournament.slug}-copy-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+                    new_tournament.status = "DRAFT"  # Always start as DRAFT
+                    new_tournament.groups_published = False
+                    new_tournament.save()
+                    
+                    # Clone TournamentSettings
+                    if old_settings:
+                        new_settings = type(old_settings).objects.get(pk=old_settings.pk)
+                        new_settings.pk = None
+                        new_settings.id = None
+                        new_settings.tournament = new_tournament
+                        new_settings.save()
+                    
+                    # Clone ValorantConfig
+                    if old_valorant:
+                        new_valorant = type(old_valorant).objects.get(pk=old_valorant.pk)
+                        new_valorant.pk = None
+                        new_valorant.id = None
+                        new_valorant.tournament = new_tournament
+                        new_valorant.save()
+                    
+                    # Clone EfootballConfig
+                    if old_efootball:
+                        new_efootball = type(old_efootball).objects.get(pk=old_efootball.pk)
+                        new_efootball.pk = None
+                        new_efootball.id = None
+                        new_efootball.tournament = new_tournament
+                        new_efootball.save()
+                    
+                    # Clone Bracket (structure only, not matches)
+                    if old_bracket:
+                        try:
+                            new_bracket = type(old_bracket).objects.get(pk=old_bracket.pk)
+                            new_bracket.pk = None
+                            new_bracket.id = None
+                            new_bracket.tournament = new_tournament
+                            new_bracket.is_locked = False
+                            new_bracket.save()
+                        except Exception:
+                            pass  # Bracket cloning is optional
+                    
+                    cloned_count += 1
+                    admin_url = reverse(
+                        f"admin:{new_tournament._meta.app_label}_{new_tournament._meta.model_name}_change",
+                        args=[new_tournament.pk]
+                    )
+                    messages.success(
+                        request,
+                        mark_safe(
+                            f'✅ Cloned: <a href="{admin_url}">{new_tournament.name}</a> '
+                            f'(from {tournament.name})'
+                        )
+                    )
+                    
+            except Exception as e:
+                errors.append(f"{tournament.name}: {str(e)}")
+        
+        if cloned_count:
+            messages.success(
+                request,
+                f"Successfully cloned {cloned_count} tournament(s). "
+                f"All clones start as DRAFT status. Edit them to update dates and details."
+            )
+        
+        for error in errors:
+            messages.error(request, error)

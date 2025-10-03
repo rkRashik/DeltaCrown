@@ -7,6 +7,11 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
+# Schedule helpers for backward compatibility
+from apps.tournaments.utils.schedule_helpers import (
+    is_registration_open, is_tournament_live, optimize_queryset_for_schedule
+)
+
 from .helpers import (
     first, fmt_money, as_bool, as_html, maybe_text,
     banner_url, read_title, read_game, read_fee_amount, register_url,
@@ -22,6 +27,7 @@ def annotate_cards(tournaments):
         # Basic fields
         t.dc_title = getattr(t, 'name', '') or 'Untitled Tournament'
         t.dc_url = getattr(t, 'get_absolute_url', lambda: '#')()
+        t.dc_slug = getattr(t, 'slug', '')  # Add slug for dynamic buttons
         t.dc_game = getattr(t, 'game_name', '') or getattr(t, 'game', '')
         t.dc_banner_url = getattr(t, 'banner_url', None)
         
@@ -58,7 +64,7 @@ def _compute_display_status(tournament):
     status = getattr(tournament, 'status', '').upper()
     
     # Check if registration is open
-    if hasattr(tournament, 'registration_open') and tournament.registration_open:
+    if is_registration_open(tournament):
         return 'open'
     
     # Check schedule-based status

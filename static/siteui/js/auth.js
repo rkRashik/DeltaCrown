@@ -12,13 +12,12 @@
   });
 })();
 
-// Simple toast
-window.dcToast = (msg)=>{
-  const root = document.getElementById("dc-toasts");
-  if (!root) return;
-  const el = document.createElement("div");
-  el.className = "toast";
-  el.textContent = msg;
-  root.appendChild(el);
-  setTimeout(()=> el.remove(), 2500);
+// Legacy toast removed - now using DC.toast from notifications.js
+// Kept for backward compatibility, but redirects to new system
+window.dcToast = (msg) => {
+  if (window.DC && DC.toast) {
+    DC.toast.info(msg);
+  } else {
+    console.warn('Toast system not loaded');
+  }
 };

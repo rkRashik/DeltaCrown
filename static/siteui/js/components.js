@@ -44,21 +44,6 @@
   });
 })();
 
-// Django messages -> toasts
-(function(){
-  document.addEventListener('DOMContentLoaded', function(){
-    try{
-      const el = document.getElementById('dj-messages');
-      if(!el) return;
-      const data = JSON.parse(el.textContent || '[]');
-      if (!Array.isArray(data)) return;
-      data.forEach(m=>{
-        if (window.DC && DC.toast){
-          const title = (m.level||'info').replace(/\b\w/g, c=>c.toUpperCase());
-          DC.toast({ title: title, message: m.text||'', timeout: 5000 });
-        }
-      });
-    }catch(e){ /* no-op */ }
-  });
-})();
+// Django messages are now handled by notifications.js
+// This prevents duplicate toast messages
 

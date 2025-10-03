@@ -1,0 +1,31 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static %}
+
+{% block content %}
+    {% if is_archived %}
+    <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+        <h3 style="color: #856404; margin: 0 0 10px 0;">
+            🔒 ARCHIVED TOURNAMENT
+        </h3>
+        <p style="color: #856404; margin: 0; font-size: 14px;">
+            {{ archived_message }}
+        </p>
+    </div>
+    {% endif %}
+    
+    {{ block.super }}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+    {% if is_archived %}
+    <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+        <strong style="color: #721c24;">📌 Read-Only Mode:</strong>
+        <span style="color: #721c24;">
+            This tournament is archived and cannot be edited. Save buttons are disabled.
+            Use "Clone/Copy" action from the tournament list to create a similar tournament.
+        </span>
+    </div>
+    {% endif %}
+    
+    {{ block.super }}
+{% endblock %}

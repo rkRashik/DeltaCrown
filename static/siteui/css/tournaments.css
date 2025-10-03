@@ -192,3 +192,118 @@
 
 /* ---------------- EMPTY ---------------- */
 .dc-empty{ text-align:center; padding: 28px; border:1px solid var(--border); border-radius: 16px; background: var(--glass); }
+
+/* ---------------- DYNAMIC REGISTRATION BUTTON STYLES ---------------- */
+.dc-reg-btn-container {
+  min-width: 120px;
+}
+
+.dc-btn-skeleton {
+  height: 38px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.dc-skeleton-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: dc-shimmer 1.5s infinite;
+}
+
+@keyframes dc-shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Button variants for different states */
+.dc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 85%, var(--glow-cyan) 15%);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dc-btn:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--glow-cyan) 40%, var(--border));
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--glow-cyan) 25%, transparent);
+}
+
+/* Registered state - green accent */
+.dc-btn-registered {
+  background: color-mix(in oklab, var(--bg) 85%, #10b981 15%);
+  border-color: color-mix(in oklab, #10b981 40%, var(--border));
+  color: #10b981;
+}
+
+.dc-btn-registered:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Approval request state - orange accent */
+.dc-btn-approval {
+  background: color-mix(in oklab, var(--bg) 85%, #fb923c 15%);
+  border-color: color-mix(in oklab, #fb923c 40%, var(--border));
+  color: #fb923c;
+}
+
+.dc-btn-approval:hover {
+  background: color-mix(in oklab, var(--bg) 80%, #fb923c 20%);
+  border-color: color-mix(in oklab, #fb923c 50%, var(--border));
+}
+
+/* Pending state - yellow accent */
+.dc-btn-pending {
+  background: color-mix(in oklab, var(--bg) 85%, #fbbf24 15%);
+  border-color: color-mix(in oklab, #fbbf24 40%, var(--border));
+  color: #fbbf24;
+}
+
+/* Disabled state - muted */
+.dc-btn-disabled,
+.dc-btn[disabled],
+.dc-btn[aria-disabled="true"] {
+  background: var(--glass);
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dc-btn-disabled:hover,
+.dc-btn[disabled]:hover,
+.dc-btn[aria-disabled="true"]:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Warning state - red accent */
+.dc-btn-warning {
+  background: color-mix(in oklab, var(--bg) 85%, #ef4444 15%);
+  border-color: color-mix(in oklab, #ef4444 40%, var(--border));
+  color: #ef4444;
+}

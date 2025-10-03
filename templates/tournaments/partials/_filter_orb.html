@@ -1,4 +1,4 @@
-{# Accessible hover/tap filter orb. Requires CSS (filter-orb.css) and optional JS (filter-orb.js). #}
+{# Modern Filter Orb - Accessible hover/tap filter interface with enhanced backend support #}
 <div class="filter-orb" data-behavior="filter-orb">
   <button
     type="button"
@@ -10,7 +10,9 @@
     title="Filters"
   >
     <span class="visually-hidden">Filters</span>
-    <!-- simple icon -->
+    {% if filters.active_count %}
+      <span class="filter-count">{{ filters.active_count }}</span>
+    {% endif %}
     <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M3 5h18l-7 8v4l-4 2v-6L3 5z"></path>
     </svg>
@@ -29,53 +31,78 @@
       <button type="button" class="filter-orb__close" data-close="filter-orb" aria-label="Close filters">×</button>
     </div>
 
-    {# GET form posts back to the same page (hub or list_by_game). #}
     <form method="get" action="">
       <div class="filter-orb__row">
-        <label for="fo-q">Search</label>
-        <input id="fo-q" name="q" type="search" placeholder="Find tournaments…" value="{{ request.GET.q|default:'' }}">
+        <label for="fo-q"><i class="fa-solid fa-search"></i> Search</label>
+        <input id="fo-q" name="q" type="search" placeholder="Find tournaments…" value="{{ filters.q|default:'' }}">
       </div>
 
       <div class="filter-orb__row">
-        <label for="fo-status">Status</label>
+        <label for="fo-game"><i class="fa-solid fa-gamepad"></i> Game</label>
+        <select id="fo-game" name="game">
+          <option value="" {% if not filters.game %}selected{% endif %}>All Games</option>
+          <option value="valorant" {% if filters.game == 'valorant' %}selected{% endif %}>Valorant</option>
+          <option value="efootball" {% if filters.game == 'efootball' %}selected{% endif %}>eFootball</option>
+          <option value="cs2" {% if filters.game == 'cs2' %}selected{% endif %}>CS2</option>
+          <option value="fc26" {% if filters.game == 'fc26' %}selected{% endif %}>FC 26</option>
+          <option value="mlbb" {% if filters.game == 'mlbb' %}selected{% endif %}>Mobile Legends</option>
+          <option value="pubg" {% if filters.game == 'pubg' %}selected{% endif %}>PUBG Mobile</option>
+        </select>
+      </div>
+
+      <div class="filter-orb__row">
+        <label for="fo-status"><i class="fa-solid fa-circle-dot"></i> Status</label>
         <select id="fo-status" name="status">
-          <option value="" {% if not request.GET.status %}selected{% endif %}>Any</option>
-          <option value="open" {% if request.GET.status == 'open' %}selected{% endif %}>Open</option>
-          <option value="live" {% if request.GET.status == 'live' %}selected{% endif %}>Live</option>
-          <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+          <option value="" {% if not filters.status %}selected{% endif %}>Any Status</option>
+          <option value="open" {% if filters.status == 'open' %}selected{% endif %}>Open</option>
+          <option value="live" {% if filters.status == 'live' %}selected{% endif %}>Live</option>
+          <option value="upcoming" {% if filters.status == 'upcoming' %}selected{% endif %}>Upcoming</option>
+          <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Completed</option>
         </select>
       </div>
 
       <div class="filter-orb__row">
-        <label for="fo-fee">Fee</label>
+        <label for="fo-fee"><i class="fa-solid fa-tag"></i> Fee</label>
         <select id="fo-fee" name="fee">
-          <option value="" {% if not request.GET.fee %}selected{% endif %}>Any</option>
-          <option value="free" {% if request.GET.fee == 'free' %}selected{% endif %}>Free</option>
-          <option value="paid" {% if request.GET.fee == 'paid' %}selected{% endif %}>Paid</option>
+          <option value="" {% if not filters.fee %}selected{% endif %}>Any Fee</option>
+          <option value="free" {% if filters.fee == 'free' %}selected{% endif %}>Free</option>
+          <option value="paid" {% if filters.fee == 'paid' %}selected{% endif %}>Paid</option>
         </select>
       </div>
 
       <div class="filter-orb__row">
-        <label for="fo-start">Start</label>
-        <select id="fo-start" name="start">
-          <option value="" {% if not request.GET.start %}selected{% endif %}>Any time</option>
-          <option value="7d" {% if request.GET.start == '7d' %}selected{% endif %}>Within 7 days</option>
+        <label for="fo-prize"><i class="fa-solid fa-trophy"></i> Prize</label>
+        <select id="fo-prize" name="prize">
+          <option value="" {% if not filters.prize %}selected{% endif %}>Any Prize</option>
+          <option value="high" {% if filters.prize == 'high' %}selected{% endif %}>High (৳50k+)</option>
+          <option value="medium" {% if filters.prize == 'medium' %}selected{% endif %}>Medium (৳10k-50k)</option>
+          <option value="low" {% if filters.prize == 'low' %}selected{% endif %}>Low (<৳10k)</option>
         </select>
       </div>
 
       <div class="filter-orb__row">
-        <label for="fo-sort">Sort</label>
+        <label for="fo-sort"><i class="fa-solid fa-arrow-down-wide-short"></i> Sort</label>
         <select id="fo-sort" name="sort">
-          <option value="" {% if not request.GET.sort %}selected{% endif %}>Default</option>
-          <option value="new" {% if request.GET.sort == 'new' %}selected{% endif %}>Newest</option>
-          <option value="fee_asc" {% if request.GET.sort == 'fee_asc' %}selected{% endif %}>Fee (low to high)</option>
+          <option value="newest" {% if filters.sort == 'newest' or not filters.sort %}selected{% endif %}>Newest</option>
+          <option value="starting_soon" {% if filters.sort == 'starting_soon' %}selected{% endif %}>Starting Soon</option>
+          <option value="prize_high" {% if filters.sort == 'prize_high' %}selected{% endif %}>Prize (High)</option>
+          <option value="prize_low" {% if filters.sort == 'prize_low' %}selected{% endif %}>Prize (Low)</option>
+          <option value="popular" {% if filters.sort == 'popular' %}selected{% endif %}>Popular</option>
         </select>
       </div>
 
       <div class="filter-orb__actions">
-        <button class="dc-btn" type="submit">Apply</button>
-        <a class="dc-btn-secondary" href="{{ request.path }}">Reset</a>
+        <button class="dc-btn" type="submit"><i class="fa-solid fa-filter"></i> Apply</button>
+        {% if filters.active_count %}
+          <a class="dc-btn-secondary" href="{{ request.path }}"><i class="fa-solid fa-rotate-left"></i> Reset</a>
+        {% endif %}
       </div>
+
+      {% if filters.active_count %}
+        <div class="filter-orb__active">
+          <small><strong>{{ filters.active_count }}</strong> filter{{ filters.active_count|pluralize }} active</small>
+        </div>
+      {% endif %}
 
       <p class="filter-orb__hint">Tip: Hover the orb to peek, tap to pin open.</p>
     </form>

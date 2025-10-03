@@ -5,6 +5,7 @@ from django.urls import reverse
 from django_ckeditor_5.fields import CKEditor5Field
 
 from .paths import tournament_banner_path  # rules_pdf_path kept for compat if used anywhere
+from .state_machine import TournamentStateMachine
 
 
 # Module-level enum to avoid indentation bleed inside the model class
@@ -32,7 +33,12 @@ class Tournament(models.Model):
 
     # ----- Core Configuration -----
     game = models.CharField(max_length=20, choices=Game.choices)
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
+    status = models.CharField(
+        max_length=16, 
+        choices=Status.choices, 
+        default=Status.DRAFT,
+        help_text="Tournament lifecycle status. DRAFT=hidden, PUBLISHED=visible, RUNNING=active, COMPLETED=finished"
+    )
     banner = models.ImageField(upload_to=tournament_banner_path, blank=True, null=True)
 
     # ----- Schedule -----
@@ -72,6 +78,46 @@ class Tournament(models.Model):
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
 
+    def clean(self):
+        """Validate tournament fields before saving."""
+        from django.core.exceptions import ValidationError
+        
+        # Validate schedule dates
+        if self.reg_open_at and self.reg_close_at:
+            if self.reg_open_at >= self.reg_close_at:
+                raise ValidationError({
+                    'reg_close_at': 'Registration close time must be after open time.'
+                })
+        
+        if self.start_at and self.end_at:
+            if self.start_at >= self.end_at:
+                raise ValidationError({
+                    'end_at': 'Tournament end time must be after start time.'
+                })
+        
+        if self.reg_close_at and self.start_at:
+            if self.reg_close_at > self.start_at:
+                raise ValidationError({
+                    'reg_close_at': 'Registration must close before tournament starts.'
+                })
+        
+        # Validate slot_size
+        if self.slot_size is not None and self.slot_size < 2:
+            raise ValidationError({
+                'slot_size': 'Slot size must be at least 2 participants.'
+            })
+
+    # -----------------
+    # State Machine
+    # -----------------
+    @property
+    def state(self) -> TournamentStateMachine:
+        """
+        Access centralized state machine.
+        Use: tournament.state.registration_state, tournament.state.can_register(), etc.
+        """
+        return TournamentStateMachine(self)
+
     # -----------------
     # Computed helpers
     # -----------------
@@ -99,37 +145,42 @@ class Tournament(models.Model):
 
     @property
     def entry_fee(self):
-        """Numeric value for templates expecting `entry_fee`."""
-        try:
-            val = getattr(self, "entry_fee_bdt", None)
-            if val not in (None, ""):
-                return val
-        except Exception:
-            pass
+        """
+        Entry fee in BDT. Checks model field first, then settings fallback.
+        Returns Decimal or None.
+        """
+        # Primary: tournament model field
+        if self.entry_fee_bdt is not None:
+            return self.entry_fee_bdt
+        
+        # Fallback: settings override
         try:
             settings = getattr(self, "settings", None)
-            val = getattr(settings, "entry_fee_bdt", None) if settings else None
-            if val not in (None, ""):
-                return val
+            if settings and hasattr(settings, 'entry_fee_bdt'):
+                return settings.entry_fee_bdt
         except Exception:
             pass
+        
         return None
 
     @property
     def prize_pool(self):
-        try:
-            val = getattr(self, "prize_pool_bdt", None)
-            if val not in (None, ""):
-                return val
-        except Exception:
-            pass
+        """
+        Prize pool in BDT. Checks model field first, then settings fallback.
+        Returns Integer or None.
+        """
+        # Primary: tournament model field
+        if self.prize_pool_bdt is not None:
+            return self.prize_pool_bdt
+        
+        # Fallback: settings override
         try:
             settings = getattr(self, "settings", None)
-            val = getattr(settings, "prize_pool_bdt", None) if settings else None
-            if val not in (None, ""):
-                return val
+            if settings and hasattr(settings, 'prize_pool_bdt'):
+                return settings.prize_pool_bdt
         except Exception:
             pass
+        
         return None
 
     @property

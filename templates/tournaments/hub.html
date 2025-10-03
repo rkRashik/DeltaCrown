@@ -1,12 +1,18 @@
 ﻿{% extends "base.html" %}
-{% load static tournament_dict_utils %}
+{% load static tournament_dict_utils humanize %}
 
 {% block title %}Play. Win. Be Seen — Tournaments | DeltaCrown{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
 <link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
-{# Filter Orb CSS/JS will be added in later steps; the markup still works progressively. #}
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
+<script src="{% static 'siteui/js/tournaments-hub-modern.js' %}?v=2"></script>
+<script src="{% static 'js/tournament-card-dynamic.js' %}?v=4"></script>
 {% endblock %}
 
 {% block content %}
@@ -33,9 +39,9 @@
         </div>
 
         <ul class="hero-stats" aria-label="Platform stats">
-          <li><strong>{{ stats.total_active|default:"25" }}</strong><span>Active now</span></li>
-          <li><strong>{{ stats.players_this_month|default:"1,200" }}</strong><span>Players this month</span></li>
-          <li><strong>৳{{ stats.prize_pool_month|default:"2,50,000" }}</strong><span>Prize pool</span></li>
+          <li><strong>{{ stats.total_active|default:"0" }}</strong><span>Active now</span></li>
+          <li><strong>{{ stats.players_this_month|intcomma|default:"0" }}</strong><span>Players this month</span></li>
+          <li><strong>৳{{ stats.prize_pool_month|intcomma|default:"0" }}</strong><span>Prize pool</span></li>
         </ul>
 
         <div class="trust-row" aria-label="Trust markers">
@@ -47,34 +53,62 @@
 
       <div class="hero-right">
         <div class="hero-card">
-          <div class="hc-top"><span class="live-dot" aria-hidden="true"></span> Featured Now</div>
+          <div class="hc-top">
+            <span class="live-dot" aria-hidden="true"></span>
+            {% if live_tournaments %}LIVE NOW{% elif featured %}Featured Tournament{% else %}Upcoming{% endif %}
+          </div>
           <div class="hc-body">
             {% if live_tournaments %}
-            {% with t=live_tournaments.0 %}
-              <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
-                {% if t.dc_banner_url %}
-                  <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}">
-                {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
-              </a>
-              <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
-              <div class="hc-meta">
-                {% if t.starts_at %}<span>Starts {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
-                {% if t.dc_game %}<span>{{ t.dc_game }}</span>{% endif %}
-                {% if t.dc_fee_amount is not None %}
-                  <span>{% if t.dc_fee_amount == 0 %}Free Entry{% else %}৳{{ t.dc_fee_amount }}{% endif %}</span>
-                {% endif %}
-              </div>
-              <div class="hc-cta">
-                <a class="cta-primary" href="{{ t.register_url }}">
-                  <i class="fa-solid fa-user-plus"></i> Register
+              {% with t=live_tournaments.0 %}
+                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
+                  {% if t.dc_banner_url %}
+                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
+                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
                 </a>
-                <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
-                  <i class="fa-solid fa-eye"></i> View
+                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
+                <div class="hc-meta">
+                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
+                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
+                  {% if t.dc_fee_amount is not None %}
+                    <span><i class="fa-solid fa-tag"></i> {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount|intcomma }}{% endif %}</span>
+                  {% endif %}
+                </div>
+                <div class="hc-cta">
+                  <a class="cta-primary" href="{{ t.register_url }}">
+                    <i class="fa-solid fa-user-plus"></i> Join Now
+                  </a>
+                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
+                    <i class="fa-solid fa-arrow-right"></i> Details
+                  </a>
+                </div>
+              {% endwith %}
+            {% elif featured %}
+              {% with t=featured.0 %}
+                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
+                  {% if t.dc_banner_url %}
+                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
+                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
                 </a>
-              </div>
-            {% endwith %}
+                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
+                <div class="hc-meta">
+                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
+                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
+                  {% if t.dc_prize_pool %}<span><i class="fa-solid fa-trophy"></i> ৳{{ t.dc_prize_pool|intcomma }}</span>{% endif %}
+                </div>
+                <div class="hc-cta">
+                  <a class="cta-primary" href="{{ t.register_url }}">
+                    <i class="fa-solid fa-user-plus"></i> Register
+                  </a>
+                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
+                    <i class="fa-solid fa-arrow-right"></i> View
+                  </a>
+                </div>
+              {% endwith %}
             {% else %}
-              <div class="hc-empty">Live events appear here when a tournament is in progress.</div>
+              <div class="hc-empty">
+                <p style="margin: 0;">No tournaments currently live.</p>
+                <p style="margin: 8px 0 0; font-size: 13px; opacity: 0.7;">Check back soon or browse upcoming tournaments below.</p>
+              </div>
             {% endif %}
           </div>
         </div>
@@ -114,11 +148,33 @@
     {% include "tournaments/partials/_grid_empty.html" %}
   {% endif %}
 
+  {# ---------------- PAGINATION ---------------- #}
+  {% if pagination.has_previous or pagination.has_next %}
+  <nav class="pagination" aria-label="Pagination">
+    <div class="pagination-info">
+      Showing {{ pagination.start_index }}–{{ pagination.end_index }} of {{ pagination.total_count }} tournaments
+    </div>
+    <div class="pagination-controls">
+      {% if pagination.has_previous %}
+        <a href="?page={{ pagination.previous_page_number }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
+          <i class="fa-solid fa-chevron-left"></i> Previous
+        </a>
+      {% endif %}
+      <span class="page-info">Page {{ pagination.current_page }} of {{ pagination.total_pages }}</span>
+      {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_page_number }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
+          Next <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      {% endif %}
+    </div>
+  </nav>
+  {% endif %}
+
   {# ---------------- OPTIONAL ROWS ---------------- #}
   {% if starting_soon %}
-  <section class="section-head" aria-labelledby="soon-title">
+  <section class="section-head" aria-labelledby="soon-title" style="margin-top: 32px;">
     <h2 id="soon-title" class="section-title">Starting Soon</h2>
-    <a class="section-link" href="{% url 'tournaments:hub' %}?start=7d">Within 7 days</a>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?status=upcoming&sort=starting_soon">Within 7 days</a>
   </section>
   <div class="carousel">
     {% for t in starting_soon %}
@@ -130,9 +186,9 @@
   {% endif %}
 
   {% if new_this_week %}
-  <section class="section-head" aria-labelledby="new-title">
+  <section class="section-head" aria-labelledby="new-title" style="margin-top: 32px;">
     <h2 id="new-title" class="section-title">New This Week</h2>
-    <a class="section-link" href="{% url 'tournaments:hub' %}?sort=new">Newest first</a>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?sort=newest">Newest first</a>
   </section>
   <div class="grid">
     {% for t in new_this_week %}
@@ -190,7 +246,3 @@
 </section>
 {% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
-{# Later we’ll add filter-orb.js here in the CSS/JS steps. #}
-{% endblock %}

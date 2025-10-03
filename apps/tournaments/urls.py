@@ -2,9 +2,32 @@
 from django.urls import path
 
 from .views.public import hub, list_by_game, detail
-from .views.registration import register
-from .views.registration_unified import unified_register, valorant_register, efootball_register
-from .views.enhanced_registration import enhanced_register
+from .views.hub_enhanced import hub_enhanced
+from .views.detail_enhanced import detail_enhanced
+
+# Modern Registration System (CANONICAL)
+from .views.registration_modern import (
+    modern_register_view,
+    registration_context_api,
+    validate_registration_api,
+    submit_registration_api,
+    request_approval_api,
+    pending_requests_api,
+    approve_request_api,
+    reject_request_api,
+)
+
+# State Management API
+from .views.state_api import tournament_state_api
+
+# Deprecated views (for backward compatibility - redirect to modern)
+from .views._deprecated import (
+    register,
+    unified_register,
+    enhanced_register,
+    valorant_register,
+    efootball_register,
+)
 
 app_name = "tournaments"
 
@@ -25,28 +48,61 @@ except Exception:  # pragma: no cover
     HAS_MY_MATCHES = False
 
 urlpatterns = [
-    # Hub / landing
-    path("", hub, name="hub"),
+    # ==========================================
+    # CORE TOURNAMENT PAGES
+    # ==========================================
+    
+    # Hub / landing (Enhanced with real-time stats & filtering)
+    path("", hub_enhanced, name="hub"),
 
     # Browse by game (e.g. /tournaments/game/valorant/)
     path("game/<slug:game>/", list_by_game, name="game"),
 
-    # Detail (e.g. /tournaments/t/valorant-delta-masters/)
-    path("t/<slug:slug>/", detail, name="detail"),
-
-    # Register (e.g. /tournaments/register/valorant-delta-masters/)
+    # Detail (Enhanced with optimized queries & data loading)
+    path("t/<slug:slug>/", detail_enhanced, name="detail"),
+    
+    # ==========================================
+    # MODERN REGISTRATION SYSTEM (PRIMARY)
+    # ==========================================
+    
+    # Main registration view (use this!)
+    path("register-modern/<slug:slug>/", modern_register_view, name="modern_register"),
+    
+    # ==========================================
+    # REGISTRATION API ENDPOINTS
+    # ==========================================
+    
+    # Real-time State API (for live updates)
+    path("api/<slug:slug>/state/", tournament_state_api, name="state_api"),
+    
+    # Registration Context & Validation
+    path("api/<slug:slug>/register/context/", registration_context_api, name="registration_context_api"),
+    path("api/<slug:slug>/register/validate/", validate_registration_api, name="validate_registration_api"),
+    path("api/<slug:slug>/register/submit/", submit_registration_api, name="submit_registration_api"),
+    path("api/<slug:slug>/request-approval/", request_approval_api, name="request_approval_api"),
+    
+    # Approval Request APIs
+    path("api/registration-requests/pending/", pending_requests_api, name="pending_requests_api"),
+    path("api/registration-requests/<int:request_id>/approve/", approve_request_api, name="approve_request_api"),
+    path("api/registration-requests/<int:request_id>/reject/", reject_request_api, name="reject_request_api"),
+    
+    # ==========================================
+    # DEPRECATED REGISTRATION VIEWS
+    # ⚠️ These redirect to modern_register_view
+    # ⚠️ Will be removed in version 2.0
+    # ==========================================
+    
+    # Legacy registration (DEPRECATED - redirects to modern)
     path("register/<slug:slug>/", register, name="register"),
     
-    # Unified Registration (new system)
+    # Unified registration (DEPRECATED - redirects to modern)
     path("register-new/<slug:slug>/", unified_register, name="unified_register"),
     
-    # Enhanced Registration (improved system)
+    # Enhanced registration (DEPRECATED - redirects to modern)
     path("register-enhanced/<slug:slug>/", enhanced_register, name="enhanced_register"),
     
-    # Valorant-specific registration
+    # Game-specific registration (DEPRECATED - redirects to modern)
     path("valorant/<slug:slug>/", valorant_register, name="valorant_register"),
-    
-    # eFootball-specific registration
     path("efootball/<slug:slug>/", efootball_register, name="efootball_register"),
 ]
 

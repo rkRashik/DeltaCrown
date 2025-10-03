@@ -1,5 +1,5 @@
 {# expects: t (Tournament-like with dc_* attrs), optional state dict #}
-<article class="dc-card" data-game="{{ t.dc_game|default:'generic'|lower }}">
+<article class="dc-card" data-game="{{ t.dc_game|default:'generic'|lower }}" data-tournament-slug="{{ t.dc_slug|default:'' }}">
   <a href="{{ t.dc_url|default:'#' }}" class="dc-card-media" aria-label="{{ t.dc_title|default:'Tournament' }}">
     {% if t.dc_banner_url %}
       <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title|default:'Tournament' }} banner" loading="lazy" decoding="async">
@@ -50,44 +50,13 @@
     <div class="dc-actions">
       <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}" aria-label="View details">View</a>
 
-      {# Enhanced registration logic with new unified system #}
-      {% if state and state.registered %}
-        {% if state.cta == 'continue' and state.cta_url %}
-          <a class="dc-btn" href="{{ state.cta_url }}">
-            <i class="fa-solid fa-play"></i> Continue
-          </a>
-          <span class="dc-badge dc-badge-registered" aria-label="You are registered">
-            <i class="fa-solid fa-check"></i> Registered
-          </span>
-        {% elif state.cta == 'receipt' and state.cta_url %}
-          <a class="dc-btn" href="{{ state.cta_url }}">
-            <i class="fa-solid fa-receipt"></i> Receipt
-          </a>
-          <span class="dc-badge dc-badge-registered" aria-label="You are registered">
-            <i class="fa-solid fa-check"></i> Registered
-          </span>
-        {% else %}
-          <button class="dc-btn" disabled aria-disabled="true">
-            <i class="fa-solid fa-check"></i> Registered
-          </button>
-        {% endif %}
-      {% else %}
-        {% if t.dc_status in 'open opening filling' or t.dc_status == 'open' or t.dc_status == 'opening' or t.dc_status == 'filling' %}
-          <a class="dc-btn" href="{{ t.register_url }}">
-            <i class="fa-solid fa-user-plus"></i> Register
-          </a>
-        {% elif t.dc_status == 'live' %}
-          <a class="dc-btn" href="{{ t.dc_url|default:'#' }}#live">
-            <i class="fa-solid fa-eye"></i> Watch
-          </a>
-        {% else %}
-          <button class="dc-btn" disabled aria-disabled="true">
-            {% if t.dc_status == 'closed' %}<i class="fa-solid fa-lock"></i> Closed
-            {% elif t.dc_status == 'finished' %}<i class="fa-solid fa-flag-checkered"></i> Finished
-            {% else %}{{ t.dc_status|default:"Closed"|title }}{% endif %}
-          </button>
-        {% endif %}
-      {% endif %}
+      {# Modern Dynamic Registration Button - Loaded via AJAX #}
+      <div class="dc-reg-btn-container" data-tournament-slug="{{ t.dc_slug|default:'' }}" data-loading="true">
+        {# Skeleton loader while fetching button state #}
+        <div class="dc-btn-skeleton">
+          <div class="dc-skeleton-shimmer"></div>
+        </div>
+      </div>
     </div>
   </div>
 </article>

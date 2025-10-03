@@ -13,6 +13,15 @@ from django.core.exceptions import ValidationError
 
 from apps.tournaments.models import Tournament, Registration
 from apps.tournaments.services.enhanced_registration import create_registration_with_email
+from apps.tournaments.utils.schedule_helpers import is_registration_open
+from apps.tournaments.utils.capacity_helpers import (
+    can_accept_registrations, is_tournament_full,
+    validate_team_size, increment_tournament_registrations
+)
+from apps.tournaments.utils.finance_helpers import (
+    get_entry_fee, get_prize_pool, is_free_tournament,
+    format_entry_fee, format_prize_pool, get_finance_context
+)
 from apps.user_profile.models import UserProfile
 from apps.teams.models import Team, TeamMembership
 
@@ -44,19 +53,34 @@ def enhanced_register(request, slug):
         return redirect('tournaments:detail', slug=tournament.slug)
     
     # Check registration window
-    if not tournament.registration_open:
+    if not is_registration_open(tournament):
         messages.error(request, "Registration is not currently open for this tournament.")
+        return redirect('tournaments:detail', slug=tournament.slug)
+    
+    # Check capacity (Phase 1 integration)
+    if not can_accept_registrations(tournament):
+        if is_tournament_full(tournament):
+            messages.error(request, "This tournament is full. No more registrations accepted.")
+        else:
+            messages.error(request, "This tournament is not accepting registrations.")
         return redirect('tournaments:detail', slug=tournament.slug)
     
     # Determine if this is a team tournament
     is_team_tournament = _is_team_tournament(tournament)
     
+    # Get complete finance context
+    finance_data = get_finance_context(tournament)
+    
     context = {
         'tournament': tournament,
         'user_profile': user_profile,
         'is_team_tournament': is_team_tournament,
-        'entry_fee': tournament.entry_fee_bdt or 0,
-        'prize_pool': tournament.prize_pool_bdt or 0,
+        'entry_fee': get_entry_fee(tournament),
+        'prize_pool': get_prize_pool(tournament),
+        'is_free': is_free_tournament(tournament),
+        'formatted_entry_fee': format_entry_fee(tournament),
+        'formatted_prize_pool': format_prize_pool(tournament),
+        'finance_data': finance_data,
     }
     
     if request.method == 'POST':

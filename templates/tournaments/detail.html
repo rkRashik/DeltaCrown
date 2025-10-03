@@ -1,18 +1,20 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}{{ ctx.title|default:"Tournament" }} — DeltaCrown{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-neo.css' %}?v=5" />
 <link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-pro.css' %}?v=2" />
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2" />
+<link rel="stylesheet" href="{% static 'css/tournament-state-poller.css' %}?v=1" />
 {% if ctx.pdf_viewer %}
 <link rel="stylesheet" href="{% static 'siteui/css/pdfjs-skin.css' %}?v=1" />
 {% endif %}
 {% endblock %}
 
 {% block content %}
-<section class="dc-container tneo" data-game="{{ ctx.game_slug|default:'generic' }}" data-slug="{{ ctx.t.slug|default:'' }}">
+<section class="dc-container tneo" data-game="{{ ctx.game_slug|default:'generic' }}" data-slug="{{ ctx.t.slug|default:'' }}" data-tournament-slug="{{ ctx.t.slug }}">
   <div class="neo-hero">
     <div class="bg" aria-hidden="true">
       <div class="glow a"></div><div class="glow b"></div><div class="grid"></div><div class="shine"></div>
@@ -51,9 +53,9 @@
           {% if ctx.region %}<span class="chip">{{ ctx.region }}</span>{% endif %}
           {% if ctx.platform %}<span class="chip">{{ ctx.platform }}</span>{% endif %}
           {% if ctx.entry_fee is not None %}
-            <span class="chip">{% if ctx.entry_fee == 0 %}Free Entry{% else %}৳{{ ctx.entry_fee_fmt|default:ctx.entry_fee }} Entry{% endif %}</span>
+            <span class="chip">{% if ctx.entry_fee == 0 %}Free Entry{% else %}৳{{ ctx.entry_fee|intcomma }} Entry{% endif %}</span>
           {% endif %}
-          {% if ctx.prize_pool %}<span class="chip">Prize ৳{{ ctx.prize_pool_fmt|default:ctx.prize_pool }}</span>{% endif %}
+          {% if ctx.prize_pool %}<span class="chip">Prize ৳{{ ctx.prize_pool|intcomma }}</span>{% endif %}
           {% if ctx.slots.capacity %}<span class="chip">{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }} slots</span>{% endif %}
         </div>
       </div>
@@ -72,7 +74,7 @@
 
           <div class="price">
             {% if ctx.entry_fee is not None %}
-              <strong>{% if ctx.entry_fee == 0 %}Free{% else %}৳{{ ctx.entry_fee_fmt|default:ctx.entry_fee }}{% endif %}</strong>
+              <strong>{% if ctx.entry_fee == 0 %}Free{% else %}৳{{ ctx.entry_fee|intcomma }}{% endif %}</strong>
               <span class="muted small">Entry Fee</span>
             {% endif %}
           </div>
@@ -84,42 +86,11 @@
             {% if ctx.format.check_in_required %}<li><i class="fa-solid fa-circle-check"></i> Check-in required</li>{% endif %}
           </ul>
 
-          <div>
-            {% if ctx.is_team_event %}
-              {% if ctx.team_registered %}
-                <button class="btn-neo big wfull" disabled>
-                  <i class="fa-solid fa-check"></i> Team Registered
-                </button>
-                <p class="small muted" style="margin-top:.35rem;">Your team is registered for this tournament.</p>
-              {% elif ctx.team and not ctx.user_is_captain %}
-                <button class="btn-neo big wfull" disabled>
-                  <i class="fa-solid fa-user-crown"></i> Captain Required
-                </button>
-                <p class="small muted" style="margin-top:.35rem;">Only the team captain can register. Ask <strong>{{ ctx.team.captain.display_name|default:ctx.team.captain.user.username }}</strong> to register the team.</p>
-              {% elif ctx.team %}
-                <a class="btn-neo big wfull" href="{{ ctx.register_url }}">
-                  <i class="fa-solid fa-users"></i> Register Team
-                </a>
-                <p class="small muted" style="margin-top:.35rem;">Register your team "{{ ctx.team.name }}" for this tournament.</p>
-              {% else %}
-                <a class="btn-neo big wfull" href="{{ ctx.register_url }}">
-                  <i class="fa-solid fa-plus"></i> Create & Register Team
-                </a>
-                <p class="small muted" style="margin-top:.35rem;">Create a new team and register for this tournament.</p>
-              {% endif %}
-            {% else %}
-              {% if ctx.is_registered_user %}
-                <button class="btn-neo big wfull" disabled>
-                  <i class="fa-solid fa-check"></i> You're Registered
-                </button>
-                <p class="small muted" style="margin-top:.35rem;">You are registered for this tournament.</p>
-              {% else %}
-                <a class="btn-neo big wfull" href="{{ ctx.register_url }}">
-                  <i class="fa-solid fa-user-plus"></i> Register Now
-                </a>
-                <p class="small muted" style="margin-top:.35rem;">Join this {% if ctx.entry_fee == 0 %}free{% endif %} tournament.</p>
-              {% endif %}
-            {% endif %}
+          <div id="hero-registration-btn" data-tournament-slug="{{ ctx.t.slug }}">
+            {# Dynamic registration button loaded via AJAX #}
+            <div class="btn-skeleton-large">
+              <div class="skeleton-shimmer"></div>
+            </div>
           </div>
 
           {% if ctx.ui.user_registration %}
@@ -183,7 +154,10 @@
               {% if ctx.prize_pool %}
                 <div class="card">
                   <h3 class="h3">Prize Pool</h3>
-                  <p><strong>৳{{ ctx.prize_pool_fmt|default:ctx.prize_pool }}</strong></p>
+                  <p><strong>৳{{ ctx.prize_pool|intcomma }}</strong></p>
+                  {% if ctx.prizes %}
+                    <p class="small muted" style="margin-top: 4px;">{{ ctx.prizes|length }} prize{{ ctx.prizes|length|pluralize }} available</p>
+                  {% endif %}
                 </div>
               {% endif %}
             </div>
@@ -293,32 +267,53 @@
 
           {% if not ctx.can_view_sensitive %}
             <div class="locked">
+              <i class="fa-solid fa-lock" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
               <p class="muted">Participants will be visible once the tournament starts and only to registered players.</p>
               {% if not ctx.is_registered_user %}
-                <p class="small"><a href="{{ ctx.register_url }}" class="btn-neo btn-ghost">Register to join</a></p>
+                <p class="small" style="margin-top: 16px;"><a href="{{ ctx.register_url }}" class="btn-neo">Register to join</a></p>
               {% endif %}
             </div>
           {% else %}
             {% if ctx.participants %}
               <div class="table">
-                <div class="tr th"><div>Seed</div><div>Name</div><div>Status</div></div>
+                <div class="tr th"><div>Seed</div><div>Participant</div><div>Status</div></div>
                 {% for p in ctx.participants %}
                   {% with logo=p.team_logo|default:p.logo avatar=p.avatar name=p.team_name|default:p.name %}
                   <div class="tr">
-                    <div>#{{ p.seed|default:"–" }}</div>
-                    <div>
-                      {% if logo %}<img src="{{ logo }}" alt="" style="width:20px;height:20px;border-radius:4px;vertical-align:middle;margin-right:.35rem;">
-                      {% elif avatar %}<img src="{{ avatar }}" alt="" style="width:20px;height:20px;border-radius:50%;vertical-align:middle;margin-right:.35rem;">{% endif %}
-                      <strong>{{ name|default:"" }}</strong>
-                      {% if p.captain %}<span class="muted small"> • Cpt. {{ p.captain }}</span>{% endif %}
+                    <div><strong>#{{ p.seed|default:"–" }}</strong></div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      {% if logo %}
+                        <img src="{{ logo }}" alt="" style="width:28px;height:28px;border-radius:4px;object-fit:cover;">
+                      {% elif avatar %}
+                        <img src="{{ avatar }}" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+                      {% else %}
+                        <div style="width:28px;height:28px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;">
+                          <i class="fa-solid fa-user" style="font-size:14px;opacity:0.5;"></i>
+                        </div>
+                      {% endif %}
+                      <div>
+                        <strong>{{ name|default:"Unnamed" }}</strong>
+                        {% if p.captain %}<div class="muted small">Captain: {{ p.captain }}</div>{% endif %}
+                      </div>
                     </div>
-                    <div class="muted">{{ p.status|default:"" }}</div>
+                    <div>
+                      {% if p.status == 'verified' %}
+                        <span class="badge badge-success"><i class="fa-solid fa-check"></i> Verified</span>
+                      {% elif p.status == 'pending' %}
+                        <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pending</span>
+                      {% else %}
+                        <span class="muted">{{ p.status|default:"–" }}</span>
+                      {% endif %}
+                    </div>
                   </div>
                   {% endwith %}
                 {% endfor %}
               </div>
             {% else %}
-              <p class="muted">No participants to show yet.</p>
+              <div class="empty-state">
+                <i class="fa-solid fa-users" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+                <p class="muted">No participants registered yet.</p>
+              </div>
             {% endif %}
           {% endif %}
         </article>
@@ -330,7 +325,8 @@
           <h2 class="h2">Bracket</h2>
           {% if not ctx.can_view_sensitive %}
             <div class="locked">
-              <p class="muted">Bracket will unlock at start for registered players.</p>
+              <i class="fa-solid fa-lock" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+              <p class="muted">Bracket will unlock at tournament start for registered players.</p>
             </div>
           {% else %}
             {% if ctx.bracket_url %}
@@ -338,7 +334,10 @@
                 <iframe title="Bracket" data-src="{{ ctx.bracket_url }}" allowfullscreen loading="lazy"></iframe>
               </div>
             {% else %}
-              <p class="muted">Bracket will be available when the tournament starts.</p>
+              <div class="empty-state">
+                <i class="fa-solid fa-diagram-project" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+                <p class="muted">Bracket will be generated when the tournament starts.</p>
+              </div>
             {% endif %}
           {% endif %}
         </article>
@@ -350,17 +349,25 @@
           <h2 class="h2">Standings</h2>
           {% if ctx.standings %}
             <div class="table">
-              <div class="tr th"><div>Rank</div><div>Team/Player</div><div>Points</div></div>
+              <div class="tr th"><div>Rank</div><div>Team/Player</div><div>Wins</div><div>Losses</div><div>Points</div></div>
               {% for r in ctx.standings %}
                 <div class="tr">
-                  <div>{{ r.rank|default:"–" }}</div>
-                  <div>{{ r.name|default:"" }}</div>
-                  <div>{{ r.points|default:"0" }}</div>
+                  <div>
+                    {% if r.rank == 1 %}<i class="fa-solid fa-trophy" style="color: #facc15;"></i>{% endif %}
+                    <strong>{{ r.rank|default:"–" }}</strong>
+                  </div>
+                  <div><strong>{{ r.name|default:"" }}</strong></div>
+                  <div class="muted">{{ r.wins|default:"0" }}</div>
+                  <div class="muted">{{ r.losses|default:"0" }}</div>
+                  <div><strong>{{ r.points|default:"0" }}</strong></div>
                 </div>
               {% endfor %}
             </div>
           {% else %}
-            <p class="muted">Standings will populate as matches are reported.</p>
+            <div class="empty-state">
+              <i class="fa-solid fa-ranking-star" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+              <p class="muted">Standings will populate as matches are completed.</p>
+            </div>
           {% endif %}
         </article>
       </section>
@@ -374,10 +381,15 @@
               <iframe title="Live Stream" data-src="{{ ctx.live.stream }}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
             </div>
             <p class="small muted" style="margin-top:.4rem;">
-              Status: {{ ctx.live.status|title|default:"Offline" }}{% if ctx.live.viewers %} • {{ ctx.live.viewers }} watching{% endif %}
+              <i class="fa-solid fa-circle" style="color: #ef4444;"></i> {{ ctx.live.status|title|default:"Offline" }}
+              {% if ctx.live.viewers %} • <i class="fa-solid fa-eye"></i> {{ ctx.live.viewers|intcomma }} watching{% endif %}
             </p>
           {% else %}
-            <p class="muted">Live stream is currently offline.</p>
+            <div class="empty-state">
+              <i class="fa-solid fa-video-slash" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+              <p class="muted">Live stream is currently offline.</p>
+              <p class="small muted" style="margin-top: 8px;">The stream will begin when the tournament starts.</p>
+            </div>
           {% endif %}
         </article>
       </section>
@@ -456,23 +468,12 @@
         <div class="card">
           <h3 class="h3">Actions</h3>
           <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
-            {% if ctx.is_team_event %}
-              {% if ctx.team_registered %}
-                <button class="btn-neo" disabled><i class="fa-solid fa-check"></i> Team Registered</button>
-              {% elif ctx.team and not ctx.user_is_captain %}
-                <button class="btn-neo" disabled><i class="fa-solid fa-user-crown"></i> Captain Only</button>
-              {% elif ctx.team %}
-                <a class="btn-neo" href="{{ ctx.register_url }}"><i class="fa-solid fa-users"></i> Register Team</a>
-              {% else %}
-                <a class="btn-neo" href="{{ ctx.register_url }}"><i class="fa-solid fa-plus"></i> Create Team</a>
-              {% endif %}
-            {% else %}
-              {% if ctx.is_registered_user %}
-                <button class="btn-neo" disabled><i class="fa-solid fa-check"></i> Registered</button>
-              {% else %}
-                <a class="btn-neo" href="{{ ctx.register_url }}"><i class="fa-solid fa-user-plus"></i> Register</a>
-              {% endif %}
-            {% endif %}
+            <div id="sidebar-registration-btn" data-tournament-slug="{{ ctx.t.slug }}" style="flex:1;">
+              {# Dynamic registration button loaded via AJAX #}
+              <div class="btn-skeleton-compact">
+                <div class="skeleton-shimmer"></div>
+              </div>
+            </div>
             <button class="btn-neo btn-ghost" data-share><i class="fa-solid fa-share"></i> Share</button>
           </div>
         </div>
@@ -489,36 +490,11 @@
     </aside>
   </div>
 
-  <div class="mobile-cta">
-    {% if ctx.is_team_event %}
-      {% if ctx.team_registered %}
-        <button class="btn-neo big wfull" disabled>
-          <i class="fa-solid fa-check"></i> Team Registered
-        </button>
-      {% elif ctx.team and not ctx.user_is_captain %}
-        <button class="btn-neo big wfull" disabled>
-          <i class="fa-solid fa-user-crown"></i> Captain Required
-        </button>
-      {% elif ctx.team %}
-        <a class="btn-neo big wfull" href="{{ ctx.register_url }}">
-          <i class="fa-solid fa-users"></i> Register Team
-        </a>
-      {% else %}
-        <a class="btn-neo big wfull" href="{{ ctx.register_url }}">
-          <i class="fa-solid fa-plus"></i> Create & Register Team
-        </a>
-      {% endif %}
-    {% else %}
-      {% if ctx.is_registered_user %}
-        <button class="btn-neo big wfull" disabled>
-          <i class="fa-solid fa-check"></i> You're Registered
-        </button>
-      {% else %}
-        <a class="btn-neo big wfull" href="{{ ctx.register_url }}">
-          <i class="fa-solid fa-user-plus"></i> Register Now
-        </a>
-      {% endif %}
-    {% endif %}
+  <div class="mobile-cta" id="mobile-registration-btn" data-tournament-slug="{{ ctx.t.slug }}">
+    {# Dynamic registration button loaded via AJAX #}
+    <div class="btn-skeleton-large">
+      <div class="skeleton-shimmer"></div>
+    </div>
   </div>
 </section>
 {% endblock %}
@@ -526,6 +502,10 @@
 {% block extra_js %}
 <script src="{% static 'siteui/js/tournament-detail-neo.js' %}?v=5"></script>
 <script src="{% static 'siteui/js/tournaments-detail.js' %}?v=1"></script>
+<script src="{% static 'siteui/js/tournaments-hub-modern.js' %}?v=2"></script>
+<script src="{% static 'js/tournament-card-dynamic.js' %}?v=4"></script>
+<script src="{% static 'js/tournament-detail-modern.js' %}?v=4"></script>
+<script src="{% static 'js/tournament-state-poller.js' %}?v=1"></script>
 {% if ctx.pdf_viewer %}
   <script src="{% static 'siteui/pdfjs/pdf.js' %}"></script>
   <script>window.pdfjsLib && (pdfjsLib.GlobalWorkerOptions.workerSrc = "{% static 'siteui/pdfjs/pdf.worker.js' %}");</script>

@@ -85,9 +85,17 @@ class ValorantConfig(models.Model):
     def clean(self):
         from django.core.exceptions import ValidationError
 
+        # Check for conflicting eFootball config
         econf = getattr(self.tournament, "efootball_config", None)
         if econf and getattr(econf, "pk", None):
             raise ValidationError("This tournament already has an eFootball config. Remove it first.")
+        
+        # Validate game field matches
+        if self.tournament.game != 'valorant':
+            raise ValidationError(
+                f"Cannot add Valorant config to a {self.tournament.get_game_display()} tournament. "
+                f"Change the tournament's game field to 'Valorant' first."
+            )
 
     def __str__(self):
         name = getattr(self.tournament, "name", None)

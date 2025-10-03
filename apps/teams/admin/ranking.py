@@ -638,6 +638,7 @@ def enhance_team_admin():
                 
                 # Enhanced display with export link
                 export_url = reverse('admin:teams_teamrankingbreakdown_export_history', args=[obj.id])
+                breakdown_url = reverse('admin:teams_teamrankingbreakdown_change', args=[breakdown.team.id])
                 
                 return format_html(
                     '''
@@ -649,7 +650,7 @@ def enhance_team_admin():
                             <div>🎯 Tournament: <strong>{}</strong></div>
                             <div>👥 Members: <strong>{}</strong></div>
                             <div>📅 Team Age: <strong>{}</strong></div>
-                            <div>⚖️ Adjustments: <strong style="color: {};">{:+d}</strong></div>
+                            <div>⚖️ Adjustments: <strong style="color: {};">{}</strong></div>
                         </div>
                         <div style="margin-top: 8px; text-align: center;">
                             <a href="{}" target="_blank" style="color: #007bff; text-decoration: none; font-size: 0.85em;">
@@ -667,9 +668,9 @@ def enhance_team_admin():
                     breakdown.member_count_points,
                     breakdown.team_age_points,
                     '#dc3545' if breakdown.manual_adjustment_points < 0 else '#28a745',
-                    breakdown.manual_adjustment_points,
+                    '{:+d}'.format(breakdown.manual_adjustment_points),
                     export_url,
-                    reverse('admin:teams_teamrankingbreakdown_change', args=[breakdown.id])
+                    breakdown_url
                 )
             except Exception as e:
                 return format_html('<span style="color: red;">Error: {}</span>', str(e))
@@ -768,10 +769,11 @@ def enhance_team_admin():
                 )
         recalculate_team_points_action.short_description = "Recalculate team points"
         
-        # Add methods to the admin class
-        team_admin.ranking_breakdown_display = ranking_breakdown_display
-        team_admin.adjust_ranking_points = adjust_ranking_points
-        team_admin.recalculate_team_points_action = recalculate_team_points_action
+        # Add methods to the admin class (bind them properly)
+        import types
+        team_admin.ranking_breakdown_display = types.MethodType(ranking_breakdown_display, team_admin)
+        team_admin.adjust_ranking_points = types.MethodType(adjust_ranking_points, team_admin)
+        team_admin.recalculate_team_points_action = types.MethodType(recalculate_team_points_action, team_admin)
         
         # Add to list_display if not already there
         if hasattr(team_admin, 'list_display'):

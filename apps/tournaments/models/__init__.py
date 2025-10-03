@@ -36,6 +36,12 @@ from .dispute import MatchDispute
 from .evidence import MatchDisputeEvidence
 from .payment_verification import PaymentVerification
 
+# Core refactored models (Phase 1)
+from .core import TournamentSchedule, TournamentCapacity, TournamentFinance
+from .tournament_media import TournamentMedia
+from .tournament_rules import TournamentRules
+from .tournament_archive import TournamentArchive
+
 # Explicit public API (prevents accidental leaks and makes static analyzers happy)
 __all__ = [
     # constants
@@ -59,4 +65,11 @@ __all__ = [
     "MatchDispute",
     "MatchDisputeEvidence",
     "PaymentVerification",
+    # core refactored models (Phase 1)
+    "TournamentSchedule",
+    "TournamentCapacity",
+    "TournamentFinance",
+    "TournamentMedia",
+    "TournamentRules",
+    "TournamentArchive",
 ]

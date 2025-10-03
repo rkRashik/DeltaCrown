@@ -68,6 +68,7 @@ class TournamentSettingsInline(admin.StackedInline):
     model = _TSModel
     can_delete = False
     extra = 0
+    max_num = 1  # Prevent duplicate settings - OneToOne relationship
     show_change_link = True
 
     class Media:

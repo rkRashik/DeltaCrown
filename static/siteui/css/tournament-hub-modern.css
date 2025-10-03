@@ -1,0 +1,607 @@
+/* ===== Tournament Hub & Detail - Enhanced Modern Styles ===== */
+
+/* ---------------- PAGINATION ---------------- */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  margin: 32px 0;
+  border-top: 1px solid var(--border);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-info {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination-controls .btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  color: var(--text);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.pagination-controls .btn-ghost:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--glow-violet) 32%, var(--border));
+  background: color-mix(in oklab, var(--bg) 85%, var(--glow-cyan) 15%);
+}
+
+.pagination-controls .btn-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.page-info {
+  padding: 0 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .pagination-info {
+    text-align: center;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+}
+
+/* ---------------- FILTER ORB ENHANCEMENTS ---------------- */
+.filter-orb__toggle {
+  position: relative;
+}
+
+.filter-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--glow-cyan), var(--glow-violet));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  animation: pulse-filter 2s ease-in-out infinite;
+}
+
+@keyframes pulse-filter {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.filter-orb__row label i {
+  margin-right: 6px;
+  opacity: 0.7;
+}
+
+.filter-orb__active {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--glow-cyan) 12%, var(--glass));
+  border: 1px solid color-mix(in oklab, var(--glow-cyan) 30%, var(--border));
+  text-align: center;
+}
+
+.filter-orb__active small {
+  color: var(--text);
+}
+
+.filter-orb__actions .dc-btn i,
+.filter-orb__actions .dc-btn-secondary i {
+  margin-right: 6px;
+}
+
+/* ---------------- HERO IMPROVEMENTS ---------------- */
+.hc-empty {
+  padding: 24px;
+  text-align: center;
+}
+
+.hc-empty p:first-child {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.hc-empty p:last-child {
+  color: var(--text-muted);
+}
+
+.hc-meta span i {
+  margin-right: 4px;
+  opacity: 0.7;
+}
+
+.hc-cta .cta-primary i,
+.hc-cta .cta-ghost i {
+  margin-right: 6px;
+}
+
+/* ---------------- EMPTY STATES ---------------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  min-height: 240px;
+}
+
+.empty-state i.fa-solid {
+  font-size: 64px;
+  opacity: 0.2;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--glow-cyan), var(--glow-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.empty-state p {
+  max-width: 400px;
+}
+
+.empty-state .btn-neo {
+  margin-top: 16px;
+}
+
+/* ---------------- LOCKED STATE IMPROVEMENTS ---------------- */
+.locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  min-height: 200px;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  background: color-mix(in oklab, var(--glass) 50%, transparent);
+}
+
+.locked i.fa-solid {
+  font-size: 56px;
+  opacity: 0.25;
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+
+.locked p.small {
+  margin-top: 16px;
+}
+
+/* ---------------- BADGE STYLES ---------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge i {
+  font-size: 10px;
+}
+
+.badge-success {
+  background: color-mix(in oklab, var(--success) 15%, var(--glass));
+  color: var(--success);
+  border: 1px solid color-mix(in oklab, var(--success) 35%, var(--border));
+}
+
+.badge-warning {
+  background: color-mix(in oklab, var(--warning) 15%, var(--glass));
+  color: var(--warning);
+  border: 1px solid color-mix(in oklab, var(--warning) 35%, var(--border));
+}
+
+.badge-danger {
+  background: color-mix(in oklab, var(--danger) 15%, var(--glass));
+  color: var(--danger);
+  border: 1px solid color-mix(in oklab, var(--danger) 35%, var(--border));
+}
+
+/* ---------------- TABLE IMPROVEMENTS ---------------- */
+.table {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table .tr {
+  display: grid;
+  grid-template-columns: 80px 1fr 120px;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  transition: background 0.2s ease;
+}
+
+.table .tr.th {
+  background: color-mix(in oklab, var(--glass) 80%, transparent);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.table .tr:not(.th):hover {
+  background: var(--glass);
+}
+
+.table .tr:last-child {
+  border-bottom: none;
+}
+
+/* Participants table - 3 columns */
+section[data-pane="participants"] .table .tr {
+  grid-template-columns: 80px 1fr 150px;
+}
+
+/* Standings table - 5 columns */
+section[data-pane="standings"] .table .tr {
+  grid-template-columns: 80px 1fr 80px 80px 100px;
+}
+
+@media (max-width: 768px) {
+  .table .tr {
+    grid-template-columns: 60px 1fr 100px;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  section[data-pane="participants"] .table .tr {
+    grid-template-columns: 60px 1fr 100px;
+  }
+  
+  section[data-pane="standings"] .table .tr {
+    grid-template-columns: 50px 1fr 60px;
+  }
+  
+  section[data-pane="standings"] .table .tr > div:nth-child(4),
+  section[data-pane="standings"] .table .tr > div:nth-child(3) {
+    display: none;
+  }
+}
+
+/* ---------------- PRIZE PODIUM IMPROVEMENTS ---------------- */
+.podium {
+  margin: 32px 0;
+}
+
+.podium-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.podium .slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px 32px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  min-width: 140px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.podium .slot:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px color-mix(in oklab, var(--border) 50%, transparent);
+}
+
+.podium .slot.first {
+  order: 2;
+  border-color: #facc15;
+  background: color-mix(in oklab, #facc15 8%, var(--glass));
+}
+
+.podium .slot.first::before {
+  content: '👑';
+  position: absolute;
+  top: -12px;
+  font-size: 24px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.podium .slot.second {
+  order: 1;
+  border-color: #94a3b8;
+  background: color-mix(in oklab, #94a3b8 6%, var(--glass));
+}
+
+.podium .slot.third {
+  order: 3;
+  border-color: #cd7f32;
+  background: color-mix(in oklab, #cd7f32 6%, var(--glass));
+}
+
+.podium .rank {
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.podium .rank sup {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.podium .slot.first .rank {
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.podium .slot.second .rank {
+  background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.podium .slot.third .rank {
+  background: linear-gradient(135deg, #d97706, #cd7f32);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.podium .reward {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 60px;
+  justify-content: center;
+}
+
+.podium .cash {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.podium .coin {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@media (max-width: 640px) {
+  .podium-row {
+    gap: 8px;
+  }
+  
+  .podium .slot {
+    min-width: 100px;
+    padding: 16px 12px 24px;
+  }
+  
+  .podium .rank {
+    font-size: 24px;
+  }
+  
+  .podium .cash {
+    font-size: 16px;
+  }
+  
+  .podium .coin {
+    font-size: 12px;
+  }
+}
+
+/* ---------------- PRIZE GRID IMPROVEMENTS ---------------- */
+.prizegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.prizegrid .prize {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--glass);
+  transition: all 0.2s ease;
+}
+
+.prizegrid .prize:hover {
+  border-color: color-mix(in oklab, var(--glow-violet) 25%, var(--border));
+  background: color-mix(in oklab, var(--glow-violet) 3%, var(--glass));
+}
+
+@media (max-width: 640px) {
+  .prizegrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------- RELATED TOURNAMENTS IMPROVEMENTS ---------------- */
+section[data-pane="related"] .prizegrid {
+  grid-template-columns: 1fr;
+}
+
+section[data-pane="related"] .prizegrid .prize {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+}
+
+section[data-pane="related"] .prizegrid .prize img {
+  width: 80px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+section[data-pane="related"] .prizegrid .prize a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+section[data-pane="related"] .prizegrid .prize a:hover {
+  color: var(--glow-cyan);
+}
+
+/* ---------------- LOADING SKELETONS ---------------- */
+.btn-skeleton-large,
+.btn-skeleton-compact {
+  position: relative;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--glass);
+  border: 1px solid var(--border);
+}
+
+.btn-skeleton-compact {
+  height: 38px;
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--text) 8%, transparent) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ---------------- RESPONSIVE IMPROVEMENTS ---------------- */
+@media (max-width: 768px) {
+  .neo-body {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .neo-body .side {
+    display: none;
+  }
+  
+  .split {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .split .side {
+    display: block;
+  }
+}
+
+/* ---------------- MOBILE CTA BUTTON ---------------- */
+.mobile-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 16px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 24px color-mix(in oklab, var(--border) 30%, transparent);
+  z-index: 100;
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-cta {
+    display: block;
+  }
+  
+  .neo-hero .buy {
+    display: none;
+  }
+}
+
+/* ---------------- ACCESSIBILITY IMPROVEMENTS ---------------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus styles */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--glow-cyan);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
