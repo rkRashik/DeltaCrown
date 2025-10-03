@@ -1,0 +1,266 @@
+/**
+ * Tournament Capacity Animations
+ * Visual feedback for real-time capacity updates
+ */
+
+/* Capacity info container */
+.capacity-info {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    background: var(--surface-elevated, #fff);
+    border: 1px solid var(--border-color, #e9ecef);
+    transition: all 0.3s ease;
+}
+
+/* Capacity text */
+.capacity-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.capacity-label {
+    font-weight: 600;
+    color: var(--text-muted, #6c757d);
+}
+
+.capacity-text strong {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+/* Registered count animation */
+.registered-count {
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.registered-count.count-updated {
+    animation: count-pulse 0.6s ease-out;
+}
+
+/* Capacity bar */
+.capacity-bar {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: var(--surface-overlay, #f8f9fa);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.capacity-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
+}
+
+/* Capacity warning */
+.capacity-warning {
+    margin-top: 0.5rem;
+    padding: 0.375rem 0.5rem;
+    background: var(--warning-bg, #fff3cd);
+    border-left: 3px solid var(--warning-color, #ffc107);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--warning-text, #856404);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: warning-slide-in 0.3s ease-out;
+}
+
+.capacity-warning i {
+    font-size: 0.875rem;
+}
+
+/* Capacity state: Plenty (0-74%) */
+.capacity-plenty .capacity-fill {
+    background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+/* Capacity state: Low (75-89%) */
+.capacity-low {
+    border-color: var(--warning-color, #ffc107);
+}
+
+.capacity-low .capacity-fill {
+    background: linear-gradient(90deg, #ffc107, #ff9800);
+    box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+}
+
+/* Capacity state: Critical (90-99%) */
+.capacity-critical {
+    border-color: var(--danger-color, #dc3545);
+    animation: capacity-pulse-critical 2s ease-in-out infinite;
+}
+
+.capacity-critical .capacity-fill {
+    background: linear-gradient(90deg, #ff6b6b, #ee5a6f);
+    box-shadow: 0 0 12px rgba(220, 53, 69, 0.5);
+}
+
+/* Capacity state: Full (100%) */
+.capacity-full {
+    border-color: var(--danger-color, #dc3545);
+    background: var(--danger-bg, #ffe0e0);
+}
+
+.capacity-full .capacity-fill {
+    background: linear-gradient(90deg, #dc3545, #c82333);
+    animation: capacity-fill-pulse 1.5s ease-in-out infinite;
+}
+
+/* Slots updated animation */
+.slots-updated {
+    animation: slots-flash 0.5s ease-out;
+}
+
+/* Animations */
+@keyframes count-pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+        color: var(--primary-color, #007bff);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes capacity-pulse-critical {
+    0%, 100% {
+        box-shadow: 0 0 0 rgba(220, 53, 69, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 12px rgba(220, 53, 69, 0.6);
+    }
+}
+
+@keyframes capacity-fill-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes slots-flash {
+    0% {
+        background: var(--surface-elevated, #fff);
+    }
+    50% {
+        background: var(--info-bg, #d1ecf1);
+    }
+    100% {
+        background: var(--surface-elevated, #fff);
+    }
+}
+
+@keyframes warning-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .capacity-info {
+        padding: 0.5rem;
+    }
+
+    .capacity-text {
+        font-size: 0.8125rem;
+    }
+
+    .capacity-bar {
+        height: 6px;
+    }
+
+    .capacity-warning {
+        font-size: 0.6875rem;
+        padding: 0.25rem 0.375rem;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .capacity-info {
+        background: var(--surface-elevated-dark, #1e1e1e);
+        border-color: var(--border-color-dark, #3a3a3a);
+    }
+
+    .capacity-bar {
+        background: var(--surface-overlay-dark, #2a2a2a);
+    }
+
+    .capacity-warning {
+        background: rgba(255, 193, 7, 0.15);
+        color: var(--warning-text-dark, #ffc107);
+    }
+
+    .capacity-full {
+        background: rgba(220, 53, 69, 0.15);
+    }
+}
+
+/* State updated visual feedback */
+.state-updated {
+    animation: state-update-flash 0.5s ease-out;
+}
+
+@keyframes state-update-flash {
+    0% {
+        box-shadow: 0 0 0 rgba(0, 123, 255, 0);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
+
+/* Accessibility */
+.capacity-bar:focus {
+    outline: 2px solid var(--focus-color, #007bff);
+    outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .capacity-info,
+    .capacity-fill,
+    .registered-count,
+    .capacity-warning,
+    .slots-updated,
+    .state-updated {
+        animation: none;
+        transition: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .capacity-warning {
+        background: #fff;
+        border: 1px solid #000;
+    }
+}

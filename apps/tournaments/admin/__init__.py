@@ -43,6 +43,7 @@ try:
 except Exception:
     pass
 
-from .userprefs import *  # noqa
+# UI preferences removed from admin - managed via frontend/API
+# from .userprefs import *  # noqa
 
 from .attendance import *  # noqa

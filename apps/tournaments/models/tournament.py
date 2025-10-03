@@ -41,16 +41,139 @@ class Tournament(models.Model):
     )
     banner = models.ImageField(upload_to=tournament_banner_path, blank=True, null=True)
 
-    # ----- Schedule -----
-    slot_size = models.PositiveIntegerField(null=True, blank=True)
-    reg_open_at = models.DateTimeField(blank=True, null=True)
-    reg_close_at = models.DateTimeField(blank=True, null=True)
-    start_at = models.DateTimeField(blank=True, null=True)
-    end_at = models.DateTimeField(blank=True, null=True)
+    # ----- Professional Fields (Phase 2 Enhancement) -----
+    tournament_type = models.CharField(
+        max_length=32,
+        choices=[
+            ('SOLO', 'Solo'),
+            ('TEAM', 'Team'),
+            ('MIXED', 'Mixed (Solo & Team)'),
+        ],
+        default='TEAM',
+        help_text="Type of tournament: Solo, Team, or Mixed"
+    )
+    
+    format = models.CharField(
+        max_length=32,
+        choices=[
+            ('SINGLE_ELIM', 'Single Elimination'),
+            ('DOUBLE_ELIM', 'Double Elimination'),
+            ('ROUND_ROBIN', 'Round Robin'),
+            ('SWISS', 'Swiss System'),
+            ('GROUP_STAGE', 'Group Stage'),
+            ('HYBRID', 'Hybrid (Groups + Bracket)'),
+        ],
+        blank=True,
+        default='',
+        help_text="Tournament format/structure"
+    )
+    
+    platform = models.CharField(
+        max_length=32,
+        choices=[
+            ('ONLINE', 'Online'),
+            ('OFFLINE', 'Offline/LAN'),
+            ('HYBRID', 'Hybrid'),
+        ],
+        default='ONLINE',
+        help_text="Where the tournament takes place"
+    )
+    
+    region = models.CharField(
+        max_length=64,
+        blank=True,
+        default='',
+        help_text="Geographic region (e.g., 'Bangladesh', 'South Asia', 'Global')"
+    )
+    
+    language = models.CharField(
+        max_length=8,
+        choices=[
+            ('en', 'English'),
+            ('bn', 'বাংলা (Bengali)'),
+            ('hi', 'हिन्दी (Hindi)'),
+            ('multi', 'Multilingual'),
+        ],
+        default='en',
+        help_text="Primary language for tournament communication"
+    )
+    
+    organizer = models.ForeignKey(
+        'user_profile.UserProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='organized_tournaments',
+        help_text="User or organization running this tournament"
+    )
+    
+    description = CKEditor5Field(
+        "Full Description",
+        config_name="extends",
+        blank=True,
+        null=True,
+        help_text="Detailed tournament description (supports rich text)"
+    )
 
-    # ----- Finance -----
-    entry_fee_bdt = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    prize_pool_bdt = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    # ----- DEPRECATED FIELDS (use Phase 1 models instead) -----
+    # These fields are kept for backward compatibility but will be removed in v2.0
+    # Use the corresponding Phase 1 models instead:
+    #   - slot_size → TournamentCapacity.max_teams
+    #   - reg_open_at, reg_close_at, start_at, end_at → TournamentSchedule
+    #   - entry_fee_bdt, prize_pool_bdt → TournamentFinance
+    
+    slot_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="⚠️ DEPRECATED: Use TournamentCapacity.max_teams instead. "
+                  "This field is kept for backward compatibility but will be removed in v2.0."
+    )
+    
+    reg_open_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="⚠️ DEPRECATED: Use TournamentSchedule.registration_start instead. "
+                  "This field is kept for backward compatibility but will be removed in v2.0."
+    )
+    
+    reg_close_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="⚠️ DEPRECATED: Use TournamentSchedule.registration_end instead. "
+                  "This field is kept for backward compatibility but will be removed in v2.0."
+    )
+    
+    start_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="⚠️ DEPRECATED: Use TournamentSchedule.tournament_start instead. "
+                  "This field is kept for backward compatibility but will be removed in v2.0."
+    )
+    
+    end_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="⚠️ DEPRECATED: Use TournamentSchedule.tournament_end instead. "
+                  "This field is kept for backward compatibility but will be removed in v2.0."
+    )
+    
+    entry_fee_bdt = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="⚠️ DEPRECATED: Use TournamentFinance.entry_fee + currency instead. "
+                  "This field is kept for backward compatibility but will be removed in v2.0."
+    )
+    
+    prize_pool_bdt = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="⚠️ DEPRECATED: Use TournamentFinance.prize_pool + prize_currency instead. "
+                  "This field is kept for backward compatibility but will be removed in v2.0."
+    )
 
     # ----- Metadata -----
     created_at = models.DateTimeField(auto_now_add=True)
@@ -146,40 +269,38 @@ class Tournament(models.Model):
     @property
     def entry_fee(self):
         """
-        Entry fee in BDT. Checks model field first, then settings fallback.
+        Entry fee in BDT (prefers Phase 1 model).
         Returns Decimal or None.
         """
-        # Primary: tournament model field
-        if self.entry_fee_bdt is not None:
-            return self.entry_fee_bdt
-        
-        # Fallback: settings override
+        # Prefer Phase 1 TournamentFinance model
         try:
-            settings = getattr(self, "settings", None)
-            if settings and hasattr(settings, 'entry_fee_bdt'):
-                return settings.entry_fee_bdt
+            if hasattr(self, 'finance') and self.finance:
+                return self.finance.entry_fee
         except Exception:
             pass
+        
+        # Fallback to deprecated field
+        if self.entry_fee_bdt is not None:
+            return self.entry_fee_bdt
         
         return None
 
     @property
     def prize_pool(self):
         """
-        Prize pool in BDT. Checks model field first, then settings fallback.
-        Returns Integer or None.
+        Prize pool in BDT (prefers Phase 1 model).
+        Returns Decimal or None.
         """
-        # Primary: tournament model field
-        if self.prize_pool_bdt is not None:
-            return self.prize_pool_bdt
-        
-        # Fallback: settings override
+        # Prefer Phase 1 TournamentFinance model
         try:
-            settings = getattr(self, "settings", None)
-            if settings and hasattr(settings, 'prize_pool_bdt'):
-                return settings.prize_pool_bdt
+            if hasattr(self, 'finance') and self.finance:
+                return self.finance.prize_pool
         except Exception:
             pass
+        
+        # Fallback to deprecated field
+        if self.prize_pool_bdt is not None:
+            return self.prize_pool_bdt
         
         return None
 
@@ -215,17 +336,18 @@ class Tournament(models.Model):
 
     @property
     def registration_open(self) -> bool:
+        """Check if registration is currently open (prefers Phase 1 model)"""
         from django.utils import timezone
         now = timezone.now()
-        # Prefer settings window if available, else model fields
+        
+        # Prefer Phase 1 TournamentSchedule model
         try:
-            settings = getattr(self, "settings", None)
-            open_at = getattr(settings, "reg_open_at", None) if settings else None
-            close_at = getattr(settings, "reg_close_at", None) if settings else None
-            if open_at and close_at:
-                return open_at <= now <= close_at
+            if hasattr(self, 'schedule') and self.schedule:
+                return self.schedule.is_registration_open()
         except Exception:
             pass
+        
+        # Fallback to deprecated fields for backward compatibility
         try:
             open_at = getattr(self, "reg_open_at", None)
             close_at = getattr(self, "reg_close_at", None)
@@ -233,12 +355,23 @@ class Tournament(models.Model):
                 return open_at <= now <= close_at
         except Exception:
             pass
+        
         return False
 
     @property
     def is_live(self) -> bool:
+        """Check if tournament is currently running (prefers Phase 1 model)"""
         from django.utils import timezone
         now = timezone.now()
+        
+        # Prefer Phase 1 TournamentSchedule model
+        try:
+            if hasattr(self, 'schedule') and self.schedule:
+                return self.schedule.is_in_progress()
+        except Exception:
+            pass
+        
+        # Fallback to deprecated fields
         try:
             start = getattr(self, "start_at", None)
             end = getattr(self, "end_at", None)
@@ -246,24 +379,34 @@ class Tournament(models.Model):
                 return start <= now <= end
         except Exception:
             pass
-        try:
-            settings = getattr(self, "settings", None)
-            start = getattr(settings, "start_at", None) if settings else None
-            end = getattr(settings, "end_at", None) if settings else None
-            if start and end:
-                return start <= now <= end
-        except Exception:
-            pass
+        
         return False
 
     @property
     def slots_total(self):
+        """Total number of slots/teams (prefers Phase 1 model)"""
+        # Prefer Phase 1 TournamentCapacity model
+        try:
+            if hasattr(self, 'capacity') and self.capacity:
+                return self.capacity.max_teams
+        except Exception:
+            pass
+        
+        # Fallback to deprecated field
         return getattr(self, "slot_size", None)
 
     @property
     def slots_taken(self):
+        """Number of slots/teams currently filled (prefers Phase 1 model)"""
+        # Prefer Phase 1 TournamentCapacity model (live count)
         try:
-            # Prefer confirmed registrations if status exists
+            if hasattr(self, 'capacity') and self.capacity:
+                return self.capacity.current_teams
+        except Exception:
+            pass
+        
+        # Fallback to registration count
+        try:
             regs = getattr(self, "registrations", None)
             if regs is None:
                 return None
