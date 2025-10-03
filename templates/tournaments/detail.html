@@ -1,530 +1,1057 @@
-{% extends "base.html" %}
-{% load static humanize %}
+{% extends "base.html" %}{% extends "base.html" %}
 
-{% block title %}{{ ctx.title|default:"Tournament" }} — DeltaCrown{% endblock %}
+{% load static humanize %}{% load static humanize %}
 
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-neo.css' %}?v=5" />
-<link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-pro.css' %}?v=2" />
-<link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2" />
-<link rel="stylesheet" href="{% static 'css/tournament-state-poller.css' %}?v=1" />
-<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}?v=1" />
-<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}?v=1" />
-{% if ctx.pdf_viewer %}
+
+
+{% block title %}{{ ctx.title|default:"Tournament" }} - DeltaCrown{% endblock %}{% block title %}{{ ctx.title|default:"Tournament" }} — DeltaCrown{% endblock %}
+
+
+
+{% block extra_head %}{% block extra_head %}
+
+<!-- Tournament Detail V2 Styles --><link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-neo.css' %}?v=5" />
+
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-hub.css' %}"><link rel="stylesheet" href="{% static 'siteui/css/tournament-detail-pro.css' %}?v=2" />
+
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-detail.css' %}"><link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2" />
+
+<!-- Phase B Integration --><link rel="stylesheet" href="{% static 'css/tournament-state-poller.css' %}?v=1" />
+
+<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}"><link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}?v=1" />
+
+<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}"><link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}?v=1" />
+
+{% endblock %}{% if ctx.pdf_viewer %}
+
 <link rel="stylesheet" href="{% static 'siteui/css/pdfjs-skin.css' %}?v=1" />
-{% endif %}
+
+{% block body_class %}tournament-detail-v2{% endblock %}{% endif %}
+
 {% endblock %}
 
 {% block content %}
-<section class="dc-container tneo" data-game="{{ ctx.game_slug|default:'generic' }}" data-slug="{{ ctx.t.slug|default:'' }}" data-tournament-slug="{{ ctx.t.slug }}">
-  <div class="neo-hero">
-    <div class="bg" aria-hidden="true">
-      <div class="glow a"></div><div class="glow b"></div><div class="grid"></div><div class="shine"></div>
-    </div>
 
-    <div class="wrap">
-      <div class="media">
-        {% if ctx.banner %}<img src="{{ ctx.banner }}" alt="{{ ctx.title|default:'Tournament' }} banner" loading="eager" />{% else %}
-          <div class="fallback" aria-hidden="true"></div>
+<!-- HERO BANNER -->{% block content %}
+
+<section class="detail-hero" data-tournament-slug="{{ ctx.t.slug }}"><section class="dc-container tneo" data-game="{{ ctx.game_slug|default:'generic' }}" data-slug="{{ ctx.t.slug|default:'' }}" data-tournament-slug="{{ ctx.t.slug }}">
+
+    <!-- Background -->  <div class="neo-hero">
+
+    <div class="detail-hero-bg">    <div class="bg" aria-hidden="true">
+
+        {% if ctx.banner %}      <div class="glow a"></div><div class="glow b"></div><div class="grid"></div><div class="shine"></div>
+
+            <img src="{{ ctx.banner }}"     </div>
+
+                 alt="{{ ctx.title }}" 
+
+                 class="detail-hero-banner-img"    <div class="wrap">
+
+                 loading="eager">      <div class="media">
+
+        {% else %}        {% if ctx.banner %}<img src="{{ ctx.banner }}" alt="{{ ctx.title|default:'Tournament' }} banner" loading="eager" />{% else %}
+
+            <img src="{% static 'images/tournament-default-banner.jpg' %}"           <div class="fallback" aria-hidden="true"></div>
+
+                 alt="{{ ctx.title }}"         {% endif %}
+
+                 class="detail-hero-banner-img"        {% if ctx.ui.show_live %}<span class="pill live">LIVE</span>{% endif %}
+
+                 loading="eager">      </div>
+
         {% endif %}
-        {% if ctx.ui.show_live %}<span class="pill live">LIVE</span>{% endif %}
-      </div>
 
-      <div class="head">
-        <nav class="crumbs small" aria-label="Breadcrumb">
-          <a href="{% url 'tournaments:hub' %}">Tournaments</a>
-          <span aria-hidden="true">›</span>
-          {% if ctx.game_slug %}<a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game|default:ctx.game_slug|title }}</a><span aria-hidden="true">›</span>{% endif %}
-          <span class="muted" aria-current="page">Details</span>
-        </nav>
+        <div class="detail-hero-overlay"></div>      <div class="head">
 
-        <h1 class="title"><span class="grad">{{ ctx.title|default:"Tournament" }}</span></h1>
-        {% if ctx.short_desc %}<p class="sub">{{ ctx.short_desc|safe }}</p>{% endif %}
+    </div>        <nav class="crumbs small" aria-label="Breadcrumb">
 
-        <div class="chips">
-          {% if ctx.schedule.starts_at %}<span class="chip">Starts {{ ctx.schedule.starts_at|date:"M j, H:i" }}</span>{% endif %}
-          {% if ctx.schedule.ends_at %}<span class="chip">Ends {{ ctx.schedule.ends_at|date:"M j, H:i" }}</span>{% endif %}
-          {% if ctx.format.type %}<span class="chip">{{ ctx.format.type|title }}</span>{% endif %}
-          {% if ctx.format.best_of %}<span class="chip">Bo{{ ctx.format.best_of }}</span>{% endif %}
-          {% if ctx.format.team_min or ctx.format.team_max %}
-            <span class="chip">
-              {% if ctx.format.team_min and ctx.format.team_max %}{{ ctx.format.team_min }}–{{ ctx.format.team_max }}
-              {% else %}{{ ctx.format.team_min|default:ctx.format.team_max }}{% endif %} players
-            </span>
-          {% endif %}
-          {% if ctx.region %}<span class="chip">{{ ctx.region }}</span>{% endif %}
-          {% if ctx.platform %}<span class="chip">{{ ctx.platform }}</span>{% endif %}
-          {% if ctx.entry_fee is not None %}
-            <span class="chip">{% if ctx.entry_fee == 0 %}Free Entry{% else %}৳{{ ctx.entry_fee|intcomma }} Entry{% endif %}</span>
-          {% endif %}
-          {% if ctx.prize_pool %}<span class="chip">Prize ৳{{ ctx.prize_pool|intcomma }}</span>{% endif %}
-          {% if ctx.slots.capacity %}<span class="chip">{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }} slots</span>{% endif %}
-        </div>
-      </div>
+              <a href="{% url 'tournaments:hub' %}">Tournaments</a>
 
-      <aside class="buy">
-        <div class="card cta">
-          {% if ctx.hero.countdown and ctx.hero.countdown.target_iso %}
-            <div class="small muted">Countdown ({{ ctx.hero.tz_label|default:"local" }})</div>
-            <div class="countdown" data-countdown="{{ ctx.hero.countdown.target_iso }}">
-              <span class="unit"><span class="num" data-d>0</span>d</span>
-              <span class="unit"><span class="num" data-h>00</span>h</span>
-              <span class="unit"><span class="num" data-m>00</span>m</span>
-              <span class="unit"><span class="num" data-s>00</span>s</span>
-            </div>
-          {% endif %}
+    <!-- Animated Particles -->          <span aria-hidden="true">›</span>
 
-          <div class="price">
-            {% if ctx.entry_fee is not None %}
-              <strong>{% if ctx.entry_fee == 0 %}Free{% else %}৳{{ ctx.entry_fee|intcomma }}{% endif %}</strong>
-              <span class="muted small">Entry Fee</span>
-            {% endif %}
-          </div>
+    <div class="detail-hero-particles">          {% if ctx.game_slug %}<a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game|default:ctx.game_slug|title }}</a><span aria-hidden="true">›</span>{% endif %}
 
-          <ul class="ticks small">
-            <li><i class="fa-solid fa-bolt"></i> Easy registration</li>
-            <li><i class="fa-solid fa-shield"></i> Verified payouts</li>
-            <li><i class="fa-solid fa-trophy"></i> Public standings</li>
-            {% if ctx.format.check_in_required %}<li><i class="fa-solid fa-circle-check"></i> Check-in required</li>{% endif %}
-          </ul>
+        <div class="detail-hero-particle"></div>          <span class="muted" aria-current="page">Details</span>
 
-          <div id="hero-registration-btn" data-tournament-slug="{{ ctx.t.slug }}">
-            {# Dynamic registration button loaded via AJAX #}
-            <div class="btn-skeleton-large">
-              <div class="skeleton-shimmer"></div>
-            </div>
-          </div>
+        <div class="detail-hero-particle"></div>        </nav>
 
-          {% if ctx.ui.user_registration %}
-            <div class="tag" style="background: var(--success); color: white;">
-              <i class="fa-solid fa-check-circle"></i> Registered
-            </div>
-          {% endif %}
-        </div>
-      </aside>
+        <div class="detail-hero-particle"></div>
+
+        <div class="detail-hero-particle"></div>        <h1 class="title"><span class="grad">{{ ctx.title|default:"Tournament" }}</span></h1>
+
+        <div class="detail-hero-particle"></div>        {% if ctx.short_desc %}<p class="sub">{{ ctx.short_desc|safe }}</p>{% endif %}
+
     </div>
-  </div>
 
-  <div class="neo-body">
-    <div>
-      <div class="tabs" role="tablist" aria-label="Tournament sections">
-        {% for tab in ctx.tabs %}
-          <button class="tab{% if tab == ctx.active_tab %} is-active{% endif %}"
-                  data-tab="{{ tab }}" role="tab"
-                  aria-selected="{% if tab == ctx.active_tab %}true{% else %}false{% endif %}">
-            {% if tab == 'overview' %}Overview{% endif %}
-            {% if tab == 'info' %}Info{% endif %}
-            {% if tab == 'prizes' %}Prizes{% endif %}
-            {% if tab == 'participants' %}Participants{% endif %}
-            {% if tab == 'bracket' %}Bracket{% endif %}
-            {% if tab == 'standings' %}Standings{% endif %}
-            {% if tab == 'live' %}Live{% endif %}
-            {% if tab == 'rules' %}Rules{% endif %}
-            {% if tab == 'policy' %}Coin Policy{% endif %}
-            {% if tab == 'support' %}Support{% endif %}
-          </button>
-        {% endfor %}
-      </div>
+            <div class="chips">
 
-      <!-- OVERVIEW -->
-      <section class="pane {% if 'overview' == ctx.active_tab %}is-active{% endif %}" data-pane="overview">
-        <div class="split">
-          <article class="card">
-            <h2 class="h2">About</h2>
-            {% if ctx.desc_html %}<div class="rich">{{ ctx.desc_html|safe }}</div>{% else %}
-              <p class="muted">Full description will appear here.</p>
-            {% endif %}
-          </article>
+    <!-- Content -->          {% if ctx.schedule.starts_at %}<span class="chip">Starts {{ ctx.schedule.starts_at|date:"M j, H:i" }}</span>{% endif %}
 
-          <aside class="side">
-            <div class="sticky">
-              <div class="card">
-                <h3 class="h3">Quick Facts</h3>
-                
-                {# Countdown Timer - Shows most relevant countdown #}
-                {% if schedule %}
-                  {% if schedule.registration_open_at and not ctx.t.registration_open %}
-                    {# Registration hasn't opened yet #}
-                    <div class="countdown-timer" 
-                         data-countdown-type="registration-open"
-                         data-target-time="{{ schedule.registration_open_at|date:'c' }}"
-                         data-tournament-slug="{{ ctx.t.slug }}">
-                    </div>
-                  {% elif schedule.registration_close_at and ctx.t.registration_open and not ctx.t.has_started %}
-                    {# Registration is open - show closing countdown #}
-                    <div class="countdown-timer" 
-                         data-countdown-type="registration-close"
-                         data-target-time="{{ schedule.registration_close_at|date:'c' }}"
-                         data-tournament-slug="{{ ctx.t.slug }}">
-                    </div>
-                  {% elif schedule.start_at and not ctx.t.has_started %}
-                    {# Registration closed - show tournament start countdown #}
-                    <div class="countdown-timer" 
-                         data-countdown-type="tournament-start"
-                         data-target-time="{{ schedule.start_at|date:'c' }}"
-                         data-tournament-slug="{{ ctx.t.slug }}">
-                    </div>
-                  {% endif %}
-                {% endif %}
-                
-                <dl class="meta compact">
-                  {% if schedule %}
-                    {# Phase 1 Schedule Data #}
-                    <div><dt>Starts</dt><dd>{{ schedule.start_at|date:"M j, H:i" }}</dd></div>
-                    <div><dt>Ends</dt><dd>{{ schedule.end_at|date:"M j, H:i" }}</dd></div>
-                    <div><dt>Reg. open</dt><dd>{{ schedule.registration_open_at|date:"M j, H:i" }}</dd></div>
-                    <div><dt>Reg. close</dt><dd>{{ schedule.registration_close_at|date:"M j, H:i" }}</dd></div>
-                  {% else %}
-                    {# Fallback to old context #}
-                    {% if ctx.schedule.starts_at %}<div><dt>Starts</dt><dd>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</dd></div>{% endif %}
-                    {% if ctx.schedule.ends_at %}<div><dt>Ends</dt><dd>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</dd></div>{% endif %}
-                    {% if ctx.schedule.reg_open %}<div><dt>Reg. open</dt><dd>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</dd></div>{% endif %}
-                    {% if ctx.schedule.reg_close %}<div><dt>Reg. close</dt><dd>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</dd></div>{% endif %}
-                  {% endif %}
-                  {% if ctx.format.type %}<div><dt>Format</dt><dd>{{ ctx.format.type|title }}</dd></div>{% endif %}
-                  {% if ctx.format.best_of %}<div><dt>Best of</dt><dd>Bo{{ ctx.format.best_of }}</dd></div>{% endif %}
-                  {% if ctx.platform %}<div><dt>Platform</dt><dd>{{ ctx.platform }}</dd></div>{% endif %}
-                  {% if ctx.region %}<div><dt>Region</dt><dd>{{ ctx.region }}</dd></div>{% endif %}
-                  {% if capacity %}
-                    {# Phase 1 Capacity Data - with live updates #}
-                    <div>
-                      <dt>Capacity</dt>
-                      <dd data-tournament-slots data-previous-count="0">
-                        {{ capacity.current_teams }}/{{ capacity.max_teams }}
-                      </dd>
-                    </div>
-                  {% elif ctx.slots.capacity %}
-                    {# Fallback to old context #}
-                    <div><dt>Slots</dt><dd>{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }}</dd></div>
-                  {% endif %}
-                </dl>
-              </div>
+    <div class="tournament-hub-container">          {% if ctx.schedule.ends_at %}<span class="chip">Ends {{ ctx.schedule.ends_at|date:"M j, H:i" }}</span>{% endif %}
 
-              {% if finance %}
-                {# Phase 1 Finance Data #}
-                <div class="card">
-                  <h3 class="h3">Prize Pool</h3>
-                  <p><strong>{{ finance.prize_pool_display }}</strong></p>
-                  {% if ctx.prizes %}
-                    <p class="small muted" style="margin-top: 4px;">{{ ctx.prizes|length }} prize{{ ctx.prizes|length|pluralize }} available</p>
-                  {% endif %}
-                </div>
-              {% elif ctx.prize_pool %}
-                {# Fallback to old context #}
-                <div class="card">
-                  <h3 class="h3">Prize Pool</h3>
-                  <p><strong>৳{{ ctx.prize_pool|intcomma }}</strong></p>
-                  {% if ctx.prizes %}
-                    <p class="small muted" style="margin-top: 4px;">{{ ctx.prizes|length }} prize{{ ctx.prizes|length|pluralize }} available</p>
-                  {% endif %}
-                </div>
-              {% endif %}
-            </div>
-          </aside>
-        </div>
-      </section>
+        <div class="detail-hero-content">          {% if ctx.format.type %}<span class="chip">{{ ctx.format.type|title }}</span>{% endif %}
 
-      <!-- INFO -->
-      <section class="pane {% if 'info' == ctx.active_tab %}is-active{% endif %}" data-pane="info">
-        <article class="card">
-          <h2 class="h2">Schedule & Format</h2>
-          <div class="grid2">
-            <div>
-              <h3 class="h3">Schedule</h3>
-              <ul class="timeline small">
-                {% if ctx.schedule.reg_open %}<li><span class="muted">Registration opens</span><span>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</span></li>{% endif %}
-                {% if ctx.schedule.reg_close %}<li><span class="muted">Registration closes</span><span>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</span></li>{% endif %}
-                {% if ctx.schedule.checkin_open %}<li><span class="muted">Check-in opens</span><span>{{ ctx.schedule.checkin_open|date:"M j, H:i" }}</span></li>{% endif %}
-                {% if ctx.schedule.checkin_close %}<li><span class="muted">Check-in closes</span><span>{{ ctx.schedule.checkin_close|date:"M j, H:i" }}</span></li>{% endif %}
-                {% if ctx.schedule.starts_at %}<li><span class="muted">Tournament starts</span><span>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</span></li>{% endif %}
-                {% if ctx.schedule.ends_at %}<li><span class="muted">Tournament ends</span><span>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</span></li>{% endif %}
-              </ul>
-            </div>
-            <div>
-              <h3 class="h3">Format</h3>
-              <dl class="meta">
-                {% if ctx.format.type %}<div><dt>Type</dt><dd>{{ ctx.format.type|title }}</dd></div>{% endif %}
-                {% if ctx.format.best_of %}<div><dt>Best of</dt><dd>Bo{{ ctx.format.best_of }}</dd></div>{% endif %}
-                {% if ctx.format.team_min or ctx.format.team_max %}
-                  <div><dt>Team size</dt><dd>
-                    {% if ctx.format.team_min and ctx.format.team_max %}{{ ctx.format.team_min }}–{{ ctx.format.team_max }}
-                    {% else %}{{ ctx.format.team_min|default:ctx.format.team_max }}{% endif %}
-                  </dd></div>
-                {% endif %}
-                {% if ctx.format.check_in_required %}<div><dt>Check-in</dt><dd>Required</dd></div>{% endif %}
-              </dl>
-            </div>
-          </div>
-        </article>
-      </section>
+            <!-- Breadcrumb -->          {% if ctx.format.best_of %}<span class="chip">Bo{{ ctx.format.best_of }}</span>{% endif %}
 
-      <!-- PRIZES -->
-      <section class="pane {% if 'prizes' == ctx.active_tab %}is-active{% endif %}" data-pane="prizes">
-        <article class="card">
-          <h2 class="h2">Prizes</h2>
+            <nav class="detail-breadcrumb" aria-label="Breadcrumb">          {% if ctx.format.team_min or ctx.format.team_max %}
 
-          {% if ctx.prizes %}
-            <div class="podium">
-              <div class="podium-row">
-                <div class="slot second">
-                  <div class="rank">2</div>
-                  <div class="reward">
-                    {% for p in ctx.prizes %}{% if p.place == 2 %}
-                      {% if p.cash %}<div class="cash">৳{{ p.cash }}</div>{% endif %}
-                      {% if p.coin %}<div class="coin">Δ {{ p.coin }}</div>{% endif %}
-                    {% endif %}{% endfor %}
-                  </div>
-                </div>
-                <div class="slot first">
-                  <div class="rank">1</div>
-                  <div class="reward">
-                    {% for p in ctx.prizes %}{% if p.place == 1 %}
-                      {% if p.cash %}<div class="cash">৳{{ p.cash }}</div>{% endif %}
-                      {% if p.coin %}<div class="coin">Δ {{ p.coin }}</div>{% endif %}
-                    {% endif %}{% endfor %}
-                  </div>
-                </div>
-                <div class="slot third">
-                  <div class="rank">3</div>
-                  <div class="reward">
-                    {% for p in ctx.prizes %}{% if p.place == 3 %}
-                      {% if p.cash %}<div class="cash">৳{{ p.cash }}</div>{% endif %}
-                      {% if p.coin %}<div class="coin">Δ {{ p.coin }}</div>{% endif %}
-                    {% endif %}{% endfor %}
-                  </div>
-                </div>
-              </div>
-            </div>
+                <a href="{% url 'tournaments:hub' %}">Tournaments</a>            <span class="chip">
 
-            {# 4th+ compact list #}
-            <div class="prizegrid">
-              {% for p in ctx.prizes %}
-                {% if p.place > 3 %}
-                  <div class="prize">
-                    <span class="muted">#{{ p.place }}</span>
-                    <div>
-                      {% if p.cash %}<strong>৳{{ p.cash }}</strong>{% endif %}
-                      {% if p.coin %}<span class="muted"> • Δ {{ p.coin }}</span>{% endif %}
-                    </div>
-                  </div>
-                {% endif %}
-              {% endfor %}
-            </div>
+                <span class="detail-breadcrumb-separator">›</span>              {% if ctx.format.team_min and ctx.format.team_max %}{{ ctx.format.team_min }}–{{ ctx.format.team_max }}
 
-          {% elif ctx.prize_pool %}
-            <p>Total prize pool: <strong>৳{{ ctx.prize_pool_fmt|default:ctx.prize_pool }}</strong>. Breakdown will be announced soon.</p>
-          {% else %}
-            <p class="muted">Prize breakdown will be announced soon.</p>
-          {% endif %}
-        </article>
-      </section>
+                {% if ctx.game_slug %}              {% else %}{{ ctx.format.team_min|default:ctx.format.team_max }}{% endif %} players
 
-      <!-- PARTICIPANTS (GATED) -->
-      <section class="pane {% if 'participants' == ctx.active_tab %}is-active{% endif %}" data-pane="participants">
-        <article class="card">
-          <h2 class="h2">Participants</h2>
+                    <a href="{% url 'tournaments:game' ctx.game_slug %}">{{ ctx.game|default:ctx.game_slug|title }}</a>            </span>
 
-          {% if not ctx.can_view_sensitive %}
-            <div class="locked">
-              <i class="fa-solid fa-lock" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
-              <p class="muted">Participants will be visible once the tournament starts and only to registered players.</p>
-              {% if not ctx.is_registered_user %}
-                <p class="small" style="margin-top: 16px;"><a href="{{ ctx.register_url }}" class="btn-neo">Register to join</a></p>
-              {% endif %}
-            </div>
-          {% else %}
-            {% if ctx.participants %}
-              <div class="table">
-                <div class="tr th"><div>Seed</div><div>Participant</div><div>Status</div></div>
-                {% for p in ctx.participants %}
-                  {% with logo=p.team_logo|default:p.logo avatar=p.avatar name=p.team_name|default:p.name %}
-                  <div class="tr">
-                    <div><strong>#{{ p.seed|default:"–" }}</strong></div>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      {% if logo %}
-                        <img src="{{ logo }}" alt="" style="width:28px;height:28px;border-radius:4px;object-fit:cover;">
-                      {% elif avatar %}
-                        <img src="{{ avatar }}" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
-                      {% else %}
-                        <div style="width:28px;height:28px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;">
-                          <i class="fa-solid fa-user" style="font-size:14px;opacity:0.5;"></i>
+                    <span class="detail-breadcrumb-separator">›</span>          {% endif %}
+
+                {% endif %}          {% if ctx.region %}<span class="chip">{{ ctx.region }}</span>{% endif %}
+
+                <span>{{ ctx.title|truncatewords:3 }}</span>          {% if ctx.platform %}<span class="chip">{{ ctx.platform }}</span>{% endif %}
+
+            </nav>          {% if ctx.entry_fee is not None %}
+
+                        <span class="chip">{% if ctx.entry_fee == 0 %}Free Entry{% else %}৳{{ ctx.entry_fee|intcomma }} Entry{% endif %}</span>
+
+            <!-- Status Badge -->          {% endif %}
+
+            {% if ctx.ui.show_live %}          {% if ctx.prize_pool %}<span class="chip">Prize ৳{{ ctx.prize_pool|intcomma }}</span>{% endif %}
+
+                <div class="detail-status-badge live">LIVE</div>          {% if ctx.slots.capacity %}<span class="chip">{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }} slots</span>{% endif %}
+
+            {% elif ctx.status == 'upcoming' %}        </div>
+
+                <div class="detail-status-badge upcoming">UPCOMING</div>      </div>
+
+            {% elif ctx.status == 'registration' %}
+
+                <div class="detail-status-badge registration">REGISTRATION OPEN</div>      <aside class="buy">
+
+            {% elif ctx.status == 'completed' %}        <div class="card cta">
+
+                <div class="detail-status-badge completed">COMPLETED</div>          {% if ctx.hero.countdown and ctx.hero.countdown.target_iso %}
+
+            {% endif %}            <div class="small muted">Countdown ({{ ctx.hero.tz_label|default:"local" }})</div>
+
+                        <div class="countdown" data-countdown="{{ ctx.hero.countdown.target_iso }}">
+
+            <!-- Title -->              <span class="unit"><span class="num" data-d>0</span>d</span>
+
+            <h1 class="detail-hero-title">              <span class="unit"><span class="num" data-h>00</span>h</span>
+
+                <span class="gradient-text">{{ ctx.title|default:"Tournament" }}</span>              <span class="unit"><span class="num" data-m>00</span>m</span>
+
+            </h1>              <span class="unit"><span class="num" data-s>00</span>s</span>
+
                         </div>
-                      {% endif %}
-                      <div>
-                        <strong>{{ name|default:"Unnamed" }}</strong>
-                        {% if p.captain %}<div class="muted small">Captain: {{ p.captain }}</div>{% endif %}
-                      </div>
+
+            <!-- Subtitle -->          {% endif %}
+
+            {% if ctx.short_desc %}
+
+                <p class="detail-hero-subtitle">{{ ctx.short_desc|safe }}</p>          <div class="price">
+
+            {% endif %}            {% if ctx.entry_fee is not None %}
+
+                          <strong>{% if ctx.entry_fee == 0 %}Free{% else %}৳{{ ctx.entry_fee|intcomma }}{% endif %}</strong>
+
+            <!-- Quick Info Pills -->              <span class="muted small">Entry Fee</span>
+
+            <div class="detail-hero-pills">            {% endif %}
+
+                {% if ctx.schedule.starts_at %}          </div>
+
+                    <div class="detail-pill">
+
+                        <i>📅</i>          <ul class="ticks small">
+
+                        <span>{{ ctx.schedule.starts_at|date:"M j, Y" }}</span>            <li><i class="fa-solid fa-bolt"></i> Easy registration</li>
+
+                    </div>            <li><i class="fa-solid fa-shield"></i> Verified payouts</li>
+
+                {% endif %}            <li><i class="fa-solid fa-trophy"></i> Public standings</li>
+
+                            {% if ctx.format.check_in_required %}<li><i class="fa-solid fa-circle-check"></i> Check-in required</li>{% endif %}
+
+                {% if ctx.format.type %}          </ul>
+
+                    <div class="detail-pill">
+
+                        <i>🎮</i>          <div id="hero-registration-btn" data-tournament-slug="{{ ctx.t.slug }}">
+
+                        <span>{{ ctx.format.type|title }}</span>            {# Dynamic registration button loaded via AJAX #}
+
+                    </div>            <div class="btn-skeleton-large">
+
+                {% endif %}              <div class="skeleton-shimmer"></div>
+
+                            </div>
+
+                {% if ctx.format.team_min or ctx.format.team_max %}          </div>
+
+                    <div class="detail-pill">
+
+                        <i>👥</i>          {% if ctx.ui.user_registration %}
+
+                        <span>            <div class="tag" style="background: var(--success); color: white;">
+
+                            {% if ctx.format.team_min and ctx.format.team_max %}              <i class="fa-solid fa-check-circle"></i> Registered
+
+                                {{ ctx.format.team_min }}-{{ ctx.format.team_max }} Players            </div>
+
+                            {% else %}          {% endif %}
+
+                                {{ ctx.format.team_min|default:ctx.format.team_max }} Players        </div>
+
+                            {% endif %}      </aside>
+
+                        </span>    </div>
+
+                    </div>  </div>
+
+                {% endif %}
+
+                  <div class="neo-body">
+
+                {% if ctx.region %}    <div>
+
+                    <div class="detail-pill">      <div class="tabs" role="tablist" aria-label="Tournament sections">
+
+                        <i>🌍</i>        {% for tab in ctx.tabs %}
+
+                        <span>{{ ctx.region }}</span>          <button class="tab{% if tab == ctx.active_tab %} is-active{% endif %}"
+
+                    </div>                  data-tab="{{ tab }}" role="tab"
+
+                {% endif %}                  aria-selected="{% if tab == ctx.active_tab %}true{% else %}false{% endif %}">
+
+                            {% if tab == 'overview' %}Overview{% endif %}
+
+                {% if ctx.platform %}            {% if tab == 'info' %}Info{% endif %}
+
+                    <div class="detail-pill">            {% if tab == 'prizes' %}Prizes{% endif %}
+
+                        <i>🖥️</i>            {% if tab == 'participants' %}Participants{% endif %}
+
+                        <span>{{ ctx.platform }}</span>            {% if tab == 'bracket' %}Bracket{% endif %}
+
+                    </div>            {% if tab == 'standings' %}Standings{% endif %}
+
+                {% endif %}            {% if tab == 'live' %}Live{% endif %}
+
+            </div>            {% if tab == 'rules' %}Rules{% endif %}
+
+                        {% if tab == 'policy' %}Coin Policy{% endif %}
+
+            <!-- Hero Actions -->            {% if tab == 'support' %}Support{% endif %}
+
+            <div class="detail-hero-actions">          </button>
+
+                <a href="#register" class="btn btn-primary">        {% endfor %}
+
+                    📝 Register Now      </div>
+
+                </a>
+
+                <a href="#rules" class="btn btn-secondary">      <!-- OVERVIEW -->
+
+                    📋 View Rules      <section class="pane {% if 'overview' == ctx.active_tab %}is-active{% endif %}" data-pane="overview">
+
+                </a>        <div class="split">
+
+            </div>          <article class="card">
+
+        </div>            <h2 class="h2">About</h2>
+
+    </div>            {% if ctx.desc_html %}<div class="rich">{{ ctx.desc_html|safe }}</div>{% else %}
+
+</section>              <p class="muted">Full description will appear here.</p>
+
+            {% endif %}
+
+<!-- QUICK INFO BAR (STICKY) -->          </article>
+
+<div class="detail-info-bar">
+
+    <div class="tournament-hub-container">          <aside class="side">
+
+        <div class="detail-info-bar-inner">            <div class="sticky">
+
+            <!-- Stats -->              <div class="card">
+
+            <div class="detail-info-stats">                <h3 class="h3">Quick Facts</h3>
+
+                {% if ctx.prize_pool %}                
+
+                    <div class="detail-info-stat">                {# Countdown Timer - Shows most relevant countdown #}
+
+                        <div class="detail-info-stat-value">৳{{ ctx.prize_pool|intcomma }}</div>                {% if schedule %}
+
+                        <div class="detail-info-stat-label">Prize Pool</div>                  {% if schedule.registration_open_at and not ctx.t.registration_open %}
+
+                    </div>                    {# Registration hasn't opened yet #}
+
+                {% endif %}                    <div class="countdown-timer" 
+
+                                         data-countdown-type="registration-open"
+
+                {% if ctx.slots.capacity %}                         data-target-time="{{ schedule.registration_open_at|date:'c' }}"
+
+                    <div class="detail-info-stat">                         data-tournament-slug="{{ ctx.t.slug }}">
+
+                        <div class="detail-info-stat-value">{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }}</div>                    </div>
+
+                        <div class="detail-info-stat-label">Teams</div>                  {% elif schedule.registration_close_at and ctx.t.registration_open and not ctx.t.has_started %}
+
+                    </div>                    {# Registration is open - show closing countdown #}
+
+                {% endif %}                    <div class="countdown-timer" 
+
+                                         data-countdown-type="registration-close"
+
+                {% if ctx.format.best_of %}                         data-target-time="{{ schedule.registration_close_at|date:'c' }}"
+
+                    <div class="detail-info-stat">                         data-tournament-slug="{{ ctx.t.slug }}">
+
+                        <div class="detail-info-stat-value">Bo{{ ctx.format.best_of }}</div>                    </div>
+
+                        <div class="detail-info-stat-label">Format</div>                  {% elif schedule.start_at and not ctx.t.has_started %}
+
+                    </div>                    {# Registration closed - show tournament start countdown #}
+
+                {% endif %}                    <div class="countdown-timer" 
+
+                                         data-countdown-type="tournament-start"
+
+                {% if ctx.entry_fee is not None %}                         data-target-time="{{ schedule.start_at|date:'c' }}"
+
+                    <div class="detail-info-stat">                         data-tournament-slug="{{ ctx.t.slug }}">
+
+                        <div class="detail-info-stat-value">                    </div>
+
+                            {% if ctx.entry_fee == 0 %}Free{% else %}৳{{ ctx.entry_fee|intcomma }}{% endif %}                  {% endif %}
+
+                        </div>                {% endif %}
+
+                        <div class="detail-info-stat-label">Entry Fee</div>                
+
+                    </div>                <dl class="meta compact">
+
+                {% endif %}                  {% if schedule %}
+
+            </div>                    {# Phase 1 Schedule Data #}
+
+                                <div><dt>Starts</dt><dd>{{ schedule.start_at|date:"M j, H:i" }}</dd></div>
+
+            <!-- Quick Actions -->                    <div><dt>Ends</dt><dd>{{ schedule.end_at|date:"M j, H:i" }}</dd></div>
+
+            <div class="detail-info-actions">                    <div><dt>Reg. open</dt><dd>{{ schedule.registration_open_at|date:"M j, H:i" }}</dd></div>
+
+                <a href="#register" class="btn btn-primary">Register</a>                    <div><dt>Reg. close</dt><dd>{{ schedule.registration_close_at|date:"M j, H:i" }}</dd></div>
+
+                <button class="btn btn-ghost detail-share-btn" data-platform="copy">                  {% else %}
+
+                    🔗 Share                    {# Fallback to old context #}
+
+                </button>                    {% if ctx.schedule.starts_at %}<div><dt>Starts</dt><dd>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</dd></div>{% endif %}
+
+            </div>                    {% if ctx.schedule.ends_at %}<div><dt>Ends</dt><dd>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</dd></div>{% endif %}
+
+        </div>                    {% if ctx.schedule.reg_open %}<div><dt>Reg. open</dt><dd>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</dd></div>{% endif %}
+
+    </div>                    {% if ctx.schedule.reg_close %}<div><dt>Reg. close</dt><dd>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</dd></div>{% endif %}
+
+</div>                  {% endif %}
+
+                  {% if ctx.format.type %}<div><dt>Format</dt><dd>{{ ctx.format.type|title }}</dd></div>{% endif %}
+
+<!-- MAIN LAYOUT (TWO COLUMN) -->                  {% if ctx.format.best_of %}<div><dt>Best of</dt><dd>Bo{{ ctx.format.best_of }}</dd></div>{% endif %}
+
+<div class="tournament-hub-container">                  {% if ctx.platform %}<div><dt>Platform</dt><dd>{{ ctx.platform }}</dd></div>{% endif %}
+
+    <div class="detail-layout">                  {% if ctx.region %}<div><dt>Region</dt><dd>{{ ctx.region }}</dd></div>{% endif %}
+
+        <!-- MAIN CONTENT (TABBED) -->                  {% if capacity %}
+
+        <div class="detail-main">                    {# Phase 1 Capacity Data - with live updates #}
+
+            <!-- Tabs -->                    <div>
+
+            <div class="detail-tabs-wrapper">                      <dt>Capacity</dt>
+
+                <div class="detail-tabs">                      <dd data-tournament-slots data-previous-count="0">
+
+                    <button class="detail-tab active" data-tab="overview">Overview</button>                        {{ capacity.current_teams }}/{{ capacity.max_teams }}
+
+                    <button class="detail-tab" data-tab="rules">Rules</button>                      </dd>
+
+                    <button class="detail-tab" data-tab="prizes">Prizes</button>                    </div>
+
+                    <button class="detail-tab" data-tab="schedule">Schedule</button>                  {% elif ctx.slots.capacity %}
+
+                    <button class="detail-tab" data-tab="teams">Teams</button>                    {# Fallback to old context #}
+
+                </div>                    <div><dt>Slots</dt><dd>{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }}</dd></div>
+
+            </div>                  {% endif %}
+
+                            </dl>
+
+            <!-- TAB: OVERVIEW -->              </div>
+
+            <div id="tab-overview" class="detail-tab-content active">
+
+                <div class="overview-section">              {% if finance %}
+
+                    <h2 class="overview-section-title">About This Tournament</h2>                {# Phase 1 Finance Data #}
+
+                    <div class="overview-description">                <div class="card">
+
+                        {% if ctx.description %}                  <h3 class="h3">Prize Pool</h3>
+
+                            {{ ctx.description|safe }}                  <p><strong>{{ finance.prize_pool_display }}</strong></p>
+
+                        {% else %}                  {% if ctx.prizes %}
+
+                            <p>Join us for an exciting {{ ctx.game|default:"esports" }} tournament! Compete against the best players, prove your skills, and win amazing prizes.</p>                    <p class="small muted" style="margin-top: 4px;">{{ ctx.prizes|length }} prize{{ ctx.prizes|length|pluralize }} available</p>
+
+                        {% endif %}                  {% endif %}
+
+                    </div>                </div>
+
+                </div>              {% elif ctx.prize_pool %}
+
+                                {# Fallback to old context #}
+
+                <div class="overview-section">                <div class="card">
+
+                    <h2 class="overview-section-title">Tournament Details</h2>                  <h3 class="h3">Prize Pool</h3>
+
+                    <div class="overview-grid">                  <p><strong>৳{{ ctx.prize_pool|intcomma }}</strong></p>
+
+                        <!-- Format Card -->                  {% if ctx.prizes %}
+
+                        <div class="overview-card">                    <p class="small muted" style="margin-top: 4px;">{{ ctx.prizes|length }} prize{{ ctx.prizes|length|pluralize }} available</p>
+
+                            <div class="overview-card-icon">🎮</div>                  {% endif %}
+
+                            <div class="overview-card-title">Format</div>                </div>
+
+                            <div class="overview-card-value">{{ ctx.format.type|title|default:"TBD" }}</div>              {% endif %}
+
+                            <div class="overview-card-label">Tournament Format</div>            </div>
+
+                        </div>          </aside>
+
+                                </div>
+
+                        <!-- Team Size Card -->      </section>
+
+                        <div class="overview-card">
+
+                            <div class="overview-card-icon">👥</div>      <!-- INFO -->
+
+                            <div class="overview-card-title">Team Size</div>      <section class="pane {% if 'info' == ctx.active_tab %}is-active{% endif %}" data-pane="info">
+
+                            <div class="overview-card-value">        <article class="card">
+
+                                {% if ctx.format.team_min and ctx.format.team_max %}          <h2 class="h2">Schedule & Format</h2>
+
+                                    {{ ctx.format.team_min }}-{{ ctx.format.team_max }}          <div class="grid2">
+
+                                {% else %}            <div>
+
+                                    {{ ctx.format.team_min|default:ctx.format.team_max|default:"TBD" }}              <h3 class="h3">Schedule</h3>
+
+                                {% endif %}              <ul class="timeline small">
+
+                            </div>                {% if ctx.schedule.reg_open %}<li><span class="muted">Registration opens</span><span>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</span></li>{% endif %}
+
+                            <div class="overview-card-label">Players per Team</div>                {% if ctx.schedule.reg_close %}<li><span class="muted">Registration closes</span><span>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</span></li>{% endif %}
+
+                        </div>                {% if ctx.schedule.checkin_open %}<li><span class="muted">Check-in opens</span><span>{{ ctx.schedule.checkin_open|date:"M j, H:i" }}</span></li>{% endif %}
+
+                                        {% if ctx.schedule.checkin_close %}<li><span class="muted">Check-in closes</span><span>{{ ctx.schedule.checkin_close|date:"M j, H:i" }}</span></li>{% endif %}
+
+                        <!-- Best Of Card -->                {% if ctx.schedule.starts_at %}<li><span class="muted">Tournament starts</span><span>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</span></li>{% endif %}
+
+                        {% if ctx.format.best_of %}                {% if ctx.schedule.ends_at %}<li><span class="muted">Tournament ends</span><span>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</span></li>{% endif %}
+
+                            <div class="overview-card">              </ul>
+
+                                <div class="overview-card-icon">🏆</div>            </div>
+
+                                <div class="overview-card-title">Match Type</div>            <div>
+
+                                <div class="overview-card-value">Bo{{ ctx.format.best_of }}</div>              <h3 class="h3">Format</h3>
+
+                                <div class="overview-card-label">Best of {{ ctx.format.best_of }}</div>              <dl class="meta">
+
+                            </div>                {% if ctx.format.type %}<div><dt>Type</dt><dd>{{ ctx.format.type|title }}</dd></div>{% endif %}
+
+                        {% endif %}                {% if ctx.format.best_of %}<div><dt>Best of</dt><dd>Bo{{ ctx.format.best_of }}</dd></div>{% endif %}
+
+                                        {% if ctx.format.team_min or ctx.format.team_max %}
+
+                        <!-- Check-in Card -->                  <div><dt>Team size</dt><dd>
+
+                        {% if ctx.format.check_in_required %}                    {% if ctx.format.team_min and ctx.format.team_max %}{{ ctx.format.team_min }}–{{ ctx.format.team_max }}
+
+                            <div class="overview-card">                    {% else %}{{ ctx.format.team_min|default:ctx.format.team_max }}{% endif %}
+
+                                <div class="overview-card-icon">✓</div>                  </dd></div>
+
+                                <div class="overview-card-title">Check-in</div>                {% endif %}
+
+                                <div class="overview-card-value">Required</div>                {% if ctx.format.check_in_required %}<div><dt>Check-in</dt><dd>Required</dd></div>{% endif %}
+
+                                <div class="overview-card-label">Before Tournament Start</div>              </dl>
+
+                            </div>            </div>
+
+                        {% endif %}          </div>
+
+                    </div>        </article>
+
+                </div>      </section>
+
+            </div>
+
+                  <!-- PRIZES -->
+
+            <!-- TAB: RULES -->      <section class="pane {% if 'prizes' == ctx.active_tab %}is-active{% endif %}" data-pane="prizes">
+
+            <div id="tab-rules" class="detail-tab-content">        <article class="card">
+
+                <div class="rules-content">          <h2 class="h2">Prizes</h2>
+
+                    {% if ctx.rules %}
+
+                        {{ ctx.rules|safe }}          {% if ctx.prizes %}
+
+                    {% else %}            <div class="podium">
+
+                        <div class="rules-section">              <div class="podium-row">
+
+                            <h3 class="rules-section-title">General Rules</h3>                <div class="slot second">
+
+                            <ul class="rules-list">                  <div class="rank">2</div>
+
+                                <li>All players must be registered before the tournament starts</li>                  <div class="reward">
+
+                                <li>Check-in is required 30 minutes before the tournament</li>                    {% for p in ctx.prizes %}{% if p.place == 2 %}
+
+                                <li>Teams must have the required number of players</li>                      {% if p.cash %}<div class="cash">৳{{ p.cash }}</div>{% endif %}
+
+                                <li>Fair play and sportsmanship are mandatory</li>                      {% if p.coin %}<div class="coin">Δ {{ p.coin }}</div>{% endif %}
+
+                                <li>Organizers' decisions are final</li>                    {% endif %}{% endfor %}
+
+                            </ul>                  </div>
+
+                        </div>                </div>
+
+                                        <div class="slot first">
+
+                        <div class="rules-section">                  <div class="rank">1</div>
+
+                            <h3 class="rules-section-title">Match Rules</h3>                  <div class="reward">
+
+                            <ul class="rules-list">                    {% for p in ctx.prizes %}{% if p.place == 1 %}
+
+                                <li>Matches are played in {{ ctx.format.type|title|default:"TBD" }} format</li>                      {% if p.cash %}<div class="cash">৳{{ p.cash }}</div>{% endif %}
+
+                                {% if ctx.format.best_of %}<li>Best of {{ ctx.format.best_of }} format</li>{% endif %}                      {% if p.coin %}<div class="coin">Δ {{ p.coin }}</div>{% endif %}
+
+                                <li>No cheating, hacking, or exploiting game bugs</li>                    {% endif %}{% endfor %}
+
+                                <li>Players must use their registered in-game names</li>                  </div>
+
+                                <li>Match results must be reported within 10 minutes</li>                </div>
+
+                            </ul>                <div class="slot third">
+
+                        </div>                  <div class="rank">3</div>
+
+                                          <div class="reward">
+
+                        <div class="rules-section">                    {% for p in ctx.prizes %}{% if p.place == 3 %}
+
+                            <h3 class="rules-section-title">Conduct</h3>                      {% if p.cash %}<div class="cash">৳{{ p.cash }}</div>{% endif %}
+
+                            <ul class="rules-list">                      {% if p.coin %}<div class="coin">Δ {{ p.coin }}</div>{% endif %}
+
+                                <li>Respectful communication is required</li>                    {% endif %}{% endfor %}
+
+                                <li>No harassment, racism, or offensive behavior</li>                  </div>
+
+                                <li>Disputes should be resolved through proper channels</li>                </div>
+
+                                <li>Violation of rules may result in disqualification</li>              </div>
+
+                            </ul>            </div>
+
+                        </div>
+
+                    {% endif %}            {# 4th+ compact list #}
+
+                </div>            <div class="prizegrid">
+
+            </div>              {% for p in ctx.prizes %}
+
+                            {% if p.place > 3 %}
+
+            <!-- TAB: PRIZES -->                  <div class="prize">
+
+            <div id="tab-prizes" class="detail-tab-content">                    <span class="muted">#{{ p.place }}</span>
+
+                {% if ctx.prize_pool %}                    <div>
+
+                    <div class="prizes-pool">                      {% if p.cash %}<strong>৳{{ p.cash }}</strong>{% endif %}
+
+                        <div class="prizes-pool-label">Total Prize Pool</div>                      {% if p.coin %}<span class="muted"> • Δ {{ p.coin }}</span>{% endif %}
+
+                        <div class="prizes-pool-value">৳{{ ctx.prize_pool|intcomma }}</div>                    </div>
+
+                    </div>                  </div>
+
+                {% endif %}                {% endif %}
+
+                              {% endfor %}
+
+                <div class="prizes-distribution">            </div>
+
+                    {% if ctx.prizes %}
+
+                        {{ ctx.prizes|safe }}          {% elif ctx.prize_pool %}
+
+                    {% else %}            <p>Total prize pool: <strong>৳{{ ctx.prize_pool_fmt|default:ctx.prize_pool }}</strong>. Breakdown will be announced soon.</p>
+
+                        <div class="prize-item first">          {% else %}
+
+                            <div class="prize-rank">            <p class="muted">Prize breakdown will be announced soon.</p>
+
+                                <div class="prize-medal">🥇</div>          {% endif %}
+
+                                <div class="prize-position">1st Place</div>        </article>
+
+                            </div>      </section>
+
+                            <div class="prize-amount">৳{{ ctx.prize_pool|multiply:0.5|floatformat:0|intcomma|default:"TBD" }}</div>
+
+                        </div>      <!-- PARTICIPANTS (GATED) -->
+
+                              <section class="pane {% if 'participants' == ctx.active_tab %}is-active{% endif %}" data-pane="participants">
+
+                        <div class="prize-item second">        <article class="card">
+
+                            <div class="prize-rank">          <h2 class="h2">Participants</h2>
+
+                                <div class="prize-medal">🥈</div>
+
+                                <div class="prize-position">2nd Place</div>          {% if not ctx.can_view_sensitive %}
+
+                            </div>            <div class="locked">
+
+                            <div class="prize-amount">৳{{ ctx.prize_pool|multiply:0.3|floatformat:0|intcomma|default:"TBD" }}</div>              <i class="fa-solid fa-lock" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+
+                        </div>              <p class="muted">Participants will be visible once the tournament starts and only to registered players.</p>
+
+                                      {% if not ctx.is_registered_user %}
+
+                        <div class="prize-item third">                <p class="small" style="margin-top: 16px;"><a href="{{ ctx.register_url }}" class="btn-neo">Register to join</a></p>
+
+                            <div class="prize-rank">              {% endif %}
+
+                                <div class="prize-medal">🥉</div>            </div>
+
+                                <div class="prize-position">3rd Place</div>          {% else %}
+
+                            </div>            {% if ctx.participants %}
+
+                            <div class="prize-amount">৳{{ ctx.prize_pool|multiply:0.2|floatformat:0|intcomma|default:"TBD" }}</div>              <div class="table">
+
+                        </div>                <div class="tr th"><div>Seed</div><div>Participant</div><div>Status</div></div>
+
+                    {% endif %}                {% for p in ctx.participants %}
+
+                </div>                  {% with logo=p.team_logo|default:p.logo avatar=p.avatar name=p.team_name|default:p.name %}
+
+            </div>                  <div class="tr">
+
+                                <div><strong>#{{ p.seed|default:"–" }}</strong></div>
+
+            <!-- TAB: SCHEDULE -->                    <div style="display: flex; align-items: center; gap: 8px;">
+
+            <div id="tab-schedule" class="detail-tab-content">                      {% if logo %}
+
+                <div class="schedule-timeline">                        <img src="{{ logo }}" alt="" style="width:28px;height:28px;border-radius:4px;object-fit:cover;">
+
+                    {% if ctx.schedule.starts_at %}                      {% elif avatar %}
+
+                        <div class="schedule-item {% if ctx.ui.show_live %}active{% endif %}">                        <img src="{{ avatar }}" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+
+                            <div class="schedule-date">{{ ctx.schedule.starts_at|date:"F j, Y - g:i A" }}</div>                      {% else %}
+
+                            <div class="schedule-title">Tournament Starts</div>                        <div style="width:28px;height:28px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;">
+
+                            <div class="schedule-description">Opening ceremony and first matches begin</div>                          <i class="fa-solid fa-user" style="font-size:14px;opacity:0.5;"></i>
+
+                        </div>                        </div>
+
+                    {% endif %}                      {% endif %}
+
+                                          <div>
+
+                    {% if ctx.schedule.check_in_at %}                        <strong>{{ name|default:"Unnamed" }}</strong>
+
+                        <div class="schedule-item">                        {% if p.captain %}<div class="muted small">Captain: {{ p.captain }}</div>{% endif %}
+
+                            <div class="schedule-date">{{ ctx.schedule.check_in_at|date:"F j, Y - g:i A" }}</div>                      </div>
+
+                            <div class="schedule-title">Check-in Opens</div>                    </div>
+
+                            <div class="schedule-description">All registered teams must check in</div>                    <div>
+
+                        </div>                      {% if p.status == 'verified' %}
+
+                    {% endif %}                        <span class="badge badge-success"><i class="fa-solid fa-check"></i> Verified</span>
+
+                                          {% elif p.status == 'pending' %}
+
+                    {% if ctx.schedule.registration_end %}                        <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pending</span>
+
+                        <div class="schedule-item completed">                      {% else %}
+
+                            <div class="schedule-date">{{ ctx.schedule.registration_end|date:"F j, Y - g:i A" }}</div>                        <span class="muted">{{ p.status|default:"–" }}</span>
+
+                            <div class="schedule-title">Registration Closes</div>                      {% endif %}
+
+                            <div class="schedule-description">Last chance to register</div>                    </div>
+
+                        </div>                  </div>
+
+                    {% endif %}                  {% endwith %}
+
+                                    {% endfor %}
+
+                    {% if ctx.schedule.ends_at %}              </div>
+
+                        <div class="schedule-item">            {% else %}
+
+                            <div class="schedule-date">{{ ctx.schedule.ends_at|date:"F j, Y - g:i A" }}</div>              <div class="empty-state">
+
+                            <div class="schedule-title">Tournament Ends</div>                <i class="fa-solid fa-users" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+
+                            <div class="schedule-description">Finals and prize distribution</div>                <p class="muted">No participants registered yet.</p>
+
+                        </div>              </div>
+
+                    {% endif %}            {% endif %}
+
+                </div>          {% endif %}
+
+            </div>        </article>
+
+                  </section>
+
+            <!-- TAB: TEAMS -->
+
+            <div id="tab-teams" class="detail-tab-content">      <!-- BRACKET (GATED) -->
+
+                <div class="teams-grid">      <section class="pane {% if 'bracket' == ctx.active_tab %}is-active{% endif %}" data-pane="bracket">
+
+                    <!-- Teams will be loaded dynamically via JavaScript -->        <article class="card">
+
+                    <div class="hub-empty" style="grid-column: 1 / -1;">          <h2 class="h2">Bracket</h2>
+
+                        <div class="hub-empty-icon">⏳</div>          {% if not ctx.can_view_sensitive %}
+
+                        <h3 class="hub-empty-title">Loading Teams...</h3>            <div class="locked">
+
+                        <p class="hub-empty-text">Please wait while we load the registered teams.</p>              <i class="fa-solid fa-lock" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+
+                    </div>              <p class="muted">Bracket will unlock at tournament start for registered players.</p>
+
+                </div>            </div>
+
+            </div>          {% else %}
+
+        </div>            {% if ctx.bracket_url %}
+
+                      <div class="embed">
+
+        <!-- SIDEBAR (REGISTRATION) -->                <iframe title="Bracket" data-src="{{ ctx.bracket_url }}" allowfullscreen loading="lazy"></iframe>
+
+        <aside class="detail-sidebar" id="register" {% if user.is_authenticated %}data-user-authenticated="true"{% endif %}>              </div>
+
+            <div class="detail-registration-card">            {% else %}
+
+                <!-- Price -->              <div class="empty-state">
+
+                <div class="detail-registration-price">                <i class="fa-solid fa-diagram-project" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+
+                    <div class="detail-registration-price-label">Entry Fee</div>                <p class="muted">Bracket will be generated when the tournament starts.</p>
+
+                    <div class="detail-registration-price-value {% if ctx.entry_fee == 0 %}free{% endif %}">              </div>
+
+                        {% if ctx.entry_fee == 0 %}            {% endif %}
+
+                            FREE          {% endif %}
+
+                        {% else %}        </article>
+
+                            ৳{{ ctx.entry_fee|intcomma }}      </section>
+
+                        {% endif %}
+
+                    </div>      <!-- STANDINGS -->
+
+                </div>      <section class="pane {% if 'standings' == ctx.active_tab %}is-active{% endif %}" data-pane="standings">
+
+                        <article class="card">
+
+                <!-- Phase B: Countdown Timer -->          <h2 class="h2">Standings</h2>
+
+                {% if ctx.hero.countdown and ctx.hero.countdown.target_iso %}          {% if ctx.standings %}
+
+                    <div class="countdown-timer"             <div class="table">
+
+                         data-type="registration"              <div class="tr th"><div>Rank</div><div>Team/Player</div><div>Wins</div><div>Losses</div><div>Points</div></div>
+
+                         data-target="{{ ctx.hero.countdown.target_iso }}"              {% for r in ctx.standings %}
+
+                         data-tournament-id="{{ ctx.t.id }}">                <div class="tr">
+
+                        <div class="countdown-timer-label">Registration Closes In:</div>                  <div>
+
+                        <div class="countdown-timer-display">                    {% if r.rank == 1 %}<i class="fa-solid fa-trophy" style="color: #facc15;"></i>{% endif %}
+
+                            <div class="countdown-segment">                    <strong>{{ r.rank|default:"–" }}</strong>
+
+                                <span class="countdown-value" data-unit="days">00</span>                  </div>
+
+                                <span class="countdown-label">Days</span>                  <div><strong>{{ r.name|default:"" }}</strong></div>
+
+                            </div>                  <div class="muted">{{ r.wins|default:"0" }}</div>
+
+                            <div class="countdown-separator">:</div>                  <div class="muted">{{ r.losses|default:"0" }}</div>
+
+                            <div class="countdown-segment">                  <div><strong>{{ r.points|default:"0" }}</strong></div>
+
+                                <span class="countdown-value" data-unit="hours">00</span>                </div>
+
+                                <span class="countdown-label">Hours</span>              {% endfor %}
+
+                            </div>            </div>
+
+                            <div class="countdown-separator">:</div>          {% else %}
+
+                            <div class="countdown-segment">            <div class="empty-state">
+
+                                <span class="countdown-value" data-unit="minutes">00</span>              <i class="fa-solid fa-ranking-star" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+
+                                <span class="countdown-label">Mins</span>              <p class="muted">Standings will populate as matches are completed.</p>
+
+                            </div>            </div>
+
+                            <div class="countdown-separator">:</div>          {% endif %}
+
+                            <div class="countdown-segment">        </article>
+
+                                <span class="countdown-value" data-unit="seconds">00</span>      </section>
+
+                                <span class="countdown-label">Secs</span>
+
+                            </div>      <!-- LIVE -->
+
+                        </div>      <section class="pane {% if 'live' == ctx.active_tab %}is-active{% endif %}" data-pane="live">
+
+                    </div>        <article class="card">
+
+                {% endif %}          <h2 class="h2">Live</h2>
+
+                          {% if ctx.live.stream %}
+
+                <!-- Phase B: Capacity Bar -->            <div class="embed live">
+
+                {% if ctx.slots.capacity %}              <iframe title="Live Stream" data-src="{{ ctx.live.stream }}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
+
+                    <div class="detail-sidebar-capacity">            </div>
+
+                        <div class="detail-capacity-label">Registration Progress</div>            <p class="small muted" style="margin-top:.4rem;">
+
+                        <div class="detail-capacity-bar">              <i class="fa-solid fa-circle" style="color: #ef4444;"></i> {{ ctx.live.status|title|default:"Offline" }}
+
+                            {% widthratio ctx.slots.current ctx.slots.capacity 100 as fill_percent %}              {% if ctx.live.viewers %} • <i class="fa-solid fa-eye"></i> {{ ctx.live.viewers|intcomma }} watching{% endif %}
+
+                            <div class="detail-capacity-fill             </p>
+
+                                {% if fill_percent >= 100 %}full          {% else %}
+
+                                {% elif fill_percent >= 80 %}warning            <div class="empty-state">
+
+                                {% endif %}"              <i class="fa-solid fa-video-slash" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
+
+                                 style="width: {{ fill_percent }}%"></div>              <p class="muted">Live stream is currently offline.</p>
+
+                        </div>              <p class="small muted" style="margin-top: 8px;">The stream will begin when the tournament starts.</p>
+
+                        <div class="detail-capacity-text">            </div>
+
+                            <span>{{ ctx.slots.current|default:0 }} Teams</span>          {% endif %}
+
+                            <span>{{ ctx.slots.capacity|add:"-"|add:ctx.slots.current|default:ctx.slots.capacity }} Spots Left</span>        </article>
+
+                        </div>      </section>
+
                     </div>
-                    <div>
-                      {% if p.status == 'verified' %}
-                        <span class="badge badge-success"><i class="fa-solid fa-check"></i> Verified</span>
-                      {% elif p.status == 'pending' %}
-                        <span class="badge badge-warning"><i class="fa-solid fa-clock"></i> Pending</span>
-                      {% else %}
-                        <span class="muted">{{ p.status|default:"–" }}</span>
-                      {% endif %}
+
+                {% endif %}      <!-- RULES -->
+
+                      <section class="pane {% if 'rules' == ctx.active_tab %}is-active{% endif %}" data-pane="rules">
+
+                <!-- Benefits -->        <article class="card">
+
+                <ul class="detail-registration-benefits">          <h2 class="h2">Rules</h2>
+
+                    <li>Easy online registration</li>
+
+                    <li>Verified prize payouts</li>          {# Phase 1: Tournament Rules #}
+
+                    <li>Public standings & results</li>          {% if rules %}
+
+                    {% if ctx.format.check_in_required %}            {% if rules.requirements_list %}
+
+                        <li>Check-in required before start</li>            <div style="margin-bottom: 16px;">
+
+                    {% endif %}              <h3 class="h3">Requirements</h3>
+
+                </ul>              <ul class="requirements-list">
+
+                                {% for req in rules.requirements_list %}
+
+                <!-- Registration Button -->                  <li><i class="fa-solid fa-check-circle"></i> {{ req }}</li>
+
+                <button id="detail-registration-btn" class="detail-registration-btn">                {% endfor %}
+
+                    Register Now              </ul>
+
+                </button>            </div>
+
+                            {% endif %}
+
+                <!-- Registration Status (hidden by default) -->
+
+                {% if ctx.ui.user_registration %}            {% if rules.min_age %}
+
+                    <div class="detail-registration-status">            <p class="small"><strong>Age Requirement:</strong> {{ rules.min_age }}+ years old</p>
+
+                        ✓ You are registered for this tournament            {% endif %}
+
                     </div>
-                  </div>
-                  {% endwith %}
-                {% endfor %}
-              </div>
-            {% else %}
-              <div class="empty-state">
-                <i class="fa-solid fa-users" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
-                <p class="muted">No participants registered yet.</p>
-              </div>
-            {% endif %}
-          {% endif %}
-        </article>
-      </section>
 
-      <!-- BRACKET (GATED) -->
-      <section class="pane {% if 'bracket' == ctx.active_tab %}is-active{% endif %}" data-pane="bracket">
-        <article class="card">
-          <h2 class="h2">Bracket</h2>
-          {% if not ctx.can_view_sensitive %}
-            <div class="locked">
-              <i class="fa-solid fa-lock" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
-              <p class="muted">Bracket will unlock at tournament start for registered players.</p>
-            </div>
-          {% else %}
-            {% if ctx.bracket_url %}
-              <div class="embed">
-                <iframe title="Bracket" data-src="{{ ctx.bracket_url }}" allowfullscreen loading="lazy"></iframe>
-              </div>
-            {% else %}
-              <div class="empty-state">
-                <i class="fa-solid fa-diagram-project" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
-                <p class="muted">Bracket will be generated when the tournament starts.</p>
-              </div>
-            {% endif %}
-          {% endif %}
-        </article>
-      </section>
+                {% else %}            {% if rules.region_lock %}
 
-      <!-- STANDINGS -->
-      <section class="pane {% if 'standings' == ctx.active_tab %}is-active{% endif %}" data-pane="standings">
-        <article class="card">
-          <h2 class="h2">Standings</h2>
-          {% if ctx.standings %}
-            <div class="table">
-              <div class="tr th"><div>Rank</div><div>Team/Player</div><div>Wins</div><div>Losses</div><div>Points</div></div>
-              {% for r in ctx.standings %}
-                <div class="tr">
-                  <div>
-                    {% if r.rank == 1 %}<i class="fa-solid fa-trophy" style="color: #facc15;"></i>{% endif %}
-                    <strong>{{ r.rank|default:"–" }}</strong>
-                  </div>
-                  <div><strong>{{ r.name|default:"" }}</strong></div>
-                  <div class="muted">{{ r.wins|default:"0" }}</div>
-                  <div class="muted">{{ r.losses|default:"0" }}</div>
-                  <div><strong>{{ r.points|default:"0" }}</strong></div>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="empty-state">
-              <i class="fa-solid fa-ranking-star" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
-              <p class="muted">Standings will populate as matches are completed.</p>
-            </div>
-          {% endif %}
-        </article>
-      </section>
+                    <div class="detail-registration-status" style="display: none;">            <p class="small"><strong>Region:</strong> {{ rules.region_lock }}</p>
 
-      <!-- LIVE -->
-      <section class="pane {% if 'live' == ctx.active_tab %}is-active{% endif %}" data-pane="live">
-        <article class="card">
-          <h2 class="h2">Live</h2>
-          {% if ctx.live.stream %}
-            <div class="embed live">
-              <iframe title="Live Stream" data-src="{{ ctx.live.stream }}" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe>
-            </div>
-            <p class="small muted" style="margin-top:.4rem;">
-              <i class="fa-solid fa-circle" style="color: #ef4444;"></i> {{ ctx.live.status|title|default:"Offline" }}
-              {% if ctx.live.viewers %} • <i class="fa-solid fa-eye"></i> {{ ctx.live.viewers|intcomma }} watching{% endif %}
-            </p>
-          {% else %}
-            <div class="empty-state">
-              <i class="fa-solid fa-video-slash" style="font-size: 48px; opacity: 0.3; margin-bottom: 12px;"></i>
-              <p class="muted">Live stream is currently offline.</p>
-              <p class="small muted" style="margin-top: 8px;">The stream will begin when the tournament starts.</p>
-            </div>
-          {% endif %}
-        </article>
-      </section>
+                        ✓ You are registered for this tournament            {% endif %}
 
-      <!-- RULES -->
-      <section class="pane {% if 'rules' == ctx.active_tab %}is-active{% endif %}" data-pane="rules">
-        <article class="card">
-          <h2 class="h2">Rules</h2>
+                    </div>
 
-          {# Phase 1: Tournament Rules #}
-          {% if rules %}
-            {% if rules.requirements_list %}
-            <div style="margin-bottom: 16px;">
-              <h3 class="h3">Requirements</h3>
-              <ul class="requirements-list">
-                {% for req in rules.requirements_list %}
-                  <li><i class="fa-solid fa-check-circle"></i> {{ req }}</li>
-                {% endfor %}
-              </ul>
-            </div>
-            {% endif %}
+                {% endif %}            {% if rules.rank_restriction %}
 
-            {% if rules.min_age %}
-            <p class="small"><strong>Age Requirement:</strong> {{ rules.min_age }}+ years old</p>
-            {% endif %}
+                            <p class="small"><strong>Rank Restriction:</strong> {{ rules.rank_restriction }}</p>
 
-            {% if rules.region_lock %}
-            <p class="small"><strong>Region:</strong> {{ rules.region_lock }}</p>
-            {% endif %}
+                <!-- Share -->            {% endif %}
 
-            {% if rules.rank_restriction %}
-            <p class="small"><strong>Rank Restriction:</strong> {{ rules.rank_restriction }}</p>
-            {% endif %}
-          {% endif %}
+                <div class="detail-share">          {% endif %}
 
-          {# Original rules content #}
-          {% if ctx.rules.text %}<div class="rich" style="margin-top: 16px;">{{ ctx.rules.text|safe }}</div>{% endif %}
-          {% if ctx.rules.extra %}<div class="rich" style="margin-top:.6rem;">{{ ctx.rules.extra|safe }}</div>{% endif %}
+                    <div class="detail-share-title">Share Tournament</div>
 
-          {% if ctx.pdf_viewer %}
-            <div class="pdfwrap" style="margin-top:.8rem;">
-              {% include "tournaments/partials/_pdf_viewer.html" with cfg=ctx.pdf_viewer %}
-            </div>
-          {% elif ctx.rules.pdf_url %}
-            <div class="embed" style="margin-top:.8rem;">
-              <iframe title="Rules PDF" data-src="{{ ctx.rules.pdf_url }}" loading="lazy"></iframe>
-            </div>
-            <p class="small" style="margin-top:.4rem;">
-              <a class="btn-neo btn-ghost" href="{{ ctx.rules.pdf_url }}" target="_blank" rel="noopener">Open rules PDF</a>
-            </p>
-          {% endif %}
+                    <div class="detail-share-buttons">          {# Original rules content #}
 
-          {% if not rules and not ctx.rules.text and not ctx.rules.extra and not ctx.rules.pdf_url %}
+                        <button class="detail-share-btn" data-platform="twitter" title="Share on Twitter">          {% if ctx.rules.text %}<div class="rich" style="margin-top: 16px;">{{ ctx.rules.text|safe }}</div>{% endif %}
+
+                            🐦          {% if ctx.rules.extra %}<div class="rich" style="margin-top:.6rem;">{{ ctx.rules.extra|safe }}</div>{% endif %}
+
+                        </button>
+
+                        <button class="detail-share-btn" data-platform="facebook" title="Share on Facebook">          {% if ctx.pdf_viewer %}
+
+                            📘            <div class="pdfwrap" style="margin-top:.8rem;">
+
+                        </button>              {% include "tournaments/partials/_pdf_viewer.html" with cfg=ctx.pdf_viewer %}
+
+                        <button class="detail-share-btn" data-platform="copy" title="Copy Link">            </div>
+
+                            🔗          {% elif ctx.rules.pdf_url %}
+
+                        </button>            <div class="embed" style="margin-top:.8rem;">
+
+                    </div>              <iframe title="Rules PDF" data-src="{{ ctx.rules.pdf_url }}" loading="lazy"></iframe>
+
+                </div>            </div>
+
+            </div>            <p class="small" style="margin-top:.4rem;">
+
+        </aside>              <a class="btn-neo btn-ghost" href="{{ ctx.rules.pdf_url }}" target="_blank" rel="noopener">Open rules PDF</a>
+
+    </div>            </p>
+
+</div>          {% endif %}
+
+
+
+{% endblock %}          {% if not rules and not ctx.rules.text and not ctx.rules.extra and not ctx.rules.pdf_url %}
+
             <p class="muted">Rules will be posted soon.</p>
-          {% endif %}
-        </article>
-      </section>
+
+{% block extra_js %}          {% endif %}
+
+<!-- Phase B Integration -->        </article>
+
+<script src="{% static 'js/countdown-timer.js' %}"></script>      </section>
+
+<script src="{% static 'js/tournament-state-poller.js' %}"></script>
 
       <!-- COIN POLICY -->
-      <section class="pane {% if 'policy' == ctx.active_tab %}is-active{% endif %}" data-pane="policy">
-        <article class="card">
-          <h2 class="h2">Coin / Wallet Policy</h2>
-          {% if ctx.coin_policy %}<div class="rich">{{ ctx.coin_policy|safe }}</div>
-          {% else %}<p class="muted">No coin policy specified for this tournament.</p>{% endif %}
-        </article>
-      </section>
 
-      <!-- SUPPORT -->
-      <section class="pane {% if 'support' == ctx.active_tab %}is-active{% endif %}" data-pane="support">
-        <article class="card">
-          <h2 class="h2">Support & Disputes</h2>
-          <p>If you have an issue with registration, check-in, or match results, please open a ticket.</p>
-          <div style="margin-top:.6rem; display:flex; gap:.5rem; flex-wrap:wrap;">
-            <a class="btn-neo" href="/support/tickets/new/?ref={{ ctx.t.slug|default:'' }}">Open a ticket</a>
-            <a class="btn-neo btn-ghost" href="/discord" target="_blank" rel="noopener"><i class="fa-brands fa-discord"></i> Join Discord</a>
-          </div>
+<!-- Tournament Detail V2 JavaScript -->      <section class="pane {% if 'policy' == ctx.active_tab %}is-active{% endif %}" data-pane="policy">
+
+<script src="{% static 'js/tournaments-v2-detail.js' %}"></script>        <article class="card">
+
+          <h2 class="h2">Coin / Wallet Policy</h2>
+
+<script>          {% if ctx.coin_policy %}<div class="rich">{{ ctx.coin_policy|safe }}</div>
+
+    // Load teams when Teams tab is activated          {% else %}<p class="muted">No coin policy specified for this tournament.</p>{% endif %}
+
+    document.addEventListener('DOMContentLoaded', function() {        </article>
+
+        const teamsTab = document.querySelector('[data-tab="teams"]');      </section>
+
+        if (teamsTab) {
+
+            teamsTab.addEventListener('click', function() {      <!-- SUPPORT -->
+
+                if (window.TournamentDetailV2) {      <section class="pane {% if 'support' == ctx.active_tab %}is-active{% endif %}" data-pane="support">
+
+                    window.TournamentDetailV2.loadTeams();        <article class="card">
+
+                }          <h2 class="h2">Support & Disputes</h2>
+
+            }, { once: true });          <p>If you have an issue with registration, check-in, or match results, please open a ticket.</p>
+
+        }          <div style="margin-top:.6rem; display:flex; gap:.5rem; flex-wrap:wrap;">
+
+    });            <a class="btn-neo" href="/support/tickets/new/?ref={{ ctx.t.slug|default:'' }}">Open a ticket</a>
+
+</script>            <a class="btn-neo btn-ghost" href="/discord" target="_blank" rel="noopener"><i class="fa-brands fa-discord"></i> Join Discord</a>
+
+{% endblock %}          </div>
+
         </article>
       </section>
 
