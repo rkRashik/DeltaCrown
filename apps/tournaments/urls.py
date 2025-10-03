@@ -4,6 +4,7 @@ from django.urls import path
 from .views.public import hub, list_by_game, detail
 from .views.hub_enhanced import hub_enhanced
 from .views.detail_enhanced import detail_enhanced
+from .views.dashboard_v2 import tournament_dashboard_v2
 
 # Modern Registration System (CANONICAL)
 from .views.registration_modern import (
@@ -19,6 +20,9 @@ from .views.registration_modern import (
 
 # State Management API
 from .views.state_api import tournament_state_api
+
+# Dashboard API
+from .views.api_dashboard import bracket_api, matches_api, news_api, statistics_api
 
 # Deprecated views (for backward compatibility - redirect to modern)
 from .views._deprecated import (
@@ -61,6 +65,9 @@ urlpatterns = [
     # Detail (Enhanced with optimized queries & data loading)
     path("t/<slug:slug>/", detail_enhanced, name="detail"),
     
+    # Dashboard (Participant view)
+    path("t/<slug:slug>/dashboard/", tournament_dashboard_v2, name="dashboard"),
+    
     # ==========================================
     # MODERN REGISTRATION SYSTEM (PRIMARY)
     # ==========================================
@@ -85,6 +92,16 @@ urlpatterns = [
     path("api/registration-requests/pending/", pending_requests_api, name="pending_requests_api"),
     path("api/registration-requests/<int:request_id>/approve/", approve_request_api, name="approve_request_api"),
     path("api/registration-requests/<int:request_id>/reject/", reject_request_api, name="reject_request_api"),
+    
+    # ==========================================
+    # DASHBOARD API ENDPOINTS
+    # ==========================================
+    
+    # Dashboard APIs (for participant dashboard)
+    path("api/t/<slug:slug>/bracket/", bracket_api, name="bracket_api"),
+    path("api/t/<slug:slug>/matches/", matches_api, name="matches_api"),
+    path("api/t/<slug:slug>/news/", news_api, name="news_api"),
+    path("api/t/<slug:slug>/statistics/", statistics_api, name="statistics_api"),
     
     # ==========================================
     # DEPRECATED REGISTRATION VIEWS

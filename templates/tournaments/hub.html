@@ -1,953 +1,271 @@
-﻿{% extends "base.html" %}{% extends "base.html" %}{% extends "base.html" %}
-
+﻿{% extends "base.html" %}
 {% load static tournament_dict_utils humanize %}
 
-{% load static %}{% load static tournament_dict_utils humanize %}
-
-{% block title %}Tournament Hub - Compete, Dominate, Win | DeltaCrown{% endblock %}
-
-{% load tournament_tags %}
+{% block title %}Play. Win. Be Seen — Tournaments | DeltaCrown{% endblock %}
 
 {% block extra_head %}
-
-<!-- Tournament Hub V2 Styles -->{% block title %}Play. Win. Be Seen — Tournaments | DeltaCrown{% endblock %}
-
-<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-hub.css' %}">
-
-{% block title %}Tournament Hub - Compete, Dominate, Win{% endblock %}
-
-<!-- Phase B Integration -->
-
-<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}">{% block extra_head %}
-
-<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}">
-
-{% endblock %}{% block extra_head %}<link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
-
-
-
-{% block body_class %}tournament-hub-v2{% endblock %}<!-- Tournament Hub V2 Styles --><link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
-
-
-
-{% block content %}<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-hub.css' %}"><link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2">
-
-<!-- HERO SECTION -->
-
-<section class="hub-hero"><!-- Phase B Integration --><link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}?v=1">
-
-    <!-- Background with animated grid -->
-
-    <div class="hub-hero-bg"><link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}"><link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}?v=1">
-
-        <div class="hub-hero-grid"></div>
-
-        <div class="hub-hero-glow hub-hero-glow-1"></div><link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}">{% endblock %}
-
-        <div class="hub-hero-glow hub-hero-glow-2"></div>
-
-    </div>{% endblock %}
-
-    
-
-    <div class="tournament-hub-container">{% block extra_js %}
-
-        <div class="hub-hero-content">
-
-            <div class="hub-hero-eyebrow">{% block body_class %}tournament-hub-v2{% endblock %}<script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
-
-                🔴 Live Tournaments
-
-            </div><script src="{% static 'siteui/js/tournaments-hub-modern.js' %}?v=2"></script>
-
-            
-
-            <h1 class="hub-hero-title">{% block content %}<script src="{% static 'js/tournament-card-dynamic.js' %}?v=4"></script>
-
-                Compete in <span class="gradient-text">Esports Tournaments</span><br>
-
-                Dominate Your Game<!-- HERO SECTION --><script src="{% static 'js/countdown-timer.js' %}?v=1"></script>
-
-            </h1>
-
-            <section class="hub-hero"><script src="{% static 'js/tournament-state-poller.js' %}?v=2"></script>
-
-            <p class="hub-hero-subtitle">
-
-                Join thousands of players in competitive tournaments. From casual matches to pro-level competitions,    <!-- Background with animated grid -->{% endblock %}
-
-                find your battlefield and prove your skills.
-
-            </p>    <div class="hub-hero-bg">
-
-            
-
-            <div class="hub-hero-cta">        <img src="{% static 'images/tournament-hero-bg.jpg' %}" {% block content %}
-
-                <a href="#tournaments" class="btn btn-primary">
-
-                    🏆 Browse Tournaments             alt="Tournament Hero" <section class="dc-container">
-
-                </a>
-
-                <a href="{% url 'tournaments:create' %}" class="btn btn-secondary">             class="hub-hero-bg-image"
-
-                    ➕ Create Tournament
-
-                </a>             loading="eager">  {# ---------------- HERO ---------------- #}
-
-            </div>
-
-                    <div class="hub-hero-grid"></div>  <header class="hero-2025" id="top">
-
-            <div class="hub-hero-stats">
-
-                <div class="hub-stat">        <div class="hub-hero-glow hub-hero-glow-1"></div>    <div class="hero-bg">
-
-                    <span class="hub-stat-value">{{ stats.active_tournaments|default:0 }}</span>
-
-                    <span class="hub-stat-label">Active</span>        <div class="hub-hero-glow hub-hero-glow-2"></div>      <div class="hero-noise"></div>
-
-                </div>
-
-                <div class="hub-stat">    </div>      <div class="hero-grid"></div>
-
-                    <span class="hub-stat-value">{{ stats.total_players|default:0|intcomma }}</span>
-
-                    <span class="hub-stat-label">Players</span>          <div class="hero-glow hero-glow-a"></div>
-
-                </div>
-
-                <div class="hub-stat">    <div class="tournament-hub-container">      <div class="hero-glow hero-glow-b"></div>
-
-                    <span class="hub-stat-value">৳{{ stats.total_prizes|default:0|intcomma }}</span>
-
-                    <span class="hub-stat-label">Prizes</span>        <div class="hub-hero-content">    </div>
-
-                </div>
-
-            </div>            <div class="hub-hero-eyebrow">
-
-        </div>
-
-    </div>                🔴 Live Tournaments    <div class="hero-wrap">
-
-</section>
-
-            </div>      <div class="hero-left">
-
-<!-- FILTER BAR -->
-
-<section class="hub-filter-bar" id="tournaments">                    <p class="eyebrow">Official Bangladesh Platform</p>
-
-    <div class="tournament-hub-container">
-
-        <div class="hub-filter-content">            <h1 class="hub-hero-title">        <h1 class="hero-title">Compete. Climb. <span class="grad">Get Noticed.</span></h1>
-
-            <!-- Search -->
-
-            <div class="hub-search">                Compete in <span class="gradient-text">Esports Tournaments</span><br>        <p class="hero-sub">Join premium esports tournaments across Valorant, eFootball, CS2, FC, MLBB, PUBG and more. Verified prizes, fair brackets, real-time standings.</p>
-
-                <input type="text" 
-
-                       id="tournament-search"                 Dominate Your Game
-
-                       class="hub-search-input" 
-
-                       placeholder="Search tournaments...">            </h1>        <div class="hero-ctas">
-
-                <svg class="hub-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none">
-
-                    <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>                      <a class="cta-primary" href="#browse">Browse Tournaments</a>
-
-                </svg>
-
-            </div>            <p class="hub-hero-subtitle">          <a class="cta-secondary" href="#all">All Tournaments</a>
-
-            
-
-            <!-- Status Filters -->                Join thousands of players in competitive tournaments. From casual matches to pro-level competitions,         </div>
-
-            <div class="hub-filters">
-
-                <button class="hub-filter-pill active" data-filter="all">                find your battlefield and prove your skills.
-
-                    All
-
-                </button>            </p>        <ul class="hero-stats" aria-label="Platform stats">
-
-                <button class="hub-filter-pill" data-filter="live">
-
-                    🔴 Live                      <li><strong>{{ stats.total_active|default:"0" }}</strong><span>Active now</span></li>
-
-                </button>
-
-                <button class="hub-filter-pill" data-filter="upcoming">            <div class="hub-hero-cta">          <li><strong>{{ stats.players_this_month|intcomma|default:"0" }}</strong><span>Players this month</span></li>
-
-                    📅 Upcoming
-
-                </button>                <a href="#tournaments" class="btn btn-primary">          <li><strong>৳{{ stats.prize_pool_month|intcomma|default:"0" }}</strong><span>Prize pool</span></li>
-
-                <button class="hub-filter-pill" data-filter="registration">
-
-                    ✍️ Registration                    🏆 Browse Tournaments        </ul>
-
-                </button>
-
-            </div>                </a>
-
-        </div>
-
-    </div>                <a href="{% url 'tournaments:create' %}" class="btn btn-secondary">        <div class="trust-row" aria-label="Trust markers">
-
-</section>
-
-                    ➕ Create Tournament          <span class="trust-badge">Fast payouts</span>
-
-<!-- GAME TABS -->
-
-<section class="hub-game-tabs">                </a>          <span class="trust-badge">Anti-smurf checks</span>
-
-    <div class="tournament-hub-container">
-
-        <div class="hub-tabs-scroll">            </div>          <span class="trust-badge">Live support</span>
-
-            <button class="hub-game-tab active" data-game="all">
-
-                <span class="hub-game-icon">🎮</span>                    </div>
-
-                <span class="hub-game-name">All Games</span>
-
-            </button>            <div class="hub-hero-stats">      </div>
-
-            <button class="hub-game-tab" data-game="valorant">
-
-                <span class="hub-game-icon">🎯</span>                <div class="hub-hero-stat">
-
-                <span class="hub-game-name">Valorant</span>
-
-            </button>                    <div class="hub-hero-stat-value">{{ stats.total_active|default:"0" }}</div>      <div class="hero-right">
-
-            <button class="hub-game-tab" data-game="efootball">
-
-                <span class="hub-game-icon">⚽</span>                    <div class="hub-hero-stat-label">Active Tournaments</div>        <div class="hero-card">
-
-                <span class="hub-game-name">eFootball</span>
-
-            </button>                </div>          <div class="hc-top">
-
-            <button class="hub-game-tab" data-game="fc26">
-
-                <span class="hub-game-icon">⚽</span>                <div class="hub-hero-stat">            <span class="live-dot" aria-hidden="true"></span>
-
-                <span class="hub-game-name">FC 26</span>
-
-            </button>                    <div class="hub-hero-stat-value">{{ stats.players_this_month|default:"12K+" }}</div>            {% if live_tournaments %}LIVE NOW{% elif featured %}Featured Tournament{% else %}Upcoming{% endif %}
-
-            <button class="hub-game-tab" data-game="mlbb">
-
-                <span class="hub-game-icon">🎮</span>                    <div class="hub-hero-stat-label">Players</div>          </div>
-
-                <span class="hub-game-name">MLBB</span>
-
-            </button>                </div>          <div class="hc-body">
-
-            <button class="hub-game-tab" data-game="free-fire">
-
-                <span class="hub-game-icon">🔫</span>                <div class="hub-hero-stat">            {% if live_tournaments %}
-
-                <span class="hub-game-name">Free Fire</span>
-
-            </button>                    <div class="hub-hero-stat-value">৳{{ stats.prize_pool_month|default:"500K+" }}</div>              {% with t=live_tournaments.0 %}
-
-            <button class="hub-game-tab" data-game="pubg">
-
-                <span class="hub-game-icon">🎖️</span>                    <div class="hub-hero-stat-label">Prize Pool</div>                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
-
-                <span class="hub-game-name">PUBG</span>
-
-            </button>                </div>                  {% if t.dc_banner_url %}
-
-            <button class="hub-game-tab" data-game="csgo">
-
-                <span class="hub-game-icon">💥</span>            </div>                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
-
-                <span class="hub-game-name">CS:GO</span>
-
-            </button>        </div>                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
-
-        </div>
-
-    </div>    </div>                </a>
-
-</section>
-
-</section>                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
-
-<!-- TOURNAMENT GRID -->
-
-<section class="hub-tournaments">                <div class="hc-meta">
-
-    <div class="tournament-hub-container">
-
-        <div class="hub-tournaments-grid"><!-- FILTER BAR (STICKY) -->                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
-
-            {% for tournament in tournaments %}
-
-            <div class="hub-tournament-card" <div class="hub-filters">                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
-
-                 data-game="{{ tournament.game }}"
-
-                 data-status="{{ tournament.status }}"    <div class="tournament-hub-container">                  {% if t.dc_fee_amount is not None %}
-
-                 data-title="{{ tournament.title }}">
-
-                        <div class="hub-filters-inner">                    <span><i class="fa-solid fa-tag"></i> {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount|intcomma }}{% endif %}</span>
-
-                <!-- Status Badge -->
-
-                <div class="hub-card-badge hub-card-badge-{{ tournament.status }}">            <!-- Search -->                  {% endif %}
-
-                    {% if tournament.status == 'live' %}
-
-                        🔴 LIVE            <div class="hub-filters-search">                </div>
-
-                    {% elif tournament.status == 'upcoming' %}
-
-                        📅 Upcoming                <input type="text"                 
-
-                    {% elif tournament.status == 'registration' %}
-
-                        ✍️ Registration Open                       id="hub-search"                 {# Countdown Timer for LIVE tournament #}
-
-                    {% else %}
-
-                        {{ tournament.status|title }}                       placeholder="Search tournaments, games, organizers..."                {% if t.ends_at %}
-
-                    {% endif %}
-
-                </div>                       autocomplete="off">                  <div class="countdown-timer" 
-
-                
-
-                <!-- Banner -->            </div>                       data-countdown-type="tournament-end"
-
-                <div class="hub-card-banner">
-
-                    <img src="{{ tournament.banner.url }}"                                    data-target-time="{{ t.ends_at|date:'c' }}"
-
-                         alt="{{ tournament.title }}"
-
-                         onerror="this.src='{% static 'images/default-tournament.jpg' %}'">            <!-- Status Filters -->                       data-tournament-slug="{{ t.slug }}">
-
-                </div>
-
-                            <div class="hub-filters-group">                  </div>
-
-                <!-- Content -->
-
-                <div class="hub-card-content">                <button class="filter-pill active" data-status="all">All</button>                {% endif %}
-
-                    <div class="hub-card-meta">
-
-                        <span class="hub-card-game">{{ tournament.game_name }}</span>                <button class="filter-pill" data-status="live">🔴 Live</button>                
-
-                        <span class="hub-card-format">{{ tournament.format }}</span>
-
-                    </div>                <button class="filter-pill" data-status="upcoming">📅 Upcoming</button>                <div class="hc-cta">
-
-                    
-
-                    <h3 class="hub-card-title">                <button class="filter-pill" data-status="registration">✍️ Registration Open</button>                  <a class="cta-primary" href="{{ t.register_url }}">
-
-                        <a href="{% url 'tournaments:detail' tournament.slug %}">
-
-                            {{ tournament.title }}            </div>                    <i class="fa-solid fa-user-plus"></i> Join Now
-
-                        </a>
-
-                    </h3>        </div>                  </a>
-
-                    
-
-                    <div class="hub-card-info">    </div>                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
-
-                        <div class="hub-card-info-item">
-
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"></div>                    <i class="fa-solid fa-arrow-right"></i> Details
-
-                                <path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z" stroke="currentColor" stroke-width="1.5"/>
-
-                                <path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>                  </a>
-
-                            </svg>
-
-                            <span>{{ tournament.start_date|date:"M d, Y" }}</span><!-- GAME TABS -->                </div>
-
-                        </div>
-
-                        <div class="hub-card-info-item"><div class="tournament-hub-container">              {% endwith %}
-
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-
-                                <path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12z" stroke="currentColor" stroke-width="1.5"/>    <div class="hub-game-tabs">            {% elif featured %}
-
-                                <path d="M10.5 6L7 8.5 5.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-
-                            </svg>        <a href="#" class="game-tab active" data-game="all">              {% with t=featured.0 %}
-
-                            <span>{{ tournament.team_size }}v{{ tournament.team_size }}</span>
-
-                        </div>            <img src="{% static 'images/icons/all-games.svg' %}" alt="All Games" class="game-tab-icon">                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
-
-                        <div class="hub-card-info-item">
-
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">            <span class="game-tab-name">All Games</span>                  {% if t.dc_banner_url %}
-
-                                <path d="M3 13l5-10 5 10H3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-
-                            </svg>            <span class="game-tab-count">{{ tournaments.count }}</span>                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
-
-                            <span>৳{{ tournament.prize_pool|intcomma }}</span>
-
-                        </div>        </a>                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
-
-                    </div>
-
-                                            </a>
-
-                    <!-- Phase B: Countdown Timer -->
-
-                    {% if tournament.status == 'registration' %}        <!-- HIGH PRIORITY GAMES -->                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
-
-                    <div class="hub-card-countdown">
-
-                        <div class="countdown-timer"         <a href="#" class="game-tab" data-game="valorant">                <div class="hc-meta">
-
-                             data-end-time="{{ tournament.registration_end|date:'c' }}">
-
-                            <span class="countdown-label">Registration closes in:</span>            <img src="{% static 'logos/valorant.svg' %}" alt="Valorant" class="game-tab-icon">                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
-
-                            <div class="countdown-display">
-
-                                <span class="countdown-segment">            <span class="game-tab-name">Valorant</span>                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
-
-                                    <span class="countdown-value" data-days>00</span>
-
-                                    <span class="countdown-unit">d</span>            <span class="game-tab-count">0</span>                  {% if t.dc_prize_pool %}<span><i class="fa-solid fa-trophy"></i> ৳{{ t.dc_prize_pool|intcomma }}</span>{% endif %}
-
-                                </span>
-
-                                <span class="countdown-separator">:</span>        </a>                </div>
-
-                                <span class="countdown-segment">
-
-                                    <span class="countdown-value" data-hours>00</span>                        
-
-                                    <span class="countdown-unit">h</span>
-
-                                </span>        <a href="#" class="game-tab" data-game="efootball">                {# Countdown Timer for Featured tournament #}
-
-                                <span class="countdown-separator">:</span>
-
-                                <span class="countdown-segment">            <img src="{% static 'logos/efootball.svg' %}" alt="eFootball" class="game-tab-icon">                {% if t.starts_at %}
-
-                                    <span class="countdown-value" data-minutes>00</span>
-
-                                    <span class="countdown-unit">m</span>            <span class="game-tab-name">eFootball</span>                  <div class="countdown-timer" 
-
-                                </span>
-
-                            </div>            <span class="game-tab-count">0</span>                       data-countdown-type="tournament-start"
-
-                        </div>
-
-                    </div>        </a>                       data-target-time="{{ t.starts_at|date:'c' }}"
-
-                    {% endif %}
-
-                                                   data-tournament-slug="{{ t.slug }}">
-
-                    <!-- Phase B: Capacity Bar -->
-
-                    <div class="hub-card-capacity">        <!-- MEDIUM PRIORITY GAMES -->                  </div>
-
-                        <div class="capacity-bar-wrapper">
-
-                            <div class="capacity-bar-track">        <a href="#" class="game-tab" data-game="fc26">                {% endif %}
-
-                                <div class="capacity-bar-fill" 
-
-                                     style="width: {{ tournament.capacity_percentage }}%"            <img src="{% static 'logos/fc26.svg' %}" alt="FC 26" class="game-tab-icon">                
-
-                                     data-capacity="{{ tournament.capacity_percentage }}"></div>
-
-                            </div>            <span class="game-tab-name">FC 26</span>                <div class="hc-cta">
-
-                            <div class="capacity-bar-label">
-
-                                <span class="capacity-current">{{ tournament.registered_teams }}</span>            <span class="game-tab-count">0</span>                  <a class="cta-primary" href="{{ t.register_url }}">
-
-                                <span class="capacity-separator">/</span>
-
-                                <span class="capacity-total">{{ tournament.max_teams }}</span>        </a>                    <i class="fa-solid fa-user-plus"></i> Register
-
-                                <span class="capacity-unit">teams</span>
-
-                            </div>                          </a>
-
-                        </div>
-
-                    </div>        <a href="#" class="game-tab" data-game="mlbb">                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
-
-                </div>
-
-                            <img src="{% static 'logos/mlbb.svg' %}" alt="Mobile Legends" class="game-tab-icon">                    <i class="fa-solid fa-arrow-right"></i> View
-
-                <!-- Footer -->
-
-                <div class="hub-card-footer">            <span class="game-tab-name">MLBB</span>                  </a>
-
-                    <a href="{% url 'tournaments:detail' tournament.slug %}" class="hub-card-btn">
-
-                        View Details            <span class="game-tab-count">0</span>                </div>
-
-                    </a>
-
-                </div>        </a>              {% endwith %}
-
-            </div>
-
-            {% empty %}                    {% else %}
-
-            <div class="hub-empty-state">
-
-                <div class="hub-empty-icon">🎮</div>        <!-- LOW PRIORITY GAMES -->              <div class="hc-empty">
-
-                <h3 class="hub-empty-title">No Tournaments Found</h3>
-
-                <p class="hub-empty-text">Try adjusting your filters or check back later for new tournaments.</p>        <a href="#" class="game-tab" data-game="freefire">                <p style="margin: 0;">No tournaments currently live.</p>
-
-            </div>
-
-            {% endfor %}            <img src="{% static 'logos/freefire.svg' %}" alt="Free Fire" class="game-tab-icon">                <p style="margin: 8px 0 0; font-size: 13px; opacity: 0.7;">Check back soon or browse upcoming tournaments below.</p>
-
-        </div>
-
-                    <span class="game-tab-name">Free Fire</span>              </div>
-
-        <!-- Pagination -->
-
-        {% if tournaments.has_other_pages %}            <span class="game-tab-count">0</span>            {% endif %}
-
-        <div class="hub-pagination">
-
-            {% if tournaments.has_previous %}        </a>          </div>
-
-            <a href="?page=1" class="hub-pagination-btn">« First</a>
-
-            <a href="?page={{ tournaments.previous_page_number }}" class="hub-pagination-btn">‹ Previous</a>                </div>
-
-            {% endif %}
-
-                    <a href="#" class="game-tab" data-game="pubg">      </div>
-
-            <span class="hub-pagination-info">
-
-                Page {{ tournaments.number }} of {{ tournaments.paginator.num_pages }}            <img src="{% static 'logos/pubg.svg' %}" alt="PUBG" class="game-tab-icon">    </div>
-
-            </span>
-
-                        <span class="game-tab-name">PUBG</span>  </header>
-
-            {% if tournaments.has_next %}
-
-            <a href="?page={{ tournaments.next_page_number }}" class="hub-pagination-btn">Next ›</a>            <span class="game-tab-count">0</span>
-
-            <a href="?page={{ tournaments.paginator.num_pages }}" class="hub-pagination-btn">Last »</a>
-
-            {% endif %}        </a>  {# ---------------- BROWSE BY GAME (top under hero) ---------------- #}
-
-        </div>
-
-        {% endif %}          <section class="section-head" id="browse" aria-labelledby="browse-title">
-
-    </div>
-
-</section>        <a href="#" class="game-tab" data-game="csgo">    <h2 id="browse-title" class="section-title">Browse by Game</h2>
-
+<link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}?v=1">
 {% endblock %}
-
-            <img src="{% static 'logos/csgo.svg' %}" alt="CS:GO" class="game-tab-icon">    <a class="section-link" href="#all">All tournaments</a>
 
 {% block extra_js %}
-
-<!-- Tournament Hub V2 JavaScript -->            <span class="game-tab-name">CS:GO</span>  </section>
-
-<script src="{% static 'js/tournaments-v2-hub.js' %}"></script>
-
-            <span class="game-tab-count">0</span>  <div class="game-grid">
-
-<!-- Phase B Integration -->
-
-<script src="{% static 'js/countdown-timer.js' %}"></script>        </a>    {% for g in games %}
-
+<script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
+<script src="{% static 'siteui/js/tournaments-hub-modern.js' %}?v=2"></script>
+<script src="{% static 'js/tournament-card-dynamic.js' %}?v=4"></script>
+<script src="{% static 'js/countdown-timer.js' %}?v=1"></script>
+<script src="{% static 'js/tournament-state-poller.js' %}?v=2"></script>
 {% endblock %}
 
-    </div>      {% include "tournaments/partials/_game_card.html" with g=g %}
+{% block content %}
+<section class="dc-container">
 
-</div>    {% endfor %}
+  {# ---------------- HERO ---------------- #}
+  <header class="hero-2025" id="top">
+    <div class="hero-bg">
+      <div class="hero-noise"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-glow hero-glow-a"></div>
+      <div class="hero-glow hero-glow-b"></div>
+    </div>
 
+    <div class="hero-wrap">
+      <div class="hero-left">
+        <p class="eyebrow">🇧🇩 Official Bangladesh Platform</p>
+        <h1 class="hero-title">Compete. Climb. <span class="grad">Get Noticed.</span></h1>
+        <p class="hero-sub">Join premium esports tournaments across Valorant, eFootball, CS2, FC, MLBB, PUBG and more. Verified prizes, fair brackets, real-time standings.</p>
+
+        <div class="hero-ctas">
+          <a class="cta-primary" href="#browse">🏆 Browse Tournaments</a>
+          <a class="cta-secondary" href="#all">All Tournaments</a>
+        </div>
+
+        <ul class="hero-stats" aria-label="Platform stats">
+          <li><strong>{{ stats.total_active|default:"0" }}</strong><span>Active now</span></li>
+          <li><strong>{{ stats.players_this_month|intcomma|default:"0" }}</strong><span>Players this month</span></li>
+          <li><strong>৳{{ stats.prize_pool_month|intcomma|default:"0" }}</strong><span>Prize pool</span></li>
+        </ul>
+
+        <div class="trust-row" aria-label="Trust markers">
+          <span class="trust-badge">✓ Fast payouts</span>
+          <span class="trust-badge">✓ Anti-smurf checks</span>
+          <span class="trust-badge">✓ Live support</span>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-card">
+          <div class="hc-top">
+            <span class="live-dot" aria-hidden="true"></span>
+            {% if live_tournaments %}🔴 LIVE NOW{% elif featured %}⭐ Featured Tournament{% else %}🚀 Upcoming{% endif %}
+          </div>
+          <div class="hc-body">
+            {% if live_tournaments %}
+              {% with t=live_tournaments.0 %}
+                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
+                  {% if t.dc_banner_url %}
+                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
+                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
+                </a>
+                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
+                <div class="hc-meta">
+                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
+                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
+                  {% if t.dc_fee_amount is not None %}
+                    <span><i class="fa-solid fa-tag"></i> {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount|intcomma }}{% endif %}</span>
+                  {% endif %}
+                </div>
+                
+                {# Countdown Timer for LIVE tournament #}
+                {% if t.ends_at %}
+                  <div class="countdown-timer" 
+                       data-countdown-type="tournament-end"
+                       data-target-time="{{ t.ends_at|date:'c' }}"
+                       data-tournament-slug="{{ t.slug }}">
+                  </div>
+                {% endif %}
+                
+                <div class="hc-cta">
+                  <a class="cta-primary" href="{{ t.register_url }}">
+                    <i class="fa-solid fa-user-plus"></i> Join Now
+                  </a>
+                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
+                    <i class="fa-solid fa-arrow-right"></i> Details
+                  </a>
+                </div>
+              {% endwith %}
+            {% elif featured %}
+              {% with t=featured.0 %}
+                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
+                  {% if t.dc_banner_url %}
+                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
+                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
+                </a>
+                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
+                <div class="hc-meta">
+                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
+                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
+                  {% if t.dc_prize_pool %}<span><i class="fa-solid fa-trophy"></i> ৳{{ t.dc_prize_pool|intcomma }}</span>{% endif %}
+                </div>
+                
+                {# Countdown Timer for Featured tournament #}
+                {% if t.starts_at %}
+                  <div class="countdown-timer" 
+                       data-countdown-type="tournament-start"
+                       data-target-time="{{ t.starts_at|date:'c' }}"
+                       data-tournament-slug="{{ t.slug }}">
+                  </div>
+                {% endif %}
+                
+                <div class="hc-cta">
+                  <a class="cta-primary" href="{{ t.register_url }}">
+                    <i class="fa-solid fa-user-plus"></i> Register
+                  </a>
+                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
+                    <i class="fa-solid fa-arrow-right"></i> View
+                  </a>
+                </div>
+              {% endwith %}
+            {% else %}
+              <div class="hc-empty">
+                <p style="margin: 0;">No tournaments currently live.</p>
+                <p style="margin: 8px 0 0; font-size: 13px; opacity: 0.7;">Check back soon or browse upcoming tournaments below.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  {# ---------------- BROWSE BY GAME (top under hero) ---------------- #}
+  <section class="section-head" id="browse" aria-labelledby="browse-title">
+    <h2 id="browse-title" class="section-title">🎮 Browse by Game</h2>
+    <a class="section-link" href="#all">All tournaments →</a>
+  </section>
+  <div class="game-grid">
+    {% for g in games %}
+      {% include "tournaments/partials/_game_card.html" with g=g %}
+    {% endfor %}
   </div>
 
-<!-- TOURNAMENTS GRID -->
-
-<div class="tournament-hub-container" id="tournaments">  {# ---------------- ALL TOURNAMENTS (Filter Orb replaces bulky panel) ---------------- #}
-
-    {% if tournaments %}  <section class="section-head" id="all" aria-labelledby="all-title">
-
-        <div class="hub-section-header">    <h2 id="all-title" class="section-title">All Tournaments</h2>
-
-            <h2 class="hub-section-title">Active Tournaments</h2>    <a class="section-link" href="{% url 'tournaments:hub' %}">See more</a>
-
-            <a href="{% url 'tournaments:list' %}" class="hub-section-link">  </section>
-
-                View All →
-
-            </a>  {# New: compact Filter Orb (hover/tap) #}
-
-        </div>  <div class="filter-orb-wrap" aria-label="Filters">
-
-            {% include "tournaments/partials/_filter_orb.html" %}
-
-        <div class="tournament-grid stagger-children">  </div>
-
-            {% for tournament in tournaments %}
-
-            <article class="tournament-card-v2"   {% if tournaments %}
-
-                     data-tournament-id="{{ tournament.id }}"    <div class="grid">
-
-                     data-title="{{ tournament.title|lower }}"      {% for t in tournaments %}
-
-                     data-game="{{ tournament.game.slug|lower }}"        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
-
-                     data-status="{{ tournament.status|lower }}"      {% endfor %}
-
-                     data-start-date="{{ tournament.start_date|date:'c' }}"    </div>
-
-                     data-detail-url="{% url 'tournaments:detail' tournament.slug %}">  {% else %}
-
-                    {% include "tournaments/partials/_grid_empty.html" %}
-
-                <!-- Card Header with Banner -->  {% endif %}
-
-                <div class="tournament-card-header">
-
-                    {% if tournament.banner_image %}  {# ---------------- PAGINATION ---------------- #}
-
-                        <img src="{{ tournament.banner_image.url }}"   {% if pagination.has_previous or pagination.has_next %}
-
-                             alt="{{ tournament.title }}"   <nav class="pagination" aria-label="Pagination">
-
-                             class="tournament-card-banner"    <div class="pagination-info">
-
-                             loading="lazy">      Showing {{ pagination.start_index }}–{{ pagination.end_index }} of {{ pagination.total_count }} tournaments
-
-                    {% else %}    </div>
-
-                        <img src="{% static 'images/tournament-default-banner.jpg' %}"     <div class="pagination-controls">
-
-                             alt="{{ tournament.title }}"       {% if pagination.has_previous %}
-
-                             class="tournament-card-banner"        <a href="?page={{ pagination.previous_page_number }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
-
-                             loading="lazy">          <i class="fa-solid fa-chevron-left"></i> Previous
-
-                    {% endif %}        </a>
-
-                          {% endif %}
-
-                    <div class="tournament-card-overlay"></div>      <span class="page-info">Page {{ pagination.current_page }} of {{ pagination.total_pages }}</span>
-
-                          {% if pagination.has_next %}
-
-                    <!-- Status Badge -->        <a href="?page={{ pagination.next_page_number }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
-
-                    {% if tournament.status == 'live' %}          Next <i class="fa-solid fa-chevron-right"></i>
-
-                        <span class="tournament-card-badge live">🔴 LIVE</span>        </a>
-
-                    {% elif tournament.status == 'upcoming' %}      {% endif %}
-
-                        <span class="tournament-card-badge upcoming">📅 UPCOMING</span>    </div>
-
-                    {% elif tournament.status == 'registration' %}  </nav>
-
-                        <span class="tournament-card-badge registration">✍️ OPEN</span>  {% endif %}
-
-                    {% endif %}
-
-                      {# ---------------- OPTIONAL ROWS ---------------- #}
-
-                    <!-- Game Icon -->  {% if starting_soon %}
-
-                    {% if tournament.game.icon %}  <section class="section-head" aria-labelledby="soon-title" style="margin-top: 32px;">
-
-                    <img src="{{ tournament.game.icon.url }}"     <h2 id="soon-title" class="section-title">Starting Soon</h2>
-
-                         alt="{{ tournament.game.name }}"     <a class="section-link" href="{% url 'tournaments:hub' %}?status=upcoming&sort=starting_soon">Within 7 days</a>
-
-                         class="tournament-card-game-icon"  </section>
-
-                         loading="lazy">  <div class="carousel">
-
-                    {% endif %}    {% for t in starting_soon %}
-
-                </div>      <div class="carousel-item">
-
-                        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
-
-                <!-- Card Body -->      </div>
-
-                <div class="tournament-card-body">    {% endfor %}
-
-                    <h3 class="tournament-card-title">{{ tournament.title }}</h3>  </div>
-
-                      {% endif %}
-
-                    <div class="tournament-card-meta">
-
-                        <span class="tournament-card-meta-item">  {% if new_this_week %}
-
-                            <i>🎮</i>  <section class="section-head" aria-labelledby="new-title" style="margin-top: 32px;">
-
-                            {{ tournament.game.name }}    <h2 id="new-title" class="section-title">New This Week</h2>
-
-                        </span>    <a class="section-link" href="{% url 'tournaments:hub' %}?sort=newest">Newest first</a>
-
-                        <span class="tournament-card-meta-item">  </section>
-
-                            <i>👥</i>  <div class="grid">
-
-                            {{ tournament.teams_count|default:0 }}/{{ tournament.max_teams }}    {% for t in new_this_week %}
-
-                        </span>      {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
-
-                        <span class="tournament-card-meta-item">    {% endfor %}
-
-                            <i>💰</i>  </div>
-
-                            ৳{{ tournament.prize_pool|default:"TBA" }}  {% endif %}
-
-                        </span>
-
-                    </div>  {# ---------------- VALUE PROPS AT BOTTOM ---------------- #}
-
-                      <section class="vp-grid bottom-vp" aria-label="Why DeltaCrown">
-
-                    <!-- Phase B: Countdown Timer -->    <article class="vp-card">
-
-                    {% if tournament.status == 'upcoming' or tournament.status == 'registration' %}      <div class="vp-icon i-trophy" aria-hidden="true"></div>
-
-                        <div class="countdown-timer"       <h3>Real prizes</h3>
-
-                             data-type="{% if tournament.status == 'registration' %}registration{% else %}start{% endif %}"      <p>Verified payouts and leaderboard badges. Win more than bragging rights.</p>
-
-                             data-target="{{ tournament.start_date|date:'c' }}"    </article>
-
-                             data-tournament-id="{{ tournament.id }}">    <article class="vp-card">
-
-                            <div class="countdown-timer-label">      <div class="vp-icon i-bracket" aria-hidden="true"></div>
-
-                                {% if tournament.status == 'registration' %}      <h3>Fair brackets</h3>
-
-                                    Registration Closes In:      <p>Auto-seeding, transparent rules, and public standings in real time.</p>
-
-                                {% else %}    </article>
-
-                                    Starts In:    <article class="vp-card">
-
-                                {% endif %}      <div class="vp-icon i-shield" aria-hidden="true"></div>
-
-                            </div>      <h3>Competitive integrity</h3>
-
-                            <div class="countdown-timer-display">      <p>Anti-smurf checks, manual verification, and match dispute support.</p>
-
-                                <div class="countdown-segment">    </article>
-
-                                    <span class="countdown-value" data-unit="days">00</span>    <article class="vp-card">
-
-                                    <span class="countdown-label">Days</span>      <div class="vp-icon i-bolt" aria-hidden="true"></div>
-
-                                </div>      <h3>Fast & simple</h3>
-
-                                <div class="countdown-separator">:</div>      <p>2-minute registration, e-wallet payments, clear status at every step.</p>
-
-                                <div class="countdown-segment">    </article>
-
-                                    <span class="countdown-value" data-unit="hours">00</span>  </section>
-
-                                    <span class="countdown-label">Hours</span>
-
-                                </div>  {# ---------------- HOW IT WORKS ---------------- #}
-
-                                <div class="countdown-separator">:</div>  <section class="how premium-how" id="how" aria-labelledby="how-title">
-
-                                <div class="countdown-segment">    <h2 id="how-title" class="section-title">How it works</h2>
-
-                                    <span class="countdown-value" data-unit="minutes">00</span>    <ol class="how-steps">
-
-                                    <span class="countdown-label">Mins</span>      <li>
-
-                                </div>        <span class="num">1</span>
-
-                                <div class="countdown-separator">:</div>        <h3>Pick a tournament</h3>
-
-                                <div class="countdown-segment">        <p>Use the filters, or jump into the featured rows above.</p>
-
-                                    <span class="countdown-value" data-unit="seconds">00</span>      </li>
-
-                                    <span class="countdown-label">Secs</span>      <li>
-
-                                </div>        <span class="num">2</span>
-
-                            </div>        <h3>Register & pay</h3>
-
-                        </div>        <p>Solo or team. Pay with bKash/Nagad/Rocket. Get instant status.</p>
-
-                    {% endif %}      </li>
-
-                          <li>
-
-                    <!-- Phase B: Capacity Bar -->        <span class="num">3</span>
-
-                    <div class="tournament-card-capacity">        <h3>Compete & climb</h3>
-
-                        <div class="capacity-bar-wrapper">        <p>Follow your bracket, check-in, and track standings live.</p>
-
-                            {% widthratio tournament.teams_count tournament.max_teams 100 as fill_percent %}      </li>
-
-                            <div class="capacity-bar-fill     </ol>
-
-                                {% if fill_percent >= 100 %}full  </section>
-
-                                {% elif fill_percent >= 80 %}warning
-
-                                {% endif %}"</section>
-
-                                 style="width: {{ fill_percent }}%"></div>{% endblock %}
-
-                        </div>
-
-                        <div class="capacity-text">
-                            <span>{{ tournament.teams_count|default:0 }} Teams</span>
-                            {% widthratio tournament.max_teams 1 1 as total %}
-                            {% widthratio tournament.teams_count 1 1 as current %}
-                            <span>{{ total|add:"-"|add:current|default:tournament.max_teams }} Spots Left</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Card Footer with Actions -->
-                <div class="tournament-card-footer">
-                    <a href="{% url 'tournaments:detail' tournament.slug %}" 
-                       class="tournament-card-btn tournament-card-btn-primary">
-                        View Details
-                    </a>
-                    {% if tournament.status == 'registration' %}
-                        <a href="{% url 'tournaments:register' tournament.id %}" 
-                           class="tournament-card-btn tournament-card-btn-secondary">
-                            Register
-                        </a>
-                    {% endif %}
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        
-        <!-- Pagination -->
-        {% if is_paginated %}
-        <div class="hub-pagination">
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" 
-                   class="hub-pagination-btn"
-                   data-pagination="prev">
-                    ← Previous
-                </a>
-            {% else %}
-                <button class="hub-pagination-btn disabled" disabled>
-                    ← Previous
-                </button>
-            {% endif %}
-            
-            <span class="hub-pagination-info">
-                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-            </span>
-            
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" 
-                   class="hub-pagination-btn"
-                   data-pagination="next">
-                    Next →
-                </a>
-            {% else %}
-                <button class="hub-pagination-btn disabled" disabled>
-                    Next →
-                </button>
-            {% endif %}
-        </div>
-        {% endif %}
-        
-    {% else %}
-        <!-- Empty State -->
-        <div class="hub-empty">
-            <div class="hub-empty-icon">🏆</div>
-            <h3 class="hub-empty-title">No Tournaments Found</h3>
-            <p class="hub-empty-text">
-                No tournaments match your filters. Try adjusting your search or create a new tournament!
-            </p>
-            <a href="{% url 'tournaments:create' %}" class="btn btn-primary">
-                Create Tournament
-            </a>
-        </div>
-    {% endif %}
-</div>
-
-<!-- Loading Skeletons (hidden by default, shown during AJAX loads) -->
-<template id="skeleton-card-template">
-    <div class="skeleton-card">
-        <div class="skeleton-header"></div>
-        <div class="skeleton-body">
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-line"></div>
-        </div>
+  {# ---------------- ALL TOURNAMENTS (Filter Orb replaces bulky panel) ---------------- #}
+  <section class="section-head" id="all" aria-labelledby="all-title">
+    <h2 id="all-title" class="section-title">🏆 All Tournaments</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}">See more →</a>
+  </section>
+
+  {# New: compact Filter Orb (hover/tap) #}
+  <div class="filter-orb-wrap" aria-label="Filters">
+    {% include "tournaments/partials/_filter_orb.html" %}
+  </div>
+
+  {% if tournaments %}
+    <div class="grid">
+      {% for t in tournaments %}
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
+      {% endfor %}
     </div>
-</template>
+  {% else %}
+    {% include "tournaments/partials/_grid_empty.html" %}
+  {% endif %}
 
-{% endblock %}
+  {# ---------------- PAGINATION ---------------- #}
+  {% if pagination.has_previous or pagination.has_next %}
+  <nav class="pagination" aria-label="Pagination">
+    <div class="pagination-info">
+      Showing page {{ pagination.page }} of {{ pagination.total_pages }} ({{ pagination.total_count }} tournaments)
+    </div>
+    <div class="pagination-controls">
+      {% if pagination.has_previous %}
+        <a href="?page={{ pagination.page|add:'-1' }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
+          <i class="fa-solid fa-chevron-left"></i> Previous
+        </a>
+      {% endif %}
+      <span class="page-info">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+      {% if pagination.has_next %}
+        <a href="?page={{ pagination.page|add:'1' }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
+          Next <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      {% endif %}
+    </div>
+  </nav>
+  {% endif %}
 
-{% block extra_js %}
-<!-- Phase B Integration -->
-<script src="{% static 'js/countdown-timer.js' %}"></script>
-<script src="{% static 'js/tournament-state-poller.js' %}"></script>
+  {# ---------------- OPTIONAL ROWS ---------------- #}
+  {% if starting_soon %}
+  <section class="section-head" aria-labelledby="soon-title" style="margin-top: 48px;">
+    <h2 id="soon-title" class="section-title">⏰ Starting Soon</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?status=upcoming&sort=starting_soon">Within 7 days →</a>
+  </section>
+  <div class="carousel">
+    {% for t in starting_soon %}
+      <div class="carousel-item">
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-<!-- Tournament Hub V2 JavaScript -->
-<script src="{% static 'js/tournaments-v2-hub.js' %}"></script>
+  {% if new_this_week %}
+  <section class="section-head" aria-labelledby="new-title" style="margin-top: 48px;">
+    <h2 id="new-title" class="section-title">✨ New This Week</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?sort=newest">Newest first →</a>
+  </section>
+  <div class="grid">
+    {% for t in new_this_week %}
+      {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
+    {% endfor %}
+  </div>
+  {% endif %}
 
-<script>
-    // Initialize hub with server data
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('[Hub V2] Initializing with server data...');
-        
-        // Pass server-side data to JavaScript
-        window.TOURNAMENT_HUB_DATA = {
-            totalTournaments: {{ tournaments.count|default:0 }},
-            activeTournaments: {{ stats.total_active|default:0 }}
-        };
-        
-        console.log('[Hub V2] Server data loaded:', window.TOURNAMENT_HUB_DATA);
-    });
-</script>
+  {# ---------------- VALUE PROPS AT BOTTOM ---------------- #}
+  <section class="vp-grid bottom-vp" aria-label="Why DeltaCrown" style="margin-top: 64px;">
+    <article class="vp-card">
+      <div class="vp-icon i-trophy" aria-hidden="true">🏆</div>
+      <h3>Real prizes</h3>
+      <p>Verified payouts and leaderboard badges. Win more than bragging rights.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-bracket" aria-hidden="true">📊</div>
+      <h3>Fair brackets</h3>
+      <p>Auto-seeding, transparent rules, and public standings in real time.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-shield" aria-hidden="true">🛡️</div>
+      <h3>Competitive integrity</h3>
+      <p>Anti-smurf checks, manual verification, and match dispute support.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-bolt" aria-hidden="true">⚡</div>
+      <h3>Fast & simple</h3>
+      <p>2-minute registration, e-wallet payments, clear status at every step.</p>
+    </article>
+  </section>
+
+  {# ---------------- HOW IT WORKS ---------------- #}
+  <section class="how premium-how" id="how" aria-labelledby="how-title" style="margin-top: 64px;">
+    <h2 id="how-title" class="section-title">How it works</h2>
+    <ol class="how-steps">
+      <li>
+        <span class="num">1</span>
+        <h3>Pick a tournament</h3>
+        <p>Use the filters, or jump into the featured rows above.</p>
+      </li>
+      <li>
+        <span class="num">2</span>
+        <h3>Register & pay</h3>
+        <p>Solo or team. Pay with bKash/Nagad/Rocket. Get instant status.</p>
+      </li>
+      <li>
+        <span class="num">3</span>
+        <h3>Compete & climb</h3>
+        <p>Follow your bracket, check-in, and track standings live.</p>
+      </li>
+    </ol>
+  </section>
+
+</section>
 {% endblock %}

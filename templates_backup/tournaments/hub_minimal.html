@@ -1,0 +1,56 @@
+﻿{% extends "base.html" %}
+{% load static tournament_dict_utils humanize %}
+
+{% block title %}Tournament Hub | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-hub.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}">
+{% endblock %}
+
+{% block body_class %}tournament-hub-v2{% endblock %}
+
+{% block content %}
+<section class="hub-hero">
+    <div class="hub-hero-bg">
+        <div class="hub-hero-grid"></div>
+        <div class="hub-hero-glow hub-hero-glow-1"></div>
+        <div class="hub-hero-glow hub-hero-glow-2"></div>
+    </div>
+    <div class="tournament-hub-container">
+        <div class="hub-hero-content">
+            <div class="hub-hero-eyebrow"> Live Tournaments</div>
+            <h1 class="hub-hero-title">Compete in <span class="gradient-text">Esports Tournaments</span><br>Dominate Your Game</h1>
+            <p class="hub-hero-subtitle">Join thousands of players in competitive tournaments.</p>
+            <div class="hub-hero-cta">
+                <a href="#tournaments" class="btn btn-primary"> Browse Tournaments</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="hub-tournaments" id="tournaments">
+    <div class="tournament-hub-container">
+        <div class="hub-tournaments-grid">
+            {% for tournament in tournaments %}
+            <div class="hub-tournament-card">
+                <div class="hub-card-badge">{{ tournament.status|title }}</div>
+                <div class="hub-card-content">
+                    <h3 class="hub-card-title">
+                        <a href="{% url 'tournaments:detail' tournament.slug %}">{{ tournament.title }}</a>
+                    </h3>
+                </div>
+            </div>
+            {% empty %}
+            <p>No tournaments available.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/tournaments-v2-hub.js' %}"></script>
+<script src="{% static 'js/countdown-timer.js' %}"></script>
+{% endblock %}
