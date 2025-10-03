@@ -104,7 +104,10 @@ def load_participants(tournament: Tournament) -> List[Dict[str, Any]]:
             participants.append({
                 'seed': idx,
                 'team_name': reg.team.name,
+                'name': reg.team.name,  # Alias for template consistency
                 'team_logo': reg.team.logo.url if reg.team.logo else None,
+                'logo': reg.team.logo.url if reg.team.logo else None,  # Alias for template consistency
+                'avatar': None,  # Teams don't have avatars
                 'captain': reg.team.captain.display_name if hasattr(reg.team, 'captain') and reg.team.captain else None,
                 'status': reg.get_status_display(),
                 'verified': reg.payment_verified if hasattr(reg, 'payment_verified') else False,
@@ -114,8 +117,12 @@ def load_participants(tournament: Tournament) -> List[Dict[str, Any]]:
             user_profile = reg.user.profile if hasattr(reg.user, 'profile') else None
             participants.append({
                 'seed': idx,
-                'name': user_profile.display_name if user_profile else reg.user.username,
+                'name': user_profile.display_name if user_profile else (
+                    reg.user.username if hasattr(reg.user, 'username') else 'Unknown'
+                ),
                 'avatar': user_profile.avatar.url if user_profile and user_profile.avatar else None,
+                'logo': None,  # Solo participants don't have logos
+                'team_logo': None,  # Solo participants don't have team logos
                 'status': reg.get_status_display(),
                 'verified': reg.payment_verified if hasattr(reg, 'payment_verified') else False,
             })
@@ -135,7 +142,10 @@ def load_standings(tournament: Tournament) -> List[Dict[str, Any]]:
         
         return [{
             'rank': s.rank,
-            'name': s.team.name if s.team else (s.player.display_name if hasattr(s.player, 'display_name') else s.player.username),
+            'name': s.team.name if s.team else (
+                s.player.display_name if hasattr(s.player, 'display_name') 
+                else (s.player.user.username if hasattr(s.player, 'user') and hasattr(s.player.user, 'username') else 'Unknown')
+            ),
             'points': s.points if hasattr(s, 'points') else 0,
             'wins': s.wins if hasattr(s, 'wins') else 0,
             'losses': s.losses if hasattr(s, 'losses') else 0,

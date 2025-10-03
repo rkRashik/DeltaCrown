@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 {% load dict_extras %}
 
 {% block title %}Register for {{ tournament.name }} — DeltaCrown{% endblock %}
@@ -31,15 +32,40 @@
         <span class="chip"><i class="fas fa-user"></i> Solo Tournament</span>
       {% endif %}
       
-      {% if entry_fee %}
+      {# Phase 1: Finance display from Phase 2 context #}
+      {% if finance %}
+        {% if finance.is_free %}
+          <span class="chip free"><i class="fas fa-gift"></i> Free Entry</span>
+        {% else %}
+          <span class="chip"><i class="fas fa-coins"></i> ৳{{ finance.entry_fee|intcomma }}</span>
+        {% endif %}
+        
+        {% if finance.prize_pool and finance.prize_pool > 0 %}
+          <span class="chip prize"><i class="fas fa-trophy"></i> Prize: ৳{{ finance.prize_pool|intcomma }}</span>
+        {% endif %}
+      {% elif entry_fee %}
         <span class="chip"><i class="fas fa-coins"></i> ৳{{ entry_fee }}</span>
       {% else %}
-        <span class="chip"><i class="fas fa-gift"></i> Free Entry</span>
+        <span class="chip free"><i class="fas fa-gift"></i> Free Entry</span>
       {% endif %}
       
-      {% if context.registration_closes_in %}
+      {# Phase 1: Schedule timing from Phase 2 context #}
+      {% if schedule %}
+        {% if schedule.is_registration_open and schedule.registration_close_at %}
+          <span class="chip warning">
+            <i class="fas fa-clock"></i> Closes {{ schedule.registration_close_at|date:"M j, H:i" }}
+          </span>
+        {% endif %}
+      {% elif context.registration_closes_in %}
         <span class="chip warning">
           <i class="fas fa-clock"></i> Closes in {{ context.registration_closes_in.days }}d {{ context.registration_closes_in.seconds|div:3600|floatformat:0 }}h
+        </span>
+      {% endif %}
+      
+      {# Phase 1: Capacity indicator #}
+      {% if capacity %}
+        <span class="chip {% if capacity.is_full %}full{% elif capacity.is_nearly_full %}warning{% endif %}">
+          <i class="fas fa-users"></i> {{ capacity.current_teams }}/{{ capacity.max_teams }} slots
         </span>
       {% endif %}
     </div>
@@ -122,6 +148,31 @@
         </h2>
         <p class="step-description">Please verify your contact details. Most fields are pre-filled from your profile.</p>
         
+        {# Phase 1: Requirements checklist (if rules available) #}
+        {% if rules and rules.requirements_list %}
+        <div class="requirements-notice">
+          <h4><i class="fas fa-clipboard-list"></i> Tournament Requirements</h4>
+          <ul class="requirements-compact">
+            {% for req in rules.requirements_list|slice:":5" %}
+              <li><i class="fas fa-check-circle"></i> {{ req }}</li>
+            {% endfor %}
+            {% if rules.requirements_list|length > 5 %}
+              <li class="more"><i class="fas fa-ellipsis-h"></i> +{{ rules.requirements_list|length|add:"-5" }} more (see Rules tab)</li>
+            {% endif %}
+          </ul>
+          
+          {% if rules.min_age %}
+            <p class="requirement-item"><strong>Age:</strong> Must be {{ rules.min_age }}+ years old</p>
+          {% endif %}
+          {% if rules.region_lock %}
+            <p class="requirement-item"><strong>Region:</strong> {{ rules.region_lock }} only</p>
+          {% endif %}
+          {% if rules.rank_restriction %}
+            <p class="requirement-item"><strong>Rank:</strong> {{ rules.rank_restriction }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+        
         <div class="form-grid">
           <div class="form-field">
             <label for="display_name">
@@ -175,14 +226,14 @@
           
           <div class="form-field">
             <label for="in_game_id">
-              In-Game ID <span class="required">*</span>
+              In-Game ID {% if rules and rules.requires_game_id %}<span class="required">*</span>{% else %}<span class="optional">(Optional)</span>{% endif %}
             </label>
             <input 
               type="text" 
               name="in_game_id" 
               id="in_game_id" 
               value="{% if tournament.game == 'valorant' %}{{ profile_data.riot_id }}{% elif tournament.game == 'efootball' %}{{ profile_data.efootball_id }}{% endif %}"
-              required
+              {% if rules and rules.requires_game_id %}required{% endif %}
               placeholder="YourGameID#TAG"
               class="auto-filled"
             />
@@ -199,17 +250,18 @@
           
           <div class="form-field">
             <label for="discord_id">
-              Discord ID <span class="optional">(Optional)</span>
+              Discord ID {% if rules and rules.requires_discord %}<span class="required">*</span>{% else %}<span class="optional">(Optional)</span>{% endif %}
             </label>
             <input 
               type="text" 
               name="discord_id" 
               id="discord_id" 
               value="{{ profile_data.discord_id }}"
+              {% if rules and rules.requires_discord %}required{% endif %}
               placeholder="username#1234"
               class="auto-filled"
             />
-            <span class="field-hint">For tournament communications</span>
+            <span class="field-hint">{% if rules and rules.requires_discord %}<strong>Required</strong> for tournament communications{% else %}For tournament communications{% endif %}</span>
           </div>
         </div>
         
@@ -369,7 +421,7 @@
       </div>
 
       <!-- Step 4: Payment (If Required) -->
-      {% if context.requires_payment %}
+      {% if context.requires_payment or finance and not finance.is_free %}
       <div class="form-step" data-step="{% if context.is_team_event %}4{% else %}3{% endif %}">
         <h2 class="step-title">
           <i class="fas fa-credit-card"></i> Payment Information
@@ -379,8 +431,14 @@
         <div class="payment-summary">
           <div class="amount-display">
             <span class="label">Entry Fee:</span>
-            <span class="amount">৳{{ entry_fee }}</span>
+            <span class="amount">৳{% if finance %}{{ finance.entry_fee|intcomma }}{% else %}{{ entry_fee }}{% endif %}</span>
           </div>
+          {% if finance and finance.prize_pool and finance.prize_pool > 0 %}
+          <div class="prize-display">
+            <span class="label"><i class="fas fa-trophy"></i> Prize Pool:</span>
+            <span class="amount prize">৳{{ finance.prize_pool|intcomma }}</span>
+          </div>
+          {% endif %}
         </div>
         
         <div class="form-field">

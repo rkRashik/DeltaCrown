@@ -1,0 +1,403 @@
+/* Phase 1 Model Widgets - Shared styles for capacity, schedule, finance displays */
+
+/* ========================================
+   CAPACITY WIDGET
+   ======================================== */
+.capacity-widget {
+  padding: 12px 0;
+}
+
+.capacity-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--glass, rgba(255, 255, 255, 0.05));
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.capacity-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary, #3b82f6), var(--primary-light, #60a5fa));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.capacity-bar.nearly-full {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.capacity-bar.full {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.capacity-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text, #fff);
+}
+
+.capacity-current {
+  color: var(--primary, #3b82f6);
+}
+
+.capacity-separator {
+  opacity: 0.5;
+  font-size: 16px;
+}
+
+.capacity-max {
+  opacity: 0.7;
+  font-size: 16px;
+}
+
+/* ========================================
+   COUNTDOWN WIDGET
+   ======================================== */
+.countdown-widget {
+  padding: 12px 0;
+  text-align: center;
+}
+
+.countdown-widget .small.muted {
+  margin-bottom: 8px;
+}
+
+.countdown {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.countdown-unit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.countdown-unit .num {
+  color: var(--primary, #3b82f6);
+  font-size: 24px;
+  font-weight: 700;
+  min-width: 30px;
+  text-align: center;
+}
+
+.countdown-unit:not(:last-child)::after {
+  content: ":";
+  margin-left: 4px;
+  opacity: 0.5;
+}
+
+/* ========================================
+   FINANCE DISPLAY
+   ======================================== */
+.finance-display {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.finance-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--glass, rgba(255, 255, 255, 0.05));
+  border-radius: 6px;
+}
+
+.finance-item.highlight {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+  border: 1px solid var(--primary, #3b82f6);
+}
+
+.finance-item.small {
+  opacity: 0.8;
+  font-size: 13px;
+}
+
+.finance-item .label {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.finance-item .value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #fff);
+}
+
+.finance-item.highlight .value {
+  color: var(--primary, #3b82f6);
+  font-size: 18px;
+}
+
+/* ========================================
+   REQUIREMENTS NOTICE (Registration Form)
+   ======================================== */
+.requirements-notice {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.requirements-notice h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary, #3b82f6);
+}
+
+.requirements-compact {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.requirements-compact li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.requirements-compact li i {
+  color: var(--success, #10b981);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.requirements-compact li.more {
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.requirement-item {
+  font-size: 13px;
+  margin: 6px 0 0 0;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.requirement-item:first-of-type {
+  border-top: none;
+  margin-top: 0;
+}
+
+.requirement-item strong {
+  color: var(--primary, #3b82f6);
+  font-weight: 600;
+}
+
+/* ========================================
+   REQUIREMENTS LIST (Rules Tab)
+   ======================================== */
+.requirements-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.requirements-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  background: var(--glass, rgba(255, 255, 255, 0.05));
+  border-radius: 6px;
+  border-left: 3px solid var(--primary, #3b82f6);
+}
+
+.requirements-list li i {
+  color: var(--success, #10b981);
+  font-size: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* ========================================
+   CHIP/BADGE MODIFIERS (for Phase 1 badges)
+   ======================================== */
+.chip.free,
+.badge.free {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  font-weight: 600;
+}
+
+.chip.prize,
+.badge.prize {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-weight: 600;
+}
+
+.chip.full,
+.badge.full {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  font-weight: 600;
+}
+
+.chip.warning,
+.badge.warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+/* ========================================
+   PRIZE DISPLAY (Finance widget)
+   ======================================== */
+.prize-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1));
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.prize-display .label {
+  font-size: 14px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.prize-display .amount.prize {
+  color: #f59e0b;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+@media (max-width: 768px) {
+  .countdown-unit .num {
+    font-size: 20px;
+    min-width: 25px;
+  }
+  
+  .countdown {
+    font-size: 16px;
+    gap: 6px;
+  }
+  
+  .finance-item .value {
+    font-size: 14px;
+  }
+  
+  .finance-item.highlight .value {
+    font-size: 16px;
+  }
+  
+  .capacity-stats {
+    font-size: 18px;
+  }
+}
+
+/* ========================================
+   DARK MODE SUPPORT
+   ======================================== */
+@media (prefers-color-scheme: light) {
+  .capacity-progress {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  
+  .finance-item,
+  .requirements-list li {
+    background: rgba(0, 0, 0, 0.03);
+  }
+  
+  .requirements-notice {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(147, 51, 234, 0.08));
+  }
+}
+
+/* ========================================
+   ANIMATION UTILITIES
+   ======================================== */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px rgba(59, 130, 246, 0.6);
+  }
+}
+
+.capacity-widget.nearly-full .capacity-bar,
+.finance-item.highlight {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+.phase1-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--glass, rgba(255, 255, 255, 0.1));
+}
+
+.phase1-status.open {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.phase1-status.closed {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.phase1-status.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.phase1-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.phase1-badge.live {
+  background: #ef4444;
+  color: white;
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.phase1-badge.featured {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.phase1-badge.new {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}

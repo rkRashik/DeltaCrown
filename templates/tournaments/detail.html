@@ -139,19 +139,44 @@
               <div class="card">
                 <h3 class="h3">Quick Facts</h3>
                 <dl class="meta compact">
-                  {% if ctx.schedule.starts_at %}<div><dt>Starts</dt><dd>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</dd></div>{% endif %}
-                  {% if ctx.schedule.ends_at %}<div><dt>Ends</dt><dd>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</dd></div>{% endif %}
-                  {% if ctx.schedule.reg_open %}<div><dt>Reg. open</dt><dd>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</dd></div>{% endif %}
-                  {% if ctx.schedule.reg_close %}<div><dt>Reg. close</dt><dd>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</dd></div>{% endif %}
+                  {% if schedule %}
+                    {# Phase 1 Schedule Data #}
+                    <div><dt>Starts</dt><dd>{{ schedule.start_at|date:"M j, H:i" }}</dd></div>
+                    <div><dt>Ends</dt><dd>{{ schedule.end_at|date:"M j, H:i" }}</dd></div>
+                    <div><dt>Reg. open</dt><dd>{{ schedule.registration_open_at|date:"M j, H:i" }}</dd></div>
+                    <div><dt>Reg. close</dt><dd>{{ schedule.registration_close_at|date:"M j, H:i" }}</dd></div>
+                  {% else %}
+                    {# Fallback to old context #}
+                    {% if ctx.schedule.starts_at %}<div><dt>Starts</dt><dd>{{ ctx.schedule.starts_at|date:"M j, H:i" }}</dd></div>{% endif %}
+                    {% if ctx.schedule.ends_at %}<div><dt>Ends</dt><dd>{{ ctx.schedule.ends_at|date:"M j, H:i" }}</dd></div>{% endif %}
+                    {% if ctx.schedule.reg_open %}<div><dt>Reg. open</dt><dd>{{ ctx.schedule.reg_open|date:"M j, H:i" }}</dd></div>{% endif %}
+                    {% if ctx.schedule.reg_close %}<div><dt>Reg. close</dt><dd>{{ ctx.schedule.reg_close|date:"M j, H:i" }}</dd></div>{% endif %}
+                  {% endif %}
                   {% if ctx.format.type %}<div><dt>Format</dt><dd>{{ ctx.format.type|title }}</dd></div>{% endif %}
                   {% if ctx.format.best_of %}<div><dt>Best of</dt><dd>Bo{{ ctx.format.best_of }}</dd></div>{% endif %}
                   {% if ctx.platform %}<div><dt>Platform</dt><dd>{{ ctx.platform }}</dd></div>{% endif %}
                   {% if ctx.region %}<div><dt>Region</dt><dd>{{ ctx.region }}</dd></div>{% endif %}
-                  {% if ctx.slots.capacity %}<div><dt>Slots</dt><dd>{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }}</dd></div>{% endif %}
+                  {% if capacity %}
+                    {# Phase 1 Capacity Data #}
+                    <div><dt>Slots</dt><dd>{{ capacity.current_teams }}/{{ capacity.max_teams }}</dd></div>
+                  {% elif ctx.slots.capacity %}
+                    {# Fallback to old context #}
+                    <div><dt>Slots</dt><dd>{{ ctx.slots.current|default:0 }}/{{ ctx.slots.capacity }}</dd></div>
+                  {% endif %}
                 </dl>
               </div>
 
-              {% if ctx.prize_pool %}
+              {% if finance %}
+                {# Phase 1 Finance Data #}
+                <div class="card">
+                  <h3 class="h3">Prize Pool</h3>
+                  <p><strong>{{ finance.prize_pool_display }}</strong></p>
+                  {% if ctx.prizes %}
+                    <p class="small muted" style="margin-top: 4px;">{{ ctx.prizes|length }} prize{{ ctx.prizes|length|pluralize }} available</p>
+                  {% endif %}
+                </div>
+              {% elif ctx.prize_pool %}
+                {# Fallback to old context #}
                 <div class="card">
                   <h3 class="h3">Prize Pool</h3>
                   <p><strong>৳{{ ctx.prize_pool|intcomma }}</strong></p>
@@ -399,7 +424,34 @@
         <article class="card">
           <h2 class="h2">Rules</h2>
 
-          {% if ctx.rules.text %}<div class="rich">{{ ctx.rules.text|safe }}</div>{% endif %}
+          {# Phase 1: Tournament Rules #}
+          {% if rules %}
+            {% if rules.requirements_list %}
+            <div style="margin-bottom: 16px;">
+              <h3 class="h3">Requirements</h3>
+              <ul class="requirements-list">
+                {% for req in rules.requirements_list %}
+                  <li><i class="fa-solid fa-check-circle"></i> {{ req }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if rules.min_age %}
+            <p class="small"><strong>Age Requirement:</strong> {{ rules.min_age }}+ years old</p>
+            {% endif %}
+
+            {% if rules.region_lock %}
+            <p class="small"><strong>Region:</strong> {{ rules.region_lock }}</p>
+            {% endif %}
+
+            {% if rules.rank_restriction %}
+            <p class="small"><strong>Rank Restriction:</strong> {{ rules.rank_restriction }}</p>
+            {% endif %}
+          {% endif %}
+
+          {# Original rules content #}
+          {% if ctx.rules.text %}<div class="rich" style="margin-top: 16px;">{{ ctx.rules.text|safe }}</div>{% endif %}
           {% if ctx.rules.extra %}<div class="rich" style="margin-top:.6rem;">{{ ctx.rules.extra|safe }}</div>{% endif %}
 
           {% if ctx.pdf_viewer %}
@@ -415,7 +467,7 @@
             </p>
           {% endif %}
 
-          {% if not ctx.rules.text and not ctx.rules.extra and not ctx.rules.pdf_url %}
+          {% if not rules and not ctx.rules.text and not ctx.rules.extra and not ctx.rules.pdf_url %}
             <p class="muted">Rules will be posted soon.</p>
           {% endif %}
         </article>

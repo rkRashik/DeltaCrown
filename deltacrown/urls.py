@@ -30,6 +30,9 @@ urlpatterns = [
     # Core apps (explicit)
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
+    
+    # API endpoints
+    path("api/tournaments/", include("apps.tournaments.api_urls")),
 
     # User profile â€” include ONCE with namespace & prefix invariant
     path("user/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
