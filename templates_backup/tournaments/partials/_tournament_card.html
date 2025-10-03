@@ -1,0 +1,62 @@
+{# expects: t (Tournament-like with dc_* attrs), optional state dict #}
+<article class="dc-card" data-game="{{ t.dc_game|default:'generic'|lower }}" data-tournament-slug="{{ t.dc_slug|default:'' }}">
+  <a href="{{ t.dc_url|default:'#' }}" class="dc-card-media" aria-label="{{ t.dc_title|default:'Tournament' }}">
+    {% if t.dc_banner_url %}
+      <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title|default:'Tournament' }} banner" loading="lazy" decoding="async">
+    {% else %}
+      <div class="dc-card-fallback" aria-hidden="true"></div>
+    {% endif %}
+
+    {# LIVE pill #}
+    {% if t.dc_status == 'live' %}
+      <span class="dc-live" aria-label="Live now">LIVE</span>
+    {% endif %}
+  </a>
+
+  <div class="dc-card-body">
+    <h3 class="dc-card-title">
+      <a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title|default:'Untitled Tournament' }}</a>
+    </h3>
+
+    <div class="dc-meta">
+      {# start time, if available #}
+      {% if t.starts_at %}
+        <span class="dc-chip-muted">Starts {{ t.starts_at|date:"M j, H:i" }}</span>
+      {% elif t.start_at %}
+        <span class="dc-chip-muted">Starts {{ t.start_at|date:"M j, H:i" }}</span>
+      {% endif %}
+
+      {% if t.dc_game %}
+        <span class="dc-chip-muted">{{ t.dc_game }}</span>
+      {% endif %}
+
+      {% if t.dc_fee_amount is not None %}
+        <span class="dc-chip-muted">
+          {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount|floatformat:0 }}{% endif %}
+        </span>
+      {% endif %}
+
+      {# optional prize (if helpers provided it via dc_map elsewhere) #}
+      {% if t.dc_prize_amount is not None %}
+        <span class="dc-chip-prize">Prize: ৳{{ t.dc_prize_amount|floatformat:0 }}</span>
+      {% endif %}
+
+      {# optional slots (when list views pass slots info) #}
+      {% if t.dc_slots_current is not None and t.dc_slots_capacity %}
+        <span class="dc-chip-muted">{{ t.dc_slots_current }}/{{ t.dc_slots_capacity }} slots</span>
+      {% endif %}
+    </div>
+
+    <div class="dc-actions">
+      <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}" aria-label="View details">View</a>
+
+      {# Modern Dynamic Registration Button - Loaded via AJAX #}
+      <div class="dc-reg-btn-container" data-tournament-slug="{{ t.dc_slug|default:'' }}" data-loading="true">
+        {# Skeleton loader while fetching button state #}
+        <div class="dc-btn-skeleton">
+          <div class="dc-skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>

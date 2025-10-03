@@ -1,0 +1,876 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+{% load dict_extras %}
+
+{% block title %}Register for {{ tournament.name }} — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/modern-registration.css' %}?v=2" />
+{% endblock %}
+
+{% block content %}
+<div class="modern-registration-container">
+  <!-- Header Section -->
+  <div class="registration-header">
+    <div class="breadcrumbs">
+      <a href="{% url 'tournaments:hub' %}">Tournaments</a>
+      <span>›</span>
+      <a href="{% url 'tournaments:detail' tournament.slug %}">{{ tournament.name }}</a>
+      <span>›</span>
+      <span class="current">Register</span>
+    </div>
+    
+    <h1 class="tournament-title">
+      <span class="gradient-text">{{ tournament.name }}</span>
+    </h1>
+    
+    <div class="tournament-info-chips">
+      {% if context.is_team_event %}
+        <span class="chip"><i class="fas fa-users"></i> Team Tournament</span>
+      {% else %}
+        <span class="chip"><i class="fas fa-user"></i> Solo Tournament</span>
+      {% endif %}
+      
+      {# Phase 1: Finance display from Phase 2 context #}
+      {% if finance %}
+        {% if finance.is_free %}
+          <span class="chip free"><i class="fas fa-gift"></i> Free Entry</span>
+        {% else %}
+          <span class="chip"><i class="fas fa-coins"></i> ৳{{ finance.entry_fee|intcomma }}</span>
+        {% endif %}
+        
+        {% if finance.prize_pool and finance.prize_pool > 0 %}
+          <span class="chip prize"><i class="fas fa-trophy"></i> Prize: ৳{{ finance.prize_pool|intcomma }}</span>
+        {% endif %}
+      {% elif entry_fee %}
+        <span class="chip"><i class="fas fa-coins"></i> ৳{{ entry_fee }}</span>
+      {% else %}
+        <span class="chip free"><i class="fas fa-gift"></i> Free Entry</span>
+      {% endif %}
+      
+      {# Phase 1: Schedule timing from Phase 2 context #}
+      {% if schedule %}
+        {% if schedule.is_registration_open and schedule.registration_close_at %}
+          <span class="chip warning">
+            <i class="fas fa-clock"></i> Closes {{ schedule.registration_close_at|date:"M j, H:i" }}
+          </span>
+        {% endif %}
+      {% elif context.registration_closes_in %}
+        <span class="chip warning">
+          <i class="fas fa-clock"></i> Closes in {{ context.registration_closes_in.days }}d {{ context.registration_closes_in.seconds|div:3600|floatformat:0 }}h
+        </span>
+      {% endif %}
+      
+      {# Phase 1: Capacity indicator #}
+      {% if capacity %}
+        <span class="chip {% if capacity.is_full %}full{% elif capacity.is_nearly_full %}warning{% endif %}">
+          <i class="fas fa-users"></i> {{ capacity.current_teams }}/{{ capacity.max_teams }} slots
+        </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Registration Status Check -->
+  {% if not context.can_register %}
+    <div class="registration-blocked">
+      <div class="blocked-icon">
+        {% if context.button_state == "registered" %}
+          <i class="fas fa-check-circle"></i>
+        {% elif context.button_state == "closed" %}
+          <i class="fas fa-lock"></i>
+        {% elif context.button_state == "full" %}
+          <i class="fas fa-users-slash"></i>
+        {% elif context.button_state == "started" %}
+          <i class="fas fa-play-circle"></i>
+        {% else %}
+          <i class="fas fa-exclamation-circle"></i>
+        {% endif %}
+      </div>
+      
+      <h2>{{ context.button_text }}</h2>
+      <p>{{ context.reason }}</p>
+      
+      {% if context.button_state == "registered" %}
+        <a href="{% url 'dashboard:index' %}" class="btn-primary">View Dashboard</a>
+      {% elif context.button_state == "request_approval" %}
+        <button class="btn-primary" onclick="openApprovalModal()">
+          <i class="fas fa-paper-plane"></i> Request Captain Approval
+        </button>
+      {% elif context.button_state == "request_pending" %}
+        <div class="pending-badge">
+          <i class="fas fa-hourglass-half"></i> 
+          Request sent to {{ context.user_team.captain.display_name }}
+        </div>
+      {% elif context.button_state == "no_team" %}
+        <a href="{% url 'teams:create' %}" class="btn-primary">Create Team</a>
+        <a href="{% url 'teams:list' %}" class="btn-secondary">Browse Teams</a>
+      {% else %}
+        <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-secondary">Back to Tournament</a>
+      {% endif %}
+    </div>
+  {% else %}
+    <!-- Multi-Step Registration Form -->
+    <form method="post" id="registrationForm" class="multi-step-form" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <!-- Progress Indicator -->
+      <div class="progress-indicator">
+        <div class="progress-step active" data-step="1">
+          <div class="step-number">1</div>
+          <div class="step-label">Profile</div>
+        </div>
+        
+        {% if context.is_team_event %}
+        <div class="progress-step" data-step="2">
+          <div class="step-number">2</div>
+          <div class="step-label">Team</div>
+        </div>
+        {% endif %}
+        
+        <div class="progress-step" data-step="{% if context.is_team_event %}3{% else %}2{% endif %}">
+          <div class="step-number">{% if context.is_team_event %}3{% else %}2{% endif %}</div>
+          <div class="step-label">Review</div>
+        </div>
+        
+        {% if context.requires_payment %}
+        <div class="progress-step" data-step="{% if context.is_team_event %}4{% else %}3{% endif %}">
+          <div class="step-number">{% if context.is_team_event %}4{% else %}3{% endif %}</div>
+          <div class="step-label">Payment</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Step 1: Profile Information -->
+      <div class="form-step active" data-step="1">
+        <h2 class="step-title">
+          <i class="fas fa-user"></i> Your Information
+        </h2>
+        <p class="step-description">Please verify your contact details. Most fields are pre-filled from your profile.</p>
+        
+        {# Phase 1: Requirements checklist (if rules available) #}
+        {% if rules and rules.requirements_list %}
+        <div class="requirements-notice">
+          <h4><i class="fas fa-clipboard-list"></i> Tournament Requirements</h4>
+          <ul class="requirements-compact">
+            {% for req in rules.requirements_list|slice:":5" %}
+              <li><i class="fas fa-check-circle"></i> {{ req }}</li>
+            {% endfor %}
+            {% if rules.requirements_list|length > 5 %}
+              <li class="more"><i class="fas fa-ellipsis-h"></i> +{{ rules.requirements_list|length|add:"-5" }} more (see Rules tab)</li>
+            {% endif %}
+          </ul>
+          
+          {% if rules.min_age %}
+            <p class="requirement-item"><strong>Age:</strong> Must be {{ rules.min_age }}+ years old</p>
+          {% endif %}
+          {% if rules.region_lock %}
+            <p class="requirement-item"><strong>Region:</strong> {{ rules.region_lock }} only</p>
+          {% endif %}
+          {% if rules.rank_restriction %}
+            <p class="requirement-item"><strong>Rank:</strong> {{ rules.rank_restriction }}</p>
+          {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="display_name">
+              Display Name <span class="required">*</span>
+              <i class="fas fa-info-circle tooltip-icon" title="Name shown in tournament bracket"></i>
+            </label>
+            <input 
+              type="text" 
+              name="display_name" 
+              id="display_name" 
+              value="{{ profile_data.display_name }}"
+              required
+              class="auto-filled"
+            />
+            <span class="field-hint">This name will appear on the bracket</span>
+          </div>
+          
+          <div class="form-field">
+            <label for="email">
+              Email Address <span class="required">*</span>
+            </label>
+            <input 
+              type="email" 
+              name="email" 
+              id="email" 
+              value="{{ profile_data.email }}"
+              required
+              readonly
+              class="locked-field"
+            />
+            <span class="field-hint"><i class="fas fa-lock"></i> Locked from profile</span>
+          </div>
+          
+          <div class="form-field">
+            <label for="phone">
+              Contact Number <span class="required">*</span>
+            </label>
+            <input 
+              type="tel" 
+              name="phone" 
+              id="phone" 
+              value="{{ profile_data.phone }}"
+              required
+              placeholder="01XXXXXXXXX"
+              pattern="^(?:\+?880|0)1[0-9]{9}$"
+              class="auto-filled"
+            />
+            <span class="field-hint">Bangladesh mobile number (e.g., 01712345678)</span>
+            <span class="field-error" style="display:none;"></span>
+          </div>
+          
+          <div class="form-field">
+            <label for="in_game_id">
+              In-Game ID {% if rules and rules.requires_game_id %}<span class="required">*</span>{% else %}<span class="optional">(Optional)</span>{% endif %}
+            </label>
+            <input 
+              type="text" 
+              name="in_game_id" 
+              id="in_game_id" 
+              value="{% if tournament.game == 'valorant' %}{{ profile_data.riot_id }}{% elif tournament.game == 'efootball' %}{{ profile_data.efootball_id }}{% endif %}"
+              {% if rules and rules.requires_game_id %}required{% endif %}
+              placeholder="YourGameID#TAG"
+              class="auto-filled"
+            />
+            <span class="field-hint">
+              {% if tournament.game == 'valorant' %}
+                Riot ID (e.g., PlayerName#TAG)
+              {% elif tournament.game == 'efootball' %}
+                eFootball ID
+              {% else %}
+                Your in-game identifier
+              {% endif %}
+            </span>
+          </div>
+          
+          <div class="form-field">
+            <label for="discord_id">
+              Discord ID {% if rules and rules.requires_discord %}<span class="required">*</span>{% else %}<span class="optional">(Optional)</span>{% endif %}
+            </label>
+            <input 
+              type="text" 
+              name="discord_id" 
+              id="discord_id" 
+              value="{{ profile_data.discord_id }}"
+              {% if rules and rules.requires_discord %}required{% endif %}
+              placeholder="username#1234"
+              class="auto-filled"
+            />
+            <span class="field-hint">{% if rules and rules.requires_discord %}<strong>Required</strong> for tournament communications{% else %}For tournament communications{% endif %}</span>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-next" onclick="nextStep()">
+            Continue <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Team Information (Only for Team Tournaments) -->
+      {% if context.is_team_event and team_data %}
+      <div class="form-step" data-step="2">
+        <h2 class="step-title">
+          <i class="fas fa-users"></i> Team Information
+        </h2>
+        <p class="step-description">Verify your team roster before registration.</p>
+        
+        <!-- Team Summary Card -->
+        <div class="team-summary-card">
+          <div class="team-header">
+            {% if team_data.team_logo_url %}
+              <img src="{{ team_data.team_logo_url }}" alt="{{ team_data.team_name }} logo" class="team-logo" />
+            {% else %}
+              <div class="team-logo-placeholder">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+            {% endif %}
+            
+            <div class="team-info">
+              <h3>{{ team_data.team_name }}</h3>
+              {% if team_data.team_tag %}
+                <span class="team-tag">{{ team_data.team_tag }}</span>
+              {% endif %}
+            </div>
+          </div>
+          
+          <div class="team-roster">
+            <h4>Team Roster</h4>
+            {% for member in team_data.members %}
+            <div class="roster-member {% if member.is_captain %}captain{% endif %}">
+              <div class="member-info">
+                <span class="member-role">
+                  {% if member.is_captain %}
+                    <i class="fas fa-crown"></i> Captain
+                  {% elif member.role == "MANAGER" %}
+                    <i class="fas fa-user-tie"></i> Manager
+                  {% elif member.role == "SUB" %}
+                    <i class="fas fa-user-clock"></i> Substitute
+                  {% else %}
+                    <i class="fas fa-user"></i> Player
+                  {% endif %}
+                </span>
+                <span class="member-name">{{ member.display_name }}</span>
+              </div>
+              
+              {% if member.verified %}
+                <span class="verified-badge">
+                  <i class="fas fa-check-circle"></i> Verified
+                </span>
+              {% else %}
+                <span class="unverified-badge">
+                  <i class="fas fa-exclamation-circle"></i> Unverified
+                </span>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          
+          <div class="team-stats">
+            <div class="stat">
+              <i class="fas fa-users"></i>
+              <span>{{ team_data.members|length }} Members</span>
+            </div>
+            <div class="stat">
+              <i class="fas fa-check-circle"></i>
+              <span>All Verified</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-back" onclick="prevStep()">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button type="button" class="btn-next" onclick="nextStep()">
+            Continue <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Step 3: Review & Confirm -->
+      <div class="form-step" data-step="{% if context.is_team_event %}3{% else %}2{% endif %}">
+        <h2 class="step-title">
+          <i class="fas fa-clipboard-check"></i> Review & Confirm
+        </h2>
+        <p class="step-description">Please review all information before submitting.</p>
+        
+        <div class="review-section">
+          <h3>Profile Information</h3>
+          <div class="review-grid">
+            <div class="review-item">
+              <span class="review-label">Display Name:</span>
+              <span class="review-value" id="review-display-name">-</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Email:</span>
+              <span class="review-value" id="review-email">-</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Contact:</span>
+              <span class="review-value" id="review-phone">-</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">In-Game ID:</span>
+              <span class="review-value" id="review-in-game-id">-</span>
+            </div>
+          </div>
+          
+          {% if context.is_team_event %}
+          <h3>Team Information</h3>
+          <div class="review-grid">
+            <div class="review-item">
+              <span class="review-label">Team:</span>
+              <span class="review-value">{{ team_data.team_name }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Members:</span>
+              <span class="review-value">{{ team_data.members|length }} players</span>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="rules-agreement">
+          <label class="checkbox-label">
+            <input type="checkbox" name="agree_rules" id="agree_rules" required />
+            <span>I have read and agree to the <a href="#" onclick="event.preventDefault(); openRulesModal();">tournament rules</a> and <a href="#" onclick="event.preventDefault(); openTermsModal();">terms of service</a></span>
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-back" onclick="prevStep()">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          {% if context.requires_payment %}
+            <button type="button" class="btn-next" onclick="nextStep()">
+              Continue to Payment <i class="fas fa-arrow-right"></i>
+            </button>
+          {% else %}
+            <button type="submit" class="btn-submit">
+              <i class="fas fa-check"></i> Submit Registration
+            </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Step 4: Payment (If Required) -->
+      {% if context.requires_payment or finance and not finance.is_free %}
+      <div class="form-step" data-step="{% if context.is_team_event %}4{% else %}3{% endif %}">
+        <h2 class="step-title">
+          <i class="fas fa-credit-card"></i> Payment Information
+        </h2>
+        <p class="step-description">Complete payment to finalize your registration.</p>
+        
+        <div class="payment-summary">
+          <div class="amount-display">
+            <span class="label">Entry Fee:</span>
+            <span class="amount">৳{% if finance %}{{ finance.entry_fee|intcomma }}{% else %}{{ entry_fee }}{% endif %}</span>
+          </div>
+          {% if finance and finance.prize_pool and finance.prize_pool > 0 %}
+          <div class="prize-display">
+            <span class="label"><i class="fas fa-trophy"></i> Prize Pool:</span>
+            <span class="amount prize">৳{{ finance.prize_pool|intcomma }}</span>
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="form-field">
+          <label for="payment_method">
+            Payment Method <span class="required">*</span>
+          </label>
+          <select name="payment_method" id="payment_method" required>
+            <option value="">Select payment method</option>
+            <option value="bkash">bKash</option>
+            <option value="nagad">Nagad</option>
+            <option value="rocket">Rocket</option>
+            <option value="bank">Bank Transfer</option>
+          </select>
+        </div>
+        
+        <div class="form-field">
+          <label for="payer_account_number">
+            Your Account Number <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            name="payer_account_number" 
+            id="payer_account_number" 
+            required
+            placeholder="01XXXXXXXXX"
+          />
+          <span class="field-hint">Account you're paying from</span>
+        </div>
+        
+        <div class="form-field">
+          <label for="payment_reference">
+            Transaction ID <span class="required">*</span>
+          </label>
+          <input 
+            type="text" 
+            name="payment_reference" 
+            id="payment_reference" 
+            required
+            minlength="6"
+            placeholder="TXN123456789"
+          />
+          <span class="field-hint">Transaction ID from your payment app</span>
+        </div>
+        
+        <div class="payment-instructions-card">
+          <div class="payment-instructions-header">
+            <i class="fas fa-info-circle"></i>
+            <h4>Payment Instructions</h4>
+          </div>
+          
+          <div class="payment-methods-info">
+            {% if tournament.settings.bkash_receive_number %}
+            <div class="payment-method-detail">
+              <div class="method-header">
+                <div class="method-icon bkash">
+                  <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div class="method-info">
+                  <strong>bKash</strong>
+                  <span class="method-type">{{ tournament.settings.bkash_receive_type|default:"Personal" }}</span>
+                </div>
+              </div>
+              <div class="method-number">
+                <span class="number-label">Account Number:</span>
+                <span class="number-value">{{ tournament.settings.bkash_receive_number }}</span>
+                <button type="button" class="copy-btn" onclick="copyToClipboard('{{ tournament.settings.bkash_receive_number }}')"><i class="fas fa-copy"></i></button>
+              </div>
+            </div>
+            {% endif %}
+            
+            {% if tournament.settings.nagad_receive_number %}
+            <div class="payment-method-detail">
+              <div class="method-header">
+                <div class="method-icon nagad">
+                  <i class="fas fa-wallet"></i>
+                </div>
+                <div class="method-info">
+                  <strong>Nagad</strong>
+                  <span class="method-type">{{ tournament.settings.nagad_receive_type|default:"Personal" }}</span>
+                </div>
+              </div>
+              <div class="method-number">
+                <span class="number-label">Account Number:</span>
+                <span class="number-value">{{ tournament.settings.nagad_receive_number }}</span>
+                <button type="button" class="copy-btn" onclick="copyToClipboard('{{ tournament.settings.nagad_receive_number }}')"><i class="fas fa-copy"></i></button>
+              </div>
+            </div>
+            {% endif %}
+            
+            {% if tournament.settings.rocket_receive_number %}
+            <div class="payment-method-detail">
+              <div class="method-header">
+                <div class="method-icon rocket">
+                  <i class="fas fa-rocket"></i>
+                </div>
+                <div class="method-info">
+                  <strong>Rocket</strong>
+                  <span class="method-type">{{ tournament.settings.rocket_receive_type|default:"Personal" }}</span>
+                </div>
+              </div>
+              <div class="method-number">
+                <span class="number-label">Account Number:</span>
+                <span class="number-value">{{ tournament.settings.rocket_receive_number }}</span>
+                <button type="button" class="copy-btn" onclick="copyToClipboard('{{ tournament.settings.rocket_receive_number }}')"><i class="fas fa-copy"></i></button>
+              </div>
+            </div>
+            {% endif %}
+            
+            {% if tournament.settings.bank_instructions %}
+            <div class="payment-method-detail">
+              <div class="method-header">
+                <div class="method-icon bank">
+                  <i class="fas fa-university"></i>
+                </div>
+                <div class="method-info">
+                  <strong>Bank Transfer</strong>
+                </div>
+              </div>
+              <div class="bank-instructions">
+                {{ tournament.settings.bank_instructions|linebreaks }}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+          
+          <div class="payment-steps">
+            <h5><i class="fas fa-list-ol"></i> How to Pay</h5>
+            <ol>
+              <li><strong>Choose</strong> your preferred payment method from the dropdown above</li>
+              <li><strong>Send ৳{{ entry_fee }}</strong> to the organizer's account shown below</li>
+              <li><strong>Copy</strong> the transaction ID from your payment app</li>
+              <li><strong>Enter</strong> your account number and transaction ID in the form</li>
+              <li><strong>Submit</strong> your registration - we'll verify within 24 hours</li>
+            </ol>
+          </div>
+          
+          <div class="payment-note">
+            <i class="fas fa-exclamation-triangle"></i>
+            <p><strong>Important:</strong> Double-check the account number before sending money. Keep your transaction ID safe - you'll need it to complete registration.</p>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-back" onclick="prevStep()">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-check"></i> Submit Registration
+          </button>
+        </div>
+      </div>
+      {% endif %}
+    </form>
+  {% endif %}
+</div>
+
+<!-- Approval Request Modal -->
+<div id="approvalModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Request Captain Approval</h3>
+      <button class="modal-close" onclick="closeApprovalModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <p>Send a request to your team captain to register for this tournament.</p>
+      
+      <div class="form-field">
+        <label for="approval_message">Message (Optional)</label>
+        <textarea 
+          id="approval_message" 
+          rows="4" 
+          placeholder="Add a message for your captain..."
+          maxlength="500"
+        ></textarea>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeApprovalModal()">Cancel</button>
+      <button class="btn-primary" onclick="submitApprovalRequest()">
+        <i class="fas fa-paper-plane"></i> Send Request
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Tournament Rules Modal -->
+<div id="rulesModal" class="modal" style="display:none;">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h3><i class="fas fa-gavel"></i> Tournament Rules</h3>
+      <button class="modal-close" onclick="closeRulesModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body modal-scrollable">
+      {% if tournament.settings.rules_text or tournament.settings.rules_html %}
+        <div class="rules-content">
+          {{ tournament.settings.rules_html|safe|default:tournament.settings.rules_text|linebreaks }}
+        </div>
+      {% else %}
+        <div class="rules-content">
+          <h4>General Tournament Rules</h4>
+          <ol>
+            <li><strong>Eligibility:</strong> All participants must be registered on DeltaCrown platform.</li>
+            <li><strong>Fair Play:</strong> Cheating, hacking, or exploiting game bugs is strictly prohibited.</li>
+            <li><strong>Conduct:</strong> Respectful behavior is mandatory. Harassment will result in disqualification.</li>
+            <li><strong>Check-in:</strong> Participants must check-in before the tournament starts (if required).</li>
+            <li><strong>Disputes:</strong> Any disputes should be reported immediately to tournament admins.</li>
+            <li><strong>Schedule:</strong> Matches must be played according to the tournament schedule.</li>
+            <li><strong>Communication:</strong> Join the official Discord server for updates and support.</li>
+          </ol>
+          
+          <h4>Game-Specific Rules</h4>
+          <p>Additional rules specific to {{ tournament.game|title }} will be announced before the tournament begins.</p>
+          
+          <h4>Penalties</h4>
+          <ul>
+            <li>First offense: Warning</li>
+            <li>Second offense: Match forfeit</li>
+            <li>Third offense: Tournament ban</li>
+          </ul>
+        </div>
+      {% endif %}
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="closeRulesModal()">I Understand</button>
+    </div>
+  </div>
+</div>
+
+<!-- Terms of Service Modal -->
+<div id="termsModal" class="modal" style="display:none;">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h3><i class="fas fa-file-contract"></i> Terms of Service</h3>
+      <button class="modal-close" onclick="closeTermsModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body modal-scrollable">
+      <div class="terms-content">
+        <h4>1. Agreement to Terms</h4>
+        <p>By registering for this tournament, you agree to abide by these terms and conditions.</p>
+        
+        <h4>2. Registration</h4>
+        <p>All information provided during registration must be accurate and truthful. False information may result in disqualification.</p>
+        
+        <h4>3. Payment & Refunds</h4>
+        <p>Entry fees are non-refundable once the tournament begins. Refunds may be considered only if the tournament is cancelled by organizers.</p>
+        
+        <h4>4. Prize Distribution</h4>
+        <p>Prizes will be distributed according to the announced prize pool. Winners must provide valid payment information for prize transfer.</p>
+        
+        <h4>5. Disqualification</h4>
+        <p>Organizers reserve the right to disqualify participants for rule violations, unsportsmanlike conduct, or providing false information.</p>
+        
+        <h4>6. Tournament Changes</h4>
+        <p>Organizers may modify tournament schedule, format, or rules if necessary. Participants will be notified of any changes.</p>
+        
+        <h4>7. Data Privacy</h4>
+        <p>Your personal information will be used only for tournament administration and will not be shared with third parties without consent.</p>
+        
+        <h4>8. Liability</h4>
+        <p>Organizers are not responsible for technical issues, internet connectivity problems, or force majeure events affecting the tournament.</p>
+        
+        <h4>9. Intellectual Property</h4>
+        <p>All tournament materials, brackets, and content are property of DeltaCrown and may not be reproduced without permission.</p>
+        
+        <h4>10. Contact</h4>
+        <p>For questions or concerns, contact us through the support ticket system or Discord.</p>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="closeTermsModal()">I Accept</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Multi-step form logic
+let currentStep = 1;
+const totalSteps = document.querySelectorAll('.form-step').length;
+
+function nextStep() {
+  if (validateCurrentStep()) {
+    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+    document.querySelector(`.progress-step[data-step="${currentStep}"]`).classList.remove('active');
+    
+    currentStep++;
+    
+    document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
+    document.querySelector(`.progress-step[data-step="${currentStep}"]`).classList.add('active');
+    
+    if (currentStep === {{ context.is_team_event|yesno:"3,2" }}) {
+      updateReview();
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function prevStep() {
+  document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.remove('active');
+  document.querySelector(`.progress-step[data-step="${currentStep}"]`).classList.remove('active');
+  
+  currentStep--;
+  
+  document.querySelector(`.form-step[data-step="${currentStep}"]`).classList.add('active');
+  document.querySelector(`.progress-step[data-step="${currentStep}"]`).classList.add('active');
+  
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateCurrentStep() {
+  const step = document.querySelector(`.form-step[data-step="${currentStep}"]`);
+  const inputs = step.querySelectorAll('input[required], select[required], textarea[required]');
+  
+  let valid = true;
+  inputs.forEach(input => {
+    if (!input.value.trim()) {
+      input.classList.add('error');
+      valid = false;
+    } else {
+      input.classList.remove('error');
+    }
+  });
+  
+  return valid;
+}
+
+function updateReview() {
+  document.getElementById('review-display-name').textContent = document.getElementById('display_name').value;
+  document.getElementById('review-email').textContent = document.getElementById('email').value;
+  document.getElementById('review-phone').textContent = document.getElementById('phone').value;
+  document.getElementById('review-in-game-id').textContent = document.getElementById('in_game_id').value;
+}
+
+// Approval modal
+function openApprovalModal() {
+  document.getElementById('approvalModal').style.display = 'flex';
+}
+
+function closeApprovalModal() {
+  document.getElementById('approvalModal').style.display = 'none';
+}
+
+function submitApprovalRequest() {
+  const message = document.getElementById('approval_message').value;
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch("{% url 'tournaments:request_approval_api' tournament.slug %}", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-CSRFToken': csrfToken
+    },
+    body: `message=${encodeURIComponent(message)}`
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(data.message);
+      closeApprovalModal();
+      location.reload();
+    } else {
+      alert('Error: ' + JSON.stringify(data.errors));
+    }
+  })
+  .catch(error => {
+    alert('Request failed: ' + error);
+  });
+}
+
+// Rules modal
+function openRulesModal() {
+  document.getElementById('rulesModal').style.display = 'flex';
+}
+
+function closeRulesModal() {
+  document.getElementById('rulesModal').style.display = 'none';
+}
+
+// Terms modal
+function openTermsModal() {
+  document.getElementById('termsModal').style.display = 'flex';
+}
+
+function closeTermsModal() {
+  document.getElementById('termsModal').style.display = 'none';
+}
+
+// Copy to clipboard function
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(function() {
+    // Show success feedback
+    const btn = event.target.closest('.copy-btn');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    btn.classList.add('copied');
+    
+    setTimeout(function() {
+      btn.innerHTML = originalHTML;
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(function(err) {
+    alert('Failed to copy: ' + err);
+  });
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+  if (event.target.classList.contains('modal')) {
+    event.target.style.display = 'none';
+  }
+}
+
+// Real-time validation
+document.getElementById('phone')?.addEventListener('input', function(e) {
+  const phone = e.target.value.replace(/\s/g, '');
+  const pattern = /^(?:\+?880|0)1[0-9]{9}$/;
+  const errorSpan = e.target.parentElement.querySelector('.field-error');
+  
+  if (phone && !pattern.test(phone)) {
+    e.target.classList.add('error');
+    errorSpan.textContent = 'Invalid Bangladesh mobile number';
+    errorSpan.style.display = 'block';
+  } else {
+    e.target.classList.remove('error');
+    errorSpan.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}

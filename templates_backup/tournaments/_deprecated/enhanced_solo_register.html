@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Register for {{ tournament.name }} - DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-register.css' %}">
+<style>
+.register-hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    padding: 60px 0;
+    margin-bottom: 40px;
+}
+
+.register-form {
+    background: white;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+    padding: 12px 15px;
+    font-size: 16px;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #C9A96E;
+    box-shadow: 0 0 0 0.2rem rgba(201, 169, 110, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #C9A96E, #F4E4BC);
+    border: none;
+    color: #333;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(201,169,110,0.4);
+}
+
+.tournament-info {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.payment-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.payment-method {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.payment-method:hover {
+    border-color: #C9A96E;
+    background: #f8f9fa;
+}
+
+.payment-method.selected {
+    border-color: #C9A96E;
+    background: rgba(201, 169, 110, 0.1);
+}
+
+.required {
+    color: #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="register-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">Register for Tournament</h1>
+                <h2 class="text-warning">{{ tournament.name }}</h2>
+                <p class="lead">{{ tournament.get_game_display }} • Solo Registration</p>
+            </div>
+            <div class="col-lg-4 text-center">
+                <div class="tournament-stats">
+                    <div class="stat-item">
+                        <h3>৳{{ entry_fee }}</h3>
+                        <small>Entry Fee</small>
+                    </div>
+                    <div class="stat-item">
+                        <h3>৳{{ prize_pool }}</h3>
+                        <small>Prize Pool</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="register-form">
+                <h3 class="mb-4">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Solo Player Registration
+                </h3>
+                
+                <div class="tournament-info">
+                    <h5>Tournament Details</h5>
+                    <ul class="mb-0">
+                        <li><strong>Game:</strong> {{ tournament.get_game_display }}</li>
+                        <li><strong>Start:</strong> {{ tournament.start_at|date:"F d, Y \\a\\t g:i A"|default:"TBD" }}</li>
+                        <li><strong>Registration Closes:</strong> {{ tournament.reg_close_at|date:"F d, Y \\a\\t g:i A"|default:"TBD" }}</li>
+                        <li><strong>Slots:</strong> {{ tournament.slots_taken|default:0 }}/{{ tournament.slot_size|default:"Unlimited" }}</li>
+                    </ul>
+                </div>
+
+                <form method="post" id="registrationForm">
+                    {% csrf_token %}
+                    
+                    <!-- Game ID Field -->
+                    <div class="form-group">
+                        <label for="{{ tournament.game }}_id" class="form-label">
+                            {{ tournament.get_game_display }} ID <span class="required">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="{{ tournament.game }}_id" name="{{ tournament.game }}_id" 
+                               placeholder="Enter your {{ tournament.get_game_display }} player ID" required>
+                        <div class="form-text">
+                            {% if tournament.game == 'valorant' %}
+                                Enter your Riot ID (e.g., PlayerName#TAG)
+                            {% elif tournament.game == 'efootball' %}
+                                Enter your eFootball player ID
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if entry_fee > 0 %}
+                    <!-- Payment Method -->
+                    <div class="form-group">
+                        <label class="form-label">Payment Method <span class="required">*</span></label>
+                        <div class="payment-methods">
+                            <div class="payment-method" data-method="bkash">
+                                <img src="{% static 'ecommerce/img/bkash-logo.png' %}" alt="bKash" height="30">
+                                <div class="mt-2">bKash</div>
+                            </div>
+                            <div class="payment-method" data-method="nagad">
+                                <img src="{% static 'ecommerce/img/nagad-logo.png' %}" alt="Nagad" height="30">
+                                <div class="mt-2">Nagad</div>
+                            </div>
+                            <div class="payment-method" data-method="rocket">
+                                <img src="{% static 'ecommerce/img/rocket-logo.png' %}" alt="Rocket" height="30">
+                                <div class="mt-2">Rocket</div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="payment_method" id="payment_method" required>
+                    </div>
+
+                    <!-- Transaction ID -->
+                    <div class="form-group">
+                        <label for="payment_reference" class="form-label">
+                            Transaction ID <span class="required">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="payment_reference" name="payment_reference" 
+                               placeholder="Enter your transaction ID after payment" required>
+                        <div class="form-text">
+                            Complete payment first, then enter your transaction ID here.
+                        </div>
+                    </div>
+
+                    <!-- Payment Instructions -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Payment Instructions</h6>
+                        <ol class="mb-0">
+                            <li>Send <strong>৳{{ entry_fee }}</strong> using your preferred mobile banking app</li>
+                            <li>Use reference: <strong>DC-{{ tournament.id }}-{{ user_profile.id }}</strong></li>
+                            <li>Enter your transaction ID above</li>
+                            <li>Submit this form to complete registration</li>
+                        </ol>
+                    </div>
+                    {% endif %}
+
+                    <!-- Terms and Conditions -->
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            I agree to the <a href="#" target="_blank">tournament rules</a> and <a href="#" target="_blank">terms of service</a>
+                        </label>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-rocket me-2"></i>
+                            {% if entry_fee > 0 %}Submit Registration & Payment{% else %}Register Now{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Payment method selection
+    const paymentMethods = document.querySelectorAll('.payment-method');
+    const paymentMethodInput = document.getElementById('payment_method');
+
+    paymentMethods.forEach(method => {
+        method.addEventListener('click', function() {
+            paymentMethods.forEach(pm => pm.classList.remove('selected'));
+            this.classList.add('selected');
+            paymentMethodInput.value = this.dataset.method;
+        });
+    });
+
+    // Form submission
+    const form = document.getElementById('registrationForm');
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        submitBtn.disabled = true;
+        
+        // Re-enable on error (form validation will show errors)
+        setTimeout(() => {
+            if (submitBtn.disabled) {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}

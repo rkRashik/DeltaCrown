@@ -1,0 +1,14 @@
+{% load static %}
+{% with img=g.image|default:"" %}
+<article class="dc-game">
+  <a class="dc-game-inner" href="{% url 'tournaments:game' g.slug %}">
+    <div class="dc-game-bg" style="{% if img %}background-image: url('{% static img %}');{% endif %}"></div>
+    <div class="dc-game-overlay"></div>
+    <div class="dc-game-content">
+      <div class="dc-game-chip" style="--game-color: {{ g.primary|default:'#7c3aed' }}"></div>
+      <h3 class="dc-game-title">{{ g.name }}</h3>
+      <span class="dc-game-count">{{ g.count }} active</span>
+    </div>
+  </a>
+</article>
+{% endwith %}

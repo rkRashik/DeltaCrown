@@ -1,0 +1,272 @@
+﻿{% extends "base.html" %}
+{% load static tournament_dict_utils humanize %}
+
+{% block title %}Play. Win. Be Seen — Tournaments | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/tournament-hub-modern.css' %}?v=2">
+<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}?v=1">
+<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}?v=1">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/tournaments-hub.js' %}"></script>
+<script src="{% static 'siteui/js/tournaments-hub-modern.js' %}?v=2"></script>
+<script src="{% static 'js/tournament-card-dynamic.js' %}?v=4"></script>
+<script src="{% static 'js/countdown-timer.js' %}?v=1"></script>
+<script src="{% static 'js/tournament-state-poller.js' %}?v=2"></script>
+{% endblock %}
+
+{% block content %}
+<section class="dc-container">
+
+  {# ---------------- HERO ---------------- #}
+  <header class="hero-2025" id="top">
+    <div class="hero-bg">
+      <div class="hero-noise"></div>
+      <div class="hero-grid"></div>
+      <div class="hero-glow hero-glow-a"></div>
+      <div class="hero-glow hero-glow-b"></div>
+    </div>
+
+    <div class="hero-wrap">
+      <div class="hero-left">
+        <p class="eyebrow">Official Bangladesh Platform</p>
+        <h1 class="hero-title">Compete. Climb. <span class="grad">Get Noticed.</span></h1>
+        <p class="hero-sub">Join premium esports tournaments across Valorant, eFootball, CS2, FC, MLBB, PUBG and more. Verified prizes, fair brackets, real-time standings.</p>
+
+        <div class="hero-ctas">
+          <a class="cta-primary" href="#browse">Browse Tournaments</a>
+          <a class="cta-secondary" href="#all">All Tournaments</a>
+        </div>
+
+        <ul class="hero-stats" aria-label="Platform stats">
+          <li><strong>{{ stats.total_active|default:"0" }}</strong><span>Active now</span></li>
+          <li><strong>{{ stats.players_this_month|intcomma|default:"0" }}</strong><span>Players this month</span></li>
+          <li><strong>৳{{ stats.prize_pool_month|intcomma|default:"0" }}</strong><span>Prize pool</span></li>
+        </ul>
+
+        <div class="trust-row" aria-label="Trust markers">
+          <span class="trust-badge">Fast payouts</span>
+          <span class="trust-badge">Anti-smurf checks</span>
+          <span class="trust-badge">Live support</span>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="hero-card">
+          <div class="hc-top">
+            <span class="live-dot" aria-hidden="true"></span>
+            {% if live_tournaments %}LIVE NOW{% elif featured %}Featured Tournament{% else %}Upcoming{% endif %}
+          </div>
+          <div class="hc-body">
+            {% if live_tournaments %}
+              {% with t=live_tournaments.0 %}
+                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
+                  {% if t.dc_banner_url %}
+                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
+                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
+                </a>
+                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
+                <div class="hc-meta">
+                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
+                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
+                  {% if t.dc_fee_amount is not None %}
+                    <span><i class="fa-solid fa-tag"></i> {% if t.dc_fee_amount == 0 %}Free{% else %}৳{{ t.dc_fee_amount|intcomma }}{% endif %}</span>
+                  {% endif %}
+                </div>
+                
+                {# Countdown Timer for LIVE tournament #}
+                {% if t.ends_at %}
+                  <div class="countdown-timer" 
+                       data-countdown-type="tournament-end"
+                       data-target-time="{{ t.ends_at|date:'c' }}"
+                       data-tournament-slug="{{ t.slug }}">
+                  </div>
+                {% endif %}
+                
+                <div class="hc-cta">
+                  <a class="cta-primary" href="{{ t.register_url }}">
+                    <i class="fa-solid fa-user-plus"></i> Join Now
+                  </a>
+                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
+                    <i class="fa-solid fa-arrow-right"></i> Details
+                  </a>
+                </div>
+              {% endwith %}
+            {% elif featured %}
+              {% with t=featured.0 %}
+                <a class="hc-banner" href="{{ t.dc_url|default:'#' }}">
+                  {% if t.dc_banner_url %}
+                    <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title }}" loading="eager">
+                  {% else %}<div class="hc-fallback" aria-hidden="true"></div>{% endif %}
+                </a>
+                <h3 class="hc-title"><a href="{{ t.dc_url|default:'#' }}">{{ t.dc_title }}</a></h3>
+                <div class="hc-meta">
+                  {% if t.starts_at %}<span><i class="fa-solid fa-calendar"></i> {{ t.starts_at|date:"M j, H:i" }}</span>{% endif %}
+                  {% if t.dc_game %}<span><i class="fa-solid fa-gamepad"></i> {{ t.dc_game }}</span>{% endif %}
+                  {% if t.dc_prize_pool %}<span><i class="fa-solid fa-trophy"></i> ৳{{ t.dc_prize_pool|intcomma }}</span>{% endif %}
+                </div>
+                
+                {# Countdown Timer for Featured tournament #}
+                {% if t.starts_at %}
+                  <div class="countdown-timer" 
+                       data-countdown-type="tournament-start"
+                       data-target-time="{{ t.starts_at|date:'c' }}"
+                       data-tournament-slug="{{ t.slug }}">
+                  </div>
+                {% endif %}
+                
+                <div class="hc-cta">
+                  <a class="cta-primary" href="{{ t.register_url }}">
+                    <i class="fa-solid fa-user-plus"></i> Register
+                  </a>
+                  <a class="cta-ghost" href="{{ t.dc_url|default:'#' }}">
+                    <i class="fa-solid fa-arrow-right"></i> View
+                  </a>
+                </div>
+              {% endwith %}
+            {% else %}
+              <div class="hc-empty">
+                <p style="margin: 0;">No tournaments currently live.</p>
+                <p style="margin: 8px 0 0; font-size: 13px; opacity: 0.7;">Check back soon or browse upcoming tournaments below.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  {# ---------------- BROWSE BY GAME (top under hero) ---------------- #}
+  <section class="section-head" id="browse" aria-labelledby="browse-title">
+    <h2 id="browse-title" class="section-title">Browse by Game</h2>
+    <a class="section-link" href="#all">All tournaments</a>
+  </section>
+  <div class="game-grid">
+    {% for g in games %}
+      {% include "tournaments/partials/_game_card.html" with g=g %}
+    {% endfor %}
+  </div>
+
+  {# ---------------- ALL TOURNAMENTS (Filter Orb replaces bulky panel) ---------------- #}
+  <section class="section-head" id="all" aria-labelledby="all-title">
+    <h2 id="all-title" class="section-title">All Tournaments</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}">See more</a>
+  </section>
+
+  {# New: compact Filter Orb (hover/tap) #}
+  <div class="filter-orb-wrap" aria-label="Filters">
+    {% include "tournaments/partials/_filter_orb.html" %}
+  </div>
+
+  {% if tournaments %}
+    <div class="grid">
+      {% for t in tournaments %}
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
+      {% endfor %}
+    </div>
+  {% else %}
+    {% include "tournaments/partials/_grid_empty.html" %}
+  {% endif %}
+
+  {# ---------------- PAGINATION ---------------- #}
+  {% if pagination.has_previous or pagination.has_next %}
+  <nav class="pagination" aria-label="Pagination">
+    <div class="pagination-info">
+      Showing {{ pagination.start_index }}–{{ pagination.end_index }} of {{ pagination.total_count }} tournaments
+    </div>
+    <div class="pagination-controls">
+      {% if pagination.has_previous %}
+        <a href="?page={{ pagination.previous_page_number }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
+          <i class="fa-solid fa-chevron-left"></i> Previous
+        </a>
+      {% endif %}
+      <span class="page-info">Page {{ pagination.current_page }} of {{ pagination.total_pages }}</span>
+      {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_page_number }}{% if filters.q %}&q={{ filters.q }}{% endif %}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.fee %}&fee={{ filters.fee }}{% endif %}{% if filters.prize %}&prize={{ filters.prize }}{% endif %}{% if filters.sort %}&sort={{ filters.sort }}{% endif %}" class="btn-ghost">
+          Next <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      {% endif %}
+    </div>
+  </nav>
+  {% endif %}
+
+  {# ---------------- OPTIONAL ROWS ---------------- #}
+  {% if starting_soon %}
+  <section class="section-head" aria-labelledby="soon-title" style="margin-top: 32px;">
+    <h2 id="soon-title" class="section-title">Starting Soon</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?status=upcoming&sort=starting_soon">Within 7 days</a>
+  </section>
+  <div class="carousel">
+    {% for t in starting_soon %}
+      <div class="carousel-item">
+        {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if new_this_week %}
+  <section class="section-head" aria-labelledby="new-title" style="margin-top: 32px;">
+    <h2 id="new-title" class="section-title">New This Week</h2>
+    <a class="section-link" href="{% url 'tournaments:hub' %}?sort=newest">Newest first</a>
+  </section>
+  <div class="grid">
+    {% for t in new_this_week %}
+      {% include "tournaments/partials/_tournament_card.html" with t=t state=my_reg_states|get_tournament_item:t.id %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# ---------------- VALUE PROPS AT BOTTOM ---------------- #}
+  <section class="vp-grid bottom-vp" aria-label="Why DeltaCrown">
+    <article class="vp-card">
+      <div class="vp-icon i-trophy" aria-hidden="true"></div>
+      <h3>Real prizes</h3>
+      <p>Verified payouts and leaderboard badges. Win more than bragging rights.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-bracket" aria-hidden="true"></div>
+      <h3>Fair brackets</h3>
+      <p>Auto-seeding, transparent rules, and public standings in real time.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-shield" aria-hidden="true"></div>
+      <h3>Competitive integrity</h3>
+      <p>Anti-smurf checks, manual verification, and match dispute support.</p>
+    </article>
+    <article class="vp-card">
+      <div class="vp-icon i-bolt" aria-hidden="true"></div>
+      <h3>Fast & simple</h3>
+      <p>2-minute registration, e-wallet payments, clear status at every step.</p>
+    </article>
+  </section>
+
+  {# ---------------- HOW IT WORKS ---------------- #}
+  <section class="how premium-how" id="how" aria-labelledby="how-title">
+    <h2 id="how-title" class="section-title">How it works</h2>
+    <ol class="how-steps">
+      <li>
+        <span class="num">1</span>
+        <h3>Pick a tournament</h3>
+        <p>Use the filters, or jump into the featured rows above.</p>
+      </li>
+      <li>
+        <span class="num">2</span>
+        <h3>Register & pay</h3>
+        <p>Solo or team. Pay with bKash/Nagad/Rocket. Get instant status.</p>
+      </li>
+      <li>
+        <span class="num">3</span>
+        <h3>Compete & climb</h3>
+        <p>Follow your bracket, check-in, and track standings live.</p>
+      </li>
+    </ol>
+  </section>
+
+</section>
+{% endblock %}
+

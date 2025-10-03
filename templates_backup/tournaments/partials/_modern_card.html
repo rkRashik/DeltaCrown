@@ -1,0 +1,436 @@
+{% load static %}
+
+{# Enhanced Tournament Card Component with Dynamic Registration Button #}
+<div class="tournament-card" data-slug="{{ tournament.slug }}" data-game="{{ tournament.game }}">
+  <div class="card-media">
+    {% if tournament.banner_url %}
+      <img src="{{ tournament.banner_url }}" alt="{{ tournament.name }}" loading="lazy" />
+    {% else %}
+      <div class="card-media-placeholder">
+        <i class="fas fa-trophy"></i>
+      </div>
+    {% endif %}
+    
+    {# Status Badge #}
+    {% if tournament.status == "RUNNING" %}
+      <span class="status-badge live">
+        <i class="fas fa-circle"></i> LIVE
+      </span>
+    {% elif tournament.status == "COMPLETED" %}
+      <span class="status-badge completed">
+        <i class="fas fa-check-circle"></i> FINISHED
+      </span>
+    {% elif tournament.registration_open %}
+      <span class="status-badge open">
+        <i class="fas fa-door-open"></i> OPEN
+      </span>
+    {% else %}
+      <span class="status-badge closed">
+        <i class="fas fa-lock"></i> CLOSED
+      </span>
+    {% endif %}
+  </div>
+  
+  <div class="card-body">
+    <h3 class="card-title">
+      <a href="{% url 'tournaments:detail' tournament.slug %}">{{ tournament.name }}</a>
+    </h3>
+    
+    <div class="card-meta">
+      <span class="meta-item">
+        <i class="fas fa-gamepad"></i>
+        {{ tournament.game_name }}
+      </span>
+      
+      {% if tournament.slots_text %}
+        <span class="meta-item">
+          <i class="fas fa-users"></i>
+          {{ tournament.slots_text }}
+        </span>
+      {% endif %}
+      
+      {% if tournament.entry_fee %}
+        <span class="meta-item">
+          <i class="fas fa-coins"></i>
+          ৳{{ tournament.entry_fee }}
+        </span>
+      {% else %}
+        <span class="meta-item free">
+          <i class="fas fa-gift"></i>
+          Free
+        </span>
+      {% endif %}
+      
+      {% if tournament.prize_pool %}
+        <span class="meta-item prize">
+          <i class="fas fa-trophy"></i>
+          ৳{{ tournament.prize_pool }}
+        </span>
+      {% endif %}
+    </div>
+    
+    {% if tournament.start_at %}
+      <div class="card-date">
+        <i class="fas fa-calendar"></i>
+        {{ tournament.start_at|date:"M j, Y • H:i" }}
+      </div>
+    {% endif %}
+  </div>
+  
+  <div class="card-footer">
+    {# Dynamic Registration Button - Loaded via AJAX #}
+    <div 
+      class="registration-button-container" 
+      data-tournament-slug="{{ tournament.slug }}"
+      data-loading="true"
+    >
+      <div class="button-skeleton">
+        <div class="skeleton-shimmer"></div>
+      </div>
+    </div>
+    
+    <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-details">
+      Details <i class="fas fa-arrow-right"></i>
+    </a>
+  </div>
+</div>
+
+<style>
+.tournament-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.tournament-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.card-media {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+}
+
+.card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.tournament-card:hover .card-media img {
+  transform: scale(1.05);
+}
+
+.card-media-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.1);
+}
+
+.status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  backdrop-filter: blur(10px);
+}
+
+.status-badge.live {
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+}
+
+.status-badge.live i {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.status-badge.completed {
+  background: rgba(99, 102, 241, 0.9);
+  color: #fff;
+}
+
+.status-badge.open {
+  background: rgba(16, 185, 129, 0.9);
+  color: #fff;
+}
+
+.status-badge.closed {
+  background: rgba(107, 114, 128, 0.9);
+  color: #fff;
+}
+
+.card-body {
+  padding: 1.25rem;
+  flex: 1;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  line-height: 1.3;
+}
+
+.card-title a {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.card-title a:hover {
+  color: #6366f1;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.meta-item i {
+  font-size: 0.75rem;
+}
+
+.meta-item.free {
+  color: #10b981;
+}
+
+.meta-item.prize {
+  color: #fbbf24;
+}
+
+.card-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #888;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.card-footer {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.registration-button-container {
+  flex: 1;
+}
+
+.button-skeleton {
+  height: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.btn-register,
+.btn-disabled {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.btn-register {
+  background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
+  color: #fff;
+}
+
+.btn-register:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.btn-disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #888;
+  cursor: not-allowed;
+}
+
+.btn-disabled.registered {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.btn-disabled.request-approval {
+  background: rgba(251, 146, 60, 0.1);
+  border-color: rgba(251, 146, 60, 0.3);
+  color: #fb923c;
+  cursor: pointer;
+}
+
+.btn-disabled.request-approval:hover {
+  background: rgba(251, 146, 60, 0.15);
+}
+
+.btn-details {
+  padding: 0.65rem 1.25rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-details:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+  .card-footer {
+    flex-direction: column;
+  }
+  
+  .btn-details {
+    width: 100%;
+    justify-content: center;
+  }
+}
+</style>
+
+<script>
+// Load registration button state dynamically
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.querySelector('[data-tournament-slug="{{ tournament.slug }}"]');
+  if (!container) return;
+  
+  const slug = container.dataset.tournamentSlug;
+  
+  fetch(`/tournaments/api/${slug}/register/context/`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        renderRegistrationButton(container, data.context);
+      } else {
+        container.innerHTML = '<span class="text-muted">Unavailable</span>';
+      }
+    })
+    .catch(error => {
+      console.error('Failed to load registration button:', error);
+      container.innerHTML = '<span class="text-muted">Error loading</span>';
+    });
+});
+
+function renderRegistrationButton(container, context) {
+  let html = '';
+  
+  if (context.button_state === 'register') {
+    html = `
+      <a href="/tournaments/register-modern/${context.tournament_slug}/" class="btn-register">
+        <i class="fas fa-edit"></i> ${context.button_text}
+      </a>
+    `;
+  } else if (context.button_state === 'registered') {
+    html = `
+      <button class="btn-disabled registered" disabled>
+        <i class="fas fa-check-circle"></i> ${context.button_text}
+      </button>
+    `;
+  } else if (context.button_state === 'request_approval') {
+    html = `
+      <button class="btn-disabled request-approval" onclick="handleApprovalRequest('${context.tournament_slug}')">
+        <i class="fas fa-paper-plane"></i> ${context.button_text}
+      </button>
+    `;
+  } else if (context.button_state === 'request_pending') {
+    html = `
+      <button class="btn-disabled" disabled>
+        <i class="fas fa-hourglass-half"></i> ${context.button_text}
+      </button>
+    `;
+  } else {
+    html = `
+      <button class="btn-disabled" disabled>
+        <i class="fas fa-lock"></i> ${context.button_text}
+      </button>
+    `;
+  }
+  
+  container.innerHTML = html;
+  container.dataset.loading = 'false';
+}
+
+function handleApprovalRequest(slug) {
+  window.location.href = `/tournaments/register-modern/${slug}/`;
+}
+</script>

@@ -1,0 +1,16 @@
+{% if status %}
+  {% with raw=status|lower %}
+    <span class="pill
+      {% if raw == 'open' or raw == 'published' %}pill--open
+      {% elif raw == 'ongoing' or raw == 'running' %}pill--live
+      {% elif raw == 'finished' or raw == 'completed' %}pill--done
+      {% else %}pill--tba{% endif %}">
+      {% if raw == 'published' %}Open
+      {% elif raw == 'running' %}Ongoing
+      {% elif raw == 'completed' %}Finished
+      {% else %}{{ raw|title }}{% endif %}
+    </span>
+  {% endwith %}
+{% else %}
+  <span class="pill pill--tba">TBA</span>
+{% endif %}

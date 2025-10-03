@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Archived Tournaments | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/archive.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/archive.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<section class="dc-container archive-page">
+  
+  {# Header #}
+  <header class="page-header">
+    <div class="header-content">
+      <div class="breadcrumb">
+        <a href="{% url 'tournaments:hub' %}">Tournaments</a>
+        <span class="separator">/</span>
+        <span>Archives</span>
+      </div>
+      <h1 class="page-title">
+        <i class="fas fa-archive"></i>
+        Archived Tournaments
+      </h1>
+      <p class="page-description">
+        Browse past tournaments, view results, and clone tournament structures for future events.
+      </p>
+    </div>
+  </header>
+
+  {# Statistics Dashboard #}
+  <div class="stats-dashboard">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-archive"></i>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-number">{{ stats.total_archived|intcomma }}</h3>
+        <p class="stat-label">Total Archived</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-calendar"></i>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-number">{{ stats.archived_this_month|intcomma }}</h3>
+        <p class="stat-label">This Month</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-undo"></i>
+      </div>
+      <div class="stat-content">
+        <h3 class="stat-number">{{ stats.restorable|intcomma }}</h3>
+        <p class="stat-label">Restorable</p>
+      </div>
+    </div>
+  </div>
+
+  {# Filters #}
+  <div class="filters-section">
+    <form method="get" class="filters-form" id="archive-filters">
+      <div class="filter-group">
+        <label for="search-input">
+          <i class="fas fa-search"></i>
+          Search
+        </label>
+        <input 
+          type="text" 
+          id="search-input"
+          name="q" 
+          placeholder="Search tournaments..." 
+          value="{{ current_filters.search }}"
+          class="filter-input"
+        >
+      </div>
+
+      <div class="filter-group">
+        <label for="game-select">
+          <i class="fas fa-gamepad"></i>
+          Game
+        </label>
+        <select name="game" id="game-select" class="filter-select">
+          <option value="">All Games</option>
+          {% for game in games %}
+            <option value="{{ game.id }}" 
+                    {% if current_filters.game == game.id|stringformat:"s" %}selected{% endif %}>
+              {{ game.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="reason-input">
+          <i class="fas fa-tag"></i>
+          Reason
+        </label>
+        <input 
+          type="text" 
+          id="reason-input"
+          name="reason" 
+          placeholder="Archive reason..." 
+          value="{{ current_filters.reason }}"
+          class="filter-input"
+        >
+      </div>
+
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-filter"></i>
+          Apply Filters
+        </button>
+        <a href="{% url 'tournaments:archive_list' %}" class="btn btn-secondary">
+          <i class="fas fa-times"></i>
+          Clear
+        </a>
+      </div>
+    </form>
+  </div>
+
+  {# Archive Cards #}
+  <div class="archive-cards-grid">
+    {% for card in archive_cards %}
+      <article class="archive-card" data-slug="{{ card.tournament.slug }}">
+        {# Tournament Banner/Thumbnail #}
+        <div class="card-media">
+          {% if card.tournament.thumbnail %}
+            <img src="{{ card.tournament.thumbnail.url }}" alt="{{ card.tournament.name }}">
+          {% elif card.tournament.game.logo %}
+            <img src="{{ card.tournament.game.logo.url }}" alt="{{ card.tournament.game.name }}">
+          {% else %}
+            <div class="card-placeholder">
+              <i class="fas fa-trophy"></i>
+            </div>
+          {% endif %}
+          
+          <div class="card-overlay">
+            <span class="archive-badge">
+              <i class="fas fa-archive"></i>
+              Archived
+            </span>
+          </div>
+        </div>
+
+        {# Card Content #}
+        <div class="card-content">
+          {# Header #}
+          <div class="card-header">
+            <h3 class="card-title">
+              <a href="{% url 'tournaments:archive_detail' card.tournament.slug %}">
+                {{ card.tournament.name }}
+              </a>
+            </h3>
+            <span class="game-badge">
+              {{ card.tournament.game.name }}
+            </span>
+          </div>
+
+          {# Archive Info #}
+          <div class="archive-meta">
+            <div class="meta-row">
+              <i class="fas fa-calendar"></i>
+              <span>Archived {{ card.archive.archived_at|naturaltime }}</span>
+            </div>
+            {% if card.archive.archived_by %}
+              <div class="meta-row">
+                <i class="fas fa-user"></i>
+                <span>By {{ card.archive.archived_by.username }}</span>
+              </div>
+            {% endif %}
+            {% if card.archive.archive_reason %}
+              <div class="meta-row reason">
+                <i class="fas fa-info-circle"></i>
+                <span>{{ card.archive.archive_reason|truncatewords:10 }}</span>
+              </div>
+            {% endif %}
+          </div>
+
+          {# Phase 1 Data #}
+          <div class="card-details">
+            {% if card.schedule %}
+              <div class="detail-row">
+                <i class="fas fa-clock"></i>
+                <span>
+                  {{ card.schedule.start_at|date:"M d" }} - {{ card.schedule.end_at|date:"M d, Y" }}
+                  {% if card.schedule.was_completed %}
+                    <span class="badge badge-success">Completed</span>
+                  {% endif %}
+                </span>
+              </div>
+            {% endif %}
+
+            {% if card.capacity %}
+              <div class="detail-row">
+                <i class="fas fa-users"></i>
+                <span>{{ card.capacity.current_teams }} / {{ card.capacity.max_teams }} teams</span>
+              </div>
+            {% endif %}
+
+            {% if card.finance %}
+              <div class="detail-row">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>
+                  Entry: {{ card.finance.entry_fee_display }} • 
+                  Prize: {{ card.finance.prize_pool_display }}
+                </span>
+              </div>
+            {% endif %}
+          </div>
+
+          {# Actions #}
+          <div class="card-actions">
+            <a href="{% url 'tournaments:archive_detail' card.tournament.slug %}" 
+               class="btn btn-sm btn-info">
+              <i class="fas fa-eye"></i>
+              View Details
+            </a>
+
+            {% if card.can_clone %}
+              <a href="{% url 'tournaments:clone_tournament' card.tournament.slug %}" 
+                 class="btn btn-sm btn-primary">
+                <i class="fas fa-copy"></i>
+                Clone
+              </a>
+            {% endif %}
+
+            {% if card.can_restore %}
+              <button class="btn btn-sm btn-success restore-btn" 
+                      data-slug="{{ card.tournament.slug }}">
+                <i class="fas fa-undo"></i>
+                Restore
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    {% empty %}
+      <div class="no-results">
+        <i class="fas fa-inbox"></i>
+        <h3>No archived tournaments found</h3>
+        <p>Try adjusting your filters or search query.</p>
+        <a href="{% url 'tournaments:archive_list' %}" class="btn btn-primary">
+          Clear Filters
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# Pagination #}
+  {% if page_obj.has_other_pages %}
+    <nav class="pagination" aria-label="Archive pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_filters.search %}&q={{ current_filters.search }}{% endif %}{% if current_filters.game %}&game={{ current_filters.game }}{% endif %}{% if current_filters.reason %}&reason={{ current_filters.reason }}{% endif %}" 
+           class="pagination-btn">
+          <i class="fas fa-chevron-left"></i>
+          Previous
+        </a>
+      {% endif %}
+
+      <span class="pagination-info">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+      </span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if current_filters.search %}&q={{ current_filters.search }}{% endif %}{% if current_filters.game %}&game={{ current_filters.game }}{% endif %}{% if current_filters.reason %}&reason={{ current_filters.reason }}{% endif %}" 
+           class="pagination-btn">
+          Next
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      {% endif %}
+    </nav>
+  {% endif %}
+
+</section>
+
+{# Restore Confirmation Modal #}
+<div id="restore-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Restore Tournament</h3>
+      <button class="modal-close" onclick="closeRestoreModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to restore this tournament?</p>
+      <p class="text-muted">
+        The tournament will be moved back to active status and will appear in the main tournament listings.
+      </p>
+      <label for="restore-reason">Restoration Reason (optional):</label>
+      <textarea id="restore-reason" class="form-control" rows="3" 
+                placeholder="Why are you restoring this tournament?"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeRestoreModal()">Cancel</button>
+      <button class="btn btn-success" onclick="confirmRestore()">
+        <i class="fas fa-undo"></i>
+        Restore Tournament
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
