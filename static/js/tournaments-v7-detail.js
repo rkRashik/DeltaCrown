@@ -119,7 +119,7 @@
     };
 
     // ============================================
-    // TAB NAVIGATION
+    // TAB NAVIGATION (Enhanced with Keyboard Support)
     // ============================================
     
     const TabNavigation = {
@@ -129,6 +129,18 @@
             
             if (this.tabLinks.length === 0) return;
             
+            // Add ARIA attributes
+            this.tabLinks.forEach((link, index) => {
+                link.setAttribute('role', 'tab');
+                link.setAttribute('aria-controls', `tab-${link.dataset.tab}`);
+                link.setAttribute('tabindex', index === 0 ? '0' : '-1');
+            });
+            
+            this.tabPanels.forEach(panel => {
+                panel.setAttribute('role', 'tabpanel');
+                panel.setAttribute('aria-labelledby', `tab-link-${panel.id}`);
+            });
+            
             // Handle tab clicks
             this.tabLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
@@ -136,6 +148,9 @@
                     const tabName = link.dataset.tab;
                     this.switchTab(tabName);
                 });
+                
+                // Keyboard navigation
+                link.addEventListener('keydown', (e) => this.handleKeyboard(e, link));
             });
             
             // Handle URL hash on load
@@ -152,12 +167,60 @@
                 const hash = window.location.hash.slice(1);
                 if (hash) this.switchTab(hash, false);
             });
+            
+            console.log(`📑 TabNavigation initialized with ${this.tabLinks.length} tabs (Keyboard accessible)`);
+        },
+        
+        handleKeyboard(e, currentLink) {
+            const key = e.key;
+            const currentIndex = Array.from(this.tabLinks).indexOf(currentLink);
+            let newIndex = currentIndex;
+            
+            switch(key) {
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    e.preventDefault();
+                    newIndex = currentIndex > 0 ? currentIndex - 1 : this.tabLinks.length - 1;
+                    break;
+                case 'ArrowRight':
+                case 'ArrowDown':
+                    e.preventDefault();
+                    newIndex = currentIndex < this.tabLinks.length - 1 ? currentIndex + 1 : 0;
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    newIndex = 0;
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    newIndex = this.tabLinks.length - 1;
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    this.switchTab(currentLink.dataset.tab);
+                    return;
+                default:
+                    return;
+            }
+            
+            // Focus and activate new tab
+            const newLink = this.tabLinks[newIndex];
+            newLink.focus();
+            this.switchTab(newLink.dataset.tab);
         },
         
         switchTab(tabName, updateHistory = true) {
             // Remove active from all tabs
-            this.tabLinks.forEach(link => link.classList.remove('active'));
-            this.tabPanels.forEach(panel => panel.classList.remove('active'));
+            this.tabLinks.forEach(link => {
+                link.classList.remove('active');
+                link.setAttribute('aria-selected', 'false');
+                link.setAttribute('tabindex', '-1');
+            });
+            this.tabPanels.forEach(panel => {
+                panel.classList.remove('active');
+                panel.setAttribute('aria-hidden', 'true');
+            });
             
             // Add active to selected tab
             const activeLink = utils.$(`.tab-link[data-tab="${tabName}"]`);
@@ -165,7 +228,11 @@
             
             if (activeLink && activePanel) {
                 activeLink.classList.add('active');
+                activeLink.setAttribute('aria-selected', 'true');
+                activeLink.setAttribute('tabindex', '0');
+                
                 activePanel.classList.add('active');
+                activePanel.setAttribute('aria-hidden', 'false');
                 
                 // Update URL hash
                 if (updateHistory) {
@@ -183,16 +250,23 @@
     };
 
     // ============================================
-    // MODAL MANAGEMENT
+    // MODAL MANAGEMENT (Enhanced with Focus Trap & Accessibility)
     // ============================================
     
     const ModalManager = {
+        activeModal: null,
+        previousFocus: null,
+        
         init() {
             this.modals = utils.$$('.modal');
             if (this.modals.length === 0) return;
             
-            // Close modal on backdrop click
+            // Add ARIA attributes
             this.modals.forEach(modal => {
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.setAttribute('aria-hidden', 'true');
+                
                 const backdrop = utils.$('.modal-backdrop', modal);
                 const closeBtn = utils.$('.modal-close', modal);
                 
@@ -202,23 +276,39 @@
                 
                 if (closeBtn) {
                     closeBtn.addEventListener('click', () => this.close(modal));
+                    closeBtn.setAttribute('aria-label', 'Close modal');
                 }
             });
             
             // Close modal on Escape key
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    const activeModal = utils.$('.modal.active');
-                    if (activeModal) this.close(activeModal);
+                if (e.key === 'Escape' && this.activeModal) {
+                    this.close(this.activeModal);
                 }
             });
+            
+            console.log('🎭 ModalManager initialized (Focus trap enabled)');
         },
         
         open(modalId) {
             const modal = utils.$(`#${modalId}`);
             if (modal) {
+                // Save current focus
+                this.previousFocus = document.activeElement;
+                
                 modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
                 document.body.style.overflow = 'hidden';
+                this.activeModal = modal;
+                
+                // Focus first focusable element
+                setTimeout(() => {
+                    const firstFocusable = this.getFocusableElements(modal)[0];
+                    if (firstFocusable) firstFocusable.focus();
+                }, 100);
+                
+                // Setup focus trap
+                this.setupFocusTrap(modal);
             }
         },
         
@@ -228,8 +318,55 @@
             }
             if (modal) {
                 modal.classList.remove('active');
+                modal.setAttribute('aria-hidden', 'true');
                 document.body.style.overflow = '';
+                this.activeModal = null;
+                
+                // Restore focus
+                if (this.previousFocus) {
+                    this.previousFocus.focus();
+                    this.previousFocus = null;
+                }
             }
+        },
+        
+        getFocusableElements(container) {
+            const selectors = [
+                'button:not([disabled])',
+                'a[href]',
+                'input:not([disabled])',
+                'select:not([disabled])',
+                'textarea:not([disabled])',
+                '[tabindex]:not([tabindex="-1"])'
+            ];
+            return Array.from(container.querySelectorAll(selectors.join(', ')));
+        },
+        
+        setupFocusTrap(modal) {
+            const focusableElements = this.getFocusableElements(modal);
+            if (focusableElements.length === 0) return;
+            
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+            
+            // Trap focus
+            modal.addEventListener('keydown', (e) => {
+                if (e.key !== 'Tab') return;
+                
+                if (e.shiftKey) {
+                    // Shift + Tab
+                    if (document.activeElement === firstElement) {
+                        e.preventDefault();
+                        lastElement.focus();
+                    }
+                } else {
+                    // Tab
+                    if (document.activeElement === lastElement) {
+                        e.preventDefault();
+                        firstElement.focus();
+                    }
+                }
+            });
         }
     };
 
@@ -609,6 +746,325 @@
     };
 
     // ============================================
+    // ENHANCED COUNTDOWN TIMERS (V7 Production)
+    // ============================================
+    
+    const CountdownManager = {
+        timers: [],
+        
+        init() {
+            // Initialize all countdown elements
+            const countdownElements = utils.$$('[data-countdown-target]');
+            
+            countdownElements.forEach(element => {
+                const targetDate = element.dataset.countdownTarget;
+                const format = element.dataset.countdownFormat || 'full'; // 'full', 'compact', 'minimal'
+                
+                if (targetDate) {
+                    const timer = new CountdownTimer(element, targetDate, format);
+                    this.timers.push(timer);
+                    timer.start();
+                }
+            });
+            
+            console.log(`⏱️  Initialized ${this.timers.length} countdown timer(s)`);
+        },
+        
+        stopAll() {
+            this.timers.forEach(timer => timer.stop());
+        }
+    };
+    
+    class CountdownTimer {
+        constructor(element, targetDate, format = 'full') {
+            this.element = element;
+            this.targetDate = new Date(targetDate);
+            this.format = format;
+            this.interval = null;
+            this.isExpired = false;
+        }
+        
+        start() {
+            this.update(); // Initial update
+            this.interval = setInterval(() => this.update(), 1000);
+        }
+        
+        stop() {
+            if (this.interval) {
+                clearInterval(this.interval);
+                this.interval = null;
+            }
+        }
+        
+        update() {
+            const now = new Date();
+            const distance = this.targetDate - now;
+            
+            if (distance <= 0 && !this.isExpired) {
+                this.handleExpired();
+                return;
+            }
+            
+            if (distance > 0) {
+                const time = this.calculateTime(distance);
+                this.render(time);
+                
+                // Add urgency styling if less than 24 hours
+                if (distance < 86400000) { // 24 hours in milliseconds
+                    this.element.classList.add('countdown-urgent');
+                }
+                
+                // Add critical styling if less than 1 hour
+                if (distance < 3600000) { // 1 hour in milliseconds
+                    this.element.classList.add('countdown-critical');
+                }
+            }
+        }
+        
+        calculateTime(distance) {
+            return {
+                days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+                seconds: Math.floor((distance % (1000 * 60)) / 1000),
+                total: distance
+            };
+        }
+        
+        render(time) {
+            let html = '';
+            
+            switch (this.format) {
+                case 'full':
+                    html = `
+                        <div class="countdown-timer">
+                            ${time.days > 0 ? `
+                                <div class="time-unit">
+                                    <span class="time-value">${time.days}</span>
+                                    <span class="time-label">Day${time.days !== 1 ? 's' : ''}</span>
+                                </div>
+                                <span class="time-separator">:</span>
+                            ` : ''}
+                            <div class="time-unit">
+                                <span class="time-value">${String(time.hours).padStart(2, '0')}</span>
+                                <span class="time-label">Hours</span>
+                            </div>
+                            <span class="time-separator">:</span>
+                            <div class="time-unit">
+                                <span class="time-value">${String(time.minutes).padStart(2, '0')}</span>
+                                <span class="time-label">Min</span>
+                            </div>
+                            <span class="time-separator">:</span>
+                            <div class="time-unit">
+                                <span class="time-value">${String(time.seconds).padStart(2, '0')}</span>
+                                <span class="time-label">Sec</span>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'compact':
+                    if (time.days > 0) {
+                        html = `<span class="countdown-compact">${time.days}d ${time.hours}h ${time.minutes}m</span>`;
+                    } else if (time.hours > 0) {
+                        html = `<span class="countdown-compact">${time.hours}h ${time.minutes}m ${time.seconds}s</span>`;
+                    } else {
+                        html = `<span class="countdown-compact">${time.minutes}m ${time.seconds}s</span>`;
+                    }
+                    break;
+                    
+                case 'minimal':
+                    if (time.days > 0) {
+                        html = `<span class="countdown-minimal">${time.days}d ${time.hours}h</span>`;
+                    } else if (time.hours > 0) {
+                        html = `<span class="countdown-minimal">${time.hours}h ${time.minutes}m</span>`;
+                    } else {
+                        html = `<span class="countdown-minimal">${time.minutes}m</span>`;
+                    }
+                    break;
+            }
+            
+            this.element.innerHTML = html;
+        }
+        
+        handleExpired() {
+            this.isExpired = true;
+            this.stop();
+            
+            this.element.classList.add('countdown-expired');
+            this.element.innerHTML = '<span class="countdown-expired-text">Expired</span>';
+            
+            // Trigger custom event
+            const event = new CustomEvent('countdownExpired', {
+                detail: { element: this.element }
+            });
+            document.dispatchEvent(event);
+        }
+    }
+    
+    // ============================================
+    // PROGRESS BAR ANIMATIONS (V7 Production)
+    // ============================================
+    
+    const ProgressBarManager = {
+        init() {
+            const progressBars = utils.$$('[data-progress]');
+            
+            progressBars.forEach(bar => {
+                const targetPercent = parseFloat(bar.dataset.progress) || 0;
+                this.animateProgress(bar, targetPercent);
+            });
+            
+            console.log(`📊 Initialized ${progressBars.length} progress bar(s)`);
+        },
+        
+        animateProgress(element, targetPercent) {
+            const fill = utils.$('.progress-fill', element);
+            if (!fill) return;
+            
+            let currentPercent = 0;
+            const increment = targetPercent / 50; // 50 frames
+            const duration = 1500; // 1.5 seconds
+            const intervalTime = duration / 50;
+            
+            // Determine color based on percentage
+            const color = this.getProgressColor(targetPercent);
+            fill.style.backgroundColor = color;
+            
+            const animate = () => {
+                if (currentPercent < targetPercent) {
+                    currentPercent += increment;
+                    if (currentPercent > targetPercent) currentPercent = targetPercent;
+                    
+                    fill.style.width = `${currentPercent}%`;
+                    setTimeout(animate, intervalTime);
+                } else {
+                    // Add completion animation
+                    if (targetPercent >= 100) {
+                        fill.classList.add('progress-complete');
+                    }
+                }
+            };
+            
+            // Delay animation until element is visible
+            this.whenVisible(element, () => {
+                setTimeout(animate, 100);
+            });
+        },
+        
+        getProgressColor(percent) {
+            if (percent >= 100) return '#ef4444'; // Red - Full
+            if (percent >= 80) return '#f59e0b'; // Orange - Almost full
+            if (percent >= 50) return '#3b82f6'; // Blue - Half
+            return '#10b981'; // Green - Available
+        },
+        
+        whenVisible(element, callback) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        callback();
+                        observer.disconnect();
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            observer.observe(element);
+        }
+    };
+    
+    // ============================================
+    // ANIMATED COUNTERS (V7 Production)
+    // ============================================
+    
+    const CounterManager = {
+        init() {
+            const counters = utils.$$('[data-counter-target]');
+            
+            counters.forEach(counter => {
+                const target = parseFloat(counter.dataset.counterTarget) || 0;
+                const duration = parseInt(counter.dataset.counterDuration) || 2000;
+                this.animateCounter(counter, target, duration);
+            });
+            
+            console.log(`🔢 Initialized ${counters.length} animated counter(s)`);
+        },
+        
+        animateCounter(element, target, duration) {
+            const startValue = 0;
+            const increment = target / (duration / 16); // 60fps
+            let currentValue = startValue;
+            
+            const animate = () => {
+                currentValue += increment;
+                
+                if (currentValue < target) {
+                    element.textContent = Math.floor(currentValue).toLocaleString();
+                    requestAnimationFrame(animate);
+                } else {
+                    element.textContent = Math.floor(target).toLocaleString();
+                }
+            };
+            
+            // Start animation when element is visible
+            this.whenVisible(element, animate);
+        },
+        
+        whenVisible(element, callback) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        callback();
+                        observer.disconnect();
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            observer.observe(element);
+        }
+    };
+    
+    // ============================================
+    // STATUS BADGE ANIMATIONS (V7 Production)
+    // ============================================
+    
+    const BadgeAnimator = {
+        init() {
+            // Animate pulse badges
+            const pulseBadges = utils.$$('.badge-pulse, .pulse');
+            pulseBadges.forEach(badge => {
+                this.addPulseAnimation(badge);
+            });
+            
+            // Animate status changes
+            const statusBadges = utils.$$('[data-status-badge]');
+            statusBadges.forEach(badge => {
+                this.animateStatusBadge(badge);
+            });
+            
+            console.log(`🎨 Initialized ${pulseBadges.length + statusBadges.length} badge animation(s)`);
+        },
+        
+        addPulseAnimation(element) {
+            if (!element.style.animation) {
+                element.style.animation = 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite';
+            }
+        },
+        
+        animateStatusBadge(element) {
+            // Add entrance animation
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0.8)';
+            
+            setTimeout(() => {
+                element.style.transition = 'all 0.3s ease-out';
+                element.style.opacity = '1';
+                element.style.transform = 'scale(1)';
+            }, 100);
+        }
+    };
+
+    // ============================================
     // INITIALIZATION
     // ============================================
     
@@ -636,6 +1092,12 @@
             StickyCTA.init();
             ParticipantsFilter.init();
             SmoothScroll.init();
+            
+            // V7 Production Enhancements
+            CountdownManager.init();
+            ProgressBarManager.init();
+            CounterManager.init();
+            BadgeAnimator.init();
             
             console.log('✅ Tournament Detail V7 - Ready!');
         } catch (error) {

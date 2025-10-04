@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static humanize tournament_dict_utils game_assets_tags %}
 
-{% block title %}{{ tournament.name }} - {{ tournament.get_game_display }} Tournament | DeltaCrown{% endblock %}
+{% block title %}{{ tournament.seo_meta.title }}{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'siteui/css/tournaments-v7-detail.css' %}?v=1">
@@ -9,18 +9,66 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-<!-- SEO & Social Meta -->
-<meta name="description" content="{{ tournament.short_description|striptags|truncatewords:30 }}">
-<meta property="og:title" content="{{ tournament.name }} - {{ tournament.get_game_display }} Tournament">
-<meta property="og:description" content="{{ tournament.short_description|striptags|truncatewords:30 }}">
-{% if tournament.media and tournament.media.social_media_image %}
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ tournament.media.social_media_image.url }}">
-{% elif tournament.banner %}
-<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ tournament.banner.url }}">
-{% endif %}
+<!-- SEO Meta Tags (Enhanced with Backend Properties) -->
+<meta name="description" content="{{ tournament.seo_meta.description }}">
+<meta name="keywords" content="{{ tournament.seo_meta.keywords }}">
+<meta name="author" content="DeltaCrown">
+<meta name="robots" content="index, follow">
+
+<!-- Open Graph / Facebook -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:title" content="{{ tournament.seo_meta.title }}">
+<meta property="og:description" content="{{ tournament.seo_meta.description }}">
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ tournament.seo_meta.og_image }}">
+<meta property="og:site_name" content="DeltaCrown">
+
+<!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="{{ request.build_absolute_uri }}">
+<meta name="twitter:title" content="{{ tournament.seo_meta.title }}">
+<meta name="twitter:description" content="{{ tournament.seo_meta.description }}">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{{ tournament.seo_meta.og_image }}">
+
+<!-- Schema.org Structured Data (JSON-LD) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SportsEvent",
+  "name": "{{ tournament.name }}",
+  "description": "{{ tournament.short_description|striptags }}",
+  {% if tournament.schedule and tournament.schedule.start_date %}
+  "startDate": "{{ tournament.schedule.start_date|date:'c' }}",
+  {% endif %}
+  {% if tournament.schedule and tournament.schedule.end_date %}
+  "endDate": "{{ tournament.schedule.end_date|date:'c' }}",
+  {% endif %}
+  "eventStatus": "https://schema.org/EventScheduled",
+  "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+  {% if tournament.organizer %}
+  "organizer": {
+    "@type": "Organization",
+    "name": "{{ tournament.organizer.get_full_name }}",
+    "url": "{{ request.scheme }}://{{ request.get_host }}{% url 'user_profile:profile' tournament.organizer.username %}"
+  },
+  {% endif %}
+  "image": "{{ request.scheme }}://{{ request.get_host }}{{ tournament.seo_meta.og_image }}",
+  "url": "{{ request.build_absolute_uri }}",
+  {% if tournament.finance and tournament.finance.prize_pool %}
+  "offers": {
+    "@type": "AggregateOffer",
+    "priceCurrency": "BDT",
+    "price": "{{ tournament.finance.prize_pool }}",
+    "description": "Prize Pool"
+  },
+  {% endif %}
+  "location": {
+    "@type": "VirtualLocation",
+    "url": "{{ request.build_absolute_uri }}"
+  },
+  "sport": "{{ tournament.get_game_display }}"
+}
+</script>
 
 <script src="{% static 'js/tournaments-v7-detail.js' %}?v=1" defer></script>
 {% endblock %}
@@ -32,9 +80,9 @@
 <!-- ============================================
      HERO SECTION - Full width banner with overlay
      ============================================ -->
-<section class="hero-section">
+<section class="hero-section" role="banner" aria-label="Tournament Hero">
     <!-- Background Banner -->
-    <div class="hero-bg">
+    <div class="hero-bg" role="img" aria-label="Tournament banner background">
         {% if tournament.media and tournament.media.banner %}
             <img src="{{ tournament.media.banner.url }}" alt="{{ tournament.name }}" class="hero-bg-img">
         {% elif tournament.banner %}
@@ -122,22 +170,18 @@
             </div>
         </div>
 
-        <!-- Registration Status Badge -->
-        <div class="hero-status-badge 
-            {% if tournament.status == 'UPCOMING' and tournament.registration_open %}status-open
-            {% elif tournament.status == 'RUNNING' %}status-live
-            {% elif tournament.status == 'COMPLETED' %}status-completed
-            {% else %}status-closed{% endif %}">
-            {% if tournament.status == 'UPCOMING' and tournament.registration_open %}
-                <span class="badge-dot"></span> Registration Open
-            {% elif tournament.status == 'RUNNING' %}
-                <span class="badge-dot"></span> Live Now
-            {% elif tournament.status == 'COMPLETED' %}
-                ✓ Completed
-            {% else %}
-                Registration Closed
+        <!-- Registration Status Badge (Enhanced with Animations) -->
+        {% with badge=tournament.registration_status_badge %}
+        <div class="hero-status-badge status-{{ badge.color }} 
+            {% if badge.color == 'warning' or badge.color == 'danger' %}badge-pulse{% endif %}"
+            data-status-badge="{{ badge.text }}">
+            <span class="badge-dot"></span> 
+            {{ badge.icon }} {{ badge.text }}
+            {% if tournament.schedule.is_registration_closing_soon %}
+                <span class="urgency-text">(Closing Soon!)</span>
             {% endif %}
         </div>
+        {% endwith %}
     </div>
 </section>
 
@@ -379,23 +423,61 @@
                     <div class="sidebar-card">
                         <h3 class="sidebar-title">Registration Status</h3>
                         <div class="registration-progress">
-                            <div class="progress-stats">
-                                <span class="stat-current">{{ tournament.capacity.current_participants }}</span>
+                            <div class="progress-stats" role="status" aria-label="Registration count">
+                                <span class="stat-current" 
+                                      data-counter-target="{{ tournament.capacity.current_participants }}" 
+                                      data-counter-duration="2000"
+                                      aria-label="Current participants">0</span>
                                 <span class="stat-separator">/</span>
-                                <span class="stat-max">{{ tournament.capacity.max_participants }}</span>
+                                <span class="stat-max" aria-label="Maximum capacity">{{ tournament.capacity.max_participants }}</span>
                                 <span class="stat-label">Teams</span>
                             </div>
-                            <div class="progress-bar">
-                                {% widthratio tournament.capacity.current_participants tournament.capacity.max_participants 100 as progress_percent %}
-                                <div class="progress-fill" style="width: {{ progress_percent }}%"></div>
+                            <div class="progress-bar" 
+                                 data-progress="{{ tournament.registration_progress_percentage }}"
+                                 role="progressbar"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100"
+                                 aria-valuenow="{{ tournament.registration_progress_percentage|floatformat:0 }}"
+                                 aria-label="Registration progress: {{ tournament.registration_progress_percentage|floatformat:0 }}% full">
+                                <div class="progress-fill" style="width: 0%"></div>
                             </div>
-                            <p class="progress-note">
-                                {% if tournament.capacity.max_participants > tournament.capacity.current_participants %}
-                                    {{ tournament.capacity.max_participants|add:"-"|add:tournament.capacity.current_participants }} spots remaining
+                            <p class="progress-note" role="status">
+                                {% if tournament.has_available_slots %}
+                                    {% widthratio tournament.capacity.max_participants 1 1 as max %}
+                                    {% widthratio tournament.capacity.current_participants 1 1 as current %}
+                                    {{ max|add:"-"|add:current }} spots remaining
+                                {% elif tournament.is_full %}
+                                    <span class="text-danger">🔴 Tournament is full!</span>
                                 {% else %}
-                                    Tournament is full!
+                                    Registration status unknown
                                 {% endif %}
                             </p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Live Countdown Timer -->
+                    {% if tournament.schedule and tournament.schedule.start_date %}
+                    <div class="sidebar-card countdown-card">
+                        <h3 class="sidebar-title">
+                            {% if tournament.schedule.phase_status == 'upcoming' or tournament.schedule.phase_status == 'registration' %}
+                                ⏱️ Tournament Starts In
+                            {% elif tournament.schedule.phase_status == 'check_in' %}
+                                ⏱️ Check-in Time
+                            {% else %}
+                                ⏱️ Tournament Timer
+                            {% endif %}
+                        </h3>
+                        <div 
+                            data-countdown-target="{{ tournament.schedule.start_date|date:'c' }}"
+                            data-countdown-format="full"
+                            class="countdown-container"
+                            role="timer"
+                            aria-label="Tournament countdown timer"
+                            aria-live="off"
+                            aria-atomic="true"
+                        >
+                            <!-- JavaScript will populate this -->
                         </div>
                     </div>
                     {% endif %}
@@ -418,6 +500,12 @@
                                 <span class="date-label">Registration Closes</span>
                                 <span class="date-value">{{ tournament.schedule.registration_end|date:"M d, Y" }}</span>
                                 <span class="date-time">{{ tournament.schedule.registration_end|time:"g:i A" }}</span>
+                                {% if tournament.schedule.registration_countdown %}
+                                <div class="date-countdown" 
+                                     data-countdown-target="{{ tournament.schedule.registration_end|date:'c' }}"
+                                     data-countdown-format="compact">
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
 

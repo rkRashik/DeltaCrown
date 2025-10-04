@@ -50,6 +50,11 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
     
+    /* Focus Ring (Accessibility) */
+    --focus-ring-color: #6366f1;
+    --focus-ring-width: 3px;
+    --focus-ring-offset: 2px;
+    
     /* Spacing */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
@@ -90,6 +95,80 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* ============================================
+   ACCESSIBILITY - FOCUS STYLES
+   ============================================ */
+/* Remove default outline and add custom focus ring */
+*:focus {
+    outline: none;
+}
+
+/* Custom focus ring for interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible,
+.tab-link:focus-visible,
+.btn:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+/* Focus styles for cards and panels */
+.sidebar-card:focus-within,
+.tab-panel:focus-within {
+    border-color: var(--focus-ring-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Skip to main content link (for screen readers) */
+.skip-to-main {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--primary-color);
+    color: white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-decoration: none;
+    border-radius: var(--radius-md);
+    z-index: var(--z-toast);
+    font-weight: 600;
+}
+
+.skip-to-main:focus {
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
+}
+
+/* Screen reader only class */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 .tournament-detail-v7 {
@@ -288,11 +367,31 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    transition: all 0.3s ease;
 }
 
+.hero-status-badge.status-success,
 .hero-status-badge.status-open {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.hero-status-badge.status-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.hero-status-badge.status-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.hero-status-badge.status-info {
     background: rgba(59, 130, 246, 0.15);
-    color: var(--status-open);
+    color: #3b82f6;
     border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
@@ -320,16 +419,29 @@
     height: 8px;
     border-radius: 50%;
     background: currentColor;
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: badgeDotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@keyframes pulse {
+@keyframes badgeDotPulse {
     0%, 100% {
         opacity: 1;
+        transform: scale(1);
     }
     50% {
         opacity: 0.5;
+        transform: scale(0.9);
     }
+}
+
+.urgency-text {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    animation: urgencyBlink 1.5s ease-in-out infinite;
+}
+
+@keyframes urgencyBlink {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 0.5; }
 }
 
 /* ============================================
@@ -734,6 +846,21 @@
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
     border-bottom: 1px solid var(--border-color);
+}
+
+/* Countdown Card Styling */
+.countdown-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.countdown-card .sidebar-title {
+    color: var(--primary-color);
+    border-bottom-color: rgba(99, 102, 241, 0.2);
+}
+
+.countdown-container {
+    padding: var(--spacing-lg) 0;
 }
 
 /* ============================================
@@ -1679,6 +1806,229 @@
 /* ============================================
    SHARE MODAL
    ============================================ */
+/* ============================================
+   COUNTDOWN TIMER ANIMATIONS (V7 Production)
+   ============================================ */
+.countdown-timer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.time-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+}
+
+.time-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.time-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+}
+
+.time-separator {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    opacity: 0.5;
+    animation: separatorPulse 2s ease-in-out infinite;
+}
+
+@keyframes separatorPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.2; }
+}
+
+/* Countdown urgency states */
+.countdown-urgent .time-value {
+    color: var(--color-warning);
+    animation: urgentPulse 1.5s ease-in-out infinite;
+}
+
+.countdown-critical .time-value {
+    color: var(--color-danger);
+    animation: criticalPulse 1s ease-in-out infinite;
+}
+
+@keyframes urgentPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+@keyframes criticalPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    25% { transform: scale(1.1); opacity: 0.8; }
+    75% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Compact countdown */
+.countdown-compact {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Minimal countdown */
+.countdown-minimal {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Expired state */
+.countdown-expired {
+    opacity: 0.6;
+}
+
+.countdown-expired-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ============================================
+   PROGRESS BAR ANIMATIONS (V7 Production)
+   ============================================ */
+.progress-bar {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+    transition: width 0.3s ease-out, background-color 0.3s ease;
+    position: relative;
+}
+
+/* Progress fill shimmer effect */
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 50%,
+        transparent 100%
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Progress complete animation */
+.progress-complete {
+    animation: progressComplete 0.5s ease-out;
+}
+
+@keyframes progressComplete {
+    0% { transform: scaleY(1); }
+    50% { transform: scaleY(1.5); }
+    100% { transform: scaleY(1); }
+}
+
+/* ============================================
+   BADGE ANIMATIONS (V7 Production)
+   ============================================ */
+.badge-pulse {
+    animation: badgePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+/* Status badge entrance animation */
+.badge[data-status-badge] {
+    animation: badgeSlideIn 0.3s ease-out;
+}
+
+@keyframes badgeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Pulse animation for urgent badges */
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+    }
+}
+
+.pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* ============================================
+   COUNTER ANIMATIONS (V7 Production)
+   ============================================ */
+[data-counter-target] {
+    font-variant-numeric: tabular-nums;
+    transition: all 0.3s ease;
+}
+
+/* ============================================
+   INTERSECTION OBSERVER FADE-IN
+   ============================================ */
+.fade-in-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-on-scroll.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 .share-options {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
