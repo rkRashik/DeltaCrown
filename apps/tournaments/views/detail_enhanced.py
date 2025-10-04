@@ -37,14 +37,19 @@ Registration = apps.get_model("tournaments", "Registration")
 Match = apps.get_model("tournaments", "Match")
 
 
-def can_view_sensitive(user, tournament: Tournament) -> bool:
+def can_view_sensitive(request_user, tournament: Tournament) -> bool:
     """
     Check if user can view sensitive data (participants, bracket).
     Criteria: Registered + tournament has started OR is staff/organizer
+    
+    Args:
+        request_user: Django User object (request.user)
+        tournament: Tournament instance
     """
     # Staff can always view
-    if user and hasattr(user, 'user') and getattr(user.user, 'is_staff', False):
-        return True
+    if request_user and hasattr(request_user, 'is_authenticated'):
+        if request_user.is_authenticated and request_user.is_staff:
+            return True
     
     # Tournament must have started
     now = timezone.now()
@@ -52,28 +57,46 @@ def can_view_sensitive(user, tournament: Tournament) -> bool:
     if start_at and now < start_at:
         return False
     
-    # User must be registered
-    if not user or not user.is_authenticated:
+    # User must be authenticated
+    if not request_user or not hasattr(request_user, 'is_authenticated') or not request_user.is_authenticated:
+        return False
+    
+    # Get UserProfile instance
+    try:
+        user_profile = request_user.userprofile
+    except (AttributeError, Exception):
         return False
     
     # Check if user is registered
     is_registered = Registration.objects.filter(
         tournament=tournament,
-        user=user,
+        user=user_profile,
         status='CONFIRMED'
     ).exists()
     
     return is_registered
 
 
-def is_user_registered(user, tournament: Tournament) -> bool:
-    """Check if user is registered for this tournament."""
-    if not user or not hasattr(user, 'user') or not getattr(user.user, 'is_authenticated', False):
+def is_user_registered(request_user, tournament: Tournament) -> bool:
+    """
+    Check if user is registered for this tournament.
+    
+    Args:
+        request_user: Django User object (request.user)
+        tournament: Tournament instance
+    """
+    if not request_user or not hasattr(request_user, 'is_authenticated') or not request_user.is_authenticated:
+        return False
+    
+    # Get UserProfile instance
+    try:
+        user_profile = request_user.userprofile
+    except (AttributeError, Exception):
         return False
     
     return Registration.objects.filter(
         tournament=tournament,
-        user=user,
+        user=user_profile,
         status__in=['PENDING', 'CONFIRMED']
     ).exists()
 

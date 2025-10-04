@@ -196,14 +196,54 @@ class TournamentMedia(models.Model):
         return self.promotional_images_count > 0
     
     @property
+    def has_complete_media(self) -> bool:
+        """Check if tournament has all recommended media"""
+        return all([
+            self.has_banner,
+            self.has_thumbnail,
+            self.has_social_image
+        ])
+    
+    @property
+    def media_count(self) -> int:
+        """Count total number of media items"""
+        count = 0
+        if self.banner:
+            count += 1
+        if self.thumbnail:
+            count += 1
+        if self.rules_pdf:
+            count += 1
+        if self.social_media_image:
+            count += 1
+        count += self.promotional_images_count
+        return count
+    
+    @property
     def banner_url(self) -> Optional[str]:
         """Get banner URL or None"""
         return self.banner.url if self.banner else None
     
     @property
+    def banner_url_or_default(self) -> str:
+        """Get banner URL or return default placeholder"""
+        if self.banner:
+            return self.banner.url
+        # Return default placeholder image
+        return '/static/images/tournament-banner-default.jpg'
+    
+    @property
     def thumbnail_url(self) -> Optional[str]:
         """Get thumbnail URL or None"""
         return self.thumbnail.url if self.thumbnail else None
+    
+    @property
+    def thumbnail_url_or_default(self) -> str:
+        """Get thumbnail URL or return default placeholder"""
+        if self.thumbnail:
+            return self.thumbnail.url
+        # Return default placeholder for cards
+        return '/static/images/tournament-card-default.jpg'
     
     @property
     def rules_pdf_url(self) -> Optional[str]:

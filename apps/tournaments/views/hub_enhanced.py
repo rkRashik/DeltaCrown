@@ -91,8 +91,9 @@ def calculate_platform_stats() -> Dict[str, Any]:
 def get_game_stats(base_qs: QuerySet) -> List[Dict[str, Any]]:
     """
     Get tournament count per game for the game grid.
+    Uses centralized game_assets.py configuration.
     """
-    from .helpers import GAME_REGISTRY
+    from apps.common.game_assets import GAMES
     
     # Count tournaments per game
     game_counts = base_qs.values('game').annotate(
@@ -100,20 +101,24 @@ def get_game_stats(base_qs: QuerySet) -> List[Dict[str, Any]]:
     ).order_by('-count')
     
     # Convert to dict for easy lookup
-    counts_dict = {item['game']: item['count'] for item in game_counts}
+    counts_dict = {item['game'].upper(): item['count'] for item in game_counts}
     
-    # Build game cards with counts
+    # Build game cards with counts from game_assets.py
     games = []
-    for game_slug, game_info in GAME_REGISTRY.items():
+    for game_slug, game_info in GAMES.items():
         count = counts_dict.get(game_slug, 0)
         if count > 0:  # Only show games with tournaments
             games.append({
-                'slug': game_slug,
+                'slug': game_slug.lower(),
                 'name': game_info.get('name', game_slug.title()),
+                'display_name': game_info.get('display_name'),
                 'count': count,
+                'logo': game_info.get('logo'),
+                'card': game_info.get('card'),
                 'icon': game_info.get('icon'),
-                'card_image': game_info.get('card_image'),
-                'primary_color': game_info.get('primary'),
+                'banner': game_info.get('banner'),
+                'color_primary': game_info.get('color_primary'),
+                'color_secondary': game_info.get('color_secondary'),
             })
     
     return games

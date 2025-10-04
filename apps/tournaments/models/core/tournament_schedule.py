@@ -229,6 +229,165 @@ class TournamentSchedule(models.Model):
             return None
         return self.start_at - now
     
+    @property
+    def registration_countdown(self) -> dict | None:
+        """
+        Get countdown to registration close with days, hours, minutes, seconds.
+        Returns None if registration not scheduled or already closed.
+        """
+        if not self.reg_close_at:
+            return None
+        
+        now = timezone.now()
+        if now >= self.reg_close_at:
+            return None  # Registration closed
+        
+        diff = self.reg_close_at - now
+        days = diff.days
+        seconds = diff.seconds
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        
+        return {
+            'total_seconds': int(diff.total_seconds()),
+            'days': days,
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': secs,
+            'display': f"{days}d {hours}h {minutes}m" if days > 0 else f"{hours}h {minutes}m {secs}s"
+        }
+    
+    @property
+    def tournament_countdown(self) -> dict | None:
+        """
+        Get countdown to tournament start with days, hours, minutes, seconds.
+        Returns None if tournament not scheduled or already started.
+        """
+        if not self.start_at:
+            return None
+        
+        now = timezone.now()
+        if now >= self.start_at:
+            return None  # Tournament started
+        
+        diff = self.start_at - now
+        days = diff.days
+        seconds = diff.seconds
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        
+        return {
+            'total_seconds': int(diff.total_seconds()),
+            'days': days,
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': secs,
+            'display': f"{days}d {hours}h {minutes}m" if days > 0 else f"{hours}h {minutes}m"
+        }
+    
+    @property
+    def is_registration_closing_soon(self) -> bool:
+        """Check if registration closes within 24 hours."""
+        countdown = self.registration_countdown
+        if not countdown:
+            return False
+        return countdown['total_seconds'] <= 86400  # 24 hours in seconds
+    
+    @property
+    def timeline_formatted(self) -> list:
+        """
+        Generate formatted timeline phases for template display.
+        Returns list of dicts with phase info, dates, and descriptions.
+        """
+        phases = []
+        
+        # Phase 1: Registration
+        if self.reg_open_at and self.reg_close_at:
+            phases.append({
+                'phase': 'Registration Period',
+                'icon': '📝',
+                'start_date': self.reg_open_at,
+                'end_date': self.reg_close_at,
+                'description': 'Registration opens for all participants. Complete your registration and payment before the deadline.',
+                'status': 'active' if self.is_registration_open else (
+                    'completed' if timezone.now() > self.reg_close_at else 'upcoming'
+                )
+            })
+        
+        # Phase 2: Check-in
+        if self.start_at and self.check_in_open_mins:
+            check_in_start = self.start_at - timezone.timedelta(minutes=self.check_in_open_mins)
+            check_in_end = self.start_at - timezone.timedelta(minutes=self.check_in_close_mins or 0)
+            phases.append({
+                'phase': 'Check-in Opens',
+                'icon': '✅',
+                'start_date': check_in_start,
+                'end_date': check_in_end,
+                'description': f'Mandatory check-in period. {self.check_in_window_text}',
+                'status': 'active' if self.is_check_in_open else (
+                    'completed' if timezone.now() > check_in_end else 'upcoming'
+                )
+            })
+        
+        # Phase 3: Tournament
+        if self.start_at and self.end_at:
+            phases.append({
+                'phase': 'Tournament Matches',
+                'icon': '🎮',
+                'start_date': self.start_at,
+                'end_date': self.end_at,
+                'description': 'Main tournament matches. Players compete through brackets until a champion is crowned.',
+                'status': 'active' if self.is_tournament_live else (
+                    'completed' if timezone.now() > self.end_at else 'upcoming'
+                )
+            })
+        
+        # Phase 4: Prize Distribution
+        if self.end_at:
+            phases.append({
+                'phase': 'Prize Distribution',
+                'icon': '🏆',
+                'start_date': self.end_at,
+                'end_date': None,
+                'description': 'Winners receive their prizes through verified payment methods. Payouts are processed within 24-48 hours.',
+                'status': 'completed' if timezone.now() > self.end_at else 'upcoming'
+            })
+        
+        return phases
+    
+    @property
+    def phase_status(self) -> str:
+        """
+        Get current tournament phase status.
+        Returns: 'registration', 'check_in', 'tournament', 'completed', or 'not_scheduled'
+        """
+        if not self.start_at:
+            return 'not_scheduled'
+        
+        now = timezone.now()
+        
+        # Check registration phase
+        if self.reg_open_at and self.reg_close_at:
+            if self.reg_open_at <= now <= self.reg_close_at:
+                return 'registration'
+        
+        # Check check-in phase
+        if self.is_check_in_open:
+            return 'check_in'
+        
+        # Check tournament phase
+        if self.is_tournament_live:
+            return 'tournament'
+        
+        # Check if completed
+        if self.end_at and now > self.end_at:
+            return 'completed'
+        
+        # Default to upcoming
+        return 'upcoming'
+    
     # ===== Helper Methods =====
     
     def get_registration_window_display(self) -> str:

@@ -4,6 +4,7 @@ from django.urls import path
 from .views.public import hub, list_by_game, detail
 from .views.hub_enhanced import hub_enhanced
 from .views.detail_enhanced import detail_enhanced
+from .views.detail_v6 import tournament_detail_v6
 from .views.dashboard_v2 import tournament_dashboard_v2
 
 # Modern Registration System (CANONICAL)
@@ -23,6 +24,15 @@ from .views.state_api import tournament_state_api
 
 # Dashboard API
 from .views.api_dashboard import bracket_api, matches_api, news_api, statistics_api
+
+# Enhanced API Views (New - Modern frontend integration)
+from .api_views import (
+    tournament_teams,
+    tournament_matches,
+    tournament_leaderboard,
+    tournament_registration_status,
+    featured_tournaments,
+)
 
 # Deprecated views (for backward compatibility - redirect to modern)
 from .views._deprecated import (
@@ -62,8 +72,8 @@ urlpatterns = [
     # Browse by game (e.g. /tournaments/game/valorant/)
     path("game/<slug:game>/", list_by_game, name="game"),
 
-    # Detail (Enhanced with optimized queries & data loading)
-    path("t/<slug:slug>/", detail_enhanced, name="detail"),
+    # Detail (V6 - Complete redesign with all tournament information)
+    path("t/<slug:slug>/", tournament_detail_v6, name="detail"),
     
     # Dashboard (Participant view)
     path("t/<slug:slug>/dashboard/", tournament_dashboard_v2, name="dashboard"),
@@ -102,6 +112,25 @@ urlpatterns = [
     path("api/t/<slug:slug>/matches/", matches_api, name="matches_api"),
     path("api/t/<slug:slug>/news/", news_api, name="news_api"),
     path("api/t/<slug:slug>/statistics/", statistics_api, name="statistics_api"),
+    
+    # ==========================================
+    # ENHANCED DETAIL PAGE APIs (NEW)
+    # ==========================================
+    
+    # Teams API (get registered teams with players)
+    path("api/t/<slug:slug>/teams/", tournament_teams, name="teams_api"),
+    
+    # Matches API (get match schedule and results) - Enhanced
+    path("api/<slug:slug>/matches/", tournament_matches, name="matches_detail_api"),
+    
+    # Leaderboard API (get current standings)
+    path("api/t/<slug:slug>/leaderboard/", tournament_leaderboard, name="leaderboard_api"),
+    
+    # Registration Status API (get user's registration status)
+    path("api/t/<slug:slug>/registration-status/", tournament_registration_status, name="registration_status_api"),
+    
+    # Featured Tournaments API (for hub page)
+    path("api/featured/", featured_tournaments, name="featured_api"),
     
     # ==========================================
     # DEPRECATED REGISTRATION VIEWS

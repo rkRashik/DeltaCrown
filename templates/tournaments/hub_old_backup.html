@@ -1,0 +1,390 @@
+﻿{% extends "base.html" %}
+{% load static tournament_dict_utils humanize %}
+
+{% block title %}Tournament Hub - Compete & Win | DeltaCrown Esports{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-hub-premium.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}">
+<link rel="stylesheet" href="{% static 'siteui/css/capacity-animations.css' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block body_class %}tournament-hub-v2 no-footer{% endblock %}
+
+{% block content %}
+<!-- ============================================
+     HERO SECTION - Premium Esports Landing
+     ============================================ -->
+<section class="hub-hero">
+    <div class="hub-hero-bg">
+        <div class="hub-hero-grid"></div>
+        <div class="hub-hero-particles"></div>
+        <div class="hub-hero-glow hub-hero-glow-1"></div>
+        <div class="hub-hero-glow hub-hero-glow-2"></div>
+        <div class="hub-hero-glow hub-hero-glow-3"></div>
+    </div>
+    
+    <div class="tournament-hub-container">
+        <div class="hub-hero-content">
+            <div class="hub-hero-badges">
+                <span class="hub-badge hub-badge-live">
+                    <span class="hub-badge-dot"></span>
+                    LIVE NOW
+                </span>
+                <span class="hub-badge hub-badge-new">
+                    🆕 {{ platform_stats.new_this_week|default:0 }} New This Week
+                </span>
+            </div>
+            
+            <h1 class="hub-hero-title">
+                <span class="hub-hero-title-main">COMPETE. DOMINATE. WIN.</span>
+                <span class="hub-hero-title-sub">Join <span class="gradient-text">Elite Esports</span> Tournaments</span>
+            </h1>
+            
+            <p class="hub-hero-subtitle">
+                Bangladesh's premier competitive gaming platform. Battle with the best, climb the ranks, and claim your glory.
+            </p>
+            
+            <div class="hub-hero-actions">
+                <a href="#featured" class="btn-hero btn-hero-primary">
+                    <span>🏆 Browse Tournaments</span>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <a href="#how-it-works" class="btn-hero btn-hero-secondary">
+                    <span>📖 How It Works</span>
+                </a>
+            </div>
+            
+            <!-- Live Stats -->
+            <div class="hub-hero-stats">
+                <div class="hub-stat">
+                    <div class="hub-stat-value">{{ platform_stats.total_active|default:0 }}</div>
+                    <div class="hub-stat-label">Active Tournaments</div>
+                </div>
+                <div class="hub-stat-divider"></div>
+                <div class="hub-stat">
+                    <div class="hub-stat-value">{{ platform_stats.players_this_month|default:0|intcomma }}</div>
+                    <div class="hub-stat-label">Players This Month</div>
+                </div>
+                <div class="hub-stat-divider"></div>
+                <div class="hub-stat">
+                    <div class="hub-stat-value">৳{{ platform_stats.prize_pool_month|default:0|intcomma }}</div>
+                    <div class="hub-stat-label">Prize Pool</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="hub-hero-scroll-indicator">
+        <span>Scroll to explore</span>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M10 5V15M10 15L15 10M10 15L5 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+</section>
+
+<!-- ============================================
+     FEATURED TOURNAMENT - Main Spotlight
+     ============================================ -->
+{% if featured_tournament %}
+<section class="hub-featured" id="featured">
+    <div class="tournament-hub-container">
+        <div class="section-header">
+            <span class="section-eyebrow">⭐ Featured Tournament</span>
+            <h2 class="section-title">Spotlight Event</h2>
+        </div>
+        
+        <div class="featured-card">
+            <div class="featured-card-bg">
+                {% if featured_tournament.banner %}
+                <img src="{{ featured_tournament.banner.url }}" alt="{{ featured_tournament.title }}" class="featured-bg-img">
+                {% endif %}
+                <div class="featured-bg-overlay"></div>
+            </div>
+            
+            <div class="featured-card-content">
+                <div class="featured-card-header">
+                    <div class="featured-game-badge">
+                        {{ featured_tournament.game|upper }}
+                    </div>
+                    <div class="featured-status-badge status-{{ featured_tournament.status|lower }}">
+                        {{ featured_tournament.status|title }}
+                    </div>
+                </div>
+                
+                <h3 class="featured-title">{{ featured_tournament.title }}</h3>
+                <p class="featured-description">{{ featured_tournament.description|truncatewords:25 }}</p>
+                
+                <div class="featured-meta">
+                    <div class="featured-meta-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"/>
+                        </svg>
+                        <span>{{ featured_tournament.start_at|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="featured-meta-item">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                        </svg>
+                        <span>{{ featured_tournament.total_registrations|default:0 }} / {{ featured_tournament.max_teams|default:32 }} Teams</span>
+                    </div>
+                    <div class="featured-meta-item featured-meta-prize">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 2l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z"/>
+                        </svg>
+                        <span>৳{{ featured_tournament.prize_pool_bdt|default:0|intcomma }} Prize Pool</span>
+                    </div>
+                </div>
+                
+                <div class="featured-actions">
+                    <a href="{% url 'tournaments:detail' featured_tournament.slug %}" class="btn-featured btn-featured-primary">
+                        View Tournament Details
+                    </a>
+                    {% if featured_tournament.status == 'PUBLISHED' %}
+                    <a href="{% url 'tournaments:modern_register' featured_tournament.slug %}" class="btn-featured btn-featured-secondary">
+                        Register Now
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     GAME SELECTOR - Browse by Game
+     ============================================ -->
+<section class="hub-games">
+    <div class="tournament-hub-container">
+        <div class="section-header">
+            <span class="section-eyebrow">🎮 Browse By Game</span>
+            <h2 class="section-title">Choose Your Arena</h2>
+        </div>
+        
+        <div class="games-grid">
+            {% for game in game_stats %}
+            <a href="{% url 'tournaments:game' game.slug %}" class="game-card">
+                <div class="game-card-bg"></div>
+                <div class="game-card-icon">
+                    {% if game.slug == 'valorant' %}🎯
+                    {% elif game.slug == 'efootball' %}⚽
+                    {% elif game.slug == 'pubg' %}🔫
+                    {% elif game.slug == 'freefire' %}🔥
+                    {% elif game.slug == 'cod' %}💣
+                    {% else %}🎮
+                    {% endif %}
+                </div>
+                <h3 class="game-card-title">{{ game.name }}</h3>
+                <p class="game-card-count">{{ game.count }} Tournament{{ game.count|pluralize }}</p>
+                <div class="game-card-arrow">→</div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     TOURNAMENTS GRID - All Active Events
+     ============================================ -->
+<section class="hub-tournaments" id="tournaments">
+    <div class="tournament-hub-container">
+        <div class="section-header">
+            <div class="section-header-left">
+                <span class="section-eyebrow">🏆 All Tournaments</span>
+                <h2 class="section-title">Join The Competition</h2>
+            </div>
+            <div class="section-header-right">
+                <div class="hub-filters">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="upcoming">Upcoming</button>
+                    <button class="filter-btn" data-filter="live">Live</button>
+                    <button class="filter-btn" data-filter="registration">Open Registration</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tournaments-grid">
+            {% for tournament in tournaments %}
+            <article class="tournament-card" data-status="{{ tournament.status|lower }}">
+                <!-- Card Header with Game Badge -->
+                <div class="tournament-card-header">
+                    {% if tournament.banner %}
+                    <img src="{{ tournament.banner.url }}" alt="{{ tournament.title }}" class="tournament-card-img">
+                    {% else %}
+                    <div class="tournament-card-img-placeholder">
+                        <span>{{ tournament.game|upper|slice:":2" }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="tournament-card-overlay"></div>
+                    <div class="tournament-card-badges">
+                        <span class="tournament-badge tournament-badge-game">{{ tournament.game|upper }}</span>
+                        <span class="tournament-badge tournament-badge-status status-{{ tournament.status|lower }}">
+                            {{ tournament.status|title }}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Card Body -->
+                <div class="tournament-card-body">
+                    <h3 class="tournament-card-title">
+                        <a href="{% url 'tournaments:detail' tournament.slug %}">
+                            {{ tournament.title }}
+                        </a>
+                    </h3>
+                    
+                    <!-- Tournament Info Grid -->
+                    <div class="tournament-info-grid">
+                        <div class="tournament-info-item">
+                            <span class="tournament-info-label">Start Date</span>
+                            <span class="tournament-info-value">{{ tournament.start_at|date:"M d" }}</span>
+                        </div>
+                        <div class="tournament-info-item">
+                            <span class="tournament-info-label">Prize Pool</span>
+                            <span class="tournament-info-value tournament-prize">৳{{ tournament.prize_pool_bdt|default:0|intcomma }}</span>
+                        </div>
+                        <div class="tournament-info-item">
+                            <span class="tournament-info-label">Format</span>
+                            <span class="tournament-info-value">{{ tournament.format|default:"TBD" }}</span>
+                        </div>
+                        <div class="tournament-info-item">
+                            <span class="tournament-info-label">Entry Fee</span>
+                            <span class="tournament-info-value">৳{{ tournament.entry_fee_bdt|default:0 }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Capacity Bar -->
+                    {% if tournament.max_teams %}
+                    <div class="tournament-capacity">
+                        <div class="tournament-capacity-header">
+                            <span class="tournament-capacity-label">Registration</span>
+                            <span class="tournament-capacity-count">{{ tournament.total_registrations|default:0 }} / {{ tournament.max_teams }}</span>
+                        </div>
+                        <div class="tournament-capacity-bar">
+                            <div class="tournament-capacity-fill" style="width: {{ tournament.capacity_percentage|default:0 }}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Card Footer -->
+                <div class="tournament-card-footer">
+                    <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-tournament btn-tournament-outline">
+                        View Details
+                    </a>
+                    {% if tournament.status == 'PUBLISHED' %}
+                    <a href="{% url 'tournaments:modern_register' tournament.slug %}" class="btn-tournament btn-tournament-primary">
+                        Register Now
+                    </a>
+                    {% endif %}
+                </div>
+            </article>
+            {% empty %}
+            <div class="tournaments-empty">
+                <div class="tournaments-empty-icon">🏆</div>
+                <h3 class="tournaments-empty-title">No Tournaments Available</h3>
+                <p class="tournaments-empty-text">Check back soon for upcoming events!</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Load More -->
+        {% if tournaments|length >= 12 %}
+        <div class="hub-load-more">
+            <button class="btn-load-more">
+                <span>Load More Tournaments</span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M4 12a8 8 0 108-8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- ============================================
+     HOW IT WORKS - Step by Step Guide
+     ============================================ -->
+<section class="hub-how-it-works" id="how-it-works">
+    <div class="tournament-hub-container">
+        <div class="section-header section-header-center">
+            <span class="section-eyebrow">📚 Getting Started</span>
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-subtitle">Join and compete in 4 simple steps</p>
+        </div>
+        
+        <div class="how-it-works-grid">
+            <div class="how-it-works-step">
+                <div class="step-number">1</div>
+                <div class="step-icon">🔍</div>
+                <h3 class="step-title">Find Tournament</h3>
+                <p class="step-description">Browse tournaments by game, date, or prize pool. Filter to find the perfect match.</p>
+            </div>
+            
+            <div class="how-it-works-step">
+                <div class="step-number">2</div>
+                <div class="step-icon">✍️</div>
+                <h3 class="step-title">Register Team</h3>
+                <p class="step-description">Create or join a team, pay entry fee, and submit your registration.</p>
+            </div>
+            
+            <div class="how-it-works-step">
+                <div class="step-number">3</div>
+                <div class="step-icon">⚔️</div>
+                <h3 class="step-title">Compete & Win</h3>
+                <p class="step-description">Battle through brackets, track matches in real-time, and climb the leaderboard.</p>
+            </div>
+            
+            <div class="how-it-works-step">
+                <div class="step-number">4</div>
+                <div class="step-icon">🏆</div>
+                <h3 class="step-title">Claim Rewards</h3>
+                <p class="step-description">Winners get instant prize payouts and recognition on our platform.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     CALL TO ACTION - Final Push
+     ============================================ -->
+<section class="hub-cta">
+    <div class="tournament-hub-container">
+        <div class="cta-card">
+            <div class="cta-card-bg">
+                <div class="cta-card-glow cta-card-glow-1"></div>
+                <div class="cta-card-glow cta-card-glow-2"></div>
+            </div>
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Compete?</h2>
+                <p class="cta-subtitle">Join thousands of players in Bangladesh's fastest-growing esports community</p>
+                <div class="cta-actions">
+                    <a href="#tournaments" class="btn-cta btn-cta-primary">
+                        Browse All Tournaments
+                    </a>
+                    <a href="/accounts/register/" class="btn-cta btn-cta-secondary">
+                        Create Free Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Scroll to Top Button -->
+<button class="scroll-to-top" id="scrollToTop" aria-label="Scroll to top">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/tournaments-v2-hub-premium.js' %}"></script>
+<script src="{% static 'js/countdown-timer.js' %}"></script>
+{% endblock %}

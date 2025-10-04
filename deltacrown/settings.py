@@ -14,6 +14,7 @@ DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = [
     "localhost", "127.0.0.1",
     "192.168.68.100",
+    "192.168.0.153"
     # ngrok rotates:
     ".ngrok-free.app",
     # optional:
@@ -25,6 +26,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://192.168.68.100:8000",
+    "http://192.168.0.153:8000",
     # CSRF origins MUST include scheme; allow all ngrok subdomains:
     "https://*.ngrok-free.app",
     # optional: (not required if using wildcard)

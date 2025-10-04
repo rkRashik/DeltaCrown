@@ -250,6 +250,46 @@ class TournamentFinance(models.Model):
         return float(self.prize_pool_bdt / self.entry_fee_bdt)
     
     @property
+    def prize_distribution_formatted(self) -> list:
+        """
+        Format prize distribution for template display.
+        Returns list of dicts with position, amount, and percentage.
+        """
+        if not self.prize_distribution:
+            return []
+        
+        formatted = []
+        for position, amount in self.prize_distribution.items():
+            # Calculate percentage
+            percentage = 0
+            if self.prize_pool_bdt > 0:
+                percentage = (float(amount) / float(self.prize_pool_bdt)) * 100
+            
+            formatted.append({
+                'position': position,
+                'rank': position.replace('Place', '').replace('place', '').strip(),
+                'amount': float(amount),
+                'amount_formatted': f"৳{float(amount):,.0f}",
+                'percentage': round(percentage, 1),
+                'highlight': 'gold' if '1st' in position.lower() else (
+                    'silver' if '2nd' in position.lower() else (
+                    'bronze' if '3rd' in position.lower() else ''
+                ))
+            })
+        
+        return formatted
+    
+    @property
+    def total_prize_pool_formatted(self) -> str:
+        """Get total prize pool with symbol (alias for formatted_prize_pool)"""
+        return self.formatted_prize_pool
+    
+    @property
+    def entry_fee_display(self) -> str:
+        """Get entry fee for display (alias for formatted_entry_fee)"""
+        return self.formatted_entry_fee
+    
+    @property
     def total_with_platform_fee(self) -> Decimal:
         """Calculate total amount including platform fee"""
         if self.platform_fee_percent == 0:

@@ -463,3 +463,126 @@ class Tournament(models.Model):
         if s in {"COMPLETED", "FINISHED"}:
             return "finished"
         return ""
+    
+    # ==========================================
+    # V7 Production Enhancements
+    # ==========================================
+    
+    @property
+    def registration_progress_percentage(self) -> float:
+        """Calculate registration progress for progress bar"""
+        try:
+            if hasattr(self, 'capacity') and self.capacity:
+                if self.capacity.max_teams > 0:
+                    return (self.capacity.current_registrations / self.capacity.max_teams) * 100
+        except Exception:
+            pass
+        return 0.0
+    
+    @property
+    def registration_status_badge(self) -> dict:
+        """Return color-coded status badge for registration"""
+        if self.registration_open:
+            # Check if closing soon
+            try:
+                if hasattr(self, 'schedule') and self.schedule:
+                    if self.schedule.is_registration_closing_soon:
+                        return {
+                            'text': 'Closing Soon',
+                            'color': 'warning',
+                            'icon': '🟡',
+                            'class': 'badge-warning pulse'
+                        }
+            except Exception:
+                pass
+            
+            return {
+                'text': 'Open',
+                'color': 'success',
+                'icon': '🟢',
+                'class': 'badge-success'
+            }
+        
+        return {
+            'text': 'Closed',
+            'color': 'danger',
+            'icon': '🔴',
+            'class': 'badge-danger'
+        }
+    
+    @property
+    def status_badge(self) -> dict:
+        """Return color-coded tournament status badge"""
+        status_map = {
+            'DRAFT': {'text': 'Draft', 'color': 'secondary', 'icon': '📝', 'class': 'badge-secondary'},
+            'PUBLISHED': {'text': 'Published', 'color': 'info', 'icon': '📢', 'class': 'badge-info'},
+            'RUNNING': {'text': 'Live', 'color': 'success', 'icon': '🎮', 'class': 'badge-success pulse'},
+            'COMPLETED': {'text': 'Completed', 'color': 'dark', 'icon': '🏁', 'class': 'badge-dark'},
+        }
+        return status_map.get(self.status, {'text': 'Unknown', 'color': 'secondary', 'icon': '❓', 'class': 'badge-secondary'})
+    
+    @property
+    def is_full(self) -> bool:
+        """Check if tournament reached capacity"""
+        try:
+            if hasattr(self, 'capacity') and self.capacity:
+                return self.capacity.is_full
+        except Exception:
+            pass
+        return False
+    
+    @property
+    def has_available_slots(self) -> bool:
+        """Check if tournament has available slots"""
+        return not self.is_full
+    
+    @property
+    def seo_meta(self) -> dict:
+        """Generate SEO meta tags for social sharing and search engines"""
+        try:
+            description = ''
+            if self.short_description:
+                # Strip HTML tags for meta description
+                from django.utils.html import strip_tags
+                description = strip_tags(self.short_description)[:160]
+            elif self.description:
+                from django.utils.html import strip_tags
+                description = strip_tags(self.description)[:160]
+            
+            # Get banner URL
+            banner_url = '/static/images/tournament-default.jpg'
+            try:
+                if hasattr(self, 'media') and self.media and self.media.banner:
+                    banner_url = self.media.banner.url
+                elif self.banner:
+                    banner_url = self.banner.url
+            except Exception:
+                pass
+            
+            # Generate keywords
+            keywords = [
+                self.game,
+                'tournament',
+                'esports',
+                'gaming'
+            ]
+            if self.region:
+                keywords.append(self.region.lower())
+            if self.format:
+                keywords.append(self.get_format_display().lower())
+            
+            return {
+                'title': f"{self.name} - {self.game_name} Tournament",
+                'description': description,
+                'keywords': ', '.join(keywords),
+                'og_image': banner_url,
+                'og_type': 'website',
+            }
+        except Exception:
+            return {
+                'title': self.name,
+                'description': '',
+                'keywords': '',
+                'og_image': '/static/images/tournament-default.jpg',
+                'og_type': 'website',
+            }

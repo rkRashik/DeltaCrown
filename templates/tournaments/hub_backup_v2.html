@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+{% load static tournament_dict_utils humanize %}
+
+{% block title %}Tournaments - Compete & Win | DeltaCrown Esports{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v3-detail.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'siteui/css/tournaments-v3-hub.css' %}?v=3">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="{% static 'js/tournaments-v3-hub.js' %}?v=3" defer></script>
+{% endblock %}
+
+{% block body_class %}tournament-hub-v3 hide-footer{% endblock %}
+
+{% block content %}
+<!-- ============================================
+     HERO SECTION
+     ============================================ -->
+<section class="hub-hero-section">
+    <div class="hub-hero-background">
+        <div class="hero-grid-pattern"></div>
+        <div class="hero-glow hero-glow-red"></div>
+        <div class="hero-glow hero-glow-cyan"></div>
+    </div>
+    
+    <div class="hub-container">
+        <div class="hero-content-wrapper">
+            <!-- Hero Badges -->
+            <div class="hero-badges-row">
+                {% if live_tournaments %}
+                <span class="hero-badge hero-badge-live">
+                    <span class="live-pulse"></span>
+                    LIVE NOW
+                </span>
+                {% endif %}
+                <span class="hero-badge hero-badge-count">
+                    {{ stats.total_active|default:0 }} Active Tournaments
+                </span>
+            </div>
+            
+            <!-- Hero Title -->
+            <h1 class="hero-main-title">
+                <span class="title-main">BANGLADESH'S PREMIER</span>
+                <span class="title-accent">ESPORTS PLATFORM</span>
+            </h1>
+            
+            <!-- Hero Description -->
+            <p class="hero-description">
+                Compete in elite tournaments. Battle for glory. Claim massive prizes.
+            </p>
+            
+            <!-- Hero Stats Cards -->
+            <div class="hero-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ stats.total_active|default:0 }}</div>
+                        <div class="stat-label">Active Events</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ stats.players_this_month|default:0|intcomma }}</div>
+                        <div class="stat-label">Players This Month</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-value">৳{{ stats.prize_pool_month|default:0|intcomma }}</div>
+                        <div class="stat-label">Prize Pool</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     ADVANCED SEARCH SECTION
+     ============================================ -->
+<section class="hub-search-section">
+    <div class="hub-container">
+        <div class="hub-search-wrapper">
+            <div class="hub-search-input-wrapper">
+                <i class="fas fa-search hub-search-icon"></i>
+                <input 
+                    type="text" 
+                    id="hub-search-input" 
+                    placeholder="Search tournaments by name, game, or description..."
+                    value="{{ filters.q }}"
+                    autocomplete="off"
+                >
+                <button id="hub-search-clear" aria-label="Clear search">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="hub-search-suggestions" class="hub-search-suggestions"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     GAME FILTER SECTION
+     ============================================ -->
+<section class="game-filter-section">
+    <div class="hub-container">
+        <h2 class="section-heading">Browse by Game</h2>
+        
+        <div class="game-tabs-wrapper">
+            <button class="game-tab {% if not filters.game %}active{% endif %}" data-game="all" onclick="window.location.href='{% url 'tournaments:hub' %}'">
+                <span class="tab-icon">🎮</span>
+                <span class="tab-label">All Games</span>
+                <span class="tab-count">{{ pagination.total_count }}</span>
+            </button>
+            
+            {% for game in games %}
+            <button class="game-tab {% if filters.game == game.slug %}active{% endif %}" 
+                    data-game="{{ game.slug }}"
+                    onclick="window.location.href='?game={{ game.slug }}'">
+                {% if game.icon %}
+                <img src="{% static game.icon %}" alt="{{ game.name }}" class="tab-icon">
+                {% else %}
+                <span class="tab-icon">🎯</span>
+                {% endif %}
+                <span class="tab-label">{{ game.name }}</span>
+                <span class="tab-count">{{ game.count }}</span>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     FEATURED TOURNAMENT
+     ============================================ -->
+{% if featured.0 %}
+<section class="featured-tournament-section">
+    <div class="hub-container">
+        {% with tournament=featured.0 %}
+        <div class="featured-tournament-card">
+            <div class="featured-banner">
+                {% if tournament.banner_image %}
+                <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}">
+                {% else %}
+                <div style="background: linear-gradient(135deg, #FF4655 0%, #00D4FF 100%); height: 100%;"></div>
+                {% endif %}
+                <div class="banner-overlay"></div>
+            </div>
+            
+            <div class="featured-content">
+                <div class="featured-header">
+                    <span class="featured-tag">⭐ Featured Tournament</span>
+                    <div class="featured-badges">
+                        <span class="badge badge-game">{{ tournament.game|upper }}</span>
+                        <span class="badge badge-status status-{{ tournament.status|lower }}">{{ tournament.get_status_display }}</span>
+                    </div>
+                </div>
+                
+                <h2 class="featured-title">{{ tournament.name }}</h2>
+                
+                <div class="featured-meta-grid">
+                    <div class="meta-item">
+                        <span class="meta-icon">📅</span>
+                        <span class="meta-text">{{ tournament.start_at|date:"M d, Y" }}</span>
+                    </div>
+                    
+                    {% if tournament.prize_pool_bdt %}
+                    <div class="meta-item">
+                        <span class="meta-icon">💰</span>
+                        <span class="meta-text meta-prize">৳{{ tournament.prize_pool_bdt|intcomma }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="meta-item">
+                        <span class="meta-icon">👥</span>
+                        <span class="meta-text">
+                            {% if tournament.max_teams %}{{ tournament.registrations.count }}/{{ tournament.max_teams }} Teams{% else %}{{ tournament.registrations.count }} Registered{% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="featured-actions">
+                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="btn btn-primary-lg">View Details</a>
+                    {% if tournament.is_registration_open %}
+                    <a href="{% url 'tournaments:modern_register' slug=tournament.slug %}" class="btn btn-accent-lg">Register Now</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     TOURNAMENTS GRID WITH FILTERS
+     ============================================ -->
+<section class="tournaments-grid-section">
+    <div class="hub-layout">
+        <!-- Filter Sidebar -->
+        <aside id="filter-sidebar">
+            <div class="filter-header">
+                <h3 class="filter-title">Filters</h3>
+                <button id="hub-filter-reset" disabled>
+                    <i class="fas fa-times"></i>
+                    Reset
+                    <span id="active-filter-count" style="display: none;">0</span>
+                </button>
+                <button id="filter-close" class="btn-ghost" style="display: none;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="filter-section">
+                <h4 class="filter-section-title">Status</h4>
+                <div class="filter-buttons">
+                    <button class="filter-btn {% if not filters.status %}active{% endif %}" data-status-filter="all">
+                        <span>All Tournaments</span>
+                        <span class="filter-btn-count">{{ pagination.total_count }}</span>
+                    </button>
+                    <button class="filter-btn {% if filters.status == 'open' %}active{% endif %}" data-status-filter="open">
+                        <span>Registration Open</span>
+                        <span class="filter-btn-count">-</span>
+                    </button>
+                    <button class="filter-btn {% if filters.status == 'live' %}active{% endif %}" data-status-filter="live">
+                        <span>Live Now</span>
+                        <span class="filter-btn-count">{{ live_tournaments|length }}</span>
+                    </button>
+                    <button class="filter-btn {% if filters.status == 'upcoming' %}active{% endif %}" data-status-filter="upcoming">
+                        <span>Upcoming</span>
+                        <span class="filter-btn-count">-</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Filter -->
+            <div class="filter-section">
+                <h4 class="filter-section-title">Game</h4>
+                <div class="filter-buttons">
+                    <button class="filter-btn {% if not filters.game %}active{% endif %}" data-game-filter="all">
+                        <span>All Games</span>
+                        <span class="filter-btn-count">{{ pagination.total_count }}</span>
+                    </button>
+                    {% for game in games %}
+                    <button class="filter-btn {% if filters.game == game.slug %}active{% endif %}" data-game-filter="{{ game.slug }}">
+                        <span>{{ game.name }}</span>
+                        <span class="filter-btn-count">{{ game.count }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Entry Fee Filter -->
+            <div class="filter-section">
+                <h4 class="filter-section-title">Entry Fee</h4>
+                <div class="filter-buttons">
+                    <button class="filter-btn {% if not filters.fee %}active{% endif %}" data-fee-filter="all">
+                        <span>All</span>
+                    </button>
+                    <button class="filter-btn {% if filters.fee == 'free' %}active{% endif %}" data-fee-filter="free">
+                        <span>Free Entry</span>
+                    </button>
+                    <button class="filter-btn {% if filters.fee == 'paid' %}active{% endif %}" data-fee-filter="paid">
+                        <span>Paid Entry</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Prize Pool Filter -->
+            <div class="filter-section">
+                <h4 class="filter-section-title">Prize Pool</h4>
+                <div class="filter-buttons">
+                    <button class="filter-btn {% if not filters.prize %}active{% endif %}" data-prize-filter="all">
+                        <span>All</span>
+                    </button>
+                    <button class="filter-btn {% if filters.prize == 'high' %}active{% endif %}" data-prize-filter="high">
+                        <span>50K+ BDT</span>
+                    </button>
+                    <button class="filter-btn {% if filters.prize == 'medium' %}active{% endif %}" data-prize-filter="medium">
+                        <span>10K-50K BDT</span>
+                    </button>
+                    <button class="filter-btn {% if filters.prize == 'low' %}active{% endif %}" data-prize-filter="low">
+                        <span>Under 10K BDT</span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="hub-main-content">
+            <div class="hub-main-header">
+                <div class="hub-results-count">
+                    Showing <strong>{{ pagination.total_count }}</strong> tournament{{ pagination.total_count|pluralize }}
+                </div>
+                
+                <div class="hub-sort-wrapper">
+                    <label for="hub-sort-select" class="hub-sort-label">Sort by:</label>
+                    <select id="hub-sort-select">
+                        <option value="newest" {% if filters.sort == 'newest' %}selected{% endif %}>Newest First</option>
+                        <option value="starting_soon" {% if filters.sort == 'starting_soon' %}selected{% endif %}>Starting Soon</option>
+                        <option value="prize_high" {% if filters.sort == 'prize_high' %}selected{% endif %}>Highest Prize</option>
+                        <option value="prize_low" {% if filters.sort == 'prize_low' %}selected{% endif %}>Lowest Prize</option>
+                        <option value="popular" {% if filters.sort == 'popular' %}selected{% endif %}>Most Popular</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tournament Grid -->
+            <div id="tournaments-grid">
+                {% for tournament in tournaments %}
+                <div class="tournament-card-modern" 
+                     data-game="{{ tournament.game }}" 
+                     data-status="{{ tournament.status|lower }}">
+                    <!-- Card Image -->
+                    <div class="card-image-wrapper">
+                        {% if tournament.banner_image %}
+                        <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}" class="card-image" loading="lazy">
+                        {% else %}
+                        <div class="card-image-placeholder">
+                            <span class="placeholder-text">{{ tournament.game|slice:":1"|upper }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="card-image-overlay"></div>
+                        
+                        <div class="card-badges-top">
+                            <span class="card-badge badge-game-small">{{ tournament.game|upper }}</span>
+                            <span class="card-badge badge-status-small">{{ tournament.get_status_display }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Card Content -->
+                    <div class="card-content-wrapper">
+                        <h3 class="card-title-modern">
+                            <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="card-title-link">
+                                {{ tournament.name }}
+                            </a>
+                        </h3>
+                        
+                        <div class="card-meta-grid">
+                            <div class="meta-item-small">
+                                <span class="meta-label-small">Start Date</span>
+                                <span class="meta-value-small">{{ tournament.start_at|date:"M d, Y" }}</span>
+                            </div>
+                            
+                            <div class="meta-item-small">
+                                <span class="meta-label-small">Prize Pool</span>
+                                <span class="meta-value-small meta-value-prize">
+                                    {% if tournament.prize_pool_bdt %}৳{{ tournament.prize_pool_bdt|intcomma }}{% else %}TBA{% endif %}
+                                </span>
+                            </div>
+                            
+                            <div class="meta-item-small">
+                                <span class="meta-label-small">Format</span>
+                                <span class="meta-value-small">{{ tournament.team_format|upper }}</span>
+                            </div>
+                            
+                            <div class="meta-item-small">
+                                <span class="meta-label-small">Entry Fee</span>
+                                <span class="meta-value-small">
+                                    {% if tournament.entry_fee_bdt %}৳{{ tournament.entry_fee_bdt|intcomma }}{% else %}FREE{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Section -->
+                        {% if tournament.max_teams %}
+                        <div class="card-progress-section">
+                            <div class="progress-header-small">
+                                <span class="progress-label-small">Registration</span>
+                                <span class="progress-count-small">
+                                    {{ tournament.registrations.count }}/{{ tournament.max_teams }}
+                                </span>
+                            </div>
+                            <div class="progress-bar-wrapper">
+                                {% widthratio tournament.registrations.count tournament.max_teams 100 as progress_percent %}
+                                <div class="progress-bar-fill" style="width: {{ progress_percent }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Actions -->
+                        <div class="card-actions-wrapper">
+                            <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="btn-card btn-card-outline">
+                                View Details
+                            </a>
+                            {% if tournament.is_registration_open %}
+                            <a href="{% url 'tournaments:modern_register' slug=tournament.slug %}" class="btn-card btn-card-primary">
+                                Register
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state-wrapper">
+                    <div class="empty-state-icon">🏆</div>
+                    <h3 class="empty-state-title">No Tournaments Found</h3>
+                    <p class="empty-state-text">Try adjusting your filters or check back later for new tournaments.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Loading State -->
+            <div id="grid-loading">
+                <div class="hub-skeleton-grid">
+                    {% for i in "123" %}
+                    <div class="hub-skeleton-card">
+                        <div class="hub-skeleton-img"></div>
+                        <div class="hub-skeleton-text title"></div>
+                        <div class="hub-skeleton-text"></div>
+                        <div class="hub-skeleton-text short"></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="grid-empty">
+                <div class="hub-empty-icon">🔍</div>
+                <h3 class="hub-empty-title">No tournaments match your filters</h3>
+                <p class="hub-empty-text">Try adjusting your search criteria or resetting the filters to see all available tournaments.</p>
+                <button class="hub-empty-action" onclick="window.tournamentHub.resetFilters()">
+                    Reset Filters
+                </button>
+            </div>
+
+            <!-- Pagination -->
+            {% if pagination.total_pages > 1 %}
+            <div class="pagination-wrapper">
+                {% if pagination.has_previous %}
+                <a href="?page={{ pagination.page|add:'-1' }}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}" class="btn-pagination">
+                    Previous
+                </a>
+                {% endif %}
+                
+                <span class="pagination-info">
+                    Page {{ pagination.page }} of {{ pagination.total_pages }}
+                </span>
+                
+                {% if pagination.has_next %}
+                <a href="?page={{ pagination.page|add:'1' }}{% if filters.game %}&game={{ filters.game }}{% endif %}{% if filters.status %}&status={{ filters.status }}{% endif %}" class="btn-pagination">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </main>
+    </div>
+</section>
+
+<!-- Mobile Filter Toggle -->
+<button id="mobile-filter-toggle" aria-label="Open filters">
+    <i class="fas fa-filter"></i>
+</button>
+
+<!-- Scroll to Top Button -->
+<button class="scroll-to-top-btn" aria-label="Scroll to top">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 15V5M10 5L5 10M10 5L15 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+</button>
+
+{% endblock %}
