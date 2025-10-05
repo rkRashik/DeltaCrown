@@ -77,7 +77,7 @@
                 
                 <!-- Game Badge -->
                 <div class="game-badge">
-                    <img src="{% static tournament|game_icon_url %}" alt="{{ tournament.get_game_display }}" class="game-badge-icon">
+                    <img src="{% game_icon_url tournament.game %}" alt="{{ tournament.get_game_display }}" class="game-badge-icon">
                     <span>{{ tournament.get_game_display }}</span>
                 </div>
             </div>
