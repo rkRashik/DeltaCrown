@@ -45,7 +45,9 @@
     </main>
 
     {% block footer %}
-    {% include "partials/footer_fixed.html" %}
+    {% if request.path == '/' %}
+      {% include "partials/footer_fixed.html" %}
+    {% endif %}
     {% endblock %}
     {% include "partials/toasts.html" %}
 

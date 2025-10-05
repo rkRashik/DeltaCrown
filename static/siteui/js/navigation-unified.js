@@ -1,4 +1,159 @@
 /**
+ * Desktop Notification & Profile Dropdowns
+ * Modern, professional dropdown system
+ */
+(function() {
+  'use strict';
+
+  const notifBtn = document.querySelector('[data-notif-toggle]');
+  const profileBtn = document.querySelector('[data-profile-toggle]');
+  let notifDropdown = null;
+  let profileDropdown = null;
+
+  // Create Notification Dropdown
+  if (notifBtn) {
+    notifDropdown = createNotificationDropdown();
+    notifBtn.parentNode.appendChild(notifDropdown);
+
+    notifBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleDropdown(notifDropdown);
+      closeDropdown(profileDropdown);
+    });
+  }
+
+  // Create Profile Dropdown
+  if (profileBtn) {
+    profileDropdown = createProfileDropdown();
+    profileBtn.parentNode.appendChild(profileDropdown);
+
+    profileBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleDropdown(profileDropdown);
+      closeDropdown(notifDropdown);
+    });
+  }
+
+  // Close on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dc-desktop-dropdown')) {
+      closeDropdown(notifDropdown);
+      closeDropdown(profileDropdown);
+    }
+  });
+
+  // Close on escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeDropdown(notifDropdown);
+      closeDropdown(profileDropdown);
+    }
+  });
+
+  /**
+   * Create Notification Dropdown
+   */
+  function createNotificationDropdown() {
+    const dropdown = document.createElement('div');
+    dropdown.className = 'dc-desktop-dropdown dc-notif-dropdown';
+    dropdown.innerHTML = `
+      <div class="dc-notif-dropdown__header">
+        <h3 class="dc-notif-dropdown__title">Notifications</h3>
+        <button class="dc-notif-dropdown__mark-all" type="button">Mark all read</button>
+      </div>
+      <div class="dc-notif-dropdown__list">
+        <div class="dc-notif-dropdown__empty">
+          <div class="dc-notif-dropdown__empty-icon">
+            <i class="fas fa-bell-slash"></i>
+          </div>
+          <div class="dc-notif-dropdown__empty-text">No notifications yet</div>
+        </div>
+      </div>
+      <div class="dc-notif-dropdown__footer">
+        <a href="/notifications/" class="dc-notif-dropdown__view-all">View all notifications</a>
+      </div>
+    `;
+    return dropdown;
+  }
+
+  /**
+   * Create Profile Dropdown
+   */
+  function createProfileDropdown() {
+    const dropdown = document.createElement('div');
+    dropdown.className = 'dc-desktop-dropdown dc-profile-dropdown';
+    
+    // Get user info from avatar button
+    const avatarImg = profileBtn.querySelector('img');
+    const username = avatarImg ? avatarImg.alt : 'User';
+    const avatarUrl = avatarImg ? avatarImg.src : '/static/img/user_avatar/default-avatar.png';
+
+    dropdown.innerHTML = `
+      <div class="dc-profile-dropdown__header">
+        <img src="${avatarUrl}" alt="${username}" class="dc-profile-dropdown__avatar">
+        <div class="dc-profile-dropdown__info">
+          <div class="dc-profile-dropdown__name">${username}</div>
+          <div class="dc-profile-dropdown__username">@${username}</div>
+        </div>
+      </div>
+      <div class="dc-profile-dropdown__menu">
+        <a href="/user/u/${username}/" class="dc-profile-dropdown__item">
+          <i class="fas fa-user dc-profile-dropdown__item-icon"></i>
+          <span>My Profile</span>
+        </a>
+        <a href="/dashboard/" class="dc-profile-dropdown__item">
+          <i class="fas fa-th-large dc-profile-dropdown__item-icon"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="/user/me/edit/" class="dc-profile-dropdown__item">
+          <i class="fas fa-cog dc-profile-dropdown__item-icon"></i>
+          <span>Settings</span>
+        </a>
+        <a href="/notifications/" class="dc-profile-dropdown__item">
+          <i class="fas fa-bell dc-profile-dropdown__item-icon"></i>
+          <span>Notifications</span>
+        </a>
+        <div class="dc-profile-dropdown__divider"></div>
+        <a href="/accounts/logout/" class="dc-profile-dropdown__item dc-profile-dropdown__item--danger">
+          <i class="fas fa-sign-out-alt dc-profile-dropdown__item-icon"></i>
+          <span>Sign Out</span>
+        </a>
+      </div>
+    `;
+    return dropdown;
+  }
+
+  /**
+   * Toggle dropdown open/close
+   */
+  function toggleDropdown(dropdown) {
+    if (!dropdown) return;
+    const isOpen = dropdown.classList.contains('is-open');
+    if (isOpen) {
+      closeDropdown(dropdown);
+    } else {
+      openDropdown(dropdown);
+    }
+  }
+
+  /**
+   * Open dropdown
+   */
+  function openDropdown(dropdown) {
+    if (!dropdown) return;
+    dropdown.classList.add('is-open');
+  }
+
+  /**
+   * Close dropdown
+   */
+  function closeDropdown(dropdown) {
+    if (!dropdown) return;
+    dropdown.classList.remove('is-open');
+  }
+
+})();
+/**
  * UNIFIED NAVIGATION SYSTEM
  * Handles mobile drawer menu interactions
  */
