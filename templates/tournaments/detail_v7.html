@@ -45,11 +45,16 @@
   {% endif %}
   "eventStatus": "https://schema.org/EventScheduled",
   "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
-  {% if tournament.organizer %}
+  {% if tournament.organizer and tournament.organizer.username %}
   "organizer": {
     "@type": "Organization",
-    "name": "{{ tournament.organizer.get_full_name }}",
+    "name": "{{ tournament.organizer.get_full_name|default:'DeltaCrown' }}",
     "url": "{{ request.scheme }}://{{ request.get_host }}{% url 'user_profile:profile' tournament.organizer.username %}"
+  },
+  {% elif tournament.organizer %}
+  "organizer": {
+    "@type": "Organization",
+    "name": "{{ tournament.organizer.get_full_name|default:'DeltaCrown' }}"
   },
   {% endif %}
   "image": "{{ request.scheme }}://{{ request.get_host }}{{ tournament.seo_meta.og_image }}",

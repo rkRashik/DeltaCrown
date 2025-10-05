@@ -14,7 +14,7 @@ DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 ALLOWED_HOSTS = [
     "localhost", "127.0.0.1",
     "192.168.68.100",
-    "192.168.0.153"
+    "192.168.0.153",
     # ngrok rotates:
     ".ngrok-free.app",
     # optional:
