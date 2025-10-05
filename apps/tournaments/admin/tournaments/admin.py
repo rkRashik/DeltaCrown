@@ -5,6 +5,7 @@ from typing import List
 from django.contrib import admin
 from django.contrib.admin.sites import NotRegistered
 from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 from ...models import Tournament
 
@@ -27,17 +28,17 @@ from .mixins import AdminLinkMixin, ExportBracketMixin, ActionsMixin
 @admin.register(Tournament)
 class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.ModelAdmin):
     save_on_top = True
-    search_fields = ("name", "slug")
+    search_fields = ("name", "slug", "organizer__user__username")
+    list_filter = ("game", "status", "tournament_type", "format", "platform", "language")
+    date_hierarchy = "created_at"
+    
     readonly_fields = (
+        "created_at",
+        "updated_at",
         "link_bracket",
-        "link_settings",
-        "link_valorant_config",
-        "link_efootball_config",
         "link_export_bracket",
         "link_force_regenerate",
         "bracket_json_preview",
-        "created_at",
-        "updated_at",
     )
     
     def get_readonly_fields(self, request, obj=None):
@@ -46,37 +47,16 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         
         # If tournament is COMPLETED, make everything readonly (archived)
         if obj and obj.status == 'COMPLETED':
-            # Get all model fields except auto-generated ones
             all_fields = [f.name for f in obj._meta.fields if f.name not in ['id']]
-            # Add any additional readonly fields we already have
             readonly = list(set(readonly + all_fields))
             
         return readonly
     
-    def get_fields(self, request, obj=None):
-        """For archived tournaments, return all fields to display."""
+    def get_prepopulated_fields(self, request, obj=None):
+        """Auto-populate slug from name for new tournaments."""
         if obj and obj.status == 'COMPLETED':
-            # Return all model fields for display
-            all_fields = [f.name for f in obj._meta.fields if f.name not in ['id']]
-            # Add the readonly-only link fields
-            link_fields = [
-                "link_export_bracket", 
-                "link_force_regenerate", 
-                "bracket_json_preview"
-            ]
-            if hasattr(obj, "bracket"):
-                link_fields.append("link_bracket")
-            if hasattr(obj, "settings"):
-                link_fields.append("link_settings")
-            if hasattr(obj, "valorant_config"):
-                link_fields.append("link_valorant_config")
-            if hasattr(obj, "efootball_config"):
-                link_fields.append("link_efootball_config")
-            
-            return all_fields + link_fields
-        
-        # For non-archived, return None to use default behavior (fieldsets)
-        return None
+            return {}
+        return {"slug": ("name",)}
     
     def has_delete_permission(self, request, obj=None):
         """Prevent deletion of COMPLETED tournaments (archived)."""
@@ -94,9 +74,8 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
                 if obj and obj.status == 'COMPLETED':
                     extra_context['is_archived'] = True
                     extra_context['archived_message'] = (
-                        '⚠️ This tournament is ARCHIVED (status: COMPLETED). '
-                        'All data is read-only and preserved for records. '
-                        'To create a similar tournament, use the "Clone/Copy" action from the list view.'
+                        '🔒 This tournament is ARCHIVED (COMPLETED). '
+                        'All data is read-only. Use "Clone Tournament" to create a new one.'
                     )
             except Exception:
                 pass
@@ -105,166 +84,202 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
 
     class Media:
         css = {'all': ('admin/css/ckeditor5_fix.css',)}
+        js = ('admin/js/tournament_admin.js',)  # For dynamic field visibility
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
+        """Filter tournaments by game type based on user permissions."""
+        qs = super().get_queryset(request).select_related('organizer', 'organizer__user')
         user = request.user
+        
         if user.is_superuser:
             return qs
+            
         group_names = set(user.groups.values_list("name", flat=True))
         if "Valorant Organizer" in group_names:
             return qs.filter(game=Tournament.Game.VALORANT)
         if "eFootball Organizer" in group_names:
             return qs.filter(game=Tournament.Game.EFOOTBALL)
+            
         return qs
 
     def get_list_display(self, request):
-        fields = _present_fields(Tournament)
-        cols: List[str] = ["id", "name"]
-        if "game" in fields:
-            cols.append("game")
-        cols.append("status_column")
-        cols.append("bracket_status_column")
-        for name in ("reg_open_at", "reg_close_at", "start_at", "end_at"):
-            if name in fields:
-                cols.append(name)
-        cols.append("fee_column")
-        # Add slot information if slot_size field exists
-        if "slot_size" in fields:
-            cols.append("slots_column")
-        return tuple(cols)
-
-    def get_list_filter(self, request):
-        try:
-            from ..components import HasEntryFeeFilter
-        except Exception:
-            HasEntryFeeFilter = None
-        fields = _present_fields(Tournament)
-        lf = [name for name in ("game", "status", "start_at", "end_at") if name in fields]
-        if HasEntryFeeFilter:
-            lf.append(HasEntryFeeFilter)
-        return tuple(lf)
-
-    def get_prepopulated_fields(self, request, obj=None):
-        # No prepopulated fields for archived tournaments (all fields readonly)
-        if obj and obj.status == 'COMPLETED':
-            return {}
-        return {"slug": ("name",)} if "slug" in _present_fields(Tournament) else {}
-
-    def get_date_hierarchy(self, request):
-        return "start_at" if "start_at" in _present_fields(Tournament) else None
+        """Customize list display columns."""
+        return (
+            "id",
+            "name",
+            "game_badge",
+            "status_badge",
+            "tournament_type",
+            "platform",
+            "organizer_display",
+            "participants_count",
+            "created_at",
+        )
 
     def get_fieldsets(self, request, obj=None):
-        fsets = []
+        """Organized fieldsets with logical grouping."""
         
-        # For archived (COMPLETED) tournaments, use a simplified readonly fieldset
+        # For archived (COMPLETED) tournaments, show simplified readonly view
         if obj and obj.status == 'COMPLETED':
-            # Include all important fields as readonly
-            all_fields = []
-            
-            # Basics
-            basics = _fields_if_exist(Tournament, "name", "slug", "game", "short_description", "banner")
-            if basics:
-                all_fields.extend(basics)
-            
-            # Schedule & Status
-            sched = _fields_if_exist(Tournament, "status", "start_at", "end_at", "reg_open_at", "reg_close_at", "slot_size")
-            if sched:
-                all_fields.extend(sched)
-            
-            # Finance
-            finance = _fields_if_exist(Tournament, "entry_fee_bdt", "prize_pool_bdt")
-            if finance:
-                all_fields.extend(finance)
-            
-            # Metadata
-            meta = _fields_if_exist(Tournament, "created_at", "updated_at", "groups_published")
-            if meta:
-                all_fields.extend(meta)
-            
-            # Links (always readonly anyway)
-            links = ["link_export_bracket", "link_force_regenerate", "bracket_json_preview"]
-            if hasattr(obj, "bracket"):
-                links.append("link_bracket")
-            if hasattr(obj, "settings"):
-                links.append("link_settings")
-            if hasattr(obj, "valorant_config"):
-                links.append("link_valorant_config")
-            if hasattr(obj, "efootball_config"):
-                links.append("link_efootball_config")
-            all_fields.extend(links)
-            
-            fsets.append((
-                "🔒 Archived Tournament (Read-Only)", 
-                {
-                    "fields": tuple(all_fields),
-                    "description": "This tournament is COMPLETED and archived. All fields are read-only."
-                }
-            ))
-            return tuple(fsets)
-
-        # Normal editable fieldsets for non-archived tournaments
-        basics = _fields_if_exist(Tournament, "name", "slug", "game", "short_description")
-        if basics:
-            fsets.append(("Basics (required)", {"fields": tuple(basics), "description": "Required fields for every tournament."}))
-
-        sched_rows = []
-        # Add status field to schedule section
-        status_field = _fields_if_exist(Tournament, "status")
-        if status_field:
-            sched_rows.append(tuple(status_field))
+            return (
+                ('🔒 Archived Tournament (Read-Only)', {
+                    'fields': (
+                        'name', 'slug', 'game', 'status',
+                        'tournament_type', 'format', 'platform',
+                        'short_description', 'description',
+                        'organizer', 'banner',
+                        'region', 'language',
+                        'groups_published',
+                        'created_at', 'updated_at',
+                    ),
+                    'description': 'This tournament is COMPLETED and archived. All fields are read-only.'
+                }),
+                ('🔗 Related Records', {
+                    'fields': (
+                        'link_bracket',
+                        'link_export_bracket',
+                        'link_force_regenerate',
+                        'bracket_json_preview',
+                    ),
+                    'classes': ('collapse',),
+                }),
+            )
         
-        pair1 = _fields_if_exist(Tournament, "start_at", "end_at")
-        pair2 = _fields_if_exist(Tournament, "reg_open_at", "reg_close_at")
-        if pair1:
-            sched_rows.append(tuple(pair1))
-        if pair2:
-            sched_rows.append(tuple(pair2))
-        # Add slot_size to schedule section
-        slot_field = _fields_if_exist(Tournament, "slot_size")
-        if slot_field:
-            sched_rows.append(tuple(slot_field))
-        if sched_rows:
-            fsets.append(("Schedule & Status", {"fields": tuple(sched_rows), "description": "Tournament status, timing, and registration limits. COMPLETED tournaments are archived and read-only."}))
-
-        entry = _fields_if_exist(Tournament, "entry_fee_bdt", "entry_fee", "bank_instructions")
-        if entry:
-            fsets.append(("Entry & Bank (optional)", {"fields": tuple(entry), "description": "Optional entry fee and payout helpers."}))
-
-        links = ["link_export_bracket", "link_force_regenerate", "bracket_json_preview"]
-        if obj is not None:
-            if hasattr(obj, "bracket"):
-                links.append("link_bracket")
-            if hasattr(obj, "settings"):
-                links.append("link_settings")
-            if hasattr(obj, "valorant_config"):
-                links.append("link_valorant_config")
-            if hasattr(obj, "efootball_config"):
-                links.append("link_efootball_config")
-        fsets.append(("Advanced / Related (optional)", {"fields": tuple(links), "description": "Quick links to optional tools and related records."}))
-        return tuple(fsets)
+        # Normal editable fieldsets for active tournaments
+        fieldsets = [
+            ('📋 Basic Information', {
+                'fields': (
+                    ('name', 'slug'),
+                    ('game', 'status'),
+                    'short_description',
+                ),
+                'description': 'Core tournament details. Name and game are required.'
+            }),
+            ('🎮 Tournament Configuration', {
+                'fields': (
+                    ('tournament_type', 'format'),
+                    ('platform', 'region'),
+                    'language',
+                ),
+                'description': 'Tournament format and setup.'
+            }),
+            ('👤 Organizer & Details', {
+                'fields': (
+                    'organizer',
+                    'description',
+                    'banner',
+                ),
+                'description': 'Tournament organizer and detailed information.'
+            }),
+            ('⚙️ Advanced Settings', {
+                'fields': (
+                    'groups_published',
+                ),
+                'classes': ('collapse',),
+                'description': 'Advanced options for bracket visibility and publishing.'
+            }),
+        ]
+        
+        # Add deprecated fields section only if they have values
+        if obj and self._has_deprecated_values(obj):
+            fieldsets.append(
+                ('⚠️ Legacy Fields (Deprecated)', {
+                    'fields': (
+                        'slot_size',
+                        ('reg_open_at', 'reg_close_at'),
+                        ('start_at', 'end_at'),
+                        ('entry_fee_bdt', 'prize_pool_bdt'),
+                    ),
+                    'classes': ('collapse',),
+                    'description': (
+                        '⚠️ These fields are deprecated. '
+                        'Use TournamentSchedule, TournamentCapacity, and TournamentFinance inlines instead.'
+                    )
+                })
+            )
+        
+        # Add bracket tools section
+        if obj:
+            fieldsets.append(
+                ('🔧 Bracket Tools', {
+                    'fields': (
+                        'link_bracket',
+                        'link_export_bracket',
+                        'link_force_regenerate',
+                        'bracket_json_preview',
+                    ),
+                    'classes': ('collapse',),
+                    'description': 'Bracket management and export tools.'
+                })
+            )
+        
+        # Add metadata
+        fieldsets.append(
+            ('📊 Metadata', {
+                'fields': (
+                    ('created_at', 'updated_at'),
+                ),
+                'classes': ('collapse',),
+            })
+        )
+        
+        return tuple(fieldsets)
+    
+    def _has_deprecated_values(self, obj):
+        """Check if any deprecated fields have non-null values."""
+        return any([
+            obj.slot_size,
+            obj.reg_open_at,
+            obj.reg_close_at,
+            obj.start_at,
+            obj.end_at,
+            obj.entry_fee_bdt,
+            obj.prize_pool_bdt,
+        ])
 
     def get_inline_instances(self, request, obj=None):
+        """Configure inline editors based on tournament state."""
         instances = []
 
-        # Add TournamentSchedule inline (Pilot Phase - Phase 0)
+        # Core inlines - always show
         instances.append(TournamentScheduleInline(self.model, self.admin_site))
-        
-        # Add TournamentCapacity inline (Phase 1)
         instances.append(TournamentCapacityInline(self.model, self.admin_site))
 
+        # Finance inline
         try:
-            from ..components import TournamentSettingsInline, ValorantConfigInline, EfootballConfigInline
-        except Exception:
-            TournamentSettingsInline = ValorantConfigInline = EfootballConfigInline = None
+            from ..components import TournamentFinanceInline
+            instances.append(TournamentFinanceInline(self.model, self.admin_site))
+        except ImportError:
+            pass
 
-        if TournamentSettingsInline:
+        # Media & Rules inlines
+        try:
+            from ..components import TournamentMediaInline, TournamentRulesInline
+            instances.append(TournamentMediaInline(self.model, self.admin_site))
+            instances.append(TournamentRulesInline(self.model, self.admin_site))
+        except ImportError:
+            pass
+
+        # Game-specific configuration inlines (show based on game type)
+        if obj and obj.game:
+            try:
+                if obj.game == Tournament.Game.VALORANT:
+                    from ..components import ValorantConfigInline
+                    instances.append(ValorantConfigInline(self.model, self.admin_site))
+                elif obj.game == Tournament.Game.EFOOTBALL:
+                    from ..components import EfootballConfigInline
+                    instances.append(EfootballConfigInline(self.model, self.admin_site))
+            except ImportError:
+                pass
+
+        # Advanced settings inline (collapsed by default)
+        try:
+            from ..components import TournamentSettingsInline
             instances.append(TournamentSettingsInline(self.model, self.admin_site))
-        if ValorantConfigInline:
-            instances.append(ValorantConfigInline(self.model, self.admin_site))
-        if EfootballConfigInline:
-            instances.append(EfootballConfigInline(self.model, self.admin_site))
+        except ImportError:
+            pass
 
+        # Registrations and Matches (read-only snapshots)
         try:
             from ...models import Registration as _Registration
             class _RegInline(RegistrationInline):
@@ -275,14 +290,71 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
 
         instances.append(CompactMatchInline(self.model, self.admin_site))
 
+        # Economy integration
         try:
             from apps.economy.admin import CoinPolicyInline
-        except Exception:
-            CoinPolicyInline = None
-        if CoinPolicyInline:
             instances.append(CoinPolicyInline(self.model, self.admin_site))
+        except ImportError:
+            pass
 
         return instances
+
+    # ==================== LIST DISPLAY METHODS ====================
+    
+    @admin.display(description="Game", ordering="game")
+    def game_badge(self, obj):
+        """Display game with color-coded badge."""
+        game_colors = {
+            "valorant": "#FA4454",
+            "efootball": "#0057E7",
+        }
+        game_name = obj.get_game_display()
+        color = game_colors.get(obj.game, "#6c757d")
+        
+        return format_html(
+            '<span style="display:inline-block;padding:4px 10px;background:{};color:white;'
+            'border-radius:4px;font-weight:bold;font-size:11px;text-transform:uppercase;">{}</span>',
+            color, game_name
+        )
+    
+    @admin.display(description="Status", ordering="status")
+    def status_badge(self, obj):
+        """Display tournament status with color coding."""
+        status_colors = {
+            "DRAFT": "#6c757d",      # Gray
+            "PUBLISHED": "#0d6efd",  # Blue
+            "RUNNING": "#198754",    # Green
+            "COMPLETED": "#dc3545",  # Red
+        }
+        
+        color = status_colors.get(obj.status, "#6c757d")
+        
+        return format_html(
+            '<span style="display:inline-block;padding:4px 8px;background:{};color:white;'
+            'border-radius:4px;font-weight:bold;font-size:11px;">{}</span>',
+            color, obj.get_status_display()
+        )
+    
+    @admin.display(description="Organizer")
+    def organizer_display(self, obj):
+        """Display organizer name with link."""
+        if not obj.organizer:
+            return format_html('<em style="color:#999;">No organizer</em>')
+        
+        return format_html(
+            '<a href="/admin/user_profile/userprofile/{}/change/">{}</a>',
+            obj.organizer.pk,
+            obj.organizer.user.username if obj.organizer.user else 'Unknown'
+        )
+    
+    @admin.display(description="Participants")
+    def participants_count(self, obj):
+        """Display participant count."""
+        try:
+            count = obj.registrations.filter(status='APPROVED').count()
+            return format_html('<strong>{}</strong>', count)
+        except:
+            return '—'
 
     @admin.display(description="Status")
     def status_column(self, obj: Tournament):

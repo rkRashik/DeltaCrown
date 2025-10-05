@@ -1,7 +1,7 @@
 # apps/tournaments/admin/tournaments/schedule_inline.py
 """
 Admin inline for TournamentSchedule model.
-Part of the pilot phase refactoring.
+Handles all date/time related tournament fields.
 """
 from django.contrib import admin
 from django.utils.html import format_html
@@ -11,34 +11,38 @@ from apps.tournaments.models import TournamentSchedule
 class TournamentScheduleInline(admin.StackedInline):
     """
     Inline admin for managing tournament schedule.
-    Displays all schedule-related fields in a single section.
+    Displays all schedule-related fields with real-time status indicators.
     """
     model = TournamentSchedule
     can_delete = False
-    verbose_name = "Schedule (Dates & Times)"
-    verbose_name_plural = "Schedule (Dates & Times)"
+    extra = 0
+    max_num = 1
+    
+    verbose_name = "📅 Schedule & Timeline"
+    verbose_name_plural = "📅 Schedule & Timeline"
     
     fieldsets = (
-        ('Registration Window', {
+        ('Registration Period', {
             'fields': (
                 ('reg_open_at', 'reg_close_at'),
                 'registration_status_display',
             ),
-            'description': 'When participants can register for this tournament',
+            'description': '🕒 When participants can register for this tournament',
         }),
-        ('Tournament Window', {
+        ('Tournament Duration', {
             'fields': (
                 ('start_at', 'end_at'),
                 'tournament_status_display',
             ),
-            'description': 'When the tournament actually runs',
+            'description': '🎮 When the tournament actually runs',
         }),
-        ('Check-in Settings', {
+        ('Check-in Window', {
             'fields': (
                 ('check_in_open_mins', 'check_in_close_mins'),
                 'check_in_window_display',
             ),
-            'description': 'Check-in window relative to tournament start time',
+            'description': '✅ Check-in window relative to tournament start time (e.g., open 30 mins before, close at start)',
+            'classes': ('collapse',),
         }),
     )
     
@@ -49,54 +53,89 @@ class TournamentScheduleInline(admin.StackedInline):
     )
     
     def registration_status_display(self, obj):
-        """Display human-readable registration status."""
+        """Display human-readable registration status with color coding."""
         if not obj or not obj.pk:
-            return '-'
+            return format_html('<em style="color:#999;">Not configured yet</em>')
         
         status = obj.registration_status
-        if 'Open' in status:
-            color = 'green'
+        
+        # Color and icon based on status
+        if 'Open' in status or 'open' in status:
+            color = '#28a745'  # Green
             icon = '✓'
-        elif 'Closed' in status:
-            color = 'red'
+            bg = '#d4edda'
+        elif 'Closed' in status or 'closed' in status:
+            color = '#dc3545'  # Red
             icon = '✗'
-        else:
-            color = 'orange'
+            bg = '#f8d7da'
+        elif 'Not Started' in status:
+            color = '#6c757d'  # Gray
             icon = '⧗'
+            bg = '#e2e3e5'
+        else:
+            color = '#ffc107'  # Amber
+            icon = '⧗'
+            bg = '#fff3cd'
         
         return format_html(
-            '<span style="color: {}; font-weight: bold;">{} {}</span>',
-            color, icon, status
+            '<div style="padding: 8px 12px; background: {}; border-left: 4px solid {}; border-radius: 4px;">'
+            '<span style="color: {}; font-weight: bold; font-size: 16px;">{}</span> '
+            '<strong style="color: {};">{}</strong>'
+            '</div>',
+            bg, color, color, icon, color, status
         )
     registration_status_display.short_description = 'Current Status'
     
     def tournament_status_display(self, obj):
-        """Display human-readable tournament status."""
+        """Display human-readable tournament status with color coding."""
         if not obj or not obj.pk:
-            return '-'
+            return format_html('<em style="color:#999;">Not configured yet</em>')
         
         status = obj.tournament_status
-        if 'Live' in status:
-            color = 'green'
+        
+        # Color and icon based on status
+        if 'Live' in status or 'Running' in status:
+            color = '#28a745'  # Green
             icon = '●'
-        elif 'Completed' in status:
-            color = 'gray'
+            bg = '#d4edda'
+        elif 'Completed' in status or 'Ended' in status:
+            color = '#6c757d'  # Gray
             icon = '✓'
-        else:
-            color = 'orange'
+            bg = '#e2e3e5'
+        elif 'Not Started' in status or 'Upcoming' in status:
+            color = '#0d6efd'  # Blue
             icon = '⧗'
+            bg = '#cfe2ff'
+        else:
+            color = '#ffc107'  # Amber
+            icon = '⧗'
+            bg = '#fff3cd'
         
         return format_html(
-            '<span style="color: {}; font-weight: bold;">{} {}</span>',
-            color, icon, status
+            '<div style="padding: 8px 12px; background: {}; border-left: 4px solid {}; border-radius: 4px;">'
+            '<span style="color: {}; font-weight: bold; font-size: 16px;">{}</span> '
+            '<strong style="color: {};">{}</strong>'
+            '</div>',
+            bg, color, color, icon, color, status
         )
     tournament_status_display.short_description = 'Current Status'
     
     def check_in_window_display(self, obj):
         """Display formatted check-in window."""
         if not obj or not obj.pk:
-            return '-'
-        return obj.check_in_window_text
+            return format_html('<em style="color:#999;">Not configured</em>')
+        
+        try:
+            text = obj.check_in_window_text
+            return format_html(
+                '<div style="padding: 6px 10px; background: #f8f9fa; border-radius: 4px; font-family: monospace;">'
+                '{}'
+                '</div>',
+                text
+            )
+        except:
+            return format_html('<em style="color:#999;">Error calculating window</em>')
+    
     check_in_window_display.short_description = 'Check-in Window'
     
     def has_add_permission(self, request, obj=None):
