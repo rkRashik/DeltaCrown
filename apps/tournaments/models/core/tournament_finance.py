@@ -94,6 +94,7 @@ class TournamentFinance(models.Model):
     prize_distribution = models.JSONField(
         default=dict,
         blank=True,
+        null=True,  # Allow null to prevent IntegrityError on empty submission
         verbose_name=_('Prize Distribution'),
         help_text=_('Prize breakdown by position (JSON format)')
     )

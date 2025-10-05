@@ -1,635 +1,337 @@
-﻿/**
- * ========================================================================
- * CKEditor 5 Complete Visibility and Styling Fix for Django Admin
- * ========================================================================
- * 
- * This CSS file fixes all visibility issues with CKEditor 5 in Django admin,
- * including toolbar buttons, dropdown menus, icons, and text content.
- * 
- * Issues Fixed:
- * - Toolbar buttons invisible (same color as background)
- * - Dropdown menus not visible
- * - Icons not showing properly
- * - Text content hard to read
- * - Dark mode compatibility
- * - Z-index conflicts with Django admin
- * 
- * Last Updated: October 5, 2025
- * ========================================================================
+﻿/*
+ * CKEditor 5 Admin Fix - Complete Visibility & Styling Overhaul
+ * Author: GitHub Copilot
+ * Date: October 5, 2025
+ *
+ * This stylesheet provides a comprehensive fix for CKEditor 5 visibility
+ * issues within the Django admin, ensuring full functionality in both
+ * light and dark modes.
  */
 
-/* ========================================================================
-   EDITOR CONTAINER & MAIN AREA
-   ======================================================================== */
+/* ==========================================================================
+   1. GENERAL EDITOR STYLING
+   ========================================================================== */
 
-.ck-editor {
-    margin: 10px 0 !important;
+/* Main editor container */
+.django-ckeditor-widget {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
 }
 
-.ck.ck-editor__main {
-    background: #ffffff !important;
+/* Focused state for the entire widget */
+.django-ckeditor-widget:focus-within {
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+    border-color: #4a9eff;
 }
 
-.ck-editor__editable_inline {
-    min-height: 200px !important;
-    max-height: 500px !important;
-    overflow-y: auto !important;
-    color: #2c3e50 !important;
-    background-color: #ffffff !important;
-    padding: 20px !important;
-    border-radius: 0 0 4px 4px !important;
-    border: 1px solid #dfe1e6 !important;
-    border-top: none !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
-    font-size: 14px !important;
-    line-height: 1.6 !important;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
-}
+/* ==========================================================================
+   2. TOOLBAR STYLING
+   ========================================================================== */
 
-.ck-editor__editable_inline:focus {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-    border-color: #4a9eff !important;
-    outline: none !important;
-}
-
-.ck-editor__editable_inline:hover {
-    border-color: #b3b3b3 !important;
-}
-
-/* ========================================================================
-   TOOLBAR - CRITICAL FIX FOR VISIBILITY
-   ======================================================================== */
-
-.ck.ck-toolbar {
-    background: linear-gradient(180deg, #fafbfc 0%, #f5f6f7 100%) !important;
-    border: 1px solid #dfe1e6 !important;
-    border-radius: 4px 4px 0 0 !important;
-    padding: 10px 12px !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+/* Toolbar container */
+.ck-toolbar {
+    background: linear-gradient(to bottom, #fafbfc, #f5f6f7) !important;
+    border: 1px solid #d0d0d0 !important;
+    border-bottom: 1px solid #c0c0c0 !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 4px 6px !important;
     display: flex !important;
     flex-wrap: wrap !important;
-    gap: 4px !important;
-    z-index: 10 !important;
-}
-
-.ck.ck-toolbar.ck-toolbar_grouping {
-    background: linear-gradient(180deg, #fafbfc 0%, #f5f6f7 100%) !important;
-}
-
-/* ========================================================================
-   TOOLBAR BUTTONS - MAIN FIX FOR VISIBILITY ISSUE
-   ======================================================================== */
-
-.ck.ck-toolbar .ck-button,
-.ck.ck-button {
-    background: #ffffff !important;
-    border: 1px solid #d0d0d0 !important;
-    color: #2c3e50 !important;
-    padding: 6px 10px !important;
-    margin: 0 !important;
-    border-radius: 4px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    cursor: pointer !important;
-    transition: all 0.15s ease-in-out !important;
-    min-height: 32px !important;
-    display: inline-flex !important;
     align-items: center !important;
-    justify-content: center !important;
+    box-shadow: inset 0 1px 0 #ffffff;
 }
 
-.ck.ck-toolbar .ck-button:hover,
-.ck.ck-button:hover {
-    background: #f0f4ff !important;
-    border-color: #4a9eff !important;
-    color: #1e40af !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-}
-
-.ck.ck-toolbar .ck-button.ck-on,
-.ck.ck-button.ck-on {
-    background: #4a9eff !important;
-    color: #ffffff !important;
-    border-color: #3b82f6 !important;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-}
-
-.ck.ck-toolbar .ck-button.ck-disabled,
-.ck.ck-button.ck-disabled {
-    background: #f5f5f5 !important;
-    color: #999999 !important;
-    border-color: #e0e0e0 !important;
-    cursor: not-allowed !important;
-    opacity: 0.6 !important;
-}
-
-.ck.ck-toolbar .ck-button:focus,
-.ck.ck-button:focus {
-    outline: 2px solid #4a9eff !important;
-    outline-offset: 2px !important;
-    border-color: #4a9eff !important;
-}
-
-/* Button text labels */
-.ck.ck-toolbar .ck-button .ck-button__label,
-.ck.ck-button .ck-button__label {
-    color: inherit !important;
-    font-size: 13px !important;
-    line-height: 1 !important;
-}
-
-/* ========================================================================
-   BUTTON ICONS - CRITICAL FIX
-   ======================================================================== */
-
-.ck.ck-toolbar .ck-button .ck-icon,
-.ck.ck-button .ck-icon {
-    color: #2c3e50 !important;
-    fill: currentColor !important;
-    width: 18px !important;
-    height: 18px !important;
-    display: block !important;
-}
-
-.ck.ck-toolbar .ck-button:hover .ck-icon,
-.ck.ck-button:hover .ck-icon {
-    color: #1e40af !important;
-}
-
-.ck.ck-toolbar .ck-button.ck-on .ck-icon,
-.ck.ck-button.ck-on .ck-icon {
-    color: #ffffff !important;
-}
-
-.ck.ck-toolbar .ck-button.ck-disabled .ck-icon,
-.ck.ck-button.ck-disabled .ck-icon {
-    color: #999999 !important;
-}
-
-/* Specific icon paths */
-.ck.ck-icon path,
-.ck.ck-icon rect,
-.ck.ck-icon circle,
-.ck.ck-icon polygon {
-    fill: currentColor !important;
-    stroke: currentColor !important;
-}
-
-/* ========================================================================
-   DROPDOWN BUTTONS & PANELS
-   ======================================================================== */
-
-.ck.ck-dropdown .ck-dropdown__button {
-    background: #ffffff !important;
-    border: 1px solid #d0d0d0 !important;
-    color: #2c3e50 !important;
-    padding: 6px 10px !important;
-    border-radius: 4px !important;
-    min-height: 32px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-}
-
-.ck.ck-dropdown .ck-dropdown__button:hover {
-    background: #f0f4ff !important;
-    border-color: #4a9eff !important;
-    color: #1e40af !important;
-}
-
-.ck.ck-dropdown.ck-dropdown_open .ck-dropdown__button {
-    background: #e8f2ff !important;
-    border-color: #4a9eff !important;
-}
-
-/* Dropdown arrow */
-.ck.ck-dropdown .ck-dropdown__arrow {
-    color: #666666 !important;
-    fill: currentColor !important;
-}
-
-/* Dropdown panel */
-.ck.ck-dropdown__panel {
-    background: #ffffff !important;
-    border: 1px solid #d0d0d0 !important;
-    border-radius: 4px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-    padding: 4px !important;
-    margin-top: 4px !important;
-    z-index: 9999 !important;
-    max-height: 300px !important;
-    overflow-y: auto !important;
-}
-
-.ck.ck-dropdown__panel.ck-dropdown__panel_se,
-.ck.ck-dropdown__panel.ck-dropdown__panel_sw {
-    top: 100% !important;
-}
-
-/* List items in dropdown */
-.ck.ck-list__item {
-    background: transparent !important;
-    color: #2c3e50 !important;
-    padding: 8px 12px !important;
-    cursor: pointer !important;
-    border-radius: 3px !important;
-    margin: 2px 0 !important;
-}
-
-.ck.ck-list__item:hover {
-    background: #f0f4ff !important;
-    color: #1e40af !important;
-}
-
-.ck.ck-list__item.ck-on {
-    background: #4a9eff !important;
-    color: #ffffff !important;
-}
-
-/* List button in dropdown */
-.ck.ck-list__item .ck-button {
-    background: transparent !important;
-    border: none !important;
-    color: inherit !important;
-    padding: 4px 8px !important;
-    width: 100% !important;
-    text-align: left !important;
-}
-
-.ck.ck-list__item .ck-button:hover {
-    background: transparent !important;
-}
-
-/* ========================================================================
-   TOOLBAR SEPARATORS
-   ======================================================================== */
-
-.ck.ck-toolbar .ck-toolbar__separator {
+/* Toolbar separator */
+.ck-toolbar__separator {
     background: #d0d0d0 !important;
     width: 1px !important;
     height: 24px !important;
-    margin: 0 8px !important;
-    align-self: center !important;
+    margin: 0 6px !important;
 }
 
-.ck.ck-toolbar__line-break {
-    width: 100% !important;
-    height: 0 !important;
-}
+/* ==========================================================================
+   3. BUTTON STYLING (CRITICAL FIX)
+   ========================================================================== */
 
-/* ========================================================================
-   PLACEHOLDER TEXT
-   ======================================================================== */
-
-.ck.ck-editor__editable .ck-placeholder::before {
-    color: #95a5a6 !important;
-    font-style: italic !important;
-    opacity: 0.7 !important;
-}
-
-/* ========================================================================
-   CONTENT TYPOGRAPHY - ENSURE TEXT IS VISIBLE
-   ======================================================================== */
-
-.ck-content,
-.ck-content * {
-    color: #2c3e50 !important;
-}
-
-.ck-content p,
-.ck-content h1,
-.ck-content h2,
-.ck-content h3,
-.ck-content h4,
-.ck-content h5,
-.ck-content h6,
-.ck-content li,
-.ck-content div,
-.ck-content span,
-.ck-content a,
-.ck-content strong,
-.ck-content em,
-.ck-content blockquote {
-    color: #2c3e50 !important;
-}
-
-.ck-content h1 { font-size: 2em !important; margin: 0.67em 0 !important; }
-.ck-content h2 { font-size: 1.5em !important; margin: 0.75em 0 !important; }
-.ck-content h3 { font-size: 1.17em !important; margin: 0.83em 0 !important; }
-.ck-content h4 { font-size: 1em !important; margin: 1em 0 !important; }
-.ck-content h5 { font-size: 0.83em !important; margin: 1.2em 0 !important; }
-.ck-content h6 { font-size: 0.67em !important; margin: 1.5em 0 !important; }
-
-.ck-content p { margin: 0.5em 0 !important; }
-.ck-content ul, .ck-content ol { margin: 1em 0 !important; padding-left: 2em !important; }
-.ck-content li { margin: 0.25em 0 !important; }
-.ck-content blockquote { 
-    margin: 1em 0 !important; 
-    padding-left: 1em !important; 
-    border-left: 3px solid #ccc !important; 
-}
-
-.ck-content a {
-    color: #4a9eff !important;
-    text-decoration: underline !important;
-}
-
-.ck-content code {
-    background: #f5f5f5 !important;
-    color: #e74c3c !important;
-    padding: 2px 6px !important;
-    border-radius: 3px !important;
-    font-family: 'Courier New', monospace !important;
-}
-
-/* ========================================================================
-   BALLOON TOOLTIPS
-   ======================================================================== */
-
-.ck.ck-balloon-panel {
-    background: #2c3e50 !important;
-    color: #ffffff !important;
-    border: 1px solid #34495e !important;
-    border-radius: 4px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-    padding: 8px 12px !important;
-    z-index: 10000 !important;
-}
-
-.ck.ck-balloon-panel .ck-balloon-panel__content {
-    color: #ffffff !important;
-}
-
-/* ========================================================================
-   SPECIAL CHARACTERS GRID
-   ======================================================================== */
-
-.ck.ck-special-characters-grid .ck-button {
-    background: #ffffff !important;
-    border: 1px solid #e0e0e0 !important;
-    color: #2c3e50 !important;
-    padding: 8px !important;
+/* Base button style for visibility */
+.ck-button {
+    background: #ffffff !important; /* White background for visibility */
+    color: #2c3e50 !important; /* High-contrast text */
+    border: 1px solid #d0d0d0 !important;
+    border-radius: 5px !important;
+    padding: 5px 8px !important;
     margin: 2px !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease-in-out !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
-.ck.ck-special-characters-grid .ck-button:hover {
+/* Button icons */
+.ck-button .ck-icon {
+    color: inherit !important; /* Ensure icon color matches button text */
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+/* Hover state */
+.ck-button:hover {
     background: #f0f4ff !important;
     border-color: #4a9eff !important;
+    color: #0056b3 !important;
 }
 
-/* ========================================================================
-   COLOR PICKER
-   ======================================================================== */
+/* Active/"ON" state (e.g., when Bold is active) */
+.ck-button.ck-on {
+    background: #4a9eff !important;
+    border-color: #0056b3 !important;
+    color: #ffffff !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
 
-.ck.ck-color-grid .ck-button {
-    border: 1px solid #e0e0e0 !important;
+/* Disabled state */
+.ck-button.ck-disabled {
+    background: #f5f5f5 !important;
+    color: #888888 !important;
+    border-color: #e0e0e0 !important;
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+/* ==========================================================================
+   4. DROPDOWN & PANEL STYLING (CRITICAL FIX)
+   ========================================================================== */
+
+/* Dropdown panel (for headings, lists, etc.) */
+.ck-dropdown__panel {
+    background: #ffffff !important; /* Ensure dropdowns have a solid background */
+    border: 1px solid #c0c0c0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    z-index: 9999 !important; /* Ensure it appears above other elements */
+    margin-top: 4px !important;
+}
+
+/* List inside a dropdown */
+.ck-list {
+    padding: 6px !important;
+}
+
+/* Individual item in a list */
+.ck-list__item {
     padding: 0 !important;
-    margin: 2px !important;
+    margin: 0 !important;
 }
 
-.ck.ck-color-grid .ck-button:hover {
-    border-color: #4a9eff !important;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.3) !important;
-}
-
-/* ========================================================================
-   LINK BALLOON
-   ======================================================================== */
-
-.ck.ck-link-form {
-    background: #ffffff !important;
-    border: 1px solid #d0d0d0 !important;
+/* Button inside a list item */
+.ck-list__item .ck-button {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
     border-radius: 4px !important;
-    padding: 12px !important;
-}
-
-.ck.ck-link-form .ck-input {
-    background: #ffffff !important;
-    border: 1px solid #d0d0d0 !important;
-    color: #2c3e50 !important;
     padding: 8px 12px !important;
-    border-radius: 4px !important;
 }
 
-.ck.ck-link-form .ck-button {
+/* Hover state for list item button */
+.ck-list__item .ck-button:hover {
+    background: #f0f4ff !important;
+    color: #0056b3 !important;
+}
+
+/* Selected item in a list */
+.ck-list__item .ck-button.ck-on {
     background: #4a9eff !important;
     color: #ffffff !important;
-    border: 1px solid #3b82f6 !important;
-    padding: 8px 16px !important;
 }
 
-/* ========================================================================
-   SCROLLBARS
-   ======================================================================== */
+/* ==========================================================================
+   5. CONTENT AREA STYLING
+   ========================================================================== */
 
-.ck-editor__editable_inline::-webkit-scrollbar,
-.ck-dropdown__panel::-webkit-scrollbar {
-    width: 8px !important;
+/* Editable content area */
+.ck-editor__editable {
+    background: #ffffff !important;
+    color: #2c3e50 !important;
+    border: 1px solid #d0d0d0 !important;
+    border-top: none !important;
+    border-radius: 0 0 8px 8px !important;
+    padding: 15px 20px !important;
+    min-height: 200px;
+    line-height: 1.6;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
 }
 
-.ck-editor__editable_inline::-webkit-scrollbar-track,
-.ck-dropdown__panel::-webkit-scrollbar-track {
-    background: #f1f1f1 !important;
+/* Focus state for content area */
+.ck-editor__editable.ck-focused {
+    border-color: #4a9eff !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 3px rgba(74, 158, 255, 0.2) !important;
+    outline: none !important;
 }
 
-.ck-editor__editable_inline::-webkit-scrollbar-thumb,
-.ck-dropdown__panel::-webkit-scrollbar-thumb {
-    background: #c1c1c1 !important;
-    border-radius: 4px !important;
+/* Placeholder text */
+.ck-editor__editable .ck-placeholder::before {
+    color: #a0a0a0 !important;
 }
 
-.ck-editor__editable_inline::-webkit-scrollbar-thumb:hover,
-.ck-dropdown__panel::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8 !important;
+/* Custom scrollbar for content area */
+.ck-editor__editable::-webkit-scrollbar {
+    width: 10px;
+}
+.ck-editor__editable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 0 0 8px 0;
+}
+.ck-editor__editable::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+.ck-editor__editable::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
-/* ========================================================================
-   DJANGO ADMIN DARK MODE SUPPORT
-   ======================================================================== */
+/* ==========================================================================
+   6. LINK BALLOON STYLING
+   ========================================================================== */
+
+.ck-link-actions, .ck-form-header {
+    background: #ffffff !important;
+    border: 1px solid #d0d0d0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.ck-input {
+    background: #fdfdfd !important;
+    color: #2c3e50 !important;
+    border: 1px solid #d0d0d0 !important;
+    border-radius: 5px !important;
+}
+.ck-input:focus {
+    border-color: #4a9eff !important;
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2) !important;
+}
+
+/* ==========================================================================
+   7. DARK MODE SUPPORT
+   ========================================================================== */
 
 @media (prefers-color-scheme: dark) {
-    /* Editor area */
-    .ck.ck-editor__main {
-        background: #2d2d2d !important;
+    /* Dark mode editor container */
+    .django-ckeditor-widget {
+        background-color: #2d2d2d;
+        border: 1px solid #4a4a4a;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
-    
-    .ck-editor__editable_inline {
-        background-color: #2d2d2d !important;
-        color: #e0e0e0 !important;
-        border-color: #444444 !important;
+
+    /* Dark mode toolbar */
+    .ck-toolbar {
+        background: linear-gradient(to bottom, #3a3a3a, #303030) !important;
+        border-color: #4a4a4a !important;
+        border-bottom-color: #505050 !important;
+        box-shadow: inset 0 1px 0 #444444;
     }
-    
-    .ck-editor__editable_inline:focus {
-        border-color: #5a9fd4 !important;
-        box-shadow: 0 0 0 3px rgba(90, 159, 212, 0.2) !important;
-    }
-    
-    /* Toolbar */
-    .ck.ck-toolbar {
-        background: linear-gradient(180deg, #3a3a3a 0%, #2d2d2d 100%) !important;
-        border-color: #444444 !important;
-    }
-    
-    /* Buttons */
-    .ck.ck-toolbar .ck-button,
-    .ck.ck-button {
-        background: #3a3a3a !important;
-        border-color: #555555 !important;
-        color: #e0e0e0 !important;
-    }
-    
-    .ck.ck-toolbar .ck-button:hover,
-    .ck.ck-button:hover {
-        background: #4a4a4a !important;
-        border-color: #5a9fd4 !important;
-        color: #ffffff !important;
-    }
-    
-    .ck.ck-toolbar .ck-button.ck-on,
-    .ck.ck-button.ck-on {
-        background: #5a9fd4 !important;
-        color: #ffffff !important;
-        border-color: #4a8fc4 !important;
-    }
-    
-    /* Icons */
-    .ck.ck-toolbar .ck-button .ck-icon,
-    .ck.ck-button .ck-icon {
-        color: #e0e0e0 !important;
-    }
-    
-    .ck.ck-toolbar .ck-button:hover .ck-icon,
-    .ck.ck-button:hover .ck-icon {
-        color: #ffffff !important;
-    }
-    
-    /* Dropdown */
-    .ck.ck-dropdown .ck-dropdown__button {
-        background: #3a3a3a !important;
-        border-color: #555555 !important;
-        color: #e0e0e0 !important;
-    }
-    
-    .ck.ck-dropdown .ck-dropdown__button:hover {
-        background: #4a4a4a !important;
-        border-color: #5a9fd4 !important;
-    }
-    
-    .ck.ck-dropdown__panel {
-        background: #3a3a3a !important;
-        border-color: #555555 !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-    }
-    
-    .ck.ck-list__item {
-        color: #e0e0e0 !important;
-    }
-    
-    .ck.ck-list__item:hover {
-        background: #4a4a4a !important;
-        color: #ffffff !important;
-    }
-    
-    .ck.ck-list__item.ck-on {
-        background: #5a9fd4 !important;
-        color: #ffffff !important;
-    }
-    
-    /* Separator */
-    .ck.ck-toolbar .ck-toolbar__separator {
+
+    /* Dark mode toolbar separator */
+    .ck-toolbar__separator {
         background: #555555 !important;
     }
-    
-    /* Content */
-    .ck-content,
-    .ck-content * {
+
+    /* Dark mode buttons */
+    .ck-button {
+        background: #424242 !important;
         color: #e0e0e0 !important;
+        border-color: #5a5a5a !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
-    
-    .ck-content a {
-        color: #5a9fd4 !important;
+
+    .ck-button:hover {
+        background: #505050 !important;
+        border-color: #8ab4f8 !important;
+        color: #ffffff !important;
     }
-    
-    .ck-content code {
-        background: #1a1a1a !important;
-        color: #e74c3c !important;
+
+    .ck-button.ck-on {
+        background: #8ab4f8 !important;
+        border-color: #c2d8ff !important;
+        color: #121212 !important;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
     }
-    
-    /* Placeholder */
-    .ck.ck-editor__editable .ck-placeholder::before {
+
+    .ck-button.ck-disabled {
+        background: #3a3a3a !important;
+        color: #777777 !important;
+        border-color: #4a4a4a !important;
+        opacity: 0.5 !important;
+    }
+
+    /* Dark mode dropdowns */
+    .ck-dropdown__panel {
+        background: #3a3a3a !important;
+        border-color: #5a5a5a !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .ck-list__item .ck-button:hover {
+        background: #505050 !important;
+        color: #ffffff !important;
+    }
+
+    .ck-list__item .ck-button.ck-on {
+        background: #8ab4f8 !important;
+        color: #121212 !important;
+    }
+
+    /* Dark mode content area */
+    .ck-editor__editable {
+        background: #2d2d2d !important;
+        color: #e0e0e0 !important;
+        border-color: #4a4a4a !important;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .ck-editor__editable.ck-focused {
+        border-color: #8ab4f8 !important;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 3px rgba(138, 180, 248, 0.2) !important;
+    }
+
+    .ck-editor__editable .ck-placeholder::before {
         color: #777777 !important;
     }
-    
-    /* Scrollbar */
-    .ck-editor__editable_inline::-webkit-scrollbar-track,
-    .ck-dropdown__panel::-webkit-scrollbar-track {
-        background: #1a1a1a !important;
-    }
-    
-    .ck-editor__editable_inline::-webkit-scrollbar-thumb,
-    .ck-dropdown__panel::-webkit-scrollbar-thumb {
-        background: #555555 !important;
-    }
-    
-    .ck-editor__editable_inline::-webkit-scrollbar-thumb:hover,
-    .ck-dropdown__panel::-webkit-scrollbar-thumb:hover {
-        background: #666666 !important;
-    }
-}
 
-/* ========================================================================
-   RESPONSIVE ADJUSTMENTS
-   ======================================================================== */
+    /* Dark mode scrollbar */
+    .ck-editor__editable::-webkit-scrollbar-track {
+        background: #3a3a3a;
+    }
+    .ck-editor__editable::-webkit-scrollbar-thumb {
+        background: #6b6b6b;
+    }
+    .ck-editor__editable::-webkit-scrollbar-thumb:hover {
+        background: #858585;
+    }
 
-@media screen and (max-width: 768px) {
-    .ck.ck-toolbar {
-        padding: 8px !important;
+    /* Dark mode link balloon */
+    .ck-link-actions, .ck-form-header {
+        background: #3a3a3a !important;
+        border-color: #5a5a5a !important;
+        box-shadow: 0 4px 12px rgba(0, 0,
+        0, 0.4) !important;
     }
-    
-    .ck.ck-toolbar .ck-button,
-    .ck.ck-button {
-        padding: 5px 8px !important;
-        min-height: 28px !important;
+
+    .ck-input {
+        background: #2d2d2d !important;
+        color: #e0e0e0 !important;
+        border-color: #5a5a5a !important;
     }
-    
-    .ck-editor__editable_inline {
-        padding: 15px !important;
-        min-height: 150px !important;
+    .ck-input:focus {
+        border-color: #8ab4f8 !important;
+        box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.2) !important;
     }
 }
 
-/* ========================================================================
-   ACCESSIBILITY IMPROVEMENTS
-   ======================================================================== */
-
-.ck.ck-button:focus-visible {
-    outline: 2px solid #4a9eff !important;
-    outline-offset: 2px !important;
-}
-
-.ck.ck-dropdown__button:focus-visible {
-    outline: 2px solid #4a9eff !important;
-    outline-offset: 2px !important;
-}
-
-/* ========================================================================
-   Z-INDEX MANAGEMENT FOR DJANGO ADMIN
-   ======================================================================== */
-
-.ck.ck-balloon-panel,
-.ck.ck-dropdown__panel {
-    z-index: 9999 !important;
-}
-
-.ck.ck-toolbar {
-    z-index: 10 !important;
-}
-
-/* Ensure dropdowns appear above Django admin modals */
-.ck-body-wrapper {
-    z-index: 9999 !important;
-}
-
-/* ========================================================================
-   END OF CKEDITOR 5 FIX
-   ======================================================================== */

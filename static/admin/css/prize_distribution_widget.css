@@ -1,0 +1,87 @@
+/* static/admin/css/prize_distribution_widget.css */
+
+#prize-distribution-widget {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    max-width: 600px;
+}
+
+.prize-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.prize-entry input {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.prize-entry .prize-rank {
+    width: 80px;
+}
+
+.prize-entry .prize-amount {
+    width: 150px;
+}
+
+.prize-entry .remove-prize-entry {
+    background-color: #e57373; /* Softer red */
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.prize-entry .remove-prize-entry:hover {
+    background-color: #ef5350;
+}
+
+#add-prize-entry {
+    background-color: #66bb6a; /* Softer green */
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#add-prize-entry:hover {
+    background-color: #4caf50;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+    #prize-distribution-widget {
+        background: #3a3a3a;
+        border-color: #555;
+    }
+
+    .prize-entry input {
+        background-color: #2d2d2d;
+        border-color: #555;
+        color: #e0e0e0;
+    }
+
+    .prize-entry .remove-prize-entry {
+        background-color: #c62828;
+    }
+
+    #add-prize-entry {
+        background-color: #2e7d32;
+    }
+}

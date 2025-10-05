@@ -253,46 +253,18 @@ NOTIFICATIONS_EMAIL_ENABLED = False  # set True to email in addition to in-app
 
 
 # -----------------------------------------------------------------------------
-# CKEditor 5 Configuration
+# CKEditor 5 (keep it quiet/harmless in tests)
 # -----------------------------------------------------------------------------
 CKEDITOR_5_CONFIGS = {
     "default": {
         "toolbar": [
-            "heading", "|",
-            "bold", "italic", "underline", "strikethrough", "|",
+            "bold", "italic", "underline", "|",
             "link", "bulletedList", "numberedList", "|",
-            "blockQuote", "insertTable", "|",
-            "undo", "redo"
+            "blockQuote", "insertTable", "undo", "redo",
         ],
-        "height": "300px",
-        "width": "100%",
-    },
-    "extends": {
-        "toolbar": [
-            "heading", "|",
-            "bold", "italic", "underline", "strikethrough", "subscript", "superscript", "|",
-            "link", "bulletedList", "numberedList", "todoList", "|",
-            "blockQuote", "insertTable", "codeBlock", "|",
-            "fontSize", "fontColor", "fontBackgroundColor", "|",
-            "alignment", "|",
-            "indent", "outdent", "|",
-            "horizontalLine", "|",
-            "undo", "redo"
-        ],
-        "height": "400px",
-        "width": "100%",
-    },
-    "minimal": {
-        "toolbar": [
-            "bold", "italic", "link", "|",
-            "bulletedList", "numberedList", "|",
-            "undo", "redo"
-        ],
-        "height": "200px",
-        "width": "100%",
     }
 }
-CKEDITOR_5_CUSTOM_CSS = "admin/css/ckeditor5_fix.css"
+CKEDITOR_5_CUSTOM_CSS = None
 CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff"
 # Sites framework (required for allauth)
 SITE_ID = int(os.getenv("SITE_ID", "1"))

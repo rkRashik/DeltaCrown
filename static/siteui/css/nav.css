@@ -69,6 +69,11 @@ body.has-mobile-drawer-open {
   height: 100vh;
 }
 
+/* Hide the legacy mobile toggle from nav.html, as v3 handles it */
+.mobile-nav-toggle {
+  display: none !important;
+}
+
 /* Main Navigation Container - Gaming Glassmorphism */
 .site-nav {
   position: sticky;
@@ -522,133 +527,43 @@ body.dark-theme .brand-logo:hover {
   width: 100%;
 }
 
+/* Responsive Breakpoints */
+
+/* Tablet and Mobile Styles */
 @media (max-width: 1023px) {
-  .nav-mobile-toggle,
-  .mobile-nav-toggle {
-    display: flex;
-    position: relative;
-    z-index: 130;
-  }
-  
-  /* Hide all navigation elements except hamburger icon on mobile */
-  .nav-center {
-    display: none !important;
-  }
-  
+  /* Hide desktop-only elements */
+  .nav-center,
   .nav-right {
     display: none !important;
   }
-  
-  /* Keep only the logo and hamburger visible on mobile */
-  .nav-left {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+
+  /* Ensure the main nav container doesn't interfere with mobile layout */
+  .site-nav {
+    /* The v3 mobile nav provides its own header, so the main one is not needed on mobile */
+    display: none;
   }
-  
-  .brand-wordmark {
-    display: none; /* Hide text logo on mobile for cleaner look */
-  }
-  
-  /* Make logo smaller on mobile for better proportion */
-  .brand-logo-wrap {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .brand-logo {
-    width: 100%;
-    height: 100%;
-  }
-  
-  /* Optimize hamburger for better touch targets */
-  .mobile-nav-toggle {
-    padding: 8px;
-    min-width: 44px;
-    min-height: 44px;
-  }
+
+  /* The mobile-nav-v3.css file will handle all mobile display */
 }
 
-/* Mobile-first improvements */
-@media (max-width: 768px) {
-  .mobile-nav-toggle {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .mobile-nav {
-    width: 95%;
-    max-width: 340px;
-  }
-  
-  .mobile-nav-header {
-    padding: 1rem 1.25rem 0.75rem;
-  }
-  
-  .mobile-nav-section {
-    padding: 1.25rem 1.25rem 0;
-  }
-  
-  .mobile-quick-actions {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-  
-  .mobile-quick-action {
-    flex-direction: row;
-    padding: 0.875rem 1rem;
-    text-align: left;
-    justify-content: flex-start;
-  }
-  
-  .mobile-quick-icon {
-    margin-right: 0.75rem;
-    margin-bottom: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-shell {
-    padding: 0 12px;
-  }
-  
-  .nav-left {
-    gap: 8px;
-  }
-  
-  .mobile-drawer__panel {
-    width: 100vw;
-    border-left: none;
-  }
-}
-
-/* Desktop - Hide mobile elements */
+/* Desktop Styles */
 @media (min-width: 1024px) {
-  .mobile-nav-toggle,
-  .nav-mobile-toggle {
-    display: none !important;
-  }
-  
-  .mobile-nav,
-  .mobile-nav-overlay {
-    display: none !important;
-  }
-  
-  .nav-center {
-    display: flex;
-  }
-  
-  .nav-right .nav-actions {
-    display: flex;
-  }
-  
-  .nav-right .nav-auth {
-    display: flex;
-  }
-  
-  .nav-right .nav-profile {
+  /* Ensure desktop nav is visible */
+  .site-nav {
     display: block;
+  }
+  
+  .nav-center,
+  .nav-right {
+    display: flex;
+  }
+
+  /* Hide mobile-specific elements on desktop */
+  .mobile-header-bar,
+  .mobile-bottom-nav,
+  .mobile-menu-drawer,
+  .mobile-menu-backdrop {
+    display: none !important;
   }
 }
 
@@ -661,53 +576,6 @@ body.dark-theme .brand-logo:hover {
   .nav-link {
     padding: 0.75rem 1rem;
     font-size: 0.9rem;
-  }
-}
-
-/* Enhanced mobile responsiveness */
-@media (max-width: 1023px) {
-  .nav-shell {
-    padding: 0 1rem;
-  }
-  
-  .nav-left {
-    gap: 0.75rem;
-  }
-  
-  /* Ensure mobile toggle is always visible on mobile */
-  .mobile-nav-toggle {
-    display: flex !important;
-  }
-}
-
-/* Small mobile adjustments */
-@media (max-width: 480px) {
-  :root {
-    --nav-height: 64px; /* Slightly smaller nav on very small screens */
-  }
-  
-  .nav-shell {
-    padding: 0 1rem;
-  }
-  
-  .mobile-nav-toggle {
-    width: 44px;
-    height: 44px;
-  }
-  
-  .hamburger {
-    width: 20px;
-    height: 16px;
-  }
-  
-  .hamburger-line {
-    height: 2px;
-  }
-  
-  /* Ensure logo doesn't get too small */
-  .brand-logo-wrap {
-    min-width: 32px;
-    min-height: 32px;
   }
 }
 

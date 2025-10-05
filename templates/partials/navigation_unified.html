@@ -1,0 +1,216 @@
+{% load static nav_extras dc_avatar %}
+
+<!-- ============================================
+     UNIFIED RESPONSIVE NAVIGATION SYSTEM
+     - Desktop: Full horizontal navbar (1024px+)
+     - Mobile: Top bar + Bottom navigation (<1024px)
+     ============================================ -->
+
+<!-- DESKTOP NAVIGATION (visible on large screens) -->
+<header class="unified-nav-desktop" role="banner">
+  <nav class="unified-nav-desktop__container" aria-label="Main navigation">
+    
+    <!-- Left: Logo & Brand -->
+    <div class="unified-nav-desktop__left">
+      {% nav_active '/' as is_home %}
+      <a href="/" class="unified-nav-desktop__brand" aria-label="DeltaCrown Home"{% if is_home %} aria-current="page"{% endif %}>
+        <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" class="unified-nav-desktop__logo" />
+        <img src="{% static 'siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg' %}" alt="DeltaCrown" class="unified-nav-desktop__wordmark" />
+      </a>
+    </div>
+
+    <!-- Center: Main Navigation Links -->
+    <div class="unified-nav-desktop__center">
+      <ul class="unified-nav-desktop__links" role="list">
+        {% nav_active '/tournaments/' '/tournaments' as tournaments_active %}
+        <li>
+          <a href="/tournaments/" class="unified-nav-desktop__link{% if tournaments_active %} unified-nav-desktop__link--active{% endif %}"{% if tournaments_active %} aria-current="page"{% endif %}>
+            Tournaments
+          </a>
+        </li>
+
+        {% nav_active '/teams/' '/teams' as teams_active %}
+        <li>
+          <a href="/teams/" class="unified-nav-desktop__link{% if teams_active %} unified-nav-desktop__link--active{% endif %}"{% if teams_active %} aria-current="page"{% endif %}>
+            Teams
+          </a>
+        </li>
+
+        {% if request.user.is_authenticated %}
+          {% nav_active '/dashboard/' '/dashboard' as dashboard_active %}
+          <li>
+            <a href="/dashboard/" class="unified-nav-desktop__link{% if dashboard_active %} unified-nav-desktop__link--active{% endif %}"{% if dashboard_active %} aria-current="page"{% endif %}>
+              Dashboard
+            </a>
+          </li>
+        {% endif %}
+
+        {% nav_active '/community/' '/community' as community_active %}
+        <li>
+          <a href="/community/" class="unified-nav-desktop__link{% if community_active %} unified-nav-desktop__link--active{% endif %}"{% if community_active %} aria-current="page"{% endif %}>
+            Community
+          </a>
+        </li>
+
+        {% nav_active '/watch/' '/arena' as arena_active %}
+        <li>
+          <a href="/watch/" class="unified-nav-desktop__link{% if arena_active %} unified-nav-desktop__link--active{% endif %}"{% if arena_active %} aria-current="page"{% endif %}>
+            Arena
+            {% if nav_live %}
+              <span class="unified-nav-desktop__live-badge">
+                <span class="unified-nav-desktop__live-dot"></span>
+                Live
+              </span>
+            {% endif %}
+          </a>
+        </li>
+
+        {% nav_active '/crownstore/' '/crownstore' as crownstore_active %}
+        <li>
+          <a href="/crownstore/" class="unified-nav-desktop__link{% if crownstore_active %} unified-nav-desktop__link--active{% endif %}"{% if crownstore_active %} aria-current="page"{% endif %}>
+            CrownStore
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Right: Actions & Profile -->
+    <div class="unified-nav-desktop__right">
+      {% if request.user.is_authenticated %}
+        <!-- Notifications -->
+        {% with nav_unread_count|default:0 as unread_count %}
+        <button class="unified-nav-desktop__notif-btn" type="button" aria-label="Notifications" data-notif-toggle>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          {% if unread_count > 0 %}
+            <span class="unified-nav-desktop__badge">{{ unread_count }}</span>
+          {% endif %}
+        </button>
+        {% endwith %}
+
+        <!-- Profile Dropdown -->
+        {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as avatar_url %}
+        <div class="unified-nav-desktop__profile">
+          <button class="unified-nav-desktop__profile-btn" type="button" aria-label="Account menu" data-profile-toggle>
+            <img src="{{ avatar_url }}" alt="{{ request.user.username }}" class="unified-nav-desktop__avatar" />
+          </button>
+        </div>
+      {% else %}
+        <!-- Auth Buttons -->
+        <div class="unified-nav-desktop__auth">
+          <a href="/accounts/signup/" class="unified-nav-desktop__auth-link">Sign up</a>
+          <a href="/accounts/login/" class="unified-nav-desktop__auth-btn">Sign in</a>
+        </div>
+      {% endif %}
+    </div>
+  </nav>
+</header>
+
+<!-- MOBILE NAVIGATION (visible on small screens) -->
+<div class="unified-nav-mobile">
+  
+  <!-- Top Bar: Logo + Hamburger -->
+  <header class="unified-nav-mobile__top">
+    <a href="/" class="unified-nav-mobile__logo" aria-label="DeltaCrown Home">
+      <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" alt="DeltaCrown" width="32" height="32" />
+    </a>
+    
+    <button class="unified-nav-mobile__hamburger" type="button" aria-label="Open menu" data-mobile-menu-toggle>
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </header>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="unified-nav-mobile__bottom" role="navigation" aria-label="Mobile navigation">
+    {% nav_active '/' as is_home %}
+    <a href="/" class="unified-nav-mobile__item{% if is_home %} unified-nav-mobile__item--active{% endif %}"{% if is_home %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Home</span>
+    </a>
+
+    {% nav_active '/tournaments/' '/tournaments' as tournaments_active %}
+    <a href="/tournaments/" class="unified-nav-mobile__item{% if tournaments_active %} unified-nav-mobile__item--active{% endif %}"{% if tournaments_active %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+      </svg>
+      <span>Tournaments</span>
+    </a>
+
+    {% nav_active '/teams/' '/teams' as teams_active %}
+    <a href="/teams/" class="unified-nav-mobile__item{% if teams_active %} unified-nav-mobile__item--active{% endif %}"{% if teams_active %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+      </svg>
+      <span>Teams</span>
+    </a>
+
+    {% nav_active '/community/' '/community' as community_active %}
+    <a href="/community/" class="unified-nav-mobile__item{% if community_active %} unified-nav-mobile__item--active{% endif %}"{% if community_active %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span>Community</span>
+    </a>
+
+    {% nav_active '/watch/' '/arena' as arena_active %}
+    <a href="/watch/" class="unified-nav-mobile__item{% if arena_active %} unified-nav-mobile__item--active{% endif %}"{% if arena_active %} aria-current="page"{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+      </svg>
+      <span>Arena</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Menu Drawer -->
+  <aside class="unified-nav-mobile__drawer" data-mobile-drawer>
+    <div class="unified-nav-mobile__drawer-header">
+      <h2>Menu</h2>
+      <button type="button" aria-label="Close menu" data-mobile-menu-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="unified-nav-mobile__drawer-content">
+      {% if request.user.is_authenticated %}
+        {% user_avatar_url request.user '/static/img/user_avatar/default-avatar.png' as drawer_avatar %}
+        <div class="unified-nav-mobile__profile">
+          <img src="{{ drawer_avatar }}" alt="{{ request.user.username }}" width="48" height="48" />
+          <div>
+            <div class="unified-nav-mobile__profile-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="unified-nav-mobile__profile-handle">@{{ request.user.username }}</div>
+          </div>
+        </div>
+
+        <ul class="unified-nav-mobile__menu">
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/user/u/{{ request.user.username }}/">Profile</a></li>
+          <li><a href="/notifications/">Notifications</a></li>
+          <li><a href="/user/me/edit/">Settings</a></li>
+          <li><a href="/accounts/logout/" class="unified-nav-mobile__signout">Sign Out</a></li>
+        </ul>
+      {% else %}
+        <div class="unified-nav-mobile__auth">
+          <a href="/accounts/login/" class="unified-nav-mobile__auth-btn unified-nav-mobile__auth-btn--primary">Sign In</a>
+          <a href="/accounts/signup/" class="unified-nav-mobile__auth-btn">Create Account</a>
+        </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Backdrop -->
+  <div class="unified-nav-mobile__backdrop" data-mobile-backdrop></div>
+</div>

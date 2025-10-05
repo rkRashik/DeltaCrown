@@ -216,10 +216,21 @@ class TournamentSettingsInline(admin.StackedInline):
 
 try:
     from apps.tournaments.models.core import TournamentFinance
-    
+    from .widgets import PrizeDistributionWidget
+    from django import forms
+
+    class TournamentFinanceForm(forms.ModelForm):
+        class Meta:
+            model = TournamentFinance
+            fields = '__all__'
+            widgets = {
+                'prize_distribution': PrizeDistributionWidget(),
+            }
+
     class TournamentFinanceInline(admin.StackedInline):
         """Inline for tournament financial configuration."""
         model = TournamentFinance
+        form = TournamentFinanceForm
         can_delete = False
         extra = 0
         max_num = 1
@@ -240,7 +251,7 @@ try:
                     'prize_pool_bdt',
                     'prize_distribution',
                 ),
-                'description': 'Total prize pool and distribution (JSON format: {"1st": 5000, "2nd": 3000, "3rd": 2000})'
+                'description': 'Define the prize for each rank. The widget will automatically convert this to JSON.'
             }),
             ('Additional Settings', {
                 'fields': (
