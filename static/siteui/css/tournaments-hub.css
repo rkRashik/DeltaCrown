@@ -1,33 +1,39 @@
 /* ============================================================================
-   TOURNAMENT HUB - MODERN REDESIGN
-   Clean, professional, and connected to the project design language
+   TOURNAMENT HUB - MODERN REDESIGN V2
+   Clean, professional, real-data driven with stunning visuals
    ============================================================================ */
 
 :root {
     /* Brand Colors */
     --dc-primary: #00ff88;
     --dc-primary-hover: #00e67a;
+    --dc-primary-dark: #00cc6f;
     --dc-accent: #ff4655;
+    --dc-accent-hover: #ff2e40;
     --dc-gold: #FFD700;
     
     /* Backgrounds */
     --dc-bg-page: #0a0a0f;
     --dc-bg-card: rgba(20, 20, 30, 0.8);
-    --dc-bg-elevated: rgba(26, 26, 38, 0.9);
-    --dc-bg-hover: rgba(36, 36, 52, 0.8);
+    --dc-bg-elevated: rgba(26, 26, 38, 0.95);
+    --dc-bg-hover: rgba(36, 36, 52, 0.9);
     
-    /* Glass */
-    --dc-glass-bg: rgba(255, 255, 255, 0.04);
+    /* Glass Effects */
+    --dc-glass-bg: rgba(255, 255, 255, 0.03);
     --dc-glass-border: rgba(255, 255, 255, 0.08);
+    --dc-glass-hover: rgba(255, 255, 255, 0.06);
     
     /* Text */
     --dc-text-primary: #ffffff;
     --dc-text-secondary: #cbd5e1;
     --dc-text-muted: #94a3b8;
+    --dc-text-dim: #64748b;
     
-    /* Shadows */
+    /* Shadows & Glows */
     --dc-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-    --dc-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --dc-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+    --dc-glow-primary: 0 0 30px rgba(0, 255, 136, 0.3);
+    --dc-glow-accent: 0 0 30px rgba(255, 70, 85, 0.3);
     
     /* Spacing */
     --dc-space-xs: 0.5rem;
@@ -36,11 +42,17 @@
     --dc-space-lg: 1.5rem;
     --dc-space-xl: 2rem;
     --dc-space-2xl: 3rem;
+    --dc-space-3xl: 4rem;
     
     /* Radius */
     --dc-radius: 0.75rem;
     --dc-radius-lg: 1rem;
     --dc-radius-xl: 1.25rem;
+    --dc-radius-2xl: 1.5rem;
+    
+    /* Transitions */
+    --dc-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --dc-transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================================================
