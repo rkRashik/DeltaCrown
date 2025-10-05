@@ -230,25 +230,25 @@ try:
         fieldsets = (
             ('Entry Fee', {
                 'fields': (
-                    ('entry_fee', 'currency'),
-                    'payment_method',
+                    ('entry_fee_bdt', 'currency'),
+                    ('payment_required', 'payment_deadline_hours'),
                 ),
-                'description': 'Registration fee for participants'
+                'description': 'Registration fee for participants (in Bangladeshi Taka)'
             }),
             ('Prize Pool', {
                 'fields': (
-                    ('prize_pool', 'prize_currency'),
+                    'prize_pool_bdt',
                     'prize_distribution',
                 ),
-                'description': 'Total prize pool and distribution percentages'
+                'description': 'Total prize pool and distribution (JSON format: {"1st": 5000, "2nd": 3000, "3rd": 2000})'
             }),
-            ('Payment Details', {
+            ('Additional Settings', {
                 'fields': (
-                    'payment_instructions',
+                    'platform_fee_percent',
                     'refund_policy',
                 ),
                 'classes': ('collapse',),
-                'description': 'Payment instructions and refund policy'
+                'description': 'Platform fees and refund policy'
             }),
         )
         
@@ -280,22 +280,33 @@ try:
         verbose_name_plural = "📷 Media & Assets"
         
         fieldsets = (
-            ('Visual Assets', {
+            ('Main Visual Assets', {
                 'fields': (
                     'banner',
-                    'logo',
                     'thumbnail',
                 ),
-                'description': 'Tournament visual assets and branding'
+                'description': 'Banner (1920x1080px) and thumbnail (400x300px) for cards/listings'
             }),
-            ('Streaming Links', {
+            ('Social Media', {
                 'fields': (
-                    'stream_facebook_url',
-                    'stream_youtube_url',
-                    'stream_twitch_url',
-                    'discord_url',
+                    'social_media_image',
                 ),
-                'description': 'Live stream and community links'
+                'description': 'Optimized image for social media sharing (1200x630px)'
+            }),
+            ('Promotional Images', {
+                'fields': (
+                    'promotional_image_1',
+                    'promotional_image_2',
+                    'promotional_image_3',
+                ),
+                'classes': ('collapse',),
+                'description': 'Additional promotional images (max 3MB each)'
+            }),
+            ('Rules Document', {
+                'fields': (
+                    'rules_pdf',
+                ),
+                'description': 'Tournament rules PDF (max 10MB)'
             }),
         )
 
@@ -313,24 +324,49 @@ try:
         extra = 0
         max_num = 1
         
-        verbose_name = "📜 Rules & Documentation"
-        verbose_name_plural = "📜 Rules & Documentation"
+        verbose_name = "📜 Rules & Requirements"
+        verbose_name_plural = "📜 Rules & Requirements"
         
         fieldsets = (
-            ('Rules Document', {
+            ('Core Rules', {
                 'fields': (
-                    'rules_pdf',
-                    'rules_text',
+                    'general_rules',
+                    'match_rules',
+                    'scoring_system',
                 ),
-                'description': 'Tournament rules and regulations'
+                'description': 'Essential tournament rules and scoring'
+            }),
+            ('Eligibility & Requirements', {
+                'fields': (
+                    'eligibility_requirements',
+                    ('require_discord', 'require_game_id', 'require_team_logo'),
+                ),
+                'description': 'Who can participate and what they need'
+            }),
+            ('Age & Region Restrictions', {
+                'fields': (
+                    ('min_age', 'max_age'),
+                    'region_restriction',
+                    'rank_restriction',
+                ),
+                'classes': ('collapse',),
+                'description': 'Age limits, geographic restrictions, and rank requirements'
+            }),
+            ('Penalties & Distribution', {
+                'fields': (
+                    'penalty_rules',
+                    'prize_distribution_rules',
+                ),
+                'classes': ('collapse',),
+                'description': 'Penalty system and prize distribution details'
             }),
             ('Additional Information', {
                 'fields': (
-                    'terms_and_conditions',
-                    'code_of_conduct',
+                    'checkin_instructions',
+                    'additional_notes',
                 ),
                 'classes': ('collapse',),
-                'description': 'Terms, conditions, and code of conduct'
+                'description': 'Check-in process and extra information'
             }),
         )
         
