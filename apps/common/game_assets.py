@@ -38,8 +38,9 @@ GAMES = {
     'VALORANT': {
         'name': 'Valorant',
         'display_name': 'Valorant',
+        'slug': 'valorant',
         'logo': 'img/game_logos/Valorant_logo.jpg',  # exists
-        'card': 'img/game_cards/valorant_card.jpg',
+        'card': 'img/game_cards/Valorant.jpg',  # exists
         'icon': 'logos/valorant.svg',  # use existing svg
         'banner': 'img/game_banners/valorant_banner.jpg',
         'color_primary': '#FF4655',
@@ -51,8 +52,9 @@ GAMES = {
     'CSGO': {
         'name': 'CS:GO',
         'display_name': 'Counter-Strike: Global Offensive',
+        'slug': 'csgo',
         'logo': 'img/game_logos/CS2_logo.jpeg',  # exists
-        'card': 'img/game_cards/csgo_card.jpg',
+        'card': 'img/game_cards/CS2.jpg',  # exists
         'icon': 'logos/csgo.svg',  # use existing svg
         'banner': 'img/game_banners/csgo_banner.jpg',
         'color_primary': '#F79100',
@@ -64,8 +66,9 @@ GAMES = {
     'CS2': {
         'name': 'CS2',
         'display_name': 'Counter-Strike 2',
+        'slug': 'cs2',
         'logo': 'img/game_logos/CS2_logo.jpeg',
-        'card': 'img/game_cards/cs2_card.jpg',
+        'card': 'img/game_cards/CS2.jpg',  # exists
         'icon': 'img/game_icons/cs2_icon.png',
         'banner': 'img/game_banners/cs2_banner.jpg',
         'color_primary': '#F79100',
@@ -77,8 +80,9 @@ GAMES = {
     'EFOOTBALL': {
         'name': 'eFootball',
         'display_name': 'eFootball PES',
+        'slug': 'efootball',
         'logo': 'img/game_logos/efootball_logo.jpeg',  # exists
-        'card': 'img/game_cards/efootball_card.jpg',
+        'card': 'img/game_cards/efootball.jpeg',  # exists
         'icon': 'logos/efootball.svg',  # use existing svg
         'banner': 'img/game_banners/efootball_banner.jpg',
         'color_primary': '#00A0E4',
@@ -90,8 +94,9 @@ GAMES = {
     'MLBB': {
         'name': 'Mobile Legends',
         'display_name': 'Mobile Legends: Bang Bang',
+        'slug': 'mlbb',
         'logo': 'img/game_logos/mobile_legend_logo.jpeg',  # exists
-        'card': 'img/game_cards/mlbb_card.jpg',
+        'card': 'img/game_cards/MobileLegend.jpg',  # exists
         'icon': 'logos/mlbb.svg',  # use existing svg
         'banner': 'img/game_banners/mlbb_banner.jpg',
         'color_primary': '#4A90E2',
@@ -103,8 +108,9 @@ GAMES = {
     'FREEFIRE': {
         'name': 'Free Fire',
         'display_name': 'Garena Free Fire',
-        'logo': 'img/game_logos/FreeFire.jpeg',  # exists (note capitalization)
-        'card': 'img/game_cards/freefire_card.jpg',
+        'slug': 'freefire',
+        'logo': 'img/game_logos/FreeFire.jpeg',  # exists
+        'card': 'img/game_cards/FreeFire.jpeg',  # exists
         'icon': 'logos/freefire.png',  # use existing png
         'banner': 'img/game_banners/freefire_banner.jpg',
         'color_primary': '#FF6B35',
@@ -116,8 +122,9 @@ GAMES = {
     'PUBG': {
         'name': 'PUBG',
         'display_name': 'PlayerUnknown\'s Battlegrounds',
+        'slug': 'pubg',
         'logo': 'img/game_logos/PUBG_logo.jpg',
-        'card': 'img/game_cards/pubg_card.jpg',
+        'card': 'img/game_cards/PUBG.jpeg',  # exists
         'icon': 'img/game_icons/pubg_icon.png',
         'banner': 'img/game_banners/pubg_banner.jpg',
         'color_primary': '#F4A623',
@@ -129,8 +136,9 @@ GAMES = {
     'FC26': {
         'name': 'FC26',
         'display_name': 'EA Sports FC 26',
+        'slug': 'fc26',
         'logo': 'img/game_logos/fc26_logo.jpg',  # exists
-        'card': 'img/game_cards/fc26_card.jpg',
+        'card': 'img/game_cards/FC26.jpg',  # exists
         'icon': 'logos/fc26.svg',  # use existing svg
         'banner': 'img/game_banners/fc26_banner.jpg',
         'color_primary': '#00D4FF',
