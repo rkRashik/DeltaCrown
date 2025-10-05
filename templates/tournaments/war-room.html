@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ ctx.tournament.name }} - War Room | DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'siteui/css/war-room.css' %}">
+{% endblock %}
+
+{% block body_class %}war-room-page{% endblock %}
+
+{% block content %}
+<!-- ============================================================================
+     WAR ROOM - Tournament Command Center for Registered Participants
+     ============================================================================ -->
+
+<!-- Top Bar -->
+<div class="war-room-topbar">
+    <div class="war-room-container">
+        <div class="topbar-content">
+            <!-- Tournament Badge -->
+            <div class="tournament-badge">
+                {% if ctx.tournament.icon %}
+                <img src="{{ ctx.tournament.icon.url }}" alt="{{ ctx.tournament.name }}" class="tournament-icon">
+                {% endif %}
+                <div class="tournament-info">
+                    <h1 class="tournament-name">{{ ctx.tournament.name }}</h1>
+                    <div class="tournament-meta">
+                        <span class="meta-item">{{ ctx.tournament.game_name }}</span>
+                        <span class="meta-separator">•</span>
+                        <span class="meta-item">{{ ctx.tournament.format }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status Indicators -->
+            <div class="status-indicators">
+                <!-- Checked-In Status -->
+                {% if ctx.team.checked_in %}
+                <div class="status-pill success">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Checked In</span>
+                </div>
+                {% elif ctx.can_checkin %}
+                <button class="status-pill warning checkin-btn" data-tournament-slug="{{ ctx.tournament.slug }}">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Check In Now</span>
+                </button>
+                {% endif %}
+                
+                <!-- Tournament Status -->
+                <div class="status-pill {% if ctx.tournament.status == 'RUNNING' %}live{% else %}neutral{% endif %}">
+                    {% if ctx.tournament.status == 'RUNNING' %}
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="12" cy="12" r="8"/>
+                    </svg>
+                    <span>LIVE</span>
+                    {% else %}
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span>{{ ctx.tournament.status|title }}</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Exit to Details -->
+                <a href="{% url 'tournaments:detail' ctx.tournament.slug %}" class="btn-exit" title="Back to Tournament Details">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Grid -->
+<div class="war-room-container">
+    <div class="war-room-grid">
+        
+        <!-- Left Sidebar: Team & Stats -->
+        <aside class="war-room-sidebar">
+            
+            <!-- Team Card -->
+            <div class="sidebar-card team-card">
+                <div class="card-header">
+                    <h2>Your Squad</h2>
+                </div>
+                <div class="card-content">
+                    <!-- Team Logo & Name -->
+                    <div class="team-identity">
+                        {% if ctx.team.logo %}
+                        <img src="{{ ctx.team.logo.url }}" alt="{{ ctx.team.name }}" class="team-logo">
+                        {% else %}
+                        <div class="team-logo-placeholder">
+                            {{ ctx.team.name|first|upper }}
+                        </div>
+                        {% endif %}
+                        <div class="team-name-group">
+                            <h3 class="team-name">{{ ctx.team.name }}</h3>
+                            <p class="team-id">#{{ ctx.team.id }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Team Players -->
+                    <div class="team-roster">
+                        <h4 class="roster-title">Roster ({{ ctx.team.players|length }})</h4>
+                        <div class="roster-list">
+                            {% for player in ctx.team.players %}
+                            <div class="roster-player">
+                                <div class="player-avatar">
+                                    {{ player.username|first|upper }}
+                                </div>
+                                <span class="player-name">{{ player.username }}</span>
+                                {% if player.is_captain %}
+                                <span class="captain-badge" title="Team Captain">
+                                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                    </svg>
+                                </span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Performance Stats -->
+            <div class="sidebar-card stats-card">
+                <div class="card-header">
+                    <h2>Performance</h2>
+                </div>
+                <div class="card-content">
+                    <div class="stat-grid">
+                        <div class="stat-item highlight">
+                            <div class="stat-label">Rank</div>
+                            <div class="stat-value">#{{ ctx.stats.rank }}</div>
+                        </div>
+                        <div class="stat-item highlight">
+                            <div class="stat-label">Points</div>
+                            <div class="stat-value">{{ ctx.stats.points }}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Win Rate</div>
+                            <div class="stat-value">{{ ctx.stats.win_rate }}%</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Matches</div>
+                            <div class="stat-value">{{ ctx.stats.matches_played }}</div>
+                        </div>
+                        <div class="stat-item success">
+                            <div class="stat-label">Wins</div>
+                            <div class="stat-value">{{ ctx.stats.wins }}</div>
+                        </div>
+                        <div class="stat-item danger">
+                            <div class="stat-label">Losses</div>
+                            <div class="stat-value">{{ ctx.stats.losses }}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Win Streak -->
+                    {% if ctx.stats.win_streak > 0 %}
+                    <div class="win-streak">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <span>{{ ctx.stats.win_streak }} Win Streak!</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="war-room-main">
+            
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="action-card" id="view-matches">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <div>
+                        <h3>Matches</h3>
+                        <p>{{ ctx.upcoming_matches_count }} upcoming</p>
+                    </div>
+                </button>
+                
+                <button class="action-card" id="view-bracket">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
+                    <div>
+                        <h3>Bracket</h3>
+                        <p>View tournament tree</p>
+                    </div>
+                </button>
+                
+                <button class="action-card" id="view-standings">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <div>
+                        <h3>Standings</h3>
+                        <p>View rankings</p>
+                    </div>
+                </button>
+                
+                <button class="action-card" id="view-rules">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    <div>
+                        <h3>Rules</h3>
+                        <p>Tournament regulations</p>
+                    </div>
+                </button>
+            </div>
+            
+            <!-- Match Schedule Section -->
+            <div class="content-section" id="matches-section">
+                <div class="section-header">
+                    <h2>Upcoming Matches</h2>
+                    <button class="btn-text">View All</button>
+                </div>
+                <div class="section-content">
+                    {% if ctx.upcoming_matches_count > 0 %}
+                    <div class="match-list">
+                        <!-- Match cards will be loaded dynamically -->
+                        <div class="loading-placeholder">
+                            <div class="spinner"></div>
+                            <p>Loading matches...</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                        <h3>No Upcoming Matches</h3>
+                        <p>Your next match will appear here once scheduled</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Tournament News -->
+            <div class="content-section" id="news-section">
+                <div class="section-header">
+                    <h2>Tournament News</h2>
+                    {% if ctx.unread_news_count > 0 %}
+                    <span class="badge">{{ ctx.unread_news_count }} new</span>
+                    {% endif %}
+                </div>
+                <div class="section-content">
+                    <div class="news-list">
+                        <!-- News items will be loaded dynamically -->
+                        <div class="empty-state">
+                            <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+                            </svg>
+                            <h3>No News Yet</h3>
+                            <p>Tournament announcements will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+        
+        <!-- Right Sidebar: Activity Feed -->
+        <aside class="war-room-aside">
+            
+            <!-- Live Activity -->
+            <div class="aside-card activity-card">
+                <div class="card-header">
+                    <h2>Live Activity</h2>
+                    <div class="live-indicator">
+                        <span class="pulse-dot"></span>
+                        <span>Live</span>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="activity-feed">
+                        <!-- Activity items will be loaded dynamically -->
+                        <div class="activity-item">
+                            <div class="activity-icon">
+                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="10"/>
+                                </svg>
+                            </div>
+                            <div class="activity-content">
+                                <p class="activity-text">Tournament started</p>
+                                <span class="activity-time">2 hours ago</span>
+                            </div>
+                        </div>
+                        
+                        <div class="activity-item">
+                            <div class="activity-icon success">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div class="activity-content">
+                                <p class="activity-text">You checked in successfully</p>
+                                <span class="activity-time">3 hours ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Stats Widget -->
+            <div class="aside-card stats-widget">
+                <div class="card-header">
+                    <h2>Quick Stats</h2>
+                </div>
+                <div class="card-content">
+                    <div class="widget-stats">
+                        <div class="widget-stat">
+                            <span class="widget-label">Tournament Progress</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 35%"></div>
+                            </div>
+                            <span class="widget-value">35%</span>
+                        </div>
+                        
+                        <div class="widget-stat">
+                            <span class="widget-label">Your Matches</span>
+                            <span class="widget-value">{{ ctx.stats.matches_played }} / {{ ctx.stats.matches_played|add:ctx.upcoming_matches_count }}</span>
+                        </div>
+                        
+                        <div class="widget-stat">
+                            <span class="widget-label">Avg. Score</span>
+                            <span class="widget-value">{{ ctx.stats.avg_score }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </aside>
+        
+    </div>
+</div>
+
+<!-- Toast Notifications -->
+<div class="toast-container" id="toast-container"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'siteui/js/war-room.js' %}"></script>
+{% endblock %}

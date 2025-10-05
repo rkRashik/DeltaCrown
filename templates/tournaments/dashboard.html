@@ -9,9 +9,13 @@
     <!-- Base Styles -->
     <link rel="stylesheet" href="{% static 'siteui/css/base.css' %}">
     
-    <!-- Tournament V2 Styles -->
-    <link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-hub.css' %}">
-    <link rel="stylesheet" href="{% static 'siteui/css/tournaments-v2-dashboard.css' %}">
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Dashboard V8 Styles -->
+    <link rel="stylesheet" href="{% static 'siteui/css/dashboard-v8.css' %}">
     
     <!-- Phase B Integration -->
     <link rel="stylesheet" href="{% static 'siteui/css/countdown-timer.css' %}">
@@ -47,6 +51,17 @@
                     </div>
                     
                     <div class="dashboard-actions">
+                        <!-- Registration Status Badge -->
+                        {% if ctx.is_registered %}
+                        <div class="registration-status-badge registered">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <circle cx="8" cy="8" r="8" fill="currentColor" opacity="0.2"/>
+                                <path d="M11 5L6.5 10.5L4 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Registered</span>
+                        </div>
+                        {% endif %}
+                        
                         <span class="dashboard-status-badge {{ ctx.tournament.status }}">
                             {% if ctx.tournament.status == 'live' %}
                                 ● LIVE
@@ -296,7 +311,7 @@
     
     <!-- Scripts -->
     <script src="{% static 'js/countdown-timer.js' %}"></script>
-    <script src="{% static 'js/tournaments-v2-dashboard.js' %}"></script>
+    <script src="{% static 'siteui/js/dashboard-v8.js' %}"></script>
     
 </body>
 </html>

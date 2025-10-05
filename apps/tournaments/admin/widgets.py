@@ -22,7 +22,12 @@ class PrizeDistributionWidget(forms.Widget):
             prizes = {}
             
         # Ensure prizes is a dictionary of lists/tuples for easier iteration
-        context['widget']['prizes'] = sorted(prizes.items(), key=lambda item: int(item[0])) if prizes else []
+        def sort_key(item):
+            try:
+                return (0, int(item[0]))  # Integer keys come first, sorted numerically
+            except (ValueError, TypeError):
+                return (1, str(item[0]).lower())  # String keys come after, sorted alphabetically
+        context['widget']['prizes'] = sorted(prizes.items(), key=sort_key) if prizes else []
         return context
 
     def render(self, name, value, attrs=None, renderer=None):

@@ -3,7 +3,8 @@
    Premium micro-interactions and loading states for hub page
    ============================================================================ */
 
-/* Note: Base polish utilities loaded separately via tournaments-detail-v7-polish.css */
+/* Import base polish utilities */
+@import url('tournaments-detail-v7-polish.css');
 
 /* ============================================================================
    HUB-SPECIFIC ANIMATIONS

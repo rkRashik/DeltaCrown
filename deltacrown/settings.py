@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.economy",
     "apps.siteui",
     "apps.accounts",
+    "channels",
 
 ]
 
@@ -300,3 +301,10 @@ if os.getenv("ENABLE_ALLAUTH", "0") == "1":
             }
         }
     }
+
+ASGI_APPLICATION = 'deltacrown.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}

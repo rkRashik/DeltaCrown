@@ -117,7 +117,7 @@ def tournament_teams(request, slug):
     response_data = {
         'tournament': {
             'slug': tournament.slug,
-            'title': tournament.title,
+            'title': tournament.name,  # Tournament model uses 'name' not 'title'
         },
         'teams': teams_data,
         'pagination': {
@@ -253,7 +253,7 @@ def tournament_matches(request, slug):
     response_data = {
         'tournament': {
             'slug': tournament.slug,
-            'title': tournament.title,
+            'title': tournament.name,  # Tournament model uses 'name' not 'title'
             'format': getattr(tournament, 'format_type', 'single-elimination'),
         },
         'matches': matches_data,
@@ -348,7 +348,7 @@ def tournament_leaderboard(request, slug):
     response_data = {
         'tournament': {
             'slug': tournament.slug,
-            'title': tournament.title,
+            'title': tournament.name,  # Tournament model uses 'name' not 'title'
         },
         'standings': standings,
         'last_updated': timezone.now().isoformat(),

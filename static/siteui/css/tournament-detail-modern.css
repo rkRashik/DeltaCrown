@@ -1,0 +1,742 @@
+/* ============================================================================
+   TOURNAMENT DETAIL - MODERN CINEMATIC REDESIGN
+   Cinematic Hero + Modern Timeline
+   ============================================================================ */
+
+:root {
+    --color-primary: #00ff88;
+    --color-accent: #ff4655;
+    --bg-dark: #0a0a0f;
+    --bg-darker: #14141f;
+    --bg-card: #1e1e2d;
+}
+
+/* ============================================================================
+   HERO SECTION - CINEMATIC BANNER WITH OVERLAY
+   ============================================================================ */
+.detail-hero-modern {
+    position: relative;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+/* Full-width Banner Background */
+.hero-banner-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+}
+
+.hero-banner-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.hero-banner-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, 
+        rgba(20, 20, 31, 1) 0%, 
+        rgba(30, 30, 45, 1) 50%,
+        rgba(20, 20, 31, 1) 100%
+    );
+}
+
+.hero-banner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg,
+        rgba(10, 10, 15, 0.95) 0%,
+        rgba(10, 10, 15, 0.85) 40%,
+        rgba(10, 10, 15, 0.6) 70%,
+        rgba(10, 10, 15, 0.9) 100%
+    );
+}
+
+/* Content Overlay */
+.hero-content-overlay {
+    position: relative;
+    z-index: 2;
+    padding: 60px 0;
+}
+
+.hero-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 60px;
+    align-items: center;
+}
+
+/* Main Content */
+.hero-main-content {
+    max-width: 720px;
+}
+
+/* Breadcrumb */
+.hero-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.hero-breadcrumb a {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.hero-breadcrumb a:hover {
+    color: var(--color-primary);
+}
+
+.breadcrumb-separator {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.hero-breadcrumb span:last-child {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Game Badge */
+.hero-game-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.hero-game-badge img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+}
+
+/* Title */
+.hero-title-modern {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, 
+        #ffffff 0%, 
+        var(--color-primary) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 4px 20px rgba(0, 255, 136, 0.2);
+}
+
+/* Badges Row */
+.hero-badges-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 32px;
+}
+
+.status-badge,
+.feature-badge,
+.registration-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.status-badge svg,
+.feature-badge svg,
+.registration-badge svg {
+    width: 16px;
+    height: 16px;
+}
+
+.badge-live {
+    background: rgba(255, 70, 85, 0.15);
+    border: 2px solid var(--color-accent);
+    color: var(--color-accent);
+    animation: pulseGlow 2s infinite;
+}
+
+.badge-live .pulse-dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    background: var(--color-accent);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { 
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.5;
+        transform: scale(1.3);
+    }
+}
+
+.badge-upcoming {
+    background: rgba(0, 255, 136, 0.12);
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+.badge-completed {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.feature-badge {
+    background: linear-gradient(135deg, rgba(255, 170, 0, 0.15), rgba(255, 140, 0, 0.15));
+    border: 2px solid rgba(255, 170, 0, 0.4);
+    color: #ffaa00;
+}
+
+.badge-registered {
+    background: rgba(0, 255, 136, 0.2);
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+    animation: successPulse 3s infinite;
+}
+
+@keyframes successPulse {
+    0%, 100% { 
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 25px rgba(0, 255, 136, 0.5);
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 15px rgba(255, 70, 85, 0.4); }
+    50% { box-shadow: 0 0 30px rgba(255, 70, 85, 0.6); }
+}
+
+/* Stats Grid */
+.hero-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 36px;
+}
+
+.hero-stat {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.hero-stat:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.hero-stat.highlight {
+    background: rgba(0, 255, 136, 0.08);
+    border-color: rgba(0, 255, 136, 0.25);
+}
+
+.stat-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--color-primary);
+    flex-shrink: 0;
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.stat-value.prize {
+    color: var(--color-primary);
+    font-size: 18px;
+}
+
+/* Action Buttons */
+.hero-actions-modern {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.btn-hero {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.btn-hero svg {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-primary), #00cc6a);
+    color: #0a0a0f;
+    box-shadow: 0 4px 20px rgba(0, 255, 136, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(0, 255, 136, 0.6);
+}
+
+.btn-success {
+    background: rgba(0, 255, 136, 0.15);
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-success:hover {
+    background: rgba(0, 255, 136, 0.25);
+    transform: translateY(-2px);
+}
+
+.btn-live {
+    background: rgba(255, 70, 85, 0.15);
+    border: 2px solid var(--color-accent);
+    color: var(--color-accent);
+    animation: pulseGlow 2s infinite;
+}
+
+.btn-live:hover {
+    background: rgba(255, 70, 85, 0.25);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+/* Tournament Poster Card */
+.hero-poster-card {
+    position: relative;
+}
+
+.poster-image-wrapper {
+    position: relative;
+    aspect-ratio: 2/3;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+    transition: transform 0.4s ease;
+}
+
+.poster-image-wrapper:hover {
+    transform: translateY(-8px) scale(1.02);
+}
+
+.poster-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.poster-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    animation: shine 3s infinite;
+}
+
+@keyframes shine {
+    0%, 100% { left: -100%; }
+    50% { left: 150%; }
+}
+
+.poster-placeholder {
+    aspect-ratio: 2/3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.poster-placeholder p {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ============================================================================
+   TIMELINE - MODERN HORIZONTAL DESIGN
+   ============================================================================ */
+.timeline-section-modern {
+    padding: 80px 0;
+    background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+}
+
+.timeline-header {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.timeline-title {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #ffffff, var(--color-primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.timeline-subtitle {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Timeline Wrapper */
+.timeline-modern {
+    position: relative;
+    padding: 40px 0;
+}
+
+/* Progress Bar */
+.timeline-progress-track {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    transform: translateY(-50%);
+}
+
+.timeline-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    border-radius: 4px;
+    transition: width 1s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.timeline-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 100px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    animation: progressShine 2s infinite;
+}
+
+@keyframes progressShine {
+    0% { transform: translateX(-100px); }
+    100% { transform: translateX(calc(100% + 100px)); }
+}
+
+/* Timeline Items */
+.timeline-items {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+}
+
+.timeline-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Timeline Node/Dot */
+.timeline-node {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.timeline-node svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Default State */
+.timeline-item.pending .timeline-node {
+    background: rgba(255, 255, 255, 0.08);
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Active/Current Phase */
+.timeline-item.active .timeline-node {
+    background: linear-gradient(135deg, var(--color-primary), #00cc6a);
+    border: 3px solid var(--color-primary);
+    color: #0a0a0f;
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.6),
+                0 0 60px rgba(0, 255, 136, 0.3);
+    animation: nodePulse 2s infinite;
+}
+
+@keyframes nodePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 40px rgba(0, 255, 136, 0.8);
+    }
+}
+
+/* Completed Phase */
+.timeline-item.completed .timeline-node {
+    background: rgba(0, 255, 136, 0.15);
+    border: 3px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* Timeline Content */
+.timeline-content {
+    max-width: 220px;
+}
+
+.timeline-phase {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 8px;
+}
+
+.timeline-item.active .timeline-phase {
+    color: var(--color-primary);
+}
+
+.timeline-item.completed .timeline-phase {
+    color: var(--color-primary);
+}
+
+.timeline-date {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 6px;
+}
+
+.timeline-description {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.5;
+}
+
+/* Timeline Card for Mobile */
+.timeline-card-mobile {
+    display: none;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    margin-top: 12px;
+}
+
+.timeline-card-mobile h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.timeline-card-mobile p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+/* Tablets */
+@media (max-width: 1024px) {
+    .hero-content-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+    
+    .hero-poster-card {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+    
+    .hero-title-modern {
+        font-size: 42px;
+    }
+    
+    .timeline-items {
+        gap: 30px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .detail-hero-modern {
+        min-height: 500px;
+    }
+    
+    .hero-content-overlay {
+        padding: 40px 0;
+    }
+    
+    .hero-title-modern {
+        font-size: 32px;
+    }
+    
+    .hero-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    .hero-actions-modern {
+        flex-direction: column;
+    }
+    
+    .btn-hero {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Timeline Mobile Adjustments */
+    .timeline-items {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .timeline-progress-track {
+        display: none;
+    }
+    
+    .timeline-item {
+        flex-direction: row;
+        text-align: left;
+        align-items: flex-start;
+    }
+    
+    .timeline-node {
+        flex-shrink: 0;
+        margin-right: 16px;
+        margin-bottom: 0;
+    }
+    
+    .timeline-content {
+        max-width: 100%;
+    }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+    .hero-title-modern {
+        font-size: 26px;
+    }
+    
+    .hero-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .hero-badges-row {
+        flex-direction: column;
+    }
+    
+    .status-badge,
+    .feature-badge,
+    .registration-badge {
+        width: 100%;
+        justify-content: center;
+    }
+}

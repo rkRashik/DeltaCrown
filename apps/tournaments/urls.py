@@ -3,8 +3,7 @@ from django.urls import path
 
 from .views.public import hub, list_by_game, detail
 from .views.hub_enhanced import hub_enhanced
-from .views.detail_enhanced import detail_enhanced
-from .views.detail_v6 import tournament_detail_v6
+from .views.detail_v8 import tournament_detail_v8
 from .views.dashboard_v2 import tournament_dashboard_v2
 
 # Modern Registration System (CANONICAL)
@@ -24,6 +23,27 @@ from .views.state_api import tournament_state_api
 
 # Dashboard API
 from .views.api_dashboard import bracket_api, matches_api, news_api, statistics_api
+
+# Tournament Features API (Bracket, Prize, Stats)
+from .api.features import (
+    get_tournament_bracket,
+    get_match_details,
+    add_match_to_calendar,
+    get_tournament_stats,
+    get_participant_directory,
+    get_team_stats,
+    get_head_to_head,
+    get_stream_data,
+    get_chat_history,
+    submit_match_prediction,
+    get_match_predictions,
+    get_player_stats,
+    get_activities,
+    get_highlights,
+    track_share,
+    download_schedule,
+    download_bracket,
+)
 
 # Enhanced API Views (New - Modern frontend integration)
 from .api_views import (
@@ -73,8 +93,8 @@ urlpatterns = [
     # Browse by game (e.g. /tournaments/game/valorant/)
     path("game/<slug:game>/", list_by_game, name="game"),
 
-    # Detail (V6 - Complete redesign with all tournament information)
-    path("t/<slug:slug>/", tournament_detail_v6, name="detail"),
+    # Detail (V8 - Complete rebuild with premium design and real data)
+    path("t/<slug:slug>/", tournament_detail_v8, name="detail"),
     
     # Dashboard (Participant view)
     path("t/<slug:slug>/dashboard/", tournament_dashboard_v2, name="dashboard"),
@@ -113,6 +133,49 @@ urlpatterns = [
     path("api/t/<slug:slug>/matches/", matches_api, name="matches_api"),
     path("api/t/<slug:slug>/news/", news_api, name="news_api"),
     path("api/t/<slug:slug>/statistics/", statistics_api, name="statistics_api"),
+    
+    # ==========================================
+    # ADVANCED FEATURES API (NEW)
+    # ==========================================
+    
+    # Bracket Viewer API
+    path("api/tournaments/<slug:slug>/bracket/", get_tournament_bracket, name="features_bracket_api"),
+    
+    # Match Details API
+    path("api/tournaments/match/<int:match_id>/", get_match_details, name="match_details_api"),
+    
+    # Calendar Integration API
+    path("api/tournaments/match/<int:match_id>/calendar/", add_match_to_calendar, name="match_calendar_api"),
+    
+    # Tournament Stats API
+    path("api/tournaments/<slug:slug>/stats/", get_tournament_stats, name="tournament_stats_api"),
+    
+    # Participant Directory API
+    path("api/tournaments/<slug:slug>/participants/", get_participant_directory, name="participants_api"),
+    
+    # Team Stats API (for comparison)
+    path("api/tournaments/team/<int:team_id>/stats/", get_team_stats, name="team_stats_api"),
+    
+    # Head-to-Head API (team comparison)
+    path("api/tournaments/h2h/<int:team1_id>/<int:team2_id>/", get_head_to_head, name="head_to_head_api"),
+    
+    # Live Stream Data API
+    path("api/tournaments/<slug:slug>/stream/", get_stream_data, name="stream_data_api"),
+    
+    # Chat History API
+    path("api/tournaments/<slug:slug>/chat/history/", get_chat_history, name="chat_history_api"),
+    
+    # Match Prediction APIs
+    path("api/tournaments/match/<int:match_id>/predict/", submit_match_prediction, name="submit_prediction_api"),
+    path("api/tournaments/match/<int:match_id>/predictions/", get_match_predictions, name="match_predictions_api"),
+    
+    # Premium Features APIs
+    path("api/tournaments/<slug:slug>/player-stats/", get_player_stats, name="player_stats_api"),
+    path("api/tournaments/<slug:slug>/activities/", get_activities, name="activities_api"),
+    path("api/tournaments/<slug:slug>/highlights/", get_highlights, name="highlights_api"),
+    path("api/tournaments/<slug:slug>/track-share/", track_share, name="track_share_api"),
+    path("api/tournaments/<slug:slug>/download/schedule/", download_schedule, name="download_schedule_api"),
+    path("api/tournaments/<slug:slug>/download/bracket/", download_bracket, name="download_bracket_api"),
     
     # ==========================================
     # ENHANCED DETAIL PAGE APIs (NEW)

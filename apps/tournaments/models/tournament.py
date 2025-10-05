@@ -586,3 +586,18 @@ class Tournament(models.Model):
                 'og_image': '/static/images/tournament-default.jpg',
                 'og_type': 'website',
             }
+
+    # ------------------------------------------------------------------
+    # Backwards Compatibility Helpers
+    # ------------------------------------------------------------------
+    @property
+    def title(self):  # noqa: D401 - simple alias
+        """Backward-compatible alias for legacy code that still expects 'title'.
+
+        The canonical field is 'name'. We expose this property so any old
+        templates, API views, or cached compiled code referencing
+        tournament.title no longer raise AttributeError. This can be safely
+        removed once all references are migrated (search for 'tournament.title').
+        """
+        return self.name
+

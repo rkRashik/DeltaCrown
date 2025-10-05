@@ -1,0 +1,750 @@
+/* ============================================================================
+   TOURNAMENT DETAIL - ADVANCED FEATURES
+   Live Bracket, Rules Drawer, Stats, and Interactive Components
+   ============================================================================ */
+
+:root {
+    --feature-primary: #00ff88;
+    --feature-accent: #ff4655;
+    --feature-bg: #0a0a0f;
+    --feature-card: #1e1e2d;
+    --feature-border: rgba(255, 255, 255, 0.08);
+}
+
+/* ============================================================================
+   QUICK RULES DRAWER
+   ============================================================================ */
+.rules-trigger-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--feature-primary), #00cc6a);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(0, 255, 136, 0.4);
+    z-index: 999;
+    transition: all 0.3s ease;
+}
+
+.rules-trigger-btn:hover {
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 12px 32px rgba(0, 255, 136, 0.6);
+}
+
+.rules-trigger-btn svg {
+    width: 28px;
+    height: 28px;
+    color: #0a0a0f;
+}
+
+.rules-trigger-btn .badge-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    background: var(--feature-accent);
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+/* Rules Drawer Overlay */
+.rules-drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.rules-drawer-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Rules Drawer Panel */
+.rules-drawer {
+    position: fixed;
+    right: -480px;
+    top: 0;
+    bottom: 0;
+    width: 480px;
+    background: #14141f;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.rules-drawer.active {
+    right: 0;
+}
+
+/* Drawer Header */
+.rules-drawer-header {
+    padding: 24px;
+    background: rgba(0, 255, 136, 0.08);
+    border-bottom: 1px solid var(--feature-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.rules-drawer-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.rules-drawer-title svg {
+    width: 26px;
+    height: 26px;
+    color: var(--feature-primary);
+}
+
+.rules-drawer-close {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--feature-border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.rules-drawer-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.rules-drawer-close svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Search Bar */
+.rules-search-bar {
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--feature-border);
+}
+
+.rules-search-input {
+    width: 100%;
+    padding: 12px 16px 12px 44px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--feature-border);
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.rules-search-input:focus {
+    outline: none;
+    border-color: var(--feature-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.rules-search-wrapper {
+    position: relative;
+}
+
+.rules-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Drawer Content */
+.rules-drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.rules-drawer-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.rules-drawer-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.rules-drawer-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.rules-drawer-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* Rules Section */
+.rules-section {
+    margin-bottom: 28px;
+}
+
+.rules-section:last-child {
+    margin-bottom: 0;
+}
+
+.rules-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--feature-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 12px;
+}
+
+.rules-section-header:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.rules-section-header.active {
+    background: rgba(0, 255, 136, 0.08);
+    border-color: var(--feature-primary);
+}
+
+.rules-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.rules-section-title svg {
+    width: 20px;
+    height: 20px;
+    color: var(--feature-primary);
+}
+
+.rules-section-toggle {
+    width: 24px;
+    height: 24px;
+    transition: transform 0.3s ease;
+}
+
+.rules-section-toggle svg {
+    width: 100%;
+    height: 100%;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.rules-section-header.active .rules-section-toggle {
+    transform: rotate(180deg);
+}
+
+.rules-section-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.rules-section-body.active {
+    max-height: 1000px;
+}
+
+.rules-section-content {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--feature-border);
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.rules-section-content ul {
+    margin: 12px 0;
+    padding-left: 20px;
+}
+
+.rules-section-content li {
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.rules-section-content li::marker {
+    color: var(--feature-primary);
+}
+
+.rules-highlight {
+    background: rgba(255, 70, 85, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--feature-accent);
+    font-weight: 600;
+}
+
+/* ============================================================================
+   LIVE BRACKET VIEWER
+   ============================================================================ */
+.bracket-section {
+    padding: 80px 0;
+    background: linear-gradient(180deg, var(--feature-bg) 0%, #14141f 100%);
+}
+
+.bracket-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.bracket-title {
+    font-size: 42px;
+    font-weight: 800;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, #ffffff, var(--feature-primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bracket-subtitle {
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Bracket Controls */
+.bracket-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--feature-border);
+    border-radius: 12px;
+}
+
+.bracket-view-toggle {
+    display: flex;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.bracket-view-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.bracket-view-btn.active {
+    background: var(--feature-primary);
+    color: #0a0a0f;
+}
+
+.bracket-zoom-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.bracket-zoom-btn {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--feature-border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.bracket-zoom-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.bracket-zoom-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Bracket Container */
+.bracket-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--feature-border);
+}
+
+.bracket-scroll-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 40px 20px;
+}
+
+.bracket-scroll-wrapper::-webkit-scrollbar {
+    height: 10px;
+}
+
+.bracket-scroll-wrapper::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 5px;
+}
+
+.bracket-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+}
+
+/* Bracket Grid */
+.bracket-grid {
+    display: flex;
+    gap: 60px;
+    min-width: min-content;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    min-width: 280px;
+}
+
+.bracket-round-title {
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--feature-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+}
+
+/* Match Card */
+.bracket-match {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--feature-border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.bracket-match:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.bracket-match.live {
+    border-color: var(--feature-accent);
+    box-shadow: 0 0 20px rgba(255, 70, 85, 0.3);
+}
+
+.bracket-match-header {
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--feature-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bracket-match-id {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.bracket-match-status {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.bracket-match-status.live {
+    background: rgba(255, 70, 85, 0.2);
+    color: var(--feature-accent);
+}
+
+.bracket-match-status.upcoming {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.bracket-match-status.completed {
+    background: rgba(0, 255, 136, 0.15);
+    color: var(--feature-primary);
+}
+
+/* Match Teams */
+.bracket-match-teams {
+    padding: 16px;
+}
+
+.bracket-team {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.bracket-team:first-child {
+    margin-bottom: 8px;
+}
+
+.bracket-team.winner {
+    background: rgba(0, 255, 136, 0.08);
+}
+
+.bracket-team.loser {
+    opacity: 0.5;
+}
+
+.bracket-team-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    object-fit: cover;
+}
+
+.bracket-team-info {
+    flex: 1;
+}
+
+.bracket-team-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.bracket-team-seed {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.bracket-team-score {
+    font-size: 24px;
+    font-weight: 800;
+    min-width: 32px;
+    text-align: right;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.bracket-team.winner .bracket-team-score {
+    color: var(--feature-primary);
+}
+
+/* Connector Lines */
+.bracket-connector {
+    position: relative;
+    width: 60px;
+    height: 2px;
+    background: var(--feature-border);
+}
+
+/* ============================================================================
+   PRIZE BREAKDOWN VISUALIZATION
+   ============================================================================ */
+.prize-section {
+    padding: 80px 0;
+    background: #14141f;
+}
+
+.prize-grid {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 40px;
+    align-items: center;
+}
+
+.prize-visual {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--feature-border);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+}
+
+.prize-chart {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 32px;
+}
+
+.prize-total {
+    font-size: 48px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--feature-primary), #ffaa00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+.prize-total-label {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.prize-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.prize-tier {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--feature-border);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: all 0.3s ease;
+}
+
+.prize-tier:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(4px);
+}
+
+.prize-tier-rank {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.prize-tier-rank.gold {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #0a0a0f;
+}
+
+.prize-tier-rank.silver {
+    background: linear-gradient(135deg, #C0C0C0, #808080);
+    color: #0a0a0f;
+}
+
+.prize-tier-rank.bronze {
+    background: linear-gradient(135deg, #CD7F32, #8B4513);
+    color: white;
+}
+
+.prize-tier-rank.regular {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.prize-tier-info {
+    flex: 1;
+}
+
+.prize-tier-position {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 4px;
+}
+
+.prize-tier-amount {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--feature-primary);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+@media (max-width: 1024px) {
+    .prize-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .rules-drawer {
+        width: 100%;
+        right: -100%;
+    }
+    
+    .bracket-grid {
+        gap: 40px;
+    }
+    
+    .bracket-round {
+        min-width: 240px;
+    }
+    
+    .prize-breakdown {
+        gap: 12px;
+    }
+    
+    .prize-tier {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .rules-trigger-btn {
+        width: 56px;
+        height: 56px;
+        bottom: 16px;
+        right: 16px;
+    }
+    
+    .bracket-match {
+        min-width: 220px;
+    }
+}

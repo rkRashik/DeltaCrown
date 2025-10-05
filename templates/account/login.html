@@ -28,8 +28,12 @@
 
         <form method="post" action="{% url 'account:login' %}" class="auth-form">
             {% csrf_token %}
+            
+            {# Preserve the 'next' parameter for redirect after login #}
             {% if redirect_field_value %}
                 <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+            {% elif request.GET.next %}
+                <input type="hidden" name="next" value="{{ request.GET.next }}">
             {% endif %}
 
             {% if form.non_field_errors %}

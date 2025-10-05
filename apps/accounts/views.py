@@ -48,6 +48,15 @@ def _clear_pending(session):
 
 class DCLoginView(LoginView):
     template_name = "account/login.html"
+    redirect_authenticated_user = True
+    
+    def get_success_url(self):
+        # Get the 'next' parameter from GET or POST
+        next_url = self.request.GET.get('next') or self.request.POST.get('next')
+        if next_url:
+            return next_url
+        # Default redirect to homepage
+        return reverse('siteui:homepage')
 
 
 class DCLogoutView(LogoutView):

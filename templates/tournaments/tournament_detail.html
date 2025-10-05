@@ -1,0 +1,1045 @@
+{% extends "base.html" %}
+{% load static humanize tournament_dict_utils game_assets_tags %}
+
+{% block title %}{{ tournament.name }} - Tournament Details{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'tournaments/css/tournament-detail-modern.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="tournament-detail-page">
+    
+    <!-- Hero Banner Section -->
+    <section class="hero-banner">
+        <div class="hero-background">
+            {% if media_data.banner %}
+            <img src="{{ media_data.banner.url }}" alt="{{ tournament.name }}" class="hero-image">
+            {% elif media_data.thumbnail %}
+            <img src="{{ media_data.thumbnail.url }}" alt="{{ tournament.name }}" class="hero-image">
+            {% endif %}
+            <div class="hero-gradient"></div>
+        </div>
+        
+        <div class="hero-content container">
+            <div class="hero-main">
+                <!-- Tournament Status Badge -->
+                <div class="hero-status-badge">
+                    {% if tournament.status == 'RUNNING' %}
+                    <span class="status-badge-hero status-live">
+                        <span class="pulse-dot"></span>
+                        <span>LIVE NOW</span>
+                    </span>
+                    {% elif tournament.status == 'REGISTRATION' %}
+                    <span class="status-badge-hero status-registration">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>OPEN FOR REGISTRATION</span>
+                    </span>
+                    {% elif tournament.status == 'UPCOMING' %}
+                    <span class="status-badge-hero status-upcoming">
+                        <i class="fas fa-clock"></i>
+                        <span>COMING SOON</span>
+                    </span>
+                    {% elif tournament.status == 'COMPLETED' %}
+                    <span class="status-badge-hero status-completed">
+                        <i class="fas fa-trophy"></i>
+                        <span>TOURNAMENT FINISHED</span>
+                    </span>
+                    {% elif tournament.status == 'PUBLISHED' %}
+                    <span class="status-badge-hero status-published">
+                        <i class="fas fa-circle-check"></i>
+                        <span>PUBLISHED</span>
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Game Badge -->
+                <div class="hero-game-tag">
+                    <img src="{% game_icon_url tournament.game %}" alt="{{ tournament.get_game_display }}">
+                    <span>{{ tournament.get_game_display }}</span>
+                </div>
+                
+                <!-- Tournament Title -->
+                <h1 class="hero-title">{{ tournament.name }}</h1>
+                
+                <!-- Key Info Grid -->
+                <div class="hero-info-grid">
+                    <div class="hero-info-item">
+                        <div class="hero-info-icon">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                        <div class="hero-info-text">
+                            <span class="hero-info-label">Tournament Date</span>
+                            <span class="hero-info-value">{{ tournament.start_at|date:"d M Y" }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if total_prize_pool and total_prize_pool > 0 %}
+                    <div class="hero-info-item hero-info-highlight">
+                        <div class="hero-info-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="hero-info-text">
+                            <span class="hero-info-label">Prize Pool</span>
+                            <span class="hero-info-value">৳{{ total_prize_pool|floatformat:0|intcomma }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="hero-info-item">
+                        <div class="hero-info-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="hero-info-text">
+                            <span class="hero-info-label">Participants</span>
+                            <span class="hero-info-value">{{ stats.total_participants }}/{{ capacity_info.total_slots }} {% if tournament.format == 'TEAM' %}Teams{% else %}Players{% endif %}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-info-item">
+                        <div class="hero-info-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <div class="hero-info-text">
+                            <span class="hero-info-label">Format</span>
+                            <span class="hero-info-value">{{ tournament.get_format_display }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="hero-info-item">
+                        <div class="hero-info-icon">
+                            {% if tournament.tournament_type == 'SOLO' %}
+                                <i class="fas fa-user"></i>
+                            {% elif tournament.tournament_type == 'TEAM' %}
+                                <i class="fas fa-users"></i>
+                            {% else %}
+                                <i class="fas fa-user-group"></i>
+                            {% endif %}
+                        </div>
+                        <div class="hero-info-text">
+                            <span class="hero-info-label">Type</span>
+                            <span class="hero-info-value">{{ tournament.get_tournament_type_display }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Premium Action Bar -->
+    <div class="action-bar-premium" id="actionBar">
+        <div class="container">
+            <div class="action-bar-wrapper">
+                
+                <!-- Premium Action Card -->
+                <div class="action-card-premium game-{{ tournament.game }}">
+                    {% if user.is_authenticated and user_registration %}
+                        <!-- Registered User: Dashboard Access -->
+                        <div class="action-main">
+                            <div class="action-status-header">
+                                <div class="status-indicator status-{{ user_registration.status|lower }}">
+                                    {% if user_registration.status == 'CONFIRMED' %}
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Registration Confirmed</span>
+                                    {% else %}
+                                    <i class="fas fa-clock"></i>
+                                    <span>Payment Pending</span>
+                                    {% endif %}
+                                </div>
+                                <div class="registration-date">
+                                    <i class="fas fa-calendar-check"></i>
+                                    Registered {{ user_registration.created_at|date:"M d, Y" }}
+                                </div>
+                            </div>
+                            
+                            <a href="{% url 'tournaments:dashboard' tournament.slug %}" class="btn-dashboard-premium game-{{ tournament.game }}">
+                                <div class="btn-glow"></div>
+                                <div class="btn-content">
+                                    <div class="btn-icon">
+                                        {% if tournament.game == 'efootball' %}
+                                        <i class="fas fa-futbol"></i>
+                                        {% elif tournament.game == 'valorant' %}
+                                        <i class="fas fa-crosshairs"></i>
+                                        {% else %}
+                                        <i class="fas fa-gamepad"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="btn-text">
+                                        <span class="btn-label">Access Your</span>
+                                        <span class="btn-title">Tournament Dashboard</span>
+                                    </div>
+                                    <div class="btn-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </div>
+                            </a>
+                            
+                            <div class="action-features">
+                                <div class="feature-item">
+                                    <i class="fas fa-trophy"></i>
+                                    <span>View Brackets</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>Match Schedule</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-users"></i>
+                                    <span>Team Chat</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>Live Stats</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% elif user.is_authenticated and can_register %}
+                        <!-- Registration Open -->
+                        <div class="action-main">
+                            <div class="action-header-register">
+                                <div class="register-badge">
+                                    <i class="fas fa-bolt"></i>
+                                    <span>REGISTRATION OPEN</span>
+                                </div>
+                                {% if capacity_info.available_slots > 0 and capacity_info.available_slots <= 10 %}
+                                <div class="urgency-badge">
+                                    <i class="fas fa-fire"></i>
+                                    Only {{ capacity_info.available_slots }} spots left!
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <a href="{{ register_url }}" class="btn-register-premium game-{{ tournament.game }}">
+                                <div class="btn-glow"></div>
+                                <div class="btn-content">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-rocket"></i>
+                                    </div>
+                                    <div class="btn-text">
+                                        <span class="btn-label">Join the Competition</span>
+                                        <span class="btn-title">Register Now</span>
+                                    </div>
+                                    <div class="btn-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </div>
+                            </a>
+                            
+                            <div class="register-benefits">
+                                <div class="benefit-item">
+                                    <i class="fas fa-check"></i>
+                                    <span>Instant confirmation</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-check"></i>
+                                    <span>Dashboard access</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-check"></i>
+                                    <span>Prize eligibility</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% elif user.is_authenticated %}
+                        <!-- Registration Closed -->
+                        <div class="action-main">
+                            <div class="action-closed">
+                                <div class="closed-icon">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <div class="closed-text">
+                                    <h3>Registration Closed</h3>
+                                    <p>{% if capacity_info.is_full %}Tournament is full{% else %}Registration period has ended{% endif %}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% else %}
+                        <!-- Not Logged In -->
+                        <div class="action-main">
+                            <div class="action-header-login">
+                                <div class="login-message">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Login required to register</span>
+                                </div>
+                            </div>
+                            
+                            <a href="{% url 'account:login' %}?next={{ request.path }}" class="btn-login-premium">
+                                <div class="btn-glow"></div>
+                                <div class="btn-content">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-sign-in-alt"></i>
+                                    </div>
+                                    <div class="btn-text">
+                                        <span class="btn-label">Get Started</span>
+                                        <span class="btn-title">Login to Register</span>
+                                    </div>
+                                    <div class="btn-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Right Section: Info Cards -->
+                <div class="action-bar-right">
+                    
+                    <!-- Countdown Timer -->
+                    {% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at or tournament.status == 'UPCOMING' and tournament.start_at %}
+                    <div class="action-info-card action-countdown-card">
+                        <div class="action-card-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="action-card-content">
+                            <span class="action-card-label">
+                                {% if tournament.status == 'REGISTRATION' %}Registration Ends{% else %}Starts{% endif %}
+                            </span>
+                            <span class="action-card-value" id="countdownMini">
+                                <span id="miniDays">00</span>d <span id="miniHours">00</span>h <span id="miniMinutes">00</span>m
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Share Button -->
+                    <button class="action-share-btn" onclick="toggleShareModal()" title="Share Tournament">
+                        <i class="fas fa-share-nodes"></i>
+                        <span>Share</span>
+                    </button>
+                    
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Area -->
+    <div class="main-content container">
+        <div class="content-layout">
+            
+            <!-- Primary Content Column -->
+            <div class="content-primary">
+                
+                <!-- Tournament At a Glance -->
+                <div class="content-card card-highlight" data-aos="fade-up">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-bolt"></i>
+                            Tournament At a Glance
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-showcase">
+                            <div class="stat-box stat-box-highlight">
+                                <div class="stat-icon">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-label">Total Prize</div>
+                                    <div class="stat-value">৳{{ total_prize_pool|floatformat:0|intcomma }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-box">
+                                <div class="stat-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-label">Registered</div>
+                                    <div class="stat-value">{{ stats.total_participants }}/{{ capacity_info.total_slots }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-box">
+                                <div class="stat-icon">
+                                    <i class="fas fa-gamepad"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-label">Type</div>
+                                    <div class="stat-value">{{ tournament.get_tournament_type_display }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-box">
+                                <div class="stat-icon">
+                                    <i class="fas fa-layer-group"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-label">Format</div>
+                                    <div class="stat-value">{{ tournament.get_format_display|truncatewords:2 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Live Countdown Timer -->
+                {% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at or tournament.status == 'UPCOMING' and tournament.start_at %}
+                <div class="countdown-section-premium" data-aos="fade-up">
+                    <div class="countdown-header-premium">
+                        <div class="countdown-badge">
+                            <i class="fas fa-stopwatch"></i>
+                            {% if tournament.status == 'REGISTRATION' %}
+                                <span>REGISTRATION COUNTDOWN</span>
+                            {% else %}
+                                <span>TOURNAMENT COUNTDOWN</span>
+                            {% endif %}
+                        </div>
+                        <h2 class="countdown-title-premium">
+                            {% if tournament.status == 'REGISTRATION' %}
+                                Time Until Registration Closes
+                            {% else %}
+                                Tournament Begins In
+                            {% endif %}
+                        </h2>
+                    </div>
+                    <div class="countdown-timer-premium" id="countdown">
+                        <div class="countdown-block">
+                            <div class="countdown-number" id="days">00</div>
+                            <div class="countdown-text">Days</div>
+                        </div>
+                        <div class="countdown-divider">:</div>
+                        <div class="countdown-block">
+                            <div class="countdown-number" id="hours">00</div>
+                            <div class="countdown-text">Hours</div>
+                        </div>
+                        <div class="countdown-divider">:</div>
+                        <div class="countdown-block">
+                            <div class="countdown-number" id="minutes">00</div>
+                            <div class="countdown-text">Minutes</div>
+                        </div>
+                        <div class="countdown-divider">:</div>
+                        <div class="countdown-block">
+                            <div class="countdown-number" id="seconds">00</div>
+                            <div class="countdown-text">Seconds</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Stats Showcase -->
+                <div class="stats-showcase" data-aos="fade-up">
+                    <div class="stat-box">
+                        <div class="stat-icon"><i class="fas fa-users"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ stats.total_participants }}</div>
+                            <div class="stat-label">{% if tournament.format == 'TEAM' %}Teams{% else %}Players{% endif %}</div>
+                        </div>
+                    </div>
+                    
+                    {% if stats.total_matches > 0 %}
+                    <div class="stat-box">
+                        <div class="stat-icon"><i class="fas fa-gamepad"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ stats.total_matches }}</div>
+                            <div class="stat-label">Matches</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if capacity_info.available_slots > 0 %}
+                    <div class="stat-box">
+                        <div class="stat-icon"><i class="fas fa-ticket-alt"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ capacity_info.available_slots }}</div>
+                            <div class="stat-label">Spots Left</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if total_prize_pool and total_prize_pool > 0 %}
+                    <div class="stat-box stat-box-highlight">
+                        <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+                        <div class="stat-content">
+                            <div class="stat-value">৳{{ total_prize_pool|floatformat:0|intcomma }}</div>
+                            <div class="stat-label">Prize Pool</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Tournament Overview -->
+                <div class="content-card" data-aos="fade-up">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-info-circle"></i>
+                            Tournament Overview
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        {% if tournament.description %}
+                        <div class="tournament-description">
+                            {{ tournament.description|safe }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="info-grid">
+                            <div class="info-box">
+                                <div class="info-icon"><i class="fas fa-calendar-alt"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Start Date</div>
+                                    <div class="info-value">{{ tournament.start_at|date:"M d, Y - g:i A" }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="info-box">
+                                <div class="info-icon"><i class="fas fa-calendar-check"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">End Date</div>
+                                    <div class="info-value">{{ tournament.end_at|date:"M d, Y - g:i A" }}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="info-box">
+                                <div class="info-icon"><i class="fas fa-layer-group"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Format</div>
+                                    <div class="info-value">{{ tournament.get_format_display }}</div>
+                                </div>
+                            </div>
+                            
+                            {% if tournament.format == 'TEAM' %}
+                            <div class="info-box">
+                                <div class="info-icon"><i class="fas fa-users-cog"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Team Size</div>
+                                    <div class="info-value">{{ tournament.team_size }} Players</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if capacity_info.total_slots > 0 %}
+                            <div class="info-box">
+                                <div class="info-icon"><i class="fas fa-chart-pie"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Capacity</div>
+                                    <div class="info-value">{{ capacity_info.filled_slots }}/{{ capacity_info.total_slots }}</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="info-box">
+                                <div class="info-icon"><i class="fas fa-tag"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Type</div>
+                                    <div class="info-value">{{ tournament.get_type_display }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tournament Timeline -->
+                {% if timeline_events %}
+                <div class="content-card" data-aos="fade-up">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-stream"></i>
+                            Tournament Timeline
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline-modern">
+                            {% for event in timeline_events %}
+                            <div class="timeline-event {% if event.status == 'completed' %}timeline-completed{% elif event.status == 'current' %}timeline-active{% endif %}">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-card">
+                                    <div class="timeline-date">
+                                        <i class="fas fa-clock"></i>
+                                        {{ event.date|date:"M d, Y - g:i A" }}
+                                    </div>
+                                    <div class="timeline-title">{{ event.title }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Participants Section -->
+                {% if participants %}
+                <div class="content-card" data-aos="fade-up">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-users"></i>
+                            {% if tournament.format == 'TEAM' %}Participating Teams{% else %}Registered Players{% endif %}
+                        </h2>
+                        <span class="participant-count">{{ stats.total_participants }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="participants-note">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Full participant roster and team details available in the <a href="{% url 'tournaments:dashboard' tournament.slug %}" class="inline-link">War Room</a></p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Prize Pool Section -->
+                {% if prize_distribution %}
+                <div class="content-card" data-aos="fade-up">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-trophy"></i>
+                            Prize Distribution
+                        </h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="prizes-grid">
+                            {% for prize in prize_distribution %}
+                            <div class="prize-item">
+                                <div class="prize-medal">{{ prize.medal }}</div>
+                                <div class="prize-rank">{{ prize.label }}</div>
+                                <div class="prize-amount">৳{{ prize.amount|floatformat:0|intcomma }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Tournament Rules -->
+                {% if rules_data %}
+                <div class="content-card" data-aos="fade-up">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-book"></i>
+                            Tournament Rules
+                        </h2>
+                        {% if media_data.rules_pdf %}
+                        <a href="{{ media_data.rules_pdf.url }}" class="btn-download-rules" download>
+                            <i class="fas fa-download"></i>
+                            Download PDF
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="rules-container">
+                            {% if rules_data.general %}
+                            <div class="rule-section">
+                                <h3 class="rule-heading">
+                                    <i class="fas fa-gavel"></i>
+                                    General Rules
+                                </h3>
+                                <div class="rule-content">{{ rules_data.general|safe }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if rules_data.format %}
+                            <div class="rule-section">
+                                <h3 class="rule-heading">
+                                    <i class="fas fa-list-ol"></i>
+                                    Match Format
+                                </h3>
+                                <div class="rule-content">{{ rules_data.format|safe }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if rules_data.conduct %}
+                            <div class="rule-section">
+                                <h3 class="rule-heading">
+                                    <i class="fas fa-handshake"></i>
+                                    Code of Conduct
+                                </h3>
+                                <div class="rule-content">{{ rules_data.conduct|safe }}</div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if rules_data.scoring %}
+                            <div class="rule-section">
+                                <h3 class="rule-heading">
+                                    <i class="fas fa-calculator"></i>
+                                    Scoring System
+                                </h3>
+                                <div class="rule-content">{{ rules_data.scoring|safe }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+            </div>
+            
+            <!-- Sidebar Column -->
+            <aside class="content-sidebar">
+                
+                <!-- Quick Stats Widget -->
+                <div class="sidebar-widget widget-highlight" data-aos="fade-left">
+                    <div class="widget-header">
+                        <div class="widget-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 class="widget-title">Quick Stats</h3>
+                    </div>
+                    <div class="widget-body">
+                        <div class="stat-item-modern stat-prize">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="stat-details-modern">
+                                <div class="stat-label-modern">Total Prize Pool</div>
+                                <div class="stat-value-modern">৳{{ total_prize_pool|floatformat:0|intcomma }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item-modern">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-details-modern">
+                                <div class="stat-label-modern">Participants</div>
+                                <div class="stat-value-modern">{{ stats.total_participants }}/{{ capacity_info.total_slots }}</div>
+                                <div class="stat-progress">
+                                    <div class="stat-progress-bar" style="width: {{ capacity_info.fill_percentage }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if capacity_info.available_slots > 0 and capacity_info.available_slots <= 10 %}
+                        <div class="stat-item-modern stat-alert">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="stat-details-modern">
+                                <div class="stat-label-modern">Spots Remaining</div>
+                                <div class="stat-value-modern">{{ capacity_info.available_slots }} Left!</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="stat-item-modern">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                            <div class="stat-details-modern">
+                                <div class="stat-label-modern">Tournament Type</div>
+                                <div class="stat-value-modern">{{ tournament.get_tournament_type_display }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tournament Info Widget (Moved to Top) -->
+                <div class="sidebar-widget" data-aos="fade-left">
+                    <div class="widget-header">
+                        <div class="widget-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <h3 class="widget-title">Tournament Info</h3>
+                    </div>
+                    <div class="widget-body">
+                        <div class="info-item-modern">
+                            <div class="info-icon-modern">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="info-details-modern">
+                                <div class="info-label-modern">Duration</div>
+                                <div class="info-value-modern">{{ tournament.start_at|date:"M d" }} - {{ tournament.end_at|date:"M d, Y" }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="info-item-modern">
+                            <div class="info-icon-modern">
+                                <i class="fas fa-laptop-code"></i>
+                            </div>
+                            <div class="info-details-modern">
+                                <div class="info-label-modern">Platform</div>
+                                <div class="info-value-modern">{{ tournament.get_platform_display|default:"Online" }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="info-item-modern">
+                            <div class="info-icon-modern">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                            <div class="info-details-modern">
+                                <div class="info-label-modern">Format</div>
+                                <div class="info-value-modern">{{ tournament.get_format_display }}</div>
+                            </div>
+                        </div>
+                        
+                        {% if tournament.region %}
+                        <div class="info-item-modern">
+                            <div class="info-icon-modern">
+                                <i class="fas fa-globe-asia"></i>
+                            </div>
+                            <div class="info-details-modern">
+                                <div class="info-label-modern">Region</div>
+                                <div class="info-value-modern">{{ tournament.region }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if tournament.schedule.reg_close_at %}
+                        <div class="info-item-modern info-highlight">
+                            <div class="info-icon-modern">
+                                <i class="fas fa-calendar-times"></i>
+                            </div>
+                            <div class="info-details-modern">
+                                <div class="info-label-modern">Registration Deadline</div>
+                                <div class="info-value-modern">{{ tournament.schedule.reg_close_at|date:"M d, g:i A" }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if tournament.format == 'TEAM' and tournament.team_size %}
+                        <div class="info-item-modern">
+                            <div class="info-icon-modern">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="info-details-modern">
+                                <div class="info-label-modern">Team Size</div>
+                                <div class="info-value-modern">{{ tournament.team_size }} Players/Team</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Quick Stats Widget -->
+                <div class="sidebar-widget" data-aos="fade-left" data-aos-delay="100">
+                    <div class="widget-header">
+                        <div class="widget-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 class="widget-title">Live Statistics</h3>
+                    </div>
+                    <div class="widget-body">
+                        <div class="stat-item-modern">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-users-line"></i>
+                            </div>
+                            <div class="stat-details">
+                                <span class="stat-label-modern">Registered</span>
+                                <span class="stat-value-modern">{{ stats.total_participants }}/{{ capacity_info.total_slots }}</span>
+                            </div>
+                            {% if capacity_info.total_slots > 0 %}
+                            <div class="stat-progress">
+                                <div class="stat-progress-bar" style="width: {{ capacity_info.fill_percentage }}%"></div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if capacity_info.available_slots > 0 %}
+                        <div class="stat-item-modern stat-alert">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-ticket"></i>
+                            </div>
+                            <div class="stat-details">
+                                <span class="stat-label-modern">Spots Available</span>
+                                <span class="stat-value-modern">{{ capacity_info.available_slots }} Left</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if stats.total_matches > 0 %}
+                        <div class="stat-item-modern">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                            <div class="stat-details">
+                                <span class="stat-label-modern">Total Matches</span>
+                                <span class="stat-value-modern">{{ stats.total_matches }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if total_prize_pool and total_prize_pool > 0 %}
+                        <div class="stat-item-modern stat-prize">
+                            <div class="stat-icon-wrapper">
+                                <i class="fas fa-trophy"></i>
+                            </div>
+                            <div class="stat-details">
+                                <span class="stat-label-modern">Prize Pool</span>
+                                <span class="stat-value-modern">৳{{ total_prize_pool|floatformat:0|intcomma }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Organizer Widget -->
+                {% if organizer_info %}
+                <div class="sidebar-widget" data-aos="fade-left" data-aos-delay="200">
+                    <div class="widget-header">
+                        <div class="widget-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <h3 class="widget-title">Organized By</h3>
+                    </div>
+                    <div class="widget-body">
+                        <div class="organizer-card-modern">
+                            <div class="organizer-avatar-modern">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="organizer-info-modern">
+                                <div class="organizer-name-modern">{{ organizer_info.name }}</div>
+                                {% if organizer_info.email %}
+                                <a href="mailto:{{ organizer_info.email }}" class="organizer-contact-modern">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>Contact Support</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+            </aside>
+            
+        </div>
+    </div>
+    
+</div>
+
+<!-- Share Modal -->
+<div class="share-modal" id="shareModal">
+    <div class="modal-backdrop" onclick="toggleShareModal()"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">Share Tournament</h3>
+            <button class="modal-close" onclick="toggleShareModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="share-options">
+                <button class="share-option share-facebook" onclick="shareFacebook()">
+                    <i class="fab fa-facebook-f"></i>
+                    <span>Facebook</span>
+                </button>
+                <button class="share-option share-twitter" onclick="shareTwitter()">
+                    <i class="fab fa-twitter"></i>
+                    <span>Twitter</span>
+                </button>
+                <button class="share-option share-whatsapp" onclick="shareWhatsApp()">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>WhatsApp</span>
+                </button>
+                <button class="share-option share-copy" onclick="copyLink()">
+                    <i class="fas fa-link"></i>
+                    <span>Copy Link</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+// Initialize AOS
+AOS.init({
+    duration: 800,
+    easing: 'ease-out-cubic',
+    once: true,
+    offset: 50
+});
+
+// Countdown Timer
+{% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at %}
+const targetDate = new Date("{{ tournament.schedule.reg_close_at|date:'Y-m-d H:i:s' }}").getTime();
+{% elif tournament.status == 'UPCOMING' and tournament.start_at %}
+const targetDate = new Date("{{ tournament.start_at|date:'Y-m-d H:i:s' }}").getTime();
+{% endif %}
+
+{% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at or tournament.status == 'UPCOMING' and tournament.start_at %}
+function updateCountdown() {
+    const now = new Date().getTime();
+    const distance = targetDate - now;
+    
+    if (distance < 0) {
+        const mainCountdown = document.getElementById('countdown');
+        const miniCountdown = document.getElementById('countdownMini');
+        if (mainCountdown) {
+            mainCountdown.innerHTML = '<div class="countdown-expired"><i class="fas fa-check-circle"></i> Time\'s Up!</div>';
+        }
+        if (miniCountdown) {
+            miniCountdown.innerHTML = '<span style="color: var(--accent-red);">ENDED</span>';
+        }
+        return;
+    }
+    
+    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    
+    // Update main countdown
+    const daysEl = document.getElementById('days');
+    const hoursEl = document.getElementById('hours');
+    const minutesEl = document.getElementById('minutes');
+    const secondsEl = document.getElementById('seconds');
+    
+    if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+    if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+    if (minutesEl) minutesEl.textContent = String(minutes).padStart(2, '0');
+    if (secondsEl) secondsEl.textContent = String(seconds).padStart(2, '0');
+    
+    // Update mini countdown
+    const miniDays = document.getElementById('miniDays');
+    const miniHours = document.getElementById('miniHours');
+    const miniMinutes = document.getElementById('miniMinutes');
+    
+    if (miniDays) miniDays.textContent = String(days).padStart(2, '0');
+    if (miniHours) miniHours.textContent = String(hours).padStart(2, '0');
+    if (miniMinutes) miniMinutes.textContent = String(minutes).padStart(2, '0');
+}
+
+setInterval(updateCountdown, 1000);
+updateCountdown();
+{% endif %}
+
+// Share Modal
+function toggleShareModal() {
+    document.getElementById('shareModal').classList.toggle('active');
+    document.body.classList.toggle('modal-open');
+}
+
+function shareFacebook() {
+    window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), '_blank', 'width=600,height=400');
+}
+
+function shareTwitter() {
+    const text = '{{ tournament.name }} - Check out this tournament!';
+    window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(window.location.href) + '&text=' + encodeURIComponent(text), '_blank', 'width=600,height=400');
+}
+
+function shareWhatsApp() {
+    const text = '{{ tournament.name }} - Check out this tournament! ' + window.location.href;
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+
+function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+        const btn = event.target.closest('.share-option');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i><span>Copied!</span>';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('copied');
+        }, 2000);
+    });
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('shareModal');
+        if (modal.classList.contains('active')) {
+            toggleShareModal();
+        }
+    }
+});
+</script>
+{% endblock %}
