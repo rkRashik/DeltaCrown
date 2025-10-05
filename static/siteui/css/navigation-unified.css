@@ -47,7 +47,7 @@
 }
 
 .unified-nav-desktop__wordmark {
-  height: 22px;
+  height: 26px;
   width: auto;
 }
 
@@ -246,8 +246,20 @@
   z-index: 1000;
 }
 
+.unified-nav-mobile__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
 .unified-nav-mobile__logo img {
   display: block;
+}
+
+.unified-nav-mobile__wordmark {
+  height: 20px;
+  width: auto;
 }
 
 .unified-nav-mobile__hamburger {
