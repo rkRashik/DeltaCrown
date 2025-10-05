@@ -71,11 +71,11 @@ class TeamsPage {
       gameFilterToggle.addEventListener('click', () => this.toggleGameFilters());
     }
 
-    // Theme toggle
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-      themeToggle.addEventListener('click', () => this.toggleTheme());
-    }
+    // Theme toggle - REMOVED (using unified navigation theme toggle)
+    // const themeToggle = document.getElementById('theme-toggle');
+    // if (themeToggle) {
+    //   themeToggle.addEventListener('click', () => this.toggleTheme());
+    // }
   }
 
   // Enhanced Search Setup with Professional Controls
@@ -510,7 +510,8 @@ class TeamsPage {
     // If no saved preference, respect system preference
   }
 
-  // Toggle Theme Method
+  // Toggle Theme Method - REMOVED (using unified navigation theme toggle)
+  /*
   toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -524,6 +525,7 @@ class TeamsPage {
       document.body.style.transition = '';
     }, 300);
   }
+  */
 
   // Expandable Filters Setup
   setupExpandableFilters() {

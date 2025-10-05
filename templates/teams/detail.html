@@ -3,55 +3,132 @@
 
 {% block title %}{{ team.name }} — Team{% endblock %}
 
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'siteui/css/teams-detail-responsive.css' %}?v=1.0">
+<link rel="stylesheet" href="{% static 'siteui/css/teams-detail-hero-v2.css' %}?v=1.0">
+{% endblock %}
+
 {% block content %}
-<div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
-  <div class="relative rounded-2xl overflow-hidden border border-black/5 dark:border-white/10 bg-gradient-to-br from-slate-100 to-white dark:from-slate-900 dark:to-slate-950">
-    {% if team.banner %}
-      <img src="{{ team.banner.url }}" alt="" class="absolute inset-0 w-full h-40 object-cover opacity-80">
-    {% else %}
-      <div class="absolute inset-0 h-40 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,.35),transparent_40%)]"></div>
-    {% endif %}
-    <div class="relative pt-6 px-6 pb-4">
-      <div class="flex items-center gap-4">
-        {% if team.logo %}
-          <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="w-16 h-16 rounded-xl ring-1 ring-black/5 dark:ring-white/10 object-cover bg-white/70 backdrop-blur">
-        {% else %}
-          <div class="w-16 h-16 rounded-xl ring-1 ring-black/5 dark:ring-white/10 bg-white/70 backdrop-blur grid place-content-center text-lg font-semibold">
-            {{ team.name|slice:":2"|upper }}
-          </div>
-        {% endif %}
-        <div class="flex-1">
-          <div class="flex items-center gap-2">
-            <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">{{ team.name }}</h1>
-            <span class="chip">{{ team.game|title }}</span>
-          </div>
-          {% if team.tagline %}
-            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1">{{ team.tagline }}</p>
-          {% endif %}
+<div class="team-detail-container">
+  <!-- Modern Esports Hero Section -->
+  <div class="team-esports-hero">
+    <!-- Full-Width Banner Background -->
+    <div class="team-hero-banner">
+      {% if team.banner %}
+        <img src="{{ team.banner.url }}" alt="{{ team.name }} banner" class="banner-image">
+      {% else %}
+        <div class="banner-placeholder">
+          <div class="placeholder-pattern"></div>
         </div>
-
-        {% include "teams/partials/share_menu.html" with title=team.name url=request.build_absolute_uri %}
-
-      </div>
-
-      <div class="mt-4 flex flex-wrap gap-3">
+      {% endif %}
+      <div class="banner-overlay"></div>
+      <div class="banner-gradient"></div>
+    </div>
+    
+    <!-- Hero Content Container -->
+    <div class="team-hero-container">
+      <div class="team-hero-layout">
+        <!-- Left Side: Team Identity -->
+        <div class="team-identity-section">
+          <!-- Team Logo with Glow Effect -->
+          <div class="team-logo-display">
+            {% if team.logo %}
+              <img src="{{ team.logo.url }}" alt="{{ team.name }} logo" class="team-logo-img">
+            {% else %}
+              <div class="team-logo-placeholder">
+                <span class="logo-initials">{{ team.name|slice:":2"|upper }}</span>
+              </div>
+            {% endif %}
+            <div class="logo-glow"></div>
+          </div>
+          
+          <!-- Team Info -->
+          <div class="team-identity-info">
+            <h1 class="team-name-display">{{ team.name }}</h1>
+            
+            <div class="team-badges-row">
+              <div class="team-game-tag">
+                <i class="fas fa-gamepad"></i>
+                <span>{{ team.game|title }}</span>
+              </div>
+              {% if team.is_recruiting and not is_member %}
+                <div class="team-recruiting-tag">
+                  <i class="fas fa-bullhorn"></i>
+                  <span>Recruiting</span>
+                </div>
+              {% endif %}
+              {% if team.region %}
+                <div class="team-region-tag">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span>{{ team.region }}</span>
+                </div>
+              {% endif %}
+            </div>
+            
+            {% if team.tagline %}
+              <p class="team-motto">{{ team.tagline }}</p>
+            {% endif %}
+          </div>
+        </div>
+        
+        <!-- Right Side: Stats & Actions -->
+        <div class="team-actions-section">
+          <!-- Stats Cards -->
+          <div class="team-stats-cards">
+            <div class="stat-card">
+              <div class="stat-icon-wrapper">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-number">{{ team.memberships.count|default:0 }}</div>
+                <div class="stat-label">Members</div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-icon-wrapper">
+                <i class="fas fa-trophy"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-number">{{ team.tournament_wins|default:0 }}</div>
+                <div class="stat-label">Wins</div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-icon-wrapper">
+                <i class="fas fa-star"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-number">{{ team.total_points|default:0 }}</div>
+                <div class="stat-label">Points</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="team-action-buttons">
         {% if is_captain %}
           <a href="{% url 'teams:manage' team.slug %}" class="btn btn-primary">
-            <i class="fas fa-cogs mr-2"></i>Manage Team
+            <i class="fas fa-cogs"></i>
+            <span>Manage Team</span>
           </a>
           <a href="{% url 'teams:invite_member' team.slug %}" class="btn btn-secondary">
-            <i class="fas fa-user-plus mr-2"></i>Invite Members
+            <i class="fas fa-user-plus"></i>
+            <span>Invite Members</span>
           </a>
           <a href="{% url 'teams:settings' team.slug %}" class="btn btn-ghost">
-            <i class="fas fa-cog mr-2"></i>Settings
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
           </a>
         {% endif %}
 
         {% if is_member and not is_captain %}
-          <form method="post" action="{% url 'teams:leave' team.slug %}" class="inline" onsubmit="return confirm('Are you sure you want to leave this team?');">
+          <form method="post" action="{% url 'teams:leave' team.slug %}" class="inline-form" onsubmit="return confirm('Are you sure you want to leave this team?');">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger">
-              <i class="fas fa-sign-out-alt mr-2"></i>Leave Team
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Leave Team</span>
             </button>
           </form>
         {% endif %}
@@ -59,27 +136,28 @@
         {% if not is_member %}
           {% if already_in_team_for_game %}
             <button class="btn btn-disabled" disabled title="You already belong to a team in {{ team.game|title }}.">
-              <i class="fas fa-users mr-2"></i>Already in a {{ team.game|title }} team
+              <i class="fas fa-users"></i>
+              <span>Already in {{ team.game|title }} team</span>
             </button>
           {% elif team.is_open %}
-            <form method="post" action="{% url 'teams:join' team.slug %}" class="inline">
+            <form method="post" action="{% url 'teams:join' team.slug %}" class="inline-form">
               {% csrf_token %}
               <button type="submit" class="btn btn-primary">
-                <i class="fas fa-plus mr-2"></i>Join Team
+                <i class="fas fa-plus"></i>
+                <span>Join Team</span>
               </button>
             </form>
           {% else %}
             <button class="btn btn-disabled" disabled title="This team requires an invitation to join.">
-              <i class="fas fa-lock mr-2"></i>Invitation Required
+              <i class="fas fa-lock"></i>
+              <span>Invitation Required</span>
             </button>
           {% endif %}
         {% endif %}
-
-        {% if team.is_recruiting and not is_member %}
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
-            <i class="fas fa-search mr-1"></i>Recruiting
-          </span>
-        {% endif %}
+        
+        {% include "teams/partials/share_menu.html" with title=team.name url=request.build_absolute_uri %}
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -123,4 +201,8 @@
 </div>
 
 <script src="{% static 'siteui/js/teams-detail.js' %}" defer></script>
+{% endblock %}
+
+{% block footer %}
+{# Footer removed for team detail page #}
 {% endblock %}

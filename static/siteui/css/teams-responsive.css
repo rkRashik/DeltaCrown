@@ -1,0 +1,931 @@
+/**
+ * TEAMS RESPONSIVE DESIGN SYSTEM
+ * Complete mobile-first responsive solution for all team pages
+ * Optimized for devices from 320px to 4K displays
+ */
+
+/* ============================================
+   RESPONSIVE UTILITIES & BASE FIXES
+   ============================================ */
+
+/* Ensure teams page doesn't conflict with unified nav padding */
+.teams-page-wrapper {
+  /* Override body padding from unified nav */
+  margin-top: -60px; /* Compensate for mobile top bar */
+  padding-top: 60px; /* Add it back as padding */
+}
+
+@media (min-width: 1024px) {
+  .teams-page-wrapper {
+    margin-top: 0;
+    padding-top: 0;
+  }
+}
+
+/* ============================================
+   TEAM LIST PAGE - RESPONSIVE LAYOUT
+   ============================================ */
+
+/* Mobile-First: Stack layout for small screens */
+.teams-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .teams-page-container {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .teams-page-container {
+    flex-direction: row;
+    gap: 2rem;
+    padding: 2rem;
+    max-width: 1400px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .teams-page-container {
+    max-width: 1600px;
+    padding: 2rem 3rem;
+  }
+}
+
+/* ============================================
+   LEFT SIDEBAR - RESPONSIVE BEHAVIOR
+   ============================================ */
+
+.left-sidebar {
+  position: relative;
+  width: 100%;
+  background: var(--bg-card, #fff);
+  border-radius: 12px;
+  padding: 1rem;
+  order: 2; /* On mobile, show after main content */
+}
+
+/* Mobile: Collapsible sidebar */
+@media (max-width: 1023px) {
+  .left-sidebar {
+    position: fixed;
+    top: 60px; /* Below unified nav mobile header */
+    left: 0;
+    bottom: 65px; /* Above unified nav bottom bar */
+    width: 85%;
+    max-width: 320px;
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    overflow-y: auto;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .left-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  /* Mobile sidebar toggle button */
+  .mobile-sidebar-toggle {
+    position: fixed;
+    bottom: 80px; /* Above bottom nav */
+    left: 1rem;
+    z-index: 998;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent, #06b6d4);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mobile-sidebar-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .mobile-sidebar-toggle i {
+    font-size: 1.25rem;
+  }
+
+  /* Sidebar overlay backdrop */
+  .sidebar-overlay {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 65px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 998;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+  }
+
+  .sidebar-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .sidebar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .sidebar-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  .left-sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    order: 1;
+    position: sticky;
+    top: 90px; /* Below desktop nav */
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+  }
+
+  .mobile-sidebar-toggle,
+  .sidebar-overlay,
+  .sidebar-close {
+    display: none;
+  }
+}
+
+/* ============================================
+   RIGHT CONTENT - RESPONSIVE MAIN AREA
+   ============================================ */
+
+.right-content {
+  flex: 1;
+  width: 100%;
+  min-width: 0; /* Prevent flex overflow */
+  order: 1; /* Show first on mobile */
+}
+
+@media (min-width: 1024px) {
+  .right-content {
+    order: 2;
+  }
+}
+
+/* ============================================
+   HERO SECTION - RESPONSIVE
+   ============================================ */
+
+.esports-hero-section {
+  position: relative;
+  padding: 2rem 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .esports-hero-section {
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .esports-hero-section {
+    padding: 4rem 3rem;
+  }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .hero-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3rem;
+  }
+}
+
+.hero-title-main {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .hero-title-main {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-title-main {
+    font-size: 3rem;
+  }
+}
+
+.hero-subtitle {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .hero-subtitle {
+    font-size: 1.0625rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-subtitle {
+    font-size: 1.125rem;
+    max-width: 600px;
+  }
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+  .hero-stats {
+    gap: 1.5rem;
+  }
+}
+
+.hero-stat-number {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .hero-stat-number {
+    font-size: 2rem;
+  }
+}
+
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .hero-cta {
+    gap: 1rem;
+  }
+}
+
+.hero-btn {
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .hero-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* ============================================
+   SEARCH & SORT BAR - RESPONSIVE
+   ============================================ */
+
+.search-sort-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-card);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .search-sort-bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5rem;
+  }
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent, #06b6d4);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+}
+
+.sort-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+@media (max-width: 767px) {
+  .sort-controls {
+    width: 100%;
+  }
+
+  .sort-group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .sort-select {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   GAME FILTER BAR - RESPONSIVE
+   ============================================ */
+
+.game-icon-filter-bar {
+  padding: 1rem;
+  background: var(--bg-card);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.game-icon-filters {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent, #06b6d4) transparent;
+}
+
+.game-icon-filters::-webkit-scrollbar {
+  height: 6px;
+}
+
+.game-icon-filters::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.game-icon-filters::-webkit-scrollbar-thumb {
+  background: var(--accent, #06b6d4);
+  border-radius: 3px;
+}
+
+.game-icon-filter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .game-icon-filters {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    overflow-x: visible;
+  }
+
+  .game-icon-filter {
+    min-width: 0;
+  }
+}
+
+/* ============================================
+   TEAM CARDS - RESPONSIVE GRID
+   ============================================ */
+
+.team-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .team-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .team-list {
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .team-list[data-view="grid"] {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.team-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .team-card {
+    padding: 1.25rem;
+  }
+}
+
+.team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent, #06b6d4);
+}
+
+/* ============================================
+   TEAM HEADER - RESPONSIVE
+   ============================================ */
+
+.team-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+@media (min-width: 768px) {
+  .team-header {
+    gap: 1rem;
+  }
+}
+
+.team-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .team-rank {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+.team-logo-container {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .team-logo-container {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+.team-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .team-name {
+    font-size: 1.125rem;
+  }
+}
+
+/* ============================================
+   TEAM STATS - RESPONSIVE GRID
+   ============================================ */
+
+.team-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 480px) {
+  .team-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .team-stats {
+    gap: 1rem;
+  }
+}
+
+.team-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.5rem;
+  background: var(--bg-secondary, #f8fafc);
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .stat-value {
+    font-size: 1.25rem;
+  }
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-top: 0.25rem;
+}
+
+/* ============================================
+   TEAM ACTIONS - RESPONSIVE BUTTONS
+   ============================================ */
+
+.team-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.team-action-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+@media (max-width: 479px) {
+  .team-action-btn {
+    flex-basis: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .team-action-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* ============================================
+   TEAM DETAIL PAGE - RESPONSIVE
+   ============================================ */
+
+/* Team detail banner/header */
+.team-detail-header {
+  padding: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .team-detail-header {
+    padding: 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .team-detail-header {
+    padding: 2.5rem 3rem;
+  }
+}
+
+/* Tabs navigation */
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
+.tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tab {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+@media (min-width: 768px) {
+  .tabs {
+    gap: 0.75rem;
+    overflow-x: visible;
+  }
+
+  .tab {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* ============================================
+   SIDEBAR SECTIONS - RESPONSIVE
+   ============================================ */
+
+.sidebar-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.sidebar-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (min-width: 768px) {
+  .sidebar-title {
+    font-size: 1.0625rem;
+  }
+}
+
+/* Quick actions */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-button {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+@media (min-width: 768px) {
+  .action-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9375rem;
+  }
+}
+
+/* Game filters grid */
+.games-grid-filter {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .games-grid-filter {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .games-grid-filter {
+    grid-template-columns: 1fr;
+  }
+}
+
+.game-filter-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 80px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+@media (min-width: 768px) {
+  .game-filter-card {
+    height: 100px;
+  }
+}
+
+/* ============================================
+   EMPTY STATES - RESPONSIVE
+   ============================================ */
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .empty-state {
+    padding: 4rem 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .empty-state {
+    padding: 5rem 3rem;
+  }
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+/* ============================================
+   LOADING & OVERLAY STATES
+   ============================================ */
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s;
+}
+
+.loading-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .mobile-sidebar-toggle,
+  .sidebar-overlay,
+  .sidebar-close,
+  .hero-cta,
+  .team-actions,
+  .game-icon-filter-bar,
+  .search-sort-bar {
+    display: none !important;
+  }
+
+  .teams-page-container {
+    display: block;
+  }
+
+  .left-sidebar,
+  .right-content {
+    width: 100%;
+    position: static;
+    transform: none;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY ENHANCEMENTS
+   ============================================ */
+
+/* Focus visible styles */
+*:focus-visible {
+  outline: 2px solid var(--accent, #06b6d4);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .team-card {
+    border-width: 2px;
+  }
+
+  .team-action-btn {
+    border: 2px solid currentColor;
+  }
+}

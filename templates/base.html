@@ -44,7 +44,9 @@
       {% block content %}{% endblock %}
     </main>
 
+    {% block footer %}
     {% include "partials/footer_fixed.html" %}
+    {% endblock %}
     {% include "partials/toasts.html" %}
 
     <!-- Site JS -->

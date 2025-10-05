@@ -5,9 +5,11 @@
 {% block title %}Team Rankings — DeltaCrown{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'siteui/css/teams-list-two-column.css' %}?v=1.0">
+<link rel="stylesheet" href="{% static 'siteui/css/teams-list-two-column.css' %}?v=1.2">
+<link rel="stylesheet" href="{% static 'siteui/css/teams-responsive.css' %}?v=1.0">
+<link rel="stylesheet" href="{% static 'siteui/css/teams-hub-hero.css' %}?v=1.0">
 <link rel="preload" href="{% static 'siteui/js/teams-list-two-column.js' %}" as="script">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 {% endblock %}
 
 {% block content %}
@@ -15,12 +17,6 @@
   <!-- Mobile Sidebar Toggle -->
   <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" aria-label="Open filters">
     <i class="fas fa-filter"></i>
-  </button>
-
-  <!-- Theme Toggle -->
-  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme" title="Toggle light/dark theme">
-    <i class="fas fa-sun theme-icon-light"></i>
-    <i class="fas fa-moon theme-icon-dark"></i>
   </button>
 
   <!-- Sidebar Overlay for Mobile -->
@@ -214,76 +210,81 @@
 
     <!-- RIGHT CONTENT - Team List with Top 10 + Load More -->
     <main class="right-content" id="teams-page-container">
-      <!-- Enhanced Hero Section -->
+      <!-- Modern Esports Hero Section -->
       <header class="esports-hero-section">
+        <!-- Animated Background -->
         <div class="hero-background">
-          <div class="hero-particles"></div>
-          <div class="hero-gradient"></div>
+          <div class="hero-gradient-mesh"></div>
+          <div class="hero-grid-overlay"></div>
+          <div class="hero-particles-container">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+          </div>
         </div>
         
-        <div class="hero-content">
-          <div class="hero-text">
-            <h1 class="hero-title">
-              <span class="hero-title-main">Elite Esports</span>
-              <span class="hero-title-accent">Team Rankings</span>
-            </h1>
-            <p class="hero-subtitle">
-              Discover and join the most competitive gaming teams across 
-              <span class="hero-highlight">{{ games_list|length }}</span> different esports titles
-            </p>
-            <div class="hero-stats">
-              <div class="hero-stat">
-                <span class="hero-stat-number">{{ total_teams|default:"0" }}</span>
-                <span class="hero-stat-label">Active Teams</span>
+        <!-- Hero Content -->
+        <div class="hero-content-wrapper">
+          <div class="hero-main-content">
+            <!-- Title Section -->
+            <div class="hero-title-section">
+              <div class="hero-badge">
+                <i class="fas fa-shield-alt"></i>
+                <span>Competitive Rankings</span>
               </div>
-              <div class="hero-stat">
-                <span class="hero-stat-number">{{ recruiting_teams|default:"0" }}</span>
-                <span class="hero-stat-label">Recruiting</span>
+              <h1 class="hero-title">
+                <span class="hero-title-line-1">Elite Esports</span>
+                <span class="hero-title-line-2">Team Rankings</span>
+              </h1>
+              <p class="hero-description">
+                Compete with the best. Join <span class="highlight-text">{{ total_teams|default:"0" }}</span> active teams across <span class="highlight-text">{{ games_list|length }}</span> esports titles.
+              </p>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="hero-stats-grid">
+              <div class="hero-stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number" data-count="{{ total_teams|default:'0' }}">{{ total_teams|default:"0" }}</div>
+                  <div class="stat-label">Active Teams</div>
+                </div>
+                <div class="stat-glow"></div>
               </div>
-              <div class="hero-stat">
-                <span class="hero-stat-number">{{ games_list|length|default:"0" }}</span>
-                <span class="hero-stat-label">Games</span>
+              
+              <div class="hero-stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-user-plus"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number" data-count="{{ recruiting_teams|default:'0' }}">{{ recruiting_teams|default:"0" }}</div>
+                  <div class="stat-label">Recruiting</div>
+                </div>
+                <div class="stat-glow"></div>
+              </div>
+              
+              <div class="hero-stat-card">
+                <div class="stat-icon">
+                  <i class="fas fa-gamepad"></i>
+                </div>
+                <div class="stat-content">
+                  <div class="stat-number" data-count="{{ games_list|length|default:'0' }}">{{ games_list|length|default:"0" }}</div>
+                  <div class="stat-label">Games</div>
+                </div>
+                <div class="stat-glow"></div>
               </div>
             </div>
           </div>
           
-          <div class="hero-cta">
-            <a href="{% url 'teams:create' %}" class="hero-btn primary">
-              <i class="fas fa-rocket"></i>
-              Create Team
-            </a>
-            {% if user.is_authenticated %}
-              <a href="{% url 'teams:my_invites' %}" class="hero-btn secondary">
-                <i class="fas fa-envelope"></i>
-                My Invitations
-              </a>
-              <button type="button" class="hero-btn secondary" id="show-my-teams-btn">
-                <i class="fas fa-users"></i>
-                My Teams
-              </button>
-            {% else %}
-              <a href="/admin/login/" class="hero-btn secondary">
-                <i class="fas fa-sign-in-alt"></i>
-                Join Platform
-              </a>
-            {% endif %}
-          </div>
-        </div>
-        
-        <div class="hero-visual">
-          <!-- Animated projectiles for esports vibe -->
-          <div class="projectile"></div>
-          <div class="projectile"></div>
-          <div class="projectile"></div>
-          
-          <div class="floating-games">
-            {% for game_info in games_list|slice:":6" %}
-              <div class="floating-game-icon" style="animation-delay: {{ forloop.counter0|add:1 }}s;" data-game="{{ game_info.code }}">
-                {% with game_code=game_info.code|upper %}
-                  <img src="{% game_logo game_code %}" alt="{{ game_info.name }}">
-                {% endwith %}
-              </div>
-            {% endfor %}
+          <!-- Decorative Elements -->
+          <div class="hero-decoration">
+            <div class="decoration-circle circle-1"></div>
+            <div class="decoration-circle circle-2"></div>
+            <div class="decoration-circle circle-3"></div>
           </div>
         </div>
       </header>
@@ -535,6 +536,7 @@
 
 {% block extra_js %}
 <script src="{% static 'siteui/js/teams-list-two-column.js' %}?v=1.0" defer></script>
+<script src="{% static 'siteui/js/teams-responsive.js' %}?v=1.0" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Enhanced projectile interaction system

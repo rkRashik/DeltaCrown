@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="{% static 'siteui/css/base.css' %}" />
     <link rel="stylesheet" href="{% static 'siteui/css/components.css' %}" />
     <link rel="stylesheet" href="{% static 'siteui/css/effects.css' %}" />
-    <link rel="stylesheet" href="{% static 'siteui/css/nav.css' %}" />
+    <link rel="stylesheet" href="{% static 'siteui/css/navigation-unified.css' %}" />
     <link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -37,7 +37,7 @@
   <body class="min-h-full bg-body text-body antialiased">
     <a href="#main" class="skip-link">Skip to main content</a>
 
-    {% include "partials/nav.html" %}
+    {% include "partials/navigation_unified.html" %}
 
     <main id="main" tabindex="-1">
       {% block content %}{% endblock %}
@@ -56,7 +56,7 @@
     <script src="{% static 'siteui/js/teams.js' %}"></script>
     <script src="{% static 'siteui/js/auth.js' %}"></script>
     <script src="{% static 'siteui/js/micro.js' %}"></script>
-    <script src="{% static 'siteui/js/nav.js' %}"></script>
+    <script src="{% static 'siteui/js/navigation-unified.js' %}"></script>
     <script src="{% static 'siteui/js/reg_wizard.js' %}"></script>
 
     {% if messages %}

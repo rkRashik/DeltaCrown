@@ -201,7 +201,8 @@ body {
   align-items: start; /* Align items to start instead of stretching */
 }
 
-/* Theme Toggle */
+/* Theme Toggle - REMOVED (Using unified navigation theme toggle instead) */
+/* 
 .theme-toggle {
   position: fixed;
   top: 20px;
@@ -235,7 +236,6 @@ body {
   transition: all var(--transition-fast);
 }
 
-/* Show sun icon in dark mode, moon in light mode */
 [data-theme="dark"] .theme-icon-light,
 :root:not([data-theme]) .theme-icon-dark {
   opacity: 1;
@@ -259,6 +259,7 @@ body {
     transform: scale(0.8);
   }
 }
+*/
 
 /* Mobile Layout */
 @media (max-width: 1024px) {
@@ -269,12 +270,15 @@ body {
     margin-top: var(--space-8); /* Account for mobile controls */
   }
 
+  /* Theme toggle removed - using unified navigation */
+  /*
   .theme-toggle {
     top: 15px;
     right: 15px;
     width: 40px;
     height: 40px;
   }
+  */
 }
 
 /* ==================================================
@@ -618,9 +622,11 @@ body {
   position: relative;
   width: 200px;
   height: 200px;
+  display: none; /* Hide floating game icons */
 }
 
 .floating-game-icon {
+  display: none; /* Hide floating game icons */
   position: absolute;
   width: 70px;
   height: 70px;
@@ -872,10 +878,12 @@ body {
   opacity: 0;
   padding: 0;
   margin-bottom: var(--space-4);
+  position: relative;
+  z-index: 10;
 }
 
 .game-filters.expanded {
-  max-height: 800px; /* Increased for better accommodation */
+  max-height: 1200px; /* Increased to accommodate all games */
   opacity: 1;
   padding: var(--space-4) 0;
 }
@@ -1516,15 +1524,17 @@ body {
 
 .view-list .team-card {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-5);
-  margin-bottom: 0;
+  justify-content: flex-start;
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-2);
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   transition: all var(--transition-fast);
-  min-height: 80px;
+  min-height: 90px;
+  gap: var(--space-4);
 }
 
 .view-list .team-card:hover {
@@ -1536,26 +1546,29 @@ body {
 .view-list .team-header {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   margin-bottom: 0;
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
+  max-width: 50%;
 }
 
 .view-list .team-stats {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-5);
   margin: 0;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  margin-left: auto;
 }
 
 .view-list .team-stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 60px;
+  min-width: 70px;
   text-align: center;
+  padding: 0 var(--space-2);
 }
 
 /* Grid View - Professional 3-Column Layout */
