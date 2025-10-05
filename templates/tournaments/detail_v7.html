@@ -148,7 +148,7 @@
                         Login to Register
                     </a>
                 {% elif tournament.status == 'RUNNING' %}
-                    <a href="{% url 'tournaments:bracket' tournament.slug %}" class="btn-primary-cta">
+                    <a href="{% url 'tournaments:dashboard' tournament.slug %}" class="btn-primary-cta">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <polygon points="10 8 16 12 10 16 10 8"/>
@@ -156,7 +156,7 @@
                         Watch Live
                     </a>
                 {% elif tournament.status == 'COMPLETED' %}
-                    <a href="{% url 'tournaments:standings' tournament.slug %}" class="btn-primary-cta">
+                    <a href="{% url 'tournaments:dashboard' tournament.slug %}" class="btn-primary-cta">
                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
                             <path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>
@@ -720,17 +720,17 @@
                 <div class="sidebar-card actions-card">
                     <h3 class="sidebar-card-title">Quick Actions</h3>
                     <div class="quick-actions-list">
-                        <a href="{% url 'tournaments:bracket' tournament.slug %}" class="quick-action-btn">
+                        <a href="{% url 'tournaments:dashboard' tournament.slug %}" class="quick-action-btn">
                             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="3" width="7" height="7"/>
                                 <rect x="14" y="3" width="7" height="7"/>
                                 <rect x="14" y="14" width="7" height="7"/>
                                 <rect x="3" y="14" width="7" height="7"/>
                             </svg>
-                            View Bracket
+                            View Dashboard
                         </a>
                         
-                        <a href="{% url 'tournaments:standings' tournament.slug %}" class="quick-action-btn">
+                        <a href="{% url 'tournaments:dashboard' tournament.slug %}" class="quick-action-btn">
                             <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>
                             </svg>
