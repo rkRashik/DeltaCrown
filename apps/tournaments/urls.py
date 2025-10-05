@@ -32,6 +32,7 @@ from .api_views import (
     tournament_leaderboard,
     tournament_registration_status,
     featured_tournaments,
+    tournament_live_stats,
 )
 
 # Deprecated views (for backward compatibility - redirect to modern)
@@ -128,6 +129,9 @@ urlpatterns = [
     
     # Registration Status API (get user's registration status)
     path("api/t/<slug:slug>/registration-status/", tournament_registration_status, name="registration_status_api"),
+    
+    # Live Stats API (real-time updates for counters)
+    path("api/tournaments/<slug:slug>/live-stats/", tournament_live_stats, name="live_stats_api"),
     
     # Featured Tournaments API (for hub page)
     path("api/featured/", featured_tournaments, name="featured_api"),

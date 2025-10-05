@@ -85,7 +85,7 @@
 <!-- ============================================
      HERO SECTION - Full width banner with overlay
      ============================================ -->
-<section class="hero-section" role="banner" aria-label="Tournament Hero">
+<section class="hero-section" role="banner" aria-label="Tournament Hero" data-tournament-slug="{{ tournament.slug }}">
     <!-- Background Banner -->
     <div class="hero-bg" role="img" aria-label="Tournament banner background">
         {% if tournament.media and tournament.media.banner %}
@@ -432,6 +432,7 @@
                                 <span class="stat-current" 
                                       data-counter-target="{{ tournament.capacity.current_participants }}" 
                                       data-counter-duration="2000"
+                                      data-live-counter="participants"
                                       aria-label="Current participants">0</span>
                                 <span class="stat-separator">/</span>
                                 <span class="stat-max" aria-label="Maximum capacity">{{ tournament.capacity.max_participants }}</span>

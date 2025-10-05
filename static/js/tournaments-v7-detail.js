@@ -472,25 +472,32 @@
     // ============================================
     // SHARE FUNCTIONALITY
     // ============================================
+    // ============================================
+    // SHARE MANAGER (Enhanced with QR Code & Analytics)
+    // ============================================
     
     const ShareManager = {
         init() {
             const shareButtons = utils.$$('.share-btn');
             const copyBtn = utils.$('.btn-copy');
             const shareLink = utils.$('#shareLink');
+            const shareModalTrigger = utils.$('[data-action="share"]');
             
             if (shareButtons.length === 0) return;
             
-            const url = shareLink ? shareLink.value : window.location.href;
-            const title = document.querySelector('.hero-title')?.textContent || 'Tournament';
+            this.url = shareLink ? shareLink.value : window.location.href;
+            this.title = document.querySelector('.hero-title')?.textContent || 'Tournament';
+            this.description = document.querySelector('.hero-subtitle')?.textContent || 'Join this tournament!';
             
+            // Share button handlers
             shareButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const platform = btn.dataset.share;
-                    this.share(platform, url, title);
+                    this.share(platform);
                 });
             });
             
+            // Copy link handler with enhanced feedback
             if (copyBtn && shareLink) {
                 copyBtn.addEventListener('click', async () => {
                     const success = await utils.copyToClipboard(shareLink.value);
@@ -501,6 +508,7 @@
                             </svg>
                             Copied!
                         `;
+                        copyBtn.classList.add('success');
                         setTimeout(() => {
                             copyBtn.innerHTML = `
                                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -509,38 +517,105 @@
                                 </svg>
                                 Copy
                             `;
+                            copyBtn.classList.remove('success');
                         }, 2000);
-                        utils.showToast('Link copied to clipboard!');
+                        utils.showToast('✅ Link copied to clipboard!', 'success');
+                    } else {
+                        utils.showToast('❌ Failed to copy link', 'error');
                     }
                 });
             }
+            
+            // Native Web Share API (for mobile)
+            if (shareModalTrigger && navigator.share) {
+                shareModalTrigger.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await navigator.share({
+                            title: this.title,
+                            text: this.description,
+                            url: this.url
+                        });
+                    } catch (err) {
+                        // User cancelled or not supported, show modal instead
+                        ModalManager.open('shareModal');
+                    }
+                });
+            }
+            
+            console.log('📢 ShareManager initialized (Native share API: ' + (navigator.share ? 'Yes' : 'No') + ')');
         },
         
-        share(platform, url, title) {
-            const encodedUrl = encodeURIComponent(url);
-            const encodedTitle = encodeURIComponent(title);
+        share(platform) {
+            const encodedUrl = encodeURIComponent(this.url);
+            const encodedTitle = encodeURIComponent(this.title);
+            const encodedDescription = encodeURIComponent(this.description);
             let shareUrl;
             
             switch (platform) {
                 case 'facebook':
                     shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
                     break;
+                    
                 case 'twitter':
-                    shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+                    const hashtags = 'DeltaCrown,EsportsBD,Gaming';
+                    shareUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}&hashtags=${hashtags}`;
                     break;
+                    
                 case 'discord':
-                    // Discord doesn't have a direct share URL, copy to clipboard
-                    utils.copyToClipboard(url);
-                    utils.showToast('Link copied! Paste it in Discord.');
+                    // Discord doesn't have a direct share URL, copy to clipboard with template
+                    const discordMessage = `🎮 **${this.title}**\n${this.description}\n\n${this.url}`;
+                    utils.copyToClipboard(discordMessage);
+                    utils.showToast('✅ Discord message copied! Paste it in your server.', 'success');
                     return;
+                    
                 case 'whatsapp':
-                    shareUrl = `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
+                    // Mobile detection for WhatsApp
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    if (isMobile) {
+                        shareUrl = `whatsapp://send?text=${encodedTitle}%20${encodedUrl}`;
+                    } else {
+                        shareUrl = `https://web.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`;
+                    }
+                    break;
+                    
+                case 'linkedin':
+                    shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+                    break;
+                    
+                case 'reddit':
+                    shareUrl = `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodedTitle}`;
+                    break;
+                    
+                case 'telegram':
+                    shareUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`;
                     break;
             }
             
             if (shareUrl) {
-                window.open(shareUrl, '_blank', 'width=600,height=400');
+                // Open share window
+                const width = 600;
+                const height = 500;
+                const left = (window.innerWidth - width) / 2;
+                const top = (window.innerHeight - height) / 2;
+                
+                window.open(
+                    shareUrl,
+                    'share-dialog',
+                    `width=${width},height=${height},left=${left},top=${top},toolbar=0,location=0,menubar=0`
+                );
+                
+                // Track share action (can be enhanced with analytics)
+                this.trackShare(platform);
             }
+        },
+        
+        trackShare(platform) {
+            // Log share event (can be integrated with Google Analytics, etc.)
+            console.log(`📊 Share tracked: ${platform}`);
+            
+            // Example: Send to analytics
+            // gtag('event', 'share', { method: platform, content_type: 'tournament', item_id: tournamentSlug });
         }
     };
 
@@ -1065,6 +1140,212 @@
     };
 
     // ============================================
+    // LIVE REGISTRATION COUNTER (Phase 4)
+    // ============================================
+    
+    const LiveUpdateManager = {
+        pollInterval: null,
+        updateFrequency: 30000, // 30 seconds
+        tournamentSlug: null,
+        lastValues: {},
+        
+        init() {
+            // Get tournament slug from page
+            const slugElement = utils.$('[data-tournament-slug]');
+            if (!slugElement) {
+                console.log('⏭️ No tournament slug found, skipping live updates');
+                return;
+            }
+            
+            this.tournamentSlug = slugElement.dataset.tournamentSlug;
+            
+            // Start polling for updates
+            this.startPolling();
+            
+            console.log(`🔄 Live updates initialized for tournament: ${this.tournamentSlug}`);
+        },
+        
+        startPolling() {
+            // Initial fetch
+            this.fetchUpdates();
+            
+            // Set up interval
+            this.pollInterval = setInterval(() => {
+                this.fetchUpdates();
+            }, this.updateFrequency);
+            
+            // Clean up on page unload
+            window.addEventListener('beforeunload', () => {
+                this.stopPolling();
+            });
+        },
+        
+        stopPolling() {
+            if (this.pollInterval) {
+                clearInterval(this.pollInterval);
+                this.pollInterval = null;
+                console.log('⏸️ Live updates stopped');
+            }
+        },
+        
+        async fetchUpdates() {
+            try {
+                const response = await fetch(`/api/tournaments/${this.tournamentSlug}/live-stats/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.warn('❌ Failed to fetch live stats:', response.status);
+                    return;
+                }
+                
+                const data = await response.json();
+                this.updateCounters(data);
+                
+            } catch (error) {
+                console.error('❌ Error fetching live updates:', error);
+            }
+        },
+        
+        updateCounters(data) {
+            // Update registration counter
+            if (data.participants !== undefined) {
+                this.updateCounter('participants', data.participants, '👥');
+            }
+            
+            // Update views counter
+            if (data.views !== undefined) {
+                this.updateCounter('views', data.views, '👁️');
+            }
+            
+            // Update prize pool if dynamic
+            if (data.prize_pool !== undefined) {
+                this.updateCounter('prize-pool', data.prize_pool, '💰', true);
+            }
+            
+            // Update status badge if changed
+            if (data.status && data.status_display) {
+                this.updateStatus(data.status, data.status_display);
+            }
+        },
+        
+        updateCounter(type, newValue, emoji = '', isCurrency = false) {
+            const elements = utils.$$(`[data-live-counter="${type}"]`);
+            
+            elements.forEach(element => {
+                const currentValue = parseInt(this.lastValues[type]) || 0;
+                
+                // Only update if value changed
+                if (newValue !== currentValue) {
+                    // Animate the change
+                    this.animateCounterChange(element, currentValue, newValue, isCurrency);
+                    
+                    // Show update indicator
+                    this.showUpdateIndicator(element, emoji);
+                    
+                    // Store new value
+                    this.lastValues[type] = newValue;
+                    
+                    console.log(`✅ Updated ${type}: ${currentValue} → ${newValue}`);
+                }
+            });
+        },
+        
+        animateCounterChange(element, from, to, isCurrency = false) {
+            const duration = 1000;
+            const steps = 30;
+            const stepValue = (to - from) / steps;
+            const stepDuration = duration / steps;
+            let currentStep = 0;
+            
+            // Add highlight animation
+            element.style.transition = 'all 0.3s ease';
+            element.style.transform = 'scale(1.1)';
+            element.style.color = '#10b981'; // Green highlight
+            
+            const animate = () => {
+                if (currentStep >= steps) {
+                    element.textContent = isCurrency ? this.formatCurrency(to) : to.toLocaleString();
+                    element.style.transform = 'scale(1)';
+                    element.style.color = '';
+                    return;
+                }
+                
+                currentStep++;
+                const currentValue = Math.round(from + (stepValue * currentStep));
+                element.textContent = isCurrency ? this.formatCurrency(currentValue) : currentValue.toLocaleString();
+                
+                setTimeout(animate, stepDuration);
+            };
+            
+            animate();
+        },
+        
+        formatCurrency(amount) {
+            return new Intl.NumberFormat('en-BD', {
+                style: 'currency',
+                currency: 'BDT',
+                minimumFractionDigits: 0
+            }).format(amount);
+        },
+        
+        showUpdateIndicator(element, emoji) {
+            // Create pulse indicator
+            const indicator = document.createElement('span');
+            indicator.className = 'live-update-indicator';
+            indicator.textContent = emoji;
+            indicator.style.cssText = `
+                position: absolute;
+                top: -8px;
+                right: -8px;
+                font-size: 12px;
+                animation: fadeInOut 2s ease-in-out;
+            `;
+            
+            // Position relative parent if needed
+            if (getComputedStyle(element.parentElement).position === 'static') {
+                element.parentElement.style.position = 'relative';
+            }
+            
+            element.parentElement.appendChild(indicator);
+            
+            // Remove after animation
+            setTimeout(() => {
+                indicator.remove();
+            }, 2000);
+        },
+        
+        updateStatus(status, displayText) {
+            const statusBadges = utils.$$('[data-tournament-status]');
+            
+            statusBadges.forEach(badge => {
+                const currentStatus = badge.dataset.tournamentStatus;
+                
+                if (currentStatus !== status) {
+                    // Update text
+                    badge.textContent = displayText;
+                    badge.dataset.tournamentStatus = status;
+                    
+                    // Update classes
+                    badge.className = badge.className.replace(/badge-\w+/, `badge-${status}`);
+                    
+                    // Animate change
+                    badge.style.animation = 'pulse 0.5s ease-in-out';
+                    
+                    // Show toast notification
+                    utils.showToast(`Tournament status updated: ${displayText}`, 'info');
+                    
+                    console.log(`📢 Status updated: ${currentStatus} → ${status}`);
+                }
+            });
+        }
+    };
+
+    // ============================================
     // INITIALIZATION
     // ============================================
     
@@ -1092,6 +1373,7 @@
             StickyCTA.init();
             ParticipantsFilter.init();
             SmoothScroll.init();
+            LiveUpdateManager.init();
             
             // V7 Production Enhancements
             CountdownManager.init();

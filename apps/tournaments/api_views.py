@@ -484,3 +484,51 @@ def featured_tournaments(request):
     cache.set(cache_key, response_data, 300)
     
     return Response(response_data)
+
+
+@api_view(['GET'])
+def tournament_live_stats(request, slug):
+    """
+    Get live tournament statistics for real-time updates.
+    Returns current participant count, views, status, etc.
+    
+    Used by frontend JavaScript to poll for live updates every 30 seconds.
+    """
+    tournament = get_object_or_404(Tournament, slug=slug)
+    
+    # Get participant count
+    participants_count = Registration.objects.filter(
+        tournament=tournament,
+        status='CONFIRMED'
+    ).count()
+    
+    # Get views count (if available)
+    views_count = getattr(tournament, 'views_count', 0)
+    
+    # Get prize pool (if dynamic)
+    prize_pool = getattr(tournament, 'prize_pool_amount', 0)
+    
+    # Get current status
+    current_status = getattr(tournament, 'status', 'DRAFT')
+    status_display = tournament.get_status_display() if hasattr(tournament, 'get_status_display') else current_status
+    
+    # Build response
+    response_data = {
+        'participants': participants_count,
+        'views': views_count,
+        'prize_pool': prize_pool,
+        'status': current_status,
+        'status_display': status_display,
+        'last_updated': timezone.now().isoformat(),
+    }
+    
+    # Add capacity info if available
+    if hasattr(tournament, 'max_teams') and tournament.max_teams:
+        response_data['capacity'] = {
+            'current': participants_count,
+            'max': tournament.max_teams,
+            'percentage': (participants_count / tournament.max_teams * 100) if tournament.max_teams > 0 else 0,
+            'spots_left': max(0, tournament.max_teams - participants_count)
+        }
+    
+    return Response(response_data)
