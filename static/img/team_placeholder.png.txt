@@ -1,6 +1,0 @@
-# Team Placeholder Image
-# This is a placeholder file that will be replaced with actual team logos
-# The template references this file at: static/img/team_placeholder.png
-# You should replace this with actual team logo images
-
-Team Logo Placeholder

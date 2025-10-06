@@ -1,4 +1,4 @@
-﻿# deltacrown/urls.py
+# deltacrown/urls.py
 from importlib import import_module
 
 from django.conf import settings

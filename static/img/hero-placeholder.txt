@@ -1,3 +1,0 @@
-<!-- This is a placeholder image reference. Replace with actual gaming setup image -->
-<!-- Recommended: 800x600 high-quality image of a modern gaming setup -->
-<!-- File should be placed in: static/img/hero-gaming-setup.png -->
