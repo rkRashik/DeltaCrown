@@ -81,7 +81,7 @@ def home(request):
         "timeline": get_timeline(6),
         "games_strip": games_strip,
     }
-    return render(request, "home_modern.html", ctx)
+    return render(request, "home_cyberpunk.html", ctx)
 
 
 def privacy(request):

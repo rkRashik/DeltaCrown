@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}DeltaCrown - Bangladesh's Premier Esports Platform{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/homepage-cyberpunk.css' %}">
+<link rel="stylesheet" href="{% static 'css/homepage-improvements.css' %}">
+<link rel="stylesheet" href="{% static 'css/game-cards-premium.css' %}">
+<link rel="stylesheet" href="{% static 'css/game-cards-v3.css' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<!-- Cyberpunk Particle Background -->
+<canvas id="particle-canvas" class="particle-canvas"></canvas>
+
+<!-- ========================================
+     HERO SECTION - Main Banner
+     ======================================== -->
+<section class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="hero-grid"></div>
+    
+    <div class="container">
+        <div class="hero-content">
+            <!-- Main Headline -->
+            <div class="hero-badge" data-aos="fade-down">
+                <span class="badge-icon">⚡</span>
+                <span>Bangladesh's #1 Esports Platform</span>
+            </div>
+            
+            <h1 class="hero-title" data-aos="fade-up" data-aos-delay="100">
+                <span class="glitch" data-text="DOMINATE">DOMINATE</span>
+                <span class="gradient-text">THE ARENA</span>
+            </h1>
+            
+            <p class="hero-description" data-aos="fade-up" data-aos-delay="200">
+                Compete in legendary tournaments. Earn glory. Claim prizes.<br>
+                Join <span class="highlight-text">{{ homepage.hero.stats.players|default:'12,500+' }}</span> gamers in the ultimate competitive experience.
+            </p>
+            
+            <!-- CTA Buttons -->
+            <div class="hero-cta" data-aos="fade-up" data-aos-delay="300">
+                <a href="{{ homepage.hero.cta_primary.url }}" class="btn btn-primary btn-glow">
+                    <span class="btn-icon">{{ homepage.hero.cta_primary.icon }}</span>
+                    <span>{{ homepage.hero.cta_primary.text }}</span>
+                    <span class="btn-shine"></span>
+                </a>
+                <a href="{{ homepage.hero.cta_secondary.url }}" class="btn btn-secondary">
+                    <span class="btn-icon">{{ homepage.hero.cta_secondary.icon }}</span>
+                    <span>{{ homepage.hero.cta_secondary.text }}</span>
+                </a>
+            </div>
+            
+            <!-- Live Stats Counter -->
+            <div class="hero-stats" data-aos="fade-up" data-aos-delay="400">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" data-count="{{ homepage.hero.stats.players }}">0</div>
+                    <div class="stat-label">Active Players</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-value" data-count="{{ homepage.hero.stats.tournaments }}">0</div>
+                    <div class="stat-label">Tournaments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-value">{{ homepage.hero.stats.matches_today }}</div>
+                    <div class="stat-label">Matches Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-value">{{ homepage.hero.stats.prize_distributed }}</div>
+                    <div class="stat-label">Distributed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================
+     GAMES SECTION - Main Games Showcase
+     ======================================== -->
+<section class="games-section" id="games">
+    <div class="container">
+        <div class="section-header" data-aos="fade-up">
+            <span class="section-badge">🎮 GAMES</span>
+            <h2 class="section-title">Choose Your <span class="gradient-text">Battlefield</span></h2>
+            <p class="section-description">
+                Compete across multiple esports titles with verified tournaments and real prizes
+            </p>
+        </div>
+        
+        <div class="games-grid">
+            {% for game in homepage.games %}
+            <a href="{{ game.url }}" class="game-card-v3" 
+                 data-aos="fade-up" 
+                 data-aos-delay="{{ forloop.counter0 }}00"
+                 style="--game-color: {{ game.color }}; --game-glow: {{ game.glow }};">
+                
+                <div class="game-card-v3-bg" style="background-image: url('{% static game.banner %}');"></div>
+                <div class="game-card-v3-overlay"></div>
+                
+                <div class="game-card-v3-content">
+                    <div class="game-card-v3-top">
+                        <img src="{% static game.logo %}" alt="{{ game.name }} Logo" class="game-logo" loading="lazy">
+                        <div class="game-platforms">
+                            {% for platform in game.platforms|slice:":2" %}
+                            <span class="platform-badge">{{ platform }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="game-card-v3-bottom">
+                        <div class="game-info">
+                            <h3 class="game-name">{{ game.name }}</h3>
+                            <p class="game-tagline">{{ game.tagline }}</p>
+                        </div>
+                        <div class="game-cta-v3">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- ========================================
+     FEATURES SECTION - Why Choose Us
+     ======================================== -->
+<section class="features-section">
+    <div class="container">
+        <div class="section-header" data-aos="fade-up">
+            <span class="section-badge">⚡ FEATURES</span>
+            <h2 class="section-title">Why <span class="gradient-text">DeltaCrown</span>?</h2>
+            <p class="section-description">
+                Professional esports platform built for serious competitors
+            </p>
+        </div>
+        
+        <div class="features-grid">
+            {% for feature in homepage.features %}
+            <div class="feature-card" 
+                 data-aos="fade-up" 
+                 data-aos-delay="{{ forloop.counter0|add:100 }}"
+                 style="--feature-color: {{ feature.color }};">
+                
+                <div class="feature-icon">
+                    <span>{{ feature.icon }}</span>
+                </div>
+                
+                <h3 class="feature-title">{{ feature.title }}</h3>
+                <p class="feature-description">{{ feature.description }}</p>
+                
+                <div class="feature-glow"></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- ========================================
+     LIVE TOURNAMENTS SECTION
+     ======================================== -->
+{% if homepage.live_tournaments %}
+<section class="live-tournaments-section">
+    <div class="container">
+        <div class="section-header" data-aos="fade-up">
+            <span class="section-badge">
+                <span class="live-pulse"></span> LIVE NOW
+            </span>
+            <h2 class="section-title">Active <span class="gradient-text">Tournaments</span></h2>
+        </div>
+        
+        <div class="live-tournaments-grid">
+            {% for tournament in homepage.live_tournaments %}
+            <div class="live-tournament-card" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:100 }}">
+                <div class="live-indicator-badge">
+                    <span class="live-dot"></span> LIVE
+                </div>
+                <h3 class="tournament-title">{{ tournament.name }}</h3>
+                <div class="tournament-meta">
+                    <span class="tournament-game">{{ tournament.game }}</span>
+                    <span class="tournament-players">{{ tournament.players }} Players</span>
+                </div>
+                <a href="{{ tournament.url }}" class="watch-btn">
+                    <span>Watch Now</span>
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ========================================
+     UPCOMING EVENTS SECTION
+     ======================================== -->
+{% if homepage.upcoming_events %}
+<section class="upcoming-events-section">
+    <div class="container">
+        <div class="section-header" data-aos="fade-up">
+            <span class="section-badge">📅 COMING SOON</span>
+            <h2 class="section-title">Upcoming <span class="gradient-text">Events</span></h2>
+        </div>
+        
+        <div class="events-timeline">
+            {% for event in homepage.upcoming_events %}
+            <div class="event-card" data-aos="fade-right" data-aos-delay="{{ forloop.counter0|add:100 }}">
+                <div class="event-date">
+                    {% if event.date %}
+                    <span class="date-day">{{ event.date|date:"d" }}</span>
+                    <span class="date-month">{{ event.date|date:"M" }}</span>
+                    {% endif %}
+                </div>
+                <div class="event-content">
+                    <h3 class="event-title">{{ event.name }}</h3>
+                    <div class="event-meta">
+                        <span class="event-game">{{ event.game }}</span>
+                        <span class="event-prize">{{ event.prize }}</span>
+                    </div>
+                </div>
+                <a href="{{ event.url }}" class="event-link">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ========================================
+     PLATFORM STATISTICS SECTION
+     ======================================== -->
+<section class="platform-stats-section">
+    <div class="container">
+        <div class="section-header" data-aos="fade-up">
+            <span class="section-badge">� BY THE NUMBERS</span>
+            <h2 class="section-title">Trusted By <span class="gradient-text">Thousands</span></h2>
+            <p class="section-description">
+                Join Bangladesh's fastest-growing esports community
+            </p>
+        </div>
+        
+        <div class="stats-showcase-grid">
+            <div class="showcase-stat-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="showcase-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <div class="showcase-stat-value" data-count="{{ homepage.hero.stats.players }}">{{ homepage.hero.stats.players }}</div>
+                <div class="showcase-stat-label">Registered Players</div>
+                <div class="showcase-stat-change">+23% this month</div>
+            </div>
+            
+            <div class="showcase-stat-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="showcase-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <path d="M16 10a4 4 0 0 1-8 0"></path>
+                    </svg>
+                </div>
+                <div class="showcase-stat-value" data-count="{{ homepage.hero.stats.tournaments }}">{{ homepage.hero.stats.tournaments }}</div>
+                <div class="showcase-stat-label">Tournaments Hosted</div>
+                <div class="showcase-stat-change">+15 this week</div>
+            </div>
+            
+            <div class="showcase-stat-card" data-aos="fade-up" data-aos-delay="300">
+                <div class="showcase-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
+                <div class="showcase-stat-value">{{ homepage.hero.stats.prize_distributed }}</div>
+                <div class="showcase-stat-label">Prize Money Paid</div>
+                <div class="showcase-stat-change">100% payout rate</div>
+            </div>
+            
+            <div class="showcase-stat-card" data-aos="fade-up" data-aos-delay="400">
+                <div class="showcase-stat-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </div>
+                <div class="showcase-stat-value">{{ homepage.hero.stats.matches_today }}</div>
+                <div class="showcase-stat-label">Matches Today</div>
+                <div class="showcase-stat-change">Live competitions</div>
+            </div>
+        </div>
+        
+        <!-- Trust Indicators -->
+        <div class="trust-indicators" data-aos="fade-up" data-aos-delay="500">
+            <div class="trust-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                </svg>
+                <span>4.8/5 Player Rating</span>
+            </div>
+            <div class="trust-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Verified Secure Platform</span>
+            </div>
+            <div class="trust-item">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="16 12 12 8 8 12"></polyline>
+                    <line x1="12" y1="16" x2="12" y2="8"></line>
+                </svg>
+                <span>Instant Prize Distribution</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================
+     FINAL CTA SECTION
+     ======================================== -->
+<section class="cta-section">
+    <div class="cta-overlay"></div>
+    <div class="container">
+        <div class="cta-content" data-aos="zoom-in">
+            <h2 class="cta-title">{{ homepage.cta.title }}</h2>
+            <p class="cta-description">{{ homepage.cta.subtitle }}</p>
+            <a href="{{ homepage.cta.button_url }}" class="btn btn-primary btn-large btn-glow">
+                <span>{{ homepage.cta.button_text }}</span>
+                <span class="btn-shine"></span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="{% static 'js/homepage-cyberpunk.js' %}"></script>
+<script>
+    // Initialize AOS (Animate On Scroll)
+    AOS.init({
+        duration: 800,
+        easing: 'ease-out-cubic',
+        once: true,
+        offset: 100
+    });
+</script>
+{% endblock %}

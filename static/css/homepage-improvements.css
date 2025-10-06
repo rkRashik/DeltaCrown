@@ -1,0 +1,391 @@
+/* ============================================
+   HOMEPAGE IMPROVEMENTS V2
+   Professional spacing and alignment fixes
+   ============================================ */
+
+/* Hero Section Improvements */
+.hero-section {
+    padding: 100px 2rem 80px !important;
+}
+
+.hero-content {
+    max-width: 1000px !important;
+}
+
+.hero-badge {
+    padding: 12px 28px !important;
+    margin-bottom: 32px !important;
+}
+
+.hero-title {
+    margin-bottom: 28px !important;
+}
+
+.hero-description {
+    margin-bottom: 48px !important;
+}
+
+.hero-cta {
+    margin-bottom: 60px !important;
+}
+
+/* Live Stats Improvements */
+.live-stats {
+    gap: 28px !important;
+    margin: 64px 0 0 !important;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+}
+
+.stat-card {
+    padding: 36px 28px !important;
+    border-radius: 20px !important;
+}
+
+.stat-card:hover {
+    transform: translateY(-10px) !important;
+}
+
+/* Games Section Improvements */
+.games-section {
+    padding: 100px 2rem !important;
+}
+
+.section-header {
+    margin-bottom: 64px !important;
+}
+
+.section-badge {
+    padding: 10px 24px !important;
+    font-size: 15px !important;
+    margin-bottom: 20px !important;
+}
+
+.section-title {
+    font-size: clamp(36px, 5vw, 56px) !important;
+    margin-bottom: 16px !important;
+}
+
+.section-description {
+    font-size: 18px !important;
+    max-width: 650px !important;
+}
+
+.games-grid {
+    gap: 32px !important;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+}
+
+.game-card {
+    border-radius: 20px !important;
+    overflow: hidden !important;
+    height: 480px !important;
+}
+
+.game-card-content {
+    padding: 32px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    height: 100% !important;
+}
+
+/* Game Platforms Display */
+.game-platforms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.platform-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.platform-badge:hover {
+    background: rgba(255, 70, 85, 0.2);
+    border-color: rgba(255, 70, 85, 0.5);
+    transform: scale(1.05);
+}
+
+/* Game Stats Redesign */
+.game-stats {
+    display: flex !important;
+    gap: 16px !important;
+    margin-top: auto !important;
+}
+
+.game-stat {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 16px 12px !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.stat-icon {
+    font-size: 22px !important;
+}
+
+.stat-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+.stat-value {
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    color: #00FF88 !important;
+    line-height: 1 !important;
+}
+
+.stat-label {
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    margin-top: 4px !important;
+}
+
+/* Game Name Styling */
+.game-name {
+    font-size: 28px !important;
+    font-weight: 900 !important;
+    margin: 0 !important;
+    color: #fff !important;
+}
+
+/* Remove Featured Badge */
+.featured-badge {
+    display: none !important;
+}
+
+/* Platform Statistics Section */
+.platform-stats-section {
+    padding: 100px 2rem;
+    background: linear-gradient(180deg, rgba(10, 14, 39, 0.5), rgba(5, 8, 18, 0.8));
+    position: relative;
+}
+
+.platform-stats-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 70, 85, 0.5), transparent);
+}
+
+.stats-showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 28px;
+    margin-top: 56px;
+}
+
+.showcase-stat-card {
+    background: linear-gradient(135deg, rgba(20, 27, 45, 0.9), rgba(10, 14, 39, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 40px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+}
+
+.showcase-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #FF4655, #00FF88);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.showcase-stat-card:hover::before {
+    opacity: 1;
+}
+
+.showcase-stat-card:hover {
+    transform: translateY(-12px);
+    border-color: rgba(255, 70, 85, 0.5);
+    box-shadow: 0 16px 48px rgba(255, 70, 85, 0.3);
+}
+
+.showcase-stat-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 70, 85, 0.1);
+    border-radius: 50%;
+    border: 2px solid rgba(255, 70, 85, 0.3);
+}
+
+.showcase-stat-icon svg {
+    width: 36px;
+    height: 36px;
+    color: #FF4655;
+}
+
+.showcase-stat-value {
+    font-size: 48px;
+    font-weight: 900;
+    color: #fff;
+    margin-bottom: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    background: linear-gradient(135deg, #FF4655, #00FF88);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.showcase-stat-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.showcase-stat-change {
+    font-size: 14px;
+    color: #00FF88;
+    font-weight: 600;
+}
+
+/* Trust Indicators */
+.trust-indicators {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 40px;
+    margin-top: 60px;
+    padding-top: 60px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.trust-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.trust-item svg {
+    width: 24px;
+    height: 24px;
+    color: #00FF88;
+}
+
+/* Features Section Improvements */
+.features-section {
+    padding: 100px 2rem !important;
+}
+
+.features-grid {
+    gap: 28px !important;
+}
+
+.feature-card {
+    padding: 36px 32px !important;
+    border-radius: 20px !important;
+}
+
+/* CTA Section Improvements */
+.cta-section {
+    padding: 120px 2rem !important;
+    margin: 80px 0 !important;
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 80px 1.5rem 60px !important;
+    }
+    
+    .games-section,
+    .features-section,
+    .platform-stats-section {
+        padding: 60px 1.5rem !important;
+    }
+    
+    .section-header {
+        margin-bottom: 40px !important;
+    }
+    
+    .games-grid {
+        grid-template-columns: 1fr !important;
+        gap: 24px !important;
+    }
+    
+    .game-card {
+        height: 420px !important;
+    }
+    
+    .live-stats {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 16px !important;
+    }
+    
+    .stats-showcase-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    
+    .trust-indicators {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .cta-section {
+        padding: 80px 1.5rem !important;
+        margin: 60px 0 !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .live-stats {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .game-stats {
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    
+    .game-stat {
+        flex-direction: row !important;
+        justify-content: flex-start !important;
+        padding: 12px 16px !important;
+    }
+    
+    .stat-content {
+        align-items: flex-start !important;
+    }
+}

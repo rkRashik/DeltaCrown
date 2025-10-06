@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 180" role="img" aria-label="DeltaCrown — Gradient Pulse A">
+  <defs>
+    <linearGradient id="dc-pulse-a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%">
+        <animate attributeName="stop-color" values="#06b6d4;#8b5cf6;#facc15;#06b6d4" dur="6s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%">
+        <animate attributeName="stop-color" values="#facc15;#06b6d4;#8b5cf6;#facc15" dur="6s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    <style>
+      .dcf{font-family:"Russo One","Orbitron","Segoe UI",Arial,sans-serif;font-weight:900;letter-spacing:6px}
+    </style>
+  </defs>
+
+  <!-- DELT -->
+  <text x="24" y="112" font-size="92" class="dcf" fill="url(#dc-pulse-a)">DELT</text>
+
+  <!-- Δ-crown “A” (moved slightly left to tighten spacing) -->
+  <g transform="translate(320,0)" fill="url(#dc-pulse-a)">
+    <path fill-rule="evenodd" d="M0 28 L48 112 L-48 112 Z M0 62 L-22 112 L22 112 Z"/>
+    <circle cx="-16" cy="28" r="6"/>
+    <circle cx="0"   cy="18" r="6"/>
+    <circle cx="16"  cy="28" r="6"/>
+  </g>
+
+  <!-- CROWN (also brought left a bit) -->
+  <text x="410" y="112" font-size="92" class="dcf" fill="url(#dc-pulse-a)">CROWN</text>
+</svg>

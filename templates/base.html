@@ -31,8 +31,10 @@
     <link rel="stylesheet" href="{% static 'siteui/css/footer.css' %}" />
     <link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
 
     {# 🔽 allow pages to inject extra CSS (e.g., tournaments-detail.css) #}
+    {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
   </head>
   <body class="min-h-full bg-body text-body antialiased">
@@ -46,7 +48,7 @@
 
     {% block footer %}
     {% if request.path == '/' %}
-      {% include "partials/footer_fixed.html" %}
+      {% include "partials/footer_industry.html" %}
     {% endif %}
     {% endblock %}
     {% include "partials/toasts.html" %}

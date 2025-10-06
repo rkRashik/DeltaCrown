@@ -1,61 +1,72 @@
 /**
  * Sun/Moon Theme Toggle Functionality
  * Handles smooth theme switching with elegant sun/moon toggle
+ * Works with profile dropdown and all theme toggle buttons
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    const themeToggle = document.getElementById('theme-toggle');
-    const profileThemeToggle = document.getElementById('profile-theme-toggle');
-    const toggleLabel = document.querySelector('.theme-toggle-label');
+    // Find all theme toggles
+    const themeToggles = document.querySelectorAll('[data-theme-toggle]');
+    const root = document.documentElement;
     const body = document.body;
     
-    // Use profile toggle if main toggle doesn't exist
-    const activeToggle = themeToggle || profileThemeToggle;
-    if (!activeToggle) return;
-    
-    // Check for saved theme or default to dark mode (unchecked = light, checked = dark)
+    // Default to dark mode always
     const currentTheme = localStorage.getItem('theme') || 'dark';
     
     // Apply theme on page load
-    if (currentTheme === 'dark') {
-        body.classList.remove('light-theme');
-        body.classList.add('dark-theme');
-        body.setAttribute('data-bs-theme', 'dark');
-        activeToggle.checked = true;
-    } else {
-        body.classList.remove('dark-theme');
-        body.classList.add('light-theme');
-        body.setAttribute('data-bs-theme', 'light');
-        activeToggle.checked = false;
-    }
-    
-    // Handle theme toggle with smooth animations
-    activeToggle.addEventListener('change', function() {
-        // Add brief "processing" class for extra visual feedback
-        if (toggleLabel) {
-            toggleLabel.classList.add('processing');
-            setTimeout(() => toggleLabel.classList.remove('processing'), 400);
-        }
-        
-        if (this.checked) {
-            // Switch to dark theme (moon)
+    function applyTheme(theme) {
+        if (theme === 'dark') {
             body.classList.remove('light-theme');
             body.classList.add('dark-theme');
+            root.setAttribute('data-theme', 'dark');
             body.setAttribute('data-bs-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
             
-            // Soft night sound effect
-            playToggleSound([400, 300], 0.04, 'dark');
+            // Update all toggles
+            themeToggles.forEach(toggle => {
+                toggle.checked = true;
+            });
         } else {
-            // Switch to light theme (sun)
             body.classList.remove('dark-theme');
             body.classList.add('light-theme');
+            root.setAttribute('data-theme', 'light');
             body.setAttribute('data-bs-theme', 'light');
-            localStorage.setItem('theme', 'light');
             
-            // Bright day sound effect
-            playToggleSound([800, 1000], 0.04, 'light');
+            // Update all toggles
+            themeToggles.forEach(toggle => {
+                toggle.checked = false;
+            });
         }
+    }
+    
+    // Apply initial theme
+    applyTheme(currentTheme);
+    
+    // Handle theme toggle change
+    themeToggles.forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const newTheme = this.checked ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Sync all other toggles
+            themeToggles.forEach(otherToggle => {
+                if (otherToggle !== this) {
+                    otherToggle.checked = this.checked;
+                }
+            });
+            
+            // Play sound effect
+            playToggleSound(newTheme === 'dark' ? [400, 300] : [800, 1000], 0.04, newTheme);
+        });
+        
+        // Keyboard support
+        toggle.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault();
+                this.checked = !this.checked;
+                this.dispatchEvent(new Event('change'));
+            }
+        });
     });
     
     // Subtle toggle sound effect
@@ -86,15 +97,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Silently fail if audio is not supported or blocked
         }
     }
-    
-    // Add keyboard support for accessibility
-    activeToggle.addEventListener('keydown', function(e) {
-        if (e.code === 'Space' || e.code === 'Enter') {
-            e.preventDefault();
-            this.checked = !this.checked;
-            this.dispatchEvent(new Event('change'));
-        }
-    });
     
     // Add smooth transition class after initial load
     setTimeout(() => {

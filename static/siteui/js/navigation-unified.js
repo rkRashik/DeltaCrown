@@ -50,6 +50,69 @@
     }
   });
 
+  // =================================================================
+  // SCROLLING NAVBAR WITH GLASSY EFFECT
+  // =================================================================
+  
+  const navbar = document.querySelector('.unified-nav-desktop');
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+  
+  function updateNavbar() {
+    const scrollY = window.scrollY;
+    
+    if (scrollY > 50) {
+      navbar?.classList.add('scrolled');
+    } else {
+      navbar?.classList.remove('scrolled');
+    }
+    
+    ticking = false;
+  }
+  
+  function requestNavbarUpdate() {
+    if (!ticking) {
+      window.requestAnimationFrame(updateNavbar);
+      ticking = true;
+    }
+  }
+  
+  window.addEventListener('scroll', requestNavbarUpdate, { passive: true });
+  updateNavbar(); // Initial check
+
+  // =================================================================
+  // THEME TOGGLE SYSTEM
+  // =================================================================
+  
+  const themeToggles = document.querySelectorAll('[data-theme-toggle]');
+  
+  // Load saved theme or default to dark
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  document.body.setAttribute('data-theme', savedTheme);
+  
+  // Set initial toggle states
+  themeToggles.forEach(toggle => {
+    toggle.checked = savedTheme === 'dark';
+  });
+  
+  // Handle theme changes
+  themeToggles.forEach(toggle => {
+    toggle.addEventListener('change', function() {
+      const newTheme = this.checked ? 'dark' : 'light';
+      
+      // Apply theme
+      document.documentElement.setAttribute('data-theme', newTheme);
+      document.body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Sync all toggles
+      themeToggles.forEach(t => {
+        t.checked = this.checked;
+      });
+    });
+  });
+
   /**
    * Create Notification Dropdown
    */

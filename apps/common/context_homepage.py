@@ -1,256 +1,372 @@
 """
-Homepage Context Configuration
-=============================
-Controls all homepage content, features, and display settings.
+Homepage Context Configuration - Cyberpunk         {
+            'code': 'VAL',
+            'name': 'Valorant',
+            'tagline': 'Tactical 5v5 Shooter',
+            'logo': 'img/game_logos/valorant_logo.svg',
+            'banner': 'img/game_cards/valorant.jpeg',
+            'color': '#FF4655',
+            'glow': 'rgba(255, 70, 85, 0.4)',
+            'platforms': ['PC'],
+            'tournaments_active': get_game_tournament_count('valorant'),
+            'players_online': get_game_player_count('valorant'),
+            'prize_pool': '৳75,000',
+            'url': '/tournaments/?game=valorant',
+            'featured': True,
+        },============================================
+Modern, dynamic context processor for the cyberpunk-themed homepage.
+All configuration in one place for easy updates.
 """
 
 from django.conf import settings
+from django.utils import timezone
+from django.apps import apps
+from datetime import timedelta
 from apps.common.game_assets import GAMES
 
 
 def homepage_context(request):
     """
-    Homepage context processor providing all homepage configuration.
+    Comprehensive homepage context with live data and static content.
     """
     
-    # Hero Section Configuration
-    hero_config = {
-        'title': 'Level Up Your Game',
-        'subtitle': 'Premier Esports Platform',
-        'description': 'Join thousands of gamers in competitive tournaments. Climb rankings, earn rewards, and become a legend.',
+    # ================================================================
+    # HERO SECTION - Dynamic Tournament Feature
+    # ================================================================
+    
+    featured_tournament = get_featured_tournament()
+    
+    hero = {
+        'title': 'Dominate The Arena',
+        'subtitle': 'Bangladesh\'s Premier Esports Platform',
+        'description': 'Compete in legendary tournaments. Earn glory. Claim prizes. Join thousands of gamers in the ultimate competitive experience.',
         'cta_primary': {
-            'text': 'Start Competing',
-            'url': '/tournaments/',
-            'icon': 'fa-trophy'
+            'text': 'Join Tournament',
+            'url': featured_tournament['url'] if featured_tournament else '/tournaments/',
+            'icon': '⚡'
         },
         'cta_secondary': {
-            'text': 'Browse Teams',
-            'url': '/teams/',
-            'icon': 'fa-users'
+            'text': 'Explore Games',
+            'url': '#games',
+            'icon': '🎮'
         },
-        'background_video': 'videos/hero-bg.mp4',  # Optional video background
-        'background_image': 'img/hero/esports-arena.jpg',
-        'overlay_opacity': 0.7
+        'featured_tournament': featured_tournament,
+        'stats': get_live_stats(),
     }
     
-    # Featured Games Configuration
-    featured_games = [
+    # ================================================================
+    # GAMES SHOWCASE - Main Games Grid
+    # ================================================================
+    
+    games = [
         {
             'code': 'VALORANT',
-            'highlight': True,
-            'tournaments_count': 12,
-            'players_count': 2847,
-            'featured_tournament': {
-                'name': 'Valorant Champions Cup',
-                'prize': '৳50,000',
-                'starts_in': '2 days'
-            }
+            'name': 'Valorant',
+            'tagline': 'Tactical Shooter',
+            'logo': 'img/game_logos/Valorant_logo.jpg',
+            'banner': 'img/game_cards/Valorant.jpg',
+            'color': '#FF4655',
+            'glow': 'rgba(255, 70, 85, 0.4)',
+            'tournaments_active': get_game_tournament_count('valorant'),
+            'players_online': get_game_player_count('valorant'),
+            'prize_pool': '৳85,000',
+            'url': '/tournaments/?game=valorant',
+            'featured': True,
         },
         {
             'code': 'EFOOTBALL',
-            'highlight': True,
-            'tournaments_count': 8,
-            'players_count': 1923,
-            'featured_tournament': {
-                'name': 'eFootball Premier League',
-                'prize': '৳35,000',
-                'starts_in': '5 days'
-            }
+            'name': 'eFootball',
+            'tagline': 'Virtual Stadium',
+            'logo': 'img/game_logos/efootball_logo.jpeg',
+            'banner': 'img/game_cards/efootball.jpeg',
+            'color': '#00FF88',
+            'glow': 'rgba(0, 255, 136, 0.4)',
+            'tournaments_active': get_game_tournament_count('efootball'),
+            'players_online': get_game_player_count('efootball'),
+            'prize_pool': '৳65,000',
+            'url': '/tournaments/?game=efootball',
+            'featured': True,
         },
         {
             'code': 'CS2',
-            'highlight': True,
-            'tournaments_count': 6,
-            'players_count': 1456,
-            'featured_tournament': {
-                'name': 'Counter-Strike Elite',
-                'prize': '৳40,000',
-                'starts_in': '1 week'
-            }
+            'name': 'Counter-Strike 2',
+            'tagline': 'Tactical FPS',
+            'logo': 'img/game_logos/CS2_logo.jpeg',
+            'banner': 'img/game_cards/CS2.jpg',
+            'color': '#F79100',
+            'glow': 'rgba(247, 145, 0, 0.4)',
+            'tournaments_active': get_game_tournament_count('cs2'),
+            'players_online': get_game_player_count('cs2'),
+            'prize_pool': '৳75,000',
+            'url': '/tournaments/?game=cs2',
+            'featured': True,
         },
         {
             'code': 'MLBB',
-            'highlight': False,
-            'tournaments_count': 15,
-            'players_count': 3201,
+            'name': 'Mobile Legends',
+            'tagline': 'MOBA Battle',
+            'logo': 'img/game_logos/mobile_legend_logo.jpeg',
+            'banner': 'img/game_cards/MobileLegend.jpg',
+            'color': '#4169E1',
+            'glow': 'rgba(65, 105, 225, 0.4)',
+            'tournaments_active': get_game_tournament_count('mlbb'),
+            'players_online': get_game_player_count('mlbb'),
+            'prize_pool': '৳55,000',
+            'url': '/tournaments/?game=mlbb',
+            'featured': False,
         },
         {
             'code': 'PUBG',
-            'highlight': False,
-            'tournaments_count': 9,
-            'players_count': 2134,
+            'name': 'PUBG Mobile',
+            'tagline': 'Battle Royale',
+            'logo': 'img/game_logos/PUBG_logo.jpg',
+            'banner': 'img/game_cards/PUBG.jpeg',
+            'color': '#FFB800',
+            'glow': 'rgba(255, 184, 0, 0.4)',
+            'platforms': ['Mobile', 'iOS', 'Android'],
+            'tournaments_active': get_game_tournament_count('pubg'),
+            'players_online': get_game_player_count('pubg'),
+            'prize_pool': '৳45,000',
+            'url': '/tournaments/?game=pubg',
+            'featured': False,
         },
         {
             'code': 'FC26',
-            'highlight': False,
-            'tournaments_count': 4,
-            'players_count': 892,
-        }
+            'name': 'EA Sports FC 26',
+            'tagline': 'Football Simulation',
+            'logo': 'img/game_logos/fc26_logo.jpg',
+            'banner': 'img/game_cards/FC26.jpg',
+            'color': '#00D8FF',
+            'glow': 'rgba(0, 216, 255, 0.4)',
+            'platforms': ['PC', 'PS5', 'Xbox'],
+            'tournaments_active': get_game_tournament_count('fc26'),
+            'players_online': get_game_player_count('fc26'),
+            'prize_pool': '৳35,000',
+            'url': '/tournaments/?game=fc26',
+            'featured': False,
+        },
     ]
     
-    # Platform Statistics
-    platform_stats = {
-        'total_tournaments': 156,
-        'active_players': 12847,
-        'total_prizes': '৳2,50,000',
-        'communities': 8,
-        'growth_rate': '+23%'
-    }
+    # ================================================================
+    # PLATFORM FEATURES - Why Choose DeltaCrown
+    # ================================================================
     
-    # Features Section
     features = [
         {
-            'icon': 'fa-trophy',
-            'title': 'Competitive Tournaments',
-            'description': 'Join ranked tournaments with verified prizes and fair matchmaking.',
-            'color': '#FF6B35'
+            'icon': '🏆',
+            'title': 'Verified Tournaments',
+            'description': 'Professionally organized tournaments with guaranteed prize pools and fair rules.',
+            'color': '#FF4655',
         },
         {
-            'icon': 'fa-chart-line',
-            'title': 'Real-time Rankings',
-            'description': 'Track your progress with live leaderboards and performance analytics.',
-            'color': '#4ECDC4'
-        },
-        {
-            'icon': 'fa-shield-alt',
-            'title': 'Anti-Cheat Security',
-            'description': 'Advanced detection systems ensure fair play for all participants.',
-            'color': '#45B7D1'
-        },
-        {
-            'icon': 'fa-money-bill-wave',
+            'icon': '⚡',
             'title': 'Instant Payouts',
-            'description': 'Win and get paid instantly through our secure payment system.',
-            'color': '#96CEB4'
+            'description': 'Win and get paid immediately through our secure instant payment system.',
+            'color': '#FFB800',
         },
         {
-            'icon': 'fa-users',
+            'icon': '🎯',
+            'title': 'Skill-Based Matching',
+            'description': 'Advanced matchmaking ensures fair competition at your skill level.',
+            'color': '#00FF88',
+        },
+        {
+            'icon': '🛡️',
+            'title': 'Anti-Cheat Protection',
+            'description': 'State-of-the-art detection systems for a completely fair playing field.',
+            'color': '#4169E1',
+        },
+        {
+            'icon': '📊',
+            'title': 'Live Rankings',
+            'description': 'Real-time leaderboards and comprehensive performance analytics.',
+            'color': '#F79100',
+        },
+        {
+            'icon': '👥',
             'title': 'Team Management',
-            'description': 'Create and manage professional esports teams with advanced tools.',
-            'color': '#FFEAA7'
+            'description': 'Build and manage professional esports teams with powerful tools.',
+            'color': '#00D8FF',
         },
-        {
-            'icon': 'fa-broadcast-tower',
-            'title': 'Live Streaming',
-            'description': 'Stream your matches and build your audience with integrated tools.',
-            'color': '#DDA0DD'
-        }
     ]
     
-    # Testimonials
-    testimonials = [
-        {
-            'name': 'Akash Rahman',
-            'team': 'Team Phoenix',
-            'game': 'Valorant',
-            'avatar': 'img/avatars/player1.jpg',
-            'rating': 5,
-            'text': 'DeltaCrown helped me find my competitive edge. The tournaments are well-organized and the community is incredible.',
-            'verified': True
-        },
-        {
-            'name': 'Nadia Islam',
-            'team': 'Storm Riders',
-            'game': 'Mobile Legends',
-            'avatar': 'img/avatars/player2.jpg',
-            'rating': 5,
-            'text': 'Best platform for esports in Bangladesh. Fair matchmaking and instant prize distribution!',
-            'verified': True
-        },
-        {
-            'name': 'Rifat Ahmed',
-            'team': 'Cyber Wolves',
-            'game': 'CS2',
-            'avatar': 'img/avatars/player3.jpg',
-            'rating': 5,
-            'text': 'Professional tournament experience with great anti-cheat systems. Highly recommend!',
-            'verified': True
-        }
-    ]
+    # ================================================================
+    # LIVE TOURNAMENTS - Currently Active
+    # ================================================================
     
-    # Recent News & Updates
-    news_updates = [
-        {
-            'title': 'DeltaCrown Championship 2025 Announced',
-            'excerpt': 'Biggest esports tournament in Bangladesh with ৳5,00,000 prize pool.',
-            'image': 'img/news/championship-2025.jpg',
-            'date': '2025-09-25',
-            'category': 'Tournament',
-            'url': '/news/championship-2025/'
-        },
-        {
-            'title': 'New Anti-Cheat System Launch',
-            'excerpt': 'Advanced AI-powered detection system ensures 100% fair play.',
-            'image': 'img/news/anticheat-launch.jpg',
-            'date': '2025-09-20',
-            'category': 'Technology',
-            'url': '/news/anticheat-system/'
-        },
-        {
-            'title': 'Mobile Gaming Expansion',
-            'excerpt': 'Added support for 5 new mobile games including Free Fire and COD Mobile.',
-            'image': 'img/news/mobile-expansion.jpg',
-            'date': '2025-09-15',
-            'category': 'Games',
-            'url': '/news/mobile-expansion/'
-        }
-    ]
+    live_tournaments = get_live_tournaments()
     
-    # Call-to-Action Sections
-    cta_sections = {
-        'tournaments': {
-            'title': 'Ready to Compete?',
-            'subtitle': 'Join active tournaments and start your esports journey',
-            'button_text': 'View Tournaments',
-            'button_url': '/tournaments/',
-            'background_gradient': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        },
-        'teams': {
-            'title': 'Build Your Legacy',
-            'subtitle': 'Create or join professional esports teams',
-            'button_text': 'Explore Teams',
-            'button_url': '/teams/',
-            'background_gradient': 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-        }
+    # ================================================================
+    # UPCOMING EVENTS - Next 7 Days
+    # ================================================================
+    
+    upcoming_events = get_upcoming_events()
+    
+    # ================================================================
+    # TESTIMONIALS - Removed (replaced with stats showcase)
+    # ================================================================
+    
+    testimonials = []
+    
+    # ================================================================
+    # CALL TO ACTION - Join Community
+    # ================================================================
+    
+    cta = {
+        'title': 'Ready To Compete?',
+        'subtitle': 'Join thousands of gamers in the ultimate competitive experience',
+        'button_text': 'Create Free Account',
+        'button_url': '/accounts/signup/' if not request.user.is_authenticated else '/tournaments/',
     }
     
-    # Theme Configuration
-    theme_config = {
-        'primary_color': '#FF6B35',
-        'secondary_color': '#4ECDC4',
-        'accent_color': '#45B7D1',
-        'success_color': '#96CEB4',
-        'warning_color': '#FFEAA7',
-        'danger_color': '#FF7675',
-        'dark_bg': '#0a0a0a',
-        'dark_surface': '#1a1a1a',
-        'dark_text': '#ffffff',
-        'light_bg': '#ffffff',
-        'light_surface': '#f8f9fa',
-        'light_text': '#333333'
-    }
-    
-    # Animation Settings
-    animation_config = {
-        'hero_particles': True,
-        'scroll_reveal': True,
-        'hover_effects': True,
-        'loading_animations': True,
-        'transition_duration': '0.3s',
-        'easing': 'cubic-bezier(0.4, 0, 0.2, 1)'
-    }
+    # ================================================================
+    # RETURN COMPLETE CONTEXT
+    # ================================================================
     
     return {
         'homepage': {
-            'hero': hero_config,
-            'featured_games': featured_games,
-            'platform_stats': platform_stats,
+            'hero': hero,
+            'games': games,
             'features': features,
+            'live_tournaments': live_tournaments,
+            'upcoming_events': upcoming_events,
             'testimonials': testimonials,
-            'news_updates': news_updates,
-            'cta_sections': cta_sections,
-            'theme': theme_config,
-            'animations': animation_config,
-            'games': GAMES,  # Include all game assets
+            'cta': cta,
         }
     }
+
+
+# =======================================================================
+# HELPER FUNCTIONS - Dynamic Data Fetching
+# =======================================================================
+
+def get_featured_tournament():
+    """Get the next featured tournament or most recent"""
+    try:
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        now = timezone.now()
+        
+        # Try to get next upcoming tournament
+        tournament = Tournament.objects.filter(
+            settings__start_at__gte=now
+        ).order_by('settings__start_at').first()
+        
+        # Fallback to latest tournament
+        if not tournament:
+            tournament = Tournament.objects.order_by('-id').first()
+        
+        if tournament:
+            return {
+                'name': tournament.name,
+                'game': getattr(tournament, 'game', 'Unknown').title(),
+                'prize': f"৳{tournament.prize_pool or 0:,}",
+                'date': getattr(tournament.settings, 'start_at', None),
+                'slots': getattr(tournament, 'max_teams', 0) or getattr(tournament, 'max_participants', 0),
+                'url': f'/tournaments/{tournament.slug}/' if tournament.slug else '/tournaments/',
+                'is_live': is_tournament_live(tournament),
+            }
+    except Exception as e:
+        print(f"Error fetching featured tournament: {e}")
+    
+    return None
+
+
+def get_live_stats():
+    """Get live platform statistics"""
+    try:
+        User = apps.get_model('auth', 'User')
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        Registration = apps.get_model('tournaments', 'Registration')
+        
+        return {
+            'players': User.objects.count(),
+            'tournaments': Tournament.objects.count(),
+            'matches_today': 24,  # TODO: Implement actual match tracking
+            'prize_distributed': '৳12,50,000',  # TODO: Calculate from payments
+        }
+    except Exception:
+        return {
+            'players': '12,500+',
+            'tournaments': '150+',
+            'matches_today': '24',
+            'prize_distributed': '৳12,50,000',
+        }
+
+
+def get_game_tournament_count(game_slug):
+    """Get active tournament count for a game"""
+    try:
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        count = Tournament.objects.filter(game__iexact=game_slug).count()
+        return count
+    except Exception:
+        return 0
+
+
+def get_game_player_count(game_slug):
+    """Get registered player count for a game"""
+    try:
+        Registration = apps.get_model('tournaments', 'Registration')
+        count = Registration.objects.filter(
+            tournament__game__iexact=game_slug
+        ).values('user').distinct().count()
+        return count
+    except Exception:
+        return 0
+
+
+def get_live_tournaments():
+    """Get currently live tournaments"""
+    try:
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        now = timezone.now()
+        
+        tournaments = Tournament.objects.filter(
+            settings__start_at__lte=now,
+            settings__end_at__gte=now
+        ).select_related('settings')[:3]
+        
+        return [{
+            'name': t.name,
+            'game': getattr(t, 'game', 'Unknown').title(),
+            'players': getattr(t, 'max_teams', 0) or getattr(t, 'max_participants', 0),
+            'url': f'/tournaments/{t.slug}/' if t.slug else '/tournaments/',
+        } for t in tournaments]
+    except Exception:
+        return []
+
+
+def get_upcoming_events():
+    """Get upcoming tournaments in next 7 days"""
+    try:
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        now = timezone.now()
+        next_week = now + timedelta(days=7)
+        
+        tournaments = Tournament.objects.filter(
+            settings__start_at__gte=now,
+            settings__start_at__lte=next_week
+        ).order_by('settings__start_at').select_related('settings')[:4]
+        
+        return [{
+            'name': t.name,
+            'game': getattr(t, 'game', 'Unknown').title(),
+            'date': getattr(t.settings, 'start_at', None),
+            'prize': f"৳{t.prize_pool or 0:,}",
+            'url': f'/tournaments/{t.slug}/' if t.slug else '/tournaments/',
+        } for t in tournaments]
+    except Exception:
+        return []
+
+
+def is_tournament_live(tournament):
+    """Check if tournament is currently live"""
+    try:
+        now = timezone.now()
+        start = getattr(tournament.settings, 'start_at', None)
+        end = getattr(tournament.settings, 'end_at', None)
+        if start and end:
+            return start <= now <= end
+    except Exception:
+        pass
+    return False
