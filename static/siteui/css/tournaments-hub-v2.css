@@ -470,6 +470,15 @@
     animation: livePulse 2s ease-in-out infinite;
 }
 
+.dc-badge-registered {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border-color: #10b981;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 @keyframes livePulse {
     0%, 100% { box-shadow: 0 0 20px rgba(255, 70, 85, 0.5); }
     50% { box-shadow: 0 0 40px rgba(255, 70, 85, 0.8); }
@@ -580,6 +589,19 @@
     box-shadow: 0 6px 25px var(--primary-glow);
 }
 
+.dc-btn-registered {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border-color: #10b981;
+    cursor: default;
+}
+
+.dc-btn-registered:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: none;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
 .dc-btn-outline {
     background: transparent;
     color: var(--text-primary);
@@ -590,6 +612,18 @@
     border-color: var(--primary);
     background: rgba(0, 255, 136, 0.1);
     color: var(--primary);
+}
+
+.dc-btn-secondary {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border-color: var(--glass-border);
+}
+
+.dc-btn-secondary:hover {
+    border-color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
 }
 
 /* Listing Section */
@@ -792,10 +826,34 @@
     transform: scale(1.1);
 }
 
+.dc-game-logo-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    z-index: 2;
+}
+
+.dc-game-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
 .dc-card-badges {
     position: absolute;
     top: 1rem;
-    left: 1rem;
+    right: 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -826,43 +884,183 @@
 .dc-card-meta {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+    gap: 1rem;
     margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--bg-elevated);
+    border-radius: var(--radius);
+    border: 1px solid var(--glass-border);
 }
 
 .dc-card-meta-item {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: var(--transition);
 }
 
-.dc-card-meta-item i {
+.dc-card-meta-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dc-meta-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
     color: var(--text-muted);
-    width: 16px;
-    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dc-meta-label i {
+    color: var(--primary);
+    width: 14px;
+    font-size: 0.875rem;
+}
+
+.dc-meta-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.dc-meta-prize {
+    color: #ffd700 !important;
+    font-size: 1.1rem !important;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.dc-meta-fee {
+    color: var(--primary);
+}
+
+.dc-free-badge {
+    background: linear-gradient(135deg, #00ff88, #00e67a);
+    color: #000;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dc-registration-count {
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.dc-registration-separator {
+    color: var(--text-muted);
+    margin: 0 0.25rem;
+}
+
+.dc-max-teams {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.dc-unlimited {
+    color: var(--text-muted);
+    font-style: italic;
+    font-weight: 500;
+    text-transform: lowercase;
+}
+
+.dc-slots-remaining {
+    color: var(--primary);
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+.dc-slots-text {
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-left: 0.25rem;
+}
+
+.dc-slots-total {
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin-left: 0.5rem;
+}
+
+.dc-unlimited-text {
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: 0.25rem;
 }
 
 .dc-card-progress {
     margin-bottom: 1rem;
+    padding: 1rem;
+    background: var(--bg-elevated);
+    border-radius: var(--radius);
+    border: 1px solid var(--glass-border);
 }
 
 .dc-progress-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.dc-progress-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
     font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dc-progress-label i {
+    color: var(--primary);
+}
+
+.dc-progress-stats {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.dc-current-count {
+    color: var(--primary);
+}
+
+.dc-progress-separator {
+    color: var(--text-muted);
+    margin: 0 0.25rem;
+}
+
+.dc-total-count {
+    color: var(--text-secondary);
+}
+
+.dc-progress-percent {
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: 0.5rem;
 }
 
 .dc-progress-bar-wrap {
-    height: 6px;
+    height: 8px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
+    position: relative;
 }
 
 .dc-progress-bar {
@@ -870,6 +1068,41 @@
     background: linear-gradient(90deg, var(--primary) 0%, var(--primary-hover) 100%);
     transition: width 0.5s ease;
     box-shadow: 0 0 10px var(--primary-glow);
+    border-radius: 4px;
+}
+
+.dc-full-notice,
+.dc-almost-full-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dc-full-notice {
+    background: rgba(220, 53, 69, 0.15);
+    color: #ff6b7a;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.dc-full-notice i {
+    color: #ff6b7a;
+}
+
+.dc-almost-full-notice {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.dc-almost-full-notice i {
+    color: #ffc107;
 }
 
 .dc-card-actions {
@@ -1109,6 +1342,26 @@
     
     .dc-search-btn {
         justify-content: center;
+    }
+    
+    .dc-card-meta {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+    
+    .dc-card-meta-item {
+        padding: 0.5rem;
+    }
+    
+    .dc-progress-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .dc-progress-stats {
+        font-size: 0.8rem;
     }
 }
 

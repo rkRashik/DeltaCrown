@@ -23,6 +23,7 @@ from ..social_forms.forms import (
     TeamPostForm, TeamPostCommentForm, 
     TeamFollowForm, TeamBannerForm
 )
+from ..views.utils import _is_captain
 from apps.user_profile.models import UserProfile
 
 
@@ -35,7 +36,7 @@ def team_social_detail(request, team_slug):
     # Check if user is following this team
     is_following = team.is_followed_by(user_profile)
     is_member = team.is_member(user_profile)
-    is_captain = team.is_captain(user_profile)
+    is_captain = _is_captain(user_profile, team)
     can_post = team.can_user_post(user_profile)
     
     # Get posts with pagination
@@ -282,7 +283,7 @@ def upload_team_banner(request, team_slug):
     team = get_object_or_404(Team, slug=team_slug)
     user_profile = get_object_or_404(UserProfile, user=request.user)
     
-    if not team.is_captain(user_profile):
+    if not _is_captain(user_profile, team):
         return HttpResponseForbidden("Only team captains can upload banner images.")
     
     form = TeamBannerForm(request.POST, request.FILES, team=team)
@@ -460,7 +461,7 @@ def delete_team_post(request, team_slug, post_id):
     user_profile = get_object_or_404(UserProfile, user=request.user)
     
     # Check permissions - post author or team captain can delete
-    if post.author != user_profile and not team.is_captain(user_profile):
+    if post.author != user_profile and not _is_captain(user_profile, team):
         return JsonResponse({"error": "You don't have permission to delete this post."}, status=403)
     
     try:

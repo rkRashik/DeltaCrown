@@ -15,6 +15,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django.db import models
 
 from ..models import (
     Tournament,
@@ -25,6 +26,34 @@ from ..models import (
     TournamentRules,
     TournamentArchive
 )
+
+
+class ArchiveStatusFilter(admin.SimpleListFilter):
+    """Filter tournaments by archive status"""
+    title = 'Archive Status'
+    parameter_name = 'archive_status'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('active', 'Active'),
+            ('archived', 'Archived'),
+            ('completed', 'Completed (No Archive Record)'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'active':
+            return queryset.filter(
+                models.Q(archive__isnull=True) | 
+                models.Q(archive__is_archived=False)
+            ).exclude(status='COMPLETED')
+        elif self.value() == 'archived':
+            return queryset.filter(archive__is_archived=True)
+        elif self.value() == 'completed':
+            return queryset.filter(status='COMPLETED').filter(
+                models.Q(archive__isnull=True) | 
+                models.Q(archive__is_archived=False)
+            )
+        return queryset
 
 
 # ============================================================================
@@ -231,6 +260,7 @@ class TournamentAdmin(admin.ModelAdmin):
         'game',
         'status',
         'tournament_type',
+        'get_archive_status',
         'get_capacity_status',
         'get_registration_status',
         'created_at',
@@ -241,6 +271,7 @@ class TournamentAdmin(admin.ModelAdmin):
         'tournament_type',
         'game',
         'created_at',
+        ArchiveStatusFilter,
     )
     
     search_fields = (
@@ -292,6 +323,208 @@ class TournamentAdmin(admin.ModelAdmin):
         TournamentArchiveInline,
     ]
     
+    actions = ['clone_tournament', 'archive_tournament']
+    
+    def get_actions(self, request):
+        """Customize available actions"""
+        actions = super().get_actions(request)
+        # Remove delete action for safety
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
+    
+    def clone_tournament(self, request, queryset):
+        """Clone selected tournaments"""
+        from django.contrib import messages
+        from django.urls import reverse
+        from django.utils.html import format_html
+        
+        cloned_count = 0
+        for tournament in queryset:
+            try:
+                # Create clone
+                clone = Tournament.objects.create(
+                    name=f"{tournament.name} (Clone)",
+                    game=tournament.game,
+                    status='DRAFT',
+                    tournament_type=tournament.tournament_type,
+                    format=tournament.format,
+                    platform=tournament.platform,
+                    region=tournament.region,
+                    language=tournament.language,
+                    organizer=tournament.organizer,
+                    description=tournament.description,
+                )
+                
+                # Clone related models if they exist
+                if hasattr(tournament, 'schedule'):
+                    tournament.schedule.pk = None
+                    tournament.schedule.tournament = clone
+                    tournament.schedule.save()
+                
+                if hasattr(tournament, 'capacity'):
+                    tournament.capacity.pk = None
+                    tournament.capacity.tournament = clone
+                    tournament.capacity.save()
+                
+                if hasattr(tournament, 'finance'):
+                    tournament.finance.pk = None
+                    tournament.finance.tournament = clone
+                    tournament.finance.save()
+                
+                if hasattr(tournament, 'media'):
+                    tournament.media.pk = None
+                    tournament.media.tournament = clone
+                    tournament.media.save()
+                
+                if hasattr(tournament, 'rules'):
+                    tournament.rules.pk = None
+                    tournament.rules.tournament = clone
+                    tournament.rules.save()
+                
+                cloned_count += 1
+                
+                # Create archive record for clone
+                from ..models import TournamentArchive
+                TournamentArchive.objects.create(
+                    tournament=clone,
+                    archive_type='ACTIVE',
+                    is_archived=False,
+                    source_tournament=tournament,
+                    cloned_by=request.user,
+                )
+                
+            except Exception as e:
+                messages.error(request, f"Failed to clone {tournament.name}: {str(e)}")
+        
+        if cloned_count > 0:
+            messages.success(request, f"Successfully cloned {cloned_count} tournament(s).")
+    
+    clone_tournament.short_description = "Clone selected tournaments"
+    
+    def archive_tournament(self, request, queryset):
+        """Archive selected tournaments"""
+        from django.contrib import messages
+        from ..models import TournamentArchive
+        
+        archived_count = 0
+        for tournament in queryset:
+            try:
+                # Create or update archive record
+                archive, created = TournamentArchive.objects.get_or_create(
+                    tournament=tournament,
+                    defaults={
+                        'archive_type': 'ARCHIVED',
+                        'is_archived': True,
+                        'archived_by': request.user,
+                        'archive_reason': 'Archived via admin action',
+                    }
+                )
+                
+                if not created:
+                    archive.archive_type = 'ARCHIVED'
+                    archive.is_archived = True
+                    archive.archived_by = request.user
+                    archive.archive_reason = 'Archived via admin action'
+                    archive.save()
+                
+                archived_count += 1
+                
+            except Exception as e:
+                messages.error(request, f"Failed to archive {tournament.name}: {str(e)}")
+        
+        if archived_count > 0:
+            messages.success(request, f"Successfully archived {archived_count} tournament(s).")
+    
+    archive_tournament.short_description = "Archive selected tournaments"
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Customize form based on tournament state"""
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Check if tournament is archived
+        is_archived = False
+        archived_message = ""
+        
+        if obj:
+            try:
+                if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+                    is_archived = True
+                    archived_message = f"This tournament is {obj.archive.get_archive_type_display()} and read-only. All data is preserved for reference."
+                elif obj.status == 'COMPLETED':
+                    # Auto-detect completed tournaments as archived
+                    is_archived = True
+                    archived_message = "This tournament is COMPLETED. All data is read-only. Use 'Clone Tournament' to create a new one."
+            except Exception:
+                pass
+        
+        # Store in request for template
+        request.is_archived = is_archived
+        request.archived_message = archived_message
+        
+        if is_archived:
+            # Make all fields readonly for archived tournaments
+            readonly_fields = list(self.readonly_fields)
+            for fieldset_name, fieldset_options in self.fieldsets:
+                fields = fieldset_options.get('fields', [])
+                for field in fields:
+                    if isinstance(field, tuple):
+                        readonly_fields.extend(field)
+                    else:
+                        readonly_fields.append(field)
+            
+            # Make inline fields readonly too
+            for inline in self.inlines:
+                if hasattr(inline, 'readonly_fields'):
+                    inline.readonly_fields = list(inline.readonly_fields or [])
+                    for fieldset_name, fieldset_options in inline.fieldsets:
+                        fields = fieldset_options.get('fields', [])
+                        for field in fields:
+                            if isinstance(field, tuple):
+                                inline.readonly_fields.extend(field)
+                            else:
+                                inline.readonly_fields.append(field)
+        
+        return form
+    
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        """Customize change view with archive context"""
+        extra_context = extra_context or {}
+        
+        try:
+            obj = self.get_object(request, object_id)
+            if obj:
+                is_archived = getattr(request, 'is_archived', False)
+                archived_message = getattr(request, 'archived_message', '')
+                
+                extra_context.update({
+                    'is_archived': is_archived,
+                    'archived_message': archived_message,
+                })
+                
+                # Add clone URL if archived
+                if is_archived:
+                    clone_url = reverse('admin:tournaments_tournament_changelist')
+                    extra_context['clone_url'] = f"{clone_url}?clone_from={obj.id}"
+                    
+        except Exception:
+            pass
+        
+        return super().change_view(request, object_id, form_url, extra_context)
+    
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of archived tournaments"""
+        if obj and hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+            return False
+        return super().has_delete_permission(request, obj)
+    
+    def has_change_permission(self, request, obj=None):
+        """Allow viewing archived tournaments but prevent editing"""
+        if obj and hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+            # Allow GET requests (viewing) but not POST (saving)
+            return request.method in ['GET', 'HEAD', 'OPTIONS']
+        return super().has_change_permission(request, obj)
+    
     def get_capacity_status(self, obj):
         """Display capacity status with color coding"""
         if hasattr(obj, 'capacity'):
@@ -311,17 +544,18 @@ class TournamentAdmin(admin.ModelAdmin):
         return '-'
     get_capacity_status.short_description = 'Capacity'
     
-    def get_registration_status(self, obj):
-        """Display registration status"""
-        if hasattr(obj, 'schedule'):
-            if obj.schedule.is_registration_open():
-                return format_html('<span style="color: green;">✓ Open</span>')
-            elif obj.schedule.is_registration_upcoming():
-                return format_html('<span style="color: orange;">⏳ Upcoming</span>')
-            else:
-                return format_html('<span style="color: red;">✗ Closed</span>')
+    def get_archive_status(self, obj):
+        """Display archive status"""
+        try:
+            if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+                return format_html('<span style="color: #856404; font-weight: bold;">📁 {}</span>', 
+                                 obj.archive.get_archive_type_display())
+            elif obj.status == 'COMPLETED':
+                return format_html('<span style="color: #6c757d;">📁 Completed</span>')
+        except Exception:
+            pass
         return '-'
-    get_registration_status.short_description = 'Registration'
+    get_archive_status.short_description = 'Archive Status'
 
 
 @admin.register(TournamentSchedule)

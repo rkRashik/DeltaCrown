@@ -288,16 +288,19 @@
                     
                     <div class="space-y-3">
                         <button type="button" 
+                                onclick="window.location.href='{% url 'teams:invite' team.slug %}'"
                                 class="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-left">
                             Invite Members
                         </button>
                         
                         <button type="button" 
+                                onclick="window.location.href='{% url 'teams:export_team_data' team.slug %}'"
                                 class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-left">
                             Export Team Data
                         </button>
                         
                         <button type="button" 
+                                onclick="window.location.href='{% url 'teams:tournament_history' team.slug %}'"
                                 class="w-full px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-left">
                             Tournament History
                         </button>

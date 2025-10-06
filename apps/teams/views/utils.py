@@ -75,7 +75,7 @@ def _is_captain(profile: Any, team: Team) -> bool:
         membership = TeamMembership.objects.filter(
             team=team,
             profile=profile,
-            role='captain',
+            role='CAPTAIN',  # Use uppercase to match the model choice
             status='ACTIVE'
         ).first()
         return membership is not None
@@ -140,7 +140,7 @@ def _format_team_data(team: Team, membership: Optional[TeamMembership] = None) -
                 'role': getattr(membership, 'role', 'member') if membership else None,
                 'status': getattr(membership, 'status', 'active') if membership else None,
                 'joined_at': membership.joined_at.isoformat() if membership and hasattr(membership, 'joined_at') and membership.joined_at else None,
-                'can_manage': membership.role == 'captain' if membership else False
+            'can_manage': membership.role == 'CAPTAIN' if membership else False
             } if membership else None
         }
     except Exception:

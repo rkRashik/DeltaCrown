@@ -6,8 +6,9 @@ from django.contrib import admin
 from django.contrib.admin.sites import NotRegistered
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
+from django.db import models
 
-from ...models import Tournament
+from ...models import Tournament, TournamentArchive
 
 # idempotent unregister
 try:
@@ -25,11 +26,39 @@ from .capacity_inline import TournamentCapacityInline
 from .mixins import AdminLinkMixin, ExportBracketMixin, ActionsMixin
 
 
+class ArchiveStatusFilter(admin.SimpleListFilter):
+    """Filter tournaments by archive status"""
+    title = 'Archive Status'
+    parameter_name = 'archive_status'
+    
+    def lookups(self, request, model_admin):
+        return (
+            ('active', 'Active'),
+            ('archived', 'Archived'),
+            ('completed', 'Completed (No Archive Record)'),
+        )
+    
+    def queryset(self, request, queryset):
+        if self.value() == 'active':
+            return queryset.filter(
+                models.Q(archive__isnull=True) | 
+                models.Q(archive__is_archived=False)
+            ).exclude(status='COMPLETED')
+        elif self.value() == 'archived':
+            return queryset.filter(archive__is_archived=True)
+        elif self.value() == 'completed':
+            return queryset.filter(
+                models.Q(status='COMPLETED') &
+                models.Q(archive__isnull=True)
+            )
+        return queryset
+
+
 @admin.register(Tournament)
 class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.ModelAdmin):
     save_on_top = True
     search_fields = ("name", "slug", "organizer__user__username")
-    list_filter = ("game", "status", "tournament_type", "format", "platform", "language")
+    list_filter = ("game", "status", "tournament_type", "format", "platform", "language", ArchiveStatusFilter)
     date_hierarchy = "created_at"
     
     readonly_fields = (
@@ -42,11 +71,23 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
     )
     
     def get_readonly_fields(self, request, obj=None):
-        """Make all fields readonly for COMPLETED tournaments (archived)."""
+        """Make all fields readonly for archived tournaments."""
         readonly = list(super().get_readonly_fields(request, obj))
         
-        # If tournament is COMPLETED, make everything readonly (archived)
-        if obj and obj.status == 'COMPLETED':
+        # Check if tournament is archived
+        is_archived = False
+        if obj:
+            try:
+                if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+                    is_archived = True
+                elif obj.status == 'COMPLETED':
+                    # Auto-detect completed tournaments as archived
+                    is_archived = True
+            except Exception:
+                pass
+        
+        # If tournament is archived, make everything readonly
+        if is_archived:
             all_fields = [f.name for f in obj._meta.fields if f.name not in ['id']]
             readonly = list(set(readonly + all_fields))
             
@@ -54,14 +95,31 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
     
     def get_prepopulated_fields(self, request, obj=None):
         """Auto-populate slug from name for new tournaments."""
-        if obj and obj.status == 'COMPLETED':
+        # Check if tournament is archived
+        is_archived = False
+        if obj:
+            try:
+                if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+                    is_archived = True
+                elif obj.status == 'COMPLETED':
+                    is_archived = True
+            except Exception:
+                pass
+        
+        if is_archived:
             return {}
         return {"slug": ("name",)}
     
     def has_delete_permission(self, request, obj=None):
-        """Prevent deletion of COMPLETED tournaments (archived)."""
-        if obj and obj.status == 'COMPLETED':
-            return False
+        """Prevent deletion of archived tournaments."""
+        if obj:
+            try:
+                if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+                    return False
+                elif obj.status == 'COMPLETED':
+                    return False
+            except Exception:
+                pass
         return super().has_delete_permission(request, obj)
     
     def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
@@ -71,12 +129,26 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         if object_id:
             try:
                 obj = self.get_object(request, object_id)
-                if obj and obj.status == 'COMPLETED':
-                    extra_context['is_archived'] = True
-                    extra_context['archived_message'] = (
-                        '🔒 This tournament is ARCHIVED (COMPLETED). '
-                        'All data is read-only. Use "Clone Tournament" to create a new one.'
-                    )
+                if obj:
+                    is_archived = False
+                    archived_message = ""
+                    
+                    try:
+                        if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+                            is_archived = True
+                            archived_message = f"This tournament is {obj.archive.get_archive_type_display()} and read-only. All data is preserved for reference."
+                        elif obj.status == 'COMPLETED':
+                            # Auto-detect completed tournaments as archived
+                            is_archived = True
+                            archived_message = "This tournament is COMPLETED. All data is read-only. Use 'Clone Tournament' to create a new one."
+                    except Exception:
+                        pass
+                    
+                    if is_archived:
+                        extra_context.update({
+                            'is_archived': is_archived,
+                            'archived_message': archived_message,
+                        })
             except Exception:
                 pass
         
@@ -119,8 +191,19 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
     def get_fieldsets(self, request, obj=None):
         """Organized fieldsets with logical grouping."""
         
-        # For archived (COMPLETED) tournaments, show simplified readonly view
-        if obj and obj.status == 'COMPLETED':
+        # Check if tournament is archived
+        is_archived = False
+        if obj:
+            try:
+                if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
+                    is_archived = True
+                elif obj.status == 'COMPLETED':
+                    is_archived = True
+            except Exception:
+                pass
+        
+        # For archived tournaments, show simplified readonly view
+        if is_archived:
             return (
                 ('🔒 Archived Tournament (Read-Only)', {
                     'fields': (
@@ -132,7 +215,7 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
                         'groups_published',
                         'created_at', 'updated_at',
                     ),
-                    'description': 'This tournament is COMPLETED and archived. All fields are read-only.'
+                    'description': 'This tournament is archived. All fields are read-only.'
                 }),
                 ('🔗 Related Records', {
                     'fields': (
@@ -399,9 +482,44 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         except Exception:
             return "—"
 
+    @admin.action(description="📁 Archive selected tournaments")
+    def action_archive_tournaments(self, request, queryset):
+        """Archive selected tournaments using TournamentArchive model."""
+        from django.contrib import messages
+        
+        archived_count = 0
+        for tournament in queryset:
+            try:
+                # Create or update archive record
+                archive, created = TournamentArchive.objects.get_or_create(
+                    tournament=tournament,
+                    defaults={
+                        'archive_type': 'ARCHIVED',
+                        'is_archived': True,
+                        'archived_by': request.user,
+                        'archive_reason': 'Archived via admin action',
+                    }
+                )
+                
+                if not created:
+                    archive.archive_type = 'ARCHIVED'
+                    archive.is_archived = True
+                    archive.archived_by = request.user
+                    archive.archive_reason = 'Archived via admin action'
+                    archive.save()
+                
+                archived_count += 1
+                
+            except Exception as e:
+                messages.error(request, f"Failed to archive {tournament.name}: {str(e)}")
+        
+        if archived_count > 0:
+            messages.success(request, f"Successfully archived {archived_count} tournament(s).")
+    
     actions = (
         # Tournament management
         "action_clone_tournaments",
+        "action_archive_tournaments",
         # Status management actions
         "action_publish_tournaments",
         "action_start_tournaments",

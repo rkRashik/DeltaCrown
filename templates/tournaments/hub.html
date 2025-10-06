@@ -288,17 +288,27 @@
                     <article class="dc-tournament-card">
                         <div class="dc-card-image">
                             <a href="{% url 'tournaments:detail' slug=tournament.slug %}">
-                                {% if tournament.banner_image %}
-                                <img src="{{ tournament.banner_image.url }}" alt="{{ tournament.name }}">
+                                {% if tournament.banner_url %}
+                                <img src="{{ tournament.banner_url }}" alt="{{ tournament.name }}">
                                 {% else %}
                                 <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: rgba(255,255,255,0.3);">
                                     {{ tournament.game|slice:":1"|upper }}
                                 </div>
                                 {% endif %}
                             </a>
+                            <!-- Game Logo Badge -->
+                            <div class="dc-game-logo-badge">
+                                {% load game_assets_tags %}
+                                <img src="{% static tournament.game_logo %}" alt="{{ tournament.dc_game }}" class="dc-game-logo">
+                            </div>
+                            <!-- Status Badges -->
                             <div class="dc-card-badges">
-                                <span class="dc-badge dc-badge-game">{{ tournament.game|upper }}</span>
-                                {% if tournament.status == 'RUNNING' %}
+                                {% if my_reg_states|get_tournament_item:tournament.id %}
+                                <span class="dc-badge dc-badge-registered">
+                                    <i class="fas fa-check-circle"></i>
+                                    REGISTERED
+                                </span>
+                                {% elif tournament.status == 'RUNNING' %}
                                 <span class="dc-badge dc-badge-live">
                                     <span class="dc-pulse-dot"></span>
                                     LIVE
@@ -314,56 +324,131 @@
                             
                             <div class="dc-card-meta">
                                 <div class="dc-card-meta-item">
-                                    <i class="far fa-calendar"></i>
-                                    <span>{{ tournament.start_at|date:"M d, Y" }}</span>
+                                    <div class="dc-meta-label">
+                                        <i class="far fa-calendar"></i>
+                                        <span>Starts</span>
+                                    </div>
+                                    <div class="dc-meta-value">{{ tournament.start_at|date:"M d, Y" }}</div>
                                 </div>
                                 <div class="dc-card-meta-item">
-                                    <i class="fas fa-trophy"></i>
-                                    <span>{% if tournament.prize_pool_bdt %}৳{{ tournament.prize_pool_bdt|intcomma }}{% else %}TBA{% endif %}</span>
+                                    <div class="dc-meta-label">
+                                        <i class="fas fa-trophy"></i>
+                                        <span>Prize Pool</span>
+                                    </div>
+                                    <div class="dc-meta-value dc-meta-prize">
+                                        {% if tournament.prize_pool_bdt %}৳{{ tournament.prize_pool_bdt|intcomma }}{% else %}TBA{% endif %}
+                                    </div>
                                 </div>
                                 <div class="dc-card-meta-item">
-                                    <i class="fas fa-users"></i>
-                                    <span>{% if tournament.max_teams %}{{ tournament.registrations.count }}/{{ tournament.max_teams }}{% else %}{{ tournament.registrations.count }}{% endif %}</span>
+                                    <div class="dc-meta-label">
+                                        <i class="fas fa-users"></i>
+                                        <span>Teams</span>
+                                    </div>
+                                    <div class="dc-meta-value">
+                                        {% if tournament.max_teams %}
+                                            <span class="dc-slots-remaining">{{ tournament.max_teams|add:tournament.registrations.count|add:-1 }}</span>
+                                            <span class="dc-slots-text">left</span>
+                                            <span class="dc-slots-total">({{ tournament.registrations.count }}/{{ tournament.max_teams }})</span>
+                                        {% else %}
+                                            <span class="dc-registration-count">{{ tournament.registrations.count }}</span>
+                                            <span class="dc-unlimited-text">registered</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <div class="dc-card-meta-item">
-                                    <i class="fas fa-coins"></i>
-                                    <span>{% if tournament.entry_fee_bdt %}৳{{ tournament.entry_fee_bdt }}{% else %}Free{% endif %}</span>
+                                    <div class="dc-meta-label">
+                                        <i class="fas fa-coins"></i>
+                                        <span>Entry Fee</span>
+                                    </div>
+                                    <div class="dc-meta-value dc-meta-fee">
+                                        {% if tournament.entry_fee_bdt %}৳{{ tournament.entry_fee_bdt }}{% else %}<span class="dc-free-badge">FREE</span>{% endif %}
+                                    </div>
                                 </div>
                             </div>
                             
                             {% if tournament.max_teams %}
                             <div class="dc-card-progress">
                                 <div class="dc-progress-header">
-                                    <span>Registration</span>
-                                    <span>{% widthratio tournament.registrations.count tournament.max_teams 100 %}%</span>
+                                    <div class="dc-progress-label">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span>Registration Progress</span>
+                                    </div>
+                                    <div class="dc-progress-stats">
+                                        <span class="dc-current-count">{{ tournament.registrations.count }}</span>
+                                        <span class="dc-progress-separator">/</span>
+                                        <span class="dc-total-count">{{ tournament.max_teams }}</span>
+                                        <span class="dc-progress-percent">({% widthratio tournament.registrations.count tournament.max_teams 100 %}%)</span>
+                                    </div>
                                 </div>
                                 <div class="dc-progress-bar-wrap">
                                     <div class="dc-progress-bar" style="width: {% widthratio tournament.registrations.count tournament.max_teams 100 %}%"></div>
                                 </div>
+                                {% if tournament.registrations.count >= tournament.max_teams %}
+                                <div class="dc-full-notice">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Tournament is full!</span>
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
                             
                             <div class="dc-card-actions">
-                                {% if tournament.is_registration_open %}
+                                {% if my_reg_states|get_tournament_item:tournament.id %}
+                                    <!-- Already registered -->
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-registered">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Registered</span>
+                                    </a>
+                                    {% if my_reg_states|get_tournament_item:tournament.id == 'confirmed' %}
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}#dashboard" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-cog"></i>
+                                        <span>Manage</span>
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-receipt"></i>
+                                        <span>View Receipt</span>
+                                    </a>
+                                    {% endif %}
+                                {% elif tournament.registration_open %}
+                                    <!-- Can register -->
                                     <a href="{% url 'tournaments:modern_register' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
                                         <i class="fas fa-plus"></i>
                                         <span>Register</span>
                                     </a>
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        Details
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>Details</span>
                                     </a>
                                 {% elif tournament.status == 'RUNNING' %}
+                                    <!-- Tournament is live -->
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
                                         <i class="fas fa-eye"></i>
                                         <span>Watch Live</span>
                                     </a>
-                                {% elif tournament.status == 'COMPLETED' %}
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        View Results
+                                        <i class="fas fa-trophy"></i>
+                                        <span>View Bracket</span>
+                                    </a>
+                                {% elif tournament.status == 'COMPLETED' %}
+                                    <!-- Tournament finished -->
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-trophy"></i>
+                                        <span>View Results</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
+                                        <i class="fas fa-chart-bar"></i>
+                                        <span>Standings</span>
                                     </a>
                                 {% else %}
+                                    <!-- Default view details -->
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
-                                        View Details
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>View Details</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-calendar"></i>
+                                        <span>Schedule</span>
                                     </a>
                                 {% endif %}
                             </div>

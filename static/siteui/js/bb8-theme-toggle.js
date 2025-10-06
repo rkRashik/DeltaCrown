@@ -9,32 +9,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!bb8Toggle) return;
     
-    // Check for saved theme or default to light mode
-    const currentTheme = localStorage.getItem('theme') || 'light';
+    // Default to dark mode (no light mode support)
+    const currentTheme = 'dark';
     
-    // Apply theme on page load
-    if (currentTheme === 'dark') {
-        body.classList.add('dark-theme');
+    // Apply dark theme on page load
+    body.classList.add('dark-theme');
+    if (bb8Toggle) {
         bb8Toggle.checked = true;
     }
     
-    // Handle theme toggle
+    // Handle theme toggle (force dark mode only)
     bb8Toggle.addEventListener('change', function() {
-        if (this.checked) {
-            // Switch to dark theme
-            body.classList.add('dark-theme');
-            localStorage.setItem('theme', 'dark');
-            
-            // Add fun BB8 animation sound effect (optional)
-            playBB8Sound();
-        } else {
-            // Switch to light theme
-            body.classList.remove('dark-theme');
-            localStorage.setItem('theme', 'light');
-            
-            // Add fun BB8 animation sound effect (optional)
-            playBB8Sound();
-        }
+        // Always force dark mode - prevent light mode
+        body.classList.add('dark-theme');
+        localStorage.setItem('theme', 'dark');
+        this.checked = true;
+        
+        // Add fun BB8 animation sound effect
+        playBB8Sound();
     });
     
     // Optional: BB8 beep sound effect

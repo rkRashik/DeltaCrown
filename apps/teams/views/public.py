@@ -1432,42 +1432,75 @@ def kick_member_ajax_view(request, slug: str):
 
 
 @login_required
-@require_http_methods(["POST"])
-def transfer_captaincy_ajax_view(request, slug: str):
-    """Transfer captaincy via AJAX."""
-    import json
-    from django.http import JsonResponse
+def export_team_data_view(request, slug: str):
+    """Export team data as CSV."""
+    import csv
+    from django.http import HttpResponse
     
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
     if not _is_captain(profile, team):
-        return JsonResponse({"error": "Only captains can transfer captaincy."}, status=403)
+        messages.error(request, "Only team captains can export team data.")
+        return redirect('teams:detail', slug=team.slug)
     
-    try:
-        data = json.loads(request.body)
-        new_captain_username = data.get('new_captain')
-        
-        User = get_user_model()
-        new_captain_user = get_object_or_404(User, username=new_captain_username)
-        new_captain_profile = _get_profile(new_captain_user)
-        
-        if not new_captain_profile:
-            return JsonResponse({"error": "New captain profile not found."}, status=404)
-        
-        # Check if user is team member
-        new_captain_membership = get_object_or_404(TeamMembership, team=team, profile=new_captain_profile)
-        
-        # Transfer captaincy
-        current_captain_membership = TeamMembership.objects.get(team=team, profile=profile)
-        current_captain_membership.role = 'member'
-        current_captain_membership.save()
-        
-        new_captain_membership.role = 'captain'
-        new_captain_membership.save()
-        
-        return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{team.name}_data.csv"'
+    
+    writer = csv.writer(response)
+    
+    # Write team info header
+    writer.writerow(['Team Information'])
+    writer.writerow(['Name', team.name])
+    writer.writerow(['Description', team.description or ''])
+    writer.writerow(['Region', team.region or ''])
+    writer.writerow(['Primary Game', team.primary_game or ''])
+    writer.writerow(['Created', team.created_at.strftime('%Y-%m-%d %H:%M:%S')])
+    writer.writerow(['Is Public', 'Yes' if team.is_public else 'No'])
+    writer.writerow(['Is Active', 'Yes' if team.is_active else 'No'])
+    writer.writerow([])
+    
+    # Write members header
+    writer.writerow(['Team Members'])
+    writer.writerow(['Username', 'Role', 'Joined Date', 'Status'])
+    
+    # Write member data
+    for membership in team.teammembership_set.all():
+        writer.writerow([
+            membership.profile.user.username,
+            membership.get_role_display(),
+            membership.joined_at.strftime('%Y-%m-%d %H:%M:%S'),
+            membership.get_status_display()
+        ])
+    
+    return response
+
+
+@login_required
+def tournament_history_view(request, slug: str):
+    """Show team's tournament participation history."""
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        messages.error(request, "Only team captains can view tournament history.")
+        return redirect('teams:detail', slug=team.slug)
+    
+    # Get tournament registrations for this team
+    from apps.tournaments.models import TournamentRegistration
+    
+    registrations = TournamentRegistration.objects.filter(
+        team=team
+    ).select_related(
+        'tournament'
+    ).order_by('-registered_at')
+    
+    context = {
+        'team': team,
+        'registrations': registrations,
+    }
+    
+    return render(request, 'teams/tournament_history.html', context)
 
 

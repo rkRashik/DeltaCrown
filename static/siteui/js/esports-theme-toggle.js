@@ -10,53 +10,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const root = document.documentElement;
     const body = document.body;
     
-    // Default to dark mode always
+    // Default to dark mode always (no light mode)
     const currentTheme = localStorage.getItem('theme') || 'dark';
     
     // Apply theme on page load
     function applyTheme(theme) {
-        if (theme === 'dark') {
-            body.classList.remove('light-theme');
-            body.classList.add('dark-theme');
-            root.setAttribute('data-theme', 'dark');
-            body.setAttribute('data-bs-theme', 'dark');
-            
-            // Update all toggles
-            themeToggles.forEach(toggle => {
-                toggle.checked = true;
-            });
-        } else {
-            body.classList.remove('dark-theme');
-            body.classList.add('light-theme');
-            root.setAttribute('data-theme', 'light');
-            body.setAttribute('data-bs-theme', 'light');
-            
-            // Update all toggles
-            themeToggles.forEach(toggle => {
-                toggle.checked = false;
-            });
-        }
+        // Force dark mode - no light mode support
+        const finalTheme = 'dark';
+        
+        body.classList.remove('light-theme');
+        body.classList.add('dark-theme');
+        root.setAttribute('data-theme', 'dark');
+        body.setAttribute('data-bs-theme', 'dark');
+        
+        // Update all toggles to checked (dark mode)
+        themeToggles.forEach(toggle => {
+            toggle.checked = true;
+        });
     }
     
     // Apply initial theme
     applyTheme(currentTheme);
     
-    // Handle theme toggle change
+    // Handle theme toggle change (force dark mode only)
     themeToggles.forEach(toggle => {
         toggle.addEventListener('change', function() {
-            const newTheme = this.checked ? 'dark' : 'light';
+            // Always force dark mode - no light mode allowed
+            const newTheme = 'dark';
             applyTheme(newTheme);
             localStorage.setItem('theme', newTheme);
             
-            // Sync all other toggles
+            // Keep all toggles checked (dark mode)
             themeToggles.forEach(otherToggle => {
-                if (otherToggle !== this) {
-                    otherToggle.checked = this.checked;
-                }
+                otherToggle.checked = true;
             });
             
-            // Play sound effect
-            playToggleSound(newTheme === 'dark' ? [400, 300] : [800, 1000], 0.04, newTheme);
+            // Play sound effect for dark mode
+            playToggleSound([400, 300], 0.04, 'dark');
         });
         
         // Keyboard support

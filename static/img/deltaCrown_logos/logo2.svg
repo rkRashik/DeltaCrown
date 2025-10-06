@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img">
-  <style>
-    .crown { fill: #FFD700; stroke: #6C00FF; stroke-width: 8; filter: drop-shadow(0 0 10px #00E5FF);}
-  </style>
-  <path class="crown" d="M48 192 L80 80 L128 144 L176 80 L208 192 Z"/>
-</svg>

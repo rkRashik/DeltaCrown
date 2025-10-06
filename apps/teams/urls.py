@@ -20,6 +20,9 @@ from .views.public import (
     # New professional management views
     update_team_info_view,
     update_privacy_view,
+    # New Quick Actions views
+    export_team_data_view,
+    tournament_history_view,
 )
 from .views.ajax import (
     my_teams_data,
@@ -59,6 +62,9 @@ urlpatterns = [
     # New professional management endpoints (kept from public.py)
     path("<slug:slug>/update-info/", update_team_info_view, name="update_team_info"),
     path("<slug:slug>/update-privacy/", update_privacy_view, name="update_privacy"),
+    # New Quick Actions endpoints
+    path("<slug:slug>/export-data/", export_team_data_view, name="export_team_data"),
+    path("<slug:slug>/tournament-history/", tournament_history_view, name="tournament_history"),
     
     # AJAX endpoints (modularized)
     path("<slug:slug>/kick-member/", kick_member, name="kick_member"),

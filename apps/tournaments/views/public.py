@@ -23,6 +23,8 @@ from .helpers import (
 # Annotation functions for tournament cards
 def annotate_cards(tournaments):
     """Add dc_* fields to tournament objects for template compatibility."""
+    from apps.common.game_assets import get_game_data
+    
     for t in tournaments:
         # Basic fields
         t.dc_title = getattr(t, 'name', '') or 'Untitled Tournament'
@@ -30,6 +32,11 @@ def annotate_cards(tournaments):
         t.dc_slug = getattr(t, 'slug', '')  # Add slug for dynamic buttons
         t.dc_game = getattr(t, 'game_name', '') or getattr(t, 'game', '')
         t.dc_banner_url = getattr(t, 'banner_url', None)
+        
+        # Game logo from game_assets
+        game_code = getattr(t, 'game', '').upper()
+        game_data = get_game_data(game_code)
+        t.game_logo = game_data.get('logo', 'img/game_logos/default_game_logo.jpg')
         
         # Financial fields
         entry_fee = getattr(t, 'entry_fee_bdt', None) or getattr(t, 'entry_fee', None)
@@ -48,8 +55,13 @@ def annotate_cards(tournaments):
         t.dc_slots_current = slots_taken
         
         # Registration URL (don't override property, just ensure it exists)
-        if not hasattr(t, 'register_url') or not getattr(t, 'register_url', None):
-            t._register_url = f'/tournaments/register-enhanced/{getattr(t, "slug", "")}'
+        if not hasattr(t, 'register_url') or getattr(t, 'register_url', None) is None:
+            # Only set if it's not a property or if the property returns None
+            try:
+                setattr(t, '_register_url', f'/tournaments/register-enhanced/{getattr(t, "slug", "")}')
+            except AttributeError:
+                # If it's a read-only property, skip setting it
+                pass
         
         # Date fields for templates
         t.starts_at = getattr(t, 'start_at', None)
