@@ -30,15 +30,6 @@
     align-items: center;
     height: 100%;
   }
-  display: flex;
-  align-items: center;
-  height: 100%;
-}
-
-.unified-nav-desktop__left {
-  display: flex;
-  align-items: center;
-}
 
 .unified-nav-desktop__brand {
   display: flex;
@@ -899,9 +890,9 @@ body {
     display: none;
   }
 
-  /* Remove mobile padding */
+  /* Add padding for fixed desktop navigation */
   body {
-    padding-top: 0;
+    padding-top: 70px; /* Desktop navigation height */
     padding-bottom: 0;
   }
 }
