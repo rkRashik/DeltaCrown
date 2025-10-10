@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team.name }} Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teams/css/team-dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="team-dashboard">
+    <!-- Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="container">
+            <div class="header-top">
+                <div class="breadcrumb">
+                    <a href="{% url 'teams:list' %}">Teams</a>
+                    <span class="separator">/</span>
+                    <a href="{% url 'teams:detail' team.slug %}">{{ team.name }}</a>
+                    <span class="separator">/</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="header-actions">
+                    <a href="{% url 'teams:detail' team.slug %}" class="btn btn-secondary">
+                        <i class="icon-eye"></i> View Public Profile
+                    </a>
+                </div>
+            </div>
+            
+            <div class="team-banner-section">
+                {% if team.banner %}
+                <div class="banner-image" style="background-image: url('{{ team.banner.url }}');"></div>
+                {% else %}
+                <div class="banner-image banner-default"></div>
+                {% endif %}
+                
+                <div class="team-header-card">
+                    <div class="team-logo">
+                        {% if team.logo %}
+                        <img src="{{ team.logo.url }}" alt="{{ team.name }}">
+                        {% else %}
+                        <div class="logo-placeholder">{{ team.tag|slice:":2"|upper }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="team-info">
+                        <div class="team-title">
+                            <h1>{{ team.name }}</h1>
+                            {% if team.is_verified %}
+                            <span class="badge badge-verified" title="Verified Team">
+                                <i class="icon-check-circle"></i> Verified
+                            </span>
+                            {% endif %}
+                            {% if team.is_featured %}
+                            <span class="badge badge-featured" title="Featured Team">
+                                <i class="icon-star"></i> Featured
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="team-tag">[{{ team.tag }}]</div>
+                        <div class="team-meta">
+                            <span class="meta-item">
+                                <i class="icon-game"></i>
+                                {{ team.get_game_display|default:team.game }}
+                            </span>
+                            <span class="meta-item">
+                                <i class="icon-map"></i>
+                                {{ team.region|default:"Not specified" }}
+                            </span>
+                            <span class="meta-item">
+                                <i class="icon-calendar"></i>
+                                Founded {{ team.created_at|date:"M d, Y" }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="team-stats-quick">
+                        <div class="stat-box">
+                            <div class="stat-value">{{ followers_count }}</div>
+                            <div class="stat-label">Followers</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">{{ roster_count }}</div>
+                            <div class="stat-label">Members</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">{{ posts_count }}</div>
+                            <div class="stat-label">Posts</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Alerts Section -->
+    {% if alerts %}
+    <div class="container">
+        <div class="alerts-section">
+            {% for alert in alerts %}
+            <div class="alert alert-{{ alert.type }}">
+                <i class="icon-alert"></i>
+                <span>{{ alert.message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Main Dashboard Content -->
+    <div class="container dashboard-content">
+        <div class="dashboard-grid">
+            <!-- Main Column -->
+            <div class="main-column">
+                <!-- Team Info Section -->
+                <section class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="icon-info"></i> Team Information</h2>
+                        <button class="btn btn-sm btn-primary" onclick="openEditModal()">
+                            <i class="icon-edit"></i> Edit
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Team Name</label>
+                                <div class="info-value">{{ team.name }}</div>
+                            </div>
+                            <div class="info-item">
+                                <label>Tag</label>
+                                <div class="info-value">[{{ team.tag }}]</div>
+                            </div>
+                            <div class="info-item">
+                                <label>Game</label>
+                                <div class="info-value">{{ team.get_game_display|default:team.game }}</div>
+                            </div>
+                            <div class="info-item">
+                                <label>Region</label>
+                                <div class="info-value">{{ team.region|default:"—" }}</div>
+                            </div>
+                            <div class="info-item full-width">
+                                <label>Description</label>
+                                <div class="info-value">{{ team.description|default:"No description yet"|linebreaks }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats-overview">
+                            {% if latest_stats %}
+                            <div class="stat-card">
+                                <i class="icon-trophy stat-icon"></i>
+                                <div class="stat-details">
+                                    <div class="stat-number">{{ latest_stats.wins }}</div>
+                                    <div class="stat-text">Wins</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <i class="icon-x-circle stat-icon"></i>
+                                <div class="stat-details">
+                                    <div class="stat-number">{{ latest_stats.losses }}</div>
+                                    <div class="stat-text">Losses</div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <i class="icon-percent stat-icon"></i>
+                                <div class="stat-details">
+                                    <div class="stat-number">{{ latest_stats.win_rate|floatformat:1 }}%</div>
+                                    <div class="stat-text">Win Rate</div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No match statistics available yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Roster Management Section -->
+                <section class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="icon-users"></i> Roster Management</h2>
+                        <div class="roster-capacity">
+                            <span class="capacity-badge">{{ roster_count }}/{{ max_roster }}</span>
+                            {% if available_slots > 0 %}
+                            <a href="{% url 'teams:invite' team.slug %}" class="btn btn-sm btn-primary">
+                                <i class="icon-user-plus"></i> Invite Player
+                            </a>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary" disabled title="Roster is full">
+                                <i class="icon-user-plus"></i> Roster Full
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="roster-grid" id="roster-sortable">
+                            {% for member in roster %}
+                            <div class="player-card {% if member.is_captain %}captain{% endif %}" data-profile-id="{{ member.profile.id }}">
+                                <div class="player-card-header">
+                                    {% if member.is_captain %}
+                                    <span class="captain-badge">
+                                        <i class="icon-crown"></i> Captain
+                                    </span>
+                                    {% endif %}
+                                    <div class="player-actions">
+                                        <button class="btn-icon" onclick="editPlayer({{ member.profile.id }})" title="Edit">
+                                            <i class="icon-edit"></i>
+                                        </button>
+                                        {% if not member.is_captain %}
+                                        <button class="btn-icon btn-danger" onclick="removePlayer({{ member.profile.id }})" title="Remove">
+                                            <i class="icon-x"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="player-avatar">
+                                    {% if member.profile.avatar %}
+                                    <img src="{{ member.profile.avatar.url }}" alt="{{ member.profile.display_name }}">
+                                    {% else %}
+                                    <div class="avatar-placeholder">{{ member.profile.display_name|slice:":1"|upper }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="player-info">
+                                    <div class="player-name">{{ member.profile.display_name|default:member.profile.user.username }}</div>
+                                    <div class="player-ign">{{ member.in_game_name|default:"—" }}</div>
+                                    <div class="player-role">
+                                        {% if game_config %}
+                                        <span class="role-badge role-{{ member.role|lower }}">
+                                            {{ member.get_role_display|default:member.role }}
+                                        </span>
+                                        {% else %}
+                                        <span class="role-badge">{{ member.get_role_display|default:"Member" }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if not member.is_starter %}
+                                    <div class="player-status">
+                                        <span class="status-badge status-substitute">Substitute</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="player-meta">
+                                    <small>Joined {{ member.joined_at|date:"M d, Y" }}</small>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted">No roster members yet.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Pending Invites Section -->
+                {% if pending_invites %}
+                <section class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="icon-mail"></i> Pending Invites</h2>
+                        <span class="badge badge-count">{{ pending_invites_count }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="invites-list">
+                            {% for invite in pending_invites %}
+                            <div class="invite-item">
+                                <div class="invite-info">
+                                    <div class="invite-user">
+                                        {% if invite.invited_user %}
+                                        <strong>{{ invite.invited_user.username }}</strong>
+                                        {% else %}
+                                        <strong>{{ invite.invited_email }}</strong>
+                                        {% endif %}
+                                    </div>
+                                    <div class="invite-meta">
+                                        Invited by {{ invite.inviter.display_name|default:invite.inviter.user.username }}
+                                        · {{ invite.created_at|timesince }} ago
+                                        · Expires {{ invite.expires_at|timeuntil }}
+                                    </div>
+                                </div>
+                                <div class="invite-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="resendInvite({{ invite.id }})">
+                                        <i class="icon-refresh"></i> Resend
+                                    </button>
+                                    <form method="post" action="{% url 'teams:cancel_invite' team.slug %}" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="invite_id" value="{{ invite.id }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="icon-x"></i> Cancel
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+                {% endif %}
+
+                <!-- Activity Feed Section -->
+                <section class="dashboard-card">
+                    <div class="card-header">
+                        <h2><i class="icon-activity"></i> Activity Feed</h2>
+                        <button class="btn btn-sm btn-ghost" onclick="filterActivities()">
+                            <i class="icon-filter"></i> Filter
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-feed">
+                            {% for activity in activities %}
+                            <div class="activity-item activity-{{ activity.activity_type }}">
+                                <div class="activity-icon">
+                                    {% if activity.activity_type == "member_joined" %}
+                                    <i class="icon-user-plus"></i>
+                                    {% elif activity.activity_type == "member_left" %}
+                                    <i class="icon-user-minus"></i>
+                                    {% elif activity.activity_type == "post_published" %}
+                                    <i class="icon-file-text"></i>
+                                    {% elif activity.activity_type == "match_completed" %}
+                                    <i class="icon-trophy"></i>
+                                    {% elif activity.activity_type == "achievement_earned" %}
+                                    <i class="icon-award"></i>
+                                    {% else %}
+                                    <i class="icon-bell"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-description">{{ activity.description }}</div>
+                                    <div class="activity-time">{{ activity.created_at|timesince }} ago</div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <p class="text-muted">No recent activity.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Sidebar Column -->
+            <aside class="sidebar-column">
+                <!-- Team Settings Quick Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="icon-settings"></i> Settings</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="settings-list">
+                            <div class="setting-item">
+                                <label class="toggle-label">
+                                    <input type="checkbox" class="toggle-input" {% if team.is_public %}checked{% endif %} onchange="toggleSetting('is_public', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Public Profile</span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="toggle-label">
+                                    <input type="checkbox" class="toggle-input" {% if team.allow_join_requests %}checked{% endif %} onchange="toggleSetting('allow_join_requests', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Allow Join Requests</span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="toggle-label">
+                                    <input type="checkbox" class="toggle-input" {% if team.show_statistics %}checked{% endif %} onchange="toggleSetting('show_statistics', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Show Statistics</span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label class="toggle-label">
+                                    <input type="checkbox" class="toggle-input" {% if team.allow_followers %}checked{% endif %} onchange="toggleSetting('allow_followers', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-text">Allow Followers</span>
+                                </label>
+                            </div>
+                        </div>
+                        <a href="{% url 'teams:settings' team.slug %}" class="btn btn-sm btn-block btn-secondary">
+                            <i class="icon-settings"></i> Advanced Settings
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Achievements Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="icon-award"></i> Achievements</h3>
+                        <span class="badge badge-count">{{ total_achievements }}</span>
+                    </div>
+                    <div class="card-body">
+                        {% if achievements %}
+                        <div class="achievements-mini-list">
+                            {% for ach in achievements %}
+                            <div class="achievement-mini">
+                                <div class="achievement-icon">
+                                    {% if ach.placement == "WINNER" %}
+                                    <i class="icon-trophy gold"></i>
+                                    {% elif ach.placement == "RUNNER_UP" %}
+                                    <i class="icon-award silver"></i>
+                                    {% else %}
+                                    <i class="icon-medal bronze"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="achievement-info">
+                                    <div class="achievement-title">{{ ach.title|truncatewords:5 }}</div>
+                                    <div class="achievement-meta">{{ ach.get_placement_display }} · {{ ach.year }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center">No achievements yet</p>
+                        {% endif %}
+                        <button class="btn btn-sm btn-block btn-ghost" onclick="openAchievementsModal()">
+                            <i class="icon-plus"></i> Add Achievement
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upcoming Matches Card -->
+                {% if upcoming_matches %}
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="icon-calendar"></i> Upcoming Matches</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="matches-mini-list">
+                            {% for match in upcoming_matches %}
+                            <div class="match-mini">
+                                <div class="match-date">{{ match.start_at|date:"M d" }}</div>
+                                <div class="match-info">
+                                    <div class="match-teams">
+                                        {{ match.team_a.tag }} vs {{ match.team_b.tag }}
+                                    </div>
+                                    <div class="match-tournament">{{ match.tournament.name|truncatewords:3 }}</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Recent Posts Card -->
+                {% if recent_posts %}
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h3><i class="icon-file-text"></i> Recent Posts</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="posts-mini-list">
+                            {% for post in recent_posts %}
+                            <div class="post-mini">
+                                <div class="post-type-icon">
+                                    <i class="icon-{{ post.post_type }}"></i>
+                                </div>
+                                <div class="post-info">
+                                    <div class="post-title">{{ post.title|default:post.content|truncatewords:5 }}</div>
+                                    <div class="post-meta">{{ post.published_at|timesince }} ago</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <a href="#" class="btn btn-sm btn-block btn-ghost">View All Posts</a>
+                    </div>
+                </div>
+                {% endif %}
+            </aside>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'teams/js/team-dashboard.js' %}"></script>
+<script>
+    // CSRF token for AJAX requests
+    const csrfToken = '{{ csrf_token }}';
+    const teamSlug = '{{ team.slug }}';
+</script>
+{% endblock %}

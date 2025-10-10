@@ -1,0 +1,578 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sponsorship Dashboard - {{ team.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+    
+    .dashboard-title {
+        font-size: 2em;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1.1em;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-4px);
+    }
+    
+    .stat-icon {
+        font-size: 2.5em;
+        margin-bottom: 12px;
+    }
+    
+    .stat-value {
+        font-size: 2.5em;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85em;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-change {
+        margin-top: 8px;
+        font-size: 0.9em;
+    }
+    
+    .stat-change.positive {
+        color: #27ae60;
+    }
+    
+    .stat-change.negative {
+        color: #e74c3c;
+    }
+    
+    .section-card {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .section-title {
+        font-size: 1.5em;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .section-action {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+    
+    .section-action:hover {
+        text-decoration: underline;
+    }
+    
+    .sponsors-list {
+        display: grid;
+        gap: 16px;
+    }
+    
+    .sponsor-item {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 16px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        transition: background 0.3s;
+    }
+    
+    .sponsor-item:hover {
+        background: #e9ecef;
+    }
+    
+    .sponsor-logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        background: white;
+        padding: 8px;
+        border-radius: 8px;
+    }
+    
+    .sponsor-info {
+        flex: 1;
+    }
+    
+    .sponsor-name {
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 4px;
+    }
+    
+    .sponsor-tier {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 600;
+    }
+    
+    .sponsor-tier.platinum {
+        background: #f0f0f0;
+        color: #666;
+    }
+    
+    .sponsor-tier.gold {
+        background: #fff9e6;
+        color: #b8860b;
+    }
+    
+    .sponsor-tier.silver {
+        background: #f5f5f5;
+        color: #666;
+    }
+    
+    .sponsor-stats {
+        display: flex;
+        gap: 24px;
+        font-size: 0.9em;
+    }
+    
+    .sponsor-stat-item {
+        text-align: center;
+    }
+    
+    .sponsor-stat-value {
+        font-weight: 700;
+        color: #667eea;
+        font-size: 1.2em;
+    }
+    
+    .sponsor-stat-label {
+        color: #6c757d;
+        font-size: 0.85em;
+    }
+    
+    .inquiries-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    
+    .inquiries-table thead th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 700;
+        color: #2c3e50;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .inquiries-table tbody tr {
+        background: #f8f9fa;
+        transition: background 0.3s;
+    }
+    
+    .inquiries-table tbody tr:hover {
+        background: #e9ecef;
+    }
+    
+    .inquiries-table tbody td {
+        padding: 16px 12px;
+    }
+    
+    .inquiries-table tbody tr td:first-child {
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+    }
+    
+    .inquiries-table tbody tr td:last-child {
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+    
+    .inquiry-company {
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .inquiry-contact {
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    
+    .inquiry-status {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 600;
+    }
+    
+    .inquiry-status.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .inquiry-status.contacted {
+        background: #cfe2ff;
+        color: #084298;
+    }
+    
+    .inquiry-status.negotiating {
+        background: #e7d6f5;
+        color: #6f42c1;
+    }
+    
+    .inquiry-status.approved {
+        background: #d1e7dd;
+        color: #0a3622;
+    }
+    
+    .inquiry-date {
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state-icon {
+        font-size: 4em;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+    
+    .revenue-summary {
+        background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+    }
+    
+    .revenue-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    
+    .revenue-item {
+        text-align: center;
+    }
+    
+    .revenue-value {
+        font-size: 2em;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .revenue-label {
+        opacity: 0.9;
+        font-size: 0.9em;
+    }
+    
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+    
+    .action-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px;
+        background: white;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        color: #2c3e50;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+    
+    .action-btn:hover {
+        border-color: #667eea;
+        color: #667eea;
+        transform: translateY(-2px);
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">💼 Sponsorship Dashboard</h1>
+        <p class="dashboard-subtitle">Manage your team's sponsorships, merchandise, and promotions</p>
+    </div>
+    
+    <!-- Revenue Summary -->
+    {% if analytics %}
+    <div class="revenue-summary">
+        <h2 style="margin: 0 0 8px 0;">💰 Total Revenue</h2>
+        <p style="margin: 0; opacity: 0.9;">All-time earnings from sponsorships, merchandise, and promotions</p>
+        <div class="revenue-grid">
+            <div class="revenue-item">
+                <div class="revenue-value">${{ analytics.total_sponsor_revenue|floatformat:2 }}</div>
+                <div class="revenue-label">Sponsor Revenue</div>
+            </div>
+            <div class="revenue-item">
+                <div class="revenue-value">${{ analytics.total_merch_revenue|floatformat:2 }}</div>
+                <div class="revenue-label">Merchandise Revenue</div>
+            </div>
+            <div class="revenue-item">
+                <div class="revenue-value">${{ analytics.total_promotion_revenue|floatformat:2 }}</div>
+                <div class="revenue-label">Promotion Revenue</div>
+            </div>
+            <div class="revenue-item">
+                <div class="revenue-value">${{ analytics.total_revenue|floatformat:2 }}</div>
+                <div class="revenue-label">Total Revenue</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🤝</div>
+            <div class="stat-value">{{ analytics.active_sponsors_count|default:0 }}</div>
+            <div class="stat-label">Active Sponsors</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value">{{ analytics.total_sponsor_clicks|default:0 }}</div>
+            <div class="stat-label">Total Clicks</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">👁️</div>
+            <div class="stat-value">{{ analytics.total_sponsor_impressions|default:0 }}</div>
+            <div class="stat-label">Total Impressions</div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value">
+                {% if analytics.total_sponsor_impressions > 0 %}
+                {{ analytics.average_ctr|floatformat:2 }}%
+                {% else %}
+                0%
+                {% endif %}
+            </div>
+            <div class="stat-label">Average CTR</div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">⚡ Quick Actions</h2>
+        </div>
+        <div class="quick-actions">
+            <a href="{% url 'teams:team_sponsors' team.slug %}" class="action-btn">
+                <span>👁️</span> View Public Sponsors Page
+            </a>
+            <a href="{% url 'teams:team_merchandise' team.slug %}" class="action-btn">
+                <span>🛍️</span> View Merchandise Store
+            </a>
+            <a href="/admin/teams/teamsponsor/" class="action-btn">
+                <span>⚙️</span> Manage Sponsors
+            </a>
+            <a href="/admin/teams/sponsorinquiry/" class="action-btn">
+                <span>📬</span> Manage Inquiries
+            </a>
+            <a href="/admin/teams/teammerchitem/" class="action-btn">
+                <span>📦</span> Manage Merchandise
+            </a>
+            <a href="/admin/teams/teampromotion/" class="action-btn">
+                <span>📢</span> Manage Promotions
+            </a>
+        </div>
+    </div>
+    
+    <!-- Active Sponsors -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span>🤝</span> Active Sponsors
+            </h2>
+            <a href="/admin/teams/teamsponsor/" class="section-action">Manage All →</a>
+        </div>
+        
+        {% if sponsors %}
+        <div class="sponsors-list">
+            {% for sponsor in sponsors %}
+            <div class="sponsor-item">
+                {% if sponsor.get_logo_url %}
+                <img src="{{ sponsor.get_logo_url }}" alt="{{ sponsor.sponsor_name }}" class="sponsor-logo">
+                {% else %}
+                <div class="sponsor-logo d-flex align-items-center justify-content-center" style="font-size: 2em;">
+                    🏢
+                </div>
+                {% endif %}
+                
+                <div class="sponsor-info">
+                    <div class="sponsor-name">{{ sponsor.sponsor_name }}</div>
+                    <span class="sponsor-tier {{ sponsor.sponsor_tier }}">
+                        {% if sponsor.sponsor_tier == 'platinum' %}💎{% elif sponsor.sponsor_tier == 'gold' %}🥇{% elif sponsor.sponsor_tier == 'silver' %}🥈{% elif sponsor.sponsor_tier == 'bronze' %}🥉{% else %}🤝{% endif %}
+                        {{ sponsor.get_sponsor_tier_display }}
+                    </span>
+                </div>
+                
+                <div class="sponsor-stats">
+                    <div class="sponsor-stat-item">
+                        <div class="sponsor-stat-value">{{ sponsor.click_count }}</div>
+                        <div class="sponsor-stat-label">Clicks</div>
+                    </div>
+                    <div class="sponsor-stat-item">
+                        <div class="sponsor-stat-value">{{ sponsor.impression_count }}</div>
+                        <div class="sponsor-stat-label">Impressions</div>
+                    </div>
+                    <div class="sponsor-stat-item">
+                        <div class="sponsor-stat-value">
+                            {% if sponsor.impression_count > 0 %}
+                            {{ sponsor.click_count|floatformat:0|mul:100|div:sponsor.impression_count|floatformat:1 }}%
+                            {% else %}
+                            0%
+                            {% endif %}
+                        </div>
+                        <div class="sponsor-stat-label">CTR</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">🤝</div>
+            <h3>No Active Sponsors</h3>
+            <p>You don't have any active sponsors yet.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Inquiries -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span>📬</span> Recent Sponsorship Inquiries
+            </h2>
+            <a href="/admin/teams/sponsorinquiry/" class="section-action">View All →</a>
+        </div>
+        
+        {% if inquiries %}
+        <table class="inquiries-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Contact</th>
+                    <th>Tier</th>
+                    <th>Budget</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inquiry in inquiries %}
+                <tr>
+                    <td>
+                        <div class="inquiry-company">{{ inquiry.company_name }}</div>
+                    </td>
+                    <td>
+                        <div class="inquiry-contact">
+                            {{ inquiry.contact_name }}<br>
+                            <small>{{ inquiry.contact_email }}</small>
+                        </div>
+                    </td>
+                    <td>
+                        {% if inquiry.interested_tier == 'platinum' %}💎{% elif inquiry.interested_tier == 'gold' %}🥇{% elif inquiry.interested_tier == 'silver' %}🥈{% elif inquiry.interested_tier == 'bronze' %}🥉{% else %}🤝{% endif %}
+                        {{ inquiry.get_interested_tier_display }}
+                    </td>
+                    <td>{{ inquiry.get_budget_range_display }}</td>
+                    <td>
+                        <span class="inquiry-status {{ inquiry.status }}">
+                            {{ inquiry.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="inquiry-date">{{ inquiry.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📬</div>
+            <h3>No Inquiries Yet</h3>
+            <p>You haven't received any sponsorship inquiries yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Sponsorship dashboard loaded');
+        
+        // Add any interactive features here
+        // For example, real-time updates, charts, etc.
+    });
+</script>
+{% endblock %}

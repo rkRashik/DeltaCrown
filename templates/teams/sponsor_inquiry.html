@@ -1,0 +1,436 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sponsor {{ team.name }} - Inquiry Form{% endblock %}
+
+{% block extra_css %}
+<style>
+    .inquiry-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 0;
+        text-align: center;
+        margin-bottom: 40px;
+        border-radius: 8px;
+    }
+    
+    .inquiry-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .inquiry-form {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 24px;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .form-group label .required {
+        color: #e74c3c;
+        margin-left: 4px;
+    }
+    
+    .form-control {
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+    
+    .form-control.is-invalid {
+        border-color: #e74c3c;
+    }
+    
+    .invalid-feedback {
+        color: #e74c3c;
+        font-size: 0.9em;
+        margin-top: 4px;
+        display: block;
+    }
+    
+    .form-text {
+        color: #6c757d;
+        font-size: 0.9em;
+        margin-top: 4px;
+    }
+    
+    .tier-selection {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+    }
+    
+    .tier-option {
+        position: relative;
+    }
+    
+    .tier-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+    }
+    
+    .tier-label {
+        display: block;
+        padding: 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+    }
+    
+    .tier-option input[type="radio"]:checked + .tier-label {
+        border-color: #667eea;
+        background: #f0f4ff;
+        color: #667eea;
+    }
+    
+    .tier-label:hover {
+        border-color: #667eea;
+    }
+    
+    .budget-selection {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+    }
+    
+    .budget-option {
+        position: relative;
+    }
+    
+    .budget-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+    }
+    
+    .budget-label {
+        display: block;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        font-size: 0.95em;
+    }
+    
+    .budget-option input[type="radio"]:checked + .budget-label {
+        border-color: #27ae60;
+        background: #f0fdf4;
+        color: #27ae60;
+    }
+    
+    .submit-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 14px 40px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1.1em;
+        cursor: pointer;
+        transition: transform 0.2s;
+        width: 100%;
+        margin-top: 24px;
+    }
+    
+    .submit-btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .submit-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .success-message {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+    }
+    
+    .error-message {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+    }
+    
+    .rate-limit-message {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+    }
+    
+    .team-info {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .team-logo-container {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    
+    .team-logo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .team-details h3 {
+        margin: 0 0 8px 0;
+        color: #2c3e50;
+    }
+    
+    .team-details p {
+        margin: 0;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="inquiry-header">
+        <h1>💼 Sponsor {{ team.name }}</h1>
+        <p class="mb-0 opacity-75">Submit your sponsorship inquiry to partner with us!</p>
+    </div>
+    
+    <div class="inquiry-container">
+        <!-- Messages -->
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                <div class="success-message">
+                    <strong>✓ Success!</strong> {{ message }}
+                </div>
+                {% elif message.tags == 'error' %}
+                <div class="error-message">
+                    <strong>✗ Error!</strong> {{ message }}
+                </div>
+                {% elif message.tags == 'warning' %}
+                <div class="rate-limit-message">
+                    <strong>⚠ Warning!</strong> {{ message }}
+                </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        
+        <!-- Team Info -->
+        <div class="team-info">
+            <div class="team-logo-container">
+                {% if team.logo %}
+                <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="team-logo">
+                {% else %}
+                <div class="team-logo d-flex align-items-center justify-content-center" style="background: #667eea; color: white; font-size: 2em;">
+                    {{ team.name.0 }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="team-details">
+                <h3>{{ team.name }}</h3>
+                <p>
+                    <strong>Game:</strong> {{ team.game.name }} | 
+                    <strong>Region:</strong> {{ team.get_region_display }}
+                </p>
+            </div>
+        </div>
+        
+        <!-- Inquiry Form -->
+        <div class="inquiry-form">
+            <h2 class="mb-4">Sponsorship Inquiry Form</h2>
+            
+            <form method="post" id="inquiry-form">
+                {% csrf_token %}
+                
+                <!-- Company Information -->
+                <div class="form-group">
+                    <label for="company_name">Company Name<span class="required">*</span></label>
+                    <input type="text" class="form-control" id="company_name" name="company_name" required maxlength="200">
+                </div>
+                
+                <div class="form-group">
+                    <label for="company_website">Company Website</label>
+                    <input type="url" class="form-control" id="company_website" name="company_website" placeholder="https://example.com">
+                    <small class="form-text">Optional - helps us learn more about your company</small>
+                </div>
+                
+                <!-- Contact Information -->
+                <div class="form-group">
+                    <label for="contact_name">Contact Name<span class="required">*</span></label>
+                    <input type="text" class="form-control" id="contact_name" name="contact_name" required maxlength="100">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="contact_email">Contact Email<span class="required">*</span></label>
+                            <input type="email" class="form-control" id="contact_email" name="contact_email" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="contact_phone">Contact Phone</label>
+                            <input type="tel" class="form-control" id="contact_phone" name="contact_phone" maxlength="20">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sponsorship Details -->
+                <div class="form-group">
+                    <label>Interested Sponsorship Tier<span class="required">*</span></label>
+                    <div class="tier-selection">
+                        <div class="tier-option">
+                            <input type="radio" id="tier_platinum" name="interested_tier" value="platinum" required>
+                            <label for="tier_platinum" class="tier-label">💎 Platinum</label>
+                        </div>
+                        <div class="tier-option">
+                            <input type="radio" id="tier_gold" name="interested_tier" value="gold">
+                            <label for="tier_gold" class="tier-label">🥇 Gold</label>
+                        </div>
+                        <div class="tier-option">
+                            <input type="radio" id="tier_silver" name="interested_tier" value="silver">
+                            <label for="tier_silver" class="tier-label">🥈 Silver</label>
+                        </div>
+                        <div class="tier-option">
+                            <input type="radio" id="tier_bronze" name="interested_tier" value="bronze">
+                            <label for="tier_bronze" class="tier-label">🥉 Bronze</label>
+                        </div>
+                        <div class="tier-option">
+                            <input type="radio" id="tier_partner" name="interested_tier" value="partner">
+                            <label for="tier_partner" class="tier-label">🤝 Partner</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Estimated Budget Range<span class="required">*</span></label>
+                    <div class="budget-selection">
+                        <div class="budget-option">
+                            <input type="radio" id="budget_1" name="budget_range" value="under_1000" required>
+                            <label for="budget_1" class="budget-label">< $1,000</label>
+                        </div>
+                        <div class="budget-option">
+                            <input type="radio" id="budget_2" name="budget_range" value="1000_5000">
+                            <label for="budget_2" class="budget-label">$1K - $5K</label>
+                        </div>
+                        <div class="budget-option">
+                            <input type="radio" id="budget_3" name="budget_range" value="5000_10000">
+                            <label for="budget_3" class="budget-label">$5K - $10K</label>
+                        </div>
+                        <div class="budget-option">
+                            <input type="radio" id="budget_4" name="budget_range" value="10000_25000">
+                            <label for="budget_4" class="budget-label">$10K - $25K</label>
+                        </div>
+                        <div class="budget-option">
+                            <input type="radio" id="budget_5" name="budget_range" value="over_25000">
+                            <label for="budget_5" class="budget-label">> $25K</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="duration_months">Preferred Duration (months)</label>
+                    <input type="number" class="form-control" id="duration_months" name="duration_months" min="1" max="36" placeholder="e.g., 6 or 12">
+                    <small class="form-text">How long would you like the sponsorship to last?</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">Message / Additional Details<span class="required">*</span></label>
+                    <textarea class="form-control" id="message" name="message" rows="6" required maxlength="2000" placeholder="Tell us about your company and why you'd like to sponsor our team..."></textarea>
+                    <small class="form-text">Minimum 50 characters</small>
+                </div>
+                
+                <!-- Submit Button -->
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    Submit Sponsorship Inquiry
+                </button>
+                
+                <p class="form-text text-center mt-3">
+                    <small>⚠️ Please note: You can submit up to 3 inquiries per day.</small>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('inquiry-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const messageField = document.getElementById('message');
+        
+        // Character counter for message
+        messageField.addEventListener('input', function() {
+            const length = this.value.length;
+            if (length < 50) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        });
+        
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            const message = messageField.value.trim();
+            
+            // Validate message length
+            if (message.length < 50) {
+                e.preventDefault();
+                alert('Please provide a message with at least 50 characters.');
+                messageField.focus();
+                return false;
+            }
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+        });
+    });
+</script>
+{% endblock %}

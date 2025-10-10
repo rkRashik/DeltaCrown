@@ -1,0 +1,37 @@
+===============================================================================
+                    YOUR DAILY DIGEST - {{ digest_date|date:"F j, Y" }}
+===============================================================================
+
+Hello {{ user.username }}!
+
+You have {{ total_count }} notification{{ total_count|pluralize }} from yesterday.
+
+{% for type_display, notifications in grouped_notifications.items %}
+-------------------------------------------------------------------------------
+{{ type_display|upper }} ({{ notifications|length }})
+-------------------------------------------------------------------------------
+
+{% for notification in notifications %}
+  • {{ notification.title }}
+    {% if notification.body %}{{ notification.body }}{% endif %}
+    {% if notification.url %}View: {{ site_url }}{{ notification.url }}{% endif %}
+    ({{ notification.created_at|timesince }} ago)
+
+{% endfor %}
+{% endfor %}
+
+===============================================================================
+                              QUICK ACTIONS
+===============================================================================
+
+View All Notifications: {{ site_url }}/notifications/
+Manage Preferences: {{ site_url }}/settings/notifications/
+
+===============================================================================
+
+You're receiving this email because you have daily digest enabled.
+To change your notification preferences, visit: {{ site_url }}/settings/notifications/
+
+Need help? Contact support: {{ site_url }}/support/
+
+© {{ current_year }} DeltaCrown. All rights reserved.

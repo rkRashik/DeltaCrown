@@ -196,3 +196,118 @@ try:
     connect_achievement_signals()
 except Exception as e:
     logger.warning(f"Some signals could not be connected: {e}")
+
+
+# ============================================================================
+# Task 9: Notification Signals
+# ============================================================================
+
+
+@receiver(post_save, sender='teams.TeamInvite')
+def handle_team_invite_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when team invite is created or accepted.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if created and instance.status == 'pending':
+        # New invite sent
+        try:
+            NotificationService.notify_invite_sent(instance)
+            logger.info(f"Invite sent notification triggered for invite {instance.id}")
+        except Exception as e:
+            logger.error(f"Failed to send invite notification: {e}")
+    
+    elif not created and instance.status == 'accepted':
+        # Invite was accepted (update case)
+        try:
+            NotificationService.notify_invite_accepted(instance)
+            logger.info(f"Invite accepted notification triggered for invite {instance.id}")
+        except Exception as e:
+            logger.error(f"Failed to send invite accepted notification: {e}")
+
+
+@receiver(post_save, sender='teams.TeamMembership')
+def handle_team_member_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when team member is added.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if created:
+        # New member added
+        try:
+            NotificationService.notify_roster_change(
+                team=instance.team,
+                change_type='added',
+                affected_user=instance.profile.user if instance.profile else None
+            )
+            logger.info(f"Roster change notification triggered for team {instance.team.id}")
+        except Exception as e:
+            logger.error(f"Failed to send roster change notification: {e}")
+
+
+@receiver(post_delete, sender='teams.TeamMembership')
+def handle_team_member_removed_notification(sender, instance, **kwargs):
+    """
+    Send notification when team member is removed.
+    """
+    from apps.notifications.services import NotificationService
+    
+    try:
+        NotificationService.notify_roster_change(
+            team=instance.team,
+            change_type='removed',
+            affected_user=instance.profile.user if instance.profile else None
+        )
+        logger.info(f"Member removed notification triggered for team {instance.team.id}")
+    except Exception as e:
+        logger.error(f"Failed to send member removed notification: {e}")
+
+
+@receiver(post_save, sender='teams.TeamSponsor')
+def handle_sponsor_approved_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when sponsor is approved.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if not created and instance.status == 'approved':
+        # Sponsor was approved (update case)
+        try:
+            NotificationService.notify_sponsor_approved(instance)
+            logger.info(f"Sponsor approved notification triggered for sponsor {instance.id}")
+        except Exception as e:
+            logger.error(f"Failed to send sponsor approved notification: {e}")
+
+
+@receiver(post_save, sender='teams.TeamPromotion')
+def handle_promotion_started_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when promotion starts.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if not created and instance.status == 'active':
+        # Promotion became active (update case)
+        try:
+            NotificationService.notify_promotion_started(instance)
+            logger.info(f"Promotion started notification triggered for promotion {instance.id}")
+        except Exception as e:
+            logger.error(f"Failed to send promotion started notification: {e}")
+
+
+@receiver(post_save, sender='teams.TeamAchievement')
+def handle_achievement_earned_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when team earns achievement.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if created:
+        try:
+            NotificationService.notify_achievement_earned(instance.team, instance)
+            logger.info(f"Achievement earned notification triggered for team {instance.team.id}")
+        except Exception as e:
+            logger.error(f"Failed to send achievement notification: {e}")
+

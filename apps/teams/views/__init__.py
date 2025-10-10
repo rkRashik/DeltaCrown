@@ -18,6 +18,10 @@ Additionally, we provide:
 from . import public as public       # noqa: F401
 from . import manage as manage       # noqa: F401
 from . import social as social       # noqa: F401
+from . import analytics as analytics # noqa: F401  # Task 6 - Analytics views
+from . import chat as chat           # noqa: F401  # Task 7 - Chat views
+from . import discussions as discussions  # noqa: F401  # Task 7 - Discussion views
+from . import sponsorship as sponsorship  # noqa: F401  # Task 8 - Sponsorship views
 from .invites import my_invites, decline_invite_view
 
 def _export_all_from(mod):
@@ -33,6 +37,10 @@ def _export_all_from(mod):
 _export_all_from(public)
 _export_all_from(manage)
 _export_all_from(social)
+_export_all_from(analytics)  # Task 6 - Analytics views
+_export_all_from(chat)       # Task 7 - Chat views
+_export_all_from(discussions)  # Task 7 - Discussion views
+_export_all_from(sponsorship)  # Task 8 - Sponsorship views
 
 # Import ajax module for AJAX endpoints
 from . import ajax as ajax  # noqa: F401

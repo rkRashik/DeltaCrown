@@ -1,0 +1,27 @@
+===============================================================================
+                        NEW NOTIFICATION
+===============================================================================
+
+{{ notification.get_type_display|upper }}
+
+{{ notification.title }}
+
+{% if notification.body %}
+{{ notification.body }}
+{% endif %}
+
+{% if notification.url %}
+View Details: {{ site_url }}{{ notification.url }}
+{% endif %}
+
+-------------------------------------------------------------------------------
+Received: {{ notification.created_at|date:"F j, Y g:i A" }}
+Type: {{ notification.get_type_display }}
+-------------------------------------------------------------------------------
+
+View All Notifications: {{ site_url }}/notifications/
+Manage Notification Preferences: {{ site_url }}/settings/notifications/
+
+This notification was sent to {{ user.email }}
+
+© {{ current_year }} DeltaCrown. All rights reserved.

@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team.name }} - Official Merchandise{% endblock %}
+
+{% block extra_css %}
+<style>
+    .merch-header {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 60px 0;
+        text-align: center;
+        margin-bottom: 40px;
+        border-radius: 8px;
+    }
+    
+    .category-filter {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 30px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+    }
+    
+    .filter-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-right: 8px;
+    }
+    
+    .filter-btn {
+        padding: 8px 20px;
+        border: 2px solid #e0e0e0;
+        border-radius: 20px;
+        background: white;
+        color: #6c757d;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-decoration: none;
+    }
+    
+    .filter-btn:hover {
+        border-color: #f5576c;
+        color: #f5576c;
+        text-decoration: none;
+    }
+    
+    .filter-btn.active {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-color: #f5576c;
+        color: white;
+    }
+    
+    .featured-section {
+        margin-bottom: 40px;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 3px solid #f5576c;
+    }
+    
+    .section-title {
+        font-size: 1.8em;
+        font-weight: 700;
+        margin: 0;
+        color: #2c3e50;
+    }
+    
+    .merch-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+    }
+    
+    .merch-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        cursor: pointer;
+        position: relative;
+    }
+    
+    .merch-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    
+    .merch-image-container {
+        width: 100%;
+        height: 250px;
+        overflow: hidden;
+        background: #f8f9fa;
+        position: relative;
+    }
+    
+    .merch-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .featured-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        color: #856404;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.85em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .stock-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.85em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .stock-badge.in-stock {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stock-badge.out-of-stock {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .stock-badge.low-stock {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .sale-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.9em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .merch-details {
+        padding: 20px;
+    }
+    
+    .merch-category {
+        color: #6c757d;
+        font-size: 0.85em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    
+    .merch-name {
+        font-size: 1.2em;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 12px;
+        min-height: 48px;
+    }
+    
+    .merch-price {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .price-current {
+        font-size: 1.5em;
+        font-weight: 700;
+        color: #27ae60;
+    }
+    
+    .price-original {
+        font-size: 1.1em;
+        color: #95a5a6;
+        text-decoration: line-through;
+    }
+    
+    .view-btn {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+        text-decoration: none;
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .view-btn:hover {
+        transform: scale(1.05);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .no-merch {
+        text-align: center;
+        padding: 80px 20px;
+        color: #6c757d;
+    }
+    
+    .no-merch-icon {
+        font-size: 4em;
+        margin-bottom: 20px;
+        opacity: 0.3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="merch-header">
+        <h1>🛍️ {{ team.name }} Official Merchandise</h1>
+        <p class="mb-0 opacity-75">Support your favorite team with official gear!</p>
+    </div>
+    
+    <!-- Category Filter -->
+    {% if merchandise %}
+    <div class="category-filter">
+        <span class="filter-label">Filter by:</span>
+        <a href="?category=" class="filter-btn {% if not selected_category %}active{% endif %}">
+            All Items
+        </a>
+        <a href="?category=jersey" class="filter-btn {% if selected_category == 'jersey' %}active{% endif %}">
+            👕 Jerseys
+        </a>
+        <a href="?category=hoodie" class="filter-btn {% if selected_category == 'hoodie' %}active{% endif %}">
+            🧥 Hoodies
+        </a>
+        <a href="?category=tshirt" class="filter-btn {% if selected_category == 'tshirt' %}active{% endif %}">
+            👔 T-Shirts
+        </a>
+        <a href="?category=cap" class="filter-btn {% if selected_category == 'cap' %}active{% endif %}">
+            🧢 Caps
+        </a>
+        <a href="?category=accessory" class="filter-btn {% if selected_category == 'accessory' %}active{% endif %}">
+            🎒 Accessories
+        </a>
+        <a href="?category=collectible" class="filter-btn {% if selected_category == 'collectible' %}active{% endif %}">
+            🏆 Collectibles
+        </a>
+    </div>
+    {% endif %}
+    
+    {% if merchandise %}
+        <!-- Featured Items -->
+        {% if featured_items %}
+        <div class="featured-section">
+            <div class="section-header">
+                <span style="font-size: 1.5em;">⭐</span>
+                <h2 class="section-title">Featured Items</h2>
+            </div>
+            <div class="merch-grid">
+                {% for item in featured_items %}
+                <div class="merch-card" onclick="window.location.href='{% url 'teams:merch_item_detail' team.slug item.id %}'">
+                    <div class="merch-image-container">
+                        {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}" class="merch-image">
+                        {% else %}
+                        <div class="merch-image d-flex align-items-center justify-content-center" style="font-size: 4em;">
+                            🛍️
+                        </div>
+                        {% endif %}
+                        
+                        <span class="featured-badge">⭐ Featured</span>
+                        
+                        {% if item.is_on_sale %}
+                        <span class="sale-badge">🔥 SALE</span>
+                        {% endif %}
+                    </div>
+                    <div class="merch-details">
+                        <div class="merch-category">{{ item.get_category_display }}</div>
+                        <div class="merch-name">{{ item.name }}</div>
+                        <div class="merch-price">
+                            <span class="price-current">${{ item.get_price }}</span>
+                            {% if item.is_on_sale %}
+                            <span class="price-original">${{ item.price }}</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'teams:merch_item_detail' team.slug item.id %}" class="view-btn" onclick="event.stopPropagation();">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- All Items -->
+        <div class="section-header">
+            <span style="font-size: 1.5em;">🛒</span>
+            <h2 class="section-title">
+                {% if selected_category %}
+                    {{ selected_category|title }} Items
+                {% else %}
+                    All Items
+                {% endif %}
+            </h2>
+        </div>
+        <div class="merch-grid">
+            {% for item in merchandise %}
+            <div class="merch-card" onclick="window.location.href='{% url 'teams:merch_item_detail' team.slug item.id %}'">
+                <div class="merch-image-container">
+                    {% if item.image %}
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="merch-image">
+                    {% else %}
+                    <div class="merch-image d-flex align-items-center justify-content-center" style="font-size: 4em;">
+                        🛍️
+                    </div>
+                    {% endif %}
+                    
+                    {% if not item.unlimited_stock %}
+                        {% if not item.is_in_stock %}
+                        <span class="stock-badge out-of-stock">Out of Stock</span>
+                        {% elif item.stock <= 5 %}
+                        <span class="stock-badge low-stock">Only {{ item.stock }} left!</span>
+                        {% else %}
+                        <span class="stock-badge in-stock">In Stock</span>
+                        {% endif %}
+                    {% endif %}
+                    
+                    {% if item.is_on_sale %}
+                    <span class="sale-badge">🔥 SALE</span>
+                    {% endif %}
+                </div>
+                <div class="merch-details">
+                    <div class="merch-category">{{ item.get_category_display }}</div>
+                    <div class="merch-name">{{ item.name }}</div>
+                    <div class="merch-price">
+                        <span class="price-current">${{ item.get_price }}</span>
+                        {% if item.is_on_sale %}
+                        <span class="price-original">${{ item.price }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'teams:merch_item_detail' team.slug item.id %}" class="view-btn" onclick="event.stopPropagation();">
+                        View Details
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-merch">
+            <div class="no-merch-icon">🛍️</div>
+            <h3>No Merchandise Available Yet</h3>
+            <p>This team hasn't added any merchandise yet. Check back soon!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

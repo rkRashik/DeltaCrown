@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Team - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teams/css/team-creation-form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="team-creation-container">
+    <!-- Header -->
+    <div class="creation-header">
+        <h1 class="creation-title">
+            <i class="fas fa-users-crown"></i>
+            Create Your Team
+        </h1>
+        <p class="creation-subtitle">Build your esports legacy in a few simple steps</p>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator">
+        <div class="progress-step active" data-step="1">
+            <div class="step-circle">
+                <i class="fas fa-gamepad"></i>
+            </div>
+            <span class="step-label">Game</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="2">
+            <div class="step-circle">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <span class="step-label">Team Info</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="3">
+            <div class="step-circle">
+                <i class="fas fa-users"></i>
+            </div>
+            <span class="step-label">Roster</span>
+        </div>
+        <div class="progress-line"></div>
+        <div class="progress-step" data-step="4">
+            <div class="step-circle">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <span class="step-label">Review</span>
+        </div>
+    </div>
+
+    <!-- Main Form Container -->
+    <div class="form-wrapper">
+        <!-- Left Side: Form -->
+        <div class="form-panel">
+            <form id="teamCreationForm" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Step 1: Game Selection -->
+                <div class="form-step active" data-step="1">
+                    <h2 class="step-title">Select Your Game</h2>
+                    <p class="step-description">Choose the game your team will compete in</p>
+
+                    <div id="gameSelector" class="game-selector-grid">
+                        <!-- Games will be loaded dynamically -->
+                        <div class="game-loader">
+                            <div class="loader-spinner"></div>
+                            <p>Loading games...</p>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-primary btn-next" disabled>
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Team Information -->
+                <div class="form-step" data-step="2">
+                    <h2 class="step-title">Team Information</h2>
+                    <p class="step-description">Tell us about your team</p>
+
+                    <div class="form-grid">
+                        <!-- Required Fields -->
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-star-of-life"></i>
+                                Required Information
+                            </h3>
+
+                            <div class="form-group">
+                                <label for="teamName" class="form-label required">
+                                    Team Name
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="teamName" 
+                                    name="name" 
+                                    class="form-input"
+                                    placeholder="Enter your team name"
+                                    required
+                                    maxlength="100"
+                                >
+                                <div class="field-feedback"></div>
+                                <small class="field-hint">This will be your team's official name</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="teamTag" class="form-label required">
+                                    Team Tag
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="teamTag" 
+                                    name="tag" 
+                                    class="form-input"
+                                    placeholder="e.g., ALPHA"
+                                    required
+                                    maxlength="20"
+                                    style="text-transform: uppercase;"
+                                >
+                                <div class="field-feedback"></div>
+                                <small class="field-hint">Short identifier (2-20 characters)</small>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="teamLogo" class="form-label required">
+                                        Team Logo
+                                    </label>
+                                    <div class="file-upload-wrapper">
+                                        <input 
+                                            type="file" 
+                                            id="teamLogo" 
+                                            name="logo" 
+                                            class="file-input"
+                                            accept="image/*"
+                                        >
+                                        <label for="teamLogo" class="file-label">
+                                            <i class="fas fa-upload"></i>
+                                            <span>Upload Logo</span>
+                                        </label>
+                                        <div class="file-preview" id="logoPreview"></div>
+                                    </div>
+                                    <small class="field-hint">PNG or JPG, max 5MB</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="teamRegion" class="form-label required">
+                                        Region
+                                    </label>
+                                    <select id="teamRegion" name="region" class="form-select" required>
+                                        <option value="">Select Region</option>
+                                        <option value="North America">North America</option>
+                                        <option value="Europe">Europe</option>
+                                        <option value="Asia">Asia</option>
+                                        <option value="Southeast Asia">Southeast Asia</option>
+                                        <option value="South America">South America</option>
+                                        <option value="Oceania">Oceania</option>
+                                        <option value="Middle East">Middle East</option>
+                                        <option value="Africa">Africa</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Optional Fields (Collapsible) -->
+                        <div class="form-section">
+                            <button type="button" class="section-toggle" data-target="optionalFields">
+                                <h3 class="section-title">
+                                    <i class="fas fa-plus-circle"></i>
+                                    Optional Details
+                                </h3>
+                                <i class="fas fa-chevron-down toggle-icon"></i>
+                            </button>
+
+                            <div id="optionalFields" class="collapsible-content">
+                                <div class="form-group">
+                                    <label for="teamBanner" class="form-label">
+                                        Team Banner
+                                    </label>
+                                    <div class="file-upload-wrapper">
+                                        <input 
+                                            type="file" 
+                                            id="teamBanner" 
+                                            name="banner" 
+                                            class="file-input"
+                                            accept="image/*"
+                                        >
+                                        <label for="teamBanner" class="file-label">
+                                            <i class="fas fa-image"></i>
+                                            <span>Upload Banner</span>
+                                        </label>
+                                        <div class="file-preview" id="bannerPreview"></div>
+                                    </div>
+                                    <small class="field-hint">Wide banner image (1920x400 recommended)</small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="teamDescription" class="form-label">
+                                        Team Bio
+                                    </label>
+                                    <textarea 
+                                        id="teamDescription" 
+                                        name="description" 
+                                        class="form-textarea"
+                                        placeholder="Tell the world about your team..."
+                                        rows="4"
+                                        maxlength="1000"
+                                    ></textarea>
+                                    <div class="char-counter">
+                                        <span class="current">0</span> / <span class="max">1000</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="baseCity" class="form-label">
+                                            Base City
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            id="baseCity" 
+                                            name="base_city" 
+                                            class="form-input"
+                                            placeholder="e.g., Los Angeles"
+                                            maxlength="100"
+                                        >
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="foundingYear" class="form-label">
+                                            Founding Year
+                                        </label>
+                                        <input 
+                                            type="number" 
+                                            id="foundingYear" 
+                                            name="founding_year" 
+                                            class="form-input"
+                                            placeholder="2025"
+                                            min="2000"
+                                            max="2030"
+                                        >
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="teamMotto" class="form-label">
+                                        Team Motto
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        id="teamMotto" 
+                                        name="motto" 
+                                        class="form-input"
+                                        placeholder="Your team's slogan"
+                                        maxlength="200"
+                                    >
+                                </div>
+
+                                <!-- Social Links -->
+                                <div class="social-links-section">
+                                    <h4 class="subsection-title">
+                                        <i class="fas fa-link"></i>
+                                        Social Media
+                                    </h4>
+
+                                    <div class="form-group">
+                                        <label for="discordServer" class="form-label">
+                                            <i class="fab fa-discord"></i> Discord
+                                        </label>
+                                        <input 
+                                            type="url" 
+                                            id="discordServer" 
+                                            name="discord_server" 
+                                            class="form-input"
+                                            placeholder="https://discord.gg/your-server"
+                                        >
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="twitter" class="form-label">
+                                            <i class="fab fa-twitter"></i> Twitter
+                                        </label>
+                                        <input 
+                                            type="url" 
+                                            id="twitter" 
+                                            name="twitter" 
+                                            class="form-input"
+                                            placeholder="https://twitter.com/yourteam"
+                                        >
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="instagram" class="form-label">
+                                            <i class="fab fa-instagram"></i> Instagram
+                                        </label>
+                                        <input 
+                                            type="url" 
+                                            id="instagram" 
+                                            name="instagram" 
+                                            class="form-input"
+                                            placeholder="https://instagram.com/yourteam"
+                                        >
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="youtube" class="form-label">
+                                            <i class="fab fa-youtube"></i> YouTube
+                                        </label>
+                                        <input 
+                                            type="url" 
+                                            id="youtube" 
+                                            name="youtube" 
+                                            class="form-input"
+                                            placeholder="https://youtube.com/@yourteam"
+                                        >
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="website" class="form-label">
+                                            <i class="fas fa-globe"></i> Website
+                                        </label>
+                                        <input 
+                                            type="url" 
+                                            id="website" 
+                                            name="website" 
+                                            class="form-input"
+                                            placeholder="https://yourteam.com"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary btn-prev">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary btn-next">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Roster Management -->
+                <div class="form-step" data-step="3">
+                    <h2 class="step-title">Build Your Roster</h2>
+                    <p class="step-description">Add players to your team</p>
+
+                    <!-- Roster Status Bar -->
+                    <div class="roster-status-bar">
+                        <div class="status-item">
+                            <span class="status-label">Starters:</span>
+                            <span class="status-value">
+                                <span id="startersCount">0</span> / <span id="maxStarters">5</span>
+                            </span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Substitutes:</span>
+                            <span class="status-value">
+                                <span id="subsCount">0</span> / <span id="maxSubs">2</span>
+                            </span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Captain:</span>
+                            <span class="status-value" id="captainStatus">
+                                <i class="fas fa-times-circle text-danger"></i> Not set
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Add Player Button -->
+                    <div class="add-player-section">
+                        <button type="button" class="btn btn-success btn-add-player" id="addPlayerBtn">
+                            <i class="fas fa-plus-circle"></i>
+                            Add Player
+                        </button>
+                    </div>
+
+                    <!-- Roster Container -->
+                    <div id="rosterContainer" class="roster-container">
+                        <!-- Player cards will be added dynamically -->
+                        <div class="empty-roster-message">
+                            <i class="fas fa-users-slash"></i>
+                            <p>No players added yet</p>
+                            <small>Click "Add Player" to build your roster</small>
+                        </div>
+                    </div>
+
+                    <!-- Validation Messages -->
+                    <div id="rosterValidation" class="validation-messages"></div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary btn-prev">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary btn-next" id="rosterNextBtn">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Review & Submit -->
+                <div class="form-step" data-step="4">
+                    <h2 class="step-title">Review Your Team</h2>
+                    <p class="step-description">Double-check everything before submitting</p>
+
+                    <div id="reviewContent" class="review-content">
+                        <!-- Review content will be populated dynamically -->
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary btn-prev">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        <button type="submit" class="btn btn-success btn-submit" id="submitBtn">
+                            <i class="fas fa-check-circle"></i>
+                            Create Team
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Side: Live Preview -->
+        <div class="preview-panel">
+            <div class="preview-sticky">
+                <h3 class="preview-title">
+                    <i class="fas fa-eye"></i>
+                    Live Preview
+                </h3>
+                <div id="teamPreview" class="team-preview-card">
+                    <!-- Preview will be updated in real-time -->
+                    <div class="preview-placeholder">
+                        <i class="fas fa-shield-alt"></i>
+                        <p>Your team preview will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Card Modal -->
+<div id="playerModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Player</h3>
+            <button type="button" class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <!-- Player form will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Creating your team...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'teams/js/team-creation-form.js' %}"></script>
+{% endblock %}

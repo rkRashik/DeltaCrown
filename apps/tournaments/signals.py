@@ -179,3 +179,69 @@ try:
     register_signals()
 except Exception:
     pass
+
+
+# ============================================================================
+# Task 9: Tournament Notification Signals
+# ============================================================================
+import logging
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+logger = logging.getLogger(__name__)
+
+
+@receiver(post_save, sender='tournaments.Registration')
+def handle_tournament_registration_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when team registers for tournament.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if created and instance.status in ['APPROVED', 'CONFIRMED']:
+        try:
+            NotificationService.notify_tournament_registration(instance.tournament, instance.team)
+            logger.info(f"Tournament registration notification triggered for team {instance.team.id}")
+        except Exception as e:
+            logger.error(f"Failed to send tournament registration notification: {e}")
+
+
+@receiver(post_save, sender='tournaments.Match')
+def handle_match_result_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when match result is posted or match is scheduled.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if not created:
+        # Check if result was posted
+        if instance.winner_id and instance.status in ['completed', 'finished']:
+            try:
+                NotificationService.notify_match_result(instance)
+                logger.info(f"Match result notification triggered for match {instance.id}")
+            except Exception as e:
+                logger.error(f"Failed to send match result notification: {e}")
+        
+        # Check if match was scheduled
+        elif instance.scheduled_at and instance.status in ['scheduled', 'pending']:
+            try:
+                NotificationService.notify_match_scheduled(instance)
+                logger.info(f"Match scheduled notification triggered for match {instance.id}")
+            except Exception as e:
+                logger.error(f"Failed to send match scheduled notification: {e}")
+
+
+@receiver(post_save, sender='tournaments.Tournament')
+def handle_bracket_ready_notification(sender, instance, created, **kwargs):
+    """
+    Send notification when tournament bracket is ready.
+    """
+    from apps.notifications.services import NotificationService
+    
+    if not created and instance.status == 'in_progress' and instance.bracket_generated:
+        try:
+            NotificationService.notify_bracket_ready(instance)
+            logger.info(f"Bracket ready notification triggered for tournament {instance.id}")
+        except Exception as e:
+            logger.error(f"Failed to send bracket ready notification: {e}")
+

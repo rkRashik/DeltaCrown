@@ -434,9 +434,6 @@ def edit_team_post(request, team_slug, post_id):
                     error_messages.append(f"{field}: {error}")
             
             error_text = "Form errors: " + "; ".join(error_messages) if error_messages else "Unknown form validation error"
-            print(f"DEBUG - Form data: {request.POST}")
-            print(f"DEBUG - Form errors: {form.errors}")
-            print(f"DEBUG - Form is_valid: {form.is_valid()}")
             messages.error(request, f"Error updating post: {error_text}")
     else:
         form = TeamPostForm(instance=post, team=team, author=user_profile)

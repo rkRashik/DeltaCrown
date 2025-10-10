@@ -285,10 +285,13 @@ from django.contrib.auth.decorators import login_required
 
 @login_required
 def dashboard_index(request: HttpRequest) -> HttpResponse:
-    """Simple dashboard landing with recent registrations and matches."""
+    """Enhanced dashboard with teams, registrations, matches, and invites."""
     Registration = _get_model("tournaments.Registration")
     Match = _get_model("tournaments.Match") or _get_model("brackets.Match")
+    Team = _get_model("teams.Team")
+    TeamInvite = _get_model("teams.TeamInvite")
 
+    # Get registrations
     regs = []
     try:
         prof = _get_user_profile(request.user)
@@ -301,6 +304,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     except Exception:
         regs = []
 
+    # Get matches
     matches = []
     try:
         form = MyMatchesFilterForm({})
@@ -321,9 +325,37 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     except Exception:
         matches = []
 
+    # Get user's teams
+    my_teams = []
+    try:
+        if Team:
+            my_teams = list(_collect_user_teams(request.user)[:6])
+    except Exception:
+        my_teams = []
+
+    # Get pending team invites
+    pending_invites = []
+    try:
+        prof = _get_user_profile(request.user)
+        if TeamInvite and prof:
+            now = timezone.now()
+            pending_invites = (
+                TeamInvite.objects.filter(
+                    invited_user=prof,
+                    status='pending',
+                    expires_at__gt=now
+                )
+                .select_related("team", "inviter")
+                .order_by("-created_at")[:5]
+            )
+    except Exception:
+        pending_invites = []
+
     context = {
         "registrations": regs,
         "matches": matches,
         "payouts": [],
+        "my_teams": my_teams,
+        "pending_invites": pending_invites,
     }
     return render(request, "dashboard/index.html", context)

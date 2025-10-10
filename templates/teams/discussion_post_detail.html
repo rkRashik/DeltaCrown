@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ object.title }} - {{ team.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .post-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .post-header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 8px 8px 0 0;
+    }
+    
+    .post-type-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 16px;
+        font-size: 0.9em;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.2);
+        margin-bottom: 16px;
+    }
+    
+    .post-title-main {
+        font-size: 2em;
+        font-weight: 700;
+        margin-bottom: 20px;
+    }
+    
+    .post-meta-row {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        opacity: 0.9;
+    }
+    
+    .post-content-section {
+        padding: 40px;
+    }
+    
+    .post-content {
+        line-height: 1.8;
+        font-size: 1.1em;
+        color: #2c3e50;
+        margin-bottom: 30px;
+    }
+    
+    .post-content h1, .post-content h2, .post-content h3 {
+        margin-top: 24px;
+        margin-bottom: 16px;
+    }
+    
+    .post-content img {
+        max-width: 100%;
+        border-radius: 8px;
+        margin: 16px 0;
+    }
+    
+    .post-content pre {
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 6px;
+        overflow-x: auto;
+    }
+    
+    .post-content code {
+        background: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .post-actions {
+        display: flex;
+        gap: 12px;
+        padding: 20px 40px;
+        border-top: 1px solid #e9ecef;
+        background: #f8f9fa;
+    }
+    
+    .action-btn {
+        padding: 10px 20px;
+        border: 1px solid #dee2e6;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+    }
+    
+    .action-btn:hover {
+        background: #e9ecef;
+    }
+    
+    .action-btn.liked {
+        background: #e3f2fd;
+        border-color: #1976d2;
+        color: #1976d2;
+    }
+    
+    .action-btn.subscribed {
+        background: #e8f5e9;
+        border-color: #388e3c;
+        color: #388e3c;
+    }
+    
+    .comments-section {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        padding: 30px;
+    }
+    
+    .comments-header {
+        font-size: 1.5em;
+        font-weight: 600;
+        margin-bottom: 24px;
+        color: #2c3e50;
+    }
+    
+    .comment-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+    
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    
+    .comment-author {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    .comment-time {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+    
+    .comment-content {
+        color: #495057;
+        line-height: 1.6;
+        margin-bottom: 12px;
+    }
+    
+    .comment-actions {
+        display: flex;
+        gap: 12px;
+        font-size: 0.9em;
+    }
+    
+    .comment-action-btn {
+        background: none;
+        border: none;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 4px 8px;
+        transition: color 0.2s;
+    }
+    
+    .comment-action-btn:hover {
+        color: #667eea;
+    }
+    
+    .comment-form {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 24px;
+    }
+    
+    .comment-textarea {
+        width: 100%;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 12px;
+        font-family: inherit;
+        font-size: 1em;
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .comment-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .submit-comment-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 12px;
+        transition: transform 0.2s;
+    }
+    
+    .submit-comment-btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .markdown-preview {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 16px;
+        margin-top: 12px;
+        min-height: 100px;
+    }
+    
+    .back-btn {
+        color: white;
+        text-decoration: none;
+        opacity: 0.9;
+        transition: opacity 0.2s;
+    }
+    
+    .back-btn:hover {
+        opacity: 1;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Post Container -->
+    <div class="post-container">
+        <!-- Post Header -->
+        <div class="post-header-section">
+            <a href="{% url 'teams:discussion_board' team.slug %}" class="back-btn">
+                ← Back to Discussion Board
+            </a>
+            <div class="post-type-badge">
+                {% if object.post_type == 'announcement' %}📢 Announcement
+                {% elif object.post_type == 'question' %}❓ Question
+                {% elif object.post_type == 'discussion' %}💬 Discussion
+                {% elif object.post_type == 'poll' %}📊 Poll
+                {% endif %}
+                {% if object.is_pinned %}📌 Pinned{% endif %}
+                {% if object.is_locked %}🔒 Locked{% endif %}
+            </div>
+            <h1 class="post-title-main">{{ object.title }}</h1>
+            <div class="post-meta-row">
+                <div>👤 <strong>{{ object.author.user.username }}</strong></div>
+                <div>📅 {{ object.created_at|date:"M d, Y g:i A" }}</div>
+                <div>👁️ {{ object.view_count }} views</div>
+                {% if rendered_reading_time %}
+                <div>⏱️ {{ rendered_reading_time }} min read</div>
+                {% endif %}
+                <div>❤️ {{ object.like_count }} likes</div>
+                <div>💬 {{ comments|length }} comments</div>
+            </div>
+        </div>
+        
+        <!-- Post Content -->
+        <div class="post-content-section">
+            <div class="post-content">
+                {{ rendered_content|safe }}
+            </div>
+        </div>
+        
+        <!-- Post Actions -->
+        <div class="post-actions">
+            <button class="action-btn {% if user.is_authenticated %}liked{% endif %}" 
+                    onclick="toggleLike()">
+                ❤️ Like ({{ object.like_count }})
+            </button>
+            <button class="action-btn {% if is_subscribed %}subscribed{% endif %}" 
+                    onclick="toggleSubscribe()">
+                {% if is_subscribed %}🔔 Subscribed{% else %}🔕 Subscribe{% endif %}
+            </button>
+            {% if user == object.author.user or request.user.is_staff %}
+            <a href="{% url 'teams:discussion_post_edit' team.slug object.slug %}" class="action-btn">
+                ✏️ Edit
+            </a>
+            {% endif %}
+            {% if request.user.is_staff %}
+            <button class="action-btn" onclick="togglePin()">
+                {% if object.is_pinned %}📌 Unpin{% else %}📌 Pin{% endif %}
+            </button>
+            <button class="action-btn" onclick="toggleLock()">
+                {% if object.is_locked %}🔓 Unlock{% else %}🔒 Lock{% endif %}
+            </button>
+            <button class="action-btn" onclick="deletePost()" style="color: #dc3545;">
+                🗑️ Delete
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Comments Section -->
+    <div class="comments-section">
+        <h3 class="comments-header">💬 Comments ({{ comments|length }})</h3>
+        
+        <!-- Comment Form -->
+        {% if not object.is_locked %}
+        <div class="comment-form">
+            <h5>Add a Comment</h5>
+            <textarea id="commentInput" class="comment-textarea" 
+                      placeholder="Write your comment... (Markdown supported)"></textarea>
+            <div class="d-flex justify-content-between align-items-center">
+                <button onclick="togglePreview()" class="btn btn-sm btn-outline-secondary">
+                    👁️ Preview
+                </button>
+                <button onclick="submitComment()" class="submit-comment-btn">
+                    Post Comment
+                </button>
+            </div>
+            <div id="markdownPreview" class="markdown-preview" style="display: none;"></div>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            🔒 This post is locked. No new comments can be added.
+        </div>
+        {% endif %}
+        
+        <!-- Comments List -->
+        <div class="mt-4">
+            {% for comment in comments %}
+            <div class="comment-card" data-comment-id="{{ comment.id }}">
+                <div class="comment-header">
+                    <div>
+                        <span class="comment-author">{{ comment.author.user.username }}</span>
+                        <span class="comment-time">• {{ comment.created_at|date:"M d, Y g:i A" }}</span>
+                        {% if comment.is_edited %}
+                        <span class="comment-time">(edited)</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="comment-time">❤️ {{ comment.like_count }}</span>
+                    </div>
+                </div>
+                <div class="comment-content">
+                    {{ comment.content|safe }}
+                </div>
+                <div class="comment-actions">
+                    <button class="comment-action-btn" onclick="likeComment({{ comment.id }})">
+                        ❤️ Like
+                    </button>
+                    {% if user == comment.author.user or request.user.is_staff %}
+                    <button class="comment-action-btn" onclick="editComment({{ comment.id }})">
+                        ✏️ Edit
+                    </button>
+                    <button class="comment-action-btn" onclick="deleteComment({{ comment.id }})" 
+                            style="color: #dc3545;">
+                        🗑️ Delete
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-4">
+                No comments yet. Be the first to comment!
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+let previewMode = false;
+
+// Toggle post like
+async function toggleLike() {
+    const formData = new FormData();
+    formData.append('action', 'toggle_post_like');
+    formData.append('post_id', {{ object.id }});
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Toggle subscription
+async function toggleSubscribe() {
+    const isSubscribed = {{ is_subscribed|yesno:"true,false" }};
+    const action = isSubscribed ? 'unsubscribe' : 'subscribe';
+    
+    const formData = new FormData();
+    formData.append('action', action);
+    formData.append('post_id', {{ object.id }});
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Toggle pin
+async function togglePin() {
+    if (!confirm('Toggle pin status for this post?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'pin_post');
+    formData.append('post_id', {{ object.id }});
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Toggle lock
+async function toggleLock() {
+    if (!confirm('Toggle lock status for this post?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'lock_post');
+    formData.append('post_id', {{ object.id }});
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Delete post
+async function deletePost() {
+    if (!confirm('Are you sure you want to delete this post? This cannot be undone.')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'delete_post');
+    formData.append('post_id', {{ object.id }});
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            window.location.href = '{% url "teams:discussion_board" team.slug %}';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Submit comment
+async function submitComment() {
+    const content = document.getElementById('commentInput').value.trim();
+    if (!content) {
+        alert('Please enter a comment');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('action', 'add_comment');
+    formData.append('post_id', {{ object.id }});
+    formData.append('content', content);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Like comment
+async function likeComment(commentId) {
+    const formData = new FormData();
+    formData.append('action', 'toggle_comment_like');
+    formData.append('comment_id', commentId);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Edit comment
+async function editComment(commentId) {
+    const newContent = prompt('Edit your comment:');
+    if (!newContent) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'edit_comment');
+    formData.append('comment_id', commentId);
+    formData.append('content', newContent);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Delete comment
+async function deleteComment(commentId) {
+    if (!confirm('Delete this comment?')) return;
+    
+    const formData = new FormData();
+    formData.append('action', 'delete_comment');
+    formData.append('comment_id', commentId);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    try {
+        const response = await fetch('{% url "teams:discussion_api" team.slug %}', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Toggle markdown preview
+async function togglePreview() {
+    previewMode = !previewMode;
+    const preview = document.getElementById('markdownPreview');
+    
+    if (previewMode) {
+        const content = document.getElementById('commentInput').value;
+        
+        const formData = new FormData();
+        formData.append('content', content);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        try {
+            const response = await fetch('{% url "teams:markdown_preview" %}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                preview.innerHTML = data.html;
+                preview.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    } else {
+        preview.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

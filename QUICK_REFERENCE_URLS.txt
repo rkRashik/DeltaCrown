@@ -1,0 +1,314 @@
+==========================================================
+DELTACROWN - WHAT TO TEST & WHERE TO LOOK
+==========================================================
+Date: October 9, 2025
+Status: READY FOR TASKS 6 & 7
+
+==========================================================
+QUICK ANSWER TO YOUR QUESTIONS
+==========================================================
+
+Q: Do I need to run cleanup_and_setup.ps1 or cleanup_teams_app.ps1?
+A: NO - Already cleaned with simple_cleanup.ps1 successfully!
+
+Q: What has been done up to now?
+A: Tasks 1-5 complete + cleanup done. See details below.
+
+Q: Where to look and what to expect?
+A: 11 URLs listed below with expected results.
+
+==========================================================
+START HERE - TEST THESE URLs
+==========================================================
+
+1. START SERVER:
+   Command: python manage.py runserver
+   
+2. OPEN BROWSER AND TEST:
+
+   URL #1: http://127.0.0.1:8000/teams/
+   EXPECT: Grid of teams, filters, search bar, "Create Team" button
+   TRY: Browse teams, use filters, click create
+
+   URL #2: http://127.0.0.1:8000/teams/create/
+   EXPECT: Advanced form with drag-drop roster builder
+   TRY: Select game, drag players, assign roles, submit
+
+   URL #3: http://127.0.0.1:8000/teams/rankings/
+   EXPECT: Leaderboard with ranks, points, filters
+   TRY: Filter by game, search teams, click team for details
+
+   URL #4: http://127.0.0.1:8000/teams/{your-team-slug}/
+   EXPECT: Public team profile, stats, roster, achievements
+   TRY: View profile, click follow button, see roster
+
+   URL #5: http://127.0.0.1:8000/teams/{your-team-slug}/dashboard/
+   EXPECT: Captain dashboard with management tools (captain only)
+   TRY: View stats, manage roster, check invites, see activity
+
+   URL #6: http://127.0.0.1:8000/teams/{your-team-slug}/social/
+   EXPECT: Social feed with posts, likes, comments
+   TRY: Create post, add images, like, comment, edit
+
+   URL #7: http://127.0.0.1:8000/teams/{your-team-slug}/tournaments/
+   EXPECT: Tournament list with registration options
+   TRY: Register for tournament, check status
+
+   URL #8: http://127.0.0.1:8000/teams/{your-team-slug}/ranking/
+   EXPECT: Ranking details with point breakdown
+   TRY: View breakdown, check history, recalculate
+
+   URL #9: http://127.0.0.1:8000/admin/teams/
+   EXPECT: Admin interface for team management
+   TRY: Approve registrations, lock rosters, manage teams
+
+==========================================================
+WHAT'S BEEN COMPLETED (TASKS 1-5)
+==========================================================
+
+✓ TASK 1: Core Team System
+  - Team creation, list, detail views
+  - Captain and member roles
+  - Basic CRUD operations
+
+✓ TASK 2: Advanced Team Creation Form
+  - Drag-and-drop roster builder
+  - Real-time validation
+  - Game-specific rules
+  - Professional UI
+
+✓ TASK 3: Social Features
+  - Team posts with media galleries
+  - Comments and likes
+  - Team following system
+  - Activity feed
+  - Banner upload
+
+✓ TASK 4: Dashboard & Profile
+  - Captain dashboard with tools
+  - Public team profile
+  - Quick stats widgets
+  - Roster display with drag-drop
+  - Achievement showcase
+  - Follow/unfollow
+
+✓ TASK 5: Tournament & Ranking
+  - Tournament registration workflow
+  - Roster locking mechanism
+  - Duplicate prevention
+  - Automated ranking (8 point sources)
+  - Point breakdown display
+  - Admin approval workflow
+  - Leaderboard generation
+  - History tracking
+
+✓ CLEANUP & STABILIZATION
+  - Fixed AUTH_USER_MODEL references
+  - Applied Task 5 migration (0041)
+  - Removed debug statements
+  - System health verified
+  - 3 new database tables created
+
+==========================================================
+SYSTEM STATUS
+==========================================================
+
+Django Check:    ✓ PASSED
+Migrations:      ✓ 41/41 Applied
+Database:        ✓ 3 New Tables Created
+Code Quality:    ✓ Clean
+Documentation:   ✓ 10+ Files Created
+Ready for T6/7:  ✓ YES
+
+==========================================================
+KEY FEATURES YOU CAN TEST
+==========================================================
+
+1. DRAG-AND-DROP ROSTER BUILDER (Task 2)
+   - Go to /teams/create/
+   - Select "Valorant"
+   - Drag players from pool
+   - Assign roles (Duelist, Controller, etc.)
+   - See real-time validation
+
+2. SOCIAL FEED (Task 3)
+   - Go to /teams/{slug}/social/
+   - Create post with text
+   - Upload multiple images
+   - Like and comment on posts
+   - Edit your posts
+
+3. CAPTAIN DASHBOARD (Task 4)
+   - Go to /teams/{slug}/dashboard/
+   - View quick stats
+   - Manage roster (drag-drop order)
+   - Check pending invites
+   - See activity timeline
+
+4. TOURNAMENT REGISTRATION (Task 5)
+   - Go to /teams/{slug}/tournaments/
+   - Click "Register" for tournament
+   - Review roster validation
+   - Submit registration
+   - Check status page
+
+5. RANKING SYSTEM (Task 5)
+   - Go to /teams/rankings/
+   - View leaderboard
+   - Click team for details
+   - See 8-category point breakdown
+   - View ranking history graph
+
+==========================================================
+5-MINUTE QUICK TEST
+==========================================================
+
+Step 1: Start server
+   python manage.py runserver
+
+Step 2: Visit team list
+   http://127.0.0.1:8000/teams/
+   EXPECT: Page loads, teams displayed
+
+Step 3: Create a team
+   Click "Create Team"
+   Select "Valorant"
+   Fill in team name, tag
+   Drag 5 players, assign roles
+   Submit
+   EXPECT: Team created successfully
+
+Step 4: View dashboard
+   Navigate to your team's dashboard
+   EXPECT: Stats, roster, invites displayed
+
+Step 5: Test social
+   Go to team social page
+   Create a post
+   EXPECT: Post appears in feed
+
+Result: If all 5 steps work → System is healthy!
+
+==========================================================
+DOCUMENTATION FILES
+==========================================================
+
+MUST READ:
+  1. PROJECT_OVERVIEW_TASKS_1-5.md  (THIS FILE'S COMPANION)
+     → Comprehensive guide with all details
+     → 654 lines with URLs, expectations, workflows
+
+  2. CLEANUP_INDEX.md
+     → Master index of all documentation
+     → Navigation guide
+
+  3. CLEANUP_QUICK_START.md
+     → 2-minute verification guide
+
+TASK-SPECIFIC:
+  4. TASK2_IMPLEMENTATION_COMPLETE.md  (Advanced Form)
+  5. TASK3_IMPLEMENTATION_COMPLETE.md  (Social Features)
+  6. TASK4_IMPLEMENTATION_COMPLETE.md  (Dashboard)
+  7. TASK5_IMPLEMENTATION_COMPLETE.md  (Tournament/Ranking - 68KB)
+
+QUICK REFERENCES:
+  8. TASK5_QUICK_REFERENCE.md
+  9. TEAM_DASHBOARD_QUICK_REFERENCE.md
+
+CLEANUP DOCS:
+  10. CLEANUP_REPORT.md (Detailed audit - 5000+ lines)
+  11. CLEANUP_SUCCESS.md (Executive summary)
+  12. CLEANUP_EXECUTION_REPORT.txt (What was done)
+
+==========================================================
+FILES & FOLDERS TO EXPLORE
+==========================================================
+
+MODELS (What data is stored):
+  apps/teams/models/_legacy.py           - Core team models
+  apps/teams/models/social.py            - Social features
+  apps/teams/models/tournament_integration.py - Task 5
+
+VIEWS (What handles requests):
+  apps/teams/views/public.py             - Team list, creation
+  apps/teams/views/advanced_form.py      - Task 2 form
+  apps/teams/views/social.py             - Task 3 social
+  apps/teams/views/dashboard.py          - Task 4 dashboard
+  apps/teams/views/tournaments.py        - Task 5 tournaments
+
+TEMPLATES (What users see):
+  templates/teams/create_team_advanced.html - Task 2
+  templates/teams/team_social_detail.html   - Task 3
+  templates/teams/team_dashboard.html       - Task 4 (captain)
+  templates/teams/team_profile.html         - Task 4 (public)
+
+STATIC FILES (CSS/JS):
+  static/teams/css/advanced-form.css     - Task 2
+  static/teams/css/team-social.css       - Task 3
+  static/teams/css/team-dashboard.css    - Task 4
+  static/teams/css/team-profile.css      - Task 4
+
+SERVICES (Business logic):
+  apps/teams/services/ranking_calculator.py      - Task 5
+  apps/teams/services/tournament_registration.py - Task 5
+
+==========================================================
+COMMON ISSUES & SOLUTIONS
+==========================================================
+
+ISSUE: Server won't start
+FIX: python manage.py check
+
+ISSUE: Static files not loading
+FIX: python manage.py collectstatic --noinput
+
+ISSUE: Migration error
+FIX: python manage.py showmigrations teams
+
+ISSUE: Template not found
+FIX: Check INSTALLED_APPS has 'apps.teams'
+
+ISSUE: 404 on team page
+FIX: Create a team first, then use correct slug
+
+==========================================================
+NEXT STEPS - PROCEED TO TASK 6 & 7
+==========================================================
+
+You are ready if:
+  ✓ Server starts without errors
+  ✓ Team list page loads
+  ✓ Can create a team
+  ✓ Dashboard displays
+  ✓ No console errors in browser
+
+If YES to all → Proceed to Task 6 & 7!
+
+Tasks 6 & 7 will add:
+  - Advanced analytics
+  - Performance tracking
+  - Sponsorship management
+  - Contract system
+  - Revenue tracking
+  - Team financials
+
+==========================================================
+SUMMARY
+==========================================================
+
+COMPLETED: Tasks 1-5 + Cleanup
+STATUS: All systems operational
+DATABASE: 41 migrations applied, 3 new tables
+CODE: Clean, no debug statements
+DOCUMENTATION: 12+ comprehensive files
+READY: YES - Proceed to Task 6 & 7
+
+==========================================================
+END OF QUICK REFERENCE
+==========================================================
+
+For detailed information, read:
+→ PROJECT_OVERVIEW_TASKS_1-5.md (654 lines)
+→ CLEANUP_INDEX.md (master index)
+
+Last Updated: October 9, 2025

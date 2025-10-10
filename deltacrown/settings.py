@@ -308,3 +308,39 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer'
     }
 }
+
+# -----------------------------------------------------------------------------
+# Celery Configuration
+# -----------------------------------------------------------------------------
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+
+# Task deduplication - prevent double execution
+CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
+CELERY_TASK_EAGER_PROPAGATES = True
+
+# -----------------------------------------------------------------------------
+# Discord Webhook Configuration
+# -----------------------------------------------------------------------------
+DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL', '')
+DISCORD_NOTIFICATIONS_ENABLED = bool(DISCORD_WEBHOOK_URL)
+
+# -----------------------------------------------------------------------------
+# Notification Preferences
+# -----------------------------------------------------------------------------
+NOTIFICATION_CHANNELS = ['in_app', 'email', 'discord']
+DEFAULT_NOTIFICATION_PREFERENCES = {
+    'invite_sent': ['in_app', 'email'],
+    'invite_accepted': ['in_app', 'email'],
+    'roster_changed': ['in_app'],
+    'tournament_registered': ['in_app', 'email'],
+    'match_result': ['in_app', 'email'],
+    'ranking_changed': ['in_app'],
+    'sponsor_approved': ['in_app', 'email'],
+    'promotion_started': ['in_app'],
+}

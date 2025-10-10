@@ -2,12 +2,30 @@ from django import forms
 from django.core.exceptions import ValidationError
 from apps.user_profile.models import UserProfile
 from .models import Team, TeamMembership, TeamInvite
+from .game_config import GAME_CHOICES
 import re
+
+# Region choices for team location
+REGION_CHOICES = [
+    ('', 'Select Region'),
+    ('NA', 'North America'),
+    ('SA', 'South America'),
+    ('EU', 'Europe'),
+    ('SEA', 'Southeast Asia'),
+    ('EA', 'East Asia'),
+    ('OCE', 'Oceania'),
+    ('ME', 'Middle East'),
+    ('AF', 'Africa'),
+    ('SA-BD', 'Bangladesh'),
+    ('SA-IN', 'India'),
+    ('SA-PK', 'Pakistan'),
+]
 
 class TeamCreationForm(forms.ModelForm):
     class Meta:
         model = Team
-        fields = ['name', 'tag', 'description', 'logo', 'game', 'region']
+        fields = ['name', 'tag', 'description', 'logo', 'game', 'region', 'banner_image', 
+                  'twitter', 'instagram', 'discord', 'youtube', 'twitch', 'linktree']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -33,9 +51,36 @@ class TeamCreationForm(forms.ModelForm):
             'game': forms.Select(attrs={
                 'class': 'form-control'
             }),
-            'region': forms.TextInput(attrs={
+            'region': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'banner_image': forms.FileInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Team region (e.g., Bangladesh, Asia)'
+                'accept': 'image/*'
+            }),
+            'twitter': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://twitter.com/your-team'
+            }),
+            'instagram': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://instagram.com/your-team'
+            }),
+            'discord': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://discord.gg/your-server'
+            }),
+            'youtube': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://youtube.com/your-channel'
+            }),
+            'twitch': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://twitch.tv/your-channel'
+            }),
+            'linktree': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://linktr.ee/your-team'
             })
         }
 
@@ -43,6 +88,10 @@ class TeamCreationForm(forms.ModelForm):
         # Extract user parameter if provided (for compatibility)
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Set choices for region field
+        self.fields['region'].widget.choices = REGION_CHOICES
+        self.fields['region'].required = False
 
     def save(self, commit=True):
         team = super().save(commit=False)
@@ -112,6 +161,18 @@ class TeamCreationForm(forms.ModelForm):
             if not logo.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
                 raise ValidationError("Logo must be a valid image file (PNG, JPG, JPEG, GIF, or WebP).")
         return logo
+
+    def clean_banner_image(self):
+        banner = self.cleaned_data.get('banner_image')
+        if banner:
+            # Check file size (max 2MB)
+            if banner.size > 2 * 1024 * 1024:
+                raise ValidationError("Banner file size cannot exceed 2MB.")
+            
+            # Check file format
+            if not banner.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+                raise ValidationError("Banner must be a valid image file (PNG, JPG, JPEG, GIF, or WebP).")
+        return banner
 
 
 class TeamEditForm(TeamCreationForm):

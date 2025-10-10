@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 35px 30px;
+        }
+        .notification-type {
+            display: inline-block;
+            background: #e8f4f8;
+            color: #0066a1;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+        }
+        .notification-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        .notification-body {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.8;
+        }
+        .action-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .action-button:hover {
+            background: #5568d3;
+        }
+        .metadata {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .metadata-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .metadata-item:last-child {
+            border-bottom: none;
+        }
+        .metadata-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 13px;
+        }
+        .metadata-value {
+            color: #333;
+            font-size: 13px;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer-text {
+            color: #666;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #ddd, transparent);
+            margin: 25px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">
+                {% if notification.type == 'invite_sent' %}📬
+                {% elif notification.type == 'invite_accepted' %}✅
+                {% elif notification.type == 'roster_changed' %}👥
+                {% elif notification.type == 'tournament_registered' %}🎮
+                {% elif notification.type == 'match_result' %}🏆
+                {% elif notification.type == 'ranking_changed' %}📊
+                {% elif notification.type == 'sponsor_approved' %}💼
+                {% elif notification.type == 'promotion_started' %}📢
+                {% elif notification.type == 'payout_received' %}💰
+                {% elif notification.type == 'achievement_earned' %}🏅
+                {% else %}🔔{% endif %}
+            </div>
+            <h1>New Notification</h1>
+        </div>
+        
+        <div class="content">
+            <span class="notification-type">{{ notification.get_type_display }}</span>
+            
+            <h2 class="notification-title">{{ notification.title }}</h2>
+            
+            {% if notification.body %}
+            <div class="notification-body">
+                {{ notification.body|linebreaks }}
+            </div>
+            {% endif %}
+            
+            {% if notification.url %}
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ site_url }}{{ notification.url }}" class="action-button">
+                    View Details →
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="divider"></div>
+            
+            <div class="metadata">
+                <div class="metadata-item">
+                    <span class="metadata-label">Received</span>
+                    <span class="metadata-value">{{ notification.created_at|date:"F j, Y g:i A" }}</span>
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">Type</span>
+                    <span class="metadata-value">{{ notification.get_type_display }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p class="footer-text">
+                This notification was sent to {{ user.email }}
+            </p>
+            <p class="footer-text">
+                <a href="{{ site_url }}/notifications/" class="footer-link">View All Notifications</a> |
+                <a href="{{ site_url }}/settings/notifications/" class="footer-link">Manage Preferences</a>
+            </p>
+            <p class="footer-text" style="margin-top: 15px;">
+                © {{ current_year }} DeltaCrown. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team.name }} - Analytics Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-dashboard {
+        padding: 20px;
+    }
+    .stat-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .stat-value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    .chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="analytics-dashboard">
+    <div class="container">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>📊 {{ team.name }} Analytics</h1>
+            <div>
+                <select id="gameSelector" class="form-select">
+                    {% for game in available_games %}
+                    <option value="{{ game }}" {% if game == selected_game %}selected{% endif %}>
+                        {{ game|upper }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% if has_analytics %}
+            <!-- Overview Stats -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="stat-value">{{ team_analytics.total_matches }}</div>
+                        <div class="stat-label">Total Matches</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="stat-value">{{ team_analytics.win_rate|floatformat:1 }}%</div>
+                        <div class="stat-label">Win Rate</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="stat-value">{{ team_analytics.total_points }}</div>
+                        <div class="stat-label">Total Points</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card text-center">
+                        <div class="stat-value">
+                            {% if team_analytics.current_streak > 0 %}
+                                🔥 {{ team_analytics.current_streak }}W
+                            {% elif team_analytics.current_streak < 0 %}
+                                ❄️ {{ team_analytics.current_streak|abs }}L
+                            {% else %}
+                                —
+                            {% endif %}
+                        </div>
+                        <div class="stat-label">Current Streak</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <h3>Points Progression</h3>
+                        <canvas id="pointsChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="chart-container">
+                        <h3>Match Results</h3>
+                        <canvas id="resultsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Player Statistics -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h3>Top Performers</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Matches</th>
+                                    <th>Contribution</th>
+                                    <th>MVP</th>
+                                    <th>Attendance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ps in player_stats %}
+                                <tr>
+                                    <td>{{ ps.player.user.username }}</td>
+                                    <td>{{ ps.matches_played }}</td>
+                                    <td>{{ ps.contribution_score|floatformat:2 }}</td>
+                                    <td>{{ ps.mvp_count }}</td>
+                                    <td>{{ ps.attendance_rate|floatformat:1 }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Matches -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="chart-container">
+                        <h3>Recent Matches</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Opponent</th>
+                                    <th>Result</th>
+                                    <th>Score</th>
+                                    <th>Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for match in recent_matches %}
+                                <tr>
+                                    <td>{{ match.match_date|date:"Y-m-d" }}</td>
+                                    <td>{{ match.opponent_name }}</td>
+                                    <td>
+                                        {% if match.result == 'win' %}
+                                            <span class="badge bg-success">WIN</span>
+                                        {% elif match.result == 'loss' %}
+                                            <span class="badge bg-danger">LOSS</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">DRAW</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ match.score }}</td>
+                                    <td>{{ match.points_earned|stringformat:"+d" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Export Button -->
+            <div class="text-center mt-4">
+                <a href="{% url 'teams:export_team_stats' team_id=team.id %}?game={{ selected_game }}&type=summary" 
+                   class="btn btn-primary">
+                    📥 Export Summary Report
+                </a>
+            </div>
+
+        {% else %}
+            <div class="alert alert-info">
+                <h4>No Analytics Data Available</h4>
+                <p>This team hasn't played any matches yet. Analytics will be available after matches are recorded.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if has_analytics %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Points Progression Chart
+    const pointsCtx = document.getElementById('pointsChart').getContext('2d');
+    const pointsData = {{ points_progression|safe }};
+    
+    new Chart(pointsCtx, {
+        type: 'line',
+        data: {
+            labels: pointsData.map(p => new Date(p.date).toLocaleDateString()),
+            datasets: [{
+                label: 'Points',
+                data: pointsData.map(p => p.points),
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Results Pie Chart
+    const resultsCtx = document.getElementById('resultsChart').getContext('2d');
+    new Chart(resultsCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Wins', 'Losses', 'Draws'],
+            datasets: [{
+                data: [
+                    {{ team_analytics.matches_won }},
+                    {{ team_analytics.matches_lost }},
+                    {{ team_analytics.matches_drawn }}
+                ],
+                backgroundColor: [
+                    'rgb(75, 192, 192)',
+                    'rgb(255, 99, 132)',
+                    'rgb(201, 203, 207)'
+                ]
+            }]
+        }
+    });
+
+    // Game selector change handler
+    document.getElementById('gameSelector').addEventListener('change', function() {
+        window.location.href = '?game=' + this.value;
+    });
+</script>
+{% endif %}
+{% endblock %}

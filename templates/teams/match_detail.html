@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Match Detail{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>📋 Match Detail</h1>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h2>{{ match.team.name }} vs {{ match.opponent_name }}</h2>
+            <p class="mb-0">{{ match.match_date|date:"F d, Y H:i" }} | {{ match.game|upper }}</p>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Match Information</h4>
+                    <p><strong>Result:</strong> 
+                        {% if match.result == 'win' %}
+                            <span class="badge bg-success">WIN</span>
+                        {% elif match.result == 'loss' %}
+                            <span class="badge bg-danger">LOSS</span>
+                        {% else %}
+                            <span class="badge bg-secondary">DRAW</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Score:</strong> {{ match.score }}</p>
+                    <p><strong>Points Earned:</strong> {{ match.points_earned|stringformat:"+d" }}</p>
+                    {% if match.tournament %}
+                    <p><strong>Tournament:</strong> {{ match.tournament.name }}</p>
+                    {% endif %}
+                    {% if match.map_played %}
+                    <p><strong>Map:</strong> {{ match.map_played }}</p>
+                    {% endif %}
+                    {% if match.duration_minutes %}
+                    <p><strong>Duration:</strong> {{ match.duration_minutes }} minutes</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    {% if mvp %}
+                    <div class="alert alert-success">
+                        <h5>🏆 MVP: {{ mvp.player.user.username }}</h5>
+                        <p class="mb-0">Performance Score: {{ mvp.performance_score|floatformat:2 }}</p>
+                    </div>
+                    {% endif %}
+                    {% if avg_performance %}
+                    <p><strong>Avg Team Performance:</strong> {{ avg_performance|floatformat:2 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>Player Performance</h3>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Role</th>
+                        <th>Starter</th>
+                        <th>MVP</th>
+                        <th>Performance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for participant in participants %}
+                    <tr>
+                        <td>{{ participant.player.user.username }}</td>
+                        <td>{{ participant.role_played }}</td>
+                        <td>{% if participant.was_starter %}✅{% else %}—{% endif %}</td>
+                        <td>{% if participant.was_mvp %}🏆{% else %}—{% endif %}</td>
+                        <td>{{ participant.performance_score|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if match.replay_url %}
+    <div class="text-center mt-4">
+        <a href="{{ match.replay_url }}" target="_blank" class="btn btn-primary">
+            🎥 Watch Replay
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

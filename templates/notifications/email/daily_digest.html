@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 10px 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .notification-section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .notification-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+        .notification-item:hover {
+            transform: translateX(4px);
+        }
+        .notification-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+        .notification-body {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .notification-time {
+            color: #999;
+            font-size: 12px;
+            font-style: italic;
+        }
+        .notification-link {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 6px 14px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        .notification-link:hover {
+            background: #5568d3;
+        }
+        .summary {
+            background: #e8f4f8;
+            border: 1px solid #b8daeb;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .summary-text {
+            color: #0066a1;
+            font-size: 14px;
+            margin: 0;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer-text {
+            color: #666;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📬 Your Daily Digest</h1>
+            <p>{{ digest_date|date:"l, F j, Y" }}</p>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Hello {{ user.username }}! 👋
+            </div>
+            
+            <div class="summary">
+                <p class="summary-text">
+                    You have <strong>{{ total_count }}</strong> notification{{ total_count|pluralize }}
+                    from yesterday across {{ grouped_notifications|length }} categor{{ grouped_notifications|length|pluralize:"y,ies" }}.
+                </p>
+            </div>
+            
+            {% for type_display, notifications in grouped_notifications.items %}
+            <div class="notification-section">
+                <div class="section-title">
+                    {{ type_display }}
+                    <span class="badge">{{ notifications|length }}</span>
+                </div>
+                
+                {% for notification in notifications %}
+                <div class="notification-item">
+                    <div class="notification-title">{{ notification.title }}</div>
+                    {% if notification.body %}
+                    <div class="notification-body">{{ notification.body }}</div>
+                    {% endif %}
+                    <div class="notification-time">
+                        {{ notification.created_at|timesince }} ago
+                    </div>
+                    {% if notification.url %}
+                    <a href="{{ site_url }}{{ notification.url }}" class="notification-link">View Details →</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="{{ site_url }}/notifications/" class="notification-link" style="padding: 12px 30px; font-size: 15px;">
+                    View All Notifications
+                </a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p class="footer-text">
+                You're receiving this email because you have daily digest enabled.
+            </p>
+            <p class="footer-text">
+                <a href="{{ site_url }}/settings/notifications/" class="footer-link">Manage Notification Preferences</a> |
+                <a href="{{ site_url }}/support/" class="footer-link">Support</a>
+            </p>
+            <p class="footer-text" style="margin-top: 15px;">
+                © {{ current_year }} DeltaCrown. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

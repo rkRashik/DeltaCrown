@@ -19,6 +19,9 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
+# Import GAME_CHOICES from game_config
+from ..game_config import GAME_CHOICES
+
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import Q
@@ -59,10 +62,6 @@ class Team(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     # Game association (Part A)
-    GAME_CHOICES = (
-        ("efootball", "eFootball"),
-        ("valorant", "Valorant"),
-    )
     game = models.CharField(
         max_length=20,
         choices=GAME_CHOICES,
@@ -119,6 +118,11 @@ class Team(models.Model):
     class Meta:
         db_table = "teams_team"
         ordering = ("name",)
+        indexes = [
+            models.Index(fields=['-total_points', 'name'], name='teams_leaderboard_idx'),
+            models.Index(fields=['game', '-total_points'], name='teams_game_leader_idx'),
+            models.Index(fields=['-created_at'], name='teams_recent_idx'),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["game", "slug"],
@@ -318,6 +322,10 @@ class TeamMembership(models.Model):
     class Meta:
         ordering = ("team", "role", "-joined_at")
         unique_together = (("team", "profile"),)
+        indexes = [
+            models.Index(fields=['team', 'status'], name='teams_member_lookup_idx'),
+            models.Index(fields=['profile', 'status'], name='teams_user_teams_idx'),
+        ]
         constraints = [
             # At most one ACTIVE CAPTAIN per team
             models.UniqueConstraint(
@@ -431,6 +439,10 @@ class TeamInvite(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=['team', 'status'], name='teams_invite_lookup_idx'),
+            models.Index(fields=['status', 'expires_at'], name='teams_invite_expire_idx'),
+        ]
 
     def __str__(self) -> str:
         who = self.invited_user or self.invited_email or "unknown"

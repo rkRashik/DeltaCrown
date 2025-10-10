@@ -203,6 +203,25 @@ def generate_ranking_report():
 # Celery task decorators (if using Celery)
 try:
     from celery import shared_task
+    import hashlib
+    import json
+    from decimal import Decimal
+    
+    def generate_dedup_key(task_name: str, **kwargs) -> str:
+        """
+        Generate a unique deduplication key for idempotent task execution.
+        
+        Args:
+            task_name: Name of the task
+            **kwargs: Task parameters to include in the key
+            
+        Returns:
+            SHA256 hash of the task signature
+        """
+        # Sort kwargs for consistent hashing
+        sorted_kwargs = json.dumps(kwargs, sort_keys=True)
+        signature = f"{task_name}:{sorted_kwargs}"
+        return hashlib.sha256(signature.encode()).hexdigest()
     
     @shared_task(name='teams.update_monthly_age_points')
     def update_monthly_age_points_task():
@@ -223,6 +242,364 @@ try:
     def generate_ranking_report_task():
         """Celery task for report generation."""
         return generate_ranking_report()
+    
+    @shared_task(bind=True, name='teams.recompute_team_rankings', max_retries=3, default_retry_delay=300)
+    def recompute_team_rankings(self, tournament_id=None):
+        """
+        Recompute team rankings based on tournament results.
+        
+        Args:
+            tournament_id: Optional tournament ID to recompute rankings for.
+                          If None, recomputes all rankings.
+        
+        This task is idempotent and can be run multiple times safely.
+        """
+        from apps.tournaments.models import Tournament, TournamentRegistration
+        from django.db import transaction
+        
+        try:
+            logger.info(f"Starting ranking recalculation for tournament_id={tournament_id}")
+            
+            # Generate deduplication key
+            dedup_key = generate_dedup_key('recompute_rankings', tournament_id=tournament_id)
+            
+            with transaction.atomic():
+                if tournament_id:
+                    # Recompute for specific tournament
+                    tournament = Tournament.objects.select_for_update().get(id=tournament_id)
+                    
+                    # Only recompute if tournament is finalized
+                    if tournament.status != 'completed':
+                        logger.warning(f"Tournament {tournament_id} is not completed. Skipping ranking update.")
+                        return {'status': 'skipped', 'reason': 'tournament_not_completed'}
+                    
+                    # Get all teams that participated
+                    registrations = TournamentRegistration.objects.filter(
+                        tournament=tournament,
+                        status='approved'
+                    ).select_related('team')
+                    
+                    teams_to_update = [reg.team for reg in registrations]
+                else:
+                    # Recompute all team rankings
+                    teams_to_update = Team.objects.all()
+                
+                updated_count = 0
+                for team in teams_to_update:
+                    # Calculate total wins, losses, and points from tournament participations
+                    registrations = TournamentRegistration.objects.filter(
+                        team=team,
+                        tournament__status='completed'
+                    )
+                    
+                    total_points = sum(reg.points_earned or 0 for reg in registrations)
+                    total_wins = sum(reg.wins or 0 for reg in registrations)
+                    total_losses = sum(reg.losses or 0 for reg in registrations)
+                    
+                    # Update team ranking metrics
+                    if team.total_points != total_points or team.wins != total_wins or team.losses != total_losses:
+                        team.total_points = total_points
+                        team.wins = total_wins
+                        team.losses = total_losses
+                        team.save(update_fields=['total_points', 'wins', 'losses'])
+                        updated_count += 1
+                        
+                        logger.info(f"Updated ranking for team {team.id}: {total_points} points, {total_wins}W-{total_losses}L")
+                
+                logger.info(f"Ranking recalculation completed. Updated {updated_count} teams. Dedup key: {dedup_key}")
+                
+                return {
+                    'status': 'success',
+                    'updated_count': updated_count,
+                    'dedup_key': dedup_key
+                }
+                
+        except Tournament.DoesNotExist:
+            logger.error(f"Tournament {tournament_id} not found")
+            return {'status': 'error', 'message': 'Tournament not found'}
+        except Exception as exc:
+            logger.error(f"Error in ranking recalculation: {str(exc)}", exc_info=True)
+            # Retry on failure
+            raise self.retry(exc=exc)
+    
+    @shared_task(bind=True, name='teams.distribute_tournament_payouts', max_retries=3, default_retry_delay=300)
+    def distribute_tournament_payouts(self, tournament_id):
+        """
+        Distribute coins and payouts after tournament completion.
+        
+        This task is idempotent - uses transaction flags to prevent double payouts.
+        
+        Args:
+            tournament_id: ID of the completed tournament
+        """
+        from apps.tournaments.models import Tournament, TournamentRegistration
+        from apps.economy.models import CoinTransaction
+        from apps.teams.models import TeamAchievement
+        from django.db import transaction
+        
+        try:
+            logger.info(f"Starting payout distribution for tournament {tournament_id}")
+            
+            # Generate deduplication key
+            dedup_key = generate_dedup_key('distribute_payouts', tournament_id=tournament_id)
+            
+            with transaction.atomic():
+                tournament = Tournament.objects.select_for_update().get(id=tournament_id)
+                
+                # Check if tournament is eligible for payouts
+                if tournament.status != 'completed':
+                    logger.warning(f"Tournament {tournament_id} is not completed. Skipping payouts.")
+                    return {'status': 'skipped', 'reason': 'tournament_not_completed'}
+                
+                # Check if payouts already distributed (idempotency check)
+                existing_transactions = CoinTransaction.objects.filter(
+                    transaction_type='tournament_payout',
+                    metadata__contains={'tournament_id': tournament_id}
+                ).exists()
+                
+                if existing_transactions:
+                    logger.info(f"Payouts already distributed for tournament {tournament_id}. Skipping.")
+                    return {'status': 'skipped', 'reason': 'already_distributed', 'dedup_key': dedup_key}
+                
+                # Get winning teams (top 3)
+                top_teams = TournamentRegistration.objects.filter(
+                    tournament=tournament,
+                    status='approved'
+                ).order_by('-points_earned', '-wins', 'losses')[:3]
+                
+                payout_distribution = [
+                    {'place': 1, 'coins': 1000, 'achievement': 'tournament_champion'},
+                    {'place': 2, 'coins': 500, 'achievement': 'tournament_runner_up'},
+                    {'place': 3, 'coins': 250, 'achievement': 'tournament_third_place'},
+                ]
+                
+                distributed_payouts = []
+                
+                for idx, registration in enumerate(top_teams):
+                    payout = payout_distribution[idx]
+                    team = registration.team
+                    
+                    # Create coin transaction
+                    transaction_obj = CoinTransaction.objects.create(
+                        user=team.captain.user if team.captain else None,
+                        team=team,
+                        amount=payout['coins'],
+                        transaction_type='tournament_payout',
+                        description=f"Tournament {tournament.name} - Place {payout['place']}",
+                        metadata={
+                            'tournament_id': tournament_id,
+                            'place': payout['place'],
+                            'dedup_key': dedup_key,
+                        }
+                    )
+                    
+                    # Update team coins
+                    team.coins = (team.coins or 0) + payout['coins']
+                    team.save(update_fields=['coins'])
+                    
+                    # Create achievement record
+                    achievement, created = TeamAchievement.objects.get_or_create(
+                        team=team,
+                        achievement_type=payout['achievement'],
+                        tournament=tournament,
+                        defaults={
+                            'title': f"{tournament.name} - Place {payout['place']}",
+                            'description': f"Achieved {payout['place']} place in {tournament.name}",
+                            'earned_at': timezone.now(),
+                        }
+                    )
+                    
+                    distributed_payouts.append({
+                        'team_id': team.id,
+                        'team_name': team.name,
+                        'place': payout['place'],
+                        'coins': payout['coins'],
+                        'transaction_id': transaction_obj.id,
+                        'achievement_created': created,
+                    })
+                    
+                    logger.info(f"Distributed {payout['coins']} coins to team {team.id} for place {payout['place']}")
+                
+                logger.info(f"Payout distribution completed for tournament {tournament_id}. Dedup key: {dedup_key}")
+                
+                return {
+                    'status': 'success',
+                    'tournament_id': tournament_id,
+                    'payouts': distributed_payouts,
+                    'dedup_key': dedup_key
+                }
+                
+        except Tournament.DoesNotExist:
+            logger.error(f"Tournament {tournament_id} not found")
+            return {'status': 'error', 'message': 'Tournament not found'}
+        except Exception as exc:
+            logger.error(f"Error distributing payouts: {str(exc)}", exc_info=True)
+            # Retry on failure
+            raise self.retry(exc=exc)
+    
+    @shared_task(bind=True, name='teams.clean_expired_invites', max_retries=3, default_retry_delay=60)
+    def clean_expired_invites(self):
+        """
+        Clean up expired team invites.
+        Runs every 6 hours to remove stale invitations.
+        """
+        from apps.teams.models import TeamInvite
+        from datetime import timedelta
+        
+        try:
+            logger.info("Starting expired invites cleanup")
+            
+            # Delete invites older than 7 days that are still pending
+            cutoff_date = timezone.now() - timedelta(days=7)
+            
+            expired_invites = TeamInvite.objects.filter(
+                status='pending',
+                created_at__lt=cutoff_date
+            )
+            
+            count = expired_invites.count()
+            expired_invites.update(status='expired')
+            
+            logger.info(f"Expired {count} team invites")
+            
+            return {
+                'status': 'success',
+                'expired_count': count
+            }
+            
+        except Exception as exc:
+            logger.error(f"Error cleaning expired invites: {str(exc)}", exc_info=True)
+            raise self.retry(exc=exc)
+    
+    @shared_task(bind=True, name='teams.expire_sponsors_task', max_retries=3, default_retry_delay=60)
+    def expire_sponsors_task(self):
+        """
+        Expire sponsors that have passed their end date.
+        Runs daily at 3 AM.
+        """
+        from apps.teams.services import SponsorshipService
+        
+        try:
+            logger.info("Starting sponsor expiration check")
+            
+            expired_count = SponsorshipService.expire_sponsors()
+            
+            logger.info(f"Expired {expired_count} sponsors")
+            
+            return {
+                'status': 'success',
+                'expired_count': expired_count
+            }
+            
+        except Exception as exc:
+            logger.error(f"Error expiring sponsors: {str(exc)}", exc_info=True)
+            raise self.retry(exc=exc)
+    
+    @shared_task(bind=True, name='teams.process_scheduled_promotions_task', max_retries=3, default_retry_delay=60)
+    def process_scheduled_promotions_task(self):
+        """
+        Process scheduled promotions (activate/expire).
+        Runs hourly.
+        """
+        from apps.teams.services import PromotionService
+        
+        try:
+            logger.info("Starting scheduled promotions processing")
+            
+            activated_count = PromotionService.activate_scheduled_promotions()
+            expired_count = PromotionService.expire_promotions()
+            
+            logger.info(f"Activated {activated_count} promotions, expired {expired_count} promotions")
+            
+            return {
+                'status': 'success',
+                'activated_count': activated_count,
+                'expired_count': expired_count
+            }
+            
+        except Exception as exc:
+            logger.error(f"Error processing scheduled promotions: {str(exc)}", exc_info=True)
+            raise self.retry(exc=exc)
+    
+    @shared_task(bind=True, name='teams.send_roster_change_notification')
+    def send_roster_change_notification(self, team_id, change_type, user_id):
+        """
+        Send notification when roster changes occur.
+        
+        Args:
+            team_id: ID of the team
+            change_type: Type of change (added, removed, role_changed)
+            user_id: ID of the affected user
+        """
+        from apps.notifications.services import NotificationService
+        from apps.accounts.models import User
+        
+        try:
+            team = Team.objects.get(id=team_id)
+            user = User.objects.get(id=user_id)
+            
+            # Send notification to all team members
+            NotificationService.notify_roster_change(
+                team=team,
+                change_type=change_type,
+                affected_user=user
+            )
+            
+            logger.info(f"Sent roster change notification for team {team_id}, type: {change_type}")
+            
+            return {'status': 'success'}
+            
+        except Exception as exc:
+            logger.error(f"Error sending roster change notification: {str(exc)}", exc_info=True)
+            return {'status': 'error', 'message': str(exc)}
+    
+    @shared_task(bind=True, name='teams.send_invite_notification')
+    def send_invite_notification(self, invite_id):
+        """
+        Send notification when team invite is sent.
+        
+        Args:
+            invite_id: ID of the team invite
+        """
+        from apps.notifications.services import NotificationService
+        from apps.teams.models import TeamInvite
+        
+        try:
+            invite = TeamInvite.objects.select_related('team', 'inviter', 'invitee').get(id=invite_id)
+            
+            NotificationService.notify_invite_sent(invite)
+            
+            logger.info(f"Sent invite notification for invite {invite_id}")
+            
+            return {'status': 'success'}
+            
+        except Exception as exc:
+            logger.error(f"Error sending invite notification: {str(exc)}", exc_info=True)
+            return {'status': 'error', 'message': str(exc)}
+    
+    @shared_task(bind=True, name='teams.send_match_result_notification')
+    def send_match_result_notification(self, match_id):
+        """
+        Send notification when match result is submitted.
+        
+        Args:
+            match_id: ID of the match
+        """
+        from apps.notifications.services import NotificationService
+        from apps.tournaments.models import Match
+        
+        try:
+            match = Match.objects.select_related('tournament', 'team1', 'team2').get(id=match_id)
+            
+            NotificationService.notify_match_result(match)
+            
+            logger.info(f"Sent match result notification for match {match_id}")
+            
+            return {'status': 'success'}
+            
+        except Exception as exc:
+            logger.error(f"Error sending match result notification: {str(exc)}", exc_info=True)
+            return {'status': 'error', 'message': str(exc)}
 
 except ImportError:
     # Celery not available, tasks can still be run as regular functions

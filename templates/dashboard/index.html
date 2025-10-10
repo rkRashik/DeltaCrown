@@ -5,57 +5,187 @@
 
 {% block content %}
 <section class="container py-8">
-  <h1 class="sec-h">Welcome{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="sec-h">Welcome{% if request.user.first_name %}, {{ request.user.first_name }}{% endif %}</h1>
+    <a href="{% url 'teams:create' %}" class="btn-primary">
+      <i class="fas fa-plus-circle mr-2"></i>Create Team
+    </a>
+  </div>
 
   <div class="grid lg:grid-cols-3 gap-6 mt-2">
-    <!-- Registrations -->
+    <!-- My Teams -->
     <article class="glass p-6 rounded-2xl">
-      <h3 class="font-semibold mb-3">My Registrations</h3>
-      {% if registrations %}
-        <ul class="grid gap-2 text-sm">
-          {% for r in registrations %}
-            <li class="flex items-center justify-between">
-              <a class="link-nav" href="/tournaments/{{ r.tournament.slug }}/">{{ r.tournament.name }}</a>
-              <span class="text-muted">{% if r.status %}{{ r.status|title }}{% else %}—{% endif %}</span>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold flex items-center">
+          <i class="fas fa-users mr-2 text-primary"></i>
+          My Teams
+        </h3>
+        <a href="{% url 'teams:hub' %}" class="text-sm text-primary hover:underline">View All</a>
+      </div>
+      {% if my_teams %}
+        <ul class="grid gap-3">
+          {% for team in my_teams %}
+            <li class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition">
+              <div class="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-primary to-accent">
+                {% if team.logo %}
+                  <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="w-full h-full object-cover">
+                {% else %}
+                  <div class="w-full h-full flex items-center justify-center text-white font-bold">
+                    {{ team.name|slice:":2"|upper }}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="flex-1 min-w-0">
+                <a href="{% url 'teams:detail' team.slug %}" class="link-nav font-medium block truncate">{{ team.name }}</a>
+                <p class="text-xs text-muted">{{ team.game|default:"Multi-game" }}</p>
+              </div>
+              <span class="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
+                {{ team.member_count|default:1 }}/{{ team.max_roster|default:5 }}
+              </span>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <p class="text-muted text-sm">No registrations yet.</p>
+        <div class="text-center py-6">
+          <i class="fas fa-users text-4xl text-muted/30 mb-3"></i>
+          <p class="text-muted text-sm mb-3">You're not part of any teams yet.</p>
+          <a href="{% url 'teams:create' %}" class="btn-sm btn-primary">
+            <i class="fas fa-plus mr-1"></i>Create Your First Team
+          </a>
+        </div>
+      {% endif %}
+    </article>
+
+    <!-- Team Invites -->
+    <article class="glass p-6 rounded-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold flex items-center">
+          <i class="fas fa-envelope mr-2 text-accent"></i>
+          Team Invites
+        </h3>
+        <a href="{% url 'teams:my_invites' %}" class="text-sm text-accent hover:underline">View All</a>
+      </div>
+      {% if pending_invites %}
+        <ul class="grid gap-3">
+          {% for invite in pending_invites %}
+            <li class="p-3 rounded-lg border border-accent/20 bg-accent/5">
+              <div class="flex items-center justify-between mb-2">
+                <a href="{% url 'teams:detail' invite.team.slug %}" class="link-nav font-medium">{{ invite.team.name }}</a>
+                <span class="text-xs text-muted">{{ invite.role|default:"Player" }}</span>
+              </div>
+              <p class="text-xs text-muted mb-2">
+                Invited by {{ invite.inviter.user.username }} • {{ invite.created_at|timesince }} ago
+              </p>
+              <div class="flex gap-2">
+                <form method="post" action="{% url 'teams:accept_invite' invite.token %}" class="flex-1">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full btn-sm bg-green-600 hover:bg-green-700 text-white">
+                    <i class="fas fa-check mr-1"></i>Accept
+                  </button>
+                </form>
+                <form method="post" action="{% url 'teams:decline_invite' invite.token %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-sm bg-red-600/20 hover:bg-red-600/30 text-red-400">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="text-center py-6">
+          <i class="fas fa-envelope-open text-4xl text-muted/30 mb-3"></i>
+          <p class="text-muted text-sm">No pending invites.</p>
+        </div>
       {% endif %}
     </article>
 
     <!-- Upcoming Matches -->
     <article class="glass p-6 rounded-2xl">
-      <h3 class="font-semibold mb-3">Upcoming Matches</h3>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold flex items-center">
+          <i class="fas fa-calendar-alt mr-2 text-yellow-500"></i>
+          Upcoming Matches
+        </h3>
+        <a href="{% url 'dashboard:my_matches' %}" class="text-sm text-yellow-500 hover:underline">View All</a>
+      </div>
       {% if matches %}
         <ul class="grid gap-2 text-sm">
           {% for m in matches %}
-            <li class="flex items-center justify-between">
-              <span>{% firstof m.tournament.name "Tournament" %}</span>
-              <span class="text-muted">{% if m.when %}{{ m.when|date:"M d, H:i" }}{% else %}TBA{% endif %}</span>
+            <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
+              <span class="flex-1 truncate">{% firstof m.tournament.name "Tournament" %}</span>
+              <span class="text-muted text-xs">{% if m.when %}{{ m.when|date:"M d, H:i" }}{% else %}TBA{% endif %}</span>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <p class="text-muted text-sm">No upcoming matches.</p>
+        <div class="text-center py-6">
+          <i class="fas fa-calendar-times text-4xl text-muted/30 mb-3"></i>
+          <p class="text-muted text-sm">No upcoming matches.</p>
+        </div>
+      {% endif %}
+    </article>
+  </div>
+
+  <!-- Second Row: Registrations & Payouts -->
+  <div class="grid lg:grid-cols-2 gap-6 mt-6">
+    <!-- Tournament Registrations -->
+    <article class="glass p-6 rounded-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold flex items-center">
+          <i class="fas fa-trophy mr-2 text-primary"></i>
+          My Registrations
+        </h3>
+        <a href="{% url 'tournaments:hub' %}" class="text-sm text-primary hover:underline">Browse Tournaments</a>
+      </div>
+      {% if registrations %}
+        <ul class="grid gap-2 text-sm">
+          {% for r in registrations %}
+            <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
+              <a class="link-nav flex-1 truncate" href="/tournaments/{{ r.tournament.slug }}/">{{ r.tournament.name }}</a>
+              <span class="text-xs px-2 py-1 rounded-full 
+                {% if r.status == 'confirmed' %}bg-green-600/20 text-green-400
+                {% elif r.status == 'pending' %}bg-yellow-600/20 text-yellow-400
+                {% else %}bg-gray-600/20 text-gray-400{% endif %}">
+                {{ r.status|title|default:"—" }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="text-center py-6">
+          <i class="fas fa-clipboard-list text-4xl text-muted/30 mb-3"></i>
+          <p class="text-muted text-sm mb-3">No tournament registrations yet.</p>
+          <a href="{% url 'tournaments:hub' %}" class="btn-sm btn-primary">
+            <i class="fas fa-trophy mr-1"></i>Browse Tournaments
+          </a>
+        </div>
       {% endif %}
     </article>
 
     <!-- Payouts -->
     <article class="glass p-6 rounded-2xl">
-      <h3 class="font-semibold mb-3">Payouts</h3>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold flex items-center">
+          <i class="fas fa-money-bill-wave mr-2 text-green-500"></i>
+          Payouts
+        </h3>
+      </div>
       {% if payouts %}
         <ul class="grid gap-2 text-sm">
           {% for p in payouts %}
-            <li class="flex items-center justify-between">
-              <span>{% firstof p.tournament.name "Tournament" %}</span>
-              <span class="text-muted">{% if p.amount_bdt %}৳{{ p.amount_bdt }}{% else %}—{% endif %}</span>
+            <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
+              <span class="flex-1 truncate">{% firstof p.tournament.name "Tournament" %}</span>
+              <span class="text-green-400 font-semibold">{% if p.amount_bdt %}৳{{ p.amount_bdt }}{% else %}—{% endif %}</span>
             </li>
           {% endfor %}
         </ul>
       {% else %}
-        <p class="text-muted text-sm">No payouts yet.</p>
+        <div class="text-center py-6">
+          <i class="fas fa-piggy-bank text-4xl text-muted/30 mb-3"></i>
+          <p class="text-muted text-sm">No payouts yet. Keep competing!</p>
+        </div>
       {% endif %}
     </article>
   </div>

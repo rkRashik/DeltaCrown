@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ item.name }} - {{ team.name }} Merchandise{% endblock %}
+
+{% block extra_css %}
+<style>
+    .item-container {
+        max-width: 1200px;
+        margin: 40px auto;
+    }
+    
+    .breadcrumb-nav {
+        margin-bottom: 30px;
+        font-size: 0.95em;
+    }
+    
+    .breadcrumb-nav a {
+        color: #667eea;
+        text-decoration: none;
+    }
+    
+    .breadcrumb-nav a:hover {
+        text-decoration: underline;
+    }
+    
+    .item-detail {
+        background: white;
+        border-radius: 12px;
+        padding: 40px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        margin-bottom: 40px;
+    }
+    
+    .item-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+    }
+    
+    @media (max-width: 768px) {
+        .item-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .image-section {
+        position: relative;
+    }
+    
+    .main-image-container {
+        width: 100%;
+        height: 500px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .main-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+    
+    .featured-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+        color: #856404;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .sale-badge {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        padding: 10px 18px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 1.1em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .details-section {
+    }
+    
+    .item-category {
+        color: #6c757d;
+        font-size: 0.9em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 12px;
+    }
+    
+    .item-name {
+        font-size: 2.2em;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 16px;
+        line-height: 1.2;
+    }
+    
+    .item-sku {
+        color: #95a5a6;
+        font-size: 0.9em;
+        margin-bottom: 24px;
+    }
+    
+    .price-section {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .price-current {
+        font-size: 2.5em;
+        font-weight: 700;
+        color: #27ae60;
+    }
+    
+    .price-original {
+        font-size: 1.5em;
+        color: #95a5a6;
+        text-decoration: line-through;
+    }
+    
+    .savings {
+        background: #e74c3c;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+    
+    .stock-status {
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        text-align: center;
+    }
+    
+    .stock-status.in-stock {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .stock-status.out-of-stock {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .stock-status.low-stock {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .description {
+        color: #495057;
+        line-height: 1.6;
+        margin-bottom: 24px;
+    }
+    
+    .variants-section {
+        margin-bottom: 24px;
+    }
+    
+    .variants-title {
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 12px;
+    }
+    
+    .variants-list {
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 8px;
+        color: #495057;
+    }
+    
+    .buy-button {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        padding: 16px 40px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 1.2em;
+        cursor: pointer;
+        transition: transform 0.2s;
+        width: 100%;
+        margin-bottom: 16px;
+    }
+    
+    .buy-button:hover {
+        transform: translateY(-2px);
+    }
+    
+    .buy-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .external-link-note {
+        text-align: center;
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 24px;
+    }
+    
+    .stat-card {
+        background: #f8f9fa;
+        padding: 16px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 1.5em;
+        font-weight: 700;
+        color: #667eea;
+    }
+    
+    .stat-label {
+        font-size: 0.85em;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    
+    .related-section {
+        margin-top: 60px;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+        padding-bottom: 12px;
+        border-bottom: 3px solid #f5576c;
+    }
+    
+    .section-title {
+        font-size: 1.8em;
+        font-weight: 700;
+        margin: 0;
+        color: #2c3e50;
+    }
+    
+    .related-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 24px;
+    }
+    
+    .related-card {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .related-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    
+    .related-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: #f8f9fa;
+    }
+    
+    .related-details {
+        padding: 16px;
+    }
+    
+    .related-name {
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .related-price {
+        font-size: 1.3em;
+        font-weight: 700;
+        color: #27ae60;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="item-container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb-nav">
+            <a href="{% url 'teams:team_detail' team.slug %}">{{ team.name }}</a> / 
+            <a href="{% url 'teams:team_merchandise' team.slug %}">Merchandise</a> / 
+            <span>{{ item.name }}</span>
+        </div>
+        
+        <!-- Item Detail -->
+        <div class="item-detail">
+            <div class="item-grid">
+                <!-- Image Section -->
+                <div class="image-section">
+                    <div class="main-image-container">
+                        {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}" class="main-image">
+                        {% else %}
+                        <div class="main-image d-flex align-items-center justify-content-center" style="font-size: 8em; color: #dee2e6;">
+                            🛍️
+                        </div>
+                        {% endif %}
+                        
+                        {% if item.is_featured %}
+                        <span class="featured-badge">⭐ Featured</span>
+                        {% endif %}
+                        
+                        {% if item.is_on_sale %}
+                        <span class="sale-badge">🔥 SALE</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Details Section -->
+                <div class="details-section">
+                    <div class="item-category">{{ item.get_category_display }}</div>
+                    <h1 class="item-name">{{ item.name }}</h1>
+                    <div class="item-sku">SKU: {{ item.sku }}</div>
+                    
+                    <!-- Price -->
+                    <div class="price-section">
+                        <span class="price-current">${{ item.get_price }}</span>
+                        {% if item.is_on_sale %}
+                        <span class="price-original">${{ item.price }}</span>
+                        <span class="savings">Save ${{ item.price|floatformat:2|add:"-"|add:item.get_price|floatformat:2 }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Stock Status -->
+                    {% if item.unlimited_stock %}
+                    <div class="stock-status in-stock">
+                        ✓ Always Available
+                    </div>
+                    {% else %}
+                        {% if not item.is_in_stock %}
+                        <div class="stock-status out-of-stock">
+                            ✗ Out of Stock
+                        </div>
+                        {% elif item.stock <= 5 %}
+                        <div class="stock-status low-stock">
+                            ⚠️ Only {{ item.stock }} left in stock!
+                        </div>
+                        {% else %}
+                        <div class="stock-status in-stock">
+                            ✓ In Stock ({{ item.stock }} available)
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                    
+                    <!-- Description -->
+                    {% if item.description %}
+                    <div class="description">
+                        {{ item.description|linebreaks }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Variants -->
+                    {% if item.variants %}
+                    <div class="variants-section">
+                        <div class="variants-title">Available Options:</div>
+                        <div class="variants-list">
+                            {{ item.variants }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Buy Button -->
+                    {% if item.external_link %}
+                    <a href="{% url 'teams:merch_click' item.id %}" class="buy-button" {% if not item.is_in_stock and not item.unlimited_stock %}disabled{% endif %}>
+                        {% if item.affiliate_link %}
+                        🛒 Buy Now
+                        {% else %}
+                        🛒 Visit Store
+                        {% endif %}
+                    </a>
+                    <p class="external-link-note">
+                        {% if item.affiliate_link %}
+                        You'll be redirected to our partner store
+                        {% else %}
+                        Opens in external store
+                        {% endif %}
+                    </p>
+                    {% else %}
+                    <button class="buy-button" disabled>
+                        🛒 Purchase Link Coming Soon
+                    </button>
+                    {% endif %}
+                    
+                    <!-- Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value">{{ item.views_count }}</div>
+                            <div class="stat-label">Views</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">{{ item.click_count }}</div>
+                            <div class="stat-label">Clicks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">
+                                {% if item.views_count > 0 %}
+                                {{ item.click_count|floatformat:0|add:"0"|floatformat:0|mul:100|div:item.views_count|floatformat:1 }}%
+                                {% else %}
+                                0%
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">Click Rate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Items -->
+        {% if related_items %}
+        <div class="related-section">
+            <div class="section-header">
+                <span style="font-size: 1.5em;">🛍️</span>
+                <h2 class="section-title">You May Also Like</h2>
+            </div>
+            <div class="related-grid">
+                {% for related in related_items %}
+                <div class="related-card" onclick="window.location.href='{% url 'teams:merch_item_detail' team.slug related.id %}'">
+                    {% if related.image %}
+                    <img src="{{ related.image.url }}" alt="{{ related.name }}" class="related-image">
+                    {% else %}
+                    <div class="related-image d-flex align-items-center justify-content-center" style="font-size: 3em; color: #dee2e6;">
+                        🛍️
+                    </div>
+                    {% endif %}
+                    <div class="related-details">
+                        <div class="related-name">{{ related.name }}</div>
+                        <div class="related-price">${{ related.get_price }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Template filters for calculations
+    document.addEventListener('DOMContentLoaded', function() {
+        // You can add interactive features here
+        console.log('Merch item detail page loaded');
+    });
+</script>
+{% endblock %}

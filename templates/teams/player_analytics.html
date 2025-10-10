@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ target_player.user.username }} - Player Analytics{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1>📊 {{ target_player.user.username }} Analytics</h1>
+    
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="stat-card text-center mb-3" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <div style="font-size: 2em; font-weight: bold; color: #0d6efd;">{{ overall_stats.total_matches }}</div>
+                <div style="color: #6c757d;">Total Matches</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center mb-3" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <div style="font-size: 2em; font-weight: bold; color: #0d6efd;">{{ overall_stats.total_mvp }}</div>
+                <div style="color: #6c757d;">MVP Awards</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center mb-3" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <div style="font-size: 2em; font-weight: bold; color: #0d6efd;">{{ overall_stats.mvp_rate|floatformat:1 }}%</div>
+                <div style="color: #6c757d;">MVP Rate</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center mb-3" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <div style="font-size: 2em; font-weight: bold; color: #0d6efd;">{{ overall_stats.teams_count }}</div>
+                <div style="color: #6c757d;">Teams Played For</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3>Team Statistics</h3>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th>Game</th>
+                        <th>Matches</th>
+                        <th>Contribution</th>
+                        <th>MVP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stats in player_stats %}
+                    <tr>
+                        <td>{{ stats.team.name }}</td>
+                        <td>{{ stats.game|upper }}</td>
+                        <td>{{ stats.matches_played }}</td>
+                        <td>{{ stats.contribution_score|floatformat:2 }}</td>
+                        <td>{{ stats.mvp_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

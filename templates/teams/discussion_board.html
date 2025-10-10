@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team.name }} - Discussion Board{% endblock %}
+
+{% block extra_css %}
+<style>
+    .discussion-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 0;
+        margin-bottom: 30px;
+        border-radius: 8px;
+    }
+    
+    .discussion-filters {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    
+    .filter-btn {
+        padding: 8px 16px;
+        border: 1px solid #dee2e6;
+        background: white;
+        color: #495057;
+        border-radius: 6px;
+        margin-right: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .filter-btn:hover {
+        background: #f8f9fa;
+    }
+    
+    .filter-btn.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .post-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+    
+    .post-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .post-card.pinned {
+        border-left: 4px solid #ffc107;
+        background: #fffbf0;
+    }
+    
+    .post-card.locked {
+        opacity: 0.8;
+    }
+    
+    .post-type-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+    
+    .post-type-announcement {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+    
+    .post-type-question {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+    
+    .post-type-discussion {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+    
+    .post-type-poll {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+    
+    .post-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 12px;
+    }
+    
+    .post-title {
+        font-size: 1.3em;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+    }
+    
+    .post-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 0.9em;
+        color: #6c757d;
+        margin-bottom: 12px;
+    }
+    
+    .post-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .post-excerpt {
+        color: #495057;
+        line-height: 1.6;
+        margin-bottom: 12px;
+    }
+    
+    .post-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 12px;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .post-stats {
+        display: flex;
+        gap: 20px;
+        font-size: 0.9em;
+    }
+    
+    .post-stat {
+        color: #6c757d;
+    }
+    
+    .post-stat strong {
+        color: #667eea;
+        margin-right: 4px;
+    }
+    
+    .create-post-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    
+    .create-post-btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state img {
+        max-width: 200px;
+        opacity: 0.5;
+        margin-bottom: 20px;
+    }
+    
+    .pagination-custom {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 30px;
+    }
+    
+    .pagination-custom a, .pagination-custom span {
+        padding: 8px 16px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        color: #495057;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .pagination-custom a:hover {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .pagination-custom .current {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .pin-icon, .lock-icon {
+        font-size: 1.2em;
+        margin-left: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="discussion-header text-center">
+        <h2>📋 {{ team.name }} Discussion Board</h2>
+        <p class="mb-0 opacity-75">Team discussions, announcements, and Q&A</p>
+    </div>
+    
+    <!-- Filters & Create Button -->
+    <div class="discussion-filters">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <button class="filter-btn {% if not request.GET.post_type %}active{% endif %}" 
+                        onclick="filterPosts('')">
+                    All Posts
+                </button>
+                <button class="filter-btn {% if request.GET.post_type == 'announcement' %}active{% endif %}" 
+                        onclick="filterPosts('announcement')">
+                    📢 Announcements
+                </button>
+                <button class="filter-btn {% if request.GET.post_type == 'question' %}active{% endif %}" 
+                        onclick="filterPosts('question')">
+                    ❓ Questions
+                </button>
+                <button class="filter-btn {% if request.GET.post_type == 'discussion' %}active{% endif %}" 
+                        onclick="filterPosts('discussion')">
+                    💬 Discussions
+                </button>
+                <button class="filter-btn {% if request.GET.post_type == 'poll' %}active{% endif %}" 
+                        onclick="filterPosts('poll')">
+                    📊 Polls
+                </button>
+            </div>
+            <div>
+                <a href="{% url 'teams:discussion_post_create' team.slug %}" class="create-post-btn">
+                    ➕ New Post
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Posts List -->
+    <div class="row">
+        <div class="col-md-12">
+            {% if object_list %}
+                {% for post in object_list %}
+                <div class="post-card {% if post.is_pinned %}pinned{% endif %} {% if post.is_locked %}locked{% endif %}"
+                     onclick="window.location.href='{% url 'teams:discussion_post_detail' team.slug post.slug %}'">
+                    <div class="post-header">
+                        <div class="flex-grow-1">
+                            <div>
+                                <span class="post-type-badge post-type-{{ post.post_type }}">
+                                    {% if post.post_type == 'announcement' %}📢 Announcement
+                                    {% elif post.post_type == 'question' %}❓ Question
+                                    {% elif post.post_type == 'discussion' %}💬 Discussion
+                                    {% elif post.post_type == 'poll' %}📊 Poll
+                                    {% endif %}
+                                </span>
+                                {% if post.is_pinned %}
+                                <span class="pin-icon" title="Pinned">📌</span>
+                                {% endif %}
+                                {% if post.is_locked %}
+                                <span class="lock-icon" title="Locked">🔒</span>
+                                {% endif %}
+                            </div>
+                            <h3 class="post-title">{{ post.title }}</h3>
+                            <div class="post-meta">
+                                <div class="post-meta-item">
+                                    <strong>{{ post.author.user.username }}</strong>
+                                </div>
+                                <div class="post-meta-item">
+                                    📅 {{ post.created_at|date:"M d, Y" }}
+                                </div>
+                                {% if post.reading_time %}
+                                <div class="post-meta-item">
+                                    ⏱️ {{ post.reading_time }} min read
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="post-excerpt">
+                        {{ post.content|truncatewords:50|striptags }}
+                    </div>
+                    
+                    <div class="post-footer">
+                        <div class="post-stats">
+                            <div class="post-stat">
+                                <strong>{{ post.view_count }}</strong> views
+                            </div>
+                            <div class="post-stat">
+                                <strong>{{ post.like_count }}</strong> likes
+                            </div>
+                            <div class="post-stat">
+                                <strong>{{ post.comment_count }}</strong> comments
+                            </div>
+                        </div>
+                        <div>
+                            {% if post.visibility == 'private' %}
+                            <span class="badge bg-secondary">🔒 Team Only</span>
+                            {% else %}
+                            <span class="badge bg-success">🌐 Public</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="pagination-custom">
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1{% if request.GET.post_type %}&post_type={{ request.GET.post_type }}{% endif %}">
+                        « First
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.post_type %}&post_type={{ request.GET.post_type }}{% endif %}">
+                        ‹ Previous
+                    </a>
+                    {% endif %}
+                    
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.post_type %}&post_type={{ request.GET.post_type }}{% endif %}">
+                        Next ›
+                    </a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.post_type %}&post_type={{ request.GET.post_type }}{% endif %}">
+                        Last »
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="empty-state">
+                    <h4>No posts yet</h4>
+                    <p>Be the first to start a discussion!</p>
+                    <a href="{% url 'teams:discussion_post_create' team.slug %}" class="create-post-btn">
+                        Create First Post
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function filterPosts(postType) {
+    const url = new URL(window.location.href);
+    if (postType) {
+        url.searchParams.set('post_type', postType);
+    } else {
+        url.searchParams.delete('post_type');
+    }
+    url.searchParams.delete('page'); // Reset to page 1
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
