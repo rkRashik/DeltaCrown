@@ -340,21 +340,29 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.select_related('user').get(id=profile_id)
         
+        # Verify user exists
+        if not profile.user:
+            raise Exception(f"Profile {profile_id} has no associated user")
+        
         # Check if requester is a team member (shares a team with this profile)
         show_game_ids = False
         if request.user.is_authenticated:
             try:
                 from apps.teams.models import TeamMembership
                 # Check if users share any active team
-                requester_profile = UserProfile.objects.get(user=request.user)
-                shared_teams = TeamMembership.objects.filter(
-                    team__in=profile.team_memberships.filter(status='ACTIVE').values_list('team', flat=True),
-                    profile=requester_profile,
-                    status='ACTIVE'
-                ).exists()
-                show_game_ids = shared_teams or request.user.is_staff
-            except Exception:
-                pass
+                requester_profile = UserProfile.objects.filter(user=request.user).first()
+                if requester_profile:
+                    shared_teams = TeamMembership.objects.filter(
+                        team__in=profile.team_memberships.filter(status='ACTIVE').values_list('team', flat=True),
+                        profile=requester_profile,
+                        status='ACTIVE'
+                    ).exists()
+                    show_game_ids = shared_teams or request.user.is_staff
+            except Exception as e:
+                # Log but don't fail
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f'Error checking authorization for profile {profile_id}: {str(e)}')
         
         # Try to get real tournament statistics
         try:
@@ -425,11 +433,13 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
         
         # Add social links if authorized
         if show_game_ids:
-            data['twitter'] = profile.twitter if profile.twitter else None
+            # Only add social links that actually exist in the model
             data['discord_id'] = profile.discord_id if profile.discord_id else None
             data['youtube_link'] = profile.youtube_link if profile.youtube_link else None
             data['twitch_link'] = profile.twitch_link if profile.twitch_link else None
-            data['instagram'] = profile.instagram if profile.instagram else None
+            # Note: twitter and instagram fields don't exist in UserProfile model yet
+            # data['twitter'] = profile.twitter if hasattr(profile, 'twitter') and profile.twitter else None
+            # data['instagram'] = profile.instagram if hasattr(profile, 'instagram') and profile.instagram else None
         
         return JsonResponse(data)
         
@@ -454,4 +464,13 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
             'joined_date': 'Jan 2024',
         })
     except Exception as e:
-        return JsonResponse({'error': 'Profile not available'}, status=500)
+        import traceback
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f'Error in profile_api for profile_id {profile_id}: {str(e)}')
+        logger.error(traceback.format_exc())
+        return JsonResponse({
+            'error': 'Profile not available',
+            'detail': str(e),
+            'profile_id': profile_id
+        }, status=500)

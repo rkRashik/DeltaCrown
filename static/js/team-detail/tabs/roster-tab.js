@@ -25,29 +25,21 @@ class RosterTab {
     `;
 
     try {
-      // Try to fetch roster data with game IDs (requires membership)
-      let rosterData;
-      try {
-        rosterData = await this.api.getRosterWithGameIds();
-        this.logger.info('Roster data with game IDs received:', rosterData);
-      } catch (error) {
-        // If 403 (not a member), fall back to basic roster
-        if (error.message.includes('403') || error.message.includes('Forbidden') || error.message.includes('member')) {
-          this.logger.info('Not a team member, fetching basic roster');
-          rosterData = await this.api.getRoster();
-          // Transform to expected format
-          rosterData = {
-            members: rosterData.active_players || [],
-            game_name: null
-          };
-        } else {
-          throw error;
-        }
-      }
+      // Fetch basic roster data (works for everyone)
+      this.logger.info('Fetching roster data');
+      const rosterResponse = await this.api.getRoster();
+      this.logger.info('Roster response received:', rosterResponse);
       
-      this.members = rosterData.members || rosterData.active_players || [];
+      // Transform to expected format
+      const rosterData = {
+        members: rosterResponse.active_players || [],
+        game_name: null
+      };
+      
+      this.members = rosterData.members;
+      this.logger.info(`Loaded ${this.members.length} members`);
       const isMember = data.permissions?.is_member || false;
-      const showGameIds = isMember && rosterData.members; // Only show if we got game IDs from API
+      const showGameIds = false; // Will be enabled later with member-only API
       
       // Render the roster
       container.innerHTML = `
@@ -110,9 +102,16 @@ class RosterTab {
     
     // Handle both new API (profile_id) and old API (id) formats
     const profileId = member.profile_id || member.id;
-    const displayName = member.display_name || member.in_game_name || member.username;
+    const realName = member.real_name || member.display_name || member.username;
+    const inGameName = member.in_game_name || member.display_name || member.username;
     const avatar = member.avatar || member.avatar_url;
-    const username = member.username || displayName;
+    const username = member.username || realName;
+    
+    // Format display name as "RealName (InGameName)" if they differ
+    let displayNameFormatted = realName;
+    if (inGameName && inGameName !== realName) {
+      displayNameFormatted = `${realName} (${inGameName})`;
+    }
     
     // Create a data attribute with roster data for the modal
     const rosterDataJson = JSON.stringify({
@@ -127,13 +126,13 @@ class RosterTab {
            data-roster-data="${rosterDataJson}"
            role="button"
            tabindex="0"
-           aria-label="View ${this.escapeHtml(displayName)}'s profile">
+           aria-label="View ${this.escapeHtml(displayNameFormatted)}'s profile">
         
         <div class="roster-card-header">
           <div class="roster-avatar-wrapper">
             ${avatar ? 
-              `<img src="${avatar}" class="roster-avatar" alt="${this.escapeHtml(displayName)}" loading="lazy">` :
-              `<div class="roster-avatar-placeholder">${this.getInitials(displayName)}</div>`
+              `<img src="${avatar}" class="roster-avatar" alt="${this.escapeHtml(displayNameFormatted)}" loading="lazy">` :
+              `<div class="roster-avatar-placeholder">${this.getInitials(realName)}</div>`
             }
             <div class="roster-status-dot ${member.is_online ? '' : 'offline'}" 
                  title="${member.is_online ? 'Online' : 'Offline'}"></div>
@@ -142,7 +141,7 @@ class RosterTab {
           <div class="roster-player-info">
             <h3 class="roster-player-name">
               ${isCaptain ? '<i class="fas fa-crown captain-crown" title="Team Captain"></i>' : ''}
-              ${this.escapeHtml(displayName)}
+              ${this.escapeHtml(displayNameFormatted)}
             </h3>
             <p class="roster-player-username">
               <i class="fas fa-at"></i>${this.escapeHtml(username)}
@@ -273,14 +272,28 @@ class RosterTab {
     const profileId = card.dataset.profileId;
     const rosterDataStr = card.dataset.rosterData;
     
-    if (profileId && window.playerModal) {
-      try {
-        const rosterData = rosterDataStr ? JSON.parse(rosterDataStr) : null;
-        window.playerModal.show(profileId, rosterData);
-      } catch (error) {
-        console.error('Error opening player modal:', error);
-        window.playerModal.show(profileId);
-      }
+    this.logger.info('Opening player modal - Profile ID:', profileId);
+    this.logger.info('Roster data string:', rosterDataStr);
+    
+    if (!profileId) {
+      this.logger.error('No profile ID found on card!');
+      alert('Error: No profile ID found');
+      return;
+    }
+    
+    if (!window.playerModal) {
+      this.logger.error('window.playerModal not found!');
+      alert('Error: Player modal not initialized');
+      return;
+    }
+    
+    try {
+      const rosterData = rosterDataStr ? JSON.parse(rosterDataStr) : null;
+      this.logger.info('Parsed roster data:', rosterData);
+      window.playerModal.show(profileId, rosterData);
+    } catch (error) {
+      this.logger.error('Error opening player modal:', error);
+      window.playerModal.show(profileId);
     }
   }
 

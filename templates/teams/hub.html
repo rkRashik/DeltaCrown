@@ -1,441 +1,1241 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% extends "base.html" %}{% extends "base.html" %}
+
 {% load static %}
 
-{% block title %}Teams Hub - DeltaCrown Esports{% endblock %}
+{% load teams_extras %}{% load static %}{% load static %}
+
+
+
+{% block title %}Teams Hub - DeltaCrown Esports{% endblock %}{% load teams_extras %}
+
+
+
+{% block extra_head %}{% block title %}Teams Hub - DeltaCrown Esports{% endblock %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<link rel="stylesheet" href="{% static 'css/teams/hub-v2.css' %}">{% block title %}Teams Hub - DeltaCrown Esports{% endblock %}
+
+{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-/* Clean Modern Team Hub Design */
-* {
-  box-sizing: border-box;
-}
 
-.team-hub {
-  background: #0a0a0f;
-  min-height: 100vh;
-  color: #ffffff;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
+{% block content %}
 
-.hub-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
+<div class="teams-hub-v2">{% block extra_head %}<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-/* Compact Header Section */
-.header-section {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  padding: 40px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
+  <!-- Hero Section -->
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 40px;
-}
+  <section class="hub-hero"><link rel="stylesheet" href="{% static 'css/teams/hub-v2.css' %}"><style>
 
-.header-info {
-  flex: 1;
-}
+    <div class="hero-background">
 
-.page-title {
-  font-size: 36px;
-  font-weight: 800;
-  margin-bottom: 12px;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+      <div class="hero-glow"></div><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">/* Clean Modern Team Hub Design */
 
-.page-title i {
-  color: #00d4ff;
-  font-size: 32px;
-}
+      <div class="hero-particles"></div>
 
-.page-subtitle {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.5;
-  max-width: 500px;
-}
+    </div>{% endblock %}* {
 
-.header-stats {
-  display: flex;
-  gap: 24px;
-}
 
-.header-stat {
-  text-align: center;
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  min-width: 100px;
-}
 
-.stat-number {
-  font-size: 24px;
-  font-weight: 700;
-  color: #00d4ff;
-  display: block;
-}
+    <div class="hub-container">  box-sizing: border-box;
 
-.stat-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
-  font-weight: 500;
-  margin-top: 4px;
-}
+      <div class="hero-content">
 
-/* Quick Actions Bar */
-.quick-actions {
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 20px 0;
-}
+        <h1 class="hero-title">{% block content %}}
 
-.actions-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+          <span class="title-icon"><i class="fas fa-shield-alt"></i></span>
 
-.actions-left {
-  display: flex;
-  gap: 16px;
-}
+          <span class="title-text">Teams Hub</span><div class="teams-hub-v2">
 
-.actions-right {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
+        </h1>
 
-/* Main Content Grid */
-.hub-content {
-  padding: 40px 0;
-}
+        <p class="hero-subtitle">Join competitive teams, dominate tournaments, and climb the rankings</p>  <!-- Hero Section -->.team-hub {
 
-.hub-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 32px;
-}
 
-/* Content Areas */
-.main-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
 
-.sidebar-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
+        <div class="hero-stats">  <section class="hub-hero">  background: #0a0a0f;
 
-/* Clean Section Cards */
-.section-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.2s ease;
-}
+          <div class="hero-stat-item">
 
-.section-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.04);
-}
+            <div class="stat-value">{{ total_teams|default:0 }}</div>    <div class="hero-background">  min-height: 100vh;
 
-.section-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+            <div class="stat-label">Active Teams</div>
 
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+          </div>      <div class="hero-glow"></div>  color: #ffffff;
 
-.section-title i {
-  color: #00d4ff;
-  font-size: 16px;
-}
+          <div class="hero-stat-divider"></div>
 
-.section-action {
-  color: #00d4ff;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 12px;
+          <div class="hero-stat-item">      <div class="hero-particles"></div>  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+            <div class="stat-value">{{ total_players|default:0 }}</div>
+
+            <div class="stat-label">Players</div>    </div>}
+
+          </div>
+
+          <div class="hero-stat-divider"></div>    <div class="hub-container">
+
+          <div class="hero-stat-item">
+
+            <div class="stat-value">{{ active_tournaments|default:0 }}</div>      <div class="hero-content">.hub-container {
+
+            <div class="stat-label">Tournaments</div>
+
+          </div>        <h1 class="hero-title">  max-width: 1200px;
+
+          <div class="hero-stat-divider"></div>
+
+          <div class="hero-stat-item">          <span class="title-icon"><i class="fas fa-shield-alt"></i></span>  margin: 0 auto;
+
+            <div class="stat-value">{{ game_stats|length|default:0 }}</div>
+
+            <div class="stat-label">Games</div>          <span class="title-text">Teams Hub</span>  padding: 0 20px;
+
+          </div>
+
+        </div>        </h1>}
+
+
+
+        <div class="hero-actions">        <p class="hero-subtitle">Join competitive teams, dominate tournaments, and climb the rankings</p>
+
+          <a href="{% url 'teams:create' %}" class="btn-hero-primary">
+
+            <i class="fas fa-plus-circle"></i>        /* Compact Header Section */
+
+            Create Your Team
+
+          </a>        <div class="hero-stats">.header-section {
+
+          <a href="{% url 'teams:list' %}" class="btn-hero-secondary">
+
+            <i class="fas fa-trophy"></i>          <div class="hero-stat-item">  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+
+            View Rankings
+
+          </a>            <div class="stat-value">{{ total_teams|default:0 }}</div>  padding: 40px 0;
+
+        </div>
+
+      </div>            <div class="stat-label">Active Teams</div>  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    </div>
+
+  </section>          </div>}
+
+
+
+  <!-- Main Content Area -->          <div class="hero-stat-divider"></div>
+
+  <div class="hub-main-content">
+
+    <div class="hub-container">          <div class="hero-stat-item">.header-content {
+
+      <div class="content-grid">
+
+        <!-- Left Column - My Teams & Top Teams -->            <div class="stat-value">{{ total_players|default:0 }}</div>  display: flex;
+
+        <div class="content-left">
+
+          <!-- My Teams Section -->            <div class="stat-label">Players</div>  justify-content: space-between;
+
+          {% if user.is_authenticated %}
+
+          <section class="hub-section my-teams-section">          </div>  align-items: center;
+
+            <div class="section-header">
+
+              <h2 class="section-title">          <div class="hero-stat-divider"></div>  gap: 40px;
+
+                <i class="fas fa-users"></i>
+
+                My Teams          <div class="hero-stat-item">}
+
+              </h2>
+
+              {% if my_teams %}            <div class="stat-value">{{ active_tournaments|default:0 }}</div>
+
+              <a href="{% url 'teams:create' %}" class="section-action">
+
+                <i class="fas fa-plus"></i>            <div class="stat-label">Tournaments</div>.header-info {
+
+                New Team
+
+              </a>          </div>  flex: 1;
+
+              {% endif %}
+
+            </div>          <div class="hero-stat-divider"></div>}
+
+
+
+            {% if my_teams %}          <div class="hero-stat-item">
+
+            <div class="teams-grid">
+
+              {% for team in my_teams %}            <div class="stat-value">{{ game_stats|length|default:0 }}</div>.page-title {
+
+              <div class="team-card" data-team-id="{{ team.id }}">
+
+                <div class="team-card-header">            <div class="stat-label">Games</div>  font-size: 36px;
+
+                  {% if team.logo %}
+
+                  <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="team-logo">          </div>  font-weight: 800;
+
+                  {% else %}
+
+                  <div class="team-logo-placeholder">        </div>  margin-bottom: 12px;
+
+                    <i class="fas fa-shield-alt"></i>
+
+                  </div>  color: #ffffff;
+
+                  {% endif %}
+
+                  <div class="team-info">        <div class="hero-actions">  display: flex;
+
+                    <h3 class="team-name">{{ team.name }}</h3>
+
+                    <span class="team-game">          <a href="{% url 'teams:create' %}" class="btn-hero-primary">  align-items: center;
+
+                      <i class="fas fa-gamepad"></i>
+
+                      {{ team.get_game_display }}            <i class="fas fa-plus-circle"></i>  gap: 16px;
+
+                    </span>
+
+                  </div>            <span>Create Team</span>}
+
+                </div>
+
+          </a>
+
+                <div class="team-card-body">
+
+                  <div class="team-stats-mini">          <a href="{% url 'teams:list' %}" class="btn-hero-secondary">.page-title i {
+
+                    <div class="stat-mini">
+
+                      <i class="fas fa-users"></i>            <i class="fas fa-trophy"></i>  color: #00d4ff;
+
+                      <span>{{ team.members.count }}/{{ team.max_members }}</span>
+
+                    </div>            <span>View Rankings</span>  font-size: 32px;
+
+                    <div class="stat-mini">
+
+                      <i class="fas fa-trophy"></i>          </a>}
+
+                      <span>{{ team.wins|default:0 }}W</span>
+
+                    </div>        </div>
+
+                    <div class="stat-mini">
+
+                      <i class="fas fa-star"></i>      </div>.page-subtitle {
+
+                      <span>Rank #{{ forloop.counter }}</span>
+
+                    </div>    </div>  font-size: 16px;
+
+                  </div>
+
+  </section>  color: rgba(255, 255, 255, 0.7);
+
+                  {% if team.captain == user.profile %}
+
+                  <div class="team-role captain">  line-height: 1.5;
+
+                    <i class="fas fa-crown"></i>
+
+                    Captain  <!-- Main Content -->  max-width: 500px;
+
+                  </div>
+
+                  {% else %}  <div class="hub-container">}
+
+                  <div class="team-role member">
+
+                    <i class="fas fa-user"></i>    <div class="hub-main-content">
+
+                    Member
+
+                  </div>      .header-stats {
+
+                  {% endif %}
+
+                </div>      <!-- Quick Access Bar -->  display: flex;
+
+
+
+                <div class="team-card-footer">      <div class="quick-access-bar">  gap: 24px;
+
+                  <a href="{% url 'teams:detail' team.slug %}" class="btn-team-view">
+
+                    <i class="fas fa-eye"></i>        <div class="quick-access-links">}
+
+                    View Team
+
+                  </a>          {% if user.is_authenticated %}
+
+                  {% if team.captain == user.profile %}
+
+                  <a href="{% url 'teams:dashboard' team.slug %}" class="btn-team-manage">            <a href="{% url 'teams:my_invites' %}" class="quick-link">.header-stat {
+
+                    <i class="fas fa-cog"></i>
+
+                    Manage              <i class="fas fa-envelope"></i>  text-align: center;
+
+                  </a>
+
+                  {% endif %}              <span>Invitations</span>  padding: 16px 20px;
+
+                </div>
+
+              </div>              {% if pending_invites %}  background: rgba(255, 255, 255, 0.05);
+
+              {% endfor %}
+
+            </div>                <span class="badge-notification">{{ pending_invites|length }}</span>  border-radius: 12px;
+
+            {% else %}
+
+            <div class="empty-state">              {% endif %}  border: 1px solid rgba(255, 255, 255, 0.1);
+
+              <div class="empty-icon">
+
+                <i class="fas fa-users-slash"></i>            </a>  min-width: 100px;
+
+              </div>
+
+              <h3 class="empty-title">No Teams Yet</h3>            <a href="#my-teams" class="quick-link">}
+
+              <p class="empty-text">Create your first team or join an existing one to get started!</p>
+
+              <a href="{% url 'teams:create' %}" class="btn-empty-action">              <i class="fas fa-users"></i>
+
+                <i class="fas fa-plus-circle"></i>
+
+                Create Your First Team              <span>My Teams</span>.stat-number {
+
+              </a>
+
+            </div>            </a>  font-size: 24px;
+
+            {% endif %}
+
+          </section>          {% endif %}  font-weight: 700;
+
+          {% endif %}
+
+          <a href="#top-teams" class="quick-link">  color: #00d4ff;
+
+          <!-- Top Teams Leaderboard -->
+
+          <section class="hub-section leaderboard-section">            <i class="fas fa-medal"></i>  display: block;
+
+            <div class="section-header">
+
+              <h2 class="section-title">            <span>Top Teams</span>}
+
+                <i class="fas fa-trophy"></i>
+
+                Top Teams          </a>
+
+              </h2>
+
+              <a href="{% url 'teams:list' %}" class="section-action">          <a href="#games" class="quick-link">.stat-label {
+
+                View All
+
+                <i class="fas fa-arrow-right"></i>            <i class="fas fa-gamepad"></i>  font-size: 12px;
+
+              </a>
+
+            </div>            <span>Games</span>  color: rgba(255, 255, 255, 0.7);
+
+
+
+            {% if top_teams %}          </a>  text-transform: uppercase;
+
+            <div class="leaderboard">
+
+              {% for team in top_teams %}        </div>  font-weight: 500;
+
+              <div class="leaderboard-item rank-{{ forloop.counter }}" data-rank="{{ forloop.counter }}">
+
+                <div class="rank-badge">        <div class="quick-access-status">  margin-top: 4px;
+
+                  {% if forloop.counter == 1 %}
+
+                  <i class="fas fa-crown"></i>          <i class="fas fa-circle status-online"></i>}
+
+                  {% elif forloop.counter == 2 %}
+
+                  <i class="fas fa-medal"></i>          <span>{{ total_teams }} teams active</span>
+
+                  {% elif forloop.counter == 3 %}
+
+                  <i class="fas fa-award"></i>        </div>/* Quick Actions Bar */
+
+                  {% else %}
+
+                  <span>{{ forloop.counter }}</span>      </div>.quick-actions {
+
+                  {% endif %}
+
+                </div>  background: rgba(255, 255, 255, 0.03);
+
+
+
+                <div class="team-identity">      <!-- Content Grid -->  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+                  {% if team.logo %}
+
+                  <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="leaderboard-logo">      <div class="hub-content-grid">  padding: 20px 0;
+
+                  {% else %}
+
+                  <div class="leaderboard-logo-placeholder">        }
+
+                    <i class="fas fa-shield-alt"></i>
+
+                  </div>        <!-- Main Column -->
+
+                  {% endif %}
+
+                  <div class="team-details">        <div class="hub-main-column">.actions-content {
+
+                    <h4 class="leaderboard-team-name">{{ team.name }}</h4>
+
+                    <span class="leaderboard-game">{{ team.get_game_display }}</span>            display: flex;
+
+                  </div>
+
+                </div>          <!-- My Teams Section -->  justify-content: space-between;
+
+
+
+                <div class="team-performance">          {% if user.is_authenticated %}  align-items: center;
+
+                  <div class="performance-stat">
+
+                    <span class="stat-label">Points</span>          <section id="my-teams" class="content-section">}
+
+                    <span class="stat-value">{{ team.total_points|default:0 }}</span>
+
+                  </div>            <div class="section-header">
+
+                  <div class="performance-stat">
+
+                    <span class="stat-label">W/L</span>              <div class="section-title-wrapper">.actions-left {
+
+                    <span class="stat-value">{{ team.wins|default:0 }}/{{ team.losses|default:0 }}</span>
+
+                  </div>                <h2 class="section-title">  display: flex;
+
+                </div>
+
+                  <i class="fas fa-shield-alt section-icon"></i>  gap: 16px;
+
+                <a href="{% url 'teams:detail' team.slug %}" class="leaderboard-view-btn">
+
+                  <i class="fas fa-arrow-right"></i>                  My Teams}
+
+                </a>
+
+              </div>                </h2>
+
+              {% endfor %}
+
+            </div>                <span class="section-count">{{ my_teams|length }}</span>.actions-right {
+
+            {% else %}
+
+            <div class="empty-state-small">              </div>  display: flex;
+
+              <i class="fas fa-trophy"></i>
+
+              <p>No ranked teams yet</p>              <a href="{% url 'teams:create' %}" class="btn-section-action">  gap: 12px;
+
+            </div>
+
+            {% endif %}                <i class="fas fa-plus"></i>  align-items: center;
+
+          </section>
+
+        </div>                <span>Create New</span>}
+
+
+
+        <!-- Right Column - Sidebar -->              </a>
+
+        <aside class="content-sidebar">
+
+          <!-- Pending Invitations -->            </div>/* Main Content Grid */
+
+          {% if user.is_authenticated and pending_invites %}
+
+          <div class="sidebar-widget invites-widget">            <div class="section-content">.hub-content {
+
+            <h3 class="widget-title">
+
+              <i class="fas fa-envelope"></i>              {% if my_teams %}  padding: 40px 0;
+
+              Team Invitations
+
+            </h3>                <div class="teams-grid">}
+
+            <div class="invites-list">
+
+              {% for invite in pending_invites %}                  {% for team in my_teams %}
+
+              <div class="invite-item">
+
+                <div class="invite-team-info">                  <a href="{% url 'teams:detail' slug=team.slug %}" class="team-card-v2">.hub-grid {
+
+                  {% if invite.team.logo %}
+
+                  <img src="{{ invite.team.logo.url }}" alt="{{ invite.team.name }}" class="invite-logo">                    <div class="team-card-badge">  display: grid;
+
+                  {% else %}
+
+                  <div class="invite-logo-placeholder">                      <span class="game-badge">{{ team.get_game_display|default:"Multi" }}</span>  grid-template-columns: 2fr 1fr;
+
+                    <i class="fas fa-shield-alt"></i>
+
+                  </div>                    </div>  gap: 32px;
+
+                  {% endif %}
+
+                  <div class="invite-details">                    <div class="team-card-logo">}
+
+                    <h4 class="invite-team-name">{{ invite.team.name }}</h4>
+
+                    <span class="invite-game">{{ invite.team.get_game_display }}</span>                      {% if team.logo %}
+
+                  </div>
+
+                </div>                        <img src="{{ team.logo.url }}" alt="{{ team.name }}">/* Content Areas */
+
+                <div class="invite-actions">
+
+                  <button class="btn-invite-accept" data-invite-id="{{ invite.id }}">                      {% else %}.main-content {
+
+                    <i class="fas fa-check"></i>
+
+                  </button>                        <div class="logo-placeholder">  display: flex;
+
+                  <button class="btn-invite-decline" data-invite-id="{{ invite.id }}">
+
+                    <i class="fas fa-times"></i>                          <i class="fas fa-shield-alt"></i>  flex-direction: column;
+
+                  </button>
+
+                </div>                        </div>  gap: 24px;
+
+              </div>
+
+              {% endfor %}                      {% endif %}}
+
+            </div>
+
+            <a href="{% url 'teams:my_invites' %}" class="widget-view-all">                    </div>
+
+              View All Invitations
+
+            </a>                    <div class="team-card-content">.sidebar-content {
+
+          </div>
+
+          {% endif %}                      <h3 class="team-name">{{ team.name }}</h3>  display: flex;
+
+
+
+          <!-- Games List -->                      <div class="team-meta">  flex-direction: column;
+
+          <div class="sidebar-widget games-widget">
+
+            <h3 class="widget-title">                        <span class="meta-item">  gap: 20px;
+
+              <i class="fas fa-gamepad"></i>
+
+              Supported Games                          <i class="fas fa-users"></i>}
+
+            </h3>
+
+            <div class="games-list">                          {{ team.memberships_count|default:0 }} members
+
+              {% for game_code, game_data in game_stats.items %}
+
+              <div class="game-item">                        </span>/* Clean Section Cards */
+
+                <div class="game-icon">
+
+                  <i class="fas fa-gamepad"></i>                        {% if team.total_points %}.section-card {
+
+                </div>
+
+                <div class="game-info">                        <span class="meta-item points">  background: rgba(255, 255, 255, 0.02);
+
+                  <h4 class="game-name">{{ game_data.name }}</h4>
+
+                  <span class="game-teams">{{ game_data.team_count }} teams</span>                          <i class="fas fa-trophy"></i>  border: 1px solid rgba(255, 255, 255, 0.08);
+
+                </div>
+
+              </div>                          {{ team.total_points }} pts  border-radius: 16px;
+
+              {% empty %}
+
+              <div class="empty-state-small">                        </span>  overflow: hidden;
+
+                <i class="fas fa-gamepad"></i>
+
+                <p>No games available</p>                        {% endif %}  transition: all 0.2s ease;
+
+              </div>
+
+              {% endfor %}                      </div>}
+
+            </div>
+
+          </div>                    </div>
+
+
+
+          <!-- Quick Actions -->                    <div class="team-card-hover">.section-card:hover {
+
+          {% if user.is_authenticated %}
+
+          <div class="sidebar-widget actions-widget">                      <i class="fas fa-arrow-right"></i>  border-color: rgba(255, 255, 255, 0.15);
+
+            <h3 class="widget-title">
+
+              <i class="fas fa-bolt"></i>                    </div>  background: rgba(255, 255, 255, 0.04);
+
+              Quick Actions
+
+            </h3>                  </a>}
+
+            <div class="actions-list">
+
+              <a href="{% url 'teams:create' %}" class="action-link">                  {% endfor %}
+
+                <i class="fas fa-plus-circle"></i>
+
+                Create New Team                  .section-header {
+
+              </a>
+
+              <a href="{% url 'teams:my_invites' %}" class="action-link">                  {% if my_teams|length < 8 %}  padding: 20px 24px;
+
+                <i class="fas fa-envelope"></i>
+
+                View Invitations                  <a href="{% url 'teams:create' %}" class="team-card-create">  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+              </a>
+
+              <a href="{% url 'teams:list' %}" class="action-link">                    <div class="create-icon">  display: flex;
+
+                <i class="fas fa-trophy"></i>
+
+                Browse Rankings                      <i class="fas fa-plus"></i>  justify-content: space-between;
+
+              </a>
+
+            </div>                    </div>  align-items: center;
+
+          </div>
+
+          {% endif %}                    <div class="create-text">}
+
+
+
+          <!-- Platform Stats -->                      <h3>Create New Team</h3>
+
+          <div class="sidebar-widget stats-widget">
+
+            <h3 class="widget-title">                      <p>Build your competitive squad</p>.section-title {
+
+              <i class="fas fa-chart-line"></i>
+
+              Platform Stats                    </div>  font-size: 18px;
+
+            </h3>
+
+            <div class="stats-list">                  </a>  font-weight: 600;
+
+              <div class="stat-item">
+
+                <span class="stat-label">Total Teams</span>                  {% endif %}  color: #ffffff;
+
+                <span class="stat-value">{{ total_teams|default:0 }}</span>
+
+              </div>                </div>  margin: 0;
+
+              <div class="stat-item">
+
+                <span class="stat-label">Active Players</span>              {% else %}  display: flex;
+
+                <span class="stat-value">{{ total_players|default:0 }}</span>
+
+              </div>                <div class="empty-state">  align-items: center;
+
+              <div class="stat-item">
+
+                <span class="stat-label">Tournaments</span>                  <div class="empty-icon">  gap: 10px;
+
+                <span class="stat-value">{{ active_tournaments|default:0 }}</span>
+
+              </div>                    <i class="fas fa-users"></i>}
+
+              <div class="stat-item">
+
+                <span class="stat-label">Games</span>                  </div>
+
+                <span class="stat-value">{{ game_stats|length|default:0 }}</span>
+
+              </div>                  <h3 class="empty-title">No Teams Yet</h3>.section-title i {
+
+            </div>
+
+          </div>                  <p class="empty-description">Create your first team or accept an invitation to get started</p>  color: #00d4ff;
+
+        </aside>
+
+      </div>                  <a href="{% url 'teams:create' %}" class="btn-empty-action">  font-size: 16px;
+
+    </div>
+
+  </div>                    <i class="fas fa-plus-circle"></i>}
+
+</div>
+
+                    <span>Create Team</span>
+
+<!-- Load JavaScript -->
+
+<script src="{% static 'js/teams/hub-v2.js' %}"></script>                  </a>.section-action {
+
+{% endblock %}
+
+                </div>  color: #00d4ff;
+
+              {% endif %}  text-decoration: none;
+
+            </div>  font-size: 14px;
+
+          </section>  font-weight: 500;
+
+          {% endif %}  padding: 6px 12px;
+
   border-radius: 8px;
-  background: rgba(0, 212, 255, 0.1);
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 
-.section-action:hover {
-  background: rgba(0, 212, 255, 0.2);
-  transform: translateY(-1px);
-}
+          <!-- Top Teams Leaderboard -->  background: rgba(0, 212, 255, 0.1);
 
-.section-content {
-  padding: 24px;
-}
+          <section id="top-teams" class="content-section">  transition: all 0.2s ease;
 
-/* My Teams Section */
-.my-teams-grid {
-  display: grid;
-  gap: 20px;
-}
+            <div class="section-header">  display: flex;
 
-.team-card {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  text-decoration: none;
-  color: inherit;
-  background: rgba(255, 255, 255, 0.03);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
+              <div class="section-title-wrapper">  align-items: center;
 
-.team-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  transition: left 0.5s ease;
-}
+                <h2 class="section-title">  gap: 6px;
 
-.team-card:hover::before {
-  left: 100%;
-}
+                  <i class="fas fa-trophy section-icon"></i>}
 
-.team-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: #4ecdc4;
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(78, 205, 196, 0.2);
-}
+                  Top Teams
 
-.team-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  object-fit: cover;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-}
+                </h2>.section-action:hover {
 
-.team-card:hover .team-logo {
+                <span class="section-badge-hot">  background: rgba(0, 212, 255, 0.2);
+
+                  <i class="fas fa-fire"></i>  transform: translateY(-1px);
+
+                  Leaderboard}
+
+                </span>
+
+              </div>.section-content {
+
+              <a href="{% url 'teams:list' %}" class="btn-section-action">  padding: 24px;
+
+                <i class="fas fa-chart-line"></i>}
+
+                <span>View All</span>
+
+              </a>/* My Teams Section */
+
+            </div>.my-teams-grid {
+
+            <div class="section-content">  display: grid;
+
+              {% if top_teams %}  gap: 20px;
+
+                <div class="leaderboard-list">}
+
+                  {% for team in top_teams %}
+
+                  <a href="{% url 'teams:detail' slug=team.slug %}" class="leaderboard-item rank-{{ forloop.counter }}">.team-card {
+
+                    <div class="rank-badge">  display: flex;
+
+                      {% if forloop.counter == 1 %}  align-items: center;
+
+                        <i class="fas fa-crown rank-icon-gold"></i>  gap: 20px;
+
+                      {% elif forloop.counter == 2 %}  padding: 24px;
+
+                        <i class="fas fa-medal rank-icon-silver"></i>  border: 1px solid rgba(255, 255, 255, 0.1);
+
+                      {% elif forloop.counter == 3 %}  border-radius: 16px;
+
+                        <i class="fas fa-award rank-icon-bronze"></i>  text-decoration: none;
+
+                      {% else %}  color: inherit;
+
+                        <span class="rank-number">#{{ forloop.counter }}</span>  background: rgba(255, 255, 255, 0.03);
+
+                      {% endif %}  transition: all 0.3s ease;
+
+                    </div>  position: relative;
+
+                    <div class="team-avatar">  overflow: hidden;
+
+                      {% if team.logo %}}
+
+                        <img src="{{ team.logo.url }}" alt="{{ team.name }}">
+
+                      {% else %}.team-card::before {
+
+                        <div class="avatar-placeholder">  content: '';
+
+                          <i class="fas fa-shield-alt"></i>  position: absolute;
+
+                        </div>  top: 0;
+
+                      {% endif %}  left: -100%;
+
+                    </div>  width: 100%;
+
+                    <div class="team-details">  height: 100%;
+
+                      <h3 class="team-name-leaderboard">{{ team.name }}</h3>  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+
+                      <div class="team-info-leaderboard">  transition: left 0.5s ease;
+
+                        <span class="game-tag">{{ team.get_game_display|default:"Multi-Game" }}</span>}
+
+                        <span class="members-count">
+
+                          <i class="fas fa-users"></i>.team-card:hover::before {
+
+                          {{ team.memberships_count|default:0 }}  left: 100%;
+
+                        </span>}
+
+                      </div>
+
+                    </div>.team-card:hover {
+
+                    <div class="team-points">  background: rgba(255, 255, 255, 0.08);
+
+                      <div class="points-value">{{ team.total_points|default:0 }}</div>  border-color: #4ecdc4;
+
+                      <div class="points-label">points</div>  transform: translateY(-5px);
+
+                    </div>  box-shadow: 0 10px 30px rgba(78, 205, 196, 0.2);
+
+                    <div class="leaderboard-arrow">}
+
+                      <i class="fas fa-chevron-right"></i>
+
+                    </div>.team-logo {
+
+                  </a>  width: 64px;
+
+                  {% endfor %}  height: 64px;
+
+                </div>  border-radius: 12px;
+
+              {% else %}  object-fit: cover;
+
+                <div class="empty-state-small">  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+                  <i class="fas fa-trophy"></i>  border: 2px solid rgba(255, 255, 255, 0.2);
+
+                  <p>No ranked teams yet. Be the first!</p>  transition: all 0.3s ease;
+
+                </div>  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+
+              {% endif %}}
+
+            </div>
+
+          </section>.team-card:hover .team-logo {
+
   transform: rotate(5deg) scale(1.1);
-  border-color: #4ecdc4;
+
+        </div>  border-color: #4ecdc4;
+
 }
 
-.team-info h3 {
-  font-size: 20px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: #ffffff;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
-}
+        <!-- Sidebar Column -->
 
-.team-meta {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+        <div class="hub-sidebar-column">.team-info h3 {
 
-.team-badge {
-  background: rgba(78, 205, 196, 0.2);
-  color: #4ecdc4;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
+            font-size: 20px;
 
-.create-team-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 32px;
-  border: 2px dashed rgba(255, 255, 255, 0.3);
-  border-radius: 16px;
-  text-decoration: none;
-  color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.02);
-  transition: all 0.3s ease;
-  font-weight: 600;
-}
+          <!-- Pending Invitations -->  font-weight: 700;
 
-.create-team-card:hover {
-  border-color: #4ecdc4;
-  color: #4ecdc4;
-  background: rgba(78, 205, 196, 0.05);
-  transform: scale(1.02);
-}
+          {% if user.is_authenticated and pending_invites %}  margin: 0 0 8px 0;
 
-.create-team-card i {
-  font-size: 24px;
-  animation: pulse 2s infinite;
-}
+          <section class="content-section sidebar-section">  color: #ffffff;
 
-@keyframes pulse {
+            <div class="section-header-small">  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+
+              <h3 class="section-title-small">}
+
+                <i class="fas fa-envelope"></i>
+
+                Team Invitations.team-meta {
+
+              </h3>  font-size: 14px;
+
+              <span class="badge-count">{{ pending_invites|length }}</span>  color: rgba(255, 255, 255, 0.7);
+
+            </div>  display: flex;
+
+            <div class="section-content-small">  align-items: center;
+
+              <div class="invitations-list">  gap: 12px;
+
+                {% for invite in pending_invites|slice:":3" %}}
+
+                <div class="invitation-item">
+
+                  <div class="invitation-header">.team-badge {
+
+                    <div class="invitation-team-logo">  background: rgba(78, 205, 196, 0.2);
+
+                      {% if invite.team.logo %}  color: #4ecdc4;
+
+                        <img src="{{ invite.team.logo.url }}" alt="{{ invite.team.name }}">  padding: 4px 8px;
+
+                      {% else %}  border-radius: 12px;
+
+                        <i class="fas fa-shield-alt"></i>  font-size: 12px;
+
+                      {% endif %}  font-weight: 600;
+
+                    </div>  text-transform: uppercase;
+
+                    <div class="invitation-info">}
+
+                      <div class="invitation-team-name">{{ invite.team.name }}</div>
+
+                      <div class="invitation-from">from {{ invite.inviter.user.username }}</div>.create-team-card {
+
+                    </div>  display: flex;
+
+                  </div>  align-items: center;
+
+                  <div class="invitation-time">  justify-content: center;
+
+                    <i class="fas fa-clock"></i>  gap: 16px;
+
+                    {{ invite.created_at|timesince }} ago  padding: 32px;
+
+                  </div>  border: 2px dashed rgba(255, 255, 255, 0.3);
+
+                  <div class="invitation-actions">  border-radius: 16px;
+
+                    <a href="{% url 'teams:accept_invite' token=invite.token %}" class="btn-invite-accept">  text-decoration: none;
+
+                      <i class="fas fa-check"></i>  color: rgba(255, 255, 255, 0.7);
+
+                      Accept  background: rgba(255, 255, 255, 0.02);
+
+                    </a>  transition: all 0.3s ease;
+
+                    <a href="{% url 'teams:decline_invite' token=invite.token %}" class="btn-invite-decline">  font-weight: 600;
+
+                      <i class="fas fa-times"></i>}
+
+                    </a>
+
+                  </div>.create-team-card:hover {
+
+                </div>  border-color: #4ecdc4;
+
+                {% endfor %}  color: #4ecdc4;
+
+              </div>  background: rgba(78, 205, 196, 0.05);
+
+              {% if pending_invites|length > 3 %}  transform: scale(1.02);
+
+              <a href="{% url 'teams:my_invites' %}" class="btn-view-all">}
+
+                View All Invitations
+
+                <i class="fas fa-arrow-right"></i>.create-team-card i {
+
+              </a>  font-size: 24px;
+
+              {% endif %}  animation: pulse 2s infinite;
+
+            </div>}
+
+          </section>
+
+          {% endif %}@keyframes pulse {
+
   0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-}
 
-/* Enhanced Invitations */
-.invitation-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+          <!-- Games Section -->  50% { transform: scale(1.1); }
 
-.invitation-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
+          <section id="games" class="content-section sidebar-section">  100% { transform: scale(1); }
 
-.invitation-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: linear-gradient(180deg, #ffd700, #ffc107);
-  animation: pulse 2s infinite;
-}
+            <div class="section-header-small">}
 
-.invitation-card:hover {
-  transform: translateX(5px);
-  border-color: #ffd700;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%);
-}
+              <h3 class="section-title-small">
 
-.invitation-info {
-  flex: 1;
-}
+                <i class="fas fa-gamepad"></i>/* Enhanced Invitations */
 
-.invitation-team {
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #ffffff;
-  font-size: 16px;
-}
+                Supported Games.invitation-list {
 
-.invitation-meta {
+              </h3>  display: flex;
+
+            </div>  flex-direction: column;
+
+            <div class="section-content-small">  gap: 16px;
+
+              {% if game_stats %}}
+
+                <div class="games-list">
+
+                  {% for game in game_stats %}.invitation-card {
+
+                  <a href="{% url 'teams:list' %}?game={{ game.code }}" class="game-item">  display: flex;
+
+                    <div class="game-icon">  justify-content: space-between;
+
+                      {% if game.code == 'valorant' %}  align-items: center;
+
+                        <img src="{% static 'img/game_logos/Valorant_logo.jpg' %}" alt="Valorant">  padding: 20px;
+
+                      {% elif game.code == 'cs2' %}  border: 1px solid rgba(255, 215, 0, 0.3);
+
+                        <img src="{% static 'img/game_logos/CS2_logo.jpeg' %}" alt="CS2">  border-radius: 16px;
+
+                      {% elif game.code == 'lol' %}  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+
+                        <img src="{% static 'img/game_logos/LoL_logo.png' %}" alt="League of Legends">  backdrop-filter: blur(10px);
+
+                      {% elif game.code == 'dota2' %}  transition: all 0.3s ease;
+
+                        <img src="{% static 'img/game_logos/Dota2_logo.png' %}" alt="Dota 2">  position: relative;
+
+                      {% elif game.code == 'mlbb' %}  overflow: hidden;
+
+                        <img src="{% static 'img/game_logos/mobile_legend_logo.jpeg' %}" alt="MLBB">}
+
+                      {% elif game.code == 'pubg' %}
+
+                        <img src="{% static 'img/game_logos/PUBG_logo.jpg' %}" alt="PUBG">.invitation-card::before {
+
+                      {% elif game.code == 'freefire' %}  content: '';
+
+                        <img src="{% static 'img/game_logos/FreeFire_logo.png' %}" alt="Free Fire">  position: absolute;
+
+                      {% elif game.code == 'codm' %}  top: 0;
+
+                        <img src="{% static 'img/game_logos/CODM_logo.png' %}" alt="COD Mobile">  left: 0;
+
+                      {% elif game.code == 'efootball' %}  width: 4px;
+
+                        <img src="{% static 'img/game_logos/efootball_logo.jpeg' %}" alt="eFootball">  height: 100%;
+
+                      {% else %}  background: linear-gradient(180deg, #ffd700, #ffc107);
+
+                        <i class="fas fa-gamepad"></i>  animation: pulse 2s infinite;
+
+                      {% endif %}}
+
+                    </div>
+
+                    <div class="game-details">.invitation-card:hover {
+
+                      <div class="game-name">{{ game.name }}</div>  transform: translateX(5px);
+
+                      <div class="game-team-count">{{ game.team_count }} teams</div>  border-color: #ffd700;
+
+                    </div>  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%);
+
+                    <div class="game-arrow">}
+
+                      <i class="fas fa-chevron-right"></i>
+
+                    </div>.invitation-info {
+
+                  </a>  flex: 1;
+
+                  {% endfor %}}
+
+                </div>
+
+              {% else %}.invitation-team {
+
+                <div class="empty-state-small">  font-weight: 700;
+
+                  <i class="fas fa-gamepad"></i>  margin-bottom: 6px;
+
+                  <p>No games available</p>  color: #ffffff;
+
+                </div>  font-size: 16px;
+
+              {% endif %}}
+
+            </div>
+
+          </section>.invitation-meta {
+
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-.invitation-meta i {
-  color: #ffd700;
-}
+          <!-- Quick Actions -->  color: rgba(255, 255, 255, 0.7);
 
-.invitation-actions {
-  display: flex;
-  gap: 12px;
-}
+          <section class="content-section sidebar-section">  display: flex;
 
-.btn-accept {
-  background: #238636;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
+            <div class="section-header-small">  align-items: center;
+
+              <h3 class="section-title-small">  gap: 8px;
+
+                <i class="fas fa-bolt"></i>}
+
+                Quick Actions
+
+              </h3>.invitation-meta i {
+
+            </div>  color: #ffd700;
+
+            <div class="section-content-small">}
+
+              <div class="quick-actions-list">
+
+                <a href="{% url 'teams:create' %}" class="quick-action-btn primary">.invitation-actions {
+
+                  <i class="fas fa-plus-circle"></i>  display: flex;
+
+                  <span>Create Team</span>  gap: 12px;
+
+                </a>}
+
+                <a href="{% url 'teams:list' %}" class="quick-action-btn">
+
+                  <i class="fas fa-list"></i>.btn-accept {
+
+                  <span>Browse Teams</span>  background: #238636;
+
+                </a>  color: white;
+
+                {% if user.is_authenticated %}  border: none;
+
+                <a href="{% url 'teams:my_invites' %}" class="quick-action-btn">  padding: 6px 12px;
+
+                  <i class="fas fa-envelope"></i>  border-radius: 4px;
+
+                  <span>My Invitations</span>  font-size: 12px;
+
+                </a>  cursor: pointer;
+
+                {% else %}}
+
+                <a href="{% url 'account_login' %}" class="quick-action-btn">
+
+                  <i class="fas fa-sign-in-alt"></i>.btn-decline {
+
+                  <span>Login to Join</span>  background: #da3633;
+
+                </a>  color: white;
+
+                {% endif %}  border: none;
+
+              </div>  padding: 6px 12px;
+
+            </div>  border-radius: 4px;
+
+          </section>  font-size: 12px;
+
   cursor: pointer;
-}
 
-.btn-decline {
-  background: #da3633;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-}
+          <!-- Stats Card -->}
 
-/* Enhanced Top Teams Leaderboard */
-.team-rank-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+          <section class="content-section sidebar-section stats-card">
 
-.team-rank-item {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  text-decoration: none;
-  color: inherit;
-  background: rgba(255, 255, 255, 0.03);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
+            <div class="stats-card-content">/* Enhanced Top Teams Leaderboard */
+
+              <h3 class="stats-card-title">Platform Stats</h3>.team-rank-list {
+
+              <div class="stats-grid-mini">  display: flex;
+
+                <div class="stat-mini">  flex-direction: column;
+
+                  <div class="stat-mini-value">{{ total_teams|default:0 }}</div>  gap: 16px;
+
+                  <div class="stat-mini-label">Teams</div>}
+
+                </div>
+
+                <div class="stat-mini">.team-rank-item {
+
+                  <div class="stat-mini-value">{{ total_players|default:0 }}</div>  display: flex;
+
+                  <div class="stat-mini-label">Players</div>  align-items: center;
+
+                </div>  gap: 20px;
+
+                <div class="stat-mini">  padding: 20px;
+
+                  <div class="stat-mini-value">{{ active_tournaments|default:0 }}</div>  border: 1px solid rgba(255, 255, 255, 0.1);
+
+                  <div class="stat-mini-label">Tournaments</div>  border-radius: 16px;
+
+                </div>  text-decoration: none;
+
+                <div class="stat-mini">  color: inherit;
+
+                  <div class="stat-mini-value">{{ game_stats|length|default:0 }}</div>  background: rgba(255, 255, 255, 0.03);
+
+                  <div class="stat-mini-label">Games</div>  transition: all 0.3s ease;
+
+                </div>  position: relative;
+
+              </div>  overflow: hidden;
+
+            </div>}
+
+          </section>
 
 .team-rank-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 4px;
+
+        </div>  content: '';
+
+      </div>  position: absolute;
+
+    </div>  left: 0;
+
+  </div>  top: 0;
+
+</div>  width: 4px;
+
   height: 100%;
-  background: linear-gradient(180deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24, #6c5ce7);
-  background-size: 100% 500%;
+
+<script src="{% static 'js/teams/hub-v2.js' %}"></script>  background: linear-gradient(180deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24, #6c5ce7);
+
+{% endblock %}  background-size: 100% 500%;
+
   animation: rankGradient 3s ease infinite;
 }
 
