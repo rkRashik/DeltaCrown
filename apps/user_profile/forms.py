@@ -15,7 +15,9 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = [
             'avatar', 'display_name', 'region', 'bio',
-            'riot_id', 'efootball_id', 'discord_id',
+            'riot_id', 'riot_tagline', 'steam_id', 'efootball_id', 
+            'mlbb_id', 'mlbb_server_id', 'pubg_mobile_id', 'free_fire_id',
+            'ea_id', 'codm_uid', 'discord_id',
             'youtube_link', 'twitch_link',
             'is_private', 'show_email', 'show_phone', 'show_socials'
         ]
@@ -37,9 +39,41 @@ class UserProfileForm(forms.ModelForm):
                 'class': 'form-input',
                 'placeholder': 'Your Riot ID (e.g., Username#TAG)'
             }),
+            'riot_tagline': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Tagline (part after #)'
+            }),
+            'steam_id': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Your Steam ID'
+            }),
             'efootball_id': forms.TextInput(attrs={
                 'class': 'form-input',
-                'placeholder': 'Your eFootball ID'
+                'placeholder': 'Your eFootball User ID'
+            }),
+            'mlbb_id': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Mobile Legends Game ID'
+            }),
+            'mlbb_server_id': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Server ID'
+            }),
+            'pubg_mobile_id': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'PUBG Mobile Character/Player ID'
+            }),
+            'free_fire_id': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Free Fire Player ID'
+            }),
+            'ea_id': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'EA ID for FC 24'
+            }),
+            'codm_uid': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'Call of Duty Mobile UID'
             }),
             'discord_id': forms.TextInput(attrs={
                 'class': 'form-input',
@@ -75,8 +109,16 @@ class UserProfileForm(forms.ModelForm):
             'display_name': 'This is how your name will appear on your profile and in teams.',
             'region': 'Select your primary gaming region.',
             'bio': 'A brief description about yourself and your gaming interests.',
-            'riot_id': 'Your Riot Games ID for Valorant and other Riot games.',
-            'efootball_id': 'Your eFootball player ID.',
+            'riot_id': 'Your Riot Games ID for Valorant (Name#TAG format).',
+            'riot_tagline': 'The tagline part of your Riot ID (after the #).',
+            'steam_id': 'Your Steam ID for Dota 2, Counter-Strike 2.',
+            'efootball_id': 'Your eFootball User ID.',
+            'mlbb_id': 'Your Mobile Legends: Bang Bang Game ID.',
+            'mlbb_server_id': 'Your Mobile Legends Server ID.',
+            'pubg_mobile_id': 'Your PUBG Mobile Character/Player ID.',
+            'free_fire_id': 'Your Free Fire User/Player ID.',
+            'ea_id': 'Your EA ID for FC 24.',
+            'codm_uid': 'Your Call of Duty Mobile Unique ID.',
             'discord_id': 'Your Discord username for team communication.',
             'youtube_link': 'Link to your YouTube channel (optional).',
             'twitch_link': 'Link to your Twitch channel (optional).',

@@ -961,6 +961,52 @@ def create_team_view(request):
     if request.method == "POST":
         form = TeamCreationForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
+            selected_game = form.cleaned_data.get('game')
+            
+            # Guard: Check if user already has an ACTIVE team for this game
+            existing_membership = TeamMembership.objects.filter(
+                profile=profile,
+                team__game=selected_game,
+                status='ACTIVE'
+            ).select_related('team').first()
+            
+            if existing_membership:
+                messages.error(
+                    request,
+                    f"You are already a member of '{existing_membership.team.name}' ({selected_game.upper()}). "
+                    f"You can only be in one team per game. Please leave that team first."
+                )
+                return redirect("teams:create")
+            
+            # Check if user has game ID for selected game
+            game_id = profile.get_game_id(selected_game)
+            
+            if not game_id:
+                # Store team data in session
+                request.session['pending_team_data'] = {
+                    'name': form.cleaned_data.get('name'),
+                    'tag': form.cleaned_data.get('tag'),
+                    'description': form.cleaned_data.get('description'),
+                    'game': selected_game,
+                    'region': form.cleaned_data.get('region'),
+                    'twitter': form.cleaned_data.get('twitter'),
+                    'instagram': form.cleaned_data.get('instagram'),
+                    'discord': form.cleaned_data.get('discord'),
+                    'youtube': form.cleaned_data.get('youtube'),
+                    'twitch': form.cleaned_data.get('twitch'),
+                    'linktree': form.cleaned_data.get('linktree'),
+                }
+                # Store files separately (can't serialize files in session)
+                if form.cleaned_data.get('logo'):
+                    request.session['pending_team_has_logo'] = True
+                if form.cleaned_data.get('banner_image'):
+                    request.session['pending_team_has_banner'] = True
+                
+                game_name = dict(Team._meta.get_field('game').choices).get(selected_game, selected_game.upper())
+                messages.info(request, f"Before creating your team, please provide your game ID for {game_name}.")
+                return redirect("teams:collect_game_id", game_code=selected_game)
+            
+            # Game ID exists, proceed with team creation
             team = form.save()
             messages.success(request, f"Team '{team.name}' created successfully!")
             return redirect("teams:detail", slug=team.slug)
@@ -1160,15 +1206,36 @@ def join_team_view(request, slug: str):
     profile = _ensure_profile(request.user)
 
     # Guard: already member
-    if TeamMembership.objects.filter(team=team, profile=profile).exists():
+    if TeamMembership.objects.filter(team=team, profile=profile, status='ACTIVE').exists():
         messages.info(request, "You are already a member of this team.")
         return redirect("teams:detail", slug=team.slug)
 
-    # Guard: one-team-per-game
+    # Guard: one-team-per-game (check for ACTIVE memberships only)
     game_code = getattr(team, "game", None)
-    if game_code and TeamMembership.objects.filter(profile=profile, team__game=game_code).exists():
-        messages.error(request, f"You already belong to a {game_code.title()} team.")
-        return redirect("teams:detail", slug=team.slug)
+    if game_code:
+        existing_membership = TeamMembership.objects.filter(
+            profile=profile,
+            team__game=game_code,
+            status='ACTIVE'
+        ).first()
+        
+        if existing_membership:
+            messages.error(
+                request,
+                f"You are already a member of '{existing_membership.team.name}' ({game_code.upper()}). "
+                f"You can only be in one team per game."
+            )
+            return redirect("teams:detail", slug=team.slug)
+
+    # Check if user has game ID for this team's game
+    if game_code:
+        game_id = profile.get_game_id(game_code)
+        if not game_id:
+            # Store pending join request
+            request.session['pending_join_team'] = team.slug
+            game_name = dict(Team._meta.get_field('game').choices).get(game_code, game_code.upper())
+            messages.info(request, f"Before joining this team, please provide your game ID for {game_name}.")
+            return redirect("teams:collect_game_id", game_code=game_code)
 
     # Optional: only allow if team is open (if such a field exists)
     if hasattr(team, "is_open") and not getattr(team, "is_open"):
@@ -1180,6 +1247,11 @@ def join_team_view(request, slug: str):
         profile=profile,
         defaults={"role": getattr(TeamMembership.Role, "PLAYER", "PLAYER")},
     )
+    
+    # Clear pending join from session if exists
+    if 'pending_join_team' in request.session:
+        del request.session['pending_join_team']
+    
     messages.success(request, f"You joined {getattr(team, 'tag', team.name)}.")
     return redirect("teams:detail", slug=team.slug)
 
@@ -1292,7 +1364,7 @@ def team_settings_view(request, slug: str):
         "pending_invites": team.invites.filter(status="PENDING").select_related("invited_user__user"),
     }
     
-    return render(request, "teams/settings_clean.html", context)
+    return render(request, "teams/settings_enhanced.html", context)
 
 
 @login_required
@@ -1359,9 +1431,12 @@ def update_team_info_view(request, slug: str):
     
     try:
         team.name = request.POST.get('name', team.name).strip()
+        team.tag = request.POST.get('tag', team.tag).strip()
+        team.tagline = request.POST.get('tagline', team.tagline)
         team.description = request.POST.get('description', team.description)
         team.region = request.POST.get('region', team.region)
-        team.primary_game = request.POST.get('primary_game', team.primary_game)
+        team.game = request.POST.get('game', team.game)
+        team.hero_template = request.POST.get('hero_template', team.hero_template)
         
         if 'logo' in request.FILES:
             team.logo = request.FILES['logo']
@@ -1389,7 +1464,11 @@ def update_privacy_view(request, slug: str):
     try:
         team.is_public = request.POST.get('is_public') == 'on'
         team.allow_join_requests = request.POST.get('allow_join_requests') == 'on'
-        team.show_statistics = request.POST.get('show_statistics') == 'on'
+        team.show_statistics_publicly = request.POST.get('show_statistics_publicly') == 'on'
+        team.show_roster_publicly = request.POST.get('show_roster_publicly') == 'on'
+        team.is_recruiting = request.POST.get('is_recruiting') == 'on'
+        team.allow_posts = request.POST.get('allow_posts') == 'on'
+        team.posts_require_approval = request.POST.get('posts_require_approval') == 'on'
         team.save()
         return JsonResponse({"success": True})
     except Exception as e:
@@ -1422,10 +1501,50 @@ def kick_member_ajax_view(request, slug: str):
         
         membership = get_object_or_404(TeamMembership, team=team, profile=target_profile)
         
-        if membership.role == 'captain':
+        if membership.role == 'CAPTAIN':
             return JsonResponse({"error": "Cannot kick team captain."}, status=400)
         
         membership.delete()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def change_member_role_view(request, slug: str):
+    """Change a team member's role via AJAX."""
+    import json
+    from django.http import JsonResponse
+    
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        return JsonResponse({"error": "Only captains can change member roles."}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        new_role = data.get('role')
+        
+        if new_role not in ['PLAYER', 'SUBSTITUTE', 'COACH', 'MANAGER']:
+            return JsonResponse({"error": "Invalid role."}, status=400)
+        
+        User = get_user_model()
+        target_user = get_object_or_404(User, username=username)
+        target_profile = _get_profile(target_user)
+        
+        if not target_profile:
+            return JsonResponse({"error": "User profile not found."}, status=404)
+        
+        membership = get_object_or_404(TeamMembership, team=team, profile=target_profile)
+        
+        if membership.role == 'CAPTAIN':
+            return JsonResponse({"error": "Cannot change captain's role. Transfer captaincy first."}, status=400)
+        
+        membership.role = new_role
+        membership.save()
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
@@ -1466,7 +1585,7 @@ def export_team_data_view(request, slug: str):
     writer.writerow(['Username', 'Role', 'Joined Date', 'Status'])
     
     # Write member data
-    for membership in team.teammembership_set.all():
+    for membership in team.memberships.all():
         writer.writerow([
             membership.profile.user.username,
             membership.get_role_display(),
@@ -1488,13 +1607,13 @@ def tournament_history_view(request, slug: str):
         return redirect('teams:detail', slug=team.slug)
     
     # Get tournament registrations for this team
-    from apps.tournaments.models import TournamentRegistration
+    from apps.tournaments.models import Registration
     
-    registrations = TournamentRegistration.objects.filter(
+    registrations = Registration.objects.filter(
         team=team
     ).select_related(
         'tournament'
-    ).order_by('-registered_at')
+    ).order_by('-created_at')
     
     context = {
         'team': team,
@@ -1502,5 +1621,139 @@ def tournament_history_view(request, slug: str):
     }
     
     return render(request, 'teams/tournament_history.html', context)
+
+
+# -------------------------
+# Game ID Collection (Phase: Game ID System)
+# -------------------------
+@login_required
+@require_http_methods(["GET", "POST"])
+def collect_game_id_view(request, game_code: str):
+    """
+    Collect game ID from user before team creation or joining.
+    Called when user doesn't have game ID for selected game.
+    """
+    from apps.teams.game_id_forms import GameIDCollectionForm
+    from apps.user_profile.models import UserProfile
+    
+    profile = UserProfile.objects.get(user=request.user)
+    
+    # Get game display name
+    game_choices = dict(Team._meta.get_field('game').choices)
+    game_name = game_choices.get(game_code, game_code.upper())
+    
+    if request.method == 'POST':
+        form = GameIDCollectionForm(request.POST, game_code=game_code)
+        if form.is_valid():
+            # Save game ID to user profile
+            form.save_to_profile(profile)
+            messages.success(request, f"Your {game_name} game ID has been saved successfully!")
+            
+            # Check for pending actions and redirect accordingly
+            if 'pending_team_data' in request.session:
+                return redirect('teams:create_team_resume')
+            elif 'pending_join_team' in request.session:
+                team_slug = request.session.get('pending_join_team')
+                return redirect('teams:join_team', slug=team_slug)
+            else:
+                # No pending action, go to profile
+                return redirect('user_profile:profile')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        # Pre-fill with existing data if any
+        initial = {}
+        existing_id = profile.get_game_id(game_code)
+        if existing_id:
+            if game_code == 'valorant':
+                # Split Riot ID into name and tagline
+                if '#' in existing_id:
+                    parts = existing_id.split('#', 1)
+                    initial['riot_id'] = parts[0]
+                    initial['riot_tagline'] = parts[1]
+            else:
+                field_name = {
+                    'dota2': 'steam_id',
+                    'cs2': 'steam_id',
+                    'efootball': 'efootball_id',
+                    'mlbb': 'mlbb_id',
+                    'pubgm': 'pubg_mobile_id',
+                    'freefire': 'free_fire_id',
+                    'fc24': 'ea_id',
+                    'codm': 'codm_uid',
+                }.get(game_code)
+                if field_name:
+                    initial[field_name] = existing_id
+        
+        form = GameIDCollectionForm(game_code=game_code, initial=initial)
+    
+    context = {
+        'form': form,
+        'game_name': game_name,
+        'game_code': game_code,
+        'has_pending_team': 'pending_team_data' in request.session,
+        'has_pending_join': 'pending_join_team' in request.session,
+    }
+    
+    return render(request, 'teams/collect_game_id.html', context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_team_resume_view(request):
+    """
+    Resume team creation after collecting game ID.
+    Retrieves team data from session and creates the team.
+    """
+    from apps.user_profile.models import UserProfile
+    
+    # Check if there's pending team data
+    if 'pending_team_data' not in request.session:
+        messages.error(request, "No pending team creation found.")
+        return redirect('teams:create')
+    
+    profile = UserProfile.objects.get(user=request.user)
+    team_data = request.session.get('pending_team_data')
+    
+    # Verify user now has the game ID
+    game_id = profile.get_game_id(team_data['game'])
+    if not game_id:
+        messages.error(request, "Game ID is still missing. Please provide it to continue.")
+        return redirect('teams:collect_game_id', game_code=team_data['game'])
+    
+    # Create the team
+    try:
+        team = Team.objects.create(
+            name=team_data['name'],
+            tag=team_data['tag'],
+            description=team_data.get('description', ''),
+            game=team_data['game'],
+            region=team_data.get('region', ''),
+            twitter=team_data.get('twitter', ''),
+            instagram=team_data.get('instagram', ''),
+            discord=team_data.get('discord', ''),
+            youtube=team_data.get('youtube', ''),
+            twitch=team_data.get('twitch', ''),
+            linktree=team_data.get('linktree', ''),
+            captain=profile,
+        )
+        
+        # Ensure captain membership
+        if hasattr(team, 'ensure_captain_membership'):
+            team.ensure_captain_membership()
+        
+        # Clear session data
+        del request.session['pending_team_data']
+        if 'pending_team_has_logo' in request.session:
+            del request.session['pending_team_has_logo']
+        if 'pending_team_has_banner' in request.session:
+            del request.session['pending_team_has_banner']
+        
+        messages.success(request, f"Team '{team.name}' created successfully!")
+        return redirect('teams:detail', slug=team.slug)
+        
+    except Exception as e:
+        messages.error(request, f"Error creating team: {str(e)}")
+        return redirect('teams:create')
 
 

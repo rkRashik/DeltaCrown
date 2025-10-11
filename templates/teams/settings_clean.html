@@ -203,7 +203,7 @@
                         <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
                             <div class="flex items-center space-x-3">
                                 <div class="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-blue-400 overflow-hidden">
-                                    {% if membership.profile.avatar %}
+                                    {% if membership.profile.avatar and membership.profile.avatar.url %}
                                         <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" 
                                              class="w-full h-full object-cover">
                                     {% else %}

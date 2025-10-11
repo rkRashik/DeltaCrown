@@ -114,6 +114,93 @@ class Team(models.Model):
         default=0, 
         help_text="Manual points adjustment (can be positive or negative)"
     )
+    
+    # Appearance & Branding (Phase 3)
+    HERO_TEMPLATE_CHOICES = [
+        ('default', 'Classic'),
+        ('centered', 'Centered Focus'),
+        ('split', 'Split Screen'),
+        ('minimal', 'Minimal Modern'),
+        ('championship', 'Championship'),
+    ]
+    hero_template = models.CharField(
+        max_length=20,
+        choices=HERO_TEMPLATE_CHOICES,
+        default='default',
+        help_text="Hero section template style"
+    )
+    tagline = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text="Team tagline or motto"
+    )
+    is_recruiting = models.BooleanField(
+        default=False,
+        help_text="Display recruiting badge"
+    )
+    
+    # Enhanced Privacy Settings (Phase 4)
+    show_roster_publicly = models.BooleanField(
+        default=True,
+        help_text="Allow non-members to view team roster"
+    )
+    show_statistics_publicly = models.BooleanField(
+        default=True,
+        help_text="Display team statistics to public"
+    )
+    show_tournaments_publicly = models.BooleanField(
+        default=True,
+        help_text="Show tournament history publicly"
+    )
+    show_achievements_publicly = models.BooleanField(
+        default=True,
+        help_text="Display achievements publicly"
+    )
+    
+    # Member Permissions
+    members_can_post = models.BooleanField(
+        default=True,
+        help_text="Allow team members to create posts"
+    )
+    require_post_approval = models.BooleanField(
+        default=False,
+        help_text="Captain must approve member posts"
+    )
+    members_can_invite = models.BooleanField(
+        default=False,
+        help_text="Allow members to send team invites"
+    )
+    
+    # Join Settings
+    auto_accept_join_requests = models.BooleanField(
+        default=False,
+        help_text="Automatically accept join requests"
+    )
+    require_application_message = models.BooleanField(
+        default=True,
+        help_text="Require message with join requests"
+    )
+    min_rank_requirement = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="Minimum rank/level required to join"
+    )
+    
+    # Display Settings
+    hide_member_stats = models.BooleanField(
+        default=False,
+        help_text="Hide individual member statistics"
+    )
+    hide_social_links = models.BooleanField(
+        default=False,
+        help_text="Hide social media links from public"
+    )
+    show_captain_only = models.BooleanField(
+        default=False,
+        help_text="Only show captain, hide other members"
+    )
 
     class Meta:
         db_table = "teams_team"

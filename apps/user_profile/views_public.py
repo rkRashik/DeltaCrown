@@ -340,6 +340,22 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
         from apps.user_profile.models import UserProfile
         profile = UserProfile.objects.select_related('user').get(id=profile_id)
         
+        # Check if requester is a team member (shares a team with this profile)
+        show_game_ids = False
+        if request.user.is_authenticated:
+            try:
+                from apps.teams.models import TeamMembership
+                # Check if users share any active team
+                requester_profile = UserProfile.objects.get(user=request.user)
+                shared_teams = TeamMembership.objects.filter(
+                    team__in=profile.team_memberships.filter(status='ACTIVE').values_list('team', flat=True),
+                    profile=requester_profile,
+                    status='ACTIVE'
+                ).exists()
+                show_game_ids = shared_teams or request.user.is_staff
+            except Exception:
+                pass
+        
         # Try to get real tournament statistics
         try:
             from django.apps import apps
@@ -371,16 +387,25 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
             wins = int(matches_played * win_rate)
             rating = 1200 + (user_hash % 800)  # 1200-2000 rating
         
-        # Get team information
+        # Get team information with game IDs if authorized
         try:
             current_teams = profile.team_memberships.filter(status='ACTIVE').select_related('team')
             team_info = []
             for membership in current_teams:
-                team_info.append({
+                team_data = {
                     'name': membership.team.name,
                     'role': membership.get_role_display(),
                     'game': membership.team.get_game_display() if membership.team.game else None
-                })
+                }
+                # Add game ID if authorized and available
+                if show_game_ids and membership.team.game:
+                    game_id = profile.get_game_id(membership.team.game)
+                    if game_id:
+                        team_data['game_id'] = game_id
+                        team_data['game_id_label'] = profile.get_game_id_label(membership.team.game)
+                        if membership.team.game == 'mlbb' and profile.mlbb_server_id:
+                            team_data['mlbb_server_id'] = profile.mlbb_server_id
+                team_info.append(team_data)
         except Exception:
             team_info = []
         
@@ -397,6 +422,14 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
             'teams': team_info,
             'joined_date': profile.created_at.strftime('%b %Y'),
         }
+        
+        # Add social links if authorized
+        if show_game_ids:
+            data['twitter'] = profile.twitter if profile.twitter else None
+            data['discord_id'] = profile.discord_id if profile.discord_id else None
+            data['youtube_link'] = profile.youtube_link if profile.youtube_link else None
+            data['twitch_link'] = profile.twitch_link if profile.twitch_link else None
+            data['instagram'] = profile.instagram if profile.instagram else None
         
         return JsonResponse(data)
         

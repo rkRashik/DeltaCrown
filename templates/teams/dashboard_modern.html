@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team.name }} Dashboard{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/team-dashboard/modern-dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/player-stats-modal.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="modern-dashboard" data-team-slug="{{ team.slug }}">
+  
+  <!-- Dashboard Header -->
+  <header class="dashboard-header">
+    <div class="container">
+      <div class="header-content">
+        <div class="team-identity">
+          {% if team.logo %}
+            <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="team-logo-sm">
+          {% else %}
+            <div class="team-logo-placeholder-sm">
+              {{ team.name|slice:":2"|upper }}
+            </div>
+          {% endif %}
+          <div>
+            <h1 class="team-name">{{ team.name }}</h1>
+            <p class="team-tag">{{ team.tag }} • {{ team.get_game_display }}</p>
+          </div>
+        </div>
+        
+        <div class="header-actions">
+          <a href="{% url 'teams:detail' team.slug %}" class="btn btn-secondary">
+            <i class="fa-solid fa-eye"></i>
+            View Public Profile
+          </a>
+          <a href="{% url 'teams:settings' team.slug %}" class="btn btn-primary">
+            <i class="fa-solid fa-gear"></i>
+            Settings
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Quick Stats Cards -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-card stat-card-primary">
+          <div class="stat-icon">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ members_count }}</div>
+            <div class="stat-label">Team Members</div>
+          </div>
+          <div class="stat-footer">
+            <span class="stat-change positive">+{{ new_members_month }} this month</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-success">
+          <div class="stat-icon">
+            <i class="fa-solid fa-trophy"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ win_rate|floatformat:1 }}%</div>
+            <div class="stat-label">Win Rate</div>
+          </div>
+          <div class="stat-footer">
+            <span class="stat-change">{{ total_matches }} matches played</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-warning">
+          <div class="stat-icon">
+            <i class="fa-solid fa-ranking-star"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">#{{ global_rank|default:"-" }}</div>
+            <div class="stat-label">Global Rank</div>
+          </div>
+          <div class="stat-footer">
+            <span class="stat-change">{{ total_points }} points</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-info">
+          <div class="stat-icon">
+            <i class="fa-solid fa-heart"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ followers_count }}</div>
+            <div class="stat-label">Followers</div>
+          </div>
+          <div class="stat-footer">
+            <span class="stat-change positive">+{{ new_followers_week }} this week</span>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-danger">
+          <div class="stat-icon">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ pending_count }}</div>
+            <div class="stat-label">Pending Items</div>
+          </div>
+          <div class="stat-footer">
+            <a href="#pending-section" class="stat-link">View all</a>
+          </div>
+        </div>
+
+        <div class="stat-card stat-card-secondary">
+          <div class="stat-icon">
+            <i class="fa-solid fa-calendar-days"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ upcoming_matches_count }}</div>
+            <div class="stat-label">Upcoming Matches</div>
+          </div>
+          <div class="stat-footer">
+            <span class="stat-change">Next: {{ next_match_date|default:"TBA" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Dashboard Content -->
+  <section class="dashboard-main">
+    <div class="container">
+      <div class="dashboard-grid">
+        
+        <!-- Left Column -->
+        <aside class="dashboard-sidebar">
+          <!-- Quick Actions -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-bolt"></i> Quick Actions</h3>
+            </div>
+            <div class="card-body">
+              <div class="quick-actions">
+                <a href="{% url 'teams:settings' team.slug %}#members" class="action-btn">
+                  <i class="fa-solid fa-users-gear"></i>
+                  <span>Manage Roster</span>
+                </a>
+                <a href="{% url 'teams:settings' team.slug %}#info" class="action-btn">
+                  <i class="fa-solid fa-pen-to-square"></i>
+                  <span>Edit Team Info</span>
+                </a>
+                <button class="action-btn" onclick="inviteMember()">
+                  <i class="fa-solid fa-user-plus"></i>
+                  <span>Invite Member</span>
+                </button>
+                <button class="action-btn" onclick="scheduleMatch()">
+                  <i class="fa-solid fa-calendar-plus"></i>
+                  <span>Schedule Match</span>
+                </button>
+                <button class="action-btn" onclick="createPost()">
+                  <i class="fa-solid fa-newspaper"></i>
+                  <span>Create Post</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming Events -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-calendar"></i> Upcoming Events</h3>
+            </div>
+            <div class="card-body">
+              {% if upcoming_matches %}
+                <div class="events-list">
+                  {% for match in upcoming_matches|slice:":3" %}
+                    <div class="event-item">
+                      <div class="event-date">
+                        <div class="event-day">{{ match.start_at|date:"d" }}</div>
+                        <div class="event-month">{{ match.start_at|date:"M" }}</div>
+                      </div>
+                      <div class="event-info">
+                        <div class="event-title">{{ match.tournament.name }}</div>
+                        <div class="event-details">
+                          {{ match.team_a.name }} vs {{ match.team_b.name }}
+                        </div>
+                        <div class="event-time">
+                          <i class="fa-solid fa-clock"></i>
+                          {{ match.start_at|time:"H:i" }}
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-state-sm">
+                  <i class="fa-solid fa-calendar-xmark"></i>
+                  <p>No upcoming events</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center Column -->
+        <main class="dashboard-content">
+          <!-- Pending Actions -->
+          {% if join_requests or pending_invites %}
+            <div class="dashboard-card highlight-card" id="pending-section">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-inbox"></i> Pending Actions</h3>
+                <span class="badge badge-danger">{{ pending_count }}</span>
+              </div>
+              <div class="card-body">
+                {% if join_requests %}
+                  <h4 class="subsection-title">Join Requests</h4>
+                  <div class="pending-list">
+                    {% for request in join_requests %}
+                      <div class="pending-item">
+                        <img src="{{ request.user.profile.avatar.url|default:'/static/img/user_avatar/default-avatar.png' }}" 
+                             alt="{{ request.user.username }}" class="pending-avatar">
+                        <div class="pending-info">
+                          <div class="pending-name">{{ request.user.username }}</div>
+                          <div class="pending-time">{{ request.created_at|timesince }} ago</div>
+                          {% if request.message %}
+                            <div class="pending-message">"{{ request.message }}"</div>
+                          {% endif %}
+                        </div>
+                        <div class="pending-actions">
+                          <button class="btn-sm btn-success" onclick="approveRequest({{ request.id }})">
+                            <i class="fa-solid fa-check"></i> Approve
+                          </button>
+                          <button class="btn-sm btn-danger" onclick="rejectRequest({{ request.id }})">
+                            <i class="fa-solid fa-xmark"></i> Reject
+                          </button>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+                {% if pending_invites %}
+                  <h4 class="subsection-title">Pending Invitations</h4>
+                  <div class="pending-list">
+                    {% for invite in pending_invites %}
+                      <div class="pending-item">
+                        <i class="fa-solid fa-envelope pending-avatar-icon"></i>
+                        <div class="pending-info">
+                          <div class="pending-name">{{ invite.invited_user.username|default:invite.invited_email }}</div>
+                          <div class="pending-time">Sent {{ invite.created_at|timesince }} ago</div>
+                          <div class="pending-expires">Expires {{ invite.expires_at|timeuntil }}</div>
+                        </div>
+                        <div class="pending-actions">
+                          <button class="btn-sm btn-secondary" onclick="resendInvite({{ invite.id }})">
+                            <i class="fa-solid fa-paper-plane"></i> Resend
+                          </button>
+                          <button class="btn-sm btn-danger" onclick="cancelInvite({{ invite.id }})">
+                            <i class="fa-solid fa-trash"></i> Cancel
+                          </button>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- Recent Activity Feed -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-rss"></i> Recent Activity</h3>
+            </div>
+            <div class="card-body">
+              {% if recent_activities %}
+                <div class="activity-feed">
+                  {% for activity in recent_activities %}
+                    <div class="activity-item">
+                      <div class="activity-icon activity-{{ activity.activity_type }}">
+                        <i class="fa-solid fa-{{ activity.icon }}"></i>
+                      </div>
+                      <div class="activity-content">
+                        <div class="activity-description">{{ activity.description }}</div>
+                        <div class="activity-time">{{ activity.created_at|timesince }} ago</div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-state-sm">
+                  <i class="fa-solid fa-inbox"></i>
+                  <p>No recent activity</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Performance Chart -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-line"></i> Performance Overview</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="performanceChart" height="80"></canvas>
+            </div>
+          </div>
+
+          <!-- Match History -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-history"></i> Recent Matches</h3>
+              <a href="{% url 'teams:detail' team.slug %}#matches" class="card-link">View All</a>
+            </div>
+            <div class="card-body">
+              <div class="match-history-list">
+                <!-- Dynamically loaded via JavaScript -->
+                <div class="empty-state-sm">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  <p>Loading matches...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Right Column -->
+        <aside class="dashboard-sidebar-right">
+          <!-- Team Members -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-users"></i> Team Roster</h3>
+              <a href="{% url 'teams:settings' team.slug %}#members" class="card-link">Manage</a>
+            </div>
+            <div class="card-body">
+              <div class="members-list">
+                {% for member in team_members|slice:":5" %}
+                  <div class="member-item" data-player-username="{{ member.profile.user.username }}" data-player-id="{{ member.profile.id }}">
+                    {% if member.profile.avatar and member.profile.avatar.url %}
+                      <img src="{{ member.profile.avatar.url }}" 
+                           alt="{{ member.profile.display_name }}" class="member-avatar-sm">
+                    {% else %}
+                      <img src="/static/img/user_avatar/default-avatar.png" 
+                           alt="{{ member.profile.display_name }}" class="member-avatar-sm">
+                    {% endif %}
+                    <div class="member-info-sm">
+                      <div class="member-name-sm">{{ member.profile.display_name }}</div>
+                      <div class="member-role-sm">{{ member.get_role_display }}</div>
+                    </div>
+                    {% if member.profile == team.captain %}
+                      <i class="fa-solid fa-crown captain-icon"></i>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+              {% if members_count > 5 %}
+                <a href="{% url 'teams:settings' team.slug %}#members" class="view-all-link">
+                  View all {{ members_count }} members →
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Achievements -->
+          {% if recent_achievements %}
+            <div class="dashboard-card">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-award"></i> Recent Achievements</h3>
+              </div>
+              <div class="card-body">
+                <div class="achievements-list">
+                  {% for achievement in recent_achievements|slice:":3" %}
+                    <div class="achievement-item">
+                      <div class="achievement-icon">🏆</div>
+                      <div class="achievement-info">
+                        <div class="achievement-name">{{ achievement.title }}</div>
+                        <div class="achievement-date">{{ achievement.earned_at|date:"M d, Y" }}</div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- Ranking History -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-area"></i> Ranking Progression</h3>
+            </div>
+            <div class="card-body">
+              <canvas id="rankingHistoryChart" height="200"></canvas>
+            </div>
+          </div>
+
+          <!-- Ranking Breakdown -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-list-check"></i> Points Breakdown</h3>
+            </div>
+            <div class="card-body">
+              <div id="rankingBreakdownDisplay">
+                <div class="empty-state-sm">
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  <p>Loading ranking data...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Toast Container -->
+<div id="dashboard-toast-container"></div>
+
+<script src="{% static 'js/team-dashboard/dashboard-manager.js' %}"></script>
+<script>
+  // Initialize dashboard with Chart.js
+  document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('performanceChart');
+    if (ctx) {
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: {{ chart_labels|safe }},
+          datasets: [{
+            label: 'Wins',
+            data: {{ wins_data|safe }},
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            tension: 0.4
+          }, {
+            label: 'Losses',
+            data: {{ losses_data|safe }},
+            borderColor: 'rgb(239, 68, 68)',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+  });
+</script>
+<script src="{% static 'js/team-dashboard/dashboard-manager.js' %}"></script>
+<script src="{% static 'js/team-detail/player-stats-modal.js' %}"></script>
+<script src="{% static 'js/team-dashboard/ranking-history.js' %}"></script>
+{% endblock %}

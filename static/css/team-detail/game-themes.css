@@ -1,0 +1,317 @@
+/**
+ * Game-Specific Theme Variables
+ * DeltaCrown Esports Platform
+ * 
+ * Each game has a unique color scheme and visual identity.
+ * These CSS variables are dynamically applied based on team.game
+ */
+
+/* ============================================
+   VALORANT - Futuristic Red/Black
+   ============================================ */
+[data-game="valorant"] {
+  --primary-color: #FD4556;
+  --primary-hover: #FF5A6A;
+  --primary-light: rgba(253, 69, 86, 0.1);
+  --accent-color: #FF4655;
+  --accent-hover: #FF5A6A;
+  --secondary-color: #0F1923;
+  --gradient-bg: linear-gradient(135deg, rgba(253, 69, 86, 0.9) 0%, rgba(15, 25, 35, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(253, 69, 86, 0.3) 0%, rgba(15, 25, 35, 0.9) 100%);
+  --glow-color: rgba(253, 69, 86, 0.6);
+  --card-accent: #FF4655;
+}
+
+/* ============================================
+   CS2 - Bold Orange/Gold
+   ============================================ */
+[data-game="cs2"] {
+  --primary-color: #FF8C00;
+  --primary-hover: #FFA500;
+  --primary-light: rgba(255, 140, 0, 0.1);
+  --accent-color: #FFB84D;
+  --accent-hover: #FFC966;
+  --secondary-color: #1A1A1A;
+  --gradient-bg: linear-gradient(135deg, rgba(255, 140, 0, 0.9) 0%, rgba(26, 26, 26, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(255, 140, 0, 0.3) 0%, rgba(26, 26, 26, 0.9) 100%);
+  --glow-color: rgba(255, 140, 0, 0.6);
+  --card-accent: #FF8C00;
+}
+
+/* ============================================
+   DOTA 2 - Mystical Purple/Blue
+   ============================================ */
+[data-game="dota2"] {
+  --primary-color: #8B5CF6;
+  --primary-hover: #A78BFA;
+  --primary-light: rgba(139, 92, 246, 0.1);
+  --accent-color: #6366F1;
+  --accent-hover: #818CF8;
+  --secondary-color: #0F0A1F;
+  --gradient-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(15, 10, 31, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(139, 92, 246, 0.3) 0%, rgba(15, 10, 31, 0.9) 100%);
+  --glow-color: rgba(139, 92, 246, 0.6);
+  --card-accent: #8B5CF6;
+}
+
+/* ============================================
+   MOBILE LEGENDS: BANG BANG - Electric Blue
+   ============================================ */
+[data-game="mlbb"] {
+  --primary-color: #00D4FF;
+  --primary-hover: #33DFFF;
+  --primary-light: rgba(0, 212, 255, 0.1);
+  --accent-color: #0099CC;
+  --accent-hover: #00B3E6;
+  --secondary-color: #0A1F2E;
+  --gradient-bg: linear-gradient(135deg, rgba(0, 212, 255, 0.9) 0%, rgba(10, 31, 46, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(0, 212, 255, 0.3) 0%, rgba(10, 31, 46, 0.9) 100%);
+  --glow-color: rgba(0, 212, 255, 0.6);
+  --card-accent: #00D4FF;
+}
+
+/* ============================================
+   PUBG MOBILE - Military Green/Khaki
+   ============================================ */
+[data-game="pubg"] {
+  --primary-color: #F0A500;
+  --primary-hover: #FFB732;
+  --primary-light: rgba(240, 165, 0, 0.1);
+  --accent-color: #F4A460;
+  --accent-hover: #FFB984;
+  --secondary-color: #1C1B1A;
+  --gradient-bg: linear-gradient(135deg, rgba(240, 165, 0, 0.9) 0%, rgba(28, 27, 26, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(240, 165, 0, 0.3) 0%, rgba(28, 27, 26, 0.9) 100%);
+  --glow-color: rgba(240, 165, 0, 0.6);
+  --card-accent: #F0A500;
+}
+
+/* ============================================
+   FREE FIRE - Vibrant Red/Yellow
+   ============================================ */
+[data-game="freefire"] {
+  --primary-color: #FF3131;
+  --primary-hover: #FF5555;
+  --primary-light: rgba(255, 49, 49, 0.1);
+  --accent-color: #FFD700;
+  --accent-hover: #FFE44D;
+  --secondary-color: #1A0F0F;
+  --gradient-bg: linear-gradient(135deg, rgba(255, 49, 49, 0.9) 0%, rgba(26, 15, 15, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(255, 49, 49, 0.3) 0%, rgba(26, 15, 15, 0.9) 100%);
+  --glow-color: rgba(255, 49, 49, 0.6);
+  --card-accent: #FF3131;
+}
+
+/* ============================================
+   EFOOTBALL - Classic Green (Pitch)
+   ============================================ */
+[data-game="efootball"] {
+  --primary-color: #00B140;
+  --primary-hover: #00D14D;
+  --primary-light: rgba(0, 177, 64, 0.1);
+  --accent-color: #7FD100;
+  --accent-hover: #99E633;
+  --secondary-color: #0D1A0F;
+  --gradient-bg: linear-gradient(135deg, rgba(0, 177, 64, 0.9) 0%, rgba(13, 26, 15, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(0, 177, 64, 0.3) 0%, rgba(13, 26, 15, 0.9) 100%);
+  --glow-color: rgba(0, 177, 64, 0.6);
+  --card-accent: #00B140;
+}
+
+/* ============================================
+   FC 26 (EA SPORTS FC) - Premium Blue/White
+   ============================================ */
+[data-game="fc26"] {
+  --primary-color: #0066FF;
+  --primary-hover: #3385FF;
+  --primary-light: rgba(0, 102, 255, 0.1);
+  --accent-color: #00CCFF;
+  --accent-hover: #33D9FF;
+  --secondary-color: #0A1220;
+  --gradient-bg: linear-gradient(135deg, rgba(0, 102, 255, 0.9) 0%, rgba(10, 18, 32, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(0, 102, 255, 0.3) 0%, rgba(10, 18, 32, 0.9) 100%);
+  --glow-color: rgba(0, 102, 255, 0.6);
+  --card-accent: #0066FF;
+}
+
+/* ============================================
+   CALL OF DUTY MOBILE - Military Dark Green
+   ============================================ */
+[data-game="codm"] {
+  --primary-color: #6B8E23;
+  --primary-hover: #7FA13D;
+  --primary-light: rgba(107, 142, 35, 0.1);
+  --accent-color: #9ACD32;
+  --accent-hover: #B4E556;
+  --secondary-color: #131A12;
+  --gradient-bg: linear-gradient(135deg, rgba(107, 142, 35, 0.9) 0%, rgba(19, 26, 18, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(107, 142, 35, 0.3) 0%, rgba(19, 26, 18, 0.9) 100%);
+  --glow-color: rgba(107, 142, 35, 0.6);
+  --card-accent: #6B8E23;
+}
+
+/* ============================================
+   DEFAULT/FALLBACK - Generic Purple
+   ============================================ */
+:root,
+[data-game=""],
+[data-game="unknown"] {
+  --primary-color: #8B5CF6;
+  --primary-hover: #A78BFA;
+  --primary-light: rgba(139, 92, 246, 0.1);
+  --accent-color: #EC4899;
+  --accent-hover: #F472B6;
+  --secondary-color: #1F1F1F;
+  --gradient-bg: linear-gradient(135deg, rgba(139, 92, 246, 0.9) 0%, rgba(31, 31, 31, 0.95) 100%);
+  --gradient-hero: linear-gradient(to bottom, rgba(139, 92, 246, 0.3) 0%, rgba(31, 31, 31, 0.9) 100%);
+  --glow-color: rgba(139, 92, 246, 0.6);
+  --card-accent: #8B5CF6;
+}
+
+/* ============================================
+   SHARED BASE COLORS (Non-themed)
+   ============================================ */
+:root {
+  /* Background Colors */
+  --bg-primary: #0F1923;
+  --bg-secondary: #1A2332;
+  --bg-tertiary: #252F3E;
+  --bg-card: #1E2938;
+  --bg-hover: #2A3648;
+  
+  /* Text Colors */
+  --text-primary: #ECECEC;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --text-disabled: #4B5563;
+  
+  /* Border & Dividers */
+  --border-color: #374151;
+  --border-hover: #4B5563;
+  --divider-color: rgba(255, 255, 255, 0.1);
+  
+  /* Semantic Colors */
+  --success-color: #10B981;
+  --success-light: rgba(16, 185, 129, 0.1);
+  --error-color: #EF4444;
+  --error-light: rgba(239, 68, 68, 0.1);
+  --warning-color: #F59E0B;
+  --warning-light: rgba(245, 158, 11, 0.1);
+  --info-color: #3B82F6;
+  --info-light: rgba(59, 130, 246, 0.1);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px var(--glow-color);
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  /* Z-Index Layers */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}
+
+/* ============================================
+   DARK MODE OVERRIDES (Optional)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #0A0F14;
+    --bg-secondary: #131B24;
+    --bg-tertiary: #1C2532;
+  }
+}
+
+/* ============================================
+   GAME BADGE COLORS
+   ============================================ */
+.game-badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-badge i {
+  font-size: 1rem;
+}
+
+/* ============================================
+   GLOW EFFECTS (Applied to logos, buttons, etc)
+   ============================================ */
+.glow-effect {
+  box-shadow: 0 0 20px var(--glow-color);
+  transition: box-shadow var(--transition-base);
+}
+
+.glow-effect:hover {
+  box-shadow: 0 0 30px var(--glow-color);
+}
+
+/* ============================================
+   GRADIENT TEXT (For hero titles)
+   ============================================ */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   ANIMATED GRADIENT BACKGROUND
+   ============================================ */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animated-gradient {
+  background: linear-gradient(
+    270deg,
+    var(--primary-color),
+    var(--accent-color),
+    var(--primary-color)
+  );
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}

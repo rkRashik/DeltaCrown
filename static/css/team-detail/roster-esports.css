@@ -1,0 +1,326 @@
+/* Esports Roster Cards - Modern Gaming Design */
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.esports-player-card {
+  position: relative;
+  display: block;
+  background: linear-gradient(135deg, rgba(20, 20, 30, 0.95), rgba(30, 30, 45, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+
+.esports-player-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5),
+              0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.esports-player-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    var(--primary-color, #3b82f6), 
+    transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.esports-player-card:hover::before {
+  opacity: 1;
+}
+
+.captain-badge-ribbon {
+  position: absolute;
+  top: 12px;
+  right: -32px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #000;
+  padding: 4px 40px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transform: rotate(45deg);
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(251, 191, 36, 0.5);
+}
+
+.player-card-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(180deg, 
+    rgba(59, 130, 246, 0.1), 
+    transparent);
+  opacity: 0.5;
+}
+
+.player-card-content {
+  position: relative;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.player-avatar-section {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.avatar-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  filter: blur(20px);
+  z-index: 0;
+}
+
+.player-avatar-lg {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  object-fit: cover;
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.esports-player-card:hover .player-avatar-lg {
+  border-color: var(--primary-color, #3b82f6);
+  transform: scale(1.05);
+}
+
+.player-identity {
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.player-ign {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.player-handle {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.player-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 1rem;
+  border: 1px solid;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.player-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-box {
+  text-align: center;
+}
+
+.stat-box .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-box.highlight .stat-value {
+  color: var(--primary-color, #3b82f6);
+}
+
+.stat-box .stat-label {
+  display: block;
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.player-stats-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-stats-empty i {
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+.player-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+}
+
+.join-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.join-info i {
+  opacity: 0.7;
+}
+
+.view-profile-hint {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.15);
+  border-radius: 50%;
+  color: var(--primary-color, #3b82f6);
+  transition: all 0.3s;
+}
+
+.esports-player-card:hover .view-profile-hint {
+  background: var(--primary-color, #3b82f6);
+  color: #fff;
+  transform: translateX(4px);
+}
+
+/* Actions Dropdown */
+.player-actions-dropdown {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 15;
+}
+
+.action-btn-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn-icon:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.action-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.5rem;
+  background: rgba(20, 20, 30, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  min-width: 180px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.dropdown-action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-action:last-child {
+  border-bottom: none;
+}
+
+.dropdown-action:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--primary-color, #3b82f6);
+}
+
+.dropdown-action.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .roster-grid {
+    grid-template-columns: 1fr;
+  }
+}

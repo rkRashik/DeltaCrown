@@ -1,0 +1,426 @@
+/**
+ * Privacy Settings Styling
+ * Clean, organized layout for team privacy controls
+ */
+
+#privacy-settings-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* ===========================
+   PRIVACY SECTIONS
+   =========================== */
+.privacy-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--border-color);
+}
+
+.privacy-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.privacy-section-header h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.privacy-section-header i {
+  font-size: 1.5rem;
+  color: var(--accent-primary);
+}
+
+.privacy-section-description {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+/* ===========================
+   PRIVACY SETTINGS LIST
+   =========================== */
+.privacy-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.privacy-setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+
+.privacy-setting-item:hover {
+  border-color: var(--accent-primary);
+  transform: translateX(2px);
+}
+
+.privacy-setting-info {
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.privacy-setting-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.privacy-setting-label .badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge-recommended {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.badge-important {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.badge-optional {
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+}
+
+.privacy-setting-description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.privacy-setting-control {
+  flex-shrink: 0;
+}
+
+/* ===========================
+   TOGGLE SWITCH
+   =========================== */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  transition: 0.3s;
+  border-radius: 28px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-switch input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===========================
+   TEXT INPUT
+   =========================== */
+.privacy-input {
+  width: 100%;
+  max-width: 300px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.privacy-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.1);
+}
+
+/* ===========================
+   SAVE BUTTON
+   =========================== */
+.privacy-save-section {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid var(--border-color);
+}
+
+.btn-save-privacy {
+  padding: 0.875rem 2rem;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.3s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-save-privacy:hover {
+  background: var(--accent-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-save-privacy:active {
+  transform: translateY(0);
+}
+
+/* ===========================
+   TOAST NOTIFICATIONS
+   =========================== */
+#privacy-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.privacy-toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-left: 4px solid;
+  min-width: 250px;
+  animation: slideInRight 0.3s ease;
+  pointer-events: auto;
+}
+
+.privacy-toast-success {
+  border-left-color: #10b981;
+}
+
+.privacy-toast-success i {
+  color: #10b981;
+}
+
+.privacy-toast-error {
+  border-left-color: #ef4444;
+}
+
+.privacy-toast-error i {
+  color: #ef4444;
+}
+
+.privacy-toast.fade-out {
+  animation: slideOutRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* ===========================
+   DEPENDENCY HINTS
+   =========================== */
+.dependency-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #3b82f6;
+}
+
+.dependency-hint i {
+  font-size: 0.9rem;
+}
+
+.dependency-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ===========================
+   PRIVACY PRESETS
+   =========================== */
+.privacy-presets {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.preset-button {
+  flex: 1;
+  min-width: 200px;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.preset-button:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preset-button.active {
+  border-color: var(--accent-primary);
+  background: rgba(var(--accent-primary-rgb), 0.1);
+}
+
+.preset-button h4 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.preset-button p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ===========================
+   RESPONSIVE
+   =========================== */
+@media (max-width: 768px) {
+  #privacy-settings-container {
+    padding: 1rem;
+  }
+
+  .privacy-section {
+    padding: 1.5rem;
+  }
+
+  .privacy-setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .privacy-setting-control {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .privacy-input {
+    max-width: 100%;
+  }
+
+  .privacy-presets {
+    flex-direction: column;
+  }
+
+  .preset-button {
+    min-width: 100%;
+  }
+
+  #privacy-toast-container {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+  }
+
+  .privacy-toast {
+    min-width: 100%;
+  }
+}

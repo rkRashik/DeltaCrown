@@ -28,8 +28,8 @@
             </div>
             
             <div class="team-banner-section">
-                {% if team.banner %}
-                <div class="banner-image" style="background-image: url('{{ team.banner.url }}');"></div>
+                {% if team.banner_image %}
+                <div class="banner-image" style="background-image: url('{{ team.banner_image.url }}');"></div>
                 {% else %}
                 <div class="banner-image banner-default"></div>
                 {% endif %}

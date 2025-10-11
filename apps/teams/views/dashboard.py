@@ -7,12 +7,13 @@ public team profile pages for fans and visitors.
 """
 from django.apps import apps
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q, Count, Prefetch, Avg
+from django.db.models import Q, Count, Prefetch, Avg, Case, When, IntegerField
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
 from datetime import timedelta
+from decimal import Decimal
 
 
 def _get_user_profile(user):
@@ -29,7 +30,7 @@ def team_dashboard_view(request, slug: str):
     Team = apps.get_model("teams", "Team")
     TeamMembership = apps.get_model("teams", "TeamMembership")
     TeamInvite = apps.get_model("teams", "TeamInvite")
-    TeamStats = apps.get_model("teams", "TeamStats")
+    TeamAnalytics = apps.get_model("teams", "TeamAnalytics")
     TeamAchievement = apps.get_model("teams", "TeamAchievement")
     TeamActivity = apps.get_model("teams", "TeamActivity")
     TeamFollower = apps.get_model("teams", "TeamFollower")
@@ -77,8 +78,15 @@ def team_dashboard_view(request, slug: str):
         expires_at__gt=timezone.now()
     ).select_related("invited_user", "inviter").order_by("-created_at")
     
-    # 3. Team stats
-    latest_stats = TeamStats.objects.filter(team=team).order_by("-updated_at").first()
+    # 3. Team stats - Use TeamAnalytics (new comprehensive model)
+    try:
+        latest_stats = TeamAnalytics.objects.get(team=team, game=team.game)
+    except TeamAnalytics.DoesNotExist:
+        # Create default analytics if not exists
+        latest_stats = TeamAnalytics.objects.create(
+            team=team,
+            game=team.game
+        )
     
     # 4. Recent achievements
     achievements = TeamAchievement.objects.filter(team=team).order_by("-year", "-id")[:5]
@@ -156,6 +164,82 @@ def team_dashboard_view(request, slug: str):
     # Check for upcoming tournament deadlines (placeholder)
     # This would be implemented with actual tournament registration logic
     
+    # 12. Calculate win rate from TeamAnalytics
+    win_rate = float(latest_stats.win_rate) if latest_stats and latest_stats.win_rate else 0
+    
+    # 13. Calculate global rank (placeholder - would use actual ranking system)
+    global_rank = None
+    try:
+        TeamRankingBreakdown = apps.get_model("teams", "TeamRankingBreakdown")
+        ranking_breakdown = TeamRankingBreakdown.objects.filter(team=team).first()
+        if ranking_breakdown:
+            global_rank = TeamRankingBreakdown.objects.filter(
+                final_total__gt=ranking_breakdown.final_total
+            ).count() + 1
+    except:
+        pass
+    
+    # 14. Format join requests (if using JoinRequest model)
+    join_requests = []
+    try:
+        JoinRequest = apps.get_model("teams", "JoinRequest")
+        join_requests = JoinRequest.objects.filter(
+            team=team,
+            status="PENDING"
+        ).select_related("user__profile", "user").order_by("-created_at")
+    except:
+        pass
+    
+    # 15. Format activities for display with icons
+    formatted_activities = []
+    for activity in activities:
+        icon_map = {
+            'member_joined': 'user-plus',
+            'member_left': 'user-minus',
+            'achievement_unlocked': 'trophy',
+            'match_won': 'check-circle',
+            'match_lost': 'times-circle',
+            'tournament_joined': 'flag',
+            'post_created': 'file-alt',
+            'roster_updated': 'users',
+        }
+        
+        formatted_activities.append({
+            'id': activity.id,
+            'type': activity.activity_type,
+            'icon': icon_map.get(activity.activity_type, 'info-circle'),
+            'description': activity.description,
+            'time_ago': activity.created_at,
+            'actor': activity.actor
+        })
+    
+    # 16. Prepare chart data for performance graph
+    chart_data = {
+        'labels': [],
+        'wins': [],
+        'losses': [],
+    }
+    
+    # Get last 10 matches results if available
+    try:
+        Match = apps.get_model("tournaments", "Match")
+        recent_results = Match.objects.filter(
+            Q(team_a=team) | Q(team_b=team),
+            state="VERIFIED"
+        ).order_by("-start_at")[:10]
+        
+        for match in reversed(list(recent_results)):
+            chart_data['labels'].append(match.start_at.strftime('%m/%d'))
+            if (match.team_a == team and match.winner == match.team_a) or \
+               (match.team_b == team and match.winner == match.team_b):
+                chart_data['wins'].append(1)
+                chart_data['losses'].append(0)
+            else:
+                chart_data['wins'].append(0)
+                chart_data['losses'].append(1)
+    except:
+        pass
+
     context = {
         'team': team,
         'is_captain': is_captain,
@@ -165,16 +249,22 @@ def team_dashboard_view(request, slug: str):
         # Roster data
         'roster': roster,
         'roster_count': current_roster_size,
+        'members_count': current_roster_size,
         'max_roster': max_roster,
         'available_slots': available_slots,
         
-        # Invites
+        # Invites & Requests
         'pending_invites': pending_invites,
         'pending_invites_count': pending_invites_count,
+        'join_requests': join_requests,
+        'pending_count': pending_invites_count + len(join_requests),
         
         # Stats & Achievements
         'latest_stats': latest_stats,
+        'win_rate': win_rate,
+        'global_rank': global_rank or 'Unranked',
         'achievements': achievements,
+        'recent_achievements': achievements[:3],
         'total_achievements': total_achievements,
         
         # Social
@@ -183,19 +273,27 @@ def team_dashboard_view(request, slug: str):
         'recent_posts': recent_posts,
         
         # Activity
-        'activities': activities,
+        'activities': formatted_activities,
+        'recent_activities': formatted_activities[:10],
         
         # Matches
         'upcoming_matches': upcoming_matches,
+        'matches_count': len(upcoming_matches),
         
         # Game config
         'game_config': game_config,
         
         # Alerts
         'alerts': alerts,
+        
+        # Chart data
+        'chart_data': chart_data,
+        
+        # Team members for display
+        'team_members': roster[:5],  # First 5 for quick view
     }
     
-    return render(request, "teams/team_dashboard.html", context)
+    return render(request, "teams/dashboard_modern.html", context)
 
 
 def team_profile_view(request, slug: str):
@@ -205,7 +303,7 @@ def team_profile_view(request, slug: str):
     """
     Team = apps.get_model("teams", "Team")
     TeamMembership = apps.get_model("teams", "TeamMembership")
-    TeamStats = apps.get_model("teams", "TeamStats")
+    TeamAnalytics = apps.get_model("teams", "TeamAnalytics")
     TeamAchievement = apps.get_model("teams", "TeamAchievement")
     TeamFollower = apps.get_model("teams", "TeamFollower")
     TeamPost = apps.get_model("teams", "TeamPost")
@@ -255,10 +353,27 @@ def team_profile_view(request, slug: str):
         )
     ).order_by("role_order", "joined_at")
     
-    # 2. Stats (if public or member)
+    # 2. Stats (if public or member) - Use TeamAnalytics
     latest_stats = None
+    has_matches = False
     if team.show_statistics or is_member or request.user.is_staff:
-        latest_stats = TeamStats.objects.filter(team=team).order_by("-updated_at").first()
+        try:
+            stats = TeamAnalytics.objects.get(team=team, game=team.game)
+            # Only show stats if team has actually played matches
+            # Also validate that win_rate is reasonable and matches are > 0
+            if stats.total_matches > 0 and stats.win_rate >= 0 and stats.win_rate <= 100:
+                latest_stats = stats
+                has_matches = True
+                
+                # Recalculate win_rate if needed (in case it's stale)
+                if stats.matches_won + stats.matches_lost > 0:
+                    calculated_win_rate = (stats.matches_won / (stats.matches_won + stats.matches_lost)) * 100
+                    if abs(float(stats.win_rate) - calculated_win_rate) > 0.1:
+                        # Update stale win_rate
+                        stats.win_rate = Decimal(str(round(calculated_win_rate, 2)))
+                        stats.save(update_fields=['win_rate'])
+        except TeamAnalytics.DoesNotExist:
+            pass  # Don't create default stats, just leave as None
     
     # 3. Achievements
     achievements = TeamAchievement.objects.filter(team=team).order_by("-year", "-id")
@@ -349,6 +464,44 @@ def team_profile_view(request, slug: str):
         
         can_request_join = not already_in_team_for_game
     
+    # 11. Get ranking data
+    ranking_data = None
+    try:
+        TeamRankingBreakdown = apps.get_model("teams", "TeamRankingBreakdown")
+        ranking_breakdown = TeamRankingBreakdown.objects.filter(team=team).first()
+        
+        if ranking_breakdown:
+            # Calculate ranks based on points
+            from django.db.models import Count, Q
+            Team = apps.get_model("teams", "Team")
+            
+            # Global rank (all teams)
+            global_rank = TeamRankingBreakdown.objects.filter(
+                final_total__gt=ranking_breakdown.final_total
+            ).count() + 1
+            
+            # Regional rank (same region)
+            regional_rank = TeamRankingBreakdown.objects.filter(
+                final_total__gt=ranking_breakdown.final_total,
+                team__region=team.region
+            ).count() + 1
+            
+            # Game rank (same game)
+            game_rank = TeamRankingBreakdown.objects.filter(
+                final_total__gt=ranking_breakdown.final_total,
+                team__game=team.game
+            ).count() + 1
+            
+            ranking_data = {
+                'global_rank': global_rank,
+                'regional_rank': regional_rank,
+                'game_rank': game_rank,
+                'total_points': ranking_breakdown.final_total,
+                'breakdown': ranking_breakdown
+            }
+    except:
+        ranking_data = None
+    
     context = {
         'team': team,
         'is_member': is_member,
@@ -363,6 +516,8 @@ def team_profile_view(request, slug: str):
         
         # Stats & Achievements
         'latest_stats': latest_stats,
+        'has_matches': has_matches,
+        'ranking_data': ranking_data,
         'achievements_by_year': achievements_by_year,
         'total_achievements': achievements.count(),
         
@@ -380,7 +535,7 @@ def team_profile_view(request, slug: str):
         'game_config': game_config,
     }
     
-    return render(request, "teams/team_profile.html", context)
+    return render(request, "teams/team_detail_new.html", context)
 
 
 @login_required

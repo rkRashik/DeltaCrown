@@ -102,7 +102,7 @@ def update_team_info(request, slug: str) -> JsonResponse:
 @login_required
 @require_http_methods(["POST"])
 def update_team_privacy(request, slug: str) -> JsonResponse:
-    """Update team privacy settings via AJAX."""
+    """Update team privacy settings via AJAX - Enhanced for Phase 4."""
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
@@ -110,11 +110,50 @@ def update_team_privacy(request, slug: str) -> JsonResponse:
         return JsonResponse({"error": "Only captains can edit privacy settings."}, status=403)
     
     try:
-        team.is_public = request.POST.get('is_public') == 'on'
-        team.allow_join_requests = request.POST.get('allow_join_requests') == 'on'
-        team.show_statistics = request.POST.get('show_statistics') == 'on'
+        # Basic settings
+        if 'is_public' in request.POST:
+            team.is_public = request.POST.get('is_public') in ['on', 'true', True]
+        if 'allow_join_requests' in request.POST:
+            team.allow_join_requests = request.POST.get('allow_join_requests') in ['on', 'true', True]
+        if 'show_statistics' in request.POST:
+            team.show_statistics = request.POST.get('show_statistics') in ['on', 'true', True]
+        
+        # Enhanced Content Privacy
+        if 'show_roster_publicly' in request.POST:
+            team.show_roster_publicly = request.POST.get('show_roster_publicly') in ['on', 'true', True]
+        if 'show_statistics_publicly' in request.POST:
+            team.show_statistics_publicly = request.POST.get('show_statistics_publicly') in ['on', 'true', True]
+        if 'show_tournaments_publicly' in request.POST:
+            team.show_tournaments_publicly = request.POST.get('show_tournaments_publicly') in ['on', 'true', True]
+        if 'show_achievements_publicly' in request.POST:
+            team.show_achievements_publicly = request.POST.get('show_achievements_publicly') in ['on', 'true', True]
+        
+        # Member Permissions
+        if 'members_can_post' in request.POST:
+            team.members_can_post = request.POST.get('members_can_post') in ['on', 'true', True]
+        if 'require_post_approval' in request.POST:
+            team.require_post_approval = request.POST.get('require_post_approval') in ['on', 'true', True]
+        if 'members_can_invite' in request.POST:
+            team.members_can_invite = request.POST.get('members_can_invite') in ['on', 'true', True]
+        
+        # Join Settings
+        if 'auto_accept_join_requests' in request.POST:
+            team.auto_accept_join_requests = request.POST.get('auto_accept_join_requests') in ['on', 'true', True]
+        if 'require_application_message' in request.POST:
+            team.require_application_message = request.POST.get('require_application_message') in ['on', 'true', True]
+        if 'min_rank_requirement' in request.POST:
+            team.min_rank_requirement = request.POST.get('min_rank_requirement', '')
+        
+        # Display Settings
+        if 'hide_member_stats' in request.POST:
+            team.hide_member_stats = request.POST.get('hide_member_stats') in ['on', 'true', True]
+        if 'hide_social_links' in request.POST:
+            team.hide_social_links = request.POST.get('hide_social_links') in ['on', 'true', True]
+        if 'show_captain_only' in request.POST:
+            team.show_captain_only = request.POST.get('show_captain_only') in ['on', 'true', True]
+        
         team.save()
-        return JsonResponse({"success": True})
+        return JsonResponse({"success": True, "message": "Privacy settings updated successfully"})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 

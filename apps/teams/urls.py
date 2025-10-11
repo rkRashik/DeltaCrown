@@ -1,6 +1,37 @@
 # apps/teams/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from . import api_views  # Import API views for REST endpoints
+
+# Phase 4: Member Management
+from .views.member_management import (
+    get_team_members,
+    update_member_role,
+    remove_member,
+    transfer_captaincy,
+    bulk_remove_members,
+)
+
+# Dashboard API
+from .views.dashboard_api import (
+    get_pending_items,
+    get_recent_activity,
+    approve_join_request,
+    reject_join_request,
+    resend_team_invite,
+    cancel_team_invite,
+)
+
+# Statistics API (Phase 1)
+from .views.statistics_api import (
+    get_team_statistics,
+    get_match_history,
+    get_win_rate_chart,
+    get_player_statistics,
+    get_ranking_history,
+    get_performance_metrics,
+)
+
 from .views.public import (
     team_hub,
     team_list,
@@ -20,9 +51,13 @@ from .views.public import (
     # New professional management views
     update_team_info_view,
     update_privacy_view,
+    change_member_role_view,
     # New Quick Actions views
     export_team_data_view,
     tournament_history_view,
+    # Game ID Collection views
+    collect_game_id_view,
+    create_team_resume_view,
 )
 # Import new dashboard and profile views
 from .views.dashboard import (
@@ -104,25 +139,30 @@ from .views.ajax import (
 # Import API views for new REST endpoints (optional - requires DRF)
 try:
     from rest_framework.routers import DefaultRouter
-    from apps.teams import views as api_views
+    from apps.teams import views as team_views
     # Check if views have the necessary viewsets
-    if hasattr(api_views, 'ValorantTeamViewSet'):
+    if hasattr(team_views, 'ValorantTeamViewSet'):
         HAS_DRF = True
         # Create router for API viewsets
         router = DefaultRouter()
-        router.register(r'valorant', api_views.ValorantTeamViewSet, basename='valorant-team')
-        router.register(r'cs2', api_views.CS2TeamViewSet, basename='cs2-team')
-        router.register(r'dota2', api_views.Dota2TeamViewSet, basename='dota2-team')
-        router.register(r'mlbb', api_views.MLBBTeamViewSet, basename='mlbb-team')
-        router.register(r'pubg', api_views.PUBGTeamViewSet, basename='pubg-team')
-        router.register(r'freefire', api_views.FreeFireTeamViewSet, basename='freefire-team')
-        router.register(r'efootball', api_views.EFootballTeamViewSet, basename='efootball-team')
-        router.register(r'fc26', api_views.FC26TeamViewSet, basename='fc26-team')
-        router.register(r'codm', api_views.CODMTeamViewSet, basename='codm-team')
+        router.register(r'valorant', team_views.ValorantTeamViewSet, basename='valorant-team')
+        router.register(r'cs2', team_views.CS2TeamViewSet, basename='cs2-team')
+        router.register(r'dota2', team_views.Dota2TeamViewSet, basename='dota2-team')
+        router.register(r'mlbb', team_views.MLBBTeamViewSet, basename='mlbb-team')
+        router.register(r'pubg', team_views.PUBGTeamViewSet, basename='pubg-team')
+        router.register(r'freefire', team_views.FreeFireTeamViewSet, basename='freefire-team')
+        router.register(r'efootball', team_views.EFootballTeamViewSet, basename='efootball-team')
+        router.register(r'fc26', team_views.FC26TeamViewSet, basename='fc26-team')
+        router.register(r'codm', team_views.CODMTeamViewSet, basename='codm-team')
     else:
         HAS_DRF = False
+        router = None
 except (ImportError, AttributeError):
     HAS_DRF = False
+    router = None
+
+# Always set HAS_DRF to True since we have api_views module
+HAS_DRF = True
 
 app_name = "teams"
 
@@ -134,6 +174,8 @@ urlpatterns = [
     path("rankings/", team_ranking_view, name="rankings"),  # Updated to use ranking view
     
     path("create/", team_create_view, name="create"),
+    path("create/resume/", create_team_resume_view, name="create_team_resume"),
+    path("collect-game-id/<str:game_code>/", collect_game_id_view, name="collect_game_id"),
 
     # Detail + captain actions (slug-based)
     path("<slug:slug>/", team_profile_view, name="detail"),  # New public profile
@@ -157,9 +199,18 @@ urlpatterns = [
     path("<slug:slug>/update-roster-order/", update_roster_order, name="update_roster_order"),
     path("<slug:slug>/resend-invite/<int:invite_id>/", resend_invite, name="resend_invite"),
     
+    # Dashboard API endpoints
+    path("api/<slug:slug>/pending-items/", get_pending_items, name="api_pending_items"),
+    path("api/<slug:slug>/recent-activity/", get_recent_activity, name="api_recent_activity"),
+    path("api/join-requests/<int:request_id>/approve/", approve_join_request, name="api_approve_join_request"),
+    path("api/join-requests/<int:request_id>/reject/", reject_join_request, name="api_reject_join_request"),
+    path("api/invites/<int:invite_id>/resend/", resend_team_invite, name="api_resend_invite"),
+    path("api/invites/<int:invite_id>/cancel/", cancel_team_invite, name="api_cancel_invite"),
+    
     # New professional management endpoints (kept from public.py)
     path("<slug:slug>/update-info/", update_team_info_view, name="update_team_info"),
     path("<slug:slug>/update-privacy/", update_privacy_view, name="update_privacy"),
+    path("<slug:slug>/change-role/", change_member_role_view, name="change_role"),
     # New Quick Actions endpoints
     path("<slug:slug>/export-data/", export_team_data_view, name="export_team_data"),
     path("<slug:slug>/tournament-history/", tournament_history_view, name="tournament_history"),
@@ -233,22 +284,81 @@ urlpatterns = [
 
 # Add API endpoints if Django REST Framework is available
 if HAS_DRF:
+    # Import new API views
+    from .api_views import (
+        # Sponsors API
+        get_sponsors, add_sponsor, update_sponsor, delete_sponsor,
+        # Discussions API
+        get_discussions, create_discussion, toggle_discussion_vote, delete_discussion,
+        # Chat API
+        get_chat_messages, send_chat_message, edit_chat_message, delete_chat_message,
+        add_message_reaction, remove_message_reaction,
+    )
+    
     api_patterns = [
-        # Game configuration endpoints
-        path('api/games/', api_views.game_configs_list, name='game-configs-list'),
-        path('api/games/<str:game_code>/', api_views.game_config_detail, name='game-config-detail'),
-        path('api/games/<str:game_code>/roles/', api_views.game_roles_list, name='game-roles-list'),
+        # Game configuration endpoints - COMMENTED OUT (functions don't exist yet)
+        # path('api/games/', api_views.game_configs_list, name='game-configs-list'),
+        # path('api/games/<str:game_code>/', api_views.game_config_detail, name='game-config-detail'),
+        # path('api/games/<str:game_code>/roles/', api_views.game_roles_list, name='game-roles-list'),
         
-        # Team creation
-        path('api/create/', api_views.create_team_with_roster, name='api-create-team'),
+        # Team creation - COMMENTED OUT (function doesn't exist yet)
+        # path('api/create/', api_views.create_team_with_roster, name='api-create-team'),
         
-        # Validation endpoints
-        path('api/validate/name/', api_views.validate_team_name, name='validate-team-name'),
-        path('api/validate/tag/', api_views.validate_team_tag, name='validate-team-tag'),
-        path('api/validate/ign/', api_views.validate_ign_unique, name='validate-ign'),
-        path('api/validate/roster/', api_views.validate_roster_composition, name='validate-roster'),
+        # Validation endpoints - COMMENTED OUT (functions don't exist yet)
+        # path('api/validate/name/', api_views.validate_team_name, name='validate-team-name'),
+        # path('api/validate/tag/', api_views.validate_team_tag, name='validate-team-tag'),
+        # path('api/validate/ign/', api_views.validate_ign_unique, name='validate-ign'),
+        # path('api/validate/roster/', api_views.validate_roster_composition, name='validate-roster'),
         
-        # Team viewsets (list and detail)
-        path('api/', include(router.urls)),
+        # Phase 3C: Sponsors API
+        path('api/<slug:team_slug>/sponsors/', get_sponsors, name='api-get-sponsors'),
+        path('api/<slug:team_slug>/sponsors/add/', add_sponsor, name='api-add-sponsor'),
+        path('api/<slug:team_slug>/sponsors/<int:sponsor_id>/', update_sponsor, name='api-update-sponsor'),
+        path('api/<slug:team_slug>/sponsors/<int:sponsor_id>/delete/', delete_sponsor, name='api-delete-sponsor'),
+        
+        # Phase 3A: Discussions API
+        path('api/<slug:team_slug>/discussions/', get_discussions, name='api-get-discussions'),
+        path('api/<slug:team_slug>/discussions/create/', create_discussion, name='api-create-discussion'),
+        path('api/<slug:team_slug>/discussions/<int:discussion_id>/vote/', toggle_discussion_vote, name='api-toggle-vote'),
+        path('api/<slug:team_slug>/discussions/<int:discussion_id>/delete/', delete_discussion, name='api-delete-discussion'),
+        
+        # Phase 3B: Chat API
+        path('api/<slug:team_slug>/chat/messages/', get_chat_messages, name='api-get-chat-messages'),
+        path('api/<slug:team_slug>/chat/send/', send_chat_message, name='api-send-message'),
+        path('api/<slug:team_slug>/chat/<int:message_id>/edit/', edit_chat_message, name='api-edit-message'),
+        path('api/<slug:team_slug>/chat/<int:message_id>/delete/', delete_chat_message, name='api-delete-message'),
+        path('api/<slug:team_slug>/chat/<int:message_id>/react/', add_message_reaction, name='api-add-reaction'),
+        path('api/<slug:team_slug>/chat/<int:message_id>/unreact/', remove_message_reaction, name='api-remove-reaction'),
+        
+        # Roster API
+        path('api/<slug:team_slug>/roster/', api_views.get_roster, name='api-get-roster'),
+        path('api/<slug:team_slug>/roster-with-game-ids/', api_views.get_roster_with_game_ids, name='api-get-roster-with-game-ids'),
+        
+        # Tournaments API
+        path('api/<slug:team_slug>/tournaments/', api_views.get_tournaments, name='api-get-tournaments'),
+        
+        # Posts API
+        path('api/<slug:team_slug>/posts/', api_views.get_posts, name='api-get-posts'),
+        path('api/<slug:team_slug>/posts/create/', api_views.create_post, name='api-create-post'),
+        
+        # Member Management API (Phase 4)
+        path('api/<slug:slug>/members/', get_team_members, name='api-get-members'),
+        path('api/<slug:slug>/members/<int:membership_id>/update-role/', update_member_role, name='api-update-member-role'),
+        path('api/<slug:slug>/members/<int:membership_id>/remove/', remove_member, name='api-remove-member'),
+        path('api/<slug:slug>/members/transfer-captain/', transfer_captaincy, name='api-transfer-captain'),
+        path('api/<slug:slug>/members/bulk-remove/', bulk_remove_members, name='api-bulk-remove-members'),
+        
+        # Statistics API (Phase 1 - Critical)
+        path('api/<slug:slug>/statistics/', get_team_statistics, name='api-get-statistics'),
+        path('api/<slug:slug>/match-history/', get_match_history, name='api-match-history'),
+        path('api/<slug:slug>/charts/win-rate/', get_win_rate_chart, name='api-win-rate-chart'),
+        path('api/<slug:slug>/player-stats/', get_player_statistics, name='api-player-stats'),
+        path('api/<slug:slug>/ranking-history/', get_ranking_history, name='api-ranking-history'),
+        path('api/<slug:slug>/performance/', get_performance_metrics, name='api-performance-metrics'),
     ]
+    
+    # Add router URLs only if router exists
+    if router:
+        api_patterns.append(path('api/', include(router.urls)))
+    
     urlpatterns += api_patterns

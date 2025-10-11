@@ -14,7 +14,8 @@ from apps.teams.models import (
     ValorantPlayerMembership, CS2PlayerMembership, Dota2PlayerMembership,
     MLBBPlayerMembership, PUBGPlayerMembership, FreeFirePlayerMembership,
     EFootballPlayerMembership, FC26PlayerMembership, CODMPlayerMembership,
-    GAME_TEAM_MODELS, GAME_MEMBERSHIP_MODELS
+    GAME_TEAM_MODELS, GAME_MEMBERSHIP_MODELS,
+    TeamSponsor, TeamDiscussionPost, TeamChatMessage
 )
 from apps.teams.game_config import get_game_config, get_available_roles
 from apps.teams.roster_manager import get_roster_manager
@@ -513,3 +514,114 @@ def get_team_serializer_for_game(game_code):
 def get_membership_serializer_for_game(game_code):
     """Get appropriate membership serializer for game."""
     return MEMBERSHIP_SERIALIZERS.get(game_code)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Phase 3 API Serializers (Sponsors, Discussions, Chat)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class SponsorSerializer(serializers.ModelSerializer):
+    """Serializer for team sponsors"""
+    
+    class Meta:
+        model = TeamSponsor
+        fields = [
+            'id', 'sponsor_name', 'sponsor_tier', 'sponsor_link',
+            'start_date', 'end_date', 'benefits', 'notes'
+        ]
+        read_only_fields = ['id']
+    
+    def validate_sponsor_name(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError("Sponsor name must be at least 2 characters")
+        if len(value) > 100:
+            raise serializers.ValidationError("Sponsor name too long (max 100)")
+        return value
+    
+    def validate_sponsor_tier(self, value):
+        valid_tiers = ['platinum', 'gold', 'silver', 'bronze', 'partner']
+        if value not in valid_tiers:
+            raise serializers.ValidationError(f"Invalid tier. Must be one of: {', '.join(valid_tiers)}")
+        return value
+    
+    def validate_sponsor_link(self, value):
+        if not value.startswith(('http://', 'https://')):
+            raise serializers.ValidationError("Link must start with http:// or https://")
+        if len(value) > 500:
+            raise serializers.ValidationError("Link too long (max 500)")
+        return value
+    
+    def validate(self, data):
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        if start_date and end_date and end_date < start_date:
+            raise serializers.ValidationError({'end_date': "End date must be after start date"})
+        return data
+
+
+class DiscussionSerializer(serializers.ModelSerializer):
+    """Serializer for discussions"""
+    
+    class Meta:
+        model = TeamDiscussionPost
+        fields = ['id', 'title', 'content', 'post_type', 'tags']
+        read_only_fields = ['id']
+    
+    def validate_title(self, value):
+        if len(value) < 5:
+            raise serializers.ValidationError("Title must be at least 5 characters")
+        if len(value) > 200:
+            raise serializers.ValidationError("Title too long (max 200)")
+        return value.strip()
+    
+    def validate_content(self, value):
+        if len(value) < 10:
+            raise serializers.ValidationError("Content must be at least 10 characters")
+        if len(value) > 10000:
+            raise serializers.ValidationError("Content too long (max 10000)")
+        return value.strip()
+    
+    def validate_post_type(self, value):
+        valid_types = ['general', 'announcement', 'strategy', 'recruitment', 'question', 'feedback', 'event']
+        if value not in valid_types:
+            raise serializers.ValidationError(f"Invalid type. Must be one of: {', '.join(valid_types)}")
+        return value
+
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    """Serializer for chat messages"""
+    
+    class Meta:
+        model = TeamChatMessage
+        fields = ['id', 'message', 'reply_to']
+        read_only_fields = ['id']
+    
+    def validate_message(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Message cannot be empty")
+        if len(value) > 2000:
+            raise serializers.ValidationError("Message too long (max 2000)")
+        return value.strip()
+    
+    def validate_reply_to(self, value):
+        if value and value.is_deleted:
+            raise serializers.ValidationError("Cannot reply to deleted message")
+        return value
+
+
+class ChatMessageEditSerializer(serializers.Serializer):
+    """Serializer for editing chat messages"""
+    content = serializers.CharField(min_length=1, max_length=2000)
+    
+    def validate_content(self, value):
+        return value.strip()
+
+
+class ReactionSerializer(serializers.Serializer):
+    """Serializer for message reactions"""
+    emoji = serializers.CharField(max_length=10)
+    
+    def validate_emoji(self, value):
+        if not value:
+            raise serializers.ValidationError("Emoji cannot be empty")
+        return value

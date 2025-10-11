@@ -1,0 +1,1813 @@
+/**
+ * Hero Section Templates - Modern Esports Design
+ * Banner-focused, clean layout, immersive experience
+ * Redesigned per user brief: Banner as focal point, floating elements, minimal overlap
+ */
+
+/* ===========================
+   TEMPLATE 1: ESPORTS EPIC (default)
+   Unique bottom-integrated logo design with vibrant gaming theme
+   =========================== */
+.hero-header[data-template="default"] {
+  position: relative;
+  min-height: 650px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+/* Full-screen banner */
+.hero-header[data-template="default"] .hero-banner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-header[data-template="default"] .banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.05);
+  transition: transform 12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  filter: brightness(0.9) saturate(1.2);
+}
+
+.hero-header[data-template="default"]:hover .banner-image {
+  transform: scale(1.15);
+  filter: brightness(0.95) saturate(1.3);
+}
+
+/* Dramatic gradient overlay */
+.hero-header[data-template="default"] .banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.4) 30%,
+    rgba(0, 0, 0, 0.8) 70%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
+  z-index: 2;
+}
+
+.hero-header[data-template="default"] .banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at bottom center,
+    rgba(138, 43, 226, 0.15) 0%,
+    transparent 60%
+  );
+  z-index: 2;
+}
+
+/* Content positioned at bottom with integrated logo */
+.hero-header[data-template="default"] .hero-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  padding: 0 0 2rem 3rem;
+}
+
+.hero-header[data-template="default"] .hero-layout {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 1.5rem;
+}
+
+/* Logo integrated at bottom - UNIQUE DESIGN */
+.hero-header[data-template="default"] .team-logo-wrapper {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.3), rgba(75, 0, 130, 0.4));
+  border-radius: 50%;
+  padding: 8px;
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 0 40px rgba(138, 43, 226, 0.6),
+    0 0 80px rgba(138, 43, 226, 0.3),
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    inset 0 0 30px rgba(138, 43, 226, 0.2);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 15;
+  animation: hero-logo-entrance 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+
+@keyframes hero-logo-entrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(100px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.1) translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.hero-header[data-template="default"] .team-logo-wrapper:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 
+    0 0 60px rgba(138, 43, 226, 0.8),
+    0 0 100px rgba(138, 43, 226, 0.4),
+    0 20px 50px rgba(0, 0, 0, 0.6),
+    inset 0 0 40px rgba(138, 43, 226, 0.3);
+  border-color: rgba(138, 43, 226, 0.6);
+}
+
+.hero-header[data-template="default"] .team-logo-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(138, 43, 226, 0.8),
+    rgba(75, 0, 130, 0.6),
+    rgba(218, 112, 214, 0.8),
+    rgba(138, 43, 226, 0.8)
+  );
+  filter: blur(15px);
+  opacity: 0.7;
+  animation: logo-glow-rotate 6s linear infinite;
+  z-index: -1;
+}
+
+@keyframes logo-glow-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.hero-header[data-template="default"] .team-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(138, 43, 226, 0.8));
+  position: relative;
+  z-index: 2;
+  border-radius: 50%;
+}
+
+.hero-header[data-template="default"] .team-logo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(138, 43, 226, 0.4), rgba(75, 0, 130, 0.5));
+  border-radius: 50%;
+}
+
+.hero-header[data-template="default"] .logo-initials {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(138, 43, 226, 0.8);
+}
+
+/* Team info block with vibrant styling */
+.hero-header[data-template="default"] .team-info-block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  animation: slide-up-hero 1s ease-out 0.3s both;
+}
+
+@keyframes slide-up-hero {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-header[data-template="default"] .team-name {
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1;
+  margin: 0;
+  background: linear-gradient(
+    135deg,
+    #fff 0%,
+    #8a2be2 50%,
+    #da70d6 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 40px rgba(138, 43, 226, 0.5);
+  letter-spacing: -2px;
+  filter: drop-shadow(0 4px 20px rgba(138, 43, 226, 0.4));
+  animation: text-glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes text-glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 4px 20px rgba(138, 43, 226, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 4px 30px rgba(138, 43, 226, 0.7));
+  }
+}
+
+.hero-header[data-template="default"] .team-tag {
+  font-weight: 800;
+  background: linear-gradient(135deg, #8a2be2, #da70d6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-left: 1rem;
+}
+
+.hero-header[data-template="default"] .verified-badge {
+  color: #8a2be2;
+  font-size: 2.5rem;
+  margin-left: 0.75rem;
+  filter: drop-shadow(0 0 10px rgba(138, 43, 226, 0.6));
+  animation: verified-pulse 2s ease-in-out infinite;
+}
+
+@keyframes verified-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
+.hero-header[data-template="default"] .team-meta-row {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Stylized gaming icons */
+.hero-header[data-template="default"] .game-badge,
+.hero-header[data-template="default"] .region-badge,
+.hero-header[data-template="default"] .recruiting-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: rgba(138, 43, 226, 0.2);
+  border: 2px solid rgba(138, 43, 226, 0.4);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #da70d6;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.hero-header[data-template="default"] .game-badge:hover,
+.hero-header[data-template="default"] .region-badge:hover,
+.hero-header[data-template="default"] .recruiting-badge:hover {
+  background: rgba(138, 43, 226, 0.3);
+  border-color: rgba(138, 43, 226, 0.6);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(138, 43, 226, 0.3);
+}
+
+/* Hide icons in badges */
+.hero-header[data-template="default"] .game-badge i,
+.hero-header[data-template="default"] .region-badge i {
+  display: none;
+}
+
+.hero-header[data-template="default"] .recruiting-badge {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  animation: recruiting-pulse 2s ease-in-out infinite;
+}
+
+@keyframes recruiting-pulse {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+  }
+}
+
+.hero-header[data-template="default"] .team-tagline {
+  font-size: 1.35rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+/* CTA Button with esports styling */
+.hero-header[data-template="default"] .hero-cta {
+  animation: cta-entrance 1s ease-out 0.6s both;
+}
+
+@keyframes cta-entrance {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hero-header[data-template="default"] .hero-cta .btn {
+  background: linear-gradient(135deg, #8a2be2, #4b0082);
+  border: 2px solid rgba(138, 43, 226, 0.5);
+  padding: 1.125rem 2.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 8px 25px rgba(138, 43, 226, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-header[data-template="default"] .hero-cta .btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #da70d6, #8a2be2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.hero-header[data-template="default"] .hero-cta .btn:hover::before {
+  opacity: 1;
+}
+
+.hero-header[data-template="default"] .hero-cta .btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 
+    0 12px 35px rgba(138, 43, 226, 0.6),
+    inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(138, 43, 226, 0.8);
+}
+
+.hero-header[data-template="default"] .hero-cta .btn span,
+.hero-header[data-template="default"] .hero-cta .btn i {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hero-header[data-template="default"] .team-logo-wrapper:hover {
+  transform: translateY(-8px) scale(1.05);
+  border-color: var(--accent-primary);
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--accent-primary),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.hero-header[data-template="default"] .team-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  animation: logo-glow 3s ease-in-out infinite;
+}
+
+@keyframes logo-glow {
+  0%, 100% { filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5)); }
+  50% { filter: drop-shadow(0 6px 20px rgba(var(--accent-primary-rgb), 0.4)); }
+}
+
+/* Team info block - bottom area, doesn't block banner */
+.hero-header[data-template="default"] .team-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 700px;
+  animation: slide-up 0.8s ease-out 0.2s both;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-header[data-template="default"] .team-name {
+  font-size: 4rem;
+  font-weight: 900;
+  line-height: 1;
+  margin: 0;
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.7);
+  letter-spacing: -2px;
+  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.9) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-header[data-template="default"] .team-tag {
+  font-weight: 800;
+  opacity: 0.95;
+  margin-left: 0.75rem;
+}
+
+.hero-header[data-template="default"] .team-meta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.hero-header[data-template="default"] .team-tagline {
+  font-size: 1.35rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  max-width: 600px;
+  margin: 0.5rem 0 0 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+/* Floating CTA button - lower edge, not blocking banner */
+.hero-header[data-template="default"] .hero-cta {
+  align-self: flex-end;
+  animation: slide-up 0.8s ease-out 0.4s both;
+}
+
+.hero-header[data-template="default"] .hero-cta .btn {
+  background: rgba(var(--accent-primary-rgb), 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.hero-header[data-template="default"] .hero-cta .btn:hover {
+  transform: translateY(-4px);
+  background: var(--accent-primary);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 12px 36px rgba(0, 0, 0, 0.4),
+    0 0 0 4px rgba(var(--accent-primary-rgb), 0.3);
+}
+
+
+/* ===========================
+   TEMPLATE 2: SIDE SHOWCASE (centered)
+   Banner prominence with side-mounted info card
+   =========================== */
+.hero-header[data-template="centered"] {
+  position: relative;
+  min-height: 650px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Full immersive banner */
+.hero-header[data-template="centered"] .hero-banner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-header[data-template="centered"] .banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.7);
+  transform: scale(1.03);
+  transition: all 10s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hero-header[data-template="centered"]:hover .banner-image {
+  transform: scale(1.1);
+  filter: brightness(0.75);
+}
+
+/* Minimal side gradient - banner stays visible */
+.hero-header[data-template="centered"] .banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    270deg,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.5) 30%,
+    rgba(0, 0, 0, 0.85) 65%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
+  z-index: 2;
+}
+
+.hero-header[data-template="centered"] .banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 80% 50%,
+    transparent 0%,
+    rgba(0, 0, 0, 0.3) 70%
+  );
+  z-index: 2;
+}
+
+.hero-header[data-template="centered"] .hero-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+}
+
+/* Side-mounted floating card */
+.hero-header[data-template="centered"] .hero-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2.5rem;
+  max-width: 550px;
+  padding: 3rem 0;
+  animation: slide-in-left 1s ease-out;
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Large prominent logo in card */
+.hero-header[data-template="centered"] .team-logo-wrapper {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 50%;
+  padding: 25px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.1);
+  animation: logo-float 4s ease-in-out infinite;
+}
+
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+.hero-header[data-template="centered"] .team-logo-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: conic-gradient(
+    from 180deg,
+    var(--accent-primary),
+    transparent,
+    var(--accent-secondary),
+    transparent,
+    var(--accent-primary)
+  );
+  opacity: 0.3;
+  border-radius: 50%;
+  filter: blur(30px);
+  animation: rotate-slow 10s linear infinite;
+  z-index: -1;
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.hero-header[data-template="centered"] .team-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.6));
+}
+
+/* Info card with clean typography */
+.hero-header[data-template="centered"] .team-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 2rem 2.5rem;
+  border-radius: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: fade-in 0.8s ease-out 0.3s both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.hero-header[data-template="centered"] .team-name {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+  margin: 0;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+  letter-spacing: -1.5px;
+}
+
+.hero-header[data-template="centered"] .team-tag {
+  font-weight: 800;
+  color: var(--accent-primary);
+  margin-left: 0.5rem;
+}
+
+.hero-header[data-template="centered"] .team-meta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-header[data-template="centered"] .team-tagline {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Floating CTA at bottom of card */
+.hero-header[data-template="centered"] .hero-cta {
+  width: 100%;
+  animation: fade-in 0.8s ease-out 0.5s both;
+}
+
+.hero-header[data-template="centered"] .hero-cta .btn {
+  width: 100%;
+  background: rgba(var(--accent-primary-rgb), 0.9);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  padding: 1.125rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.hero-header[data-template="centered"] .hero-cta .btn:hover {
+  background: var(--accent-primary);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+
+
+/* ===========================
+   TEMPLATE 3: ASYMMETRIC BANNER SPLIT
+   Bold banner showcase with edge-mounted info
+   =========================== */
+.hero-header[data-template="split"] {
+  position: relative;
+  min-height: 600px;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+/* Banner dominates right side */
+.hero-header[data-template="split"] .hero-banner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-header[data-template="split"] .banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 65% center;
+  filter: brightness(0.75);
+  transform: scale(1.02);
+  transition: all 12s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hero-header[data-template="split"]:hover .banner-image {
+  transform: scale(1.12) translateX(-5%);
+  filter: brightness(0.8);
+}
+
+/* Angled gradient overlay */
+.hero-header[data-template="split"] .banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.3) 35%,
+    rgba(0, 0, 0, 0.75) 60%,
+    rgba(0, 0, 0, 0.95) 85%,
+    rgba(0, 0, 0, 0.98) 100%
+  );
+  z-index: 2;
+}
+
+.hero-header[data-template="split"] .banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 90% 50%, rgba(var(--accent-primary-rgb), 0.2) 0%, transparent 50%),
+    linear-gradient(105deg, var(--bg-dark) 0%, transparent 40%);
+  z-index: 3;
+}
+
+.hero-header[data-template="split"] .hero-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  padding: 4rem 0;
+}
+
+/* Left edge mounted card */
+.hero-header[data-template="split"] .hero-layout {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  max-width: 500px;
+  animation: slide-in-angled 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slide-in-angled {
+  from {
+    opacity: 0;
+    transform: translate(-60px, 30px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+/* Compact corner logo */
+.hero-header[data-template="split"] .team-logo-wrapper {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: 24px;
+  padding: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 10px 35px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform-origin: center;
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 
+      0 10px 35px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 
+      0 15px 45px rgba(var(--accent-primary-rgb), 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+}
+
+.hero-header[data-template="split"] .team-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.7));
+}
+
+/* Info section with bold typography */
+.hero-header[data-template="split"] .team-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.hero-header[data-template="split"] .team-name {
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 0.95;
+  margin: 0;
+  text-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.8),
+    0 8px 30px rgba(0, 0, 0, 0.6);
+  letter-spacing: -2px;
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: text-glow 4s ease-in-out infinite;
+}
+
+@keyframes text-glow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
+  }
+  50% { 
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3));
+  }
+}
+
+.hero-header[data-template="split"] .team-tag {
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-left: 0.5rem;
+}
+
+.hero-header[data-template="split"] .team-meta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-header[data-template="split"] .team-tagline {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 500;
+  margin: 0;
+  max-width: 420px;
+}
+
+/* Compact CTA */
+.hero-header[data-template="split"] .hero-cta .btn {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  padding: 1rem 2.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+}
+
+.hero-header[data-template="split"] .hero-cta .btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent-secondary), var(--accent-primary));
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.hero-header[data-template="split"] .hero-cta .btn:hover::before {
+  opacity: 1;
+}
+
+.hero-header[data-template="split"] .hero-cta .btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-4px) translateX(4px);
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.5),
+    -4px 4px 0 rgba(var(--accent-primary-rgb), 0.5);
+}
+
+.hero-header[data-template="split"] .hero-cta .btn span {
+  position: relative;
+  z-index: 1;
+}
+
+
+
+
+/* ===========================
+   TEMPLATE 4: MINIMAL IMMERSIVE
+   Clean banner showcase with subtle floating elements
+   =========================== */
+.hero-header[data-template="minimal"] {
+  position: relative;
+  min-height: 550px;
+  overflow: hidden;
+}
+
+.hero-header[data-template="minimal"] .hero-banner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-header[data-template="minimal"] .banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.8) saturate(1.1);
+  transform: scale(1.01);
+  transition: all 15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hero-header[data-template="minimal"]:hover .banner-image {
+  transform: scale(1.08);
+  filter: brightness(0.85) saturate(1.15);
+}
+
+/* Minimal corner gradients - maximum banner visibility */
+.hero-header[data-template="minimal"] .banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(0, 0, 0, 0.7) 0%, transparent 35%),
+    radial-gradient(circle at 100% 100%, rgba(0, 0, 0, 0.6) 0%, transparent 30%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.75) 100%);
+  z-index: 2;
+}
+
+.hero-header[data-template="minimal"] .banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 50% 100%,
+    rgba(var(--accent-primary-rgb), 0.15) 0%,
+    transparent 50%
+  );
+  z-index: 3;
+}
+
+.hero-header[data-template="minimal"] .hero-content {
+  position: relative;
+  z-index: 10;
+  padding: 2rem 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Top corner floating logo card */
+.hero-header[data-template="minimal"] .hero-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.hero-header[data-template="minimal"] .team-logo-wrapper {
+  position: absolute;
+  top: 2.5rem;
+  right: 2.5rem;
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 30px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: fade-in-scale 0.8s ease-out;
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.hero-header[data-template="minimal"] .team-logo-wrapper:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.08) translateY(-4px);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(var(--accent-primary-rgb), 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.hero-header[data-template="minimal"] .team-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+}
+
+/* Bottom floating info card */
+.hero-header[data-template="minimal"] .team-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: auto;
+  max-width: 650px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  padding: 2.5rem 3rem;
+  border-radius: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 15px 50px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  animation: slide-up-minimal 1s ease-out 0.2s both;
+}
+
+@keyframes slide-up-minimal {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-header[data-template="minimal"] .team-name {
+  font-size: 3.8rem;
+  font-weight: 900;
+  line-height: 1;
+  margin: 0;
+  color: #ffffff;
+  text-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.8),
+    0 6px 20px rgba(0, 0, 0, 0.5);
+  letter-spacing: -1.5px;
+}
+
+.hero-header[data-template="minimal"] .team-tag {
+  font-weight: 800;
+  color: var(--accent-primary);
+  margin-left: 0.5rem;
+}
+
+.hero-header[data-template="minimal"] .team-meta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 0.5rem;
+}
+
+.hero-header[data-template="minimal"] .team-tagline {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Minimal CTA */
+.hero-header[data-template="minimal"] .hero-cta {
+  animation: fade-in 0.8s ease-out 0.4s both;
+}
+
+.hero-header[data-template="minimal"] .hero-cta .btn {
+  background: rgba(var(--accent-primary-rgb), 0.85);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  padding: 1rem 2.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.hero-header[data-template="minimal"] .hero-cta .btn:hover {
+  background: var(--accent-primary);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+}
+
+
+
+
+/* ===========================
+   TEMPLATE 5: CHAMPIONSHIP EPIC
+   Maximum banner showcase with golden floating elements
+   =========================== */
+.hero-header[data-template="championship"] {
+  position: relative;
+  min-height: 680px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.hero-header[data-template="championship"] .hero-banner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.hero-header[data-template="championship"] .banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.7) saturate(1.3) contrast(1.1);
+  transform: scale(1.03);
+  transition: all 10s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hero-header[data-template="championship"]:hover .banner-image {
+  transform: scale(1.15);
+  filter: brightness(0.75) saturate(1.4) contrast(1.15);
+}
+
+/* Radial gradient preserves banner center */
+.hero-header[data-template="championship"] .banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0.75) 70%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+  z-index: 2;
+}
+
+.hero-header[data-template="championship"] .banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 25% 25%, rgba(255, 215, 0, 0.2) 0%, transparent 30%),
+    radial-gradient(circle at 75% 75%, rgba(255, 140, 0, 0.2) 0%, transparent 30%),
+    linear-gradient(180deg, rgba(255, 215, 0, 0.05) 0%, transparent 40%);
+  mix-blend-mode: screen;
+  animation: champion-pulse 6s ease-in-out infinite;
+  z-index: 3;
+}
+
+@keyframes champion-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.hero-header[data-template="championship"] .hero-content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+}
+
+/* Floating crown logo - top left */
+.hero-header[data-template="championship"] .hero-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding: 3rem 0;
+}
+
+.hero-header[data-template="championship"] .team-logo-wrapper {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  width: 160px;
+  height: 160px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 50%;
+  padding: 22px;
+  border: 4px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 
+    0 15px 50px rgba(0, 0, 0, 0.6),
+    0 0 60px rgba(255, 215, 0, 0.2),
+    inset 0 2px 0 rgba(255, 255, 255, 0.1);
+  animation: champion-entry 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes champion-entry {
+  from {
+    opacity: 0;
+    transform: scale(0.5) rotate(-180deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.hero-header[data-template="championship"] .team-logo-wrapper::before {
+  content: '👑';
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2.5rem;
+  animation: crown-float-champ 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.9));
+  z-index: 3;
+}
+
+@keyframes crown-float-champ {
+  0%, 100% { 
+    transform: translateX(-50%) translateY(0px) rotate(-8deg); 
+  }
+  50% { 
+    transform: translateX(-50%) translateY(-20px) rotate(8deg); 
+  }
+}
+
+.hero-header[data-template="championship"] .team-logo-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: -35px;
+  background: conic-gradient(
+    from 0deg,
+    #FFD700 0deg,
+    #FFA500 90deg,
+    #FFD700 180deg,
+    #FFA500 270deg,
+    #FFD700 360deg
+  );
+  opacity: 0.3;
+  border-radius: 50%;
+  filter: blur(40px);
+  animation: gold-rotate 8s linear infinite;
+  z-index: -1;
+}
+
+@keyframes gold-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.hero-header[data-template="championship"] .team-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: 
+    drop-shadow(0 0 35px rgba(255, 215, 0, 0.5))
+    drop-shadow(0 10px 40px rgba(0, 0, 0, 0.8));
+  animation: logo-glow-champ 4s ease-in-out infinite;
+}
+
+@keyframes logo-glow-champ {
+  0%, 100% { 
+    filter: 
+      drop-shadow(0 0 35px rgba(255, 215, 0, 0.5))
+      drop-shadow(0 10px 40px rgba(0, 0, 0, 0.8));
+  }
+  50% { 
+    filter: 
+      drop-shadow(0 0 55px rgba(255, 215, 0, 0.8))
+      drop-shadow(0 10px 40px rgba(0, 0, 0, 0.8));
+  }
+}
+
+/* Epic bottom card with golden theme */
+.hero-header[data-template="championship"] .team-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 750px;
+  margin-top: auto;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  padding: 3rem 3.5rem;
+  border-radius: 28px;
+  border: 3px solid rgba(255, 215, 0, 0.25);
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 80px rgba(255, 215, 0, 0.15),
+    inset 0 2px 0 rgba(255, 255, 255, 0.1);
+  animation: slide-up-epic 1.2s ease-out 0.3s both;
+}
+
+@keyframes slide-up-epic {
+  from {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-header[data-template="championship"] .team-name {
+  font-size: 5rem;
+  font-weight: 900;
+  line-height: 0.95;
+  margin: 0;
+  letter-spacing: -2.5px;
+  background: linear-gradient(
+    135deg,
+    #FFD700 0%,
+    #FFF8DC 30%,
+    #FFD700 50%,
+    #FFA500 70%,
+    #FFD700 100%
+  );
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.4));
+  animation: epic-shimmer 5s ease-in-out infinite;
+  position: relative;
+}
+
+@keyframes epic-shimmer {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+.hero-header[data-template="championship"] .team-name::after {
+  content: '🏆';
+  position: absolute;
+  right: -65px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 3.5rem;
+  animation: trophy-bounce 2.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.7));
+}
+
+@keyframes trophy-bounce {
+  0%, 100% { 
+    opacity: 0.9; 
+    transform: translateY(-50%) scale(1) rotate(-5deg); 
+  }
+  50% { 
+    opacity: 1; 
+    transform: translateY(-60%) scale(1.15) rotate(5deg); 
+  }
+}
+
+.hero-header[data-template="championship"] .team-tag {
+  font-weight: 900;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-left: 1rem;
+  filter: drop-shadow(0 2px 10px rgba(255, 215, 0, 0.3));
+}
+
+.hero-header[data-template="championship"] .team-meta-row {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.hero-header[data-template="championship"] .game-badge,
+.hero-header[data-template="championship"] .region-badge,
+.hero-header[data-template="championship"] .recruiting-badge {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.2));
+  border: 2px solid rgba(255, 215, 0, 0.4);
+  color: #FFD700;
+  font-weight: 700;
+}
+
+.hero-header[data-template="championship"] .team-tagline {
+  font-size: 1.35rem;
+  line-height: 1.6;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 2px 15px rgba(255, 215, 0, 0.2);
+}
+
+/* Epic golden CTA */
+.hero-header[data-template="championship"] .hero-cta {
+  animation: fade-in 1s ease-out 0.6s both;
+}
+
+.hero-header[data-template="championship"] .btn-primary {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #000;
+  font-weight: 800;
+  font-size: 1.15rem;
+  padding: 1.25rem 3rem;
+  border: 3px solid rgba(255, 215, 0, 0.6);
+  box-shadow: 
+    0 10px 35px rgba(255, 215, 0, 0.4),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4);
+  transition: all 0.4s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hero-header[data-template="championship"] .btn-primary:hover {
+  background: linear-gradient(135deg, #FFA500, #FFD700);
+  border-color: rgba(255, 215, 0, 0.9);
+  box-shadow: 
+    0 15px 50px rgba(255, 215, 0, 0.6),
+    inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(-5px) scale(1.05);
+}
+
+
+
+/* ===========================
+   RESPONSIVE ADJUSTMENTS
+   All templates adapt beautifully to mobile
+   =========================== */
+
+/* Tablet Landscape (1024px and below) */
+@media (max-width: 1024px) {
+  /* Default Template */
+  .hero-header[data-template="default"] .hero-layout {
+    grid-template-columns: auto 1fr;
+    gap: 2rem;
+  }
+  
+  .hero-header[data-template="default"] .team-logo-wrapper {
+    width: 130px;
+    height: 130px;
+  }
+  
+  .hero-header[data-template="default"] .team-name {
+    font-size: 2.8rem;
+  }
+  
+  .hero-header[data-template="default"] .hero-cta {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: 1rem;
+  }
+  
+  /* Centered Template */
+  .hero-header[data-template="centered"] {
+    min-height: 480px;
+  }
+  
+  .hero-header[data-template="centered"] .team-logo-wrapper {
+    width: 160px;
+    height: 160px;
+  }
+  
+  .hero-header[data-template="centered"] .team-name {
+    font-size: 3rem;
+  }
+  
+  /* Split Template */
+  .hero-header[data-template="split"] {
+    min-height: auto;
+  }
+  
+  .hero-header[data-template="split"] .banner-image {
+    clip-path: none;
+  }
+  
+  .hero-header[data-template="split"] .hero-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding-top: 200px;
+  }
+  
+  .hero-header[data-template="split"] .team-logo-wrapper {
+    width: 180px;
+    height: 180px;
+    margin: 0 auto;
+    grid-row: 2;
+  }
+  
+  .hero-header[data-template="split"] .team-info-block {
+    grid-row: 3;
+    text-align: center;
+    padding: 0;
+  }
+  
+  .hero-header[data-template="split"] .team-tagline {
+    border-left: none;
+    border-top: 3px solid var(--accent-primary);
+    padding-left: 0;
+    padding-top: 1rem;
+    margin: 0 auto;
+  }
+  
+  .hero-header[data-template="split"] .hero-cta {
+    grid-column: 1;
+    grid-row: 4;
+    justify-self: center;
+  }
+  
+  /* Minimal Template */
+  .hero-header[data-template="minimal"] .hero-layout {
+    gap: 2rem;
+  }
+  
+  .hero-header[data-template="minimal"] .team-logo-wrapper {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .hero-header[data-template="minimal"] .team-name {
+    font-size: 2.5rem;
+  }
+  
+  /* Championship Template */
+  .hero-header[data-template="championship"] .hero-layout {
+    grid-template-columns: auto 1fr;
+    gap: 2.5rem;
+  }
+  
+  .hero-header[data-template="championship"] .team-logo-wrapper {
+    width: 180px;
+    height: 180px;
+  }
+  
+  .hero-header[data-template="championship"] .team-name {
+    font-size: 3.5rem;
+  }
+  
+  .hero-header[data-template="championship"] .team-name::after {
+    right: -50px;
+    font-size: 2.5rem;
+  }
+  
+  .hero-header[data-template="championship"] .hero-cta {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-top: 1rem;
+  }
+}
+
+/* Tablet Portrait (768px and below) */
+@media (max-width: 768px) {
+  /* Default Template */
+  .hero-header[data-template="default"] {
+    min-height: 380px;
+  }
+  
+  .hero-header[data-template="default"] .hero-layout {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .hero-header[data-template="default"] .team-logo-wrapper {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+  }
+  
+  .hero-header[data-template="default"] .team-name {
+    font-size: 2.2rem;
+  }
+  
+  .hero-header[data-template="default"] .team-tagline {
+    font-size: 1.1rem;
+    margin: 0.5rem auto;
+  }
+  
+  .hero-header[data-template="default"] .team-meta-row {
+    justify-content: center;
+  }
+  
+  .hero-header[data-template="default"] .hero-cta {
+    margin: 0 auto;
+    justify-self: center;
+  }
+  
+  /* Centered Template */
+  .hero-header[data-template="centered"] {
+    min-height: 450px;
+  }
+  
+  .hero-header[data-template="centered"] .hero-layout {
+    padding: 3rem 0;
+    gap: 1.5rem;
+  }
+  
+  .hero-header[data-template="centered"] .team-logo-wrapper {
+    width: 140px;
+    height: 140px;
+  }
+  
+  .hero-header[data-template="centered"] .team-name {
+    font-size: 2.5rem;
+  }
+  
+  .hero-header[data-template="centered"] .team-tagline {
+    font-size: 1.15rem;
+  }
+  
+  /* Split Template */
+  .hero-header[data-template="split"] .hero-layout {
+    padding-top: 180px;
+  }
+  
+  .hero-header[data-template="split"] .team-logo-wrapper {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .hero-header[data-template="split"] .team-name {
+    font-size: 2.8rem;
+  }
+  
+  .hero-header[data-template="split"] .team-tagline {
+    font-size: 1.15rem;
+  }
+  
+  /* Minimal Template */
+  .hero-header[data-template="minimal"] {
+    min-height: 350px;
+  }
+  
+  .hero-header[data-template="minimal"] .hero-layout {
+    flex-direction: column;
+    text-align: center;
+    padding: 3rem 0;
+  }
+  
+  .hero-header[data-template="minimal"] .team-logo-wrapper {
+    width: 110px;
+    height: 110px;
+    margin: 0 auto;
+  }
+  
+  .hero-header[data-template="minimal"] .team-name {
+    font-size: 2.2rem;
+  }
+  
+  .hero-header[data-template="minimal"] .team-tagline {
+    font-size: 1.05rem;
+    margin: 0.5rem auto;
+    text-align: center;
+  }
+  
+  .hero-header[data-template="minimal"] .team-meta-row {
+    justify-content: center;
+  }
+  
+  .hero-header[data-template="minimal"] .hero-cta {
+    margin: 1rem auto 0;
+  }
+  
+  /* Championship Template */
+  .hero-header[data-template="championship"] {
+    min-height: 500px;
+  }
+  
+  .hero-header[data-template="championship"] .hero-layout {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 2rem;
+    padding: 3rem 0;
+  }
+  
+  .hero-header[data-template="championship"] .team-logo-wrapper {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+  }
+  
+  .hero-header[data-template="championship"] .team-logo-wrapper::before {
+    font-size: 2.5rem;
+  }
+  
+  .hero-header[data-template="championship"] .team-info-block {
+    text-align: center;
+  }
+  
+  .hero-header[data-template="championship"] .team-name {
+    font-size: 2.5rem;
+  }
+  
+  .hero-header[data-template="championship"] .team-name::after {
+    position: relative;
+    right: 0;
+    top: 0;
+    display: block;
+    margin: 1rem auto 0;
+    transform: none;
+  }
+  
+  .hero-header[data-template="championship"] .team-tagline {
+    font-size: 1.15rem;
+    letter-spacing: 2px;
+    margin: 0.5rem auto;
+  }
+  
+  .hero-header[data-template="championship"] .team-meta-row {
+    justify-content: center;
+  }
+  
+  .hero-header[data-template="championship"] .hero-cta {
+    margin: 0 auto;
+    justify-self: center;
+  }
+}
+
+/* Mobile (480px and below) */
+@media (max-width: 480px) {
+  .hero-header[data-template="default"] .team-name,
+  .hero-header[data-template="minimal"] .team-name {
+    font-size: 1.8rem;
+  }
+  
+  .hero-header[data-template="centered"] .team-name {
+    font-size: 2rem;
+  }
+  
+  .hero-header[data-template="split"] .team-name {
+    font-size: 2.2rem;
+  }
+  
+  .hero-header[data-template="championship"] .team-name {
+    font-size: 2rem;
+  }
+  
+  .hero-header[data-template="default"] .team-logo-wrapper,
+  .hero-header[data-template="minimal"] .team-logo-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .hero-header[data-template="centered"] .team-logo-wrapper,
+  .hero-header[data-template="split"] .team-logo-wrapper {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .hero-header[data-template="championship"] .team-logo-wrapper {
+    width: 140px;
+    height: 140px;
+  }
+  
+  .hero-header[data-template="championship"] .team-tagline {
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+  }
+}

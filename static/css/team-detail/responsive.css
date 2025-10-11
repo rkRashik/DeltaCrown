@@ -1,0 +1,71 @@
+/**
+ * Responsive Styles
+ */
+
+/* Mobile (Default) */
+@media (max-width: 767px) {
+  .container {
+    padding: 0 var(--spacing-md);
+  }
+  
+  .hero-content {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .content-layout {
+    padding: var(--spacing-lg) var(--spacing-md);
+    gap: var(--spacing-lg);
+  }
+  
+  .tab-button {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .tab-button i {
+    font-size: 1rem;
+  }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .content-layout {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+  
+  .sidebar {
+    display: none;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .bottom-navigation {
+    display: none;
+  }
+  
+  .content-area {
+    padding-bottom: 0;
+  }
+}
+
+/* Large Desktop */
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1600px;
+  }
+  
+  .content-layout {
+    grid-template-columns: 320px 1fr;
+    gap: var(--spacing-3xl);
+  }
+}
+
+/* Prevent horizontal scroll */
+body {
+  overflow-x: hidden;
+}
+
+.team-detail-page {
+  overflow-x: hidden;
+}

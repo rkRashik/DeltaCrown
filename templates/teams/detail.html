@@ -14,8 +14,8 @@
   <div class="team-esports-hero">
     <!-- Full-Width Banner Background -->
     <div class="team-hero-banner">
-      {% if team.banner %}
-        <img src="{{ team.banner.url }}" alt="{{ team.name }} banner" class="banner-image">
+      {% if team.banner_image %}
+        <img src="{{ team.banner_image.url }}" alt="{{ team.name }} banner" class="banner-image">
       {% else %}
         <div class="banner-placeholder">
           <div class="placeholder-pattern"></div>

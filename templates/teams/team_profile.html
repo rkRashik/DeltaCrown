@@ -11,8 +11,8 @@
 <div class="team-profile">
     <!-- Hero Section with Banner -->
     <section class="profile-hero">
-        {% if team.banner %}
-        <div class="hero-banner" style="background-image: url('{{ team.banner.url }}');"></div>
+        {% if team.banner_image %}
+        <div class="hero-banner" style="background-image: url('{{ team.banner_image.url }}');"></div>
         {% else %}
         <div class="hero-banner hero-banner-default"></div>
         {% endif %}
