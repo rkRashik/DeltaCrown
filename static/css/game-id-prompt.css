@@ -1,0 +1,552 @@
+/**
+ * Game ID Prompt Modal Styling
+ * Modern cyberpunk-themed modal for collecting game IDs
+ */
+
+/* Overlay */
+.game-id-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 20px;
+}
+
+.game-id-modal-overlay.active {
+    opacity: 1;
+}
+
+/* Modal */
+.game-id-modal {
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 16px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(255, 215, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s ease;
+}
+
+.game-id-modal-overlay.active .game-id-modal {
+    transform: scale(1) translateY(0);
+}
+
+/* Scrollbar styling */
+.game-id-modal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.game-id-modal::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.game-id-modal::-webkit-scrollbar-thumb {
+    background: rgba(255, 215, 0, 0.3);
+    border-radius: 4px;
+}
+
+.game-id-modal::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 215, 0, 0.5);
+}
+
+/* Close button */
+.game-id-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.game-id-modal-close:hover {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: rgba(255, 0, 0, 0.4);
+    transform: rotate(90deg);
+}
+
+/* Header */
+.game-id-modal-header {
+    padding: 40px 32px 24px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.game-id-modal-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 
+        0 8px 24px rgba(255, 215, 0, 0.3),
+        inset 0 -2px 8px rgba(0, 0, 0, 0.2);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.game-id-modal-icon i {
+    font-size: 36px;
+    color: #1a1a2e;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 
+            0 8px 24px rgba(255, 215, 0, 0.3),
+            inset 0 -2px 8px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        box-shadow: 
+            0 8px 32px rgba(255, 215, 0, 0.5),
+            inset 0 -2px 8px rgba(0, 0, 0, 0.2);
+    }
+}
+
+.game-id-modal-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 12px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.game-id-modal-subtitle {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Body */
+.game-id-modal-body {
+    padding: 32px;
+}
+
+/* Fields */
+.game-id-fields {
+    margin-bottom: 24px;
+}
+
+.game-id-field {
+    margin-bottom: 24px;
+}
+
+.game-id-field:last-child {
+    margin-bottom: 0;
+}
+
+.game-id-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.game-id-label .required {
+    color: #ff4757;
+    margin-left: 4px;
+}
+
+.game-id-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 215, 0, 0.2);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 15px;
+    font-family: 'Courier New', monospace;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.game-id-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.game-id-input:focus {
+    outline: none;
+    border-color: #ffd700;
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 
+        0 0 0 3px rgba(255, 215, 0, 0.1),
+        0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.game-id-input.error {
+    border-color: #ff4757;
+    background: rgba(255, 71, 87, 0.1);
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+
+.game-id-hint {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+}
+
+/* Privacy Notice */
+.game-id-privacy-notice {
+    background: rgba(34, 166, 179, 0.1);
+    border: 1px solid rgba(34, 166, 179, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.game-id-privacy-notice i {
+    color: #22a6b3;
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.game-id-privacy-notice p {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
+}
+
+.game-id-privacy-notice strong {
+    color: #22a6b3;
+    font-weight: 600;
+}
+
+/* Error Message */
+.game-id-error {
+    background: rgba(255, 71, 87, 0.1);
+    border: 1px solid rgba(255, 71, 87, 0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 32px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.game-id-error i {
+    color: #ff4757;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.game-id-error {
+    color: #ff4757;
+    font-size: 14px;
+    margin: 0;
+    flex: 1;
+}
+
+/* Footer */
+.game-id-modal-footer {
+    padding: 24px 32px 32px;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    border-top: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+/* Buttons */
+.game-id-btn {
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.game-id-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.game-id-btn-cancel {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.game-id-btn-cancel:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.game-id-btn-cancel:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.game-id-btn-save {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #1a1a2e;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.game-id-btn-save:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.game-id-btn-save:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.game-id-btn i {
+    font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .game-id-modal {
+        max-width: 100%;
+        border-radius: 0;
+        max-height: 100vh;
+    }
+    
+    .game-id-modal-header {
+        padding: 32px 24px 20px;
+    }
+    
+    .game-id-modal-icon {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+    }
+    
+    .game-id-modal-icon i {
+        font-size: 28px;
+    }
+    
+    .game-id-modal-title {
+        font-size: 22px;
+    }
+    
+    .game-id-modal-subtitle {
+        font-size: 14px;
+    }
+    
+    .game-id-modal-body {
+        padding: 24px;
+    }
+    
+    .game-id-modal-footer {
+        padding: 20px 24px 24px;
+        flex-direction: column-reverse;
+    }
+    
+    .game-id-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .game-id-error {
+        margin: 0 24px 16px;
+    }
+}
+
+/* Dark mode adjustments (if needed) */
+@media (prefers-color-scheme: dark) {
+    .game-id-modal-overlay {
+        background: rgba(0, 0, 0, 0.9);
+    }
+}
+
+/* Accessibility */
+.game-id-btn:focus-visible,
+.game-id-input:focus-visible,
+.game-id-modal-close:focus-visible {
+    outline: 2px solid #ffd700;
+    outline-offset: 2px;
+}
+
+/* Loading state */
+.game-id-btn-save .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Success state (if needed for future enhancements) */
+.game-id-success {
+    background: rgba(46, 213, 115, 0.1);
+    border: 1px solid rgba(46, 213, 115, 0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 32px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideDown 0.3s ease;
+}
+
+.game-id-success i {
+    color: #2ed573;
+    font-size: 18px;
+}
+
+.game-id-success p {
+    color: #2ed573;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Prevent body scroll when modal is open */
+body.game-id-modal-open {
+    overflow: hidden;
+}
+
+/* Existing Team Warning Styles */
+.existing-team-info {
+    margin-bottom: 20px;
+}
+
+.existing-team-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.existing-team-logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.existing-team-logo-placeholder {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.1) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: rgba(255, 215, 0, 0.6);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+}
+
+.existing-team-details {
+    flex: 1;
+}
+
+.existing-team-details h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 4px;
+}
+
+.existing-team-details .team-tag {
+    font-size: 14px;
+    color: rgba(255, 215, 0, 0.8);
+    margin: 0 0 8px;
+    font-family: 'Courier New', monospace;
+}
+
+.existing-team-details .team-role {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.existing-team-details .team-role i {
+    color: #ffd700;
+}
+
+/* Responsive adjustments for existing team modal */
+@media (max-width: 600px) {
+    .existing-team-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .existing-team-logo,
+    .existing-team-logo-placeholder {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .existing-team-details .team-role {
+        justify-content: center;
+    }
+}

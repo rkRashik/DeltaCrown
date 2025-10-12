@@ -18,6 +18,7 @@ from ..models import Team, TeamMembership, TeamInvite
 from ..forms import TeamCreationForm, TeamInviteForm
 from ..game_config import GAME_CONFIGS, get_game_config, get_available_roles
 from apps.user_profile.models import UserProfile
+from apps.notifications.services import notify
 
 
 def _ensure_profile(user):
@@ -48,12 +49,34 @@ def team_create_view(request):
                 
                 # Process roster data from V2 form
                 roster_data = request.POST.get('roster_data', '[]')
+                invited_users = []
                 try:
                     invites = json.loads(roster_data)
                     for invite_data in invites:
-                        _process_invite(team, request.user, invite_data)
+                        invited_user = _process_invite(team, request.user, invite_data)
+                        if invited_user:
+                            invited_users.append(invited_user)
                 except json.JSONDecodeError:
                     pass  # Roster is optional
+                
+                # Send notification to team creator
+                notify(
+                    recipients=[request.user],
+                    event='team_created',
+                    title='Team Created Successfully!',
+                    body=f'Your team "{team.name}" has been created. You can now invite members and participate in tournaments.',
+                    url=f'/teams/{team.slug}/'
+                )
+                
+                # Send notifications to invited users
+                if invited_users:
+                    notify(
+                        recipients=invited_users,
+                        event='team_invite',
+                        title='Team Invitation',
+                        body=f'You have been invited to join {team.name}. Check your invitations to accept or decline.',
+                        url='/teams/invitations/'
+                    )
                 
                 messages.success(
                     request,
@@ -110,37 +133,40 @@ def team_create_view(request):
 
 
 def _process_invite(team, sender_user, invite_data):
-    """Process a single invite from the creation form."""
+    """
+    Process a single invite from the creation form.
+    Returns the invited user if successful, None otherwise.
+    """
     try:
         identifier = invite_data.get('identifier', '').strip()
         role = invite_data.get('role', 'PLAYER')
         message = invite_data.get('message', '')
         
         if not identifier:
-            return
+            return None
         
         # Find user by username or email
         profile = None
         if '@' in identifier:
             # Email lookup
             try:
-                profile = UserProfile.objects.get(user__email__iexact=identifier)
+                profile = UserProfile.objects.select_related('user').get(user__email__iexact=identifier)
             except UserProfile.DoesNotExist:
-                return
+                return None
         else:
             # Username lookup
             try:
-                profile = UserProfile.objects.get(user__username__iexact=identifier)
+                profile = UserProfile.objects.select_related('user').get(user__username__iexact=identifier)
             except UserProfile.DoesNotExist:
-                return
+                return None
         
         # Check if already a member
         if TeamMembership.objects.filter(team=team, profile=profile, status='ACTIVE').exists():
-            return
+            return None
         
         # Check if already invited
         if TeamInvite.objects.filter(team=team, invited_user=profile, status='PENDING').exists():
-            return
+            return None
         
         # Create invite
         invite = TeamInvite.objects.create(
@@ -151,8 +177,11 @@ def _process_invite(team, sender_user, invite_data):
             inviter=sender_user
         )
         
+        # Return the user for notification
+        return profile.user
+        
     except Exception:
-        pass  # Silently skip failed invites
+        return None
 
 
 def _get_game_color(game_code):
@@ -320,20 +349,87 @@ def get_game_config_api(request, game_code):
 
 
 @login_required
-@require_http_methods(["POST"])
+@require_http_methods(["GET"])
+def check_existing_team(request):
+    """
+    AJAX endpoint to check if user already has a team for the selected game.
+    Returns: {
+        "has_team": bool,
+        "team": {...} (if has_team=true),
+        "can_create": bool
+    }
+    """
+    try:
+        game = request.GET.get('game', '').strip()
+        
+        if not game:
+            return JsonResponse({
+                'error': 'Game code is required'
+            }, status=400)
+        
+        profile = _ensure_profile(request.user)
+        if not profile:
+            return JsonResponse({
+                'error': 'Profile not found'
+            }, status=404)
+        
+        # Check if user has an active team for this game
+        existing_membership = TeamMembership.objects.filter(
+            profile=profile,
+            status='ACTIVE',
+            team__game=game
+        ).select_related('team').first()
+        
+        if existing_membership:
+            team = existing_membership.team
+            return JsonResponse({
+                'has_team': True,
+                'can_create': False,
+                'team': {
+                    'id': team.id,
+                    'name': team.name,
+                    'tag': team.tag,
+                    'slug': team.slug,
+                    'game': team.game,
+                    'logo': team.logo.url if team.logo else None,
+                    'role': existing_membership.role,
+                    'is_captain': existing_membership.role == 'CAPTAIN',
+                },
+                'message': f'You are already a member of "{team.name}" ({team.tag}) for this game. You can only have one active team per game.'
+            })
+        
+        return JsonResponse({
+            'has_team': False,
+            'can_create': True,
+            'message': 'You can create a team for this game'
+        })
+    
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
 def validate_user_identifier(request):
     """
     AJAX endpoint to validate username/email for invites.
-    Returns: {"valid": bool, "user": {...}, "reason": str}
+    Returns: {"valid": bool, "user_info": {...}, "message": str}
+    Privacy: Only returns basic info until invite is accepted
     """
     try:
-        data = json.loads(request.body)
-        identifier = data.get('identifier', '').strip()
+        # Support both GET and POST
+        if request.method == "GET":
+            identifier = request.GET.get('identifier', '').strip()
+        else:
+            data = json.loads(request.body)
+            identifier = data.get('identifier', '').strip()
         
         if not identifier:
             return JsonResponse({
                 'valid': False,
-                'reason': 'Username or email is required'
+                'message': 'Username or email is required'
             })
         
         profile = None
@@ -345,7 +441,7 @@ def validate_user_identifier(request):
             except UserProfile.DoesNotExist:
                 return JsonResponse({
                     'valid': False,
-                    'reason': 'No user found with this email'
+                    'message': 'No user found with this email'
                 })
         else:
             # Try username
@@ -354,29 +450,28 @@ def validate_user_identifier(request):
             except UserProfile.DoesNotExist:
                 return JsonResponse({
                     'valid': False,
-                    'reason': 'No user found with this username'
+                    'message': 'No user found with this username'
                 })
         
         # Check if trying to invite self
         if profile.user == request.user:
             return JsonResponse({
                 'valid': False,
-                'reason': 'You cannot invite yourself'
+                'message': 'You cannot invite yourself'
             })
         
+        # Return limited info for privacy (more info revealed after acceptance)
         return JsonResponse({
             'valid': True,
-            'user': {
-                'id': profile.id,
+            'user_info': {
                 'username': profile.user.username,
                 'display_name': profile.display_name or profile.user.username,
-                'email': profile.user.email,
-                'avatar': profile.avatar.url if profile.avatar else None,
+                # Don't expose email or full profile until invitation accepted
             },
-            'reason': 'User found'
+            'message': 'User found and can be invited'
         })
     
     except json.JSONDecodeError:
-        return JsonResponse({'valid': False, 'reason': 'Invalid request'}, status=400)
+        return JsonResponse({'valid': False, 'message': 'Invalid request'}, status=400)
     except Exception as e:
-        return JsonResponse({'valid': False, 'reason': str(e)}, status=500)
+        return JsonResponse({'valid': False, 'message': str(e)}, status=500)

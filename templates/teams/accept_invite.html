@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Accept Invite - {{ team.name }} | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/game-id-prompt.css' %}">
+<style>
+.accept-invite-page {
+    min-height: calc(100vh - 200px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.accept-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    border-radius: 16px;
+    max-width: 600px;
+    width: 100%;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.team-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.team-logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(255, 215, 0, 0.5);
+}
+
+.team-logo-placeholder {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: #1a1a2e;
+}
+
+.team-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px;
+}
+
+.team-tag {
+    font-size: 16px;
+    color: rgba(255, 215, 0, 0.9);
+    font-family: 'Courier New', monospace;
+}
+
+.invite-message {
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.invite-message p {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.loading-state {
+    text-align: center;
+    padding: 20px;
+}
+
+.spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 215, 0, 0.2);
+    border-top-color: #ffd700;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.btn {
+    flex: 1;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    font-size: 15px;
+}
+
+.btn-accept {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #1a1a2e;
+}
+
+.btn-accept:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.4);
+}
+
+.btn-decline {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-decline:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="accept-invite-page">
+    {% csrf_token %}
+    <div class="accept-card">
+        <div class="team-header">
+            {% if team.logo %}
+                <img src="{{ team.logo.url }}" alt="{{ team.name }}" class="team-logo">
+            {% else %}
+                <div class="team-logo-placeholder">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+            {% endif %}
+            
+            <h1 class="team-name">{{ team.name }}</h1>
+            <p class="team-tag">#{{ team.tag }}</p>
+        </div>
+
+        <div class="invite-message">
+            <p>
+                <strong>{{ inviter_name }}</strong> has invited you to join 
+                <strong>{{ team.name }}</strong>
+                {% if team.game %}
+                    for <strong>{{ game_name }}</strong>
+                {% endif %}
+            </p>
+        </div>
+
+        <div id="loading-state" class="loading-state">
+            <div class="spinner"></div>
+            <p style="margin-top: 16px; color: rgba(255, 255, 255, 0.7);">
+                Checking requirements...
+            </p>
+        </div>
+
+        <div id="action-buttons" class="action-buttons" style="display: none;">
+            <a href="{% url 'teams:decline_invite' token=invite.token %}" class="btn btn-decline">
+                <i class="fas fa-times"></i>
+                Decline
+            </a>
+            <button type="button" id="btn-accept" class="btn btn-accept">
+                <i class="fas fa-check"></i>
+                Accept Invite
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Game ID Prompt System -->
+<script src="{% static 'js/game-id-prompt.js' %}"></script>
+
+<script>
+const inviteData = {
+    token: '{{ invite.token }}',
+    teamSlug: '{{ team.slug }}',
+    teamGame: '{{ team.game }}',
+    hasGameId: {{ has_game_id|yesno:"true,false" }},
+    acceptUrl: '{% url "teams:accept_invite" token=invite.token %}',
+};
+
+async function handleAccept() {
+    const btn = document.getElementById('btn-accept');
+    const originalText = btn.innerHTML;
+    
+    // Check for game ID if needed
+    if (inviteData.teamGame && !inviteData.hasGameId && window.gameIDPrompt) {
+        console.log('[InviteAccept] User missing game ID, showing prompt');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+        
+        try {
+            const success = await window.gameIDPrompt.prompt(inviteData.teamGame);
+            
+            if (!success) {
+                console.log('[InviteAccept] User cancelled game ID prompt');
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                return;
+            }
+            
+            console.log('[InviteAccept] Game ID saved, proceeding with accept');
+        } catch (error) {
+            console.error('[InviteAccept] Error showing game ID prompt:', error);
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            return;
+        }
+    }
+    
+    // Proceed to accept via POST
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Joining...';
+    
+    // Create and submit form
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = inviteData.acceptUrl;
+    
+    // Add CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        form.appendChild(csrfToken.cloneNode(true));
+    }
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    const loadingState = document.getElementById('loading-state');
+    const actionButtons = document.getElementById('action-buttons');
+    const acceptBtn = document.getElementById('btn-accept');
+    
+    // Hide loading, show buttons
+    setTimeout(() => {
+        loadingState.style.display = 'none';
+        actionButtons.style.display = 'flex';
+    }, 500);
+    
+    // Bind accept button
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', handleAccept);
+    }
+});
+</script>
+{% endblock %}

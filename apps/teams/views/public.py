@@ -1146,9 +1146,40 @@ def accept_invite_view(request, token: str):
         messages.error(request, "This invite cannot be accepted.")
         return redirect(reverse("teams:my_invites"))
 
+    # If GET request, show the accept page with game ID check
+    if request.method == "GET":
+        # Check if user has game ID for this team's game
+        game_code = getattr(invite.team, "game", None)
+        has_game_id = True
+        game_name = ""
+        
+        if game_code:
+            game_choices = dict(Team._meta.get_field('game').choices)
+            game_name = game_choices.get(game_code, game_code.upper())
+            game_id = profile.get_game_id(game_code)
+            has_game_id = bool(game_id)
+        
+        # Get inviter name
+        inviter_name = "Team Captain"
+        if invite.inviter:
+            inviter_profile = _ensure_profile(invite.inviter)
+            if inviter_profile:
+                inviter_name = inviter_profile.display_name or invite.inviter.username
+        
+        context = {
+            'invite': invite,
+            'team': invite.team,
+            'has_game_id': has_game_id,
+            'game_name': game_name,
+            'inviter_name': inviter_name,
+        }
+        
+        return render(request, 'teams/accept_invite.html', context)
+    
+    # POST request - process the acceptance
     # One-team-per-game guard: block if user already in another team of this game
     game_code = getattr(invite.team, "game", None)
-    if game_code and TeamMembership.objects.filter(profile=profile, team__game=game_code).exists():
+    if game_code and TeamMembership.objects.filter(profile=profile, team__game=game_code, status='ACTIVE').exists():
         messages.error(request, f"You already belong to a {game_code.title()} team.")
         return redirect(reverse("teams:my_invites"))
 
@@ -1160,7 +1191,7 @@ def accept_invite_view(request, token: str):
     invite.status = "ACCEPTED"
     invite.save(update_fields=["status"])
     messages.success(request, f"You joined {getattr(invite.team, 'tag', invite.team.name)}.")
-    return redirect(reverse("teams:my_invites"))
+    return redirect(reverse("teams:detail", kwargs={"slug": invite.team.slug}))
 
 
 @login_required

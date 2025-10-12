@@ -75,6 +75,7 @@ from .views.create import (
     validate_team_tag,
     get_game_config_api,
     validate_user_identifier,
+    check_existing_team,
 )
 # Import tournament integration views (Task 5)
 from .views.tournaments import (
@@ -277,6 +278,8 @@ urlpatterns = [
     path("api/validate-tag/", validate_team_tag, name="validate_team_tag"),
     path("api/game-config/<str:game_code>/", get_game_config_api, name="game_config_api"),
     path("api/validate-user/", validate_user_identifier, name="validate_user_identifier"),
+    path("api/validate-invite/", validate_user_identifier, name="validate_invite"),
+    path("api/check-existing-team/", check_existing_team, name="check_existing_team"),
     
     # Social features namespace
     path("", include("apps.teams.urls_social", namespace="teams_social")),

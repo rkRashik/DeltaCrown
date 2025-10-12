@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Your Team | DeltaCrown Esports{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teams/css/team-create.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="team-create-page">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <button type="button" class="back-btn" onclick="window.history.back()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="mobile-title">Create Team</h1>
+        <button type="button" class="help-btn" data-help="main">
+            <i class="fas fa-question-circle"></i>
+        </button>
+    </div>
+
+    <!-- Desktop Header -->
+    <div class="desktop-header">
+        <div class="header-content">
+            <div class="header-left">
+                <div class="icon-badge">
+                    <i class="fas fa-flag-checkered"></i>
+                </div>
+                <div>
+                    <h1>Create Your Team</h1>
+                    <p>Build your esports identity and register for tournaments</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-value">5,000+</span>
+                    <span class="stat-label">Active Teams</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-value">10</span>
+                    <span class="stat-label">Games Supported</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">
+            {% if message.tags == 'error' %}
+                <i class="fas fa-exclamation-circle"></i>
+            {% else %}
+                <i class="fas fa-check-circle"></i>
+            {% endif %}
+            <span>{{ message }}</span>
+            <button type="button" class="close-alert"><i class="fas fa-times"></i></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Container -->
+    <div class="create-container">
+        <!-- Form Column -->
+        <div class="form-column">
+            <form method="post" enctype="multipart/form-data" id="team-create-form" novalidate>
+                {% csrf_token %}
+                
+                <!-- Hidden fields -->
+                <input type="hidden" name="invites_json" id="invites_json" value="[]">
+                <input type="hidden" name="roster_order" id="roster_order" value="[]">
+                
+                <!-- Progress Indicator -->
+                <div class="progress-bar">
+                    <div class="progress-step active" data-step="1">
+                        <div class="step-circle">
+                            <span class="step-number">1</span>
+                            <i class="step-icon fas fa-check"></i>
+                        </div>
+                        <span class="step-label">Team Info</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step" data-step="2">
+                        <div class="step-circle">
+                            <span class="step-number">2</span>
+                            <i class="step-icon fas fa-check"></i>
+                        </div>
+                        <span class="step-label">Roster</span>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step" data-step="3">
+                        <div class="step-circle">
+                            <span class="step-number">3</span>
+                            <i class="step-icon fas fa-check"></i>
+                        </div>
+                        <span class="step-label">Media</span>
+                    </div>
+                </div>
+
+                <!-- Section 1: Team Information -->
+                <section class="form-section active" data-section="1">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon"><i class="fas fa-info-circle"></i></span>
+                            Team Information
+                        </h2>
+                        <p class="section-subtitle">Basic details about your team</p>
+                    </div>
+
+                    <div class="form-grid">
+                        <!-- Team Name -->
+                        <div class="form-group span-2">
+                            <label for="id_name" class="required">Team Name</label>
+                            {{ form.name }}
+                            <div class="field-hint">
+                                <i class="fas fa-lightbulb"></i>
+                                <span>Choose a unique name (3-50 characters)</span>
+                            </div>
+                            <div id="name-feedback" class="validation-feedback"></div>
+                            {% if form.name.errors %}
+                            <div class="error-message">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Team Tag -->
+                        <div class="form-group">
+                            <label for="id_tag" class="required">Team Tag</label>
+                            {{ form.tag }}
+                            <div class="field-hint">
+                                <i class="fas fa-hashtag"></i>
+                                <span>2-10 characters (e.g., TL, G2, LOUD)</span>
+                            </div>
+                            <div id="tag-feedback" class="validation-feedback"></div>
+                            {% if form.tag.errors %}
+                            <div class="error-message">{{ form.tag.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="form-group span-2">
+                            <label for="id_description">Team Description</label>
+                            {{ form.description }}
+                            <div class="char-count">
+                                <span id="char-count">0</span> / 500 characters
+                            </div>
+                            {% if form.description.errors %}
+                            <div class="error-message">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Game Selection (Moved from Section 2) -->
+                        <div class="form-group span-2">
+                            <label for="id_game" class="required">Select Your Game</label>
+                            <select name="game" id="id_game" class="form-control" required>
+                                <option value="">Choose your competitive game...</option>
+                                {% for value, label in form.fields.game.choices %}
+                                    {% if value %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div class="field-hint">
+                                <i class="fas fa-gamepad"></i>
+                                <span>Region options will update based on your game</span>
+                            </div>
+                            {% if form.game.errors %}
+                            <div class="error-message">{{ form.game.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Region (Now dynamic based on game) -->
+                        <div class="form-group span-2">
+                            <label for="id_region">Region</label>
+                            <select name="region" id="id_region" class="form-control">
+                                <option value="">Select game first to see regions...</option>
+                            </select>
+                            <div class="field-hint">
+                                <i class="fas fa-globe-asia"></i>
+                                <span>Your team's competitive region</span>
+                            </div>
+                            {% if form.region.errors %}
+                            <div class="error-message">{{ form.region.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="section-actions">
+                        <button type="button" class="btn btn-primary btn-next" data-next="2">
+                            Next: Team Roster
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Section 2: Roster Management -->
+                <section class="form-section" data-section="2">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon"><i class="fas fa-users"></i></span>
+                            Build Your Roster
+                        </h2>
+                        <p class="section-subtitle">Add players and assign roles (optional)</p>
+                    </div>
+
+                    <!-- Roster Stats -->
+                    <div class="roster-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-number" id="startersCount">0</span>
+                                <span class="stat-text">Starters</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-user-clock"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-number" id="subsCount">0</span>
+                                <span class="stat-text">Substitutes</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-envelope"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-number" id="invitesCount">0</span>
+                                <span class="stat-text">Invites</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-user-friends"></i></div>
+                            <div class="stat-content">
+                                <span class="stat-number" id="totalRoster">1</span>
+                                <span class="stat-text">Total Roster</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Captain Card (locked) -->
+                    <div class="captain-card">
+                        <div class="captain-badge">
+                            <i class="fas fa-crown"></i>
+                            <span>CAPTAIN</span>
+                        </div>
+                        <div class="player-card-content">
+                            <div class="player-avatar">
+                                {% if profile.avatar %}
+                                <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}">
+                                {% else %}
+                                <div class="avatar-placeholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="player-info">
+                                <h4 class="player-name">{{ profile.display_name|default:profile.user.username }}</h4>
+                                <p class="player-meta">
+                                    <i class="fas fa-at"></i> {{ profile.user.username }}
+                                </p>
+                            </div>
+                            <div class="player-actions">
+                                <span class="locked-badge">
+                                    <i class="fas fa-lock"></i> You
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invite List -->
+                    <div id="invitesList" class="invites-list">
+                        <!-- Invites will be dynamically added here -->
+                    </div>
+
+                    <!-- Add Player Button -->
+                    <button type="button" id="addInviteBtn" class="btn-add-player">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Invite Player</span>
+                    </button>
+
+                    <div class="roster-note">
+                        <i class="fas fa-info-circle"></i>
+                        <span>You can invite up to <strong id="maxInvites">7</strong> players. Roles can be assigned based on the selected game.</span>
+                    </div>
+
+                    <div class="section-actions">
+                        <button type="button" class="btn btn-secondary btn-prev" data-prev="1">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Back
+                        </button>
+                        <button type="button" class="btn btn-primary btn-next" data-next="3">
+                            Next: Add Media
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Section 3: Media & Branding -->
+                <section class="form-section" data-section="3">
+                    <div class="section-header">
+                        <h2>
+                            <span class="section-icon"><i class="fas fa-images"></i></span>
+                            Team Branding
+                        </h2>
+                        <p class="section-subtitle">Upload logo and banner to represent your team</p>
+                    </div>
+
+                    <div class="media-grid">
+                        <!-- Logo Upload -->
+                        <div class="media-upload-card">
+                            <label class="upload-label">Team Logo</label>
+                            <div class="upload-area" id="logoUploadArea">
+                                <input type="file" id="id_logo" name="logo" accept="image/*" style="display: none;">
+                                <div class="upload-preview" id="logoPreview">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div class="upload-content">
+                                    <button type="button" id="btn-upload-logo" class="btn btn-upload">
+                                        <i class="fas fa-upload"></i> Choose Logo
+                                    </button>
+                                    <p class="upload-hint">Square image, max 2MB (PNG, JPG)</p>
+                                </div>
+                            </div>
+                            {% if form.logo.errors %}
+                            <div class="error-message">{{ form.logo.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Banner Upload -->
+                        <div class="media-upload-card">
+                            <label class="upload-label">Team Banner</label>
+                            <div class="upload-area" id="bannerUploadArea">
+                                <input type="file" id="id_banner_image" name="banner_image" accept="image/*" style="display: none;">
+                                <div class="upload-preview wide" id="bannerPreview">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                <div class="upload-content">
+                                    <button type="button" id="btn-upload-banner" class="btn btn-upload">
+                                        <i class="fas fa-upload"></i> Choose Banner
+                                    </button>
+                                    <p class="upload-hint">Wide format (16:9), max 2MB</p>
+                                </div>
+                            </div>
+                            {% if form.banner_image.errors %}
+                            <div class="error-message">{{ form.banner_image.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Optional: Social Links (Collapsible) -->
+                    <div class="optional-section">
+                        <button type="button" id="optional-toggle" class="optional-toggle" data-toggle="socialLinks">
+                            <span class="toggle-text">
+                                <i class="fas fa-share-alt"></i>
+                                Add Social Links (Optional)
+                            </span>
+                            <i class="fas fa-chevron-down toggle-icon"></i>
+                        </button>
+                        <div class="optional-content" id="socialLinks" style="display: none;">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="id_twitter">
+                                        <i class="fab fa-twitter"></i> Twitter
+                                    </label>
+                                    {{ form.twitter }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_instagram">
+                                        <i class="fab fa-instagram"></i> Instagram
+                                    </label>
+                                    {{ form.instagram }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_discord">
+                                        <i class="fab fa-discord"></i> Discord
+                                    </label>
+                                    {{ form.discord }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_youtube">
+                                        <i class="fab fa-youtube"></i> YouTube
+                                    </label>
+                                    {{ form.youtube }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_twitch">
+                                        <i class="fab fa-twitch"></i> Twitch
+                                    </label>
+                                    {{ form.twitch }}
+                                </div>
+                                <div class="form-group">
+                                    <label for="id_linktree">
+                                        <i class="fas fa-link"></i> Linktree
+                                    </label>
+                                    {{ form.linktree }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-actions">
+                        <button type="button" class="btn btn-secondary btn-prev" data-prev="2">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Back
+                        </button>
+                        <button type="submit" id="submitBtn" class="btn btn-success btn-submit">
+                            <span id="submitText">
+                                <i class="fas fa-flag-checkered"></i>
+                                Create Team
+                            </span>
+                            <span id="submitLoading" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                Creating...
+                            </span>
+                        </button>
+                    </div>
+                </section>
+            </form>
+        </div>
+
+        <!-- Preview Column -->
+        <div class="preview-column">
+            <div class="preview-sticky">
+                <div class="preview-header">
+                    <h3>Live Preview</h3>
+                    <button type="button" class="preview-close" id="closePreview">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Team Card Preview -->
+                <div class="team-card-preview">
+                    <!-- Banner -->
+                    <div class="preview-banner" id="previewBanner">
+                        <div class="banner-overlay"></div>
+                    </div>
+
+                    <!-- Team Info -->
+                    <div class="preview-content">
+                        <div class="preview-header-row">
+                            <div class="preview-logo" id="previewLogo">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="preview-badge" id="previewGameBadge" style="display: none;">
+                                <i class="fas fa-gamepad"></i>
+                                <span></span>
+                            </div>
+                        </div>
+
+                        <div class="preview-team-info">
+                            <h3 id="previewName">Team Name</h3>
+                            <p id="previewTag">#TAG</p>
+                        </div>
+
+                        <div class="preview-meta">
+                            <span id="previewRegion" style="display: none;">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span></span>
+                            </span>
+                            <span id="previewGame">
+                                <i class="fas fa-gamepad"></i>
+                                Select Game
+                            </span>
+                        </div>
+
+                        <div class="preview-description" id="previewDescription">
+                            Add a team description to tell others about your team...
+                        </div>
+
+                        <!-- Social Links Preview -->
+                        <div class="preview-socials" id="previewSocials" style="display: none;">
+                            <!-- Social icons will be added dynamically -->
+                        </div>
+
+                        <!-- Roster Preview -->
+                        <div class="preview-roster">
+                            <div class="roster-header">
+                                <h4>Team Roster</h4>
+                                <span class="roster-count" id="previewRosterCount">1 member</span>
+                            </div>
+                            <div class="roster-list" id="previewRosterList">
+                                <!-- Captain -->
+                                <div class="roster-member captain">
+                                    <div class="member-avatar">
+                                        {% if profile.avatar %}
+                                        <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}">
+                                        {% else %}
+                                        <div class="avatar-placeholder">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="member-info">
+                                        <span class="member-name">{{ profile.display_name|default:profile.user.username }}</span>
+                                        <span class="member-role">
+                                            <i class="fas fa-crown"></i> Captain
+                                        </span>
+                                    </div>
+                                </div>
+                                <!-- Dynamic roster members will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips Panel -->
+                <div class="tips-panel">
+                    <div class="tip-header">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>Tips</span>
+                    </div>
+                    <div class="tip-content" id="tipContent">
+                        <p>Choose a memorable team name that represents your brand and gaming style.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Preview Toggle -->
+    <button type="button" class="mobile-preview-toggle" id="mobilePreviewToggle">
+        <i class="fas fa-eye"></i>
+        <span>Preview</span>
+    </button>
+</div>
+
+<!-- Help Modal -->
+<div class="modal" id="helpModal" style="display: none;">
+    <div class="modal-overlay" onclick="closeHelpModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-question-circle"></i> Need Help?</h3>
+            <button type="button" class="modal-close" onclick="closeHelpModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <h4>Creating Your Team</h4>
+            <ul>
+                <li><strong>Team Name:</strong> Must be unique across DeltaCrown (3-50 characters)</li>
+                <li><strong>Team Tag:</strong> Short abbreviation for your team (2-10 characters)</li>
+                <li><strong>Game Selection:</strong> Choose your primary competitive game</li>
+                <li><strong>Roster:</strong> Invite players via username or email</li>
+                <li><strong>Roles:</strong> Assign roles based on your game (e.g., Duelist, IGL)</li>
+                <li><strong>Media:</strong> Upload logo (square) and banner (16:9) for best results</li>
+            </ul>
+            <p class="help-note">You can always edit these details later from your team dashboard.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Game ID Prompt System -->
+<link rel="stylesheet" href="{% static 'css/game-id-prompt.css' %}">
+<script src="{% static 'js/game-id-prompt.js' %}"></script>
+
+<script>
+    // Pass data from Django to JavaScript
+    window.GAME_CONFIGS = {{ game_configs|safe }};
+    window.CSRF_TOKEN = '{{ csrf_token }}';
+    window.PROFILE_USERNAME = '{{ profile.user.username }}';
+    window.PROFILE_DISPLAY_NAME = '{{ profile.display_name|default:profile.user.username }}';
+</script>
+<script src="{% static 'teams/js/team-create.js' %}"></script>
+{% endblock %}

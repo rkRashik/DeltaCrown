@@ -24,7 +24,7 @@ REGION_CHOICES = [
 class TeamCreationForm(forms.ModelForm):
     class Meta:
         model = Team
-        fields = ['name', 'tag', 'description', 'logo', 'game', 'region', 'banner_image', 
+        fields = ['name', 'tag', 'tagline', 'description', 'logo', 'game', 'region', 'banner_image', 
                   'twitter', 'instagram', 'discord', 'youtube', 'twitch', 'linktree']
         widgets = {
             'name': forms.TextInput(attrs={
@@ -37,6 +37,11 @@ class TeamCreationForm(forms.ModelForm):
                 'placeholder': 'Enter team tag (2-10 characters)',
                 'maxlength': '10',
                 'style': 'text-transform: uppercase;'
+            }),
+            'tagline': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., "Rise Above", "Never Back Down", "Victory Awaits"',
+                'maxlength': '200'
             }),
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -90,8 +95,31 @@ class TeamCreationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         
         # Set choices for region field
-        self.fields['region'].widget.choices = REGION_CHOICES
-        self.fields['region'].required = False
+        self.fields['region'].choices = REGION_CHOICES
+        self.fields['region'].required = True  # Make region required
+
+    def clean_logo(self):
+        """Validate logo file size (max 10MB)"""
+        logo = self.cleaned_data.get('logo')
+        if logo:
+            if logo.size > 10 * 1024 * 1024:  # 10MB in bytes
+                raise ValidationError('Logo file size must be under 10MB.')
+        return logo
+
+    def clean_banner_image(self):
+        """Validate banner image file size (max 10MB)"""
+        banner = self.cleaned_data.get('banner_image')
+        if banner:
+            if banner.size > 10 * 1024 * 1024:  # 10MB in bytes
+                raise ValidationError('Banner image file size must be under 10MB.')
+        return banner
+
+    def clean_region(self):
+        """Ensure region is properly saved"""
+        region = self.cleaned_data.get('region')
+        if not region or region == '':
+            raise ValidationError('Please select a region for your team.')
+        return region
 
     def save(self, commit=True):
         team = super().save(commit=False)
