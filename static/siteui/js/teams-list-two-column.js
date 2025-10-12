@@ -1,581 +1,456 @@
-/**
- * Professional Two-Column Team Rankings Page
- * Enhanced with Professional Sorting Controls and Compact Design
- */
+﻿(function () {
+  "use strict";
 
-class TeamsPage {
-  constructor() {
-    this.currentPage = 1;
-    this.loading = false;
-    this.hasMorePages = true;
-    this.searchTimeout = null;
-    this.currentFilters = this.getUrlParams();
-    
-    this.init();
-  }
+  class TeamsArenaPage {
+    constructor() {
+      this.debounceDelay = 250;
+      this.debounceHandle = null;
+      this.isLoading = false;
+      this.currentView = localStorage.getItem("teams-arena-view") || "list";
 
-  init() {
-    this.bindEvents();
-    this.setupInfiniteScroll();
-    this.setupSearch();
-    this.setupMobileSidebar();
-    this.setupAccessibility();
-    this.setupThemeToggle();
-    this.setupExpandableFilters();
-    this.initializeView();
-  }
+      this.handleGameChipClick = (event) => this.onGameChipClick(event);
+      this.handleLoadMoreClick = (event) => this.onLoadMore(event);
+      this.handleViewToggleClick = (event) => this.onViewToggle(event);
+      this.handleResetFiltersClick = (event) => this.onResetFilters(event);
 
-  // Event Bindings
-  bindEvents() {
-    // Load More Button
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    if (loadMoreBtn) {
-      loadMoreBtn.addEventListener('click', () => this.loadMoreTeams());
-    }
-
-    // Sort Select
-    const sortSelect = document.getElementById('sort-select');
-    if (sortSelect) {
-      sortSelect.addEventListener('change', (e) => this.handleSortChange(e));
-    }
-
-    // Game Filter Links
-    const gameFilters = document.querySelectorAll('.game-filter-item');
-    gameFilters.forEach(filter => {
-      filter.addEventListener('click', (e) => this.handleGameFilter(e));
-    });
-
-    // Mobile Sidebar Toggle
-    const mobileToggle = document.getElementById('mobile-sidebar-toggle');
-    const sidebarOverlay = document.getElementById('sidebar-overlay');
-    const sidebarClose = document.getElementById('sidebar-close');
-
-    if (mobileToggle) {
-      mobileToggle.addEventListener('click', () => this.toggleMobileSidebar(true));
-    }
-    
-    if (sidebarOverlay) {
-      sidebarOverlay.addEventListener('click', () => this.toggleMobileSidebar(false));
-    }
-    
-    if (sidebarClose) {
-      sidebarClose.addEventListener('click', () => this.toggleMobileSidebar(false));
-    }
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
-
-    // Game filter toggle
-    const gameFilterToggle = document.getElementById('game-filter-toggle');
-    if (gameFilterToggle) {
-      gameFilterToggle.addEventListener('click', () => this.toggleGameFilters());
-    }
-
-    // Theme toggle - REMOVED (using unified navigation theme toggle)
-    // const themeToggle = document.getElementById('theme-toggle');
-    // if (themeToggle) {
-    //   themeToggle.addEventListener('click', () => this.toggleTheme());
-    // }
-  }
-
-  // Enhanced Search Setup with Professional Controls
-  setupSearch() {
-    const searchInput = document.getElementById('team-search');
-    if (!searchInput) return;
-
-    // Real-time search with debouncing
-    searchInput.addEventListener('input', (e) => {
-      clearTimeout(this.searchTimeout);
-      const query = e.target.value.trim();
-      
-      // Show/hide clear button
-      const clearBtn = document.getElementById('search-clear');
-      if (clearBtn) {
-        clearBtn.style.display = query ? 'block' : 'none';
+      this.cacheElements();
+      if (!this.teamList) {
+        return;
       }
-      
-      this.searchTimeout = setTimeout(() => {
-        this.currentFilters.q = query;
-        this.performSearch();
-      }, 300); // 300ms debounce
-    });
 
-    // Handle Enter key
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        clearTimeout(this.searchTimeout);
-        this.currentFilters.q = e.target.value.trim();
-        this.performSearch();
-      }
-    });
-
-    // Clear search button
-    const clearBtn = document.getElementById('search-clear');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        searchInput.value = '';
-        clearBtn.style.display = 'none';
-        this.currentFilters.q = '';
-        this.performSearch();
-        searchInput.focus();
-      });
+      this.currentFilters = this.readFiltersFromUrl();
+      this.syncUiFromFilters();
+      this.bindStaticEvents();
+      this.bindDynamicControls();
+      this.updateViewClasses();
+      this.updateStateFromDom();
+      this.toggleClearButton();
     }
 
-    // Sort direction toggle
-    const sortToggle = document.getElementById('sort-direction-toggle');
-    if (sortToggle) {
-      sortToggle.addEventListener('click', () => {
-        this.toggleSortDirection();
-      });
+    cacheElements() {
+      this.searchInput = document.getElementById("team-search");
+      this.clearButton = document.getElementById("search-clear");
+      this.sortSelect = document.getElementById("sort-select");
+      this.sortToggle = document.getElementById("sort-direction-toggle");
+      this.sortIcon = document.getElementById("sort-direction-icon");
+      this.teamList = document.getElementById("team-list");
+      this.resultsSection = document.getElementById("teams-results");
+      this.gameWrap = document.getElementById("game-chip-wrap");
+      this.loadMoreWrapper = document.querySelector(".load-more-wrap");
+      this.loadMoreBtn = document.getElementById("load-more-btn");
+      this.feedback = document.getElementById("team-feedback");
+      this.resetFiltersBtn = document.getElementById("reset-filters");
+      this.viewModeGroup = document.querySelector(".view-mode");
+      this.viewButtons = Array.from(document.querySelectorAll(".view-toggle"));
+      this.paginationNav = document.querySelector(".pagination-fallback");
     }
 
-    // View toggle buttons
-    const viewToggles = document.querySelectorAll('.view-toggle');
-    viewToggles.forEach(toggle => {
-      toggle.addEventListener('click', (e) => {
-        const viewType = e.target.closest('.view-toggle').dataset.view;
-        this.changeView(viewType);
-      });
-    });
-  }
-
-  // Perform search and update results
-  async performSearch() {
-    this.showLoading(true);
-    
-    try {
-      const params = new URLSearchParams(this.currentFilters);
-      const response = await fetch(`${window.location.pathname}?${params}`, {
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'text/html'
+    readFiltersFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const filters = {};
+      params.forEach((value, key) => {
+        if (key === "page") {
+          return;
         }
+        filters[key] = value;
       });
+      return filters;
+    }
 
-      if (response.ok) {
-        const html = await response.text();
-        this.updateTeamList(html);
-        this.updateUrl(this.currentFilters);
-        this.currentPage = 1;
-        this.hasMorePages = true;
+    syncUiFromFilters() {
+      if (this.searchInput) {
+        this.searchInput.value = this.currentFilters.q || "";
       }
-    } catch (error) {
-      console.error('Search failed:', error);
-      this.showErrorMessage('Search failed. Please try again.');
-    } finally {
-      this.showLoading(false);
-    }
-  }
 
-  // Handle professional sort changes
-  handleSortChange(e) {
-    const sortValue = e.target.value;
-    
-    // Parse sort type and direction from the value
-    if (sortValue.includes('_')) {
-      const [sortField, direction] = sortValue.split('_');
-      this.currentFilters.sort = this.mapSortField(sortField);
-      this.currentFilters.order = direction === 'high' ? 'desc' : 'asc';
-    } else {
-      // Fallback for legacy sort values
-      this.currentFilters.sort = sortValue;
-      this.currentFilters.order = 'desc';
-    }
-    
-    this.updateSortDirectionIcon();
-    this.performSearch();
-  }
-
-  // Map sort field names for backend compatibility
-  mapSortField(field) {
-    const fieldMap = {
-      'rank': 'powerrank',
-      'points': 'points',
-      'members': 'members',
-      'name': 'az',
-      'newest': 'recent',
-      'oldest': 'recent'
-    };
-    return fieldMap[field] || field;
-  }
-
-  // Toggle sort direction
-  toggleSortDirection() {
-    this.currentFilters.order = this.currentFilters.order === 'asc' ? 'desc' : 'asc';
-    this.updateSortDirectionIcon();
-    this.performSearch();
-  }
-
-  // Update sort direction icon
-  updateSortDirectionIcon() {
-    const toggle = document.getElementById('sort-direction-toggle');
-    const icon = document.getElementById('sort-direction-icon');
-    
-    if (toggle && icon) {
-      toggle.className = `sort-direction-toggle ${this.currentFilters.order || 'desc'}`;
-      
-      if (this.currentFilters.order === 'asc') {
-        icon.className = 'fas fa-sort-amount-up';
-        toggle.setAttribute('title', 'Sort: Low to High');
-      } else {
-        icon.className = 'fas fa-sort-amount-down';
-        toggle.setAttribute('title', 'Sort: High to Low');
+      if (this.sortSelect && this.currentFilters.sort) {
+        this.sortSelect.value = this.currentFilters.sort;
       }
+
+      this.updateSortDirectionIcon();
     }
-  }
 
-  // Change view type (grid/list)
-  changeView(viewType) {
-    const toggles = document.querySelectorAll('.view-toggle');
-    const teamList = document.getElementById('team-list-container');
-    
-    // Update active state
-    toggles.forEach(toggle => {
-      toggle.classList.toggle('active', toggle.dataset.view === viewType);
-    });
-    
-    // Apply view class to team list
-    if (teamList) {
-      teamList.className = teamList.className.replace(/view-\w+/g, '');
-      teamList.classList.add(`view-${viewType}`);
-    }
-    
-    // Store preference
-    localStorage.setItem('teams-view-preference', viewType);
-  }
+    bindStaticEvents() {
+      if (this.searchInput) {
+        this.searchInput.addEventListener("input", (event) => {
+          const value = event.target.value.trim();
+          this.toggleClearButton(value.length > 0);
+          clearTimeout(this.debounceHandle);
+          this.debounceHandle = window.setTimeout(() => {
+            this.updateFilter("q", value);
+            this.fetchPage(1);
+          }, this.debounceDelay);
+        });
 
-  // Initialize view from saved preference
-  initializeView() {
-    const savedView = localStorage.getItem('teams-view-preference') || 'list';
-    this.changeView(savedView);
-    this.updateSortDirectionIcon();
-  }
-
-  // Handle game filter clicks
-  handleGameFilter(e) {
-    e.preventDefault();
-    const gameCode = e.currentTarget.dataset.game;
-    
-    // Update active state
-    document.querySelectorAll('.game-filter-item').forEach(item => {
-      item.classList.remove('active');
-    });
-    e.currentTarget.classList.add('active');
-    
-    // Update filters
-    this.currentFilters.game = gameCode;
-    this.performSearch();
-    
-    // Close mobile sidebar if open
-    if (window.innerWidth <= 1024) {
-      this.toggleMobileSidebar(false);
-    }
-  }
-
-  // Infinite Scroll Setup
-  setupInfiniteScroll() {
-    const container = document.getElementById('team-list-container');
-    if (!container) return;
-
-    // Use Intersection Observer for better performance
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && this.hasMorePages && !this.loading) {
-          const loadMoreBtn = document.getElementById('load-more-btn');
-          if (loadMoreBtn && entry.target === loadMoreBtn) {
-            this.loadMoreTeams();
+        this.searchInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            const value = event.target.value.trim();
+            clearTimeout(this.debounceHandle);
+            this.updateFilter("q", value);
+            this.fetchPage(1);
           }
-        }
-      });
-    }, {
-      root: container,
-      rootMargin: '100px'
-    });
+        });
+      }
 
-    // Observe the load more button
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    if (loadMoreBtn) {
-      observer.observe(loadMoreBtn);
+      if (this.clearButton) {
+        this.clearButton.addEventListener("click", () => {
+          if (!this.searchInput) {
+            return;
+          }
+          this.searchInput.value = "";
+          this.toggleClearButton(false);
+          this.updateFilter("q", "");
+          this.fetchPage(1);
+          this.searchInput.focus();
+        });
+      }
+
+      if (this.sortSelect) {
+        this.sortSelect.addEventListener("change", (event) => {
+          const value = event.target.value;
+          this.updateFilter("sort", value);
+          this.fetchPage(1);
+        });
+      }
+
+      if (this.sortToggle) {
+        this.sortToggle.addEventListener("click", () => {
+          const nextOrder = this.currentFilters.order === "asc" ? "desc" : "asc";
+          this.updateFilter("order", nextOrder);
+          this.updateSortDirectionIcon();
+          this.fetchPage(1);
+        });
+      }
     }
-  }
 
-  // Load More Teams (AJAX)
-  async loadMoreTeams() {
-    if (this.loading || !this.hasMorePages) return;
-    
-    this.loading = true;
-    this.showLoadMoreLoading(true);
-    
-    try {
+    bindDynamicControls() {
+      if (this.gameWrap) {
+        this.gameWrap.removeEventListener("click", this.handleGameChipClick);
+        this.gameWrap.addEventListener("click", this.handleGameChipClick);
+      }
+
+      if (this.loadMoreBtn) {
+        this.loadMoreBtn.removeEventListener("click", this.handleLoadMoreClick);
+        this.loadMoreBtn.addEventListener("click", this.handleLoadMoreClick);
+      }
+
+      if (this.viewModeGroup) {
+        this.viewModeGroup.removeEventListener("click", this.handleViewToggleClick);
+        this.viewModeGroup.addEventListener("click", this.handleViewToggleClick);
+      }
+
+      if (this.resetFiltersBtn) {
+        this.resetFiltersBtn.removeEventListener("click", this.handleResetFiltersClick);
+        this.resetFiltersBtn.addEventListener("click", this.handleResetFiltersClick);
+      }
+
+      this.updateViewButtons();
+    }
+
+    onGameChipClick(event) {
+      const chip = event.target.closest(".game-chip");
+      if (!chip) {
+        return;
+      }
+      event.preventDefault();
+      const gameCode = chip.dataset.game || "";
+      const currentGame = this.currentFilters.game || "";
+      if (gameCode === currentGame) {
+        return;
+      }
+      this.updateFilter("game", gameCode);
+      this.fetchPage(1);
+    }
+
+    onLoadMore(event) {
+      event.preventDefault();
+      if (this.isLoading || this.currentPage >= this.totalPages) {
+        return;
+      }
       const nextPage = this.currentPage + 1;
-      const params = new URLSearchParams({
-        ...this.currentFilters,
-        page: nextPage
-      });
-      
-      const response = await fetch(`${window.location.pathname}?${params}`, {
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.teams && data.teams.length > 0) {
-          this.appendTeams(data.teams);
-          this.currentPage = nextPage;
-          this.hasMorePages = data.has_next;
-          
-          if (!data.has_next) {
-            this.hideLoadMoreButton();
-          }
-        } else {
-          this.hasMorePages = false;
-          this.hideLoadMoreButton();
-        }
+      this.fetchNextPage(nextPage);
+    }
+
+    onViewToggle(event) {
+      const button = event.target.closest(".view-toggle");
+      if (!button) {
+        return;
       }
-    } catch (error) {
-      console.error('Load more failed:', error);
-      this.showErrorMessage('Failed to load more teams. Please try again.');
-    } finally {
-      this.loading = false;
-      this.showLoadMoreLoading(false);
-    }
-  }
-
-  // Utility Methods
-  getUrlParams() {
-    const params = new URLSearchParams(window.location.search);
-    return Object.fromEntries(params.entries());
-  }
-
-  updateUrl(filters) {
-    const url = new URL(window.location);
-    url.search = new URLSearchParams(filters).toString();
-    window.history.pushState({}, '', url);
-  }
-
-  updateTeamList(html) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const newTeamList = doc.querySelector('#team-list');
-    const currentTeamList = document.getElementById('team-list');
-    
-    if (newTeamList && currentTeamList) {
-      currentTeamList.innerHTML = newTeamList.innerHTML;
-      this.setupInfiniteScroll(); // Re-setup observers
-    }
-  }
-
-  appendTeams(teams) {
-    const teamList = document.getElementById('team-list');
-    if (!teamList) return;
-    
-    teams.forEach(team => {
-      const teamElement = this.createTeamElement(team);
-      teamList.appendChild(teamElement);
-    });
-  }
-
-  createTeamElement(team) {
-    const div = document.createElement('div');
-    div.className = 'team-card';
-    div.innerHTML = `
-      <div class="team-header">
-        <div class="team-rank ${team.rank <= 3 ? 'top-3' : ''}">${team.rank}</div>
-        ${team.logo ? 
-          `<img src="${team.logo}" alt="${team.name} logo" class="team-logo">` :
-          `<div class="team-logo-placeholder">${team.name.charAt(0).toUpperCase()}</div>`
-        }
-        <div class="team-info">
-          <h2 class="team-name">${team.name}</h2>
-          ${team.tag ? `<div class="team-tag">[${team.tag}]</div>` : ''}
-          ${team.game ? `<div class="team-game-badge"><span>${team.game}</span></div>` : ''}
-        </div>
-      </div>
-      <div class="team-stats">
-        <div class="team-stat-item">
-          <div class="team-stat-value">${team.members_count}</div>
-          <div class="team-stat-label">Members</div>
-        </div>
-        <div class="team-stat-item">
-          <div class="team-stat-value">${team.total_points}</div>
-          <div class="team-stat-label">Points</div>
-        </div>
-      </div>
-      <div class="team-actions">
-        <a href="/teams/${team.slug}/" class="team-action-btn primary">View Team</a>
-      </div>
-    `;
-    return div;
-  }
-
-  // Loading and UI State Methods
-  showLoading(show) {
-    const loadingIndicator = document.getElementById('search-loading');
-    if (loadingIndicator) {
-      loadingIndicator.style.display = show ? 'block' : 'none';
-    }
-  }
-
-  showLoadMoreLoading(show) {
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    if (loadMoreBtn) {
-      loadMoreBtn.textContent = show ? 'Loading...' : 'Load More Teams';
-      loadMoreBtn.disabled = show;
-    }
-  }
-
-  hideLoadMoreButton() {
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    if (loadMoreBtn) {
-      loadMoreBtn.style.display = 'none';
-    }
-  }
-
-  showErrorMessage(message) {
-    // Create or update error message
-    let errorDiv = document.getElementById('error-message');
-    if (!errorDiv) {
-      errorDiv = document.createElement('div');
-      errorDiv.id = 'error-message';
-      errorDiv.className = 'error-message';
-      document.querySelector('.right-content').prepend(errorDiv);
-    }
-    
-    errorDiv.textContent = message;
-    errorDiv.style.display = 'block';
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      errorDiv.style.display = 'none';
-    }, 5000);
-  }
-
-  // Mobile Sidebar Management
-  setupMobileSidebar() {
-    // Handle window resize
-    window.addEventListener('resize', () => {
-      if (window.innerWidth > 1024) {
-        this.toggleMobileSidebar(false);
+      const view = button.dataset.view || "list";
+      if (view === this.currentView) {
+        return;
       }
-    });
-  }
+      this.currentView = view;
+      localStorage.setItem("teams-arena-view", view);
+      this.updateViewClasses();
+      this.updateViewButtons();
+    }
 
-  toggleMobileSidebar(show) {
-    const sidebar = document.getElementById('left-sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    
-    if (sidebar && overlay) {
-      if (show) {
-        sidebar.classList.add('mobile-open');
-        overlay.style.display = 'block';
-        document.body.style.overflow = 'hidden';
+    onResetFilters(event) {
+      event.preventDefault();
+      this.updateFilter("q", "");
+      this.updateFilter("game", "");
+      if (this.searchInput) {
+        this.searchInput.value = "";
+      }
+      this.toggleClearButton(false);
+      this.fetchPage(1);
+    }
+
+    toggleClearButton(forceVisible) {
+      if (!this.clearButton) {
+        return;
+      }
+      if (typeof forceVisible === "boolean") {
+        this.clearButton.hidden = !forceVisible;
+        return;
+      }
+      const hasValue = Boolean(this.searchInput && this.searchInput.value.trim());
+      this.clearButton.hidden = !hasValue;
+    }
+
+    updateFilter(key, value) {
+      if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          delete this.currentFilters[key];
+          return;
+        }
+        this.currentFilters[key] = trimmed;
+        return;
+      }
+
+      if (value === undefined || value === null) {
+        delete this.currentFilters[key];
       } else {
-        sidebar.classList.remove('mobile-open');
-        overlay.style.display = 'none';
-        document.body.style.overflow = '';
+        this.currentFilters[key] = value;
       }
     }
-  }
 
-  // Accessibility Setup
-  setupAccessibility() {
-    // Add ARIA labels and keyboard navigation
-    const searchInput = document.getElementById('team-search');
-    if (searchInput) {
-      searchInput.setAttribute('aria-describedby', 'search-help');
-    }
-
-    // Handle focus management for modal/sidebar
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.toggleMobileSidebar(false);
+    updateSortDirectionIcon() {
+      if (!this.sortToggle || !this.sortIcon) {
+        return;
       }
-    });
-  }
-
-  // Theme Toggle Setup
-  setupThemeToggle() {
-    // Apply saved theme on load
-    const savedTheme = localStorage.getItem('theme-preference');
-    if (savedTheme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else if (savedTheme === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-    }
-    // If no saved preference, respect system preference
-  }
-
-  // Toggle Theme Method - REMOVED (using unified navigation theme toggle)
-  /*
-  toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme-preference', newTheme);
-    
-    // Add transition effect
-    document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-    setTimeout(() => {
-      document.body.style.transition = '';
-    }, 300);
-  }
-  */
-
-  // Expandable Filters Setup
-  setupExpandableFilters() {
-    // Initialize filters in expanded state
-    const gameFilters = document.getElementById('game-filters');
-    if (gameFilters) {
-      gameFilters.classList.add('expanded');
-    }
-  }
-
-  // Toggle Game Filters
-  toggleGameFilters() {
-    const toggle = document.getElementById('game-filter-toggle');
-    const filters = document.getElementById('game-filters');
-    
-    if (!toggle || !filters) return;
-    
-    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-    const newExpanded = !isExpanded;
-    
-    toggle.setAttribute('aria-expanded', newExpanded.toString());
-    
-    if (newExpanded) {
-      filters.classList.add('expanded');
-    } else {
-      filters.classList.remove('expanded');
-    }
-  }
-
-  // Keyboard Shortcuts
-  handleKeyboardShortcuts(e) {
-    // Ctrl+K or Cmd+K to focus search
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-      e.preventDefault();
-      const searchInput = document.getElementById('team-search');
-      if (searchInput) {
-        searchInput.focus();
+      const order = this.currentFilters.order === "asc" ? "asc" : "desc";
+      this.currentFilters.order = order;
+      if (order === "asc") {
+        this.sortIcon.className = "fas fa-sort-amount-up";
+        this.sortToggle.setAttribute("title", "Sort: Low to High");
+      } else {
+        this.sortIcon.className = "fas fa-sort-amount-down";
+        this.sortToggle.setAttribute("title", "Sort: High to Low");
       }
     }
-  }
-}
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('teams-page-container')) {
-    new TeamsPage();
-  }
-});
+    updateViewClasses() {
+      if (!this.teamList) {
+        return;
+      }
+      this.teamList.classList.remove("view-list", "view-grid");
+      this.teamList.classList.add(`view-${this.currentView}`);
+    }
 
-// Export for module usage
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = TeamsPage;
-}
+    updateViewButtons() {
+      if (!this.viewButtons) {
+        return;
+      }
+      this.viewButtons.forEach((button) => {
+        const view = button.dataset.view;
+        button.classList.toggle("active", view === this.currentView);
+      });
+    }
+
+    async fetchPage(page) {
+      if (this.isLoading) {
+        return;
+      }
+      this.isLoading = true;
+      this.showFeedback("Updating teams");
+
+      try {
+        const query = this.buildQueryString({ page });
+        const response = await fetch(`${window.location.pathname}?${query}`, {
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "text/html"
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const html = await response.text();
+        this.replaceSections(html);
+        this.updateUrl(page);
+      } catch (error) {
+        console.error(error);
+        this.showFeedback("Could not update teams. Please try again.", "error");
+      } finally {
+        this.isLoading = false;
+        this.clearFeedback();
+      }
+    }
+
+    async fetchNextPage(page) {
+      if (this.isLoading) {
+        return;
+      }
+      this.isLoading = true;
+      this.showFeedback("Loading more teams");
+
+      try {
+        const query = this.buildQueryString({ page });
+        const response = await fetch(`${window.location.pathname}?${query}`, {
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            Accept: "text/html"
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Load more failed with status ${response.status}`);
+        }
+
+        const html = await response.text();
+        this.appendTeams(html);
+        this.updateUrl(page);
+      } catch (error) {
+        console.error(error);
+        this.showFeedback("Failed to load more teams.", "error");
+      } finally {
+        this.isLoading = false;
+        this.clearFeedback();
+      }
+    }
+
+    replaceSections(html) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      this.swapElement("teams-results", doc);
+      this.swapElement("game-chip-wrap", doc);
+      this.cacheElements();
+      this.bindDynamicControls();
+      this.updateViewClasses();
+      this.updateStateFromDom();
+    }
+
+    appendTeams(html) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const newList = doc.getElementById("team-list");
+      const currentList = document.getElementById("team-list");
+
+      if (newList && currentList) {
+        const fragment = document.createDocumentFragment();
+        Array.from(newList.children).forEach((child) => {
+          fragment.appendChild(child.cloneNode(true));
+        });
+        currentList.appendChild(fragment);
+        currentList.dataset.currentPage = newList.dataset.currentPage || String(this.currentPage + 1);
+        currentList.dataset.totalPages = newList.dataset.totalPages || currentList.dataset.totalPages;
+      }
+
+      this.replaceOptionalElement(".load-more-wrap", doc);
+      this.replaceOptionalElement(".pagination-fallback", doc);
+      this.cacheElements();
+      this.bindDynamicControls();
+      this.updateViewClasses();
+      this.updateStateFromDom();
+    }
+
+    replaceOptionalElement(selector, doc) {
+      const current = document.querySelector(selector);
+      const incoming = doc.querySelector(selector);
+
+      if (current && incoming) {
+        current.replaceWith(incoming.cloneNode(true));
+      } else if (current && !incoming) {
+        current.remove();
+      } else if (!current && incoming && this.resultsSection) {
+        this.resultsSection.appendChild(incoming.cloneNode(true));
+      }
+    }
+
+    swapElement(id, doc) {
+      const current = document.getElementById(id);
+      const incoming = doc.getElementById(id);
+      if (current && incoming) {
+        current.replaceWith(incoming.cloneNode(true));
+      }
+    }
+
+    updateStateFromDom() {
+      if (!this.teamList) {
+        this.currentPage = 1;
+        this.totalPages = 1;
+        return;
+      }
+      this.currentPage = this.parseNumber(this.teamList.dataset.currentPage, 1);
+      this.totalPages = this.parseNumber(this.teamList.dataset.totalPages, 1);
+      this.toggleLoadMore();
+    }
+
+    parseNumber(value, fallback) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    }
+
+    toggleLoadMore() {
+      const hasMore = this.currentPage < this.totalPages;
+      if (this.loadMoreWrapper) {
+        this.loadMoreWrapper.classList.toggle("hidden", !hasMore);
+      }
+      if (this.loadMoreBtn) {
+        this.loadMoreBtn.disabled = !hasMore;
+      }
+    }
+
+    buildQueryString(extra) {
+      const merged = { ...this.currentFilters, ...extra };
+      const params = new URLSearchParams();
+
+      Object.entries(merged).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        const stringValue = String(value).trim();
+        if (!stringValue) {
+          return;
+        }
+        if (key === "page" && Number(stringValue) <= 1) {
+          return;
+        }
+        params.set(key, stringValue);
+      });
+
+      return params.toString();
+    }
+
+    updateUrl(page) {
+      const query = this.buildQueryString({ page });
+      const newUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+
+    showFeedback(message, type = "info") {
+      if (!this.feedback) {
+        return;
+      }
+      this.feedback.textContent = message;
+      this.feedback.dataset.state = type;
+      this.feedback.classList.add("visible");
+    }
+
+    clearFeedback() {
+      if (!this.feedback) {
+        return;
+      }
+      this.feedback.textContent = "";
+      this.feedback.dataset.state = "";
+      this.feedback.classList.remove("visible");
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    new TeamsArenaPage();
+  });
+})();

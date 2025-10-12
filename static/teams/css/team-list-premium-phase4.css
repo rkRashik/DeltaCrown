@@ -1,0 +1,593 @@
+/* ========================================
+   PHASE 4: MODALS, LOADING & MY TEAMS
+   ======================================== */
+
+/* ========================================
+   LOADING OVERLAY
+   ======================================== */
+.loading-overlay-premium {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 15, 0.98);
+    backdrop-filter: var(--glass-blur);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+}
+
+.loading-overlay-premium.active {
+    display: flex;
+}
+
+.loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xl);
+}
+
+.loading-spinner-premium {
+    width: 80px;
+    height: 80px;
+    border: 6px solid rgba(0, 240, 255, 0.2);
+    border-top-color: var(--primary-cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-content p {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* ========================================
+   MODAL OVERLAY & CONTENT
+   ======================================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: var(--glass-blur);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal);
+    padding: var(--space-xl);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    background: var(--dark-card);
+    border: 2px solid var(--dark-border);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-close {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dark-elevated);
+    border: 1px solid var(--dark-border);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 1.125rem;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    z-index: 2;
+}
+
+.modal-close:hover {
+    background: var(--primary-pink);
+    border-color: transparent;
+    transform: scale(1.1);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-2xl);
+    border-bottom: 1px solid var(--dark-border);
+}
+
+.modal-header i {
+    font-size: 1.5rem;
+    color: var(--primary-cyan);
+}
+
+.modal-header h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-family: var(--font-display);
+}
+
+.modal-body {
+    padding: var(--space-2xl);
+}
+
+/* ========================================
+   MY TEAMS QUICK ACCESS
+   ======================================== */
+.my-teams-quick {
+    padding: var(--space-2xl);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 2px solid var(--glass-border);
+    border-radius: var(--radius-2xl);
+    margin-bottom: var(--space-2xl);
+    animation: slideDown 0.3s ease-out;
+}
+
+.quick-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-xl);
+}
+
+.quick-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: 1.25rem;
+    font-weight: 800;
+    font-family: var(--font-display);
+}
+
+.quick-header i {
+    color: var(--primary-cyan);
+}
+
+.close-quick {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dark-elevated);
+    border: 1px solid var(--dark-border);
+    border-radius: var(--radius-md);
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.close-quick:hover {
+    background: var(--primary-pink);
+    border-color: transparent;
+    transform: rotate(90deg);
+}
+
+.quick-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-lg);
+}
+
+/* My Team Card (Compact) */
+.my-team-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    background: var(--dark-elevated);
+    border: 2px solid var(--dark-border);
+    border-radius: var(--radius-xl);
+    text-decoration: none;
+    color: white;
+    transition: all var(--transition-base);
+}
+
+.my-team-card:hover {
+    border-color: var(--primary-cyan);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.my-team-card .team-logo-small {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--dark-border);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.my-team-card .team-logo-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.my-team-card .team-logo-placeholder-small {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-primary);
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.my-team-info-compact {
+    flex: 1;
+    min-width: 0;
+}
+
+.my-team-name {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.my-team-role {
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.my-team-role.captain {
+    color: var(--accent-gold);
+}
+
+/* ========================================
+   NOTIFICATIONS/TOASTS
+   ======================================== */
+.toast-container {
+    position: fixed;
+    top: var(--space-xl);
+    right: var(--space-xl);
+    z-index: var(--z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-width: 400px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--dark-card);
+    border: 2px solid var(--dark-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    animation: toastSlideIn 0.3s ease-out;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.toast.success {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.toast.error {
+    border-color: var(--primary-pink);
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+}
+
+.toast.info {
+    border-color: var(--primary-cyan);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+}
+
+.toast-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+.toast.success .toast-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--accent-green);
+}
+
+.toast.error .toast-icon {
+    background: rgba(236, 72, 153, 0.15);
+    color: var(--primary-pink);
+}
+
+.toast.info .toast-icon {
+    background: rgba(0, 240, 255, 0.15);
+    color: var(--primary-cyan);
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.toast-message {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.toast-close {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dark-elevated);
+    border: 1px solid var(--dark-border);
+    border-radius: var(--radius-md);
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background: var(--primary-pink);
+    border-color: transparent;
+}
+
+/* ========================================
+   SKELETON LOADERS
+   ======================================== */
+.skeleton-card {
+    background: var(--dark-card);
+    border: 2px solid var(--dark-border);
+    border-radius: var(--radius-2xl);
+    overflow: hidden;
+}
+
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--dark-elevated) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        var(--dark-elevated) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.skeleton-banner {
+    width: 100%;
+    height: 180px;
+}
+
+.skeleton-logo {
+    width: 96px;
+    height: 96px;
+    margin: -48px auto var(--space-xl);
+    border-radius: var(--radius-xl);
+}
+
+.skeleton-text {
+    height: 20px;
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-md);
+}
+
+.skeleton-text.title {
+    width: 60%;
+    height: 24px;
+    margin: 0 auto var(--space-md);
+}
+
+.skeleton-text.subtitle {
+    width: 40%;
+    height: 16px;
+    margin: 0 auto var(--space-xl);
+}
+
+.skeleton-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    padding: var(--space-xl);
+}
+
+.skeleton-stat {
+    height: 60px;
+    border-radius: var(--radius-md);
+}
+
+/* ========================================
+   SCROLL TO TOP BUTTON
+   ======================================== */
+.scroll-to-top {
+    position: fixed;
+    bottom: var(--space-2xl);
+    right: var(--space-2xl);
+    width: 56px;
+    height: 56px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    font-size: 1.25rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-lg), var(--shadow-glow-cyan);
+    transition: all var(--transition-base);
+    z-index: var(--z-fixed);
+}
+
+.scroll-to-top.visible {
+    display: flex;
+}
+
+.scroll-to-top:hover {
+    transform: translateY(-4px) scale(1.1);
+    box-shadow: var(--shadow-xl), var(--shadow-glow-cyan);
+}
+
+/* ========================================
+   UTILITY CLASSES
+   ======================================== */
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* ========================================
+   RESPONSIVE - PHASE 4
+   ======================================== */
+@media (max-width: 768px) {
+    .toast-container {
+        left: var(--space-lg);
+        right: var(--space-lg);
+        max-width: none;
+    }
+    
+    .quick-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .scroll-to-top {
+        bottom: var(--space-lg);
+        right: var(--space-lg);
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-content {
+        max-width: 100%;
+    }
+    
+    .modal-header,
+    .modal-body {
+        padding: var(--space-lg);
+    }
+    
+    .my-teams-quick {
+        padding: var(--space-lg);
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+@media print {
+    .hub-background-advanced,
+    .teams-navbar,
+    .navbar-btn,
+    .btn-filters,
+    .view-switcher,
+    .filter-scroll-btn,
+    .team-actions-premium,
+    .scroll-to-top {
+        display: none !important;
+    }
+    
+    .teams-container {
+        display: block !important;
+    }
+    
+    .team-card-premium {
+        page-break-inside: avoid;
+        margin-bottom: var(--space-xl);
+    }
+}

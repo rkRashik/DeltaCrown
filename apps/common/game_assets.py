@@ -107,7 +107,7 @@ GAMES = {
     
     'FREEFIRE': {
         'name': 'Free Fire',
-        'display_name': 'Garena Free Fire',
+        'display_name': 'Free Fire',
         'slug': 'freefire',
         'logo': 'img/game_logos/FreeFire.jpeg',  # exists
         'card': 'img/game_cards/FreeFire.jpeg',  # exists
@@ -149,44 +149,44 @@ GAMES = {
     
     # CODM, LOL, and DOTA2 temporarily removed from active games list
     # Can be re-enabled by uncommenting below:
-    # 'CODM': {
-    #     'name': 'Call of Duty Mobile',
-    #     'display_name': 'Call of Duty: Mobile',
-    #     'logo': 'img/game_logos/codm_logo.jpg',
-    #     'card': 'img/game_cards/codm_card.jpg',
-    #     'icon': 'img/game_icons/codm_icon.png',
-    #     'banner': 'img/game_banners/codm_banner.jpg',
-    #     'color_primary': '#FF6900',
-    #     'color_secondary': '#000000',
-    #     'category': 'FPS',
-    #     'platform': ['Mobile'],
-    # },
-    # 
-    # 'LOL': {
-    #     'name': 'League of Legends',
-    #     'display_name': 'League of Legends',
-    #     'logo': 'img/game_logos/lol_logo.jpg',
-    #     'card': 'img/game_cards/lol_card.jpg',
-    #     'icon': 'img/game_icons/lol_icon.png',
-    #     'banner': 'img/game_banners/lol_banner.jpg',
-    #     'color_primary': '#C89B3C',
-    #     'color_secondary': '#0F2027',
-    #     'category': 'MOBA',
-    #     'platform': ['PC'],
-    # },
-    # 
-    # 'DOTA2': {
-    #     'name': 'Dota 2',
-    #     'display_name': 'Dota 2',
-    #     'logo': 'img/game_logos/dota2_logo.jpg',
-    #     'card': 'img/game_cards/dota2_card.jpg',
-    #     'icon': 'img/game_icons/dota2_icon.png',
-    #     'banner': 'img/game_banners/dota2_banner.jpg',
-    #     'color_primary': '#E62E04',
-    #     'color_secondary': '#000000',
-    #     'category': 'MOBA',
-    #     'platform': ['PC'],
-    # },
+    'CODM': {
+        'name': 'Call of Duty Mobile',
+        'display_name': 'Call of Duty: Mobile',
+        'logo': 'img/game_logos/codm_logo.jpg',
+        'card': 'img/game_cards/codm_card.jpg',
+        'icon': 'img/game_icons/codm_icon.png',
+        'banner': 'img/game_banners/codm_banner.jpg',
+        'color_primary': '#FF6900',
+        'color_secondary': '#000000',
+        'category': 'FPS',
+        'platform': ['Mobile'],
+    },
+
+    'LOL': {
+        'name': 'League of Legends',
+        'display_name': 'League of Legends',
+        'logo': 'img/game_logos/lol_logo.jpg',
+        'card': 'img/game_cards/lol_card.jpg',
+        'icon': 'img/game_icons/lol_icon.png',
+        'banner': 'img/game_banners/lol_banner.jpg',
+        'color_primary': '#C89B3C',
+        'color_secondary': '#0F2027',
+        'category': 'MOBA',
+        'platform': ['PC'],
+    },
+
+    'DOTA2': {
+        'name': 'Dota 2',
+        'display_name': 'Dota 2',
+        'logo': 'img/game_logos/dota2_logo.jpg',
+        'card': 'img/game_cards/dota2_card.jpg',
+        'icon': 'img/game_icons/dota2_icon.png',
+        'banner': 'img/game_banners/dota2_banner.jpg',
+        'color_primary': '#E62E04',
+        'color_secondary': '#000000',
+        'category': 'MOBA',
+        'platform': ['PC'],
+    },
 }
 
 # Default fallback assets
