@@ -393,62 +393,81 @@
                             {% endif %}
                             
                             <div class="dc-card-actions">
-                                {% if my_reg_states|get_tournament_item:tournament.id %}
-                                    <!-- Already registered -->
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-registered">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Registered</span>
-                                    </a>
-                                    {% if my_reg_states|get_tournament_item:tournament.id == 'confirmed' %}
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}#dashboard" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-cog"></i>
-                                        <span>Manage</span>
-                                    </a>
+                                {% if user.is_authenticated %}
+                                    {% if my_reg_states|get_tournament_item:tournament.id %}
+                                        <!-- Already registered -->
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-registered">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Registered</span>
+                                        </a>
+                                        {% if my_reg_states|get_tournament_item:tournament.id == 'confirmed' %}
+                                        <a href="{% url 'tournaments:dashboard' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                            <i class="fas fa-gamepad"></i>
+                                            <span>Dashboard</span>
+                                        </a>
+                                        {% else %}
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                            <i class="fas fa-receipt"></i>
+                                            <span>View Receipt</span>
+                                        </a>
+                                        {% endif %}
+                                    {% elif tournament.registration_open %}
+                                        <!-- Can register - Registration is open -->
+                                        <a href="{% url 'tournaments:modern_register' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
+                                            <i class="fas fa-bolt"></i>
+                                            <span>Register Now</span>
+                                        </a>
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                            <i class="fas fa-info-circle"></i>
+                                            <span>View Details</span>
+                                        </a>
+                                    {% elif tournament.status == 'RUNNING' %}
+                                        <!-- Tournament is live -->
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
+                                            <i class="fas fa-trophy"></i>
+                                            <span>View Tournament</span>
+                                        </a>
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}#bracket" class="dc-btn dc-btn-outline">
+                                            <i class="fas fa-sitemap"></i>
+                                            <span>Bracket</span>
+                                        </a>
+                                    {% elif tournament.status == 'COMPLETED' %}
+                                        <!-- Tournament finished -->
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                            <i class="fas fa-trophy"></i>
+                                            <span>View Results</span>
+                                        </a>
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}#standings" class="dc-btn dc-btn-secondary">
+                                            <i class="fas fa-medal"></i>
+                                            <span>Standings</span>
+                                        </a>
                                     {% else %}
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-receipt"></i>
-                                        <span>View Receipt</span>
-                                    </a>
+                                        <!-- Registration closed, tournament upcoming -->
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
+                                            <i class="fas fa-info-circle"></i>
+                                            <span>View Details</span>
+                                        </a>
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}#schedule" class="dc-btn dc-btn-outline">
+                                            <i class="fas fa-calendar"></i>
+                                            <span>Schedule</span>
+                                        </a>
                                     {% endif %}
-                                {% elif tournament.registration_open %}
-                                    <!-- Can register -->
-                                    <a href="{% url 'tournaments:modern_register' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
-                                        <i class="fas fa-plus"></i>
-                                        <span>Register</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-info-circle"></i>
-                                        <span>Details</span>
-                                    </a>
-                                {% elif tournament.status == 'RUNNING' %}
-                                    <!-- Tournament is live -->
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
-                                        <i class="fas fa-eye"></i>
-                                        <span>Watch Live</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-trophy"></i>
-                                        <span>View Bracket</span>
-                                    </a>
-                                {% elif tournament.status == 'COMPLETED' %}
-                                    <!-- Tournament finished -->
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-trophy"></i>
-                                        <span>View Results</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
-                                        <i class="fas fa-chart-bar"></i>
-                                        <span>Standings</span>
-                                    </a>
                                 {% else %}
-                                    <!-- Default view details -->
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
-                                        <i class="fas fa-info-circle"></i>
-                                        <span>View Details</span>
-                                    </a>
+                                    <!-- Not logged in -->
+                                    {% if tournament.registration_open %}
+                                        <a href="{% url 'account:login' %}?next={% url 'tournaments:modern_register' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
+                                            <i class="fas fa-sign-in-alt"></i>
+                                            <span>Login to Register</span>
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
+                                            <i class="fas fa-info-circle"></i>
+                                            <span>View Details</span>
+                                        </a>
+                                    {% endif %}
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-calendar"></i>
-                                        <span>Schedule</span>
+                                        <i class="fas fa-eye"></i>
+                                        <span>Learn More</span>
                                     </a>
                                 {% endif %}
                             </div>

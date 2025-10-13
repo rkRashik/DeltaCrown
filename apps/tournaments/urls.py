@@ -21,6 +21,14 @@ from .views.registration_modern import (
 # State Management API
 from .views.state_api import tournament_state_api
 
+# Game Configuration API
+from .views.api_game_config import (
+    game_config_api,
+    all_games_api,
+    validate_field_api,
+    validate_roles_api,
+)
+
 # Dashboard API
 from .views.api_dashboard import bracket_api, matches_api, news_api, statistics_api
 
@@ -112,6 +120,20 @@ urlpatterns = [
     
     # Real-time State API (for live updates)
     path("api/<slug:slug>/state/", tournament_state_api, name="state_api"),
+    
+    # ==========================================
+    # GAME CONFIGURATION API
+    # ==========================================
+    
+    # Game Config APIs (for dynamic form generation)
+    path("api/games/", all_games_api, name="all_games_api"),
+    path("api/games/<str:game_code>/config/", game_config_api, name="game_config_api"),
+    path("api/games/<str:game_code>/validate/", validate_field_api, name="validate_field_api"),
+    path("api/games/<str:game_code>/validate-roles/", validate_roles_api, name="validate_roles_api"),
+    
+    # ==========================================
+    # REGISTRATION API ENDPOINTS
+    # ==========================================
     
     # Registration Context & Validation
     path("api/<slug:slug>/register/context/", registration_context_api, name="registration_context_api"),

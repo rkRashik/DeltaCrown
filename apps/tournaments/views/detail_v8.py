@@ -91,10 +91,11 @@ def tournament_detail_v8(request: HttpRequest, slug: str) -> HttpResponse:
             user_team = user_registration.team
         
         # Check if user can register
+        # Tournament must be PUBLISHED or RUNNING and registration_open must be True
         can_register = (
             tournament.registration_open and
             not user_registration and
-            tournament.status == 'PUBLISHED'
+            tournament.status in ['PUBLISHED', 'RUNNING']
         )
     
     # ==========================================
@@ -325,7 +326,12 @@ def tournament_detail_v8(request: HttpRequest, slug: str) -> HttpResponse:
     # REGISTRATION URL
     # ==========================================
     
-    register_url = f"/tournaments/register-modern/{tournament.slug}/"
+    # Use modern dynamic registration system for all tournaments
+    try:
+        from django.urls import reverse
+        register_url = reverse("tournaments:modern_register", args=[tournament.slug])
+    except Exception:
+        register_url = f"/tournaments/register-modern/{tournament.slug}/"
     
     # ==========================================
     # CONTEXT ASSEMBLY

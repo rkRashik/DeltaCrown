@@ -42,6 +42,11 @@ from .tournament_media import TournamentMedia
 from .tournament_rules import TournamentRules
 from .tournament_archive import TournamentArchive
 
+# Game configuration models (Dynamic Registration Form)
+from .game_config import GameConfiguration
+from .game_field_config import GameFieldConfiguration
+from .player_role_config import PlayerRoleConfiguration
+
 # Explicit public API (prevents accidental leaks and makes static analyzers happy)
 __all__ = [
     # constants
@@ -72,4 +77,8 @@ __all__ = [
     "TournamentMedia",
     "TournamentRules",
     "TournamentArchive",
+    # game configuration models
+    "GameConfiguration",
+    "GameFieldConfiguration",
+    "PlayerRoleConfiguration",
 ]

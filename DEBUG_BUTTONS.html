@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Buttons</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background: #0a0a0f;
+            color: white;
+        }
+        .test-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        button {
+            padding: 1rem 2rem;
+            margin: 0.5rem;
+            font-size: 1rem;
+            background: linear-gradient(135deg, #00f0ff 0%, #a855f7 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,240,255,0.3);
+        }
+        #output {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #00f0ff; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Button Debug Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Direct Button Click</h2>
+        <button id="test-my-teams">Test My Teams Button</button>
+        <button id="test-invites">Test Invites Button</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Check Buttons Exist on Page</h2>
+        <button onclick="checkButtonsExist()">Check Buttons on Teams Page</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Test API Endpoints</h2>
+        <button onclick="testMyTeamsAPI()">Test /teams/my-teams-data/</button>
+        <button onclick="testInvitesAPI()">Test /teams/my-invites-data/</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 4: Open Actual Page</h2>
+        <button onclick="window.location.href='/teams/'">Go to Teams Page</button>
+    </div>
+
+    <div id="output">
+        <div class="log-entry info">📋 Console Output:</div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+            console.log(message);
+        }
+
+        function checkButtonsExist() {
+            log('Checking if buttons exist in DOM...', 'info');
+            
+            // Open teams page in iframe to check
+            fetch('/teams/')
+                .then(response => response.text())
+                .then(html => {
+                    const hasMyTeams = html.includes('id="my-teams-trigger"');
+                    const hasInvites = html.includes('id="invites-trigger"');
+                    
+                    if (hasMyTeams) {
+                        log('✅ My Teams button found in HTML', 'success');
+                    } else {
+                        log('❌ My Teams button NOT found in HTML', 'error');
+                    }
+                    
+                    if (hasInvites) {
+                        log('✅ Invites button found in HTML', 'success');
+                    } else {
+                        log('❌ Invites button NOT found in HTML', 'error');
+                    }
+                })
+                .catch(error => {
+                    log('❌ Error checking page: ' + error.message, 'error');
+                });
+        }
+
+        function testMyTeamsAPI() {
+            log('Testing /teams/my-teams-data/ endpoint...', 'info');
+            
+            fetch('/teams/my-teams-data/')
+                .then(response => {
+                    log(`Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                    return response.json();
+                })
+                .then(data => {
+                    log('Response data: ' + JSON.stringify(data), 'success');
+                    if (data.success) {
+                        log(`✅ Found ${data.total_teams} teams`, 'success');
+                    } else {
+                        log('❌ Error: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                })
+                .catch(error => {
+                    log('❌ Fetch error: ' + error.message, 'error');
+                });
+        }
+
+        function testInvitesAPI() {
+            log('Testing /teams/my-invites-data/ endpoint...', 'info');
+            
+            fetch('/teams/my-invites-data/')
+                .then(response => {
+                    log(`Response status: ${response.status}`, response.ok ? 'success' : 'error');
+                    return response.json();
+                })
+                .then(data => {
+                    log('Response data: ' + JSON.stringify(data), 'success');
+                    if (data.success) {
+                        log(`✅ Found ${data.total_invites} invites`, 'success');
+                    } else {
+                        log('❌ Error: ' + (data.error || 'Unknown error'), 'error');
+                    }
+                })
+                .catch(error => {
+                    log('❌ Fetch error: ' + error.message, 'error');
+                });
+        }
+
+        // Test direct button clicks
+        document.getElementById('test-my-teams').addEventListener('click', () => {
+            log('🔵 Test My Teams button clicked!', 'info');
+            testMyTeamsAPI();
+        });
+
+        document.getElementById('test-invites').addEventListener('click', () => {
+            log('🔵 Test Invites button clicked!', 'info');
+            testInvitesAPI();
+        });
+
+        log('🚀 Debug page loaded', 'success');
+    </script>
+</body>
+</html>

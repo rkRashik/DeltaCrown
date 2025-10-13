@@ -535,7 +535,7 @@ def team_profile_view(request, slug: str):
         'game_config': game_config,
     }
     
-    return render(request, "teams/team_detail_new.html", context)
+    return render(request, "teams/team_profile.html", context)
 
 
 @login_required

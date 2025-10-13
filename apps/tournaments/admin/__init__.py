@@ -3,7 +3,10 @@
 # 1) Main registrar: defines & registers TournamentAdmin (with its actions as methods)
 from . import tournaments as _tournaments  # noqa: F401
 
-# 2) Optional/related admin modules — load best-effort, never break startup
+# 2) Game configuration admin (dynamic registration forms)
+from . import game_configs as _game_configs  # noqa: F401
+
+# 3) Optional/related admin modules — load best-effort, never break startup
 for _mod in (
     "components",            # inlines/filters (if you have them)
     "registrations",         # Registration admin (optional in some trees)

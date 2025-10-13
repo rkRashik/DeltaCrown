@@ -24,14 +24,12 @@ from django.db import transaction
 from django.utils import timezone
 
 # Phase 1 Models
-from apps.tournaments.models_phase1 import (
-    TournamentSchedule,
-    TournamentCapacity,
-    TournamentFinance,
-    TournamentMedia,
-    TournamentRules,
-    TournamentArchive,
-)
+from apps.tournaments.models.core.tournament_schedule import TournamentSchedule
+from apps.tournaments.models.core.tournament_capacity import TournamentCapacity
+from apps.tournaments.models.core.tournament_finance import TournamentFinance
+from apps.tournaments.models.tournament_media import TournamentMedia
+from apps.tournaments.models.tournament_rules import TournamentRules
+from apps.tournaments.models.tournament_archive import TournamentArchive
 
 # Legacy Models
 Tournament = apps.get_model("tournaments", "Tournament")
@@ -335,16 +333,18 @@ class RegistrationServicePhase2:
     @staticmethod
     def _is_team_event(tournament) -> bool:
         """Determine if tournament is team-based"""
+        # Check tournament_type field first (Phase 2 field)
+        tournament_type = getattr(tournament, "tournament_type", "")
+        if tournament_type and str(tournament_type).upper() in ['TEAM', 'MIXED']:
+            return True
+        
+        # Check settings.min_team_size / max_team_size
         settings = getattr(tournament, "settings", None)
         if settings:
             min_team_size = getattr(settings, "min_team_size", None)
             max_team_size = getattr(settings, "max_team_size", None)
             if (min_team_size and min_team_size > 1) or (max_team_size and max_team_size > 1):
                 return True
-
-        mode = getattr(tournament, "mode", "") or getattr(settings, "mode", "") if settings else ""
-        if mode and any(x in str(mode).lower() for x in ["team", "squad", "5v5", "3v3", "2v2"]):
-            return True
 
         return False
 

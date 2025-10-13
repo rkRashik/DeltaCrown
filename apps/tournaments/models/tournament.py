@@ -20,8 +20,14 @@ class Tournament(models.Model):
     """Primary tournament model with basics, schedule, prizes, and helpers."""
 
     class Game(models.TextChoices):
-        VALORANT = "valorant", "Valorant"
-        EFOOTBALL = "efootball", "eFootball Mobile"
+        VALORANT = "valorant", "VALORANT"
+        CS2 = "cs2", "Counter-Strike 2"
+        DOTA2 = "dota2", "Dota 2"
+        MLBB = "mlbb", "Mobile Legends: Bang Bang"
+        PUBG = "pubg", "PUBG: Battlegrounds"
+        FREEFIRE = "freefire", "Free Fire"
+        EFOOTBALL = "efootball", "eFootball"
+        FC26 = "fc26", "FC 26 (EA Sports)"
 
     # Back-compat alias so code can keep using Tournament.Status
     Status = TournamentStatus
@@ -343,7 +349,7 @@ class Tournament(models.Model):
         # Prefer Phase 1 TournamentSchedule model
         try:
             if hasattr(self, 'schedule') and self.schedule:
-                return self.schedule.is_registration_open()
+                return self.schedule.is_registration_open
         except Exception:
             pass
         
@@ -367,7 +373,7 @@ class Tournament(models.Model):
         # Prefer Phase 1 TournamentSchedule model
         try:
             if hasattr(self, 'schedule') and self.schedule:
-                return self.schedule.is_in_progress()
+                return self.schedule.is_tournament_live
         except Exception:
             pass
         

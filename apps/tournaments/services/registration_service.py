@@ -100,19 +100,18 @@ class RegistrationService:
     @staticmethod
     def _is_team_event(tournament) -> bool:
         """Determine if tournament is team-based"""
-        # Check various indicators
+        # Check tournament_type field first (Phase 2 field)
+        tournament_type = getattr(tournament, "tournament_type", "")
+        if tournament_type and str(tournament_type).upper() in ['TEAM', 'MIXED']:
+            return True
+        
+        # Check settings.min_team_size / max_team_size
         settings = getattr(tournament, "settings", None)
         if settings:
-            # Prefer explicit team size fields on settings
             min_team_size = getattr(settings, "min_team_size", None)
             max_team_size = getattr(settings, "max_team_size", None)
             if (min_team_size and min_team_size > 1) or (max_team_size and max_team_size > 1):
                 return True
-
-        # Check tournament format/mode
-        mode = getattr(tournament, "mode", "") or getattr(settings, "mode", "") if settings else ""
-        if mode and any(x in str(mode).lower() for x in ["team", "squad", "5v5", "3v3", "2v2"]):
-            return True
 
         return False
 

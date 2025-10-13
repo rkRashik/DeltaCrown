@@ -1,0 +1,540 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Register for {{ tournament.name }} — DeltaCrown{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/modern-registration.css' %}?v=3" />
+<link rel="stylesheet" href="{% static 'css/dynamic-registration.css' %}?v=1" />
+{% endblock %}
+
+{% block content %}
+<div class="modern-registration-container">
+  <!-- Header Section -->
+  <div class="registration-header">
+    <div class="breadcrumbs">
+      <a href="{% url 'tournaments:hub' %}">Tournaments</a>
+      <span>›</span>
+      <a href="{% url 'tournaments:detail' tournament.slug %}">{{ tournament.name }}</a>
+      <span>›</span>
+      <span class="current">Register</span>
+    </div>
+    
+    <h1 class="tournament-title">
+      <span class="gradient-text">{{ tournament.name }}</span>
+    </h1>
+    
+    <div class="tournament-info-chips">
+      {% if context.is_team_event %}
+        <span class="chip"><i class="fas fa-users"></i> Team Tournament</span>
+      {% else %}
+        <span class="chip"><i class="fas fa-user"></i> Solo Tournament</span>
+      {% endif %}
+      
+      <span class="chip"><i class="fas fa-gamepad"></i> {{ tournament.get_game_display }}</span>
+      
+      {% if finance %}
+        {% if finance.is_free %}
+          <span class="chip free"><i class="fas fa-gift"></i> Free Entry</span>
+        {% else %}
+          <span class="chip"><i class="fas fa-coins"></i> ৳{{ finance.entry_fee|intcomma }}</span>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Registration Status Check -->
+  {% if not context.can_register %}
+    <div class="registration-blocked">
+      <div class="blocked-icon">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      
+      <h2>{{ context.button_text }}</h2>
+      <p>{{ context.reason }}</p>
+      
+      <a href="{% url 'tournaments:detail' tournament.slug %}" class="btn-secondary">Back to Tournament</a>
+    </div>
+  {% else %}
+    <!-- Multi-Step Registration Form with Dynamic Fields -->
+    <form method="post" id="registrationForm" class="multi-step-form" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <!-- Progress Indicator -->
+      <div class="progress-indicator">
+        <div class="progress-step active" data-step="1">
+          <div class="step-number">1</div>
+          <div class="step-label">Game Info</div>
+        </div>
+        
+        {% if context.is_team_event %}
+        <div class="progress-step" data-step="2">
+          <div class="step-number">2</div>
+          <div class="step-label">Team Roster</div>
+        </div>
+        {% endif %}
+        
+        <div class="progress-step" data-step="{% if context.is_team_event %}3{% else %}2{% endif %}">
+          <div class="step-number">{% if context.is_team_event %}3{% else %}2{% endif %}</div>
+          <div class="step-label">Review</div>
+        </div>
+      </div>
+
+      <!-- Step 1: Game-Specific Information (Dynamic Fields) -->
+      <div class="form-step active" data-step="1">
+        <h2 class="step-title">
+          <i class="fas fa-gamepad"></i> {{ tournament.get_game_display }} Information
+        </h2>
+        <p class="step-description">
+          Please provide your {{ tournament.get_game_display }} credentials. 
+          {% if profile_data %}Some fields are pre-filled from your profile.{% endif %}
+        </p>
+        
+        <!-- Dynamic Fields Container -->
+        <!-- This will be populated by JavaScript based on game configuration -->
+        <div id="dynamic-fields-container">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading form fields...</p>
+          </div>
+        </div>
+        
+        <!-- Contact Information (Always included) -->
+        <div class="form-section-divider">
+          <h3><i class="fas fa-address-card"></i> Contact Information</h3>
+        </div>
+        
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="email">
+              Email Address <span class="required">*</span>
+            </label>
+            <input 
+              type="email" 
+              name="email" 
+              id="email" 
+              value="{{ user.email }}"
+              required
+              readonly
+              class="locked-field"
+            />
+            <span class="field-hint"><i class="fas fa-lock"></i> Locked from your account</span>
+          </div>
+          
+          <div class="form-field">
+            <label for="phone">
+              Contact Number <span class="required">*</span>
+            </label>
+            <input 
+              type="tel" 
+              name="phone" 
+              id="phone" 
+              value="{{ profile_data.phone }}"
+              required
+              placeholder="01XXXXXXXXX"
+              pattern="^(?:\+?880|0)1[0-9]{9}$"
+              class="auto-filled"
+            />
+            <span class="field-hint">Bangladesh mobile number</span>
+            <span class="field-error" style="display:none;"></span>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-next" onclick="formController.nextStep()">
+            Continue <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Team Roster (Only for Team Tournaments) -->
+      {% if context.is_team_event %}
+      <div class="form-step" data-step="2">
+        <h2 class="step-title">
+          <i class="fas fa-users"></i> Team Roster & Roles
+        </h2>
+        <p class="step-description">
+          Assign roles to your team members based on the tournament requirements.
+        </p>
+        
+        <!-- Team Summary -->
+        {% if team_data %}
+        <div class="team-summary-card">
+          <div class="team-header">
+            {% if team_data.team_logo_url %}
+              <img src="{{ team_data.team_logo_url }}" alt="{{ team_data.team_name }} logo" class="team-logo" />
+            {% else %}
+              <div class="team-logo-placeholder">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+            {% endif %}
+            
+            <div class="team-info">
+              <h3>{{ team_data.team_name }}</h3>
+              {% if team_data.team_tag %}
+                <span class="team-tag">{{ team_data.team_tag }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+        
+        <!-- Dynamic Roster Manager -->
+        <!-- This will be populated by JavaScript -->
+        <div id="roster-container">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading roster manager...</p>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-back" onclick="formController.prevStep()">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button type="button" class="btn-next" onclick="formController.nextStep()">
+            Continue <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Step 3: Review & Confirm -->
+      <div class="form-step" data-step="{% if context.is_team_event %}3{% else %}2{% endif %}">
+        <h2 class="step-title">
+          <i class="fas fa-clipboard-check"></i> Review & Confirm
+        </h2>
+        <p class="step-description">Please review all information before submitting.</p>
+        
+        <div class="review-section">
+          <h3>{{ tournament.get_game_display }} Information</h3>
+          <div class="review-grid" id="review-game-info">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          
+          <h3>Contact Information</h3>
+          <div class="review-grid">
+            <div class="review-item">
+              <span class="review-label">Email:</span>
+              <span class="review-value">{{ user.email }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Phone:</span>
+              <span class="review-value" id="review-phone">-</span>
+            </div>
+          </div>
+          
+          {% if context.is_team_event %}
+          <h3>Team Information</h3>
+          <div class="review-grid">
+            <div class="review-item">
+              <span class="review-label">Team:</span>
+              <span class="review-value">{{ team_data.team_name }}</span>
+            </div>
+            <div class="review-item">
+              <span class="review-label">Roster Size:</span>
+              <span class="review-value" id="review-roster-count">-</span>
+            </div>
+          </div>
+          
+          <div id="review-roster-details">
+            <!-- Roster details will be populated by JavaScript -->
+          </div>
+          {% endif %}
+        </div>
+        
+        <div class="rules-agreement">
+          <label class="checkbox-label">
+            <input type="checkbox" name="agree_rules" id="agree_rules" required />
+            <span>
+              I have read and agree to the 
+              <a href="#" onclick="event.preventDefault(); openRulesModal();">tournament rules</a> 
+              and understand all requirements
+            </span>
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-back" onclick="formController.prevStep()">
+            <i class="fas fa-arrow-left"></i> Back
+          </button>
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-check"></i> Submit Registration
+          </button>
+        </div>
+      </div>
+    </form>
+  {% endif %}
+</div>
+
+<!-- Tournament Rules Modal -->
+<div id="rulesModal" class="modal" style="display:none;">
+  <div class="modal-content modal-large">
+    <div class="modal-header">
+      <h3><i class="fas fa-gavel"></i> Tournament Rules</h3>
+      <button class="modal-close" onclick="closeRulesModal()">&times;</button>
+    </div>
+    
+    <div class="modal-body modal-scrollable">
+      <div class="rules-content">
+        <h4>General Tournament Rules</h4>
+        <ol>
+          <li><strong>Eligibility:</strong> All participants must be registered on DeltaCrown platform.</li>
+          <li><strong>Fair Play:</strong> Cheating, hacking, or exploiting game bugs is strictly prohibited.</li>
+          <li><strong>Conduct:</strong> Respectful behavior is mandatory. Harassment will result in disqualification.</li>
+          <li><strong>Check-in:</strong> Participants must check-in before the tournament starts (if required).</li>
+          <li><strong>Disputes:</strong> Any disputes should be reported immediately to tournament admins.</li>
+          <li><strong>Schedule:</strong> Matches must be played according to the tournament schedule.</li>
+          <li><strong>Communication:</strong> Join the official Discord server for updates and support.</li>
+        </ol>
+        
+        <h4>Game-Specific Rules</h4>
+        <p>Additional rules specific to {{ tournament.get_game_display }} will be announced before the tournament begins.</p>
+        
+        <h4>Penalties</h4>
+        <ul>
+          <li>First offense: Warning</li>
+          <li>Second offense: Match forfeit</li>
+          <li>Third offense: Tournament ban</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="closeRulesModal()">I Understand</button>
+    </div>
+  </div>
+</div>
+
+<script src="{% static 'js/dynamic-registration.js' %}?v=1"></script>
+<script>
+// Initialize dynamic registration form
+let formController;
+let rosterManager;
+
+document.addEventListener('DOMContentLoaded', function() {
+  const tournamentSlug = '{{ tournament.slug }}';
+  const gameCode = '{{ tournament.game }}';
+  
+  // Initialize form controller
+  formController = new DynamicRegistrationForm(tournamentSlug, gameCode);
+  
+  // Make rosterManager available globally (if team event)
+  {% if context.is_team_event %}
+  // Wait for roster manager to be initialized
+  setTimeout(() => {
+    if (formController.rosterManager) {
+      window.rosterManager = formController.rosterManager;
+    }
+  }, 1000);
+  {% endif %}
+  
+  console.log('🚀 Dynamic registration initialized');
+});
+
+// Modal functions
+function openRulesModal() {
+  document.getElementById('rulesModal').style.display = 'flex';
+}
+
+function closeRulesModal() {
+  document.getElementById('rulesModal').style.display = 'none';
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+  if (event.target.classList.contains('modal')) {
+    event.target.style.display = 'none';
+  }
+}
+
+// Step navigation
+formController = {
+  currentStep: 1,
+  
+  nextStep() {
+    // Validation will be handled by DynamicRegistrationForm
+    const currentStepDiv = document.querySelector(`.form-step[data-step="${this.currentStep}"]`);
+    const currentProgressStep = document.querySelector(`.progress-step[data-step="${this.currentStep}"]`);
+    
+    currentStepDiv.classList.remove('active');
+    currentProgressStep.classList.add('completed');
+    currentProgressStep.classList.remove('active');
+    
+    this.currentStep++;
+    
+    const nextStepDiv = document.querySelector(`.form-step[data-step="${this.currentStep}"]`);
+    const nextProgressStep = document.querySelector(`.progress-step[data-step="${this.currentStep}"]`);
+    
+    nextStepDiv.classList.add('active');
+    nextProgressStep.classList.add('active');
+    
+    // Update review if on review step
+    if (this.currentStep === {% if context.is_team_event %}3{% else %}2{% endif %}) {
+      this.updateReview();
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+  
+  prevStep() {
+    const currentStepDiv = document.querySelector(`.form-step[data-step="${this.currentStep}"]`);
+    const currentProgressStep = document.querySelector(`.progress-step[data-step="${this.currentStep}"]`);
+    
+    currentStepDiv.classList.remove('active');
+    currentProgressStep.classList.remove('active');
+    
+    this.currentStep--;
+    
+    const prevStepDiv = document.querySelector(`.form-step[data-step="${this.currentStep}"]`);
+    const prevProgressStep = document.querySelector(`.progress-step[data-step="${this.currentStep}"]`);
+    
+    prevStepDiv.classList.add('active');
+    prevProgressStep.classList.remove('completed');
+    prevProgressStep.classList.add('active');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+  
+  updateReview() {
+    // Update phone
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput) {
+      document.getElementById('review-phone').textContent = phoneInput.value;
+    }
+    
+    // Update game-specific fields
+    const reviewGameInfo = document.getElementById('review-game-info');
+    reviewGameInfo.innerHTML = '';
+    
+    const dynamicFieldsContainer = document.getElementById('dynamic-fields-container');
+    const inputs = dynamicFieldsContainer.querySelectorAll('input, select, textarea');
+    
+    inputs.forEach(input => {
+      if (input.value) {
+        const field = input.closest('.form-field');
+        const label = field?.querySelector('label')?.textContent?.replace('*', '').trim();
+        
+        const reviewItem = document.createElement('div');
+        reviewItem.className = 'review-item';
+        reviewItem.innerHTML = `
+          <span class="review-label">${label}:</span>
+          <span class="review-value">${input.value}</span>
+        `;
+        
+        reviewGameInfo.appendChild(reviewItem);
+      }
+    });
+    
+    {% if context.is_team_event %}
+    // Update roster count
+    if (window.rosterManager) {
+      const rosterCount = window.rosterManager.roster.length;
+      document.getElementById('review-roster-count').textContent = `${rosterCount} players`;
+      
+      // Update roster details
+      const reviewRosterDetails = document.getElementById('review-roster-details');
+      reviewRosterDetails.innerHTML = '<h4>Roster:</h4>';
+      
+      const tbody = document.getElementById('roster-tbody');
+      if (tbody) {
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach((row, index) => {
+          const nameInput = row.querySelector('input[name^="roster_player_"][name$="_name"]');
+          const roleSelect = row.querySelector('select[name^="roster_player_"][name$="_role"]');
+          
+          if (nameInput && roleSelect) {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'review-roster-player';
+            playerDiv.innerHTML = `
+              <span>${index + 1}. ${nameInput.value}</span>
+              <span class="role-badge">${roleSelect.options[roleSelect.selectedIndex]?.text || 'No role'}</span>
+            `;
+            reviewRosterDetails.appendChild(playerDiv);
+          }
+        });
+      }
+    }
+    {% endif %}
+  }
+};
+</script>
+
+<style>
+/* Additional styles for review section */
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.review-item {
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.review-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.review-value {
+  font-size: 1rem;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.review-roster-player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.role-badge {
+  padding: 0.25rem 0.75rem;
+  background: #6366f1;
+  color: white;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.form-section-divider {
+  margin: 2rem 0 1.5rem 0;
+  padding-top: 2rem;
+  border-top: 2px solid #e5e7eb;
+}
+
+.form-section-divider h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-step.completed .step-number {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.progress-step.completed .step-number::after {
+  content: "✓";
+}
+</style>
+
+{% endblock %}

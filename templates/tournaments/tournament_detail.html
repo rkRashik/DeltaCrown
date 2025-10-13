@@ -33,12 +33,12 @@
                         <span class="pulse-dot"></span>
                         <span>LIVE NOW</span>
                     </span>
-                    {% elif tournament.status == 'REGISTRATION' %}
+                    {% elif can_register and tournament.registration_open %}
                     <span class="status-badge-hero status-registration">
                         <i class="fas fa-calendar-check"></i>
                         <span>OPEN FOR REGISTRATION</span>
                     </span>
-                    {% elif tournament.status == 'UPCOMING' %}
+                    {% elif tournament.status == 'PUBLISHED' and not tournament.registration_open %}
                     <span class="status-badge-hero status-upcoming">
                         <i class="fas fa-clock"></i>
                         <span>COMING SOON</span>
@@ -137,16 +137,22 @@
                 <!-- Premium Action Card -->
                 <div class="action-card-premium game-{{ tournament.game }}">
                     {% if user.is_authenticated and user_registration %}
-                        <!-- Registered User: Dashboard Access -->
+                        <!-- CASE 1: User is already registered -->
                         <div class="action-main">
                             <div class="action-status-header">
                                 <div class="status-indicator status-{{ user_registration.status|lower }}">
                                     {% if user_registration.status == 'CONFIRMED' %}
                                     <i class="fas fa-check-circle"></i>
                                     <span>Registration Confirmed</span>
-                                    {% else %}
+                                    {% elif user_registration.status == 'PENDING' %}
                                     <i class="fas fa-clock"></i>
                                     <span>Payment Pending</span>
+                                    {% elif user_registration.status == 'CHECKED_IN' %}
+                                    <i class="fas fa-clipboard-check"></i>
+                                    <span>Checked In</span>
+                                    {% else %}
+                                    <i class="fas fa-hourglass-half"></i>
+                                    <span>Processing Registration</span>
                                     {% endif %}
                                 </div>
                                 <div class="registration-date">
@@ -197,8 +203,8 @@
                             </div>
                         </div>
                         
-                    {% elif user.is_authenticated and can_register %}
-                        <!-- Registration Open -->
+                    {% elif user.is_authenticated and can_register and tournament.registration_open %}
+                        <!-- CASE 2: User can register - Registration is open -->
                         <div class="action-main">
                             <div class="action-header-register">
                                 <div class="register-badge">
@@ -244,9 +250,79 @@
                                 </div>
                             </div>
                         </div>
+                    
+                    {% elif user.is_authenticated and tournament.status == 'RUNNING' %}
+                        <!-- CASE 3: Tournament is currently running -->
+                        <div class="action-main">
+                            <div class="action-header-register">
+                                <div class="register-badge" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);">
+                                    <i class="fas fa-circle pulse-dot"></i>
+                                    <span>TOURNAMENT LIVE</span>
+                                </div>
+                            </div>
+                            
+                            <a href="{% url 'tournaments:detail' tournament.slug %}#bracket" class="btn-register-premium game-{{ tournament.game }}">
+                                <div class="btn-glow"></div>
+                                <div class="btn-content">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-trophy"></i>
+                                    </div>
+                                    <div class="btn-text">
+                                        <span class="btn-label">Watch the Action</span>
+                                        <span class="btn-title">View Live Tournament</span>
+                                    </div>
+                                    <div class="btn-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </div>
+                            </a>
+                            
+                            <div class="register-benefits">
+                                <div class="benefit-item">
+                                    <i class="fas fa-sitemap"></i>
+                                    <span>Live brackets</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span>Real-time stats</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-video"></i>
+                                    <span>Match streams</span>
+                                </div>
+                            </div>
+                        </div>
+                    
+                    {% elif user.is_authenticated and tournament.status == 'COMPLETED' %}
+                        <!-- CASE 4: Tournament has finished -->
+                        <div class="action-main">
+                            <div class="action-closed">
+                                <div class="closed-icon">
+                                    <i class="fas fa-flag-checkered"></i>
+                                </div>
+                                <div class="closed-text">
+                                    <h3>Tournament Completed</h3>
+                                    <p>View results, standings, and match history</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'tournaments:detail' tournament.slug %}#standings" class="btn-register-premium" style="margin-top: 1rem;">
+                                <div class="btn-glow"></div>
+                                <div class="btn-content">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-medal"></i>
+                                    </div>
+                                    <div class="btn-text">
+                                        <span class="btn-title">View Final Results</span>
+                                    </div>
+                                    <div class="btn-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
                         
                     {% elif user.is_authenticated %}
-                        <!-- Registration Closed -->
+                        <!-- CASE 5: Logged in but registration closed -->
                         <div class="action-main">
                             <div class="action-closed">
                                 <div class="closed-icon">
@@ -254,22 +330,36 @@
                                 </div>
                                 <div class="closed-text">
                                     <h3>Registration Closed</h3>
-                                    <p>{% if capacity_info.is_full %}Tournament is full{% else %}Registration period has ended{% endif %}</p>
+                                    <p>
+                                        {% if capacity_info.is_full %}
+                                            Tournament is full
+                                        {% elif tournament.start_at %}
+                                            Tournament starts {{ tournament.start_at|date:"M d, Y" }}
+                                        {% else %}
+                                            Registration period has ended
+                                        {% endif %}
+                                    </p>
                                 </div>
                             </div>
                         </div>
                         
-                    {% else %}
-                        <!-- Not Logged In -->
+                    {% elif tournament.registration_open %}
+                        <!-- CASE 6: Not logged in, but registration is open -->
                         <div class="action-main">
                             <div class="action-header-login">
-                                <div class="login-message">
-                                    <i class="fas fa-info-circle"></i>
-                                    <span>Login required to register</span>
+                                <div class="register-badge">
+                                    <i class="fas fa-bolt"></i>
+                                    <span>REGISTRATION OPEN</span>
                                 </div>
+                                {% if capacity_info.available_slots > 0 and capacity_info.available_slots <= 10 %}
+                                <div class="urgency-badge">
+                                    <i class="fas fa-fire"></i>
+                                    Only {{ capacity_info.available_slots }} spots left!
+                                </div>
+                                {% endif %}
                             </div>
                             
-                            <a href="{% url 'account:login' %}?next={{ request.path }}" class="btn-login-premium">
+                            <a href="{% url 'account:login' %}?next={{ register_url }}" class="btn-login-premium">
                                 <div class="btn-glow"></div>
                                 <div class="btn-content">
                                     <div class="btn-icon">
@@ -284,6 +374,56 @@
                                     </div>
                                 </div>
                             </a>
+                            
+                            <div class="register-benefits">
+                                <div class="benefit-item">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Create free account</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-bolt"></i>
+                                    <span>Quick registration</span>
+                                </div>
+                                <div class="benefit-item">
+                                    <i class="fas fa-trophy"></i>
+                                    <span>Compete for prizes</span>
+                                </div>
+                            </div>
+                        </div>
+                    
+                    {% else %}
+                        <!-- CASE 7: Not logged in, registration not open -->
+                        <div class="action-main">
+                            <div class="action-header-login">
+                                <div class="login-message">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>
+                                        {% if tournament.status == 'RUNNING' %}
+                                            Tournament is currently running
+                                        {% elif tournament.status == 'COMPLETED' %}
+                                            Tournament has concluded
+                                        {% else %}
+                                            Registration not yet open
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <a href="{% url 'account:login' %}?next={{ request.path }}" class="btn-login-premium">
+                                <div class="btn-glow"></div>
+                                <div class="btn-content">
+                                    <div class="btn-icon">
+                                        <i class="fas fa-sign-in-alt"></i>
+                                    </div>
+                                    <div class="btn-text">
+                                        <span class="btn-label">Join DeltaCrown</span>
+                                        <span class="btn-title">Login or Sign Up</span>
+                                    </div>
+                                    <div class="btn-arrow">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </div>
+                                </div>
+                            </a>
                         </div>
                     {% endif %}
                 </div>
@@ -291,24 +431,22 @@
                 <!-- Right Section: Info Cards -->
                 <div class="action-bar-right">
                     
-                    <!-- Countdown Timer -->
-                    {% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at or tournament.status == 'UPCOMING' and tournament.start_at %}
-                    <div class="action-info-card action-countdown-card">
-                        <div class="action-card-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="action-card-content">
-                            <span class="action-card-label">
-                                {% if tournament.status == 'REGISTRATION' %}Registration Ends{% else %}Starts{% endif %}
-                            </span>
-                            <span class="action-card-value" id="countdownMini">
-                                <span id="miniDays">00</span>d <span id="miniHours">00</span>h <span id="miniMinutes">00</span>m
-                            </span>
-                        </div>
+                <!-- Countdown Timer -->
+                {% if tournament.registration_open and tournament.schedule.reg_close_at or tournament.status == 'PUBLISHED' and not tournament.registration_open and tournament.start_at %}
+                <div class="action-info-card action-countdown-card">
+                    <div class="action-card-icon">
+                        <i class="fas fa-clock"></i>
                     </div>
-                    {% endif %}
-                    
-                    <!-- Share Button -->
+                    <div class="action-card-content">
+                        <span class="action-card-label">
+                            {% if tournament.registration_open %}Registration Ends{% else %}Starts{% endif %}
+                        </span>
+                        <span class="action-card-value" id="countdownMini">
+                            <span id="miniDays">00</span>d <span id="miniHours">00</span>h <span id="miniMinutes">00</span>m
+                        </span>
+                    </div>
+                </div>
+                {% endif %}                    <!-- Share Button -->
                     <button class="action-share-btn" onclick="toggleShareModal()" title="Share Tournament">
                         <i class="fas fa-share-nodes"></i>
                         <span>Share</span>
@@ -381,19 +519,19 @@
                 </div>
                 
                 <!-- Live Countdown Timer -->
-                {% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at or tournament.status == 'UPCOMING' and tournament.start_at %}
+                {% if tournament.registration_open and tournament.schedule.reg_close_at or tournament.status == 'PUBLISHED' and not tournament.registration_open and tournament.start_at %}
                 <div class="countdown-section-premium" data-aos="fade-up">
                     <div class="countdown-header-premium">
                         <div class="countdown-badge">
                             <i class="fas fa-stopwatch"></i>
-                            {% if tournament.status == 'REGISTRATION' %}
+                            {% if tournament.registration_open %}
                                 <span>REGISTRATION COUNTDOWN</span>
                             {% else %}
                                 <span>TOURNAMENT COUNTDOWN</span>
                             {% endif %}
                         </div>
                         <h2 class="countdown-title-premium">
-                            {% if tournament.status == 'REGISTRATION' %}
+                            {% if tournament.registration_open %}
                                 Time Until Registration Closes
                             {% else %}
                                 Tournament Begins In
@@ -946,13 +1084,13 @@ AOS.init({
 });
 
 // Countdown Timer
-{% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at %}
+{% if tournament.registration_open and tournament.schedule.reg_close_at %}
 const targetDate = new Date("{{ tournament.schedule.reg_close_at|date:'Y-m-d H:i:s' }}").getTime();
-{% elif tournament.status == 'UPCOMING' and tournament.start_at %}
+{% elif tournament.status == 'PUBLISHED' and not tournament.registration_open and tournament.start_at %}
 const targetDate = new Date("{{ tournament.start_at|date:'Y-m-d H:i:s' }}").getTime();
 {% endif %}
 
-{% if tournament.status == 'REGISTRATION' and tournament.schedule.reg_close_at or tournament.status == 'UPCOMING' and tournament.start_at %}
+{% if tournament.registration_open and tournament.schedule.reg_close_at or tournament.status == 'PUBLISHED' and not tournament.registration_open and tournament.start_at %}
 function updateCountdown() {
     const now = new Date().getTime();
     const distance = targetDate - now;
