@@ -405,24 +405,6 @@
   z-index: 1;
 }
 
-.player-modal-ingame-name {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #8a2be2;
-  margin: 0 0 0.5rem 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  position: relative;
-  z-index: 1;
-}
-
-.player-modal-ingame-name i {
-  font-size: 1rem;
-  opacity: 0.8;
-}
-
 .player-modal-username {
   font-size: 1rem;
   color: var(--text-muted);
@@ -530,9 +512,6 @@
 .player-social-link.twitch { border-color: rgba(145, 70, 255, 0.3); }
 .player-social-link.twitch:hover { border-color: #9146ff; color: #9146ff; }
 
-.player-social-link.instagram { border-color: rgba(225, 48, 108, 0.3); }
-.player-social-link.instagram:hover { border-color: #e1306c; color: #e1306c; }
-
 /* View Full Profile Button */
 .player-view-full-profile {
   display: flex;
@@ -558,121 +537,6 @@
   transform: translateY(-3px);
   box-shadow: 0 8px 24px rgba(138, 43, 226, 0.4);
   color: #fff;
-}
-
-/* Player Bio */
-.player-bio {
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  margin: 0;
-  padding: 1rem 1.5rem;
-  background: rgba(138, 43, 226, 0.03);
-  border-left: 4px solid rgba(138, 43, 226, 0.3);
-  border-radius: 8px;
-}
-
-/* Player Teams List */
-.player-teams-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.player-team-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
-  background: var(--card-background);
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.player-team-item:hover {
-  border-color: rgba(138, 43, 226, 0.3);
-  transform: translateX(5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.player-team-item i {
-  font-size: 1.2rem;
-  color: #8a2be2;
-}
-
-.player-team-item .team-name {
-  font-weight: 700;
-  color: var(--text-primary);
-  flex: 1;
-}
-
-.player-team-item .team-role {
-  padding: 0.25rem 0.75rem;
-  background: rgba(138, 43, 226, 0.1);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #8a2be2;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.player-team-item .team-game {
-  padding: 0.25rem 0.75rem;
-  background: var(--background-tertiary);
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-/* Player Stats Grid */
-.player-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-}
-
-.player-stat-box {
-  text-align: center;
-  padding: 1.5rem 1rem;
-  background: var(--card-background);
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.player-stat-box.highlight {
-  border-color: rgba(138, 43, 226, 0.3);
-  background: rgba(138, 43, 226, 0.05);
-}
-
-.player-stat-box:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-}
-
-.player-stat-box .stat-value {
-  font-size: 2rem;
-  font-weight: 900;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-}
-
-.player-stat-box .stat-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.player-stat-box.highlight .stat-value {
-  background: linear-gradient(135deg, #8a2be2, #da70d6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* Empty State */

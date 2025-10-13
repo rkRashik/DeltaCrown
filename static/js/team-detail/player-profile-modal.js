@@ -15,33 +15,21 @@ class PlayerProfileModal {
    * @param {object} rosterData - Optional roster data with game ID (from roster card)
    */
   async show(profileId, rosterData = null) {
-    console.log('[PlayerModal] Opening modal for profile ID:', profileId);
-    console.log('[PlayerModal] Roster data:', rosterData);
-    
     try {
       // Fetch player data
-      const url = `/user/api/profile/${profileId}/`;
-      console.log('[PlayerModal] Fetching from:', url);
-      
-      const response = await fetch(url);
-      
-      console.log('[PlayerModal] Response status:', response.status);
+      const response = await fetch(`/user/api/profile/${profileId}/`);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[PlayerModal] API Error:', response.status, errorText);
-        throw new Error(`Failed to load player profile (${response.status})`);
+        throw new Error('Failed to load player profile');
       }
       
       const player = await response.json();
-      console.log('[PlayerModal] Player data received:', player);
       
       // Merge roster data if provided (includes game_id from roster API)
       if (rosterData) {
         player.game_id = rosterData.game_id;
         player.game_id_label = rosterData.game_id_label;
         player.mlbb_server_id = rosterData.mlbb_server_id;
-        console.log('[PlayerModal] Merged roster data into player object');
       }
       
       this.currentPlayer = player;
@@ -50,8 +38,8 @@ class PlayerProfileModal {
       this.createModal(player);
       
     } catch (error) {
-      console.error('[PlayerModal] Error loading player profile:', error);
-      this.showError(`Unable to load player profile. Please try again. (${error.message})`);
+      console.error('Error loading player profile:', error);
+      this.showError('Unable to load player profile. Please try again.');
     }
   }
 
@@ -84,9 +72,6 @@ class PlayerProfileModal {
    * Render modal content
    */
   renderModalContent(player) {
-    // Extract in-game name from game_id if it exists (for display in header)
-    const inGameName = player.game_id ? player.game_id : null;
-    
     return `
       <div class="player-profile-content">
         <button class="modal-close-btn" data-action="close">
@@ -99,12 +84,6 @@ class PlayerProfileModal {
             `<div class="player-modal-avatar-placeholder">${this.getInitials(player.display_name)}</div>`
           }
           <h2 class="player-modal-name">${this.escapeHtml(player.display_name)}</h2>
-          ${inGameName ? `
-            <p class="player-modal-ingame-name">
-              <i class="fas fa-gamepad"></i>
-              ${this.escapeHtml(inGameName)}
-            </p>
-          ` : ''}
           <p class="player-modal-username">@${this.escapeHtml(player.username)}</p>
         </div>
         
@@ -123,10 +102,10 @@ class PlayerProfileModal {
             <div class="player-info-section">
               <h3 class="player-info-title">
                 <i class="fas fa-gamepad"></i>
-                Game Identity
+                Game ID
               </h3>
               <div class="player-game-id-display">
-                <span class="player-game-id-label">${player.game_id_label || 'In-Game ID'}</span>
+                <span class="player-game-id-label">${player.game_id_label || 'Game ID'}</span>
                 <div class="player-game-id-text">
                   <i class="fas fa-id-card"></i>
                   ${this.escapeHtml(player.game_id)}
@@ -182,49 +161,11 @@ class PlayerProfileModal {
   renderSocialLinks(player) {
     const socials = [];
     
-    // Add social links that exist in the profile model
-    if (player.discord_id) {
-      socials.push({ 
-        name: 'Discord', 
-        url: player.discord_id.startsWith('http') ? player.discord_id : `https://discord.com/users/${player.discord_id}`, 
-        icon: 'discord', 
-        class: 'discord' 
-      });
-    }
-    if (player.youtube_link) {
-      socials.push({ 
-        name: 'YouTube', 
-        url: player.youtube_link, 
-        icon: 'youtube', 
-        class: 'youtube' 
-      });
-    }
-    if (player.twitch_link) {
-      socials.push({ 
-        name: 'Twitch', 
-        url: player.twitch_link, 
-        icon: 'twitch', 
-        class: 'twitch' 
-      });
-    }
-    
-    // These fields don't exist in the model yet, but handle them if they're added later
-    if (player.twitter) {
-      socials.push({ 
-        name: 'Twitter', 
-        url: player.twitter.startsWith('http') ? player.twitter : `https://twitter.com/${player.twitter}`, 
-        icon: 'twitter', 
-        class: 'twitter' 
-      });
-    }
-    if (player.instagram) {
-      socials.push({ 
-        name: 'Instagram', 
-        url: player.instagram.startsWith('http') ? player.instagram : `https://instagram.com/${player.instagram}`, 
-        icon: 'instagram', 
-        class: 'instagram' 
-      });
-    }
+    if (player.twitter) socials.push({ name: 'Twitter', url: player.twitter, icon: 'twitter', class: 'twitter' });
+    if (player.discord_id) socials.push({ name: 'Discord', url: `https://discord.com/users/${player.discord_id}`, icon: 'discord', class: 'discord' });
+    if (player.youtube_link) socials.push({ name: 'YouTube', url: player.youtube_link, icon: 'youtube', class: 'youtube' });
+    if (player.twitch_link) socials.push({ name: 'Twitch', url: player.twitch_link, icon: 'twitch', class: 'twitch' });
+    if (player.instagram) socials.push({ name: 'Instagram', url: player.instagram, icon: 'instagram', class: 'instagram' });
     
     if (socials.length === 0) return '';
     
@@ -236,7 +177,7 @@ class PlayerProfileModal {
         </h3>
         <div class="player-social-links">
           ${socials.map(social => `
-            <a href="${this.escapeHtml(social.url)}" target="_blank" rel="noopener noreferrer" class="player-social-link ${social.class}">
+            <a href="${social.url}" target="_blank" rel="noopener noreferrer" class="player-social-link ${social.class}">
               <i class="fab fa-${social.icon}"></i>
               <span>${social.name}</span>
             </a>

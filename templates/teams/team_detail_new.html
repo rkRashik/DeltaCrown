@@ -1,0 +1,516 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ team.name }} — {{ team.get_game_display }}{% endblock %}
+
+{% block extra_head %}
+<!-- Game Theme CSS -->
+<link rel="stylesheet" href="{% static 'css/team-detail/game-themes.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/team-detail-new.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/hero-header.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/hero-templates.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/sidebar.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/tabs.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/tab-content.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/components.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/loading-states.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/tabs-enhanced.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/roster-enhanced.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/roster-esports.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/roster-cards-modern.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/overview-enhanced.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/dashboard-modals.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/responsive.css' %}">
+
+<!-- Chart.js for Statistics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- Meta Tags for Social Sharing -->
+<meta property="og:title" content="{{ team.name }} - {{ team.get_game_display }}">
+<meta property="og:description" content="{{ team.tagline|default:'Professional esports team' }}">
+{% if team.logo %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ team.logo.url }}">
+{% endif %}
+<meta property="og:type" content="profile">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+
+{% block content %}
+<!-- Main Container with Game Theme -->
+<div class="team-detail-page" data-game="{{ team.game }}">
+  
+  <!-- Hero Header Section -->
+  <header class="hero-header" data-template="{{ team.hero_template|default:'default' }}">
+    <!-- Banner Background -->
+    <div class="hero-banner">
+      {% if team.banner_image %}
+        <img src="{{ team.banner_image.url }}" alt="{{ team.name }} Banner" class="banner-image" loading="eager">
+      {% else %}
+        <div class="banner-placeholder"></div>
+      {% endif %}
+      <div class="banner-overlay"></div>
+      <div class="banner-gradient"></div>
+    </div>
+    
+    <!-- Hero Content -->
+    <div class="hero-content container">
+      <div class="hero-layout">
+        <!-- Team Logo (Floating) -->
+        <div class="team-logo-wrapper">
+          {% if team.logo %}
+            <img src="{{ team.logo.url }}" alt="{{ team.name }} Logo" class="team-logo glow-effect">
+          {% else %}
+            <div class="team-logo-placeholder glow-effect">
+              <span class="logo-initials">{{ team.name|slice:":2"|upper }}</span>
+            </div>
+          {% endif %}
+        </div>
+        
+        <!-- Team Info Block -->
+        <div class="team-info-block">
+          <div class="team-name-row">
+            <h1 class="team-name">
+              {{ team.name }}
+              {% if team.tag %}
+                <span class="team-tag">[{{ team.tag }}]</span>
+              {% endif %}
+              {% if team.is_verified %}
+                <i class="fa-solid fa-circle-check verified-badge" title="Verified Team"></i>
+              {% endif %}
+            </h1>
+          </div>
+          
+          <div class="team-meta-row">
+            <span class="game-badge">
+              <i class="fa-solid fa-shield-halved"></i>
+              {{ team.get_game_display }}
+            </span>
+            {% if team.region %}
+              <span class="region-badge">
+                <i class="fa-solid fa-power-off"></i>
+                {{ team.get_region_display }}
+              </span>
+            {% endif %}
+            {% if team.is_recruiting %}
+              <span class="recruiting-badge">
+                <i class="fa-solid fa-bullhorn"></i>
+                Recruiting
+              </span>
+            {% endif %}
+          </div>
+          
+          {% if team.tagline %}
+            <p class="team-tagline">{{ team.tagline }}</p>
+          {% endif %}
+        </div>
+        
+        <!-- Primary CTA Button -->
+        <div class="hero-cta">
+          {% if is_captain %}
+            <a href="{% url 'teams:dashboard' team.slug %}" class="btn btn-primary btn-lg">
+              <i class="fa-solid fa-gauge"></i>
+              <span>Team Dashboard</span>
+            </a>
+          {% elif is_member %}
+            <button id="team-chat-btn" class="btn btn-primary btn-lg">
+              <i class="fa-solid fa-comments"></i>
+              <span>Team Chat</span>
+            </button>
+          {% elif is_following %}
+            <button id="unfollow-btn" class="btn btn-secondary btn-lg" data-action="unfollow">
+              <i class="fa-solid fa-heart-circle-check"></i>
+              <span>Following</span>
+            </button>
+          {% else %}
+            <button id="follow-btn" class="btn btn-primary btn-lg" data-action="follow">
+              <i class="fa-solid fa-heart"></i>
+              <span>Follow Team</span>
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Main Content Layout (Sidebar + Content) -->
+  <div class="content-layout container">
+    
+    <!-- Sidebar (Desktop Only) -->
+    <aside class="sidebar desktop-only">
+      <!-- Team Dashboard Card (Captain Only) -->
+      {% if is_captain %}
+      <div class="sidebar-card highlight-card team-dashboard-card">
+        <h3 class="sidebar-card-title">
+          <i class="fa-solid fa-gauge-high"></i>
+          Captain Controls
+        </h3>
+        <div class="dashboard-quick-actions">
+          <a href="{% url 'teams:dashboard' team.slug %}" class="dashboard-action-btn">
+            <i class="fa-solid fa-tachometer-alt"></i>
+            <span>Full Dashboard</span>
+          </a>
+        </div>
+        <div class="dashboard-stats-mini">
+          <div class="mini-stat">
+            <i class="fa-solid fa-user-check"></i>
+            <div>
+              <span class="mini-stat-value">{{ roster_count }}</span>
+              <span class="mini-stat-label">Members</span>
+            </div>
+          </div>
+          <div class="mini-stat">
+            <i class="fa-solid fa-heart"></i>
+            <div>
+              <span class="mini-stat-value">{{ followers_count }}</span>
+              <span class="mini-stat-label">Followers</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Quick Stats Card -->
+      {% if has_matches %}
+      <div class="sidebar-card">
+        <h3 class="sidebar-card-title">
+          <i class="fa-solid fa-chart-simple"></i>
+          Quick Stats
+        </h3>
+        <div class="stat-list">
+          <!-- Primary Stats -->
+          {% if latest_stats %}
+            <div class="stat-row highlight">
+              <span class="stat-label">
+                <i class="fa-solid fa-percent"></i>
+                Win Rate
+              </span>
+              <span class="stat-value text-success">{{ latest_stats.win_rate|floatformat:1 }}%</span>
+            </div>
+            <div class="stat-row highlight">
+              <span class="stat-label">
+                <i class="fa-solid fa-trophy"></i>
+                Matches Played
+              </span>
+              <span class="stat-value">{{ latest_stats.total_matches }}</span>
+            </div>
+            <div class="stat-row highlight">
+              <span class="stat-label">
+                <i class="fa-solid fa-fire"></i>
+                Current Streak
+              </span>
+              <span class="stat-value {% if latest_stats.current_streak > 0 %}text-success{% elif latest_stats.current_streak < 0 %}text-error{% endif %}">
+                {% if latest_stats.current_streak > 0 %}+{% endif %}{{ latest_stats.current_streak }}
+              </span>
+            </div>
+            {% if ranking_data %}
+            <div class="stat-row highlight">
+              <span class="stat-label">
+                <i class="fa-solid fa-star"></i>
+                Total Points
+              </span>
+              <span class="stat-value">{{ ranking_data.total_points|floatformat:0 }}</span>
+            </div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <!-- No matches yet card -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-card-title">
+          <i class="fa-solid fa-chart-simple"></i>
+          Team Stats
+        </h3>
+        <div class="empty-state-mini">
+          <i class="fa-solid fa-chart-line"></i>
+          <p>No matches played yet. Statistics will appear after the first match!</p>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Rankings Card -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-card-title">
+          <i class="fa-solid fa-ranking-star"></i>
+          Rankings
+        </h3>
+        <div class="ranking-list">
+          {% if ranking_data %}
+            <div class="ranking-item">
+              <i class="fa-solid fa-globe"></i>
+              <span>Global: <strong>#{{ ranking_data.global_rank }}</strong></span>
+            </div>
+            <div class="ranking-item">
+              <i class="fa-solid fa-map"></i>
+              <span>Regional: <strong>#{{ ranking_data.regional_rank }}</strong></span>
+            </div>
+            <div class="ranking-item">
+              <i class="fa-solid fa-gamepad"></i>
+              <span>Game: <strong>#{{ ranking_data.game_rank }}</strong></span>
+            </div>
+            <div class="ranking-item">
+              <i class="fa-solid fa-star"></i>
+              <span>Points: <strong>{{ ranking_data.total_points }}</strong></span>
+            </div>
+          {% else %}
+            <p class="text-muted">No rankings yet. Participate in tournaments to earn ranking points!</p>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Sponsors Card (if any) -->
+      {% comment %}
+      {% if team.sponsors.exists %}
+        <div class="sidebar-card">
+          <h3 class="sidebar-card-title">
+            <i class="fa-solid fa-handshake"></i>
+            Sponsors
+          </h3>
+          <div class="sponsor-grid">
+            {% for sponsor in team.sponsors.all|slice:":4" %}
+              <a href="{{ sponsor.website }}" target="_blank" rel="noopener" class="sponsor-logo">
+                <img src="{{ sponsor.logo.url }}" alt="{{ sponsor.name }}" loading="lazy">
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% endcomment %}
+      
+      <!-- Next Match Card (if available) -->
+      {% if upcoming_matches.0 %}
+        <div class="sidebar-card highlight-card">
+          <h3 class="sidebar-card-title">
+            <i class="fa-solid fa-calendar-day"></i>
+            Next Match
+          </h3>
+          <div class="next-match-info">
+            <p class="match-teams">
+              {{ upcoming_matches.0.team_a.name }} <strong>VS</strong> {{ upcoming_matches.0.team_b.name }}
+            </p>
+            <p class="match-time">
+              <i class="fa-solid fa-clock"></i>
+              {{ upcoming_matches.0.start_at|date:"M d, H:i" }}
+            </p>
+            <p class="match-tournament text-muted">
+              {{ upcoming_matches.0.tournament.name }}
+            </p>
+          </div>
+        </div>
+      {% endif %}
+    </aside>
+    
+    <!-- Main Content Area -->
+    <main class="content-area">
+      
+      <!-- Tab Navigation (Sticky) -->
+      <nav class="tab-navigation" id="tab-nav">
+        <div class="tab-list" role="tablist">
+          <button class="tab-button active" data-tab="overview" role="tab">
+            <i class="fa-solid fa-house"></i>
+            <span>Overview</span>
+          </button>
+          <button class="tab-button" data-tab="roster" role="tab">
+            <i class="fa-solid fa-users"></i>
+            <span>Roster</span>
+          </button>
+          <button class="tab-button" data-tab="statistics" role="tab">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Statistics</span>
+          </button>
+          <button class="tab-button" data-tab="tournaments" role="tab">
+            <i class="fa-solid fa-trophy"></i>
+            <span>Tournaments</span>
+          </button>
+          <button class="tab-button" data-tab="posts" role="tab">
+            <i class="fa-solid fa-newspaper"></i>
+            <span>Posts</span>
+          </button>
+          {% if is_member %}
+            <button class="tab-button" data-tab="discussions" role="tab">
+              <i class="fa-solid fa-comments"></i>
+              <span>Discussions</span>
+            </button>
+          {% endif %}
+          {% comment %}
+          <button class="tab-button" data-tab="sponsors" role="tab">
+            <i class="fa-solid fa-handshake"></i>
+            <span>Sponsors</span>
+          </button>
+          {% endcomment %}
+          {% if is_member %}
+            <button class="tab-button" data-tab="chat" role="tab">
+              <i class="fa-solid fa-message"></i>
+              <span>Chat</span>
+            </button>
+          {% endif %}
+        </div>
+        <div class="tab-indicator"></div>
+      </nav>
+      
+      <!-- Tab Content Panels -->
+      <div class="tab-panels">
+        
+        <!-- Overview Tab (Default) -->
+        <section id="tab-overview" class="tab-content active" role="tabpanel">
+          <div class="tab-loading">
+            <div class="spinner"></div>
+            <p>Loading overview...</p>
+          </div>
+        </section>
+        
+        <!-- Roster Tab -->
+        <section id="tab-roster" class="tab-content" role="tabpanel">
+          <div class="tab-loading">
+            <div class="spinner"></div>
+            <p>Loading roster...</p>
+          </div>
+        </section>
+        
+        <!-- Statistics Tab -->
+        <section id="tab-statistics" class="tab-content" role="tabpanel">
+          <div class="tab-loading">
+            <div class="spinner"></div>
+            <p>Loading statistics...</p>
+          </div>
+        </section>
+        
+        <!-- Tournaments Tab -->
+        <section id="tab-tournaments" class="tab-content" role="tabpanel">
+          <div class="tab-loading">
+            <div class="spinner"></div>
+            <p>Loading tournaments...</p>
+          </div>
+        </section>
+        
+        <!-- Posts Tab -->
+        <section id="tab-posts" class="tab-content" role="tabpanel">
+          <div class="tab-loading">
+            <div class="spinner"></div>
+            <p>Loading posts...</p>
+          </div>
+        </section>
+        
+        <!-- Discussions Tab (Members Only) -->
+        {% if is_member %}
+          <section id="tab-discussions" class="tab-content" role="tabpanel">
+            <div id="discussions-content">
+              <div class="tab-loading">
+                <div class="spinner"></div>
+                <p>Loading discussions...</p>
+              </div>
+            </div>
+          </section>
+        {% endif %}
+        
+        <!-- Sponsors Tab -->
+        {% comment %}
+        <section id="tab-sponsors" class="tab-content" role="tabpanel">
+          <div class="tab-loading">
+            <div class="spinner"></div>
+            <p>Loading sponsors...</p>
+          </div>
+        </section>
+        {% endcomment %}
+        
+        <!-- Chat Tab (Members Only) -->
+        {% if is_member %}
+          <section id="tab-chat" class="tab-content" role="tabpanel">
+            <div id="chat-content">
+              <div class="tab-loading">
+                <div class="spinner"></div>
+                <p>Loading chat...</p>
+              </div>
+            </div>
+          </section>
+        {% endif %}
+        
+      </div>
+    </main>
+  </div>
+  
+  <!-- Bottom Navigation (Mobile Only) -->
+  <nav class="bottom-navigation mobile-only">
+    <button class="bottom-nav-item active" data-tab="overview">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="roster">
+      <i class="fa-solid fa-users"></i>
+      <span>Roster</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="statistics">
+      <i class="fa-solid fa-chart-line"></i>
+      <span>Stats</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="tournaments">
+      <i class="fa-solid fa-trophy"></i>
+      <span>Events</span>
+    </button>
+    <button class="bottom-nav-item" data-tab="posts">
+      <i class="fa-solid fa-newspaper"></i>
+      <span>Posts</span>
+    </button>
+  </nav>
+  
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Modal Container (for dynamic modals) -->
+<div id="modal-overlay" class="modal-overlay"></div>
+
+<!-- Page Data (for JavaScript) -->
+<script id="page-data" type="application/json">
+{
+  "team": {
+    "id": {{ team.id }},
+    "slug": "{{ team.slug }}",
+    "name": "{{ team.name }}",
+    "game": "{{ team.game }}",
+    "description": "{{ team.description|default:''|escapejs }}",
+    "is_public": {{ team.is_public|yesno:"true,false" }},
+    "created_at": "{{ team.created_at|date:'c' }}",
+    "region": "{{ team.region|default:'' }}",
+    "is_recruiting": {{ team.is_recruiting|yesno:"true,false" }},
+    "is_verified": {{ team.is_verified|yesno:"true,false" }}
+  },
+  "permissions": {
+    "is_captain": {{ is_captain|yesno:"true,false" }},
+    "is_member": {{ is_member|yesno:"true,false" }},
+    "is_following": {{ is_following|yesno:"true,false" }},
+    "can_edit": {% if is_captain %}true{% else %}false{% endif %}
+  },
+  "recent_matches": [],
+  "posts": [],
+  "achievements": {},
+  "activities": [],
+  "csrf_token": "{{ csrf_token }}"
+}
+</script>
+
+<!-- JavaScript -->
+<script src="{% static 'js/team-detail/logger.js' %}" defer></script>
+<script src="{% static 'js/team-detail/skeleton-loaders.js' %}" defer></script>
+<script src="{% static 'js/team-detail/theme-manager.js' %}" defer></script>
+<script src="{% static 'js/team-detail/api-client.js' %}" defer></script>
+<script src="{% static 'js/team-detail/player-profile-modal.js' %}" defer></script>
+<script src="{% static 'js/team-detail/components/toast.js' %}" defer></script>
+<script src="{% static 'js/team-detail/components/modal.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/overview-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/roster-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/statistics-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/tournaments-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/posts-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/discussions-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/chat-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tabs/sponsors-tab.js' %}" defer></script>
+<script src="{% static 'js/team-detail/dashboard-actions.js' %}" defer></script>
+<script src="{% static 'js/team-detail/tab-manager.js' %}" defer></script>
+<script src="{% static 'js/team-detail/main.js' %}" defer></script>
+{% endblock %}
+
+{% block footer %}
+{# Footer removed for team detail page #}
+{% endblock %}
