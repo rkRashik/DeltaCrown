@@ -130,6 +130,7 @@ from .views.sponsorship import (
 )
 from .views.ajax import (
     my_teams_data,
+    my_invites_data,
     update_team_info,
     update_team_privacy,
     kick_member,
@@ -178,7 +179,26 @@ urlpatterns = [
     path("create/resume/", create_team_resume_view, name="create_team_resume"),
     path("collect-game-id/<str:game_code>/", collect_game_id_view, name="collect_game_id"),
 
-    # Detail + captain actions (slug-based)
+    # IMPORTANT: Specific AJAX endpoints MUST come before slug patterns
+    # AJAX endpoints (modularized)
+    path("my-teams-data/", my_teams_data, name="my_teams_ajax"),
+    path("my-invites-data/", my_invites_data, name="my_invites_ajax"),
+    
+    # Invites
+    path("invites/", my_invites, name="my_invites"),
+    path("invitations/", my_invites, name="invitations"),  # Alias
+    path("invites/<str:token>/accept/", accept_invite_view, name="accept_invite"),
+    path("invites/<str:token>/decline/", decline_invite_view, name="decline_invite"),
+    
+    # AJAX endpoints for team creation
+    path("api/validate-name/", validate_team_name, name="validate_team_name"),
+    path("api/validate-tag/", validate_team_tag, name="validate_team_tag"),
+    path("api/game-config/<str:game_code>/", get_game_config_api, name="game_config_api"),
+    path("api/validate-user/", validate_user_identifier, name="validate_user_identifier"),
+    path("api/validate-invite/", validate_user_identifier, name="validate_invite"),
+    path("api/check-existing-team/", check_existing_team, name="check_existing_team"),
+
+    # Detail + captain actions (slug-based) - MUST come after specific paths
     path("<slug:slug>/", team_profile_view, name="detail"),  # New public profile
     path("<slug:slug>/dashboard/", team_dashboard_view, name="dashboard"),  # New dashboard
     path("<slug:slug>/manage/", manage_team_view, name="manage"),
@@ -259,27 +279,6 @@ urlpatterns = [
     path("hub/featured/", TeamHubFeaturedView.as_view(), name="hub_featured"),
     path("promotion/<int:promotion_id>/click/", PromotionClickTrackingView.as_view(), name="promotion_click"),
     path("sponsorship/api/", SponsorshipAPIView.as_view(), name="sponsorship_api"),
-    
-    # AJAX endpoints (modularized)
-    path("<slug:slug>/kick-member/", kick_member, name="kick_member"),
-    path("<slug:slug>/transfer-captaincy/", transfer_captaincy, name="transfer_captaincy"),
-    path("<slug:slug>/leave-team/", leave_team, name="leave_team"),
-    path("my-teams-data/", my_teams_data, name="my_teams_ajax"),
-    
-    # Invites
-    path("invites/", my_invites, name="my_invites"),
-    # Alias for 'invitations' link
-    path("invitations/", my_invites, name="invitations"),
-    path("invites/<str:token>/accept/", accept_invite_view, name="accept_invite"),
-    path("invites/<str:token>/decline/", decline_invite_view, name="decline_invite"),
-    
-    # AJAX endpoints for team creation
-    path("api/validate-name/", validate_team_name, name="validate_team_name"),
-    path("api/validate-tag/", validate_team_tag, name="validate_team_tag"),
-    path("api/game-config/<str:game_code>/", get_game_config_api, name="game_config_api"),
-    path("api/validate-user/", validate_user_identifier, name="validate_user_identifier"),
-    path("api/validate-invite/", validate_user_identifier, name="validate_invite"),
-    path("api/check-existing-team/", check_existing_team, name="check_existing_team"),
     
     # Social features namespace
     path("", include("apps.teams.urls_social", namespace="teams_social")),

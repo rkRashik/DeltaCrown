@@ -80,6 +80,62 @@ def my_teams_data(request) -> JsonResponse:
 
 
 @login_required
+@require_http_methods(["GET"])
+def my_invites_data(request) -> JsonResponse:
+    """AJAX endpoint to get user's pending team invitations."""
+    from django.apps import apps
+    from django.utils import timezone
+    
+    profile = _ensure_profile(request.user)
+    if not profile:
+        return JsonResponse({"error": "User profile not found."}, status=400)
+    
+    try:
+        TeamInvite = apps.get_model("teams", "TeamInvite")
+        
+        # Get pending invites
+        invites = TeamInvite.objects.filter(
+            invited_user=profile,
+            status='PENDING',
+            expires_at__gt=timezone.now()
+        ).select_related('team', 'inviter').order_by('-created_at')
+        
+        invites_data = []
+        for invite in invites:
+            invites_data.append({
+                'id': invite.id,
+                'token': invite.token,
+                'team': {
+                    'id': invite.team.id,
+                    'name': invite.team.name,
+                    'tag': getattr(invite.team, 'tag', ''),
+                    'logo': invite.team.logo.url if invite.team.logo else None,
+                    'game': getattr(invite.team, 'game', ''),
+                    'game_display': _get_game_display_name(getattr(invite.team, 'game', '')),
+                    'url': invite.team.get_absolute_url() if hasattr(invite.team, 'get_absolute_url') else f'/teams/{invite.team.slug}/'
+                },
+                'inviter': {
+                    'username': invite.inviter.user.username if hasattr(invite.inviter, 'user') else 'Unknown',
+                    'display_name': getattr(invite.inviter, 'display_name', None) or (invite.inviter.user.username if hasattr(invite.inviter, 'user') else 'Unknown')
+                },
+                'role': getattr(invite, 'role', 'member'),
+                'created_at': invite.created_at.isoformat() if hasattr(invite, 'created_at') else None,
+                'expires_at': invite.expires_at.isoformat() if hasattr(invite, 'expires_at') else None,
+                'accept_url': f'/teams/invites/{invite.token}/accept/',
+                'decline_url': f'/teams/invites/{invite.token}/decline/'
+            })
+        
+        return JsonResponse({
+            "success": True,
+            "invites": invites_data,
+            "total_invites": len(invites_data)
+        })
+    
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to load invites: {str(e)}"}, status=500)
+
+
+@login_required
 @require_http_methods(["POST"])
 def update_team_info(request, slug: str) -> JsonResponse:
     """Update team basic information via AJAX."""

@@ -27,17 +27,17 @@
             
             <div class="navbar-actions">
                 {% if user.is_authenticated %}
-                <button class="navbar-btn" id="my-teams-trigger" title="My Teams">
+                <a href="{% url 'dashboard:index' %}" class="navbar-btn" title="My Teams & Invites">
                     <i class="fas fa-user-shield"></i>
                     <span>My Teams</span>
                     {% if user.userprofile.teams.count > 0 %}
                     <span class="badge">{{ user.userprofile.teams.count }}</span>
                     {% endif %}
-                </button>
-                <button class="navbar-btn" id="invites-trigger" title="Invitations">
+                </a>
+                <a href="{% url 'dashboard:index' %}" class="navbar-btn" title="Dashboard - View Invitations">
                     <i class="fas fa-envelope"></i>
                     <span>Invites</span>
-                </button>
+                </a>
                 {% endif %}
                 
                 <a href="{% url 'teams:create' %}" class="navbar-btn primary">
@@ -592,5 +592,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'teams/js/team-list-premium.js' %}?v=5.0"></script>
+    <script src="{% static 'teams/js/team-list-premium.js' %}?v=5.3"></script>
 {% endblock %}

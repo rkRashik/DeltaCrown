@@ -31,16 +31,16 @@
     // DOM ELEMENTS
     // ========================================
     const elements = {
-        searchInput: document.getElementById('teamSearch'),
+        searchInput: document.getElementById('team-search-premium'),
         searchLoader: document.querySelector('.search-loader'),
         gameFilters: document.querySelectorAll('.game-filter-premium'),
         filterGameList: document.getElementById('filterGameList'),
         viewBtns: document.querySelectorAll('.view-btn'),
         teamsContainer: document.querySelector('.teams-container'),
-        sortSelect: document.getElementById('sortBy'),
+        sortSelect: document.getElementById('sort-select-premium'),
         resultsCount: document.querySelector('.results-count'),
         filterToggle: document.querySelector('.btn-filters'),
-        advancedFilters: document.querySelector('.advanced-filters-premium'),
+        advancedFilters: document.getElementById('advanced-filters'),
         filterChips: document.querySelectorAll('.filter-chip'),
         regionSelect: document.getElementById('regionFilter'),
         minMembersInput: document.getElementById('minMembers'),
@@ -49,10 +49,9 @@
         resetFiltersBtn: document.querySelector('.reset-filters-btn'),
         activeFiltersContainer: document.querySelector('.active-filters-container'),
         loadMoreBtn: document.querySelector('.load-more-btn'),
-        scrollLeftBtn: document.querySelector('.scroll-left'),
-        scrollRightBtn: document.querySelector('.scroll-right'),
-        myTeamsBtn: document.querySelector('.navbar-btn[data-action="my-teams"]'),
-        invitesBtn: document.querySelector('.navbar-btn[data-action="invites"]'),
+        scrollLeftBtn: document.getElementById('scroll-left'),
+        scrollRightBtn: document.getElementById('scroll-right'),
+        gameFiltersScroll: document.getElementById('game-filters-scroll'),
         scrollToTopBtn: document.querySelector('.scroll-to-top')
     };
 
@@ -61,7 +60,9 @@
     // ========================================
     function init() {
         // Check if we're on the team list page
-        if (!elements.teamsContainer) return;
+        if (!elements.teamsContainer) {
+            return;
+        }
 
         setupEventListeners();
         loadViewPreference();
@@ -151,27 +152,19 @@
             });
         }
 
-        // Horizontal scroll buttons
-        if (elements.scrollLeftBtn && elements.filterGameList) {
+        // Horizontal scroll for game filters
+        if (elements.scrollLeftBtn && elements.gameFiltersScroll) {
             elements.scrollLeftBtn.addEventListener('click', () => {
-                elements.filterGameList.scrollBy({ left: -300, behavior: 'smooth' });
+                elements.gameFiltersScroll.scrollBy({ left: -300, behavior: 'smooth' });
             });
         }
 
-        if (elements.scrollRightBtn && elements.filterGameList) {
+        if (elements.scrollRightBtn && elements.gameFiltersScroll) {
             elements.scrollRightBtn.addEventListener('click', () => {
-                elements.filterGameList.scrollBy({ left: 300, behavior: 'smooth' });
+                elements.gameFiltersScroll.scrollBy({ left: 300, behavior: 'smooth' });
             });
             
-            elements.filterGameList.addEventListener('scroll', checkScrollButtons);
-        }
-
-        // My Teams
-        if (elements.myTeamsBtn) {
-            elements.myTeamsBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                showMyTeamsPanel();
-            });
+            elements.gameFiltersScroll.addEventListener('scroll', checkScrollButtons);
         }
 
         // Scroll to top
@@ -695,67 +688,6 @@
     }
 
     // ========================================
-    // MY TEAMS PANEL
-    // ========================================
-    function showMyTeamsPanel() {
-        showLoadingOverlay();
-
-        fetch('/teams/api/my-teams/')
-            .then(response => response.json())
-            .then(data => {
-                hideLoadingOverlay();
-                renderMyTeamsPanel(data.teams);
-            })
-            .catch(error => {
-                console.error('Error loading my teams:', error);
-                hideLoadingOverlay();
-                showToast('Failed to load your teams', 'error');
-            });
-    }
-
-    function renderMyTeamsPanel(teams) {
-        const existingPanel = document.querySelector('.my-teams-quick');
-        if (existingPanel) {
-            existingPanel.remove();
-            return;
-        }
-
-        const controlPanel = document.querySelector('.control-panel-premium');
-        if (!controlPanel) return;
-
-        const teamsHtml = teams.map(team => `
-            <a href="/teams/${team.id}/" class="my-team-card">
-                <div class="team-logo-small">
-                    ${team.logo ? `<img src="${team.logo}" alt="${team.name}">` : `<div class="team-logo-placeholder-small">${team.name[0]}</div>`}
-                </div>
-                <div class="my-team-info-compact">
-                    <div class="my-team-name">${team.name}</div>
-                    <div class="my-team-role ${team.role === 'captain' ? 'captain' : ''}">${team.role}</div>
-                </div>
-            </a>
-        `).join('');
-
-        const panelHtml = `
-            <div class="my-teams-quick">
-                <div class="quick-header">
-                    <h3><i class="fas fa-users"></i> My Teams</h3>
-                    <button class="close-quick"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="quick-content">
-                    ${teams.length > 0 ? teamsHtml : '<p style="color: rgba(255,255,255,0.6); text-align: center;">You are not part of any teams yet.</p>'}
-                </div>
-            </div>
-        `;
-
-        controlPanel.insertAdjacentHTML('afterend', panelHtml);
-
-        // Close button
-        document.querySelector('.close-quick')?.addEventListener('click', () => {
-            document.querySelector('.my-teams-quick')?.remove();
-        });
-    }
-
-    // ========================================
     // QUICK JOIN MODAL
     // ========================================
     function showQuickJoinModal(teamId) {
@@ -827,9 +759,9 @@
     // SCROLL FUNCTIONS
     // ========================================
     function checkScrollButtons() {
-        if (!elements.filterGameList || !elements.scrollLeftBtn || !elements.scrollRightBtn) return;
+        if (!elements.gameFiltersScroll || !elements.scrollLeftBtn || !elements.scrollRightBtn) return;
 
-        const { scrollLeft, scrollWidth, clientWidth } = elements.filterGameList;
+        const { scrollLeft, scrollWidth, clientWidth } = elements.gameFiltersScroll;
 
         elements.scrollLeftBtn.style.display = scrollLeft > 0 ? 'flex' : 'none';
         elements.scrollRightBtn.style.display = scrollLeft < scrollWidth - clientWidth - 10 ? 'flex' : 'none';
