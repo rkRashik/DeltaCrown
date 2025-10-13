@@ -1,0 +1,72 @@
+﻿{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Your Team | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teams/css/team-create-esports.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="esports-background">
+    <div class="grid-overlay"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+</div>
+
+{% if messages %}
+<div class="messages-floating">
+    {% for message in messages %}
+    <div class="alert-modern alert-{{ message.tags }}">
+        <i class="fas fa-{% if message.tags == 'error' or message.tags == 'danger' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+        <span>{{ message }}</span>
+        <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="team-create-esports">
+    <div class="hero-header">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-shield-alt"></i>
+                <span>TEAM CREATION</span>
+            </div>
+            <h1 class="hero-title">
+                <span class="gradient-text">Build Your</span>
+                <span class="outline-text">Championship</span>
+                <span class="gradient-text">Squad</span>
+            </h1>
+            <p class="hero-subtitle">Create your esports legacy and dominate the competition</p>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <form method="post" enctype="multipart/form-data" id="teamCreateForm">
+            {% csrf_token %}
+            
+            <div class="progress-steps">
+                <div class="step active" data-step="1">
+                    <div class="step-circle"><i class="fas fa-info-circle"></i></div>
+                    <span class="step-label">Basic Info</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step" data-step="2">
+                    <div class="step-circle"><i class="fas fa-gamepad"></i></div>
+                    <span class="step-label">Game Setup</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step" data-step="3">
+                    <div class="step-circle"><i class="fas fa-image"></i></div>
+                    <span class="step-label">Branding</span>
+                </div>
+                <div class="step-line"></div>
+                <div class="step" data-step="4">
+                    <div class="step-circle"><i class="fas fa-users"></i></div>
+                    <span class="step-label">Team Roster</span>
+                </div>
+            </div>

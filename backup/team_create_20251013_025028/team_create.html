@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Create Your Team | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teams/css/team-create-fixed.css' %}?v=1.0">
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="messages-container">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {% if message.tags == 'error' or message.tags == 'danger' %}
+            <i class="fas fa-exclamation-circle"></i>
+        {% elif message.tags == 'warning' %}
+            <i class="fas fa-exclamation-triangle"></i>
+        {% else %}
+            <i class="fas fa-check-circle"></i>
+        {% endif %}
+        <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="team-create-container">
+    <div class="page-header">
+        <h1>👥 Create Your Team</h1>
+        <p>Build your esports identity and compete in tournaments</p>
+    </div>
+
+    <div class="create-form-card">
+        <form method="post" enctype="multipart/form-data" id="team-create-form">
+            {% csrf_token %}
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <h2 class="section-title">Basic Information</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_name" class="form-label">
+                        Team Name <span class="required">*</span>
+                    </label>
+                    <input type="text" name="name" id="id_name" class="form-control" 
+                           placeholder="Enter your team name" required minlength="3" maxlength="50">
+                    <span id="name-feedback" class="validation-feedback"></span>
+                    <small class="form-text">Choose a unique name (3-50 characters)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_tag" class="form-label">
+                        Team Tag <span class="required">*</span>
+                    </label>
+                    <input type="text" name="tag" id="id_tag" class="form-control" 
+                           placeholder="e.g., TL, G2, LOUD" required minlength="2" maxlength="10">
+                    <span id="tag-feedback" class="validation-feedback"></span>
+                    <small class="form-text">2-10 characters (e.g., TL, G2, LOUD)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_tagline" class="form-label">Tagline / Motto</label>
+                    <input type="text" name="tagline" id="id_tagline" class="form-control" 
+                           placeholder="e.g., 'Rise Above', 'Never Back Down', 'Victory Awaits'" maxlength="200">
+                    <small class="form-text">A short motto or catchphrase for your team (optional)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_description" class="form-label">Description</label>
+                    <textarea name="description" id="id_description" class="form-control" 
+                              placeholder="Tell others about your team (optional)" maxlength="500"></textarea>
+                    <small class="form-text">Briefly describe your team and goals (optional)</small>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <h2 class="section-title">Game & Region</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_game" class="form-label">
+                        Game <span class="required">*</span>
+                    </label>
+                    <select name="game" id="id_game" class="form-control" required>
+                        <option value="">Select your game...</option>
+                        {% for value, label in form.game.field.choices %}
+                            {% if value %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <small class="form-text">Select your competitive game</small>
+                </div>
+
+                <div id="existing-team-warning" class="existing-team-warning">
+                    <div class="warning-header">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h4>You Already Have a Team!</h4>
+                    </div>
+                    <p>You can only have one team per game. Please leave your current team or select a different game.</p>
+                    <div id="existing-team-info" class="existing-team-info"></div>
+                </div>
+
+                <div id="game-id-section">
+                    <div class="game-id-header">
+                        <i class="fas fa-id-card"></i>
+                        <h4 id="game-id-title">Enter Your Game ID</h4>
+                    </div>
+                    <div id="game-id-fields" class="game-id-fields"></div>
+                    <div class="game-id-privacy">
+                        <i class="fas fa-lock"></i>
+                        <p>Your game ID will be saved to your profile and visible only to your team captain and teammates.</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_region" class="form-label">
+                        Region <span class="required">*</span>
+                    </label>
+                    <select name="region" id="id_region" class="form-control" required>
+                        <option value="">Select region...</option>
+                        {% for value, label in form.region.field.choices %}
+                            {% if value %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <small class="form-text">Your team's competitive region</small>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <h2 class="section-title">Team Branding (Optional)</h2>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label for="id_logo" class="form-label">Team Logo</label>
+                        <div class="modern-file-upload" id="logo-upload-area">
+                            <input type="file" name="logo" id="id_logo" accept="image/*" style="display: none;">
+                            <div class="upload-placeholder" id="logo-placeholder">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <div class="upload-text">
+                                    <p class="upload-title">Upload Team Logo</p>
+                                    <p class="upload-subtitle">Drag & drop or click to browse</p>
+                                    <p class="upload-format">Square image (PNG, JPG) - Max 10MB</p>
+                                </div>
+                            </div>
+                            <div class="upload-preview" id="logo-preview" style="display: none;">
+                                <img src="" alt="Logo Preview" id="logo-preview-img">
+                                <div class="preview-overlay">
+                                    <button type="button" class="btn-preview-remove" id="logo-remove">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                    <button type="button" class="btn-preview-change" id="logo-change">
+                                        <i class="fas fa-sync"></i> Change
+                                    </button>
+                                </div>
+                                <div class="preview-info">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span id="logo-filename">image.png</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group col-md-6">
+                        <label for="id_banner_image" class="form-label">Team Banner</label>
+                        <div class="modern-file-upload banner-upload" id="banner-upload-area">
+                            <input type="file" name="banner_image" id="id_banner_image" accept="image/*" style="display: none;">
+                            <div class="upload-placeholder" id="banner-placeholder">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <div class="upload-text">
+                                    <p class="upload-title">Upload Team Banner</p>
+                                    <p class="upload-subtitle">Drag & drop or click to browse</p>
+                                    <p class="upload-format">Wide format 16:9 (PNG, JPG) - Max 10MB</p>
+                                </div>
+                            </div>
+                            <div class="upload-preview" id="banner-preview" style="display: none;">
+                                <img src="" alt="Banner Preview" id="banner-preview-img">
+                                <div class="preview-overlay">
+                                    <button type="button" class="btn-preview-remove" id="banner-remove">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                    <button type="button" class="btn-preview-change" id="banner-change">
+                                        <i class="fas fa-sync"></i> Change
+                                    </button>
+                                </div>
+                                <div class="preview-info">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span id="banner-filename">image.png</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <h2 class="section-title">Invite Team Members (Optional)</h2>
+                </div>
+
+                <div class="invite-section">
+                    <p class="invite-description">
+                        <i class="fas fa-info-circle"></i>
+                        You can invite members now or later from your team dashboard. Invited members will receive a notification.
+                    </p>
+
+                    <div id="invites-container">
+                        <!-- Dynamic invite inputs will be added here -->
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary btn-add-invite" id="add-invite-btn">
+                        <i class="fas fa-plus"></i> Add Another Member
+                    </button>
+
+                    <div class="invite-template" style="display: none;">
+                        <div class="invite-item">
+                            <div class="invite-inputs">
+                                <div class="invite-input-group">
+                                    <label>Username or Email</label>
+                                    <input type="text" class="form-control invite-identifier" 
+                                           placeholder="Enter username or email">
+                                </div>
+                                <div class="invite-input-group">
+                                    <label>Role</label>
+                                    <select class="form-control invite-role">
+                                        <option value="PLAYER">Player</option>
+                                        <option value="SUBSTITUTE">Substitute</option>
+                                        <option value="COACH">Coach</option>
+                                        <option value="MANAGER">Manager</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn-remove-invite">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden input to store invite data -->
+                <input type="hidden" name="roster_data" id="roster_data" value="[]">
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    <i class="fas fa-check"></i> Create Team
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="loading-overlay" id="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <p>Creating your team...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'teams/js/team-create-enhanced.js' %}?v=2.0"></script>
+{% endblock %}
