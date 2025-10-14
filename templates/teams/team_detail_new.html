@@ -4,6 +4,11 @@
 {% block title %}{{ team.name }} — {{ team.get_game_display }}{% endblock %}
 
 {% block extra_head %}
+<!-- Google Fonts - Poppins (Eclipse Design) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <!-- Game Theme CSS -->
 <link rel="stylesheet" href="{% static 'css/team-detail/game-themes.css' %}">
 <link rel="stylesheet" href="{% static 'css/team-detail/team-detail-new.css' %}">
@@ -17,7 +22,9 @@
 <link rel="stylesheet" href="{% static 'css/team-detail/tabs-enhanced.css' %}">
 <link rel="stylesheet" href="{% static 'css/team-detail/roster-enhanced.css' %}">
 <link rel="stylesheet" href="{% static 'css/team-detail/roster-esports.css' %}">
-<link rel="stylesheet" href="{% static 'css/team-detail/roster-cards-modern.css' %}">
+<!-- Eclipse Design System -->
+<link rel="stylesheet" href="{% static 'css/team-detail/roster-eclipse.css' %}">
+<link rel="stylesheet" href="{% static 'css/team-detail/player-modal-eclipse.css' %}">
 <link rel="stylesheet" href="{% static 'css/team-detail/overview-enhanced.css' %}">
 <link rel="stylesheet" href="{% static 'css/team-detail/dashboard-modals.css' %}">
 <link rel="stylesheet" href="{% static 'css/team-detail/responsive.css' %}">
@@ -482,22 +489,7 @@
     "is_following": {{ is_following|yesno:"true,false" }},
     "can_edit": {% if is_captain %}true{% else %}false{% endif %}
   },
-  "roster": [
-    {% for membership in roster %}
-    {
-      "id": {{ membership.profile.id }},
-      "profile_id": {{ membership.profile.id }},
-      "username": "{{ membership.profile.user.username|escapejs }}",
-      "display_name": "{{ membership.profile.display_name|default:membership.profile.user.username|escapejs }}",
-      "avatar": {% if membership.profile.avatar %}"{{ membership.profile.avatar.url }}"{% else %}null{% endif %},
-      "role": "{{ membership.role }}",
-      "role_display": "{{ membership.get_role_display }}",
-      "joined_at": "{{ membership.joined_at|date:'c' }}",
-      "is_captain": {% if membership.role == 'CAPTAIN' %}true{% else %}false{% endif %},
-      "is_online": false
-    }{% if not forloop.last %},{% endif %}
-    {% endfor %}
-  ],
+  "roster": {{ roster_data|safe }},
   "recent_matches": [],
   "posts": [],
   "achievements": {},

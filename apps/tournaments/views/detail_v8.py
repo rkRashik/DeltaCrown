@@ -1,384 +1,256 @@
 """
-Tournament Detail V8 - Complete Rebuild
-Premium, future-proof tournament detail page with real data
+API views for user profile game ID management
 """
-
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpRequest, HttpResponse
-from django.db.models import Q, Count, Prefetch
-from django.utils import timezone
+import logging
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.cache import cache_page
-from django.core.cache import cache
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+import json
 
-from apps.tournaments.models import (
-    Tournament, 
-    TournamentCapacity,
-    TournamentFinance,
-    TournamentSchedule,
-    TournamentRules,
-    TournamentMedia,
-    Registration,
-    Match
-)
-from apps.teams.models import Team
-from apps.common.game_assets import get_game_data
+from apps.user_profile.models import UserProfile
+
+logger = logging.getLogger(__name__)
+
+# Game code to field name mapping
+GAME_FIELD_MAP = {
+    'valorant': 'riot_id',
+    'efootball': 'efootball_id',
+    'dota2': 'steam_id',
+    'cs2': 'steam_id',
+    'csgo': 'steam_id',
+    'mlbb': 'mlbb_id',
+    'pubg': 'pubg_mobile_id',
+    'pubgm': 'pubg_mobile_id',
+    'pubg_mobile': 'pubg_mobile_id',
+    'freefire': 'free_fire_id',
+    'free_fire': 'free_fire_id',
+    'fc24': 'ea_id',
+    'codm': 'codm_uid',
+}
 
 
-def tournament_detail_v8(request: HttpRequest, slug: str) -> HttpResponse:
+@login_required
+@require_http_methods(["GET"])
+def get_game_id(request):
     """
-    V8 Tournament Detail View - Complete Rebuild
+    Check if user has a game ID for the specified game
     
-    Features:
-    - Optimized database queries with select_related and prefetch_related
-    - Real-time data from database
-    - User registration status
-    - Match schedule and results
-    - Team listings
-    - Prize distribution
-    - Complete tournament information
-    - Responsive and accessible
+    GET /api/profile/get-game-id/?game=valorant
+    Returns: {"has_game_id": true/false, "game_id": "value" (if exists)}
     """
-    
-    # ==========================================
-    # CORE TOURNAMENT DATA
-    # ==========================================
-    
-    tournament = get_object_or_404(
-        Tournament.objects.select_related(
-            'organizer',
-            'capacity',
-            'finance',
-            'schedule',
-            'rules',
-            'media'
-        ).prefetch_related(
-            Prefetch(
-                'registrations',
-                queryset=Registration.objects.select_related('user', 'team')
-            ),
-            Prefetch(
-                'matches',
-                queryset=Match.objects.select_related(
-                    'team_a', 'team_b'
-                ).order_by('start_at')
-            )
-        ),
-        slug=slug
-    )
-    
-    # ==========================================
-    # GAME INFORMATION
-    # ==========================================
-    
-    game_data = get_game_data(tournament.game)
-    
-    # ==========================================
-    # USER REGISTRATION STATUS
-    # ==========================================
-    
-    user_registration = None
-    user_team = None
-    can_register = False
-    
-    if request.user.is_authenticated and hasattr(request.user, 'profile'):
-        # Check if user has registered
-        user_registration = tournament.registrations.filter(
-            user=request.user.profile
-        ).select_related('team').first()
+    try:
+        game_code = request.GET.get('game', '').lower()
         
-        if user_registration:
-            user_team = user_registration.team
+        if not game_code:
+            return JsonResponse({
+                'success': False,
+                'error': 'Game code is required'
+            }, status=400)
         
-        # Check if user can register
-        # Tournament must be PUBLISHED or RUNNING and registration_open must be True
-        can_register = (
-            tournament.registration_open and
-            not user_registration and
-            tournament.status in ['PUBLISHED', 'RUNNING']
-        )
+        if game_code not in GAME_FIELD_MAP:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid game code: {game_code}'
+            }, status=400)
+        
+        # Get user profile
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+        except UserProfile.DoesNotExist:
+            # Profile doesn't exist - no game ID
+            return JsonResponse({
+                'success': True,
+                'has_game_id': False
+            })
+        
+        # Get the field name for this game
+        field_name = GAME_FIELD_MAP[game_code]
+        game_id_value = getattr(profile, field_name, '')
+        
+        # For MLBB, also check server ID
+        if game_code == 'mlbb':
+            mlbb_server_id = getattr(profile, 'mlbb_server_id', '')
+            has_game_id = bool(game_id_value and mlbb_server_id)
+            
+            return JsonResponse({
+                'success': True,
+                'has_game_id': has_game_id,
+                'game_ids': {
+                    'mlbb_id': game_id_value if has_game_id else '',
+                    'mlbb_server_id': mlbb_server_id if has_game_id else ''
+                }
+            })
+        else:
+            has_game_id = bool(game_id_value)
+            
+            return JsonResponse({
+                'success': True,
+                'has_game_id': has_game_id,
+                'game_ids': {
+                    field_name: game_id_value if has_game_id else ''
+                }
+            })
     
-    # ==========================================
-    # CAPACITY & REGISTRATION INFO
-    # ==========================================
+    except Exception as e:
+        logger.error(f"Error checking game ID: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while checking game ID'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_game_id(request):
+    """
+    Update user's game ID for a specific game
     
-    capacity_info = {
-        'total_slots': 0,
-        'filled_slots': 0,
-        'available_slots': 0,
-        'fill_percentage': 0,
-        'is_full': False
+    POST /api/profile/update-game-id/
+    Body: {
+        "game": "valorant",
+        "riot_id": "Professor#TAG"
+    }
+    OR for MLBB:
+    {
+        "game": "mlbb",
+        "mlbb_id": "123456789",
+        "mlbb_server_id": "1234"
     }
     
-    if hasattr(tournament, 'capacity') and tournament.capacity:
-        approved_count = tournament.registrations.filter(status='CONFIRMED').count()
+    Returns: {"success": true, "message": "Game ID saved"}
+    """
+    try:
+        # Parse JSON body
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data'
+            }, status=400)
         
-        if tournament.format == 'SOLO':
-            total = tournament.capacity.max_teams or 0  # For solo, max_teams = max_participants
-            filled = approved_count
-        else:  # TEAM format
-            total = tournament.capacity.max_teams or 0
-            filled = tournament.registrations.filter(
-                status='CONFIRMED',
-                team__isnull=False
-            ).values('team').distinct().count()
+        game_code = data.get('game', '').lower()
         
-        capacity_info.update({
-            'total_slots': total,
-            'filled_slots': filled,
-            'available_slots': max(0, total - filled),
-            'fill_percentage': int((filled / total * 100)) if total > 0 else 0,
-            'is_full': filled >= total if total > 0 else False
+        if not game_code:
+            return JsonResponse({
+                'success': False,
+                'error': 'Game code is required'
+            }, status=400)
+        
+        if game_code not in GAME_FIELD_MAP:
+            return JsonResponse({
+                'success': False,
+                'error': f'Invalid game code: {game_code}'
+            }, status=400)
+        
+        # Get or create user profile
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        # Check if game_ids object is provided (new format)
+        game_ids = data.get('game_ids', {})
+        
+        if game_ids:
+            # New format: {"game": "valorant", "game_ids": {"riot_id": "value"}}
+            for field_name, field_value in game_ids.items():
+                if field_value and hasattr(profile, field_name):
+                    setattr(profile, field_name, field_value.strip())
+                    logger.info(f"User {request.user.username} updated {field_name}: {field_value}")
+        else:
+            # Old format: {"game": "valorant", "riot_id": "value"}
+            field_name = GAME_FIELD_MAP[game_code]
+            game_id_value = data.get(field_name, '').strip()
+            
+            if not game_id_value:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'{field_name} is required'
+                }, status=400)
+            
+            setattr(profile, field_name, game_id_value)
+            
+            # For MLBB, also save server ID
+            if game_code == 'mlbb':
+                mlbb_server_id = data.get('mlbb_server_id', '').strip()
+                if not mlbb_server_id:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Server ID is required for Mobile Legends'
+                    }, status=400)
+                profile.mlbb_server_id = mlbb_server_id
+            
+            logger.info(f"User {request.user.username} updated {field_name}: {game_id_value}")
+        
+        profile.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Game ID saved successfully'
         })
     
-    # ==========================================
-    # PRIZE DISTRIBUTION
-    # ==========================================
+    except Exception as e:
+        logger.error(f"Error updating game ID: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while saving game ID'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def check_user_exists(request):
+    """
+    Check if a user exists by username or email (privacy-safe)
     
-    prize_distribution = []
-    
-    if hasattr(tournament, 'finance') and tournament.finance:
-        finance = tournament.finance
+    GET /api/profile/check-user/?username=john
+    GET /api/profile/check-user/?email=john@example.com
+    Returns: {"exists": true/false, "username": "john" (only if exists)}
+    """
+    try:
+        username = request.GET.get('username', '').strip()
+        email = request.GET.get('email', '').strip()
         
-        # Get prizes from JSON field using the model's method
-        prizes = []
-        medals = ['🥇', '🥈', '🥉', '🏅', '🏅', '🏅', '🏅', '🏅']
+        if not username and not email:
+            return JsonResponse({
+                'success': False,
+                'error': 'Username or email is required'
+            }, status=400)
         
-        # Try to get up to 8 prize positions
-        for position in range(1, 9):
-            amount = finance.get_prize_for_position(position)
-            if amount and amount > 0:
-                suffix = 'st' if position == 1 else 'nd' if position == 2 else 'rd' if position == 3 else 'th'
-                prizes.append({
-                    'position': position,
-                    'amount': amount,
-                    'medal': medals[position - 1] if position <= len(medals) else '🏅',
-                    'label': f'{position}{suffix} Place'
+        # Check by username
+        if username:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(username__iexact=username)
+                return JsonResponse({
+                    'exists': True,
+                    'username': user.username
+                })
+            except User.DoesNotExist:
+                return JsonResponse({
+                    'exists': False
                 })
         
-        prize_distribution = prizes
+        # Check by email
+        if email:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                user = User.objects.get(email__iexact=email)
+                # Only return username, not email for privacy
+                return JsonResponse({
+                    'exists': True,
+                    'username': user.username
+                })
+            except User.DoesNotExist:
+                return JsonResponse({
+                    'exists': False
+                })
     
-    # ==========================================
-    # SCHEDULE & TIMELINE
-    # ==========================================
-    
-    timeline_events = []
-    now = timezone.now()
-    
-    if hasattr(tournament, 'schedule') and tournament.schedule:
-        schedule = tournament.schedule
-        
-        # Registration period
-        if schedule.reg_open_at:
-            timeline_events.append({
-                'title': 'Registration Opens',
-                'date': schedule.reg_open_at,
-                'status': 'completed' if schedule.reg_open_at < now else 'upcoming',
-                'icon': 'user-plus'
-            })
-        
-        if schedule.reg_close_at:
-            timeline_events.append({
-                'title': 'Registration Closes',
-                'date': schedule.reg_close_at,
-                'status': 'completed' if schedule.reg_close_at < now else 'upcoming',
-                'icon': 'user-check'
-            })
-        
-        # Tournament dates
-        if tournament.start_at:
-            timeline_events.append({
-                'title': 'Tournament Starts',
-                'date': tournament.start_at,
-                'status': 'completed' if tournament.start_at < now else 'upcoming',
-                'icon': 'play-circle'
-            })
-        
-        if tournament.end_at:
-            timeline_events.append({
-                'title': 'Tournament Ends',
-                'date': tournament.end_at,
-                'status': 'completed' if tournament.end_at < now else 'upcoming',
-                'icon': 'flag-checkered'
-            })
-        
-        # Check-in
-        if schedule.start_at and schedule.check_in_open_mins:
-            check_in_start = schedule.start_at - timezone.timedelta(minutes=schedule.check_in_open_mins)
-            timeline_events.append({
-                'title': 'Check-in Opens',
-                'date': check_in_start,
-                'status': 'completed' if check_in_start < now else 'upcoming',
-                'icon': 'clipboard-check'
-            })
-    
-    # Sort timeline by date
-    timeline_events.sort(key=lambda x: x['date'])
-    
-    # ==========================================
-    # REGISTERED TEAMS/PLAYERS
-    # ==========================================
-    
-    participants = []
-    
-    if tournament.format == 'TEAM':
-        # Get teams with their members
-        team_registrations = tournament.registrations.filter(
-            status='CONFIRMED',
-            team__isnull=False
-        ).select_related('team').prefetch_related('team__members')
-        
-        teams_dict = {}
-        for reg in team_registrations:
-            if reg.team_id not in teams_dict:
-                teams_dict[reg.team_id] = {
-                    'team': reg.team,
-                    'members': []
-                }
-        
-        # Get all team members
-        for team_id, team_data in teams_dict.items():
-            team = team_data['team']
-            members = team.members.all()[:5]  # Show first 5 members
-            team_data['members'] = members
-            team_data['member_count'] = team.members.count()
-        
-        participants = list(teams_dict.values())
-    else:
-        # SOLO format - get individual players
-        solo_registrations = tournament.registrations.filter(
-            status='CONFIRMED'
-        ).select_related('user')[:50]  # Limit to 50 for performance
-        
-        participants = [{'user': reg.user} for reg in solo_registrations]
-    
-    # ==========================================
-    # UPCOMING MATCHES
-    # ==========================================
-    
-    upcoming_matches = tournament.matches.filter(
-        state__in=['SCHEDULED'],
-        start_at__gte=now
-    ).order_by('start_at')[:5]
-    
-    recent_matches = tournament.matches.filter(
-        state='VERIFIED'
-    ).order_by('-start_at')[:5]
-    
-    # ==========================================
-    # STATISTICS
-    # ==========================================
-    
-    stats = {
-        'total_participants': 0,
-        'total_matches': tournament.matches.count(),
-        'completed_matches': tournament.matches.filter(state='VERIFIED').count(),
-        'live_matches': tournament.matches.filter(state='REPORTED').count(),
-    }
-    
-    if tournament.format == 'TEAM':
-        stats['total_participants'] = len(participants)
-    else:
-        stats['total_participants'] = len(participants)
-    
-    # ==========================================
-    # ORGANIZER INFO
-    # ==========================================
-    
-    organizer_info = None
-    if hasattr(tournament, 'organizer') and tournament.organizer:
-        organizer = tournament.organizer
-        organizer_info = {
-            'name': organizer.user.get_full_name() or organizer.user.username,
-            'email': organizer.user.email if organizer.user.email else None,
-            'phone': getattr(organizer, 'phone_number', None),
-            'website': getattr(organizer, 'website', None),
-        }
-    
-    # ==========================================
-    # RULES & REGULATIONS
-    # ==========================================
-    
-    rules_data = None
-    if hasattr(tournament, 'rules') and tournament.rules:
-        rules_data = {
-            'general': tournament.rules.general_rules,
-            'format': tournament.rules.match_rules,
-            'conduct': tournament.rules.penalty_rules,
-            'scoring': tournament.rules.scoring_system,
-        }
-    
-    # ==========================================
-    # MEDIA & ASSETS
-    # ==========================================
-    
-    media_data = None
-    if hasattr(tournament, 'media') and tournament.media:
-        media_data = {
-            'banner': tournament.media.banner,
-            'thumbnail': tournament.media.thumbnail,
-            'rules_pdf': tournament.media.rules_pdf,
-            'promotional_images': tournament.media.get_promotional_image_urls(),
-            'social_media_image': tournament.media.social_media_image,
-        }
-    
-    # ==========================================
-    # REGISTRATION URL
-    # ==========================================
-    
-    # Use modern dynamic registration system for all tournaments
-    try:
-        from django.urls import reverse
-        register_url = reverse("tournaments:modern_register", args=[tournament.slug])
-    except Exception:
-        register_url = f"/tournaments/register-modern/{tournament.slug}/"
-    
-    # ==========================================
-    # CONTEXT ASSEMBLY
-    # ==========================================
-    
-    context = {
-        # Core data
-        'tournament': tournament,
-        'game_data': game_data,
-        
-        # User status
-        'user_registration': user_registration,
-        'user_team': user_team,
-        'can_register': can_register,
-        'register_url': register_url,
-        
-        # Capacity
-        'capacity_info': capacity_info,
-        
-        # Prizes
-        'prize_distribution': prize_distribution,
-        'total_prize_pool': sum(p['amount'] for p in prize_distribution),
-        'prize_1st': int(float(sum(p['amount'] for p in prize_distribution)) * 0.5),
-        'prize_2nd': int(float(sum(p['amount'] for p in prize_distribution)) * 0.3),
-        'prize_3rd': int(float(sum(p['amount'] for p in prize_distribution)) * 0.2),
-        
-        # Timeline
-        'timeline_events': timeline_events,
-        
-        # Participants
-        'participants': participants,
-        'participant_count': len(participants),
-        
-        # Matches
-        'upcoming_matches': upcoming_matches,
-        'recent_matches': recent_matches,
-        
-        # Stats
-        'stats': stats,
-        
-        # Additional info
-        'organizer_info': organizer_info,
-        'rules_data': rules_data,
-        'media_data': media_data,
-        
-        # Meta
-        'now': now,
-    }
-    
-    return render(request, 'tournaments/tournament_detail.html', context)
+    except Exception as e:
+        logger.error(f"Error checking user existence: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while checking user'
+        }, status=500)
+

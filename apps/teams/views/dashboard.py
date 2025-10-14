@@ -337,21 +337,61 @@ def team_profile_view(request, slug: str):
     
     # Get team data
     # 1. Roster (Captain first)
-    from django.db.models import Case, When, IntegerField
+    from django.db.models import Case, When, IntegerField, Value, CharField
     
     roster = TeamMembership.objects.filter(
         team=team,
         status="ACTIVE"
     ).select_related("profile__user").annotate(
         role_order=Case(
-            When(role="CAPTAIN", then=0),
+            When(role="OWNER", then=0),
             When(role="MANAGER", then=1),
-            When(role="PLAYER", then=2),
-            When(role="SUB", then=3),
-            default=4,
+            When(role="COACH", then=2),
+            When(role="PLAYER", then=3),
+            When(role="SUBSTITUTE", then=4),
+            default=5,
             output_field=IntegerField()
+        ),
+        # Add role_display for frontend
+        role_display=Case(
+            When(role="OWNER", then=Value("Owner")),
+            When(role="MANAGER", then=Value("Manager")),
+            When(role="COACH", then=Value("Coach")),
+            When(role="PLAYER", then=Value("Player")),
+            When(role="SUBSTITUTE", then=Value("Substitute")),
+            default=Value("Player"),
+            output_field=CharField()
         )
     ).order_by("role_order", "joined_at")
+    
+    # Build roster data with game-specific fields for frontend
+    import json
+    roster_data = []
+    for membership in roster:
+        profile = membership.profile
+        game_id = profile.get_game_id(team.game) if hasattr(profile, 'get_game_id') else ''
+        game_id_label = profile.get_game_id_label(team.game) if hasattr(profile, 'get_game_id_label') else 'IGN'
+        mlbb_server_id = getattr(profile, 'mlbb_server_id', '') if team.game == 'mlbb' else ''
+        
+        roster_data.append({
+            'id': profile.id,
+            'profile_id': profile.id,
+            'username': profile.user.username,
+            'display_name': profile.display_name or profile.user.username,
+            'avatar': profile.avatar.url if profile.avatar else None,
+            'role': membership.role,
+            'role_display': membership.role_display or membership.get_role_display(),
+            'player_role': membership.player_role or '',
+            'game_id': game_id,
+            'game_id_label': game_id_label,
+            'mlbb_server_id': mlbb_server_id,
+            'joined_at': membership.joined_at.isoformat() if membership.joined_at else None,
+            'is_captain': membership.is_captain,
+            'is_online': False
+        })
+    
+    # Serialize roster_data for template
+    roster_data_json = json.dumps(roster_data)
     
     # 2. Stats (if public or member) - Use TeamAnalytics
     latest_stats = None
@@ -512,7 +552,8 @@ def team_profile_view(request, slug: str):
         
         # Roster
         'roster': roster,
-        'roster_count': roster.count(),
+        'roster_data': roster_data_json,
+        'roster_count': len(roster_data),
         
         # Stats & Achievements
         'latest_stats': latest_stats,

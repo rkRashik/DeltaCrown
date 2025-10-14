@@ -234,15 +234,21 @@ class Team(models.Model):
         ).exists()
 
     def ensure_captain_membership(self):
+        """Ensure team creator has OWNER membership (replaces old CAPTAIN role)."""
         if self.captain:
-            TeamMembership.objects.get_or_create(
+            membership, created = TeamMembership.objects.get_or_create(
                 team=self,
                 profile=self.captain,
                 defaults={
-                    "role": TeamMembership.Role.CAPTAIN,
+                    "role": TeamMembership.Role.OWNER,
                     "status": TeamMembership.Status.ACTIVE,
                 },
             )
+            # Update permission cache for owner
+            if created or membership.role != TeamMembership.Role.OWNER:
+                membership.role = TeamMembership.Role.OWNER
+                membership.update_permission_cache()
+                membership.save()
     
     @property
     def logo_url(self):
@@ -386,10 +392,14 @@ class Team(models.Model):
 
 class TeamMembership(models.Model):
     class Role(models.TextChoices):
-        CAPTAIN = "CAPTAIN", "Captain"
+        OWNER = "OWNER", "Team Owner"
         MANAGER = "MANAGER", "Manager"
+        COACH = "COACH", "Coach"
         PLAYER = "PLAYER", "Player"
-        SUB = "SUB", "Substitute"
+        SUBSTITUTE = "SUBSTITUTE", "Substitute"
+        # Legacy support for migration
+        CAPTAIN = "CAPTAIN", "Captain (Legacy)"
+        SUB = "SUB", "Substitute (Legacy)"
 
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Active"
@@ -417,6 +427,31 @@ class TeamMembership(models.Model):
         help_text="In-game tactical role (e.g., Duelist, IGL, AWPer). Game-specific.",
         verbose_name="In-Game Role"
     )
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # NEW: CAPTAIN TITLE SYSTEM
+    # ═══════════════════════════════════════════════════════════════════════
+    is_captain = models.BooleanField(
+        default=False,
+        help_text="In-game leader badge. Can only be true for PLAYER or SUBSTITUTE roles.",
+        verbose_name="Captain Title"
+    )
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # NEW: PERMISSION CACHE (for performance optimization)
+    # ═══════════════════════════════════════════════════════════════════════
+    can_manage_roster = models.BooleanField(
+        default=False,
+        help_text="Cached permission: Can invite/kick members"
+    )
+    can_edit_team = models.BooleanField(
+        default=False,
+        help_text="Cached permission: Can edit team profile"
+    )
+    can_register_tournaments = models.BooleanField(
+        default=False,
+        help_text="Cached permission: Can register team for tournaments"
+    )
 
     class Meta:
         ordering = ("team", "role", "-joined_at")
@@ -424,23 +459,58 @@ class TeamMembership(models.Model):
         indexes = [
             models.Index(fields=['team', 'status'], name='teams_member_lookup_idx'),
             models.Index(fields=['profile', 'status'], name='teams_user_teams_idx'),
+            models.Index(fields=['team', 'role'], name='teams_role_lookup_idx'),
         ]
         constraints = [
-            # At most one ACTIVE CAPTAIN per team
+            # Only one OWNER per team
+            models.UniqueConstraint(
+                fields=("team",),
+                condition=Q(role="OWNER", status="ACTIVE"),
+                name="uq_one_active_owner_per_team",
+            ),
+            # Only one is_captain=True per team (across all roles)
+            models.UniqueConstraint(
+                fields=("team",),
+                condition=Q(is_captain=True, status="ACTIVE"),
+                name="uq_one_captain_title_per_team",
+            ),
+            # Legacy: At most one ACTIVE CAPTAIN per team (for backward compatibility during migration)
             models.UniqueConstraint(
                 fields=("team",),
                 condition=Q(role="CAPTAIN", status="ACTIVE"),
                 name="uq_one_active_captain_per_team",
-            )
+            ),
         ]
 
     def __str__(self) -> str:
-        return f"{self.profile} @ {self.team} ({self.role})"
+        captain_badge = "⭐" if self.is_captain else ""
+        return f"{captain_badge}{self.profile} @ {self.team} ({self.get_role_display()})"
+    
+    def update_permission_cache(self):
+        """Update cached permissions based on role"""
+        if self.role in [self.Role.OWNER, self.Role.MANAGER]:
+            self.can_manage_roster = True
+            self.can_edit_team = True
+            self.can_register_tournaments = True
+        elif self.role == self.Role.COACH:
+            self.can_manage_roster = False
+            self.can_edit_team = False
+            self.can_register_tournaments = False
+        else:  # PLAYER, SUBSTITUTE
+            self.can_manage_roster = False
+            self.can_edit_team = False
+            self.can_register_tournaments = False
 
     def clean(self):
-        # Captain membership must be ACTIVE
-        if self.role == self.Role.CAPTAIN and self.status != self.Status.ACTIVE:
-            raise ValidationError({"status": "Captain membership must be ACTIVE."})
+        # Owner/Captain membership must be ACTIVE
+        if self.role in [self.Role.OWNER, self.Role.CAPTAIN] and self.status != self.Status.ACTIVE:
+            raise ValidationError({"status": f"{self.get_role_display()} membership must be ACTIVE."})
+        
+        # is_captain can only be True for PLAYER or SUBSTITUTE
+        if self.is_captain and self.role not in [self.Role.PLAYER, self.Role.SUBSTITUTE]:
+            raise ValidationError({
+                "is_captain": "Captain title can only be assigned to Players or Substitutes."
+            })
 
         # Enforce: one ACTIVE team per GAME per profile (Part A)
         try:
@@ -467,6 +537,11 @@ class TeamMembership(models.Model):
         except Exception:
             # Fail-soft on unexpected issues
             pass
+    
+    def save(self, *args, **kwargs):
+        # Update permission cache before saving
+        self.update_permission_cache()
+        super().save(*args, **kwargs)
 
     def promote_to_captain(self):
         """

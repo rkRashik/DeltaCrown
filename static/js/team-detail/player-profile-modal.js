@@ -16,20 +16,35 @@ class PlayerProfileModal {
    */
   async show(profileId, rosterData = null) {
     try {
-      // Fetch player data
+      // Fetch player data from correct API endpoint
       const response = await fetch(`/user/api/profile/${profileId}/`);
       
       if (!response.ok) {
         throw new Error('Failed to load player profile');
       }
       
-      const player = await response.json();
+      const data = await response.json();
+      
+      // Handle both response formats (direct data or wrapped in success/profile)
+      let player;
+      if (data.success && data.profile) {
+        // API response format: {success: true, profile: {...}}
+        player = data.profile;
+      } else if (data.display_name || data.username) {
+        // Direct response format: {...}
+        player = data;
+      } else {
+        throw new Error(data.error || 'Invalid response format');
+      }
       
       // Merge roster data if provided (includes game_id from roster API)
       if (rosterData) {
         player.game_id = rosterData.game_id;
         player.game_id_label = rosterData.game_id_label;
         player.mlbb_server_id = rosterData.mlbb_server_id;
+        player.player_role = rosterData.player_role;
+        player.role = rosterData.role;
+        player.is_captain = rosterData.is_captain;
       }
       
       this.currentPlayer = player;
@@ -44,115 +59,167 @@ class PlayerProfileModal {
   }
 
   /**
-   * Create modal element
+   * Create modal element with Eclipse design
    */
   createModal(player) {
     // Remove existing modal if any
     this.close();
     
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'eclipse-modal-overlay';
+    
     // Create modal
     const modal = document.createElement('div');
-    modal.className = 'player-profile-modal';
+    modal.className = 'eclipse-modal';
     modal.innerHTML = this.renderModalContent(player);
     
-    document.body.appendChild(modal);
-    this.modal = modal;
-    
-    // Trigger animation
-    setTimeout(() => modal.classList.add('active'), 10);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    this.modal = overlay;
     
     // Bind events
-    this.bindModalEvents(modal);
+    this.bindModalEvents(overlay);
     
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
   }
 
   /**
-   * Render modal content
+   * Render Eclipse modal content
    */
   renderModalContent(player) {
+    const isCaptain = player.is_captain || false;
+    const teamRole = player.team_role || player.role || 'Player';
+    const inGameRole = (player.player_role && player.player_role.trim() !== '') ? player.player_role : (player.in_game_role && player.in_game_role.trim() !== '' ? player.in_game_role : 'Not assigned');
+    const roleClass = this.getRoleClass(teamRole);
+    
     return `
-      <div class="player-profile-content">
-        <button class="modal-close-btn" data-action="close">
-          <i class="fas fa-times"></i>
+      <!-- Close Button -->
+      <button class="eclipse-modal-close" data-action="close" aria-label="Close modal">
+        <i class="fas fa-times"></i>
+      </button>
+      
+      <!-- Modal Header -->
+      <div class="eclipse-modal-header">
+        <div class="eclipse-modal-avatar-wrapper">
+          <div class="eclipse-modal-avatar">
+            <div class="eclipse-modal-avatar-inner">
+              ${player.avatar_url || player.avatar ?
+                `<img src="${player.avatar_url || player.avatar}" alt="${this.escapeHtml(player.display_name)}">` :
+                `<div class="eclipse-modal-avatar-placeholder">${this.getInitials(player.display_name)}</div>`
+              }
+            </div>
+          </div>
+          ${isCaptain ? `
+            <div class="eclipse-modal-captain-badge" title="Team Captain">
+              <i class="fas fa-star"></i>
+            </div>
+          ` : ''}
+        </div>
+        
+        <h2 class="eclipse-modal-player-name">${this.escapeHtml(player.display_name)}</h2>
+        <p class="eclipse-modal-ign">${player.game_id ? this.escapeHtml(player.game_id) : '@' + this.escapeHtml(player.username)}</p>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="eclipse-modal-body">
+        <div class="eclipse-modal-grid">
+          <!-- Game Info Column -->
+          <div class="eclipse-modal-section">
+            <h3 class="eclipse-modal-section-title">Game Info</h3>
+            
+            ${player.game_id ? `
+              <div class="eclipse-modal-info-row">
+                <span class="eclipse-modal-info-label">${player.game_id_label || 'Game ID'}</span>
+                <span class="eclipse-modal-info-value highlight">${this.escapeHtml(player.game_id)}</span>
+              </div>
+            ` : ''}
+            
+            ${player.mlbb_server_id ? `
+              <div class="eclipse-modal-info-row">
+                <span class="eclipse-modal-info-label">Server ID</span>
+                <span class="eclipse-modal-info-value">${this.escapeHtml(player.mlbb_server_id)}</span>
+              </div>
+            ` : ''}
+            
+            ${!player.game_id && !player.mlbb_server_id ? `
+              <div class="eclipse-modal-info-row">
+                <span class="eclipse-modal-info-label" style="opacity: 0.6;">No game ID provided</span>
+              </div>
+            ` : ''}
+          </div>
+          
+          <!-- Team Status Column -->
+          <div class="eclipse-modal-section">
+            <h3 class="eclipse-modal-section-title blue">Team Status</h3>
+            
+            <div class="eclipse-modal-info-row">
+              <span class="eclipse-modal-info-label">Team Role</span>
+              <span class="eclipse-modal-role-badge ${roleClass}">${this.formatRole(teamRole)}</span>
+            </div>
+            
+            <div class="eclipse-modal-info-row">
+              <span class="eclipse-modal-info-label">In-Game Role</span>
+              <span class="eclipse-modal-info-value ${inGameRole !== 'Not assigned' && inGameRole.trim() !== '' ? 'success' : 'warning'}">
+                ${this.escapeHtml(inGameRole)}
+              </span>
+            </div>
+            
+            ${player.game_id ? `
+            <div class="eclipse-modal-info-row">
+              <span class="eclipse-modal-info-label">IGN</span>
+              <span class="eclipse-modal-info-value highlight">${this.escapeHtml(player.game_id)}</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        
+        ${player.bio ? `
+          <div class="eclipse-modal-section" style="margin-top: 24px;">
+            <h3 class="eclipse-modal-section-title">About Player</h3>
+            <p style="color: #A0AEC0; line-height: 1.6; margin: 0;">
+              ${this.escapeHtml(player.bio)}
+            </p>
+          </div>
+        ` : ''}
+      </div>
+      
+      <!-- Modal Footer -->
+      <div class="eclipse-modal-footer">
+        <button class="eclipse-modal-cta-btn" onclick="window.location.href='/user/u/${player.username}/'">
+          View Full Profile
+          <i class="fas fa-arrow-right"></i>
         </button>
-        
-        <div class="player-modal-header">
-          ${player.avatar_url || player.avatar ?
-            `<img src="${player.avatar_url || player.avatar}" class="player-modal-avatar-large" alt="${this.escapeHtml(player.display_name)}">` :
-            `<div class="player-modal-avatar-placeholder">${this.getInitials(player.display_name)}</div>`
-          }
-          <h2 class="player-modal-name">${this.escapeHtml(player.display_name)}</h2>
-          <p class="player-modal-username">@${this.escapeHtml(player.username)}</p>
-        </div>
-        
-        <div class="player-modal-body">
-          ${player.bio ? `
-            <div class="player-info-section">
-              <h3 class="player-info-title">
-                <i class="fas fa-user"></i>
-                About
-              </h3>
-              <p class="player-bio">${this.escapeHtml(player.bio)}</p>
-            </div>
-          ` : ''}
-          
-          ${player.game_id ? `
-            <div class="player-info-section">
-              <h3 class="player-info-title">
-                <i class="fas fa-gamepad"></i>
-                Game ID
-              </h3>
-              <div class="player-game-id-display">
-                <span class="player-game-id-label">${player.game_id_label || 'Game ID'}</span>
-                <div class="player-game-id-text">
-                  <i class="fas fa-id-card"></i>
-                  ${this.escapeHtml(player.game_id)}
-                </div>
-              </div>
-              ${player.mlbb_server_id ? `
-                <div class="player-game-id-display" style="margin-top: 0.75rem;">
-                  <span class="player-game-id-label">Server ID</span>
-                  <div class="player-game-id-text">
-                    <i class="fas fa-server"></i>
-                    ${this.escapeHtml(player.mlbb_server_id)}
-                  </div>
-                </div>
-              ` : ''}
-            </div>
-          ` : ''}
-          
-          ${this.renderSocialLinks(player)}
-          
-          ${this.renderStats(player)}
-          
-          ${player.teams && player.teams.length > 0 ? `
-            <div class="player-info-section">
-              <h3 class="player-info-title">
-                <i class="fas fa-users"></i>
-                Teams
-              </h3>
-              <div class="player-teams-list">
-                ${player.teams.map(team => `
-                  <div class="player-team-item">
-                    <i class="fas fa-shield-alt"></i>
-                    <span class="team-name">${this.escapeHtml(team.name)}</span>
-                    <span class="team-role">${team.role}</span>
-                    ${team.game ? `<span class="team-game">${team.game}</span>` : ''}
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : ''}
-          
-          <a href="/user/u/${player.username}/" class="player-view-full-profile">
-            <i class="fas fa-external-link-alt"></i>
-            View Full Profile
-          </a>
-        </div>
       </div>
     `;
+  }
+  
+  /**
+   * Format role name
+   */
+  formatRole(role) {
+    if (!role) return 'Player';
+    const roleStr = role.toString().toLowerCase();
+    return roleStr.charAt(0).toUpperCase() + roleStr.slice(1);
+  }
+  
+  /**
+   * Get role CSS class
+   */
+  getRoleClass(role) {
+    if (!role) return 'player';
+    const roleStr = role.toString().toLowerCase();
+    const roleMap = {
+      'owner': 'owner',
+      'manager': 'manager',
+      'coach': 'coach',
+      'captain': 'player',
+      'player': 'player',
+      'substitute': 'substitute',
+      'sub': 'substitute'
+    };
+    return roleMap[roleStr] || 'player';
   }
 
   /**

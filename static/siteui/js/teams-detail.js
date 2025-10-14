@@ -10,8 +10,22 @@
       panels.forEach(p => p.id === `tab-${id}` ? p.classList.remove('hidden') : p.classList.add('hidden'));
     }
     tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.tab)));
-    // Default visible
-    show('roster');
+    
+    // Handle hash navigation (e.g., #roster)
+    const hash = window.location.hash.substring(1);
+    if (hash && ['roster', 'matches', 'stats', 'media'].includes(hash)) {
+      show(hash);
+    } else {
+      show('roster'); // Default
+    }
+    
+    // Update URL hash when tab changes
+    tabs.forEach(t => {
+      t.addEventListener('click', () => {
+        const tabId = t.dataset.tab;
+        history.replaceState(null, null, `#${tabId}`);
+      });
+    });
   }
 
   // Copy link from share menu (vanilla)

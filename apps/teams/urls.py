@@ -12,6 +12,17 @@ from .views.member_management import (
     bulk_remove_members,
 )
 
+# Phase 3: Role Management (New Professional Hierarchy)
+from .views.role_management import (
+    transfer_ownership_view,
+    assign_manager_view,
+    remove_manager_view,
+    assign_coach_view,
+    assign_captain_title_view,
+    remove_captain_title_view,
+    change_member_organizational_role_view,
+)
+
 # Dashboard API
 from .views.dashboard_api import (
     get_pending_items,
@@ -232,6 +243,16 @@ urlpatterns = [
     path("<slug:slug>/update-privacy/", update_privacy_view, name="update_privacy"),
     path("<slug:slug>/change-role/", change_member_role_view, name="change_role"),
     path("<slug:slug>/change-player-role/", change_player_role_view, name="change_player_role"),
+    
+    # Phase 3: Professional Role Management Endpoints
+    path("<slug:slug>/transfer-ownership/", transfer_ownership_view, name="transfer_ownership"),
+    path("<slug:slug>/assign-manager/", assign_manager_view, name="assign_manager"),
+    path("<slug:slug>/remove-manager/", remove_manager_view, name="remove_manager"),
+    path("<slug:slug>/assign-coach/", assign_coach_view, name="assign_coach"),
+    path("<slug:slug>/assign-captain-title/", assign_captain_title_view, name="assign_captain_title"),
+    path("<slug:slug>/remove-captain-title/", remove_captain_title_view, name="remove_captain_title"),
+    path("<slug:slug>/change-organizational-role/", change_member_organizational_role_view, name="change_organizational_role"),
+    
     # New Quick Actions endpoints
     path("<slug:slug>/export-data/", export_team_data_view, name="export_team_data"),
     path("<slug:slug>/tournament-history/", tournament_history_view, name="tournament_history"),

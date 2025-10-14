@@ -28,6 +28,7 @@ from .utils import (
     _ensure_profile, _get_profile, _is_captain, _get_game_display_name,
     _calculate_team_rank_score, _format_team_data
 )
+from ..permissions import TeamPermissions
 
 
 # -------------------------
@@ -1033,8 +1034,14 @@ def manage_team_view(request, slug: str):
     team = get_object_or_404(Team.objects.select_related("captain__user"), slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only the team captain can manage this team.")
+    # Get membership for permission checking
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_edit_team_profile(membership):
+            messages.error(request, "You don't have permission to manage this team.")
+            return redirect("teams:detail", slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member to manage this team.")
         return redirect("teams:detail", slug=team.slug)
 
     # Handle form submissions
@@ -1110,8 +1117,14 @@ def invite_member_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only the team captain can invite members.")
+    # Check permission to manage roster
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_manage_roster(membership):
+            messages.error(request, "You don't have permission to invite members.")
+            return redirect("teams:detail", slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member to invite others.")
         return redirect("teams:detail", slug=team.slug)
 
     if request.method == "POST":
@@ -1297,14 +1310,26 @@ def kick_member_view(request, slug: str, profile_id: int):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only the team captain can remove members.")
+    # Check permission to manage roster
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_manage_roster(membership):
+            messages.error(request, "You don't have permission to remove members.")
+            return redirect("teams:detail", slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member with appropriate permissions.")
         return redirect("teams:detail", slug=team.slug)
 
     try:
-        membership = get_object_or_404(TeamMembership, team=team, profile_id=profile_id)
-        member_name = membership.user.user.username
-        membership.delete()
+        target_membership = get_object_or_404(TeamMembership, team=team, profile_id=profile_id)
+        
+        # Prevent kicking OWNER
+        if target_membership.role == TeamMembership.Role.OWNER:
+            messages.error(request, "Cannot remove team owner. Transfer ownership first.")
+            return redirect("teams:detail", slug=team.slug)
+        
+        member_name = target_membership.profile.user.username
+        target_membership.delete()
         messages.success(request, f"Member {member_name} has been removed from the team.")
     except TeamMembership.DoesNotExist:
         messages.error(request, "Member not found in this team.")
@@ -1319,30 +1344,43 @@ def leave_team_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    # Captain cannot leave (must transfer captaincy first)
-    if _is_captain(profile, team):
-        messages.error(request, "As captain, you must transfer captaincy before leaving the team.")
-        return redirect("teams:manage", slug=team.slug)
-    
+    # Get membership
     try:
-        membership = get_object_or_404(TeamMembership, team=team, user=profile)
-        membership.delete()
-        messages.success(request, f"You have left team {team.name}.")
-        return redirect("teams:list")
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        
+        # OWNER cannot leave (must transfer ownership first)
+        if membership.role == TeamMembership.Role.OWNER:
+            messages.error(request, "As team owner, you must transfer ownership before leaving the team.")
+            return redirect("teams:manage", slug=team.slug)
+        
+        # Check if member can leave
+        if not TeamPermissions.can_leave_team(membership):
+            messages.error(request, "You cannot leave the team at this time.")
+            return redirect("teams:manage", slug=team.slug)
     except TeamMembership.DoesNotExist:
         messages.error(request, "You are not a member of this team.")
         return redirect("teams:detail", slug=team.slug)
+    
+    membership.delete()
+    messages.success(request, f"You have left team {team.name}.")
+    return redirect("teams:list")
 
 
 @login_required
 @require_http_methods(["POST"])
 def transfer_captaincy_view(request, slug: str, profile_id: int):
-    """Transfer team captaincy to another member."""
+    """Transfer team captaincy to another member. DEPRECATED - use transfer_ownership_view."""
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only the current captain can transfer captaincy.")
+    # Check if user is OWNER
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_transfer_ownership(membership):
+            messages.error(request, "Only the team owner can transfer ownership.")
+            return redirect("teams:detail", slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member.")
         return redirect("teams:detail", slug=team.slug)
     
     try:
@@ -1374,8 +1412,14 @@ def team_settings_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only the team captain can access team settings.")
+    # Check permission to edit team settings
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_edit_team_profile(membership):
+            messages.error(request, "You don't have permission to access team settings.")
+            return redirect("teams:detail", slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member with appropriate permissions.")
         return redirect("teams:detail", slug=team.slug)
     
     if request.method == "POST":
@@ -1401,12 +1445,18 @@ def team_settings_view(request, slug: str):
 @login_required
 @require_http_methods(["POST"])
 def delete_team_view(request, slug: str):
-    """Delete a team permanently (captain only)."""
+    """Delete a team permanently (OWNER only)."""
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only the team captain can delete the team.")
+    # Check if user is OWNER
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_delete_team(membership):
+            messages.error(request, "Only the team owner can delete the team.")
+            return redirect("teams:detail", slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member.")
         return redirect("teams:detail", slug=team.slug)
     
     confirm_name = request.POST.get("confirm_name", "").strip()
@@ -1427,8 +1477,14 @@ def cancel_invite_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only the team captain can cancel invitations.")
+    # Check permission to manage roster
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_manage_roster(membership):
+            messages.error(request, "You don't have permission to cancel invitations.")
+            return redirect("teams:detail", slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member with appropriate permissions.")
         return redirect("teams:detail", slug=team.slug)
     
     invite_id = request.POST.get("invite_id")
@@ -1457,8 +1513,13 @@ def update_team_info_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        return JsonResponse({"error": "Only captains can edit team information."}, status=403)
+    # Check permission
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_edit_team_profile(membership):
+            return JsonResponse({"error": "You don't have permission to edit team information."}, status=403)
+    except TeamMembership.DoesNotExist:
+        return JsonResponse({"error": "You must be a team member."}, status=403)
     
     try:
         team.name = request.POST.get('name', team.name).strip()
@@ -1489,8 +1550,13 @@ def update_privacy_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        return JsonResponse({"error": "Only captains can edit privacy settings."}, status=403)
+    # Check permission
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_edit_team_profile(membership):
+            return JsonResponse({"error": "You don't have permission to edit privacy settings."}, status=403)
+    except TeamMembership.DoesNotExist:
+        return JsonResponse({"error": "You must be a team member."}, status=403)
     
     try:
         team.is_public = request.POST.get('is_public') == 'on'
@@ -1516,8 +1582,13 @@ def kick_member_ajax_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        return JsonResponse({"error": "Only captains can kick members."}, status=403)
+    # Check permission
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_manage_roster(membership):
+            return JsonResponse({"error": "You don't have permission to remove members."}, status=403)
+    except TeamMembership.DoesNotExist:
+        return JsonResponse({"error": "You must be a team member."}, status=403)
     
     try:
         data = json.loads(request.body)
@@ -1551,8 +1622,13 @@ def change_member_role_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        return JsonResponse({"error": "Only captains can change member roles."}, status=403)
+    # Check permission
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_manage_roster(membership):
+            return JsonResponse({"error": "You don't have permission to change member roles."}, status=403)
+    except TeamMembership.DoesNotExist:
+        return JsonResponse({"error": "You must be a team member."}, status=403)
     
     try:
         data = json.loads(request.body)
@@ -1590,8 +1666,13 @@ def change_player_role_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        return JsonResponse({"error": "Only captains can change player roles."}, status=403)
+    # Check permission
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_manage_roster(membership):
+            return JsonResponse({"error": "You don't have permission to change player roles."}, status=403)
+    except TeamMembership.DoesNotExist:
+        return JsonResponse({"error": "You must be a team member."}, status=403)
     
     try:
         data = json.loads(request.body)
@@ -1632,8 +1713,14 @@ def export_team_data_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only team captains can export team data.")
+    # Check permission
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_edit_team_profile(membership):
+            messages.error(request, "You don't have permission to export team data.")
+            return redirect('teams:detail', slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member.")
         return redirect('teams:detail', slug=team.slug)
     
     # Create CSV response
@@ -1675,8 +1762,14 @@ def tournament_history_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
-    if not _is_captain(profile, team):
-        messages.error(request, "Only team captains can view tournament history.")
+    # Check if member (basic view permission)
+    try:
+        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
+        if not TeamPermissions.can_view_team_roster(membership):
+            messages.error(request, "You don't have permission to view tournament history.")
+            return redirect('teams:detail', slug=team.slug)
+    except TeamMembership.DoesNotExist:
+        messages.error(request, "You must be a team member.")
         return redirect('teams:detail', slug=team.slug)
     
     # Get tournament registrations for this team

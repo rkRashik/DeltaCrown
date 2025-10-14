@@ -1,0 +1,479 @@
+/**
+ * Eclipse Player Profile Modal
+ * Professional Esports Player Details Pop-up
+ * Matches Eclipse Card Design System
+ */
+
+/* ==================== MODAL OVERLAY ==================== */
+.eclipse-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ==================== MODAL CONTAINER ==================== */
+.eclipse-modal {
+  position: relative;
+  background: rgba(22, 26, 33, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  transform: scale(0.95);
+  opacity: 0;
+  animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+}
+
+@keyframes modalSlideUp {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Top Gradient Border */
+.eclipse-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3A7BFD, #9A4BFF);
+  border-radius: 16px 16px 0 0;
+}
+
+/* ==================== CLOSE BUTTON ==================== */
+.eclipse-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #A0AEC0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.eclipse-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  transform: rotate(90deg);
+}
+
+.eclipse-modal-close i {
+  font-size: 18px;
+}
+
+/* ==================== MODAL HEADER ==================== */
+.eclipse-modal-header {
+  padding: 40px 32px 32px 32px;
+  text-align: center;
+  position: relative;
+}
+
+/* Large Avatar */
+.eclipse-modal-avatar-wrapper {
+  display: inline-block;
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.eclipse-modal-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: linear-gradient(90deg, #3A7BFD, #9A4BFF);
+  padding: 3px;
+  position: relative;
+}
+
+.eclipse-modal-avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #0D0F12;
+}
+
+.eclipse-modal-avatar-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.eclipse-modal-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #3A7BFD, #9A4BFF);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  color: white;
+}
+
+/* Captain Badge on Avatar */
+.eclipse-modal-captain-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border-radius: 50%;
+  border: 3px solid rgba(22, 26, 33, 0.95);
+  color: white;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+  animation: pulse-glow-modal 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow-modal {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.6);
+  }
+}
+
+/* Player Name */
+.eclipse-modal-player-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 8px 0;
+  line-height: 1.2;
+}
+
+/* IGN/Username */
+.eclipse-modal-ign {
+  font-family: 'Poppins', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #A0AEC0;
+  margin: 0;
+}
+
+/* ==================== MODAL BODY ==================== */
+.eclipse-modal-body {
+  padding: 0 32px 32px 32px;
+}
+
+/* Two Column Grid */
+.eclipse-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 640px) {
+  .eclipse-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Info Section */
+.eclipse-modal-section {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.eclipse-modal-section-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9A4BFF;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 16px 0;
+}
+
+.eclipse-modal-section-title.blue {
+  color: #3A7BFD;
+}
+
+/* Info Rows */
+.eclipse-modal-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.eclipse-modal-info-row:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.eclipse-modal-info-label {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #A0AEC0;
+}
+
+.eclipse-modal-info-value {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  text-align: right;
+}
+
+/* Special Value Styling */
+.eclipse-modal-info-value.highlight {
+  color: #3A7BFD;
+}
+
+.eclipse-modal-info-value.success {
+  color: #10B981;
+}
+
+.eclipse-modal-info-value.warning {
+  color: #F59E0B;
+}
+
+/* Role Badge in Modal */
+.eclipse-modal-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(58, 123, 253, 0.15);
+  border: 1px solid #3A7BFD;
+  color: #3A7BFD;
+}
+
+.eclipse-modal-role-badge.owner {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: #FFD700;
+  color: #FFD700;
+}
+
+.eclipse-modal-role-badge.manager {
+  background: rgba(58, 123, 253, 0.15);
+  border-color: #3A7BFD;
+  color: #3A7BFD;
+}
+
+.eclipse-modal-role-badge.coach {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10B981;
+  color: #10B981;
+}
+
+.eclipse-modal-role-badge.player {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3B82F6;
+  color: #3B82F6;
+}
+
+.eclipse-modal-role-badge.substitute {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #F59E0B;
+  color: #F59E0B;
+}
+
+/* ==================== MODAL FOOTER ==================== */
+.eclipse-modal-footer {
+  padding: 0 32px 32px 32px;
+}
+
+.eclipse-modal-cta-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, #3A7BFD, #9A4BFF);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(58, 123, 253, 0.3);
+}
+
+.eclipse-modal-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(58, 123, 253, 0.4);
+}
+
+.eclipse-modal-cta-btn:active {
+  transform: translateY(0);
+}
+
+.eclipse-modal-cta-btn i {
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+/* ==================== LOADING STATE ==================== */
+.eclipse-modal-loading {
+  padding: 60px 32px;
+  text-align: center;
+}
+
+.eclipse-modal-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #3A7BFD;
+  border-radius: 50%;
+  margin: 0 auto 16px auto;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.eclipse-modal-loading-text {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #A0AEC0;
+}
+
+/* ==================== ERROR STATE ==================== */
+.eclipse-modal-error {
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.eclipse-modal-error-icon {
+  font-size: 48px;
+  color: #EF4444;
+  margin-bottom: 16px;
+}
+
+.eclipse-modal-error-title {
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 8px 0;
+}
+
+.eclipse-modal-error-message {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #A0AEC0;
+  margin: 0;
+}
+
+/* ==================== SCROLLBAR STYLING ==================== */
+.eclipse-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.eclipse-modal::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0 16px 16px 0;
+}
+
+.eclipse-modal::-webkit-scrollbar-thumb {
+  background: rgba(58, 123, 253, 0.5);
+  border-radius: 4px;
+}
+
+.eclipse-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(58, 123, 253, 0.7);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 640px) {
+  .eclipse-modal-header {
+    padding: 32px 24px 24px 24px;
+  }
+  
+  .eclipse-modal-body {
+    padding: 0 24px 24px 24px;
+  }
+  
+  .eclipse-modal-footer {
+    padding: 0 24px 24px 24px;
+  }
+  
+  .eclipse-modal-avatar {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .eclipse-modal-player-name {
+    font-size: 20px;
+  }
+  
+  .eclipse-modal-ign {
+    font-size: 14px;
+  }
+  
+  .eclipse-modal-section {
+    padding: 16px;
+  }
+}
+
+/* ==================== ACCESSIBILITY ==================== */
+.eclipse-modal-overlay:focus {
+  outline: none;
+}
+
+.eclipse-modal:focus {
+  outline: 2px solid #3A7BFD;
+  outline-offset: 2px;
+}

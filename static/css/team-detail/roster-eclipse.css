@@ -1,0 +1,486 @@
+/**
+ * Eclipse Roster Card System
+ * Modern, Professional Esports Card Design
+ * Deep Space Theme with Frosted Glass & Gradient Accents
+ */
+
+/* ==================== CORE VARIABLES ==================== */
+:root {
+  /* Eclipse Color Palette */
+  --eclipse-bg-deep: #0D0F12;
+  --eclipse-card-bg: rgba(22, 26, 33, 0.7);
+  --eclipse-card-border: rgba(255, 255, 255, 0.1);
+  --eclipse-gradient: linear-gradient(90deg, #3A7BFD, #9A4BFF);
+  --eclipse-text-primary: #FFFFFF;
+  --eclipse-text-secondary: #A0AEC0;
+  --eclipse-accent-blue: #3A7BFD;
+  --eclipse-accent-purple: #9A4BFF;
+  
+  /* Role Colors */
+  --eclipse-role-owner: #FFD700;
+  --eclipse-role-manager: #3A7BFD;
+  --eclipse-role-coach: #10B981;
+  --eclipse-role-player: #3B82F6;
+  --eclipse-role-substitute: #F59E0B;
+  
+  /* Effects */
+  --eclipse-blur: blur(10px);
+  --eclipse-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --eclipse-shadow-hover: 0 12px 48px rgba(58, 123, 253, 0.3);
+}
+
+/* ==================== ROSTER GRID ==================== */
+.roster-grid-eclipse {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  padding: 24px 0;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .roster-grid-eclipse {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* ==================== ECLIPSE CARD ==================== */
+.eclipse-roster-card {
+  position: relative;
+  background: var(--eclipse-card-bg);
+  backdrop-filter: var(--eclipse-blur);
+  -webkit-backdrop-filter: var(--eclipse-blur);
+  border: 1px solid var(--eclipse-card-border);
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: var(--eclipse-shadow);
+}
+
+.eclipse-roster-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--eclipse-gradient);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.eclipse-roster-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--eclipse-shadow-hover);
+  border-color: rgba(58, 123, 253, 0.4);
+}
+
+.eclipse-roster-card:hover::before {
+  opacity: 1;
+}
+
+.eclipse-roster-card:focus-visible {
+  outline: 2px solid var(--eclipse-accent-blue);
+  outline-offset: 2px;
+}
+
+/* Captain Card Special Effects */
+.eclipse-roster-card.is-captain {
+  border-color: rgba(255, 215, 0, 0.3);
+}
+
+.eclipse-roster-card.is-captain::before {
+  background: linear-gradient(90deg, #FFD700, #FFA500);
+}
+
+.eclipse-roster-card.is-captain:hover {
+  box-shadow: 0 12px 48px rgba(255, 215, 0, 0.2);
+}
+
+/* ==================== CARD HEADER ==================== */
+.eclipse-card-header {
+  position: relative;
+  padding: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* Avatar Section */
+.eclipse-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.eclipse-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  background: var(--eclipse-gradient);
+  padding: 2px;
+}
+
+.eclipse-avatar-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--eclipse-bg-deep);
+}
+
+.eclipse-avatar-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.eclipse-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--eclipse-gradient);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: white;
+}
+
+/* Online Status Indicator */
+.eclipse-status-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #10B981;
+  border: 2px solid var(--eclipse-bg-deep);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.eclipse-status-dot.offline {
+  background: #6B7280;
+  box-shadow: none;
+}
+
+/* Player Info Section */
+.eclipse-player-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.eclipse-player-name {
+  font-family: 'Poppins', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--eclipse-text-primary);
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.2;
+}
+
+.eclipse-captain-star {
+  color: #FFD700;
+  font-size: 16px;
+  filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.8));
+  }
+}
+
+.eclipse-username {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--eclipse-text-secondary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.eclipse-username i {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* ==================== ROLES SECTION ==================== */
+.eclipse-roles-section {
+  padding: 0 20px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Divider Line */
+.eclipse-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 20px;
+}
+
+/* Team Role Badge */
+.eclipse-team-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--eclipse-gradient);
+  color: white;
+  width: fit-content;
+}
+
+.eclipse-team-role-badge i {
+  font-size: 14px;
+}
+
+/* Role-specific badges */
+.eclipse-team-role-badge.role-owner {
+  background: linear-gradient(90deg, #FFD700, #FFA500);
+}
+
+.eclipse-team-role-badge.role-manager {
+  background: linear-gradient(90deg, #3A7BFD, #2563EB);
+}
+
+.eclipse-team-role-badge.role-coach {
+  background: linear-gradient(90deg, #10B981, #059669);
+}
+
+.eclipse-team-role-badge.role-player {
+  background: linear-gradient(90deg, #3B82F6, #2563EB);
+}
+
+.eclipse-team-role-badge.role-substitute {
+  background: linear-gradient(90deg, #F59E0B, #D97706);
+}
+
+/* ==================== IN-GAME DETAILS ==================== */
+.eclipse-ingame-section {
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.eclipse-ingame-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.eclipse-ingame-row:last-child {
+  margin-bottom: 0;
+}
+
+.eclipse-ingame-label {
+  font-family: 'Poppins', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--eclipse-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.eclipse-ingame-value {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--eclipse-text-primary);
+}
+
+/* In-Game Role Badge */
+.eclipse-ingame-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(154, 75, 255, 0.15);
+  border: 1px solid #9A4BFF;
+  color: #9A4BFF;
+}
+
+/* ==================== CARD FOOTER ==================== */
+.eclipse-card-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.eclipse-joined-date {
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--eclipse-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eclipse-joined-date i {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* Action Buttons (for admins) */
+.eclipse-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.eclipse-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--eclipse-accent-blue);
+  color: var(--eclipse-accent-blue);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.eclipse-ghost-btn:hover {
+  background: rgba(58, 123, 253, 0.1);
+  transform: translateY(-1px);
+}
+
+.eclipse-ghost-btn:active {
+  transform: translateY(0);
+}
+
+.eclipse-ghost-btn i {
+  font-size: 12px;
+}
+
+/* View Profile Hint */
+.eclipse-view-profile {
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--eclipse-accent-blue);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.eclipse-roster-card:hover .eclipse-view-profile {
+  opacity: 1;
+}
+
+.eclipse-view-profile i {
+  font-size: 10px;
+}
+
+/* ==================== LOADING STATE ==================== */
+.eclipse-card-skeleton {
+  background: var(--eclipse-card-bg);
+  backdrop-filter: var(--eclipse-blur);
+  border: 1px solid var(--eclipse-card-border);
+  border-radius: 12px;
+  padding: 20px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.eclipse-skeleton-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.eclipse-skeleton-text {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.eclipse-skeleton-text.wide {
+  width: 60%;
+}
+
+.eclipse-skeleton-text.narrow {
+  width: 40%;
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 640px) {
+  .eclipse-card-header {
+    padding: 16px;
+  }
+  
+  .eclipse-roles-section {
+    padding: 0 16px 12px 16px;
+  }
+  
+  .eclipse-ingame-section {
+    padding: 12px 16px;
+  }
+  
+  .eclipse-card-footer {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .eclipse-avatar {
+    width: 56px;
+    height: 56px;
+  }
+  
+  .eclipse-player-name {
+    font-size: 16px;
+  }
+}
+
+/* ==================== DARK MODE ENHANCEMENTS ==================== */
+@media (prefers-color-scheme: dark) {
+  .eclipse-roster-card {
+    background: var(--eclipse-card-bg);
+  }
+}

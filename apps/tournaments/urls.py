@@ -3,7 +3,7 @@ from django.urls import path
 
 from .views.public import hub, list_by_game, detail
 from .views.hub_enhanced import hub_enhanced
-from .views.detail_v8 import tournament_detail_v8
+from .views.public import detail as tournament_detail_v8
 from .views.dashboard_v2 import tournament_dashboard_v2
 
 # Modern Registration System (CANONICAL)

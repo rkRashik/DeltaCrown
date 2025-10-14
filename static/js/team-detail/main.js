@@ -236,13 +236,6 @@
         initResponsive();
 
         logger.log('✅ Initialization complete!');
-        
-        // Show welcome message
-        if (permissions.is_captain && window.Toast) {
-          Toast.info('Welcome back, Captain! 🎮', 2000);
-        } else if (permissions.is_member && window.Toast) {
-          Toast.info('Welcome back, teammate! 👋', 2000);
-        }
       }
     }, 100);
 

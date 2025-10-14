@@ -615,16 +615,34 @@ def _is_team_member(user, team):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_roster(request, team_slug):
-    """Get team roster with member details"""
+    """Get team roster with member details and viewer context"""
     from django.core.cache import cache
     from apps.teams.models import TeamMembership
+    from apps.teams.permissions import TeamPermissions
+    from apps.user_profile.models import UserProfile
     
-    cache_key = f'team_roster_{team_slug}'
-    cached = cache.get(cache_key)
-    if cached:
-        return Response(cached)
-    
+    # Note: Removed caching to always include fresh viewer context
     team = get_object_or_404(Team, slug=team_slug)
+    
+    # Get viewer information
+    viewer_is_member = False
+    viewer_membership = None
+    viewer_permissions = {}
+    
+    if request.user.is_authenticated:
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+            viewer_membership = TeamMembership.objects.filter(
+                team=team,
+                profile=profile,
+                status='ACTIVE'
+            ).first()
+            
+            if viewer_membership:
+                viewer_is_member = True
+                viewer_permissions = TeamPermissions.get_permission_summary(viewer_membership)
+        except UserProfile.DoesNotExist:
+            pass
     
     # Try to get game-specific team and memberships first
     game_code = team.game
@@ -715,10 +733,12 @@ def get_roster(request, team_slug):
                 'in_game_name': membership.profile.display_name or membership.profile.user.username,
                 'avatar_url': membership.profile.avatar.url if membership.profile.avatar else None,
                 'role': membership.role.lower(),
+                'role_display': membership.get_role_display(),
                 'player_role': membership.player_role or '',
+                'is_captain': membership.is_captain,  # Use new is_captain field
                 'join_date': membership.joined_at.isoformat() if membership.joined_at else None,
-                'is_captain': membership.role == 'CAPTAIN',
                 'real_name': membership.profile.user.get_full_name() or None,
+                'permissions': TeamPermissions.get_permission_summary(membership) if viewer_is_member else {},
                 'stats': {
                     'matches_played': 0,
                     'win_rate': 0,
@@ -731,15 +751,21 @@ def get_roster(request, team_slug):
     response_data = {
         'active_players': active_players,
         'inactive_players': inactive_players,
+        'viewer_context': {
+            'is_authenticated': request.user.is_authenticated,
+            'is_member': viewer_is_member,
+            'permissions': viewer_permissions,
+            'role': viewer_membership.role if viewer_membership else None,
+            'role_display': viewer_membership.get_role_display() if viewer_membership else None,
+            'is_captain': viewer_membership.is_captain if viewer_membership else False,
+        },
         'statistics': {
             'total_members': len(active_players),
             'roles': {}
         }
     }
     
-    # Cache for 5 minutes
-    cache.set(cache_key, response_data, 300)
-    
+    # Note: No caching - always fresh viewer context
     return Response(response_data)
 
 

@@ -74,9 +74,9 @@ class RosterTab {
             ` : ''}
           </div>
 
-          <!-- Members Grid -->
+          <!-- Members Grid - Eclipse Design -->
           ${this.members.length > 0 ? `
-            <div class="roster-grid-modern">
+            <div class="roster-grid-eclipse">
               ${this.members.map(member => this.renderMemberCardModern(member, showGameIds)).join('')}
             </div>
           ` : `
@@ -111,7 +111,7 @@ class RosterTab {
   }
 
   /**
-   * Render modern member card with game ID
+   * Render Eclipse member card with dynamic content based on role
    */
   renderMemberCardModern(member, showGameId = false) {
     const isCaptain = member.role === 'CAPTAIN' || member.role === 'captain' || member.is_captain;
@@ -129,90 +129,120 @@ class RosterTab {
     const playerRole = member.player_role || member.in_game_role || '';
     const hasPlayerRole = playerRole && playerRole !== '';
     
-    // Create full role display
-    const fullRoleDisplay = hasPlayerRole ? `${membershipRole} (${playerRole})` : membershipRole;
+    // Get role class for styling
+    const roleClass = this.getRoleClass(member.role);
     
-    // Get color for player role badge
-    const playerRoleColor = this.getPlayerRoleColor(playerRole);
+    // Determine if this is a player/substitute (show in-game details)
+    // Also show for owners/managers/coaches if they have assigned in-game roles
+    const isPlayingRole = ['PLAYER', 'SUBSTITUTE', 'player', 'substitute'].includes(member.role) || 
+                         (hasPlayerRole && ['OWNER', 'MANAGER', 'COACH', 'owner', 'manager', 'coach'].includes(member.role));
     
     // Create a data attribute with roster data for the modal
     const rosterDataJson = JSON.stringify({
       game_id: member.game_id,
       game_id_label: member.game_id_label,
       mlbb_server_id: member.mlbb_server_id,
-      player_role: playerRole
+      player_role: playerRole,
+      role: member.role,
+      is_captain: member.is_captain
     }).replace(/"/g, '&quot;');
     
     return `
-      <div class="roster-card-modern ${isCaptain ? 'captain' : ''}" 
+      <div class="eclipse-roster-card ${isCaptain ? 'is-captain' : ''}" 
            data-profile-id="${profileId}"
            data-roster-data="${rosterDataJson}"
            role="button"
            tabindex="0"
            aria-label="View ${this.escapeHtml(displayName)}'s profile">
         
-        <div class="roster-card-header">
-          <div class="roster-avatar-wrapper">
-            ${avatar ? 
-              `<img src="${avatar}" class="roster-avatar" alt="${this.escapeHtml(displayName)}" loading="lazy">` :
-              `<div class="roster-avatar-placeholder">${this.getInitials(displayName)}</div>`
-            }
-            <div class="roster-status-dot ${member.is_online ? '' : 'offline'}" 
-                 title="${member.is_online ? 'Online' : 'Offline'}"></div>
+        <!-- Card Header -->
+        <div class="eclipse-card-header">
+          <div class="eclipse-avatar-wrapper">
+            <div class="eclipse-avatar">
+              <div class="eclipse-avatar-inner">
+                ${avatar ? 
+                  `<img src="${avatar}" alt="${this.escapeHtml(displayName)}" loading="lazy">` :
+                  `<div class="eclipse-avatar-placeholder">${this.getInitials(displayName)}</div>`
+                }
+              </div>
+            </div>
+            <div class="eclipse-status-dot ${member.is_online ? '' : 'offline'}"></div>
           </div>
           
-          <div class="roster-player-info">
-            <h3 class="roster-player-name">
-              ${isCaptain ? '<i class="fas fa-crown captain-crown" title="Team Captain"></i>' : ''}
+          <div class="eclipse-player-info">
+            <h3 class="eclipse-player-name">
+              ${isCaptain ? '<i class="eclipse-captain-star fas fa-star"></i>' : ''}
               ${this.escapeHtml(displayName)}
             </h3>
-            <p class="roster-player-username">
+            <p class="eclipse-username">
               <i class="fas fa-at"></i>${this.escapeHtml(username)}
             </p>
           </div>
         </div>
         
-        <div class="roster-roles-section">
-          <div class="roster-role-badge">
+        <!-- Roles Section -->
+        <div class="eclipse-roles-section">
+          <div class="eclipse-team-role-badge ${roleClass}">
             <i class="${this.getRoleIcon(member.role)}"></i>
             ${membershipRole}
           </div>
-          ${hasPlayerRole ? `
-            <div class="roster-player-role-badge" style="background: ${playerRoleColor}15; border-color: ${playerRoleColor}; color: ${playerRoleColor}">
-              <i class="fas fa-gamepad"></i>
-              ${this.escapeHtml(playerRole)}
-            </div>
-          ` : ''}
         </div>
         
-        ${showGameId ? `
-          <div class="roster-game-id-section">
-            <span class="roster-game-id-label">${member.game_id_label || 'Game ID'}</span>
-            <div class="roster-game-id-value ${!hasGameId ? 'not-provided' : ''}">
-              <i class="fas fa-${hasGameId ? 'gamepad' : 'exclamation-circle'}"></i>
-              ${this.escapeHtml(gameId)}
-            </div>
+        <!-- In-Game Details (Only for Players/Substitutes) -->
+        ${isPlayingRole ? `
+          <div class="eclipse-divider"></div>
+          <div class="eclipse-ingame-section">
+            ${hasGameId && showGameId ? `
+              <div class="eclipse-ingame-row">
+                <span class="eclipse-ingame-label">${member.game_id_label || 'IGN'}</span>
+                <span class="eclipse-ingame-value">${this.escapeHtml(gameId)}</span>
+              </div>
+            ` : ''}
+            ${hasPlayerRole ? `
+              <div class="eclipse-ingame-row">
+                <span class="eclipse-ingame-label">In-Game Role</span>
+                <span class="eclipse-ingame-role-badge">${this.escapeHtml(playerRole)}</span>
+              </div>
+            ` : ''}
             ${member.mlbb_server_id ? `
-              <div class="roster-game-id-value" style="margin-top: 0.5rem;">
-                <i class="fas fa-server"></i>
-                Server: ${this.escapeHtml(member.mlbb_server_id)}
+              <div class="eclipse-ingame-row">
+                <span class="eclipse-ingame-label">Server ID</span>
+                <span class="eclipse-ingame-value">${this.escapeHtml(member.mlbb_server_id)}</span>
               </div>
             ` : ''}
           </div>
         ` : ''}
         
-        <div class="roster-card-footer">
-          <span class="roster-joined-date">
+        <!-- Card Footer -->
+        <div class="eclipse-card-footer">
+          <span class="eclipse-joined-date">
             <i class="fas fa-calendar"></i>
             Joined ${this.formatDateRelative(member.joined_at || member.join_date)}
           </span>
-          <span class="roster-view-profile-btn">
-            <i class="fas fa-user"></i>
-            View Profile
+          <span class="eclipse-view-profile">
+            View Profile <i class="fas fa-arrow-right"></i>
           </span>
         </div>
       </div>
     `;
+  }
+  
+  /**
+   * Get role CSS class for styling
+   */
+  getRoleClass(role) {
+    if (!role) return 'role-player';
+    const roleStr = role.toString().toLowerCase();
+    const roleMap = {
+      'owner': 'role-owner',
+      'manager': 'role-manager',
+      'coach': 'role-coach',
+      'captain': 'role-player',
+      'player': 'role-player',
+      'substitute': 'role-substitute',
+      'sub': 'role-substitute'
+    };
+    return roleMap[roleStr] || 'role-player';
   }
 
   /**
@@ -329,10 +359,16 @@ class RosterTab {
       addFirstBtn.addEventListener('click', () => this.showAddMemberModal());
     }
     
-    // Bind roster card click events
-    const rosterCards = container.querySelectorAll('.roster-card-modern');
+    // Bind eclipse roster card click events
+    const rosterCards = container.querySelectorAll('.eclipse-roster-card');
     rosterCards.forEach(card => {
       card.addEventListener('click', (e) => this.openPlayerModal(e, card));
+      card.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.openPlayerModal(e, card);
+        }
+      });
     });
   }
 

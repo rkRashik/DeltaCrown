@@ -231,65 +231,307 @@
                         <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                         </svg>
-                        <span>Team Members</span>
+                        <span>Team Hierarchy</span>
                     </h2>
                     
-                    <div class="space-y-3">
+                    <!-- OWNER Section -->
+                    <div class="mb-6 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-lg border border-yellow-500/30">
+                        <h3 class="text-lg font-semibold text-yellow-400 mb-3 flex items-center">
+                            <span class="text-2xl mr-2">👑</span> Team Owner
+                        </h3>
                         {% for membership in members %}
-                        <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                            <div class="flex items-center space-x-3">
-                                <div class="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-blue-400 overflow-hidden">
-                                    {% if membership.profile.avatar and membership.profile.avatar.url %}
-                                        <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" 
-                                             class="w-full h-full object-cover">
-                                    {% else %}
-                                        <div class="w-full h-full flex items-center justify-center text-white font-semibold">
-                                            {{ membership.profile.user.username|first|upper }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                <div>
-                                    <p class="text-white font-semibold">{{ membership.profile.user.username }}</p>
-                                    <p class="text-sm text-{% if membership.role == 'CAPTAIN' %}yellow-400{% else %}white/70{% endif %}">
-                                        {{ membership.get_role_display }}
-                                        {% if membership.player_role %}
-                                        <span class="text-cyan-400"> • {{ membership.player_role }}</span>
+                            {% if membership.role == 'OWNER' %}
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="h-12 w-12 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 overflow-hidden ring-2 ring-yellow-400">
+                                        {% if membership.profile.avatar and membership.profile.avatar.url %}
+                                            <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" 
+                                                 class="w-full h-full object-cover">
+                                        {% else %}
+                                            <div class="w-full h-full flex items-center justify-center text-white font-bold text-lg">
+                                                {{ membership.profile.user.username|first|upper }}
+                                            </div>
                                         {% endif %}
-                                    </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-white font-bold">{{ membership.profile.display_name }}</p>
+                                        <p class="text-sm text-yellow-400">Full Control • Ultimate Authority</p>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            {% if membership.role != 'CAPTAIN' and user.profile == team.captain %}
-                            <div class="flex space-x-2">
-                                <select onchange="changeRole(this, '{{ membership.profile.user.username }}')"
-                                        class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors">
-                                    <option value="">Change Role</option>
-                                    <option value="PLAYER">Player</option>
-                                    <option value="SUBSTITUTE">Substitute</option>
-                                    <option value="COACH">Coach</option>
-                                    <option value="MANAGER">Manager</option>
-                                </select>
-                                <select onchange="changePlayerRole(this, '{{ membership.profile.id }}')"
-                                        class="px-2 py-1 text-xs bg-cyan-500 hover:bg-cyan-600 text-white rounded transition-colors">
-                                    <option value="">{% if membership.player_role %}Change{% else %}Set{% endif %} Player Role</option>
-                                    {% for role in team.game|get_player_roles %}
-                                    <option value="{{ role.value }}" {% if membership.player_role == role.value %}selected{% endif %}>{{ role.label }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button type="button" 
-                                        class="px-3 py-1 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded transition-colors"
-                                        onclick="transferCaptaincy('{{ membership.profile.id }}')">
-                                    Make Captain
+                                {% if user.profile == membership.profile %}
+                                <button type="button" onclick="openTransferOwnershipModal()"
+                                        class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors text-sm">
+                                    Transfer Ownership
                                 </button>
-                                <button type="button" 
-                                        class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
-                                        onclick="kickMember('{{ membership.profile.id }}', '{{ membership.profile.user.username }}')">
-                                    Kick
-                                </button>
+                                {% endif %}
                             </div>
                             {% endif %}
-                        </div>
                         {% endfor %}
+                    </div>
+
+                    <!-- MANAGERS Section -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-blue-400 flex items-center">
+                                <span class="text-xl mr-2">📋</span> Team Managers
+                            </h3>
+                            {% for membership in members %}
+                                {% if membership.role == 'OWNER' and user.profile == membership.profile %}
+                                <button type="button" onclick="openAssignManagerModal()"
+                                        class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm">
+                                    + Assign Manager
+                                </button>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        {% with managers=members|dictsort:"role" %}
+                        <div class="space-y-2">
+                            {% for membership in managers %}
+                                {% if membership.role == 'MANAGER' %}
+                                <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-blue-500/20">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 overflow-hidden">
+                                            {% if membership.profile.avatar and membership.profile.avatar.url %}
+                                                <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" 
+                                                     class="w-full h-full object-cover">
+                                            {% else %}
+                                                <div class="w-full h-full flex items-center justify-center text-white font-semibold">
+                                                    {{ membership.profile.user.username|first|upper }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="text-white font-semibold">{{ membership.profile.display_name }}</p>
+                                            <p class="text-xs text-blue-400">Admin Powers • Roster Management</p>
+                                        </div>
+                                    </div>
+                                    {% for owner_check in members %}
+                                        {% if owner_check.role == 'OWNER' and user.profile == owner_check.profile %}
+                                        <button type="button" 
+                                                onclick="removeManager('{{ membership.profile.id }}', '{{ membership.profile.display_name }}')"
+                                                class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs">
+                                            Remove Manager
+                                        </button>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                            {% with has_managers=False %}
+                                {% for m in members %}
+                                    {% if m.role == 'MANAGER' %}
+                                        {% with has_managers=True %}{% endwith %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if not has_managers %}
+                                <div class="p-4 text-center text-white/50 text-sm">
+                                    No managers assigned yet
+                                </div>
+                                {% endif %}
+                            {% endwith %}
+                        </div>
+                        {% endwith %}
+                    </div>
+
+                    <!-- CAPTAIN TITLE Section -->
+                    <div class="mb-6 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-500/30">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-purple-400 flex items-center">
+                                <span class="text-xl mr-2">⭐</span> In-Game Captain
+                            </h3>
+                            {% for membership in members %}
+                                {% if membership.role == 'OWNER' or membership.role == 'MANAGER' %}
+                                    {% if user.profile == membership.profile %}
+                                    <button type="button" onclick="openAssignCaptainModal()"
+                                            class="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm">
+                                        Change Captain
+                                    </button>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        {% for membership in members %}
+                            {% if membership.is_captain %}
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="h-10 w-10 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 overflow-hidden ring-2 ring-purple-400">
+                                        {% if membership.profile.avatar and membership.profile.avatar.url %}
+                                            <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" 
+                                                 class="w-full h-full object-cover">
+                                        {% else %}
+                                            <div class="w-full h-full flex items-center justify-center text-white font-semibold">
+                                                {{ membership.profile.user.username|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="text-white font-semibold">{{ membership.profile.display_name }}</p>
+                                        <p class="text-xs text-purple-400">In-Game Leader 
+                                            {% if membership.player_role %}• {{ membership.player_role }}{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                {% for check in members %}
+                                    {% if check.role == 'OWNER' or check.role == 'MANAGER' %}
+                                        {% if user.profile == check.profile %}
+                                        <button type="button" 
+                                                onclick="removeCaptainTitle('{{ membership.profile.id }}')"
+                                                class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs">
+                                            Remove Title
+                                        </button>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% with has_captain=False %}
+                            {% for m in members %}
+                                {% if m.is_captain %}
+                                    {% with has_captain=True %}{% endwith %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if not has_captain %}
+                            <div class="p-3 text-center text-white/50 text-sm">
+                                No captain assigned yet
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+
+                    <!-- COACHES Section -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-green-400 flex items-center">
+                                <span class="text-xl mr-2">🎓</span> Coaches
+                            </h3>
+                            {% for membership in members %}
+                                {% if membership.role == 'OWNER' or membership.role == 'MANAGER' %}
+                                    {% if user.profile == membership.profile %}
+                                    <button type="button" onclick="openAssignCoachModal()"
+                                            class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm">
+                                        + Assign Coach
+                                    </button>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="space-y-2">
+                            {% for membership in members %}
+                                {% if membership.role == 'COACH' %}
+                                <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-green-500/20">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="h-10 w-10 rounded-full bg-gradient-to-r from-green-400 to-emerald-400 overflow-hidden">
+                                            {% if membership.profile.avatar and membership.profile.avatar.url %}
+                                                <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" 
+                                                     class="w-full h-full object-cover">
+                                            {% else %}
+                                                <div class="w-full h-full flex items-center justify-center text-white font-semibold">
+                                                    {{ membership.profile.user.username|first|upper }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="text-white font-semibold">{{ membership.profile.display_name }}</p>
+                                            <p class="text-xs text-green-400">Strategic Advisor • View-Only</p>
+                                        </div>
+                                    </div>
+                                    {% for check in members %}
+                                        {% if check.role == 'OWNER' or check.role == 'MANAGER' %}
+                                            {% if user.profile == check.profile %}
+                                            <button type="button" 
+                                                    onclick="changeRoleToPlayer('{{ membership.profile.id }}', '{{ membership.profile.display_name }}')"
+                                                    class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs">
+                                                Remove Coach
+                                            </button>
+                                            {% endif %}
+                                        {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% with has_coaches=False %}
+                            {% for m in members %}
+                                {% if m.role == 'COACH' %}
+                                    {% with has_coaches=True %}{% endwith %}
+                                {% endif %}
+                            {% endfor %}
+                            {% if not has_coaches %}
+                            <div class="p-4 text-center text-white/50 text-sm">
+                                No coaches assigned yet
+                            </div>
+                            {% endif %}
+                        {% endwith %}
+                        </div>
+                    </div>                    <!-- ACTIVE ROSTER Section -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-cyan-400 mb-3 flex items-center">
+                            <span class="text-xl mr-2">🎮</span> Active Roster
+                        </h3>
+                        <div class="space-y-2">
+                        {% for membership in members %}
+                            {% if membership.role == 'OWNER' or membership.role == 'PLAYER' or membership.role == 'SUBSTITUTE' %}
+                            <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                                <div class="flex items-center space-x-3">
+                                    <div class="h-10 w-10 rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 overflow-hidden">
+                                        {% if membership.profile.avatar and membership.profile.avatar.url %}
+                                            <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" 
+                                                 class="w-full h-full object-cover">
+                                        {% else %}
+                                            <div class="w-full h-full flex items-center justify-center text-white font-semibold">
+                                                {{ membership.profile.user.username|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="text-white font-semibold">
+                                            {{ membership.profile.display_name }}
+                                            {% if membership.is_captain %}<span class="text-yellow-400"> ⭐</span>{% endif %}
+                                        </p>
+                                        <p class="text-sm text-{% if membership.role == 'OWNER' %}yellow-400{% elif membership.role == 'PLAYER' %}cyan-400{% else %}amber-400{% endif %}">
+                                            {{ membership.get_role_display }}
+                                            {% if membership.player_role %}
+                                            <span class="text-purple-400"> • {{ membership.player_role }}</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                {% for check in members %}
+                                    {% if check.role == 'OWNER' or check.role == 'MANAGER' %}
+                                        {% if user.profile == check.profile %}
+                                        <div class="flex space-x-2">
+                                            <select onchange="changePlayerRole(this, '{{ membership.profile.id }}')"
+                                                    class="px-2 py-1 text-xs bg-purple-500 hover:bg-purple-600 text-white rounded transition-colors">
+                                                <option value="">{% if membership.player_role %}Change{% else %}Set{% endif %} Role</option>
+                                                {% for role in team.game|get_player_roles %}
+                                                <option value="{{ role.value }}" {% if membership.player_role == role.value %}selected{% endif %}>{{ role.label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <select onchange="changeOrganizationalRole(this, '{{ membership.profile.id }}')"
+                                                    class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors">
+                                                <option value="">Change Status</option>
+                                                <option value="PLAYER">Active Player</option>
+                                                <option value="SUBSTITUTE">Substitute</option>
+                                            </select>
+                                            {% if membership.role != 'OWNER' %}
+                                            <button type="button" 
+                                                    class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                                                    onclick="kickMember('{{ membership.profile.id }}', '{{ membership.profile.user.username }}')">
+                                                Kick
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -485,6 +727,117 @@
     </div>
 </div>
 
+<!-- Transfer Ownership Modal -->
+<div id="transferOwnershipModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 items-center justify-center">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-yellow-500/30">
+        <h3 class="text-xl font-semibold text-white mb-4">👑 Transfer Team Ownership</h3>
+        <p class="text-white/70 mb-2">Select new team owner:</p>
+        <p class="text-sm text-yellow-400 mb-4">⚠️ You will lose all owner privileges!</p>
+        
+        <select id="newOwnerSelect" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white mb-6">
+            {% for membership in members %}
+                {% if membership.role != 'OWNER' %}
+                <option value="{{ membership.profile.id }}">{{ membership.profile.display_name }} ({{ membership.get_role_display }})</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        
+        <div class="flex space-x-3">
+            <button type="button" onclick="closeModal('transferOwnershipModal')"
+                    class="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmTransferOwnership()"
+                    class="flex-1 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors">
+                Transfer Ownership
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Manager Modal -->
+<div id="assignManagerModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 items-center justify-center">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-blue-500/30">
+        <h3 class="text-xl font-semibold text-white mb-4">📋 Assign Team Manager</h3>
+        <p class="text-white/70 mb-4">Select member to promote to manager:</p>
+        
+        <select id="newManagerSelect" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white mb-6">
+            {% for membership in members %}
+                {% if membership.role != 'OWNER' and membership.role != 'MANAGER' %}
+                <option value="{{ membership.profile.id }}">{{ membership.profile.display_name }} ({{ membership.get_role_display }})</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        
+        <div class="flex space-x-3">
+            <button type="button" onclick="closeModal('assignManagerModal')"
+                    class="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmAssignManager()"
+                    class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                Assign Manager
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Captain Title Modal -->
+<div id="assignCaptainModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 items-center justify-center">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-purple-500/30">
+        <h3 class="text-xl font-semibold text-white mb-4">⭐ Assign Captain Title</h3>
+        <p class="text-white/70 mb-4">Select player to be in-game captain:</p>
+        
+        <select id="newCaptainTitleSelect" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white mb-6">
+            {% for membership in members %}
+                {% if membership.role == 'PLAYER' or membership.role == 'SUBSTITUTE' %}
+                <option value="{{ membership.profile.id }}" {% if membership.is_captain %}selected{% endif %}>
+                    {{ membership.profile.display_name }} ({{ membership.get_role_display }}){% if membership.is_captain %} - Current Captain{% endif %}
+                </option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        
+        <div class="flex space-x-3">
+            <button type="button" onclick="closeModal('assignCaptainModal')"
+                    class="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmAssignCaptainTitle()"
+                    class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors">
+                Assign Captain
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Coach Modal -->
+<div id="assignCoachModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 items-center justify-center">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4 border border-green-500/30">
+        <h3 class="text-xl font-semibold text-white mb-4">🎓 Assign Coach</h3>
+        <p class="text-white/70 mb-4">Select member to assign as coach:</p>
+        
+        <select id="newCoachSelect" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white mb-6">
+            {% for membership in members %}
+                {% if membership.role != 'OWNER' and membership.role != 'MANAGER' and membership.role != 'COACH' %}
+                <option value="{{ membership.profile.id }}">{{ membership.profile.display_name }} ({{ membership.get_role_display }})</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        
+        <div class="flex space-x-3">
+            <button type="button" onclick="closeModal('assignCoachModal')"
+                    class="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmAssignCoach()"
+                    class="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors">
+                Assign Coach
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
@@ -497,6 +850,42 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.style.transform = 'translateY(8rem)';
     }, 3000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Modal Functions
+function openTransferOwnershipModal() {
+    document.getElementById('transferOwnershipModal').classList.remove('hidden');
+    document.getElementById('transferOwnershipModal').classList.add('flex');
+}
+
+function openAssignManagerModal() {
+    document.getElementById('assignManagerModal').classList.remove('hidden');
+    document.getElementById('assignManagerModal').classList.add('flex');
+}
+
+function openAssignCaptainModal() {
+    document.getElementById('assignCaptainModal').classList.remove('hidden');
+    document.getElementById('assignCaptainModal').classList.add('flex');
+}
+
+function openAssignCoachModal() {
+    document.getElementById('assignCoachModal').classList.remove('hidden');
+    document.getElementById('assignCoachModal').classList.add('flex');
 }
 
 function deleteTeamDialog() {
@@ -514,7 +903,7 @@ function leaveTeamDialog() {
         fetch("{% url 'teams:leave' slug=team.slug %}", {
             method: 'POST',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-CSRFToken': getCookie('csrftoken'),
                 'Content-Type': 'application/json'
             }
         }).then(response => {
@@ -532,20 +921,218 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('flex');
 }
 
-function confirmDeleteTeam() {
-    fetch("{% url 'teams:delete' team.slug %}", {
+// New Professional Role Management Functions
+function confirmTransferOwnership() {
+    const newOwnerId = document.getElementById('newOwnerSelect').value;
+    fetch("{% url 'teams:transfer_ownership' team.slug %}", {
         method: 'POST',
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-CSRFToken': getCookie('csrftoken'),
             'Content-Type': 'application/json'
-        }
-    }).then(response => {
-        if (response.ok) {
-            window.location.href = "{% url 'teams:list' %}";
+        },
+        body: JSON.stringify({ profile_id: newOwnerId })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Ownership transferred successfully!');
+            setTimeout(() => location.reload(), 1500);
         } else {
-            showToast('Error deleting team', 'error');
+            showToast(data.error || 'Error transferring ownership', 'error');
         }
+        closeModal('transferOwnershipModal');
+    }).catch(() => {
+        showToast('Error transferring ownership', 'error');
+        closeModal('transferOwnershipModal');
     });
+}
+
+function confirmAssignManager() {
+    const memberId = document.getElementById('newManagerSelect').value;
+    fetch("{% url 'teams:assign_manager' team.slug %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ profile_id: memberId })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Manager assigned successfully!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Error assigning manager', 'error');
+        }
+        closeModal('assignManagerModal');
+    }).catch(() => {
+        showToast('Error assigning manager', 'error');
+        closeModal('assignManagerModal');
+    });
+}
+
+function removeManager(profileId, displayName) {
+    if (confirm(`Remove ${displayName} from manager role?`)) {
+        fetch("{% url 'teams:remove_manager' team.slug %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ profile_id: profileId })
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Manager removed successfully!');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(data.error || 'Error removing manager', 'error');
+            }
+        }).catch(() => {
+            showToast('Error removing manager', 'error');
+        });
+    }
+}
+
+function confirmAssignCaptainTitle() {
+    const memberId = document.getElementById('newCaptainTitleSelect').value;
+    fetch("{% url 'teams:assign_captain_title' team.slug %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ profile_id: memberId })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Captain title assigned successfully!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Error assigning captain title', 'error');
+        }
+        closeModal('assignCaptainModal');
+    }).catch(() => {
+        showToast('Error assigning captain title', 'error');
+        closeModal('assignCaptainModal');
+    });
+}
+
+function removeCaptainTitle(profileId) {
+    if (confirm('Remove captain title from this player?')) {
+        fetch("{% url 'teams:remove_captain_title' team.slug %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ profile_id: profileId })
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Captain title removed!');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(data.error || 'Error removing captain title', 'error');
+            }
+        }).catch(() => {
+            showToast('Error removing captain title', 'error');
+        });
+    }
+}
+
+function confirmAssignCoach() {
+    const memberId = document.getElementById('newCoachSelect').value;
+    fetch("{% url 'teams:assign_coach' team.slug %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ profile_id: memberId })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Coach assigned successfully!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Error assigning coach', 'error');
+        }
+        closeModal('assignCoachModal');
+    }).catch(() => {
+        showToast('Error assigning coach', 'error');
+        closeModal('assignCoachModal');
+    });
+}
+
+function changeRoleToPlayer(profileId, displayName) {
+    if (confirm(`Change ${displayName} to player role?`)) {
+        fetch("{% url 'teams:change_organizational_role' team.slug %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ profile_id: profileId, new_role: 'PLAYER' })
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Role changed successfully!');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(data.error || 'Error changing role', 'error');
+            }
+        }).catch(() => {
+            showToast('Error changing role', 'error');
+        });
+    }
+}
+
+function changeOrganizationalRole(select, profileId) {
+    const newRole = select.value;
+    if (!newRole) return;
+    
+    fetch("{% url 'teams:change_organizational_role' team.slug %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ profile_id: profileId, new_role: newRole })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Role changed successfully!');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Error changing role', 'error');
+            select.value = ''; // Reset select
+        }
+    }).catch(() => {
+        showToast('Error changing role', 'error');
+        select.value = ''; // Reset select
+    });
+}
+
+function confirmDeleteTeam() {
+    const confirmName = prompt(`Type "{{ team.name }}" to confirm deletion:`);
+    if (confirmName === "{{ team.name }}") {
+        fetch("{% url 'teams:delete' team.slug %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ confirm_name: "{{ team.name }}" })
+        }).then(response => {
+            if (response.ok) {
+                window.location.href = "{% url 'teams:list' %}";
+            } else {
+                showToast('Error deleting team', 'error');
+            }
+        });
+    } else if (confirmName !== null) {
+        showToast('Team name does not match', 'error');
+    }
 }
 
 function confirmTransferCaptaincy() {
@@ -553,7 +1140,7 @@ function confirmTransferCaptaincy() {
     fetch(`/teams/{{ team.slug }}/transfer/${newCaptainId}/`, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-CSRFToken': getCookie('csrftoken'),
             'Content-Type': 'application/json'
         }
     }).then(response => {
@@ -572,7 +1159,7 @@ function changeRole(select, username) {
     fetch("{% url 'teams:change_role' team.slug %}", {
         method: 'POST',
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-CSRFToken': getCookie('csrftoken'),
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
@@ -596,20 +1183,25 @@ function changePlayerRole(select, profileId) {
     fetch("{% url 'teams:change_player_role' team.slug %}", {
         method: 'POST',
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-CSRFToken': getCookie('csrftoken'),
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
             profile_id: profileId,
             player_role: newPlayerRole
         })
-    }).then(response => {
-        if (response.ok) {
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
             showToast('Player role changed successfully');
-            setTimeout(() => location.reload(), 1000);
+            setTimeout(() => location.reload(), 1500);
         } else {
-            showToast('Error changing player role', 'error');
+            showToast(data.error || 'Error changing player role', 'error');
+            select.value = ''; // Reset select
         }
+    }).catch(() => {
+        showToast('Error changing player role', 'error');
+        select.value = ''; // Reset select
     });
 }
 
@@ -618,7 +1210,7 @@ function kickMember(profileId, username) {
         fetch(`/teams/{{ team.slug }}/kick/${profileId}/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-CSRFToken': getCookie('csrftoken'),
                 'Content-Type': 'application/json'
             }
         }).then(response => {
@@ -641,7 +1233,7 @@ function uploadLogo(input) {
     if (input.files && input.files[0]) {
         const formData = new FormData();
         formData.append('logo', input.files[0]);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
         
         fetch("{% url 'teams:update_team_info' team.slug %}", {
             method: 'POST',
@@ -668,7 +1260,7 @@ function uploadBanner(input) {
     if (input.files && input.files[0]) {
         const formData = new FormData();
         formData.append('banner', input.files[0]);
-        formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
         
         fetch("{% url 'teams:update_team_info' team.slug %}", {
             method: 'POST',

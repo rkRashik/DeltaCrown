@@ -194,3 +194,57 @@ def update_game_id(request):
             'success': False,
             'error': 'An error occurred while saving game ID'
         }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def profile_api(request, profile_id):
+    """
+    Get user profile data for modal display
+    
+    GET /api/profile/<profile_id>/
+    Returns profile data for the player modal
+    """
+    try:
+        # Get the requested profile
+        try:
+            profile = UserProfile.objects.get(id=profile_id)
+        except UserProfile.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Profile not found'
+            }, status=404)
+        
+        # Basic profile data
+        profile_data = {
+            'id': profile.id,
+            'username': profile.user.username,
+            'display_name': profile.display_name or profile.user.username,
+            'avatar_url': profile.avatar.url if profile.avatar else None,
+            'bio': profile.bio or '',
+            'is_captain': False,  # This will be overridden by roster data
+            'role': 'Player',  # This will be overridden by roster data
+            'player_role': '',  # This will be overridden by roster data
+            'game_id': '',  # This will be overridden by roster data
+            'game_id_label': 'IGN',  # This will be overridden by roster data
+            'mlbb_server_id': '',  # This will be overridden by roster data
+            'social_links': {
+                'twitter': profile.twitter or None,
+                'discord_id': profile.discord_id or None,
+                'youtube_link': profile.youtube_link or None,
+                'twitch_link': profile.twitch_link or None,
+                'instagram': profile.instagram or None,
+            }
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'profile': profile_data
+        })
+    
+    except Exception as e:
+        logger.error(f"Error fetching profile {profile_id}: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred while fetching profile'
+        }, status=500)
