@@ -402,9 +402,21 @@ class TeamMembership(models.Model):
         on_delete=models.CASCADE,
         related_name="team_memberships",
     )
+    # Team membership role (organizational)
     role = models.CharField(max_length=16, choices=Role.choices, default=Role.PLAYER)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     joined_at = models.DateTimeField(default=timezone.now)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # DUAL-ROLE SYSTEM: In-Game Role (game-specific tactical role)
+    # ═══════════════════════════════════════════════════════════════════════
+    player_role = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="In-game tactical role (e.g., Duelist, IGL, AWPer). Game-specific.",
+        verbose_name="In-Game Role"
+    )
 
     class Meta:
         ordering = ("team", "role", "-joined_at")
@@ -475,6 +487,98 @@ class TeamMembership(models.Model):
             # Update team
             self.team.captain = self.profile
             self.team.save(update_fields=["captain"])
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # DUAL-ROLE SYSTEM: Helper Methods
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    def get_player_role_display(self):
+        """
+        Get display name for the in-game role.
+        Returns the role itself if set, otherwise empty string.
+        """
+        return self.player_role if self.player_role else ""
+    
+    def set_player_role(self, role: str):
+        """
+        Set the in-game role for this member.
+        Validates the role is valid for the team's game.
+        
+        Args:
+            role: In-game role name (e.g., 'Duelist', 'IGL')
+            
+        Raises:
+            ValidationError: If role is invalid for the team's game
+        """
+        from ..game_config import validate_role_for_game, get_game_config
+        
+        if not role:
+            self.player_role = ''
+            return
+            
+        if self.team and self.team.game:
+            if not validate_role_for_game(self.team.game, role):
+                game_config = get_game_config(self.team.game)
+                available_roles = ', '.join(game_config.roles)
+                raise ValidationError(
+                    f"'{role}' is not a valid role for {game_config.name}. "
+                    f"Available roles: {available_roles}"
+                )
+        
+        self.player_role = role
+    
+    def get_available_player_roles(self):
+        """
+        Get list of available in-game roles for this member's team.
+        Returns empty list if team has no game set.
+        
+        Returns:
+            List of available role names
+        """
+        from ..game_config import get_available_roles
+        
+        if not self.team or not self.team.game:
+            return []
+        
+        try:
+            return get_available_roles(self.team.game)
+        except KeyError:
+            return []
+    
+    def get_role_description(self):
+        """
+        Get description for this member's in-game role.
+        
+        Returns:
+            Role description string or empty if not set
+        """
+        from ..game_config import get_role_description
+        
+        if not self.player_role or not self.team or not self.team.game:
+            return ""
+        
+        try:
+            return get_role_description(self.team.game, self.player_role)
+        except KeyError:
+            return ""
+    
+    @property
+    def is_player_or_sub(self):
+        """Check if this member is a player or substitute (can have in-game roles)."""
+        return self.role in [self.Role.PLAYER, self.Role.SUB]
+    
+    @property
+    def display_full_role(self):
+        """
+        Get full role display combining membership role and player role.
+        E.g., "Player (Duelist)" or "Substitute (AWPer)" or "Coach"
+        """
+        base_role = self.get_role_display()
+        
+        if self.player_role and self.is_player_or_sub:
+            return f"{base_role} ({self.player_role})"
+        
+        return base_role
 
 
 class TeamInvite(models.Model):

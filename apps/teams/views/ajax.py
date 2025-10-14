@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
 from ..models import Team, TeamMembership
+from apps.user_profile.models import UserProfile
 from .utils import _ensure_profile, _is_captain, _get_profile, _get_game_display_name
 
 User = get_user_model()
@@ -216,7 +217,7 @@ def update_team_privacy(request, slug: str) -> JsonResponse:
 
 @login_required
 @require_http_methods(["POST"])
-def kick_member(request, slug: str) -> JsonResponse:
+def kick_member(request, slug: str, profile_id: int) -> JsonResponse:
     """Kick a team member via AJAX."""
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
@@ -225,14 +226,7 @@ def kick_member(request, slug: str) -> JsonResponse:
         return JsonResponse({"error": "Only captains can kick members."}, status=403)
     
     try:
-        data = json.loads(request.body)
-        username = data.get('username')
-        
-        target_user = get_object_or_404(User, username=username)
-        target_profile = _get_profile(target_user)
-        
-        if not target_profile:
-            return JsonResponse({"error": "User profile not found."}, status=404)
+        target_profile = get_object_or_404(UserProfile, id=profile_id)
         
         membership = get_object_or_404(TeamMembership, team=team, profile=target_profile)
         

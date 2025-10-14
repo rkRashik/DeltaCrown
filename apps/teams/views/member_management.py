@@ -169,7 +169,7 @@ def remove_member(request, slug, membership_id):
 @login_required
 @require_http_methods(["POST"])
 @transaction.atomic
-def transfer_captaincy(request, slug):
+def transfer_captaincy(request, slug, profile_id):
     """
     Transfer team captaincy to another member.
     Requires password confirmation.
@@ -180,25 +180,19 @@ def transfer_captaincy(request, slug):
     if not _is_captain(profile, team):
         return JsonResponse({"error": "Only the current captain can transfer captaincy"}, status=403)
     
-    # Get new captain
-    new_captain_id = request.POST.get('new_captain_id')
-    password = request.POST.get('password', '')
-    
-    if not new_captain_id:
-        return JsonResponse({"error": "Please select a new captain"}, status=400)
-    
-    # Verify password
-    if not request.user.check_password(password):
-        return JsonResponse({"error": "Incorrect password"}, status=403)
-    
-    # Get new captain's membership
+    # Get new captain's membership using profile_id
     try:
         new_membership = team.memberships.get(
-            id=new_captain_id,
+            profile_id=profile_id,
             status='ACTIVE'
         )
     except TeamMembership.DoesNotExist:
         return JsonResponse({"error": "Selected member is not an active team member"}, status=400)
+    
+    # Verify password (optional - could be removed if not needed)
+    password = request.POST.get('password', '')
+    if password and not request.user.check_password(password):
+        return JsonResponse({"error": "Incorrect password"}, status=403)
     
     # Update old captain's membership
     try:

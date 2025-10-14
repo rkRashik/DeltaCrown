@@ -1,0 +1,226 @@
+/**
+ * Roster Tab - Dual-Role System Styles
+ * Displays both membership roles and player roles
+ */
+
+/* Roster Roles Section */
+.roster-roles-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0.5rem;
+}
+
+/* Membership Role Badge (existing) */
+.roster-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 0.375rem;
+  color: #60a5fa;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Player Role Badge (new - tactical role) */
+.roster-player-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid;
+  transition: all 0.2s ease;
+}
+
+.roster-player-role-badge i {
+  font-size: 0.75rem;
+}
+
+/* Hover effect for role badges */
+.roster-card-modern:hover .roster-player-role-badge {
+  transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Captain specific styling */
+.roster-card-modern.captain .roster-role-badge {
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+}
+
+.roster-card-modern.captain .captain-crown {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+}
+
+/* Role badge colors - responsive to role content */
+.roster-roles-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Make badges inline on wider cards */
+@media (min-width: 768px) {
+  .roster-roles-section {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Empty state for no player role */
+.roster-no-player-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(107, 114, 128, 0.1);
+  border: 1px dashed rgba(107, 114, 128, 0.3);
+  border-radius: 0.375rem;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+/* Role badge tooltip */
+.roster-player-role-badge[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  font-size: 0.75rem;
+  border-radius: 0.375rem;
+  white-space: nowrap;
+  pointer-events: none;
+  margin-bottom: 0.5rem;
+  z-index: 10;
+}
+
+/* Roster card hover enhancements */
+.roster-card-modern {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.roster-card-modern:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.roster-card-modern:hover .roster-roles-section {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Dark mode optimizations */
+@media (prefers-color-scheme: dark) {
+  .roster-roles-section {
+    background: rgba(0, 0, 0, 0.2);
+  }
+  
+  .roster-card-modern:hover .roster-roles-section {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .roster-roles-section {
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+  
+  .roster-role-badge,
+  .roster-player-role-badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.625rem;
+  }
+}
+
+/* Grid layout adjustments for dual roles */
+.roster-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .roster-grid-modern {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .roster-grid-modern {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+/* Player role icon animations */
+.roster-player-role-badge i {
+  transition: transform 0.2s ease;
+}
+
+.roster-card-modern:hover .roster-player-role-badge i {
+  transform: scale(1.1);
+}
+
+/* Role combination display */
+.roster-role-combination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.roster-role-separator {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* Stats section adjustment for dual roles */
+.roster-card-modern .roster-game-id-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced visibility for player roles */
+.roster-player-role-highlight {
+  position: relative;
+  overflow: visible;
+}
+
+.roster-player-role-highlight::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  border-radius: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.roster-card-modern:hover .roster-player-role-highlight::before {
+  opacity: 0.1;
+}

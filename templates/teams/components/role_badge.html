@@ -1,0 +1,10 @@
+<!-- templates/teams/components/role_badge.html -->
+{% if has_role %}
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ color }} text-white">
+    {{ role }}
+</span>
+{% else %}
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-400 text-white">
+    No Role
+</span>
+{% endif %}

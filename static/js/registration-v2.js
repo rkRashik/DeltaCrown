@@ -890,7 +890,7 @@ const rosterManager = {
       `;
     });
     
-    const roleValue = playerData ? (playerData.role || '') : '';
+    const roleValue = playerData ? (playerData.player_role || playerData.role || '') : '';
     
     card.innerHTML = `
       <div class="card-header">
@@ -902,11 +902,12 @@ const rosterManager = {
       <div class="card-body">
         ${fieldsHtml}
         <div class="form-field">
-          <label>Role <span class="required">*</span></label>
+          <label>Player Role <span class="required">*</span></label>
           <select class="form-control player-role ${playerData && roleValue ? 'auto-filled' : ''}" required>
-            <option value="">Select role...</option>
+            <option value="">Select tactical role...</option>
             ${config.roles.map(role => `<option value="${role}" ${role === roleValue ? 'selected' : ''}>${role}</option>`).join('')}
           </select>
+          ${playerData && roleValue ? `<small class="text-success"><i class="fas fa-check-circle"></i> Auto-filled from team roster</small>` : ''}
         </div>
       </div>
     `;

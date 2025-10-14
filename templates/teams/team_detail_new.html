@@ -482,6 +482,22 @@
     "is_following": {{ is_following|yesno:"true,false" }},
     "can_edit": {% if is_captain %}true{% else %}false{% endif %}
   },
+  "roster": [
+    {% for membership in roster %}
+    {
+      "id": {{ membership.profile.id }},
+      "profile_id": {{ membership.profile.id }},
+      "username": "{{ membership.profile.user.username|escapejs }}",
+      "display_name": "{{ membership.profile.display_name|default:membership.profile.user.username|escapejs }}",
+      "avatar": {% if membership.profile.avatar %}"{{ membership.profile.avatar.url }}"{% else %}null{% endif %},
+      "role": "{{ membership.role }}",
+      "role_display": "{{ membership.get_role_display }}",
+      "joined_at": "{{ membership.joined_at|date:'c' }}",
+      "is_captain": {% if membership.role == 'CAPTAIN' %}true{% else %}false{% endif %},
+      "is_online": false
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ],
   "recent_matches": [],
   "posts": [],
   "achievements": {},

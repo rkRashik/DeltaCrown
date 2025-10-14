@@ -94,6 +94,7 @@ def modern_register_view(request: HttpRequest, slug: str) -> HttpResponse:
                 'profile_id': member_profile.id,
                 'displayName': member_profile.display_name or member_profile.user.username,
                 'role': membership.role,
+                'player_role': membership.player_role or '',  # Dual-role system
                 'isCaptain': membership.role == 'CAPTAIN',
             }
             

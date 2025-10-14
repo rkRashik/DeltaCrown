@@ -30,13 +30,32 @@ class TeamMembershipInline(admin.TabularInline):
     """Inline display of team members"""
     model = TeamMembership
     extra = 0
-    fields = ['profile', 'role', 'status', 'joined_at']
+    fields = ['profile', 'role', 'player_role', 'status', 'joined_at']
     readonly_fields = ['joined_at']
     can_delete = True
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('profile__user')
+    
+    def formfield_for_choice_field(self, db_field, request, **kwargs):
+        """
+        Dynamically populate player_role choices based on team's game.
+        """
+        if db_field.name == "player_role":
+            # Get the team from the request (if editing existing team)
+            obj_id = request.resolver_match.kwargs.get('object_id')
+            if obj_id:
+                try:
+                    from .models import Team
+                    from .dual_role_system import get_player_roles_for_game
+                    team = Team.objects.get(pk=obj_id)
+                    if team.game:
+                        roles = get_player_roles_for_game(team.game)
+                        kwargs['choices'] = [('', '---')] + [(r['value'], r['label']) for r in roles]
+                except:
+                    pass
+        return super().formfield_for_choice_field(db_field, request, **kwargs)
 
 
 class TeamInviteInline(admin.TabularInline):

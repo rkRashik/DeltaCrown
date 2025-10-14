@@ -25,27 +25,37 @@ class RosterTab {
     `;
 
     try {
-      // Try to fetch roster data with game IDs (requires membership)
+      // First, try to use roster data from page data (faster, no API call needed)
       let rosterData;
-      try {
-        rosterData = await this.api.getRosterWithGameIds();
-        this.logger.info('Roster data with game IDs received:', rosterData);
-      } catch (error) {
-        // If 403 (not a member), fall back to basic roster
-        if (error.message.includes('403') || error.message.includes('Forbidden') || error.message.includes('member')) {
-          this.logger.info('Not a team member, fetching basic roster');
-          rosterData = await this.api.getRoster();
-          // Transform to expected format
-          rosterData = {
-            members: rosterData.active_players || [],
-            game_name: null
-          };
-        } else {
-          throw error;
+      if (data.roster && Array.isArray(data.roster) && data.roster.length > 0) {
+        this.logger.info('Using roster data from page data');
+        rosterData = {
+          members: data.roster,
+          game_name: data.team?.game || null
+        };
+        this.members = rosterData.members;
+      } else {
+        // Fall back to API calls
+        try {
+          rosterData = await this.api.getRosterWithGameIds();
+          this.logger.info('Roster data with game IDs received:', rosterData);
+        } catch (error) {
+          // If 403 (not a member), fall back to basic roster
+          if (error.message.includes('403') || error.message.includes('Forbidden') || error.message.includes('member')) {
+            this.logger.info('Not a team member, fetching basic roster');
+            rosterData = await this.api.getRoster();
+            // Transform to expected format
+            rosterData = {
+              members: rosterData.active_players || [],
+              game_name: null
+            };
+          } else {
+            throw error;
+          }
         }
+        this.members = rosterData.members || rosterData.active_players || [];
       }
       
-      this.members = rosterData.members || rosterData.active_players || [];
       const isMember = data.permissions?.is_member || false;
       const showGameIds = isMember && rosterData.members; // Only show if we got game IDs from API
       
@@ -114,11 +124,23 @@ class RosterTab {
     const avatar = member.avatar || member.avatar_url;
     const username = member.username || displayName;
     
+    // Get membership role and player role (dual-role system)
+    const membershipRole = member.role_display || this.formatRole(member.role);
+    const playerRole = member.player_role || member.in_game_role || '';
+    const hasPlayerRole = playerRole && playerRole !== '';
+    
+    // Create full role display
+    const fullRoleDisplay = hasPlayerRole ? `${membershipRole} (${playerRole})` : membershipRole;
+    
+    // Get color for player role badge
+    const playerRoleColor = this.getPlayerRoleColor(playerRole);
+    
     // Create a data attribute with roster data for the modal
     const rosterDataJson = JSON.stringify({
       game_id: member.game_id,
       game_id_label: member.game_id_label,
-      mlbb_server_id: member.mlbb_server_id
+      mlbb_server_id: member.mlbb_server_id,
+      player_role: playerRole
     }).replace(/"/g, '&quot;');
     
     return `
@@ -150,9 +172,17 @@ class RosterTab {
           </div>
         </div>
         
-        <div class="roster-role-badge">
-          <i class="${this.getRoleIcon(member.role)}"></i>
-          ${member.role_display || this.formatRole(member.role)}
+        <div class="roster-roles-section">
+          <div class="roster-role-badge">
+            <i class="${this.getRoleIcon(member.role)}"></i>
+            ${membershipRole}
+          </div>
+          ${hasPlayerRole ? `
+            <div class="roster-player-role-badge" style="background: ${playerRoleColor}15; border-color: ${playerRoleColor}; color: ${playerRoleColor}">
+              <i class="fas fa-gamepad"></i>
+              ${this.escapeHtml(playerRole)}
+            </div>
+          ` : ''}
         </div>
         
         ${showGameId ? `
@@ -352,6 +382,80 @@ class RosterTab {
       coach: '#10b981'
     };
     return colors[roleStr] || '#6b7280';
+  }
+  
+  /**
+   * Get player role color (dual-role system)
+   * Maps tactical roles to colors
+   */
+  getPlayerRoleColor(playerRole) {
+    if (!playerRole) return '#6b7280';
+    
+    const role = playerRole.toLowerCase();
+    
+    // Aggressive/Entry roles
+    if (role.includes('duelist') || role.includes('entry') || role.includes('rusher') || 
+        role.includes('assaulter') || role.includes('slayer') || role.includes('fragger')) {
+      return '#ef4444'; // Red
+    }
+    
+    // Leadership roles
+    if (role.includes('igl') || role.includes('shot caller') || role.includes('caller')) {
+      return '#fbbf24'; // Yellow/Gold
+    }
+    
+    // Support roles
+    if (role.includes('controller') || role.includes('support') || role.includes('roamer') ||
+        role.includes('position 4') || role.includes('position 5')) {
+      return '#10b981'; // Green
+    }
+    
+    // Defensive roles
+    if (role.includes('sentinel') || role.includes('anchor')) {
+      return '#3b82f6'; // Blue
+    }
+    
+    // Utility roles
+    if (role.includes('initiator') || role.includes('lurker') || role.includes('flanker')) {
+      return '#f97316'; // Orange
+    }
+    
+    // Specialist roles
+    if (role.includes('awper') || role.includes('sniper') || role.includes('scout')) {
+      return '#ec4899'; // Pink
+    }
+    
+    // Position-based (Dota 2)
+    if (role.includes('position 1') || role.includes('carry')) {
+      return '#dc2626'; // Dark Red
+    }
+    if (role.includes('position 2') || role.includes('mid')) {
+      return '#f59e0b'; // Amber
+    }
+    if (role.includes('position 3') || role.includes('offlane')) {
+      return '#3b82f6'; // Blue
+    }
+    
+    // MLBB specific
+    if (role.includes('gold laner')) {
+      return '#fbbf24'; // Gold
+    }
+    if (role.includes('exp laner')) {
+      return '#3b82f6'; // Blue
+    }
+    if (role.includes('mid laner')) {
+      return '#a855f7'; // Purple
+    }
+    if (role.includes('jungler')) {
+      return '#10b981'; // Green
+    }
+    
+    // Generic/Flex
+    if (role.includes('flex') || role.includes('rifler')) {
+      return '#6b7280'; // Gray
+    }
+    
+    return '#6b7280'; // Default gray
   }
 
   /**

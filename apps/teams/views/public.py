@@ -1,4 +1,4 @@
-﻿# apps/teams/views/public.py
+# apps/teams/views/public.py
 from __future__ import annotations
 from uuid import uuid4
 from typing import Dict, List, Optional, Tuple
@@ -1577,6 +1577,48 @@ def change_member_role_view(request, slug: str):
         membership.role = new_role
         membership.save()
         return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+def change_player_role_view(request, slug: str):
+    """Change a team member's player role via AJAX (dual-role system)."""
+    import json
+    from django.http import JsonResponse
+    
+    team = get_object_or_404(Team, slug=slug)
+    profile = _ensure_profile(request.user)
+    
+    if not _is_captain(profile, team):
+        return JsonResponse({"error": "Only captains can change player roles."}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        profile_id = data.get('profile_id')
+        new_player_role = data.get('player_role', '')
+        
+        if not profile_id:
+            return JsonResponse({"error": "Profile ID is required."}, status=400)
+        
+        # Get the target profile
+        from apps.user_profile.models import UserProfile
+        target_profile = get_object_or_404(UserProfile, id=profile_id)
+        
+        # Get the membership
+        membership = get_object_or_404(TeamMembership, team=team, profile=target_profile)
+        
+        # Validate player role for this game
+        from apps.teams.dual_role_system import validate_player_role
+        is_valid, error_msg = validate_player_role(team.game, new_player_role)
+        if new_player_role and not is_valid:
+            return JsonResponse({"error": f"Invalid player role '{new_player_role}' for game {team.game}: {error_msg}"}, status=400)
+        
+        # Set the player role (can be empty to clear it)
+        membership.player_role = new_player_role
+        membership.save()
+        
+        return JsonResponse({"success": True, "player_role": new_player_role})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
