@@ -1,4 +1,4 @@
-# apps/tournaments/views/hub_enhanced.py
+ # apps/tournaments/views/hub_enhanced.py
 """
 Enhanced Hub View with Optimized Database Queries and Real-time Stats
 """
@@ -197,27 +197,6 @@ def apply_filters(request: HttpRequest, qs: QuerySet) -> QuerySet:
     return qs
 
 
-def get_featured_tournaments(base_qs: QuerySet, limit: int = 6) -> List[Any]:
-    """
-    Get featured tournaments (highest prize pools or manually featured).
-    """
-    # Check if Tournament has a 'featured' field
-    if hasattr(Tournament, 'featured'):
-        featured = list(base_qs.filter(
-            featured=True,
-            status__in=['PUBLISHED', 'RUNNING']
-        )[:limit])
-        if featured:
-            return featured
-    
-    # Fallback: highest prize pools
-    return list(base_qs.filter(
-        prize_pool_bdt__isnull=False,
-        prize_pool_bdt__gt=0,
-        status__in=['PUBLISHED', 'RUNNING']
-    ).order_by('-prize_pool_bdt')[:limit])
-
-
 def get_live_tournaments(base_qs: QuerySet, limit: int = 6) -> List[Any]:
     """
     Get currently running/live tournaments.
@@ -378,7 +357,6 @@ def hub_enhanced(request: HttpRequest) -> HttpResponse:
         'live_tournaments': annotate_cards(get_live_tournaments(published_qs)),
         'starting_soon': annotate_cards(get_starting_soon(published_qs)),
         'new_this_week': annotate_cards(get_new_tournaments(published_qs)),
-        'featured': annotate_cards(get_featured_tournaments(published_qs)),
         
         # User data
         'my_reg_states': my_reg_states,

@@ -41,7 +41,7 @@ def modern_register_view(request: HttpRequest, slug: str) -> HttpResponse:
     
     # Check eligibility
     if not context.can_register:
-        messages.error(request, context.error_message or "You cannot register for this tournament.")
+        messages.error(request, context.reason or "You cannot register for this tournament.")
         return redirect("tournaments:detail", slug=slug)
     
     # Get user profile

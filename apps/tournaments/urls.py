@@ -1,5 +1,6 @@
 # apps/tournaments/urls.py
 from django.urls import path
+from django.views.generic import RedirectView
 
 from .views.public import hub, list_by_game, detail
 from .views.hub_enhanced import hub_enhanced
@@ -100,6 +101,9 @@ urlpatterns = [
 
     # Browse by game (e.g. /tournaments/game/valorant/)
     path("game/<slug:game>/", list_by_game, name="game"),
+
+    # Legacy detail URL redirect (for backward compatibility)
+    path("<slug>/", RedirectView.as_view(url='/tournaments/t/%(slug)s/', permanent=False)),
 
     # Detail (V8 - Complete rebuild with premium design and real data)
     path("t/<slug:slug>/", tournament_detail_v8, name="detail"),

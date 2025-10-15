@@ -425,6 +425,3 @@ if (document.readyState === 'loading') {
 } else {
     window.tournamentPolish = new TournamentPolish();
 }
-
-// Export for external use
-export default TournamentPolish;

@@ -479,7 +479,7 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
     gslug = slugify_game(game)
 
     entry_fee  = read_fee_amount(t)
-    prize_pool = first(getattr(t, "prize_pool_bdt", None), getattr(t, "prize_total", None))
+    prize_pool = t.prize_pool  # Use the property which handles Phase 1 model fallback
 
     starts_at  = first(getattr(t, "starts_at", None), getattr(t, "start_at", None))
     ends_at    = first(getattr(t, "ends_at", None),   getattr(t, "end_at", None))
@@ -503,6 +503,8 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
         getattr(t, "capacity", None),
         getattr(getattr(t, "settings", None), "capacity", None),
     )
+    # Default to 0 if no capacity info available
+    cap_total = cap_total or 0
     reg_count = 0
     try:
         for name in ("registrations", "participants", "teams"):
@@ -534,6 +536,29 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
     # Live / bracket
     live_info   = live_stream_info(t)         # {stream, status, viewers}
     bracket_url = bracket_url_of(t)
+    
+    # Media data (prefer Phase 1 model)
+    banner = None
+    thumbnail = None
+    rules_pdf = None
+    
+    # Check Phase 1 TournamentMedia model first
+    try:
+        if hasattr(t, 'media') and t.media:
+            banner = getattr(t.media.banner, 'url', None) if t.media.banner else None
+            thumbnail = getattr(t.media.thumbnail, 'url', None) if t.media.thumbnail else None
+            rules_pdf = getattr(t.media.rules_pdf, 'url', None) if t.media.rules_pdf else None
+    except Exception:
+        pass
+    
+    # Fallback to legacy banner_url function
+    if not banner:
+        banner = banner_url(t)
+    
+    # Fallback to rules_pdf_of function
+    if not rules_pdf:
+        rules_pdf_url, rules_filename = rules_pdf_of(t)
+        rules_pdf = rules_pdf_url
 
     # Data-heavy sections
     participants = load_participants(t)       # [{name, seed, status, logo, captain, region, record}]
@@ -612,80 +637,116 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
             cash = _get_attr_chain(t.settings, [f"prize_{i}_bdt", f"prize_{i}_amount", f"prize_{i}"], None)
         coin = coin_by_place.get(i)
         if cash is not None or coin is not None:
-            prizes.append({"place": i, "cash": cash, "coin": coin})
+            # Format prize data to match template expectations
+            medal_map = {1: "🥇", 2: "🥈", 3: "🥉"}
+            label_map = {1: "1st Place", 2: "2nd Place", 3: "3rd Place", 4: "4th Place", 5: "5th Place", 6: "6th Place", 7: "7th Place", 8: "8th Place"}
+            
+            prizes.append({
+                "place": i, 
+                "cash": cash, 
+                "coin": coin,
+                "medal": medal_map.get(i, f"#{i}"),
+                "label": label_map.get(i, f"{i}th Place"),
+                "amount": cash if cash else 0
+            })
 
     prize_pool_fmt = fmt_money(prize_pool)
 
-    ctx = {
-        # hero & primary info
-        "title": title,
-        "short_desc": short_desc,
-        "desc_html": desc_html,
-        "banner": banner,
-        "game": game,
-        "game_slug": gslug,
-        "hero": hero,                      # {game_slug, game_name, theme{primary,glowA,glowB}, countdown, tz_label}
-        "platform": platform, "region": region,
-
-        # money & schedule
-        "entry_fee": entry_fee, "entry_fee_fmt": fmt_money(entry_fee),
-        "prize_pool": prize_pool, "prize_pool_fmt": prize_pool_fmt,
-        "schedule": {
-            "reg_open": reg_open, "reg_close": reg_close,
-            "checkin_open": chk_open, "checkin_close": chk_close,
-            "starts_at": starts_at, "ends_at": ends_at,
+    # Build context that matches template expectations
+    context = {
+        'tournament': t,
+        'total_prize_pool': prize_pool,
+        'stats': {
+            'total_participants': reg_count,
+            'total_matches': 0,  # Placeholder
         },
-
-        # format + slots
-        "format": {
-            "type": format_type, "best_of": best_of,
-            "team_min": min_team, "team_max": max_team,
-            "check_in_required": check_in_required,
+        'capacity_info': {
+            'total_slots': cap_total,
+            'filled_slots': reg_count,
+            'available_slots': max(0, cap_total - reg_count) if cap_total else 0,
+            'fill_percentage': int((reg_count / cap_total) * 100) if cap_total and cap_total > 0 else 0,
+            'is_full': cap_total and reg_count >= cap_total,
         },
-        "slots": {"current": reg_count, "capacity": cap_total},
-
-        # sections
-        "participants": participants,
-        "standings": standings,
-        "prizes": prizes,                 # unified breakdown with coin merged
-        "bracket_url": bracket_url,
-        "live": live_info,                # {stream, status, viewers}
-
-        # rules & policy
-        "rules": {"text": rules_text, "extra": extra_rules, "pdf_url": rules_url, "pdf_name": rules_filename},
-        "pdf_viewer": pdf_viewer,         # inline PDF.js viewer config
-        "coin_policy": coin_policy,
-
-        # UI/CTA
-        "ui": {
-            "state": state,
-            "user_role": role_for(request.user, t),
-            "user_registration": user_reg(request.user, t),
-            "next_call_to_action": cta,
-            "can_register": cta["kind"] in ("register", "pay", "checkin"),
-            "show_live": bool(live_info.get("stream") or live_info.get("status") == "live"),
+        'media_data': {
+            'banner': banner,
+            'thumbnail': thumbnail or banner,  # Use banner as thumbnail fallback
+            'rules_pdf': rules_pdf,
         },
-
-        # Team-aware flags + visibility gates
-        "is_team_event": is_team,
-        "team": team,
-        "user_is_captain": user_is_captain,
-        "team_registered": team_registered,
-        "is_registered_user": is_registered_user,
-        "tournament_started": tournament_started,
-        "tournament_finished": tournament_finished,
-        "can_view_sensitive": can_view_sensitive,
-
-        # tabs/nav
-        "tabs": tabs,
-        "active_tab": active_tab,
-
-        # urls & related
-        "register_url": reg_url,
-        "related": related,
-
-        # raw
-        "t": t,
+        'can_register': cta.get('kind') in ('register', 'pay', 'checkin'),
+        'register_url': reg_url,
+        'user_registration': user_reg(request.user, t),
+        'timeline_events': [],  # Placeholder
+        'participants': participants,
+        'prize_distribution': prizes,
+        'rules_data': {
+            'general': rules_text,
+            'format': None,
+            'conduct': extra_rules,
+            'scoring': None,
+        },
+        'organizer_info': {
+            'name': 'DeltaCrown',
+            'email': 'support@deltacrown.com',
+        },
+        # Add schedule object for template compatibility
+        'schedule': type('Schedule', (), {
+            'reg_close_at': reg_close,
+        })(),
+        # Add missing context variables
+        'user': request.user,
+        'registration_open': is_registration_open(t),
+        # Keep existing context for compatibility
+        't': t,
+        'title': title,
+        'game': game,
+        'gslug': gslug,
+        'entry_fee': entry_fee,
+        'prize_pool': prize_pool,
+        'starts_at': starts_at,
+        'ends_at': ends_at,
+        'reg_open': reg_open,
+        'reg_close': reg_close,
+        'chk_open': chk_open,
+        'chk_close': chk_close,
+        'format_type': format_type,
+        'best_of': best_of,
+        'min_team': min_team,
+        'max_team': max_team,
+        'platform': platform,
+        'region': region,
+        'check_in_required': check_in_required,
+        'cap_total': cap_total,
+        'reg_count': reg_count,
+        'short_desc': short_desc,
+        'desc_html': desc_html,
+        'rules_text': rules_text,
+        'extra_rules': extra_rules,
+        'rules_url': rules_url,
+        'rules_filename': rules_filename,
+        'coin_policy': coin_policy,
+        'live_info': live_info,
+        'bracket_url': bracket_url,
+        'standings': standings,
+        'state': state,
+        'banner': banner,
+        'reg_url': reg_url,
+        'cta': cta,
+        'hero': hero_meta_for(t),
+        'tabs': tabs,
+        'active_tab': active_tab,
+        'related': related,
+        'pdf_viewer': pdf_viewer,
+        'is_team': _is_team_event(t),
+        'team': team,
+        'membership': membership,
+        'user_is_captain': _is_captain(membership),
+        'team_registered': _team_already_registered(t, team) if team else False,
+        'is_registered_user': is_registered_user,
+        'tournament_started': tournament_started,
+        'tournament_finished': tournament_finished,
+        'can_view_sensitive': can_view_sensitive,
+        'prizes': prizes,
+        'prize_pool_fmt': prize_pool_fmt,
     }
-
-    return render(request, "tournaments/detail.html", {"ctx": ctx})
+    
+    return render(request, "tournaments/tournament_detail.html", context)

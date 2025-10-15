@@ -49,20 +49,6 @@ GAMES = {
         'platform': ['PC', 'Mobile'],
     },
     
-    'CSGO': {
-        'name': 'CS:GO',
-        'display_name': 'Counter-Strike: Global Offensive',
-        'slug': 'csgo',
-        'logo': 'img/game_logos/CS2_logo.jpeg',  # exists
-        'card': 'img/game_cards/CS2.jpg',  # exists
-        'icon': 'logos/csgo.svg',  # use existing svg
-        'banner': 'img/game_banners/csgo_banner.jpg',
-        'color_primary': '#F79100',
-        'color_secondary': '#1B1B1B',
-        'category': 'FPS',
-        'platform': ['PC'],
-    },
-    
     'CS2': {
         'name': 'CS2',
         'display_name': 'Counter-Strike 2',
@@ -109,9 +95,9 @@ GAMES = {
         'name': 'Free Fire',
         'display_name': 'Free Fire',
         'slug': 'freefire',
-        'logo': 'img/game_logos/FreeFire.jpeg',  # exists
+        'logo': 'img/game_logos/FreeFire_logo.jpg',  # exists
         'card': 'img/game_cards/FreeFire.jpeg',  # exists
-        'icon': 'logos/freefire.png',  # use existing png
+        'icon': 'img/game_logos/FreeFire_logo.jpg',  # use existing png
         'banner': 'img/game_banners/freefire_banner.jpg',
         'color_primary': '#FF6B35',
         'color_secondary': '#2C1810',
@@ -123,9 +109,9 @@ GAMES = {
         'name': 'PUBG',
         'display_name': 'PlayerUnknown\'s Battlegrounds',
         'slug': 'pubg',
-        'logo': 'img/game_logos/PUBG_logo.jpg',
+        'logo': 'img/game_logos/pubg_logo.png',
         'card': 'img/game_cards/PUBG.jpeg',  # exists
-        'icon': 'img/game_icons/pubg_icon.png',
+        'icon': 'img/game_logos/pubg_logo.png',
         'banner': 'img/game_banners/pubg_banner.jpg',
         'color_primary': '#F4A623',
         'color_secondary': '#1C1C1E',
@@ -152,36 +138,36 @@ GAMES = {
     'CODM': {
         'name': 'Call of Duty Mobile',
         'display_name': 'Call of Duty: Mobile',
-        'logo': 'img/game_logos/codm_logo.jpg',
-        'card': 'img/game_cards/codm_card.jpg',
-        'icon': 'img/game_icons/codm_icon.png',
-        'banner': 'img/game_banners/codm_banner.jpg',
+        'logo': 'img/game_logos/CallOfDutyMobile_logo.jpg',
+        'card': 'img/game_cards/CallOfDutyMobile.jpg',
+        'icon': 'img/game_logos/CallOfDutyMobile_logo.jpg',
+        'banner': 'img/game_cards/CallOfDutyMobile.jpg',
         'color_primary': '#FF6900',
         'color_secondary': '#000000',
         'category': 'FPS',
         'platform': ['Mobile'],
     },
 
-    'LOL': {
-        'name': 'League of Legends',
-        'display_name': 'League of Legends',
-        'logo': 'img/game_logos/lol_logo.jpg',
-        'card': 'img/game_cards/lol_card.jpg',
-        'icon': 'img/game_icons/lol_icon.png',
-        'banner': 'img/game_banners/lol_banner.jpg',
-        'color_primary': '#C89B3C',
-        'color_secondary': '#0F2027',
-        'category': 'MOBA',
-        'platform': ['PC'],
-    },
+    # 'LOL': {
+    #     'name': 'League of Legends',
+    #     'display_name': 'League of Legends',
+    #     'logo': 'img/game_logos/lol_logo.jpg',
+    #     'card': 'img/game_cards/lol_card.jpg',
+    #     'icon': 'img/game_icons/lol_icon.png',
+    #     'banner': 'img/game_banners/lol_banner.jpg',
+    #     'color_primary': '#C89B3C',
+    #     'color_secondary': '#0F2027',
+    #     'category': 'MOBA',
+    #     'platform': ['PC'],
+    # },
 
     'DOTA2': {
         'name': 'Dota 2',
         'display_name': 'Dota 2',
-        'logo': 'img/game_logos/dota2_logo.jpg',
-        'card': 'img/game_cards/dota2_card.jpg',
-        'icon': 'img/game_icons/dota2_icon.png',
-        'banner': 'img/game_banners/dota2_banner.jpg',
+        'logo': 'img/game_logos/Dota2_logo.jpg',
+        'card': 'img/game_cards/Dota2.jpg',
+        'icon': 'img/game_logos/Dota2_logo.jpg',
+        'banner': 'img/game_cards/Dota2.jpg',
         'color_primary': '#E62E04',
         'color_secondary': '#000000',
         'category': 'MOBA',

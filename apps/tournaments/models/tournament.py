@@ -597,13 +597,25 @@ class Tournament(models.Model):
     # Backwards Compatibility Helpers
     # ------------------------------------------------------------------
     @property
-    def title(self):  # noqa: D401 - simple alias
-        """Backward-compatible alias for legacy code that still expects 'title'.
-
-        The canonical field is 'name'. We expose this property so any old
-        templates, API views, or cached compiled code referencing
-        tournament.title no longer raise AttributeError. This can be safely
-        removed once all references are migrated (search for 'tournament.title').
+    def team_size(self):
         """
-        return self.name
+        Team size for display (prefers Phase 1 model).
+        Returns max_team_size from capacity or None.
+        """
+        # Prefer Phase 1 TournamentCapacity model
+        try:
+            if hasattr(self, 'capacity') and self.capacity:
+                return self.capacity.max_team_size
+        except Exception:
+            pass
+        
+        # Fallback to settings
+        try:
+            settings = getattr(self, "settings", None)
+            if settings and hasattr(settings, "max_team_size"):
+                return getattr(settings, "max_team_size", None)
+        except Exception:
+            pass
+        
+        return None
 

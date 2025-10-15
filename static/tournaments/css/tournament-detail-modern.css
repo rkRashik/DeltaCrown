@@ -1970,6 +1970,40 @@
 
 
 /* ==========================================
+   NO DATA MESSAGES
+   ========================================== */
+
+.no-data-message {
+    text-align: center;
+    padding: 60px 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.no-data-message i {
+    font-size: 48px;
+    color: var(--accent-blue);
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.no-data-message h3 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.no-data-message p {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* ==========================================
    MOBILE DARK MODE FORCE FOR TOURNAMENT HUB
    ========================================== */
 
