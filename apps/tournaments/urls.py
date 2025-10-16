@@ -5,7 +5,9 @@ from django.views.generic import RedirectView
 from .views.public import hub, list_by_game, detail
 from .views.hub_enhanced import hub_enhanced
 from .views.public import detail as tournament_detail_v8
+from .views.dashboard import bracket_view, standings_view
 from .views.dashboard_v2 import tournament_dashboard_v2
+from .views.public import WarRoomView
 
 # Modern Registration System (CANONICAL)
 from .views.registration_modern import (
@@ -31,7 +33,7 @@ from .views.api_game_config import (
 )
 
 # Dashboard API
-from .views.api_dashboard import bracket_api, matches_api, news_api, statistics_api
+from .views.api_dashboard import bracket_api, matches_api, news_api, statistics_api, checkin_api
 
 # Tournament Features API (Bracket, Prize, Stats)
 from .api.features import (
@@ -92,12 +94,14 @@ except Exception:  # pragma: no cover
     HAS_MY_MATCHES = False
 
 urlpatterns = [
-    # ==========================================
-    # CORE TOURNAMENT PAGES
-    # ==========================================
-    
     # Hub / landing (Enhanced with real-time stats & filtering)
     path("", hub_enhanced, name="hub"),
+
+    # War Room (Strategy and Analysis) - Must come before legacy redirect
+    path("war-room/", WarRoomView.as_view(), name="war-room"),
+    
+    # Tournament-specific War Room
+    path("t/<slug:slug>/war-room/", WarRoomView.as_view(), name="tournament_war_room"),
 
     # Browse by game (e.g. /tournaments/game/valorant/)
     path("game/<slug:game>/", list_by_game, name="game"),
@@ -110,6 +114,9 @@ urlpatterns = [
     
     # Dashboard (Participant view)
     path("t/<slug:slug>/dashboard/", tournament_dashboard_v2, name="dashboard"),
+    
+    # Bracket View
+    path("t/<slug:slug>/bracket/", bracket_view, name="bracket"),
     
     # ==========================================
     # MODERN REGISTRATION SYSTEM (PRIMARY)
@@ -159,6 +166,7 @@ urlpatterns = [
     path("api/t/<slug:slug>/matches/", matches_api, name="matches_api"),
     path("api/t/<slug:slug>/news/", news_api, name="news_api"),
     path("api/t/<slug:slug>/statistics/", statistics_api, name="statistics_api"),
+    path("api/t/<slug:slug>/checkin/", checkin_api, name="checkin_api"),
     
     # ==========================================
     # ADVANCED FEATURES API (NEW)

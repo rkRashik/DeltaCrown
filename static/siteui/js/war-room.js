@@ -11,18 +11,32 @@ class WarRoom {
     }
 
     init() {
-        this.setupCheckIn();
-        this.setupQuickActions();
-        this.setupAutoRefresh();
-        this.loadMatches();
-        this.loadNews();
-        this.setupActivityFeed();
+        this.tournamentSlug = document.querySelector('[data-tournament-slug]')?.dataset.tournamentSlug;
+        this.teamId = document.querySelector('[data-team-id]')?.dataset.teamId;
+        
+        // Only load dynamic content if we have a valid tournament
+        if (this.tournamentSlug && this.tournamentSlug !== 'war-room') {
+            this.setupCheckIn();
+            this.setupQuickActions();
+            this.setupAutoRefresh();
+            this.loadMatches();
+            this.loadNews();
+            this.setupActivityFeed();
+        } else {
+            // General war room - disable dynamic features
+            this.setupQuickActions();
+        }
     }
 
     /**
      * Check-In Functionality
      */
     setupCheckIn() {
+        // Only enable checkin if we have a valid tournament and team
+        if (!this.tournamentSlug || this.tournamentSlug === 'war-room' || !this.teamId || this.teamId === '0') {
+            return;
+        }
+        
         const checkinBtn = document.querySelector('.checkin-btn');
         if (!checkinBtn) return;
 
@@ -34,7 +48,7 @@ class WarRoom {
                     <span>Checking In...</span>
                 `;
 
-                const response = await fetch(`/api/tournaments/${this.tournamentSlug}/checkin/`, {
+                const response = await fetch(`/api/t/${this.tournamentSlug}/checkin/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -96,11 +110,16 @@ class WarRoom {
      * Load Matches
      */
     async loadMatches() {
+        // Only load if we have a valid tournament
+        if (!this.tournamentSlug || this.tournamentSlug === 'war-room') {
+            return;
+        }
+        
         const matchesSection = document.querySelector('#matches-section .section-content');
         if (!matchesSection) return;
 
         try {
-            const response = await fetch(`/api/tournaments/${this.tournamentSlug}/matches/?team=${this.teamId}`);
+            const response = await fetch(`/api/t/${this.tournamentSlug}/matches/?team=${this.teamId}`);
             const data = await response.json();
 
             if (data.matches && data.matches.length > 0) {
@@ -153,11 +172,16 @@ class WarRoom {
      * Load News
      */
     async loadNews() {
+        // Only load if we have a valid tournament
+        if (!this.tournamentSlug || this.tournamentSlug === 'war-room') {
+            return;
+        }
+        
         const newsSection = document.querySelector('#news-section .section-content');
         if (!newsSection) return;
 
         try {
-            const response = await fetch(`/api/tournaments/${this.tournamentSlug}/news/`);
+            const response = await fetch(`/api/t/${this.tournamentSlug}/news/`);
             const data = await response.json();
 
             if (data.news && data.news.length > 0) {
@@ -202,6 +226,11 @@ class WarRoom {
      * Activity Feed Updates
      */
     setupActivityFeed() {
+        // Only enable if we have a valid tournament
+        if (!this.tournamentSlug || this.tournamentSlug === 'war-room') {
+            return;
+        }
+        
         // Simulate live activity updates
         setInterval(() => {
             this.checkForNewActivity();
@@ -210,7 +239,7 @@ class WarRoom {
 
     async checkForNewActivity() {
         try {
-            const response = await fetch(`/api/tournaments/${this.tournamentSlug}/activity/`);
+            const response = await fetch(`/api/tournaments/${this.tournamentSlug}/activities/`);
             const data = await response.json();
 
             if (data.new_activities) {
@@ -260,6 +289,11 @@ class WarRoom {
      * Auto Refresh for Live Tournaments
      */
     setupAutoRefresh() {
+        // Only enable if we have a valid tournament
+        if (!this.tournamentSlug || this.tournamentSlug === 'war-room') {
+            return;
+        }
+        
         const statusPill = document.querySelector('.status-pill.live');
         if (!statusPill) return;
 

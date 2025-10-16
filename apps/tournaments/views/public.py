@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.views.generic import TemplateView
 
 # Schedule helpers for backward compatibility
 from apps.tournaments.utils.schedule_helpers import (
@@ -750,3 +751,110 @@ def detail(request: HttpRequest, slug: str) -> HttpResponse:
     }
     
     return render(request, "tournaments/tournament_detail.html", context)
+
+
+class WarRoomView(TemplateView):
+    template_name = "tournaments/war-room.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        slug = kwargs.get('slug')
+        
+        if slug:
+            # Tournament-specific war room
+            tournament = get_object_or_404(Tournament, slug=slug)
+            
+            # Check if user is registered (either solo or as team member)
+            try:
+                # First try to find team registration where user is a team member
+                registration = Registration.objects.filter(
+                    tournament=tournament,
+                    team__memberships__profile__user=self.request.user,
+                    team__memberships__status='ACTIVE'
+                ).select_related('team').first()
+                
+                if registration:
+                    user_team = registration.team
+                    can_checkin = True  # TODO: Add proper checkin logic
+                else:
+                    # Try solo registration
+                    registration = Registration.objects.get(
+                        tournament=tournament,
+                        user__user=self.request.user
+                    )
+                    user_team = None  # Solo registration
+                    can_checkin = False  # Solo players don't check in
+            except Registration.DoesNotExist:
+                user_team = None
+                can_checkin = False
+            
+            # Get team stats if registered
+            if user_team:
+                # Mock stats for now - TODO: Calculate real stats
+                stats = {
+                    'rank': 1,
+                    'points': 0,
+                    'win_rate': 0,
+                    'matches_played': 0,
+                    'wins': 0,
+                    'losses': 0,
+                    'win_streak': 0,
+                    'avg_score': 0
+                }
+            else:
+                stats = {
+                    'rank': 'N/A',
+                    'points': 0,
+                    'win_rate': 0,
+                    'matches_played': 0,
+                    'wins': 0,
+                    'losses': 0,
+                    'win_streak': 0,
+                    'avg_score': 0
+                }
+            
+            context['ctx'] = {
+                'tournament': tournament,
+                'team': user_team,
+                'can_checkin': can_checkin,
+                'stats': stats,
+                'upcoming_matches_count': 0,  # TODO: Calculate real count
+                'unread_news_count': 0
+            }
+        else:
+            # General war room (fallback)
+            mock_team = type('Team', (), {
+                'checked_in': False,
+                'logo': None,
+                'name': 'No Active Team',
+                'id': 0,
+                'players': []
+            })()
+            
+            context['ctx'] = {
+                'tournament': type('Tournament', (), {
+                    'name': 'War Room',
+                    'slug': 'war-room',
+                    'game_name': 'Strategy Center',
+                    'format': 'Command Center',
+                    'icon': None,
+                    'status': 'ACTIVE'
+                })(),
+                'team': mock_team,
+                'can_checkin': False,
+                'stats': {
+                    'rank': 'N/A',
+                    'points': 0,
+                    'win_rate': 0,
+                    'matches_played': 0,
+                    'wins': 0,
+                    'losses': 0,
+                    'win_streak': 0,
+                    'avg_score': 0
+                },
+                'upcoming_matches_count': 0,
+                'unread_news_count': 0
+            }
+        
+        context['page_title'] = f'War Room - {context["ctx"]["tournament"].name}'
+        return context

@@ -17,6 +17,12 @@
      WAR ROOM - Tournament Command Center for Registered Participants
      ============================================================================ -->
 
+<!-- Hidden data element for JavaScript -->
+<div id="war-room-data" 
+     data-tournament-slug="{{ ctx.tournament.slug }}"
+     data-team-id="{{ ctx.team.id }}"
+     style="display: none;"></div>
+
 <!-- Top Bar -->
 <div class="war-room-topbar">
     <div class="war-room-container">

@@ -255,7 +255,7 @@
                 {% elif object.post_type == 'poll' %}📊 Poll
                 {% endif %}
                 {% if object.is_pinned %}📌 Pinned{% endif %}
-                {% if object.is_locked %}🔒 Locked{% endif %}
+                {% if object.is_locked %}<i class="fa-solid fa-lock" aria-hidden="true"></i> Locked{% endif %}
             </div>
             <h1 class="post-title-main">{{ object.title }}</h1>
             <div class="post-meta-row">
@@ -297,7 +297,7 @@
                 {% if object.is_pinned %}📌 Unpin{% else %}📌 Pin{% endif %}
             </button>
             <button class="action-btn" onclick="toggleLock()">
-                {% if object.is_locked %}🔓 Unlock{% else %}🔒 Lock{% endif %}
+                {% if object.is_locked %}<i class="fa-solid fa-lock-open" aria-hidden="true"></i> Unlock{% else %}<i class="fa-solid fa-lock" aria-hidden="true"></i> Lock{% endif %}
             </button>
             <button class="action-btn" onclick="deletePost()" style="color: #dc3545;">
                 🗑️ Delete
@@ -328,7 +328,7 @@
         </div>
         {% else %}
         <div class="alert alert-warning">
-            🔒 This post is locked. No new comments can be added.
+            <i class="fa-solid fa-lock" aria-hidden="true"></i> This post is locked. No new comments can be added.
         </div>
         {% endif %}
         

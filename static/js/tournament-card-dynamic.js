@@ -61,8 +61,9 @@
       case 'register':
         // Open for registration
         html = `
-          <a class="dc-btn" href="/tournaments/register-modern/${slug}/" aria-label="${text}">
-            <i class="fa-solid fa-user-plus"></i> ${text}
+          <a class="dc-btn dc-btn-primary neon" href="/tournaments/register-modern/${slug}/" aria-label="${text}">
+            <i class="dc-btn-icon fa-solid fa-plus" aria-hidden="true"></i>
+            <span>${text}</span>
           </a>
         `;
         break;
@@ -71,7 +72,8 @@
         // Already registered
         html = `
           <button class="dc-btn dc-btn-registered" disabled aria-disabled="true">
-            <i class="fa-solid fa-check-circle"></i> ${text}
+            <i class="dc-btn-icon fa-solid fa-check-circle" aria-hidden="true"></i>
+            <span>${text}</span>
           </button>
         `;
         break;
@@ -80,7 +82,8 @@
         // Team member needs captain approval
         html = `
           <a class="dc-btn dc-btn-approval" href="/tournaments/register-modern/${slug}/" aria-label="${text}">
-            <i class="fa-solid fa-paper-plane"></i> ${text}
+            <i class="dc-btn-icon fa-solid fa-paper-plane" aria-hidden="true"></i>
+            <span>${text}</span>
           </a>
         `;
         break;
@@ -89,7 +92,8 @@
         // Approval request pending
         html = `
           <button class="dc-btn dc-btn-pending" disabled aria-disabled="true">
-            <i class="fa-solid fa-hourglass-half"></i> ${text}
+            <i class="dc-btn-icon fa-solid fa-hourglass-half" aria-hidden="true"></i>
+            <span>${text}</span>
           </button>
         `;
         break;
@@ -98,7 +102,8 @@
         // Registration closed
         html = `
           <button class="dc-btn dc-btn-disabled" disabled aria-disabled="true">
-            <i class="fa-solid fa-lock"></i> ${text}
+            <i class="dc-btn-icon fa-solid fa-lock" aria-hidden="true"></i>
+            <span>${text}</span>
           </button>
         `;
         break;
@@ -107,7 +112,8 @@
         // Tournament already started
         html = `
           <button class="dc-btn dc-btn-disabled" disabled aria-disabled="true">
-            <i class="fa-solid fa-flag"></i> ${text}
+            <i class="dc-btn-icon fa-solid fa-flag" aria-hidden="true"></i>
+            <span>${text}</span>
           </button>
         `;
         break;
@@ -116,7 +122,8 @@
         // Tournament is full
         html = `
           <button class="dc-btn dc-btn-disabled" disabled aria-disabled="true">
-            <i class="fa-solid fa-users"></i> ${text}
+            <i class="dc-btn-icon fa-solid fa-users" aria-hidden="true"></i>
+            <span>${text}</span>
           </button>
         `;
         break;
@@ -125,7 +132,8 @@
         // Team member without team
         html = `
           <button class="dc-btn dc-btn-warning" disabled aria-disabled="true">
-            <i class="fa-solid fa-exclamation-triangle"></i> ${text}
+            <i class="dc-btn-icon fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <span>${text}</span>
           </button>
         `;
         break;
@@ -156,7 +164,8 @@
   function renderFallbackButton(container, errorMsg) {
     container.innerHTML = `
       <button class="dc-btn dc-btn-disabled" disabled aria-disabled="true">
-        <i class="fa-solid fa-exclamation-circle"></i> ${errorMsg}
+        <i class="dc-btn-icon fa-solid fa-exclamation-circle" aria-hidden="true"></i>
+        <span>${errorMsg}</span>
       </button>
     `;
     container.dataset.loading = 'false';

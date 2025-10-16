@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static humanize tournament_dict_utils game_assets_tags %}
 
 {% block title %}{{ tournament.name }} - {{ tournament.get_game_display }} Esports Tournament{% endblock %}
@@ -126,7 +126,7 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    opacity: 0.8;
+    opacity: 1;
 }
 
 .hero-overlay {
@@ -139,7 +139,6 @@ body {
         rgba(0, 0, 0, 0.8) 0%,
         rgba(0, 0, 0, 0.6) 50%,
         rgba(0, 0, 0, 0.8) 100%);
-    backdrop-filter: blur(1px);
 }
 
 .hero-glow {
@@ -1121,6 +1120,11 @@ body {
                         <span>Share</span>
                     </button>
 
+                    <a href="{% url 'tournaments:tournament_war_room' tournament.slug %}" class="quick-action-btn war-room" title="War-Room">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>War-Room</span>
+                    </a>
+
                     <div class="nav-status-badge">
                         {% if tournament.status == 'RUNNING' %}
                             <span class="status-live">LIVE</span>
@@ -1155,52 +1159,6 @@ body {
             {% endif %}
 
             <div class="hero-banner-overlay"></div>
-
-            <!-- Floating Status Card -->
-            <div class="hero-status-card">
-                <div class="status-card-content">
-                    <div class="status-main">
-                        {% if tournament.status == 'RUNNING' %}
-                            <div class="status-indicator live">
-                                <i class="fas fa-circle"></i>
-                                LIVE NOW
-                            </div>
-                        {% elif tournament.registration_open %}
-                            <div class="status-indicator open">
-                                <i class="fas fa-calendar-check"></i>
-                                REGISTRATION OPEN
-                            </div>
-                        {% elif tournament.status == 'PUBLISHED' %}
-                            <div class="status-indicator upcoming">
-                                <i class="fas fa-clock"></i>
-                                COMING SOON
-                            </div>
-                        {% elif tournament.status == 'COMPLETED' %}
-                            <div class="status-indicator completed">
-                                <i class="fas fa-trophy"></i>
-                                COMPLETED
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="status-details">
-                        <div class="status-item">
-                            <span class="status-label">Prize Pool</span>
-                            <span class="status-value">
-                                {% if tournament.finance.prize_pool %}
-                                    ৳{{ tournament.finance.prize_pool|floatformat:0|intcomma }}
-                                {% else %}
-                                    TBA
-                                {% endif %}
-                            </span>
-                        </div>
-                        <div class="status-item">
-                            <span class="status-label">Registered</span>
-                            <span class="status-value">{{ tournament.capacity.current_registrations }}/{{ tournament.capacity.max_teams }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 
@@ -1293,6 +1251,83 @@ body {
                         </div>
                     </div>
                     {% endif %}
+                </div>
+
+                <!-- Tournament Status Card -->
+                <div class="tournament-status-card">
+                    <div class="status-card-content">
+                        <div class="status-main">
+                            {% if tournament.status == 'RUNNING' %}
+                                <div class="status-indicator live">
+                                    <i class="fas fa-circle"></i>
+                                    LIVE NOW
+                                </div>
+                            {% elif tournament.registration_open %}
+                                <div class="status-indicator open">
+                                    <i class="fas fa-calendar-check"></i>
+                                    REGISTRATION OPEN
+                                </div>
+                            {% elif tournament.status == 'PUBLISHED' %}
+                                <div class="status-indicator upcoming">
+                                    <i class="fas fa-clock"></i>
+                                    COMING SOON
+                                </div>
+                            {% elif tournament.status == 'COMPLETED' %}
+                                <div class="status-indicator completed">
+                                    <i class="fas fa-trophy"></i>
+                                    COMPLETED
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="status-details">
+                            <div class="status-item">
+                                <span class="status-label">Prize Pool</span>
+                                <span class="status-value">
+                                    {% if tournament.finance.prize_pool %}
+                                        ৳{{ tournament.finance.prize_pool|floatformat:0|intcomma }}
+                                    {% else %}
+                                        TBA
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Registered</span>
+                                <span class="status-value">{{ tournament.capacity.current_registrations }}/{{ tournament.capacity.max_teams }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Countdown Timer in Status Card -->
+                        {% if tournament.schedule and tournament.schedule.registration_countdown %}
+                        <div class="status-countdown">
+                            <div class="countdown-header">
+                                {% if tournament.registration_open %}
+                                    Registration Closes In
+                                {% else %}
+                                    Tournament Starts In
+                                {% endif %}
+                            </div>
+                            <div class="countdown-timer">
+                                <div class="time-block">
+                                    <span class="time-value" id="status-days">{{ tournament.schedule.registration_countdown.days|default:0 }}</span>
+                                    <span class="time-label">Days</span>
+                                </div>
+                                <div class="time-block">
+                                    <span class="time-value" id="status-hours">{{ tournament.schedule.registration_countdown.hours|default:0 }}</span>
+                                    <span class="time-label">Hours</span>
+                                </div>
+                                <div class="time-block">
+                                    <span class="time-value" id="status-minutes">{{ tournament.schedule.registration_countdown.minutes|default:0 }}</span>
+                                    <span class="time-label">Minutes</span>
+                                </div>
+                                <div class="time-block">
+                                    <span class="time-value" id="status-seconds">{{ tournament.schedule.registration_countdown.seconds|default:0 }}</span>
+                                    <span class="time-label">Seconds</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <!-- Action Panel -->
@@ -1901,11 +1936,51 @@ AOS.init({
 // Countdown Timer
 {% if tournament.schedule and tournament.schedule.registration_countdown %}
 function updateCountdown() {
-    const countdown = {{ tournament.schedule.registration_countdown.total_seconds|default:0 }};
-    if (countdown <= 0) return;
+    const totalSeconds = {{ tournament.schedule.registration_countdown.total_seconds|default:0 }};
+    if (totalSeconds <= 0) return;
 
-    // This is a simplified countdown - in production you'd want real-time updates
-    // For now, just display the static values
+    const now = new Date().getTime();
+    const targetTime = now + (totalSeconds * 1000);
+
+    function updateDisplay() {
+        const currentTime = new Date().getTime();
+        const timeLeft = targetTime - currentTime;
+
+        if (timeLeft <= 0) {
+            // Countdown finished
+            document.getElementById('status-days').textContent = '0';
+            document.getElementById('status-hours').textContent = '0';
+            document.getElementById('status-minutes').textContent = '0';
+            document.getElementById('status-seconds').textContent = '0';
+            document.getElementById('days').textContent = '0';
+            document.getElementById('hours').textContent = '0';
+            document.getElementById('minutes').textContent = '0';
+            document.getElementById('seconds').textContent = '0';
+            return;
+        }
+
+        const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+        // Update both countdowns
+        document.getElementById('status-days').textContent = days;
+        document.getElementById('status-hours').textContent = hours;
+        document.getElementById('status-minutes').textContent = minutes;
+        document.getElementById('status-seconds').textContent = seconds;
+
+        document.getElementById('days').textContent = days;
+        document.getElementById('hours').textContent = hours;
+        document.getElementById('minutes').textContent = minutes;
+        document.getElementById('seconds').textContent = seconds;
+    }
+
+    // Update immediately
+    updateDisplay();
+
+    // Update every second
+    setInterval(updateDisplay, 1000);
 }
 
 updateCountdown();
@@ -2397,6 +2472,19 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
 }
 
+.quick-action-btn.war-room {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff0080 100%);
+    color: white;
+    box-shadow: 0 0 25px rgba(255, 107, 53, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.quick-action-btn.war-room:hover {
+    background: linear-gradient(135deg, #ff0080 0%, #ff6b35 100%);
+    box-shadow: 0 0 35px rgba(255, 107, 53, 0.6);
+    transform: translateY(-3px) scale(1.05);
+}
+
 .quick-action-btn span {
     display: none;
 }
@@ -2545,6 +2633,17 @@ document.addEventListener('DOMContentLoaded', function() {
     right: 2.5rem;
     z-index: 10;
     animation: slideInRight 0.8s ease-out;
+}
+
+.tournament-status-card {
+    margin-bottom: 3rem;
+    animation: slideInUp 0.8s ease-out;
+}
+
+.status-countdown {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .status-card-content {

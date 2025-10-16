@@ -1,5 +1,6 @@
 {# expects: t (Tournament-like with dc_* attrs), optional state dict #}
-<article class="dc-card" data-game="{{ t.dc_game|default:'generic'|lower }}" data-tournament-slug="{{ t.dc_slug|default:'' }}">
+{% with _np=t.dc_accent_color|default:'' _ng=t.dc_accent_glow|default:'' %}
+<article class="dc-card" data-game="{{ t.dc_game|default:'generic'|lower }}" data-tournament-slug="{{ t.dc_slug|default:'' }}"{% if _np or _ng %} style="{% if _np %}--neon-primary: {{ _np }};{% endif %}{% if _ng %} --neon-glow: {{ _ng }};{% endif %}"{% endif %}>
   <a href="{{ t.dc_url|default:'#' }}" class="dc-card-media" aria-label="{{ t.dc_title|default:'Tournament' }}">
     {% if t.dc_banner_url %}
       <img src="{{ t.dc_banner_url }}" alt="{{ t.dc_title|default:'Tournament' }} banner" loading="lazy" decoding="async">
@@ -48,7 +49,10 @@
     </div>
 
     <div class="dc-actions">
-      <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}" aria-label="View details">View</a>
+      <a class="dc-btn-secondary" href="{{ t.dc_url|default:'#' }}" aria-label="View details">
+        <i class="dc-btn-icon fa-solid fa-circle-info" aria-hidden="true"></i>
+        <span>View</span>
+      </a>
 
       {# Modern Dynamic Registration Button - Loaded via AJAX #}
       <div class="dc-reg-btn-container" data-tournament-slug="{{ t.dc_slug|default:'' }}" data-loading="true">
@@ -60,3 +64,4 @@
     </div>
   </div>
 </article>
+{% endwith %}

@@ -303,7 +303,7 @@ const wizardController = {
     this.setupAutoSave();
     this.restoreFromLocalStorage();
     
-    console.log('✅ Wizard initialized:', {
+  console.log('✓ Wizard initialized:', {
       totalSteps: registrationState.totalSteps,
       game: window.tournamentData.game,
       isTeam: window.tournamentData.isTeam
@@ -357,7 +357,7 @@ const wizardController = {
     const config = gameFieldConfigs[game];
     
     if (!config) {
-      container.innerHTML = `<p class="field-error">⚠️ Game configuration not found for: ${game}</p>`;
+  container.innerHTML = `<p class="field-error"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Game configuration not found for: ${game}</p>`;
       return;
     }
     
@@ -432,7 +432,7 @@ const wizardController = {
         this.setFieldValue('fc26Username', profileData.fc26Username);
       }
       
-      console.log('✅ Auto-fill complete');
+  console.log('✓ Auto-fill complete');
     }, 500);
   },
 
@@ -854,7 +854,7 @@ const rosterManager = {
       this.addPlayerCard(member);
     });
     
-    console.log('✅ Roster auto-fill complete');
+  console.log('✓ Roster auto-fill complete');
   },
 
   addPlayerCard(playerData = null) {
@@ -1089,5 +1089,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  console.log('✅ Registration Form V2 loaded successfully');
+  console.log('✓ Registration Form V2 loaded successfully');
 });

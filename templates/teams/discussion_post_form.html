@@ -202,7 +202,7 @@
 {% block content %}
 <div class="container mt-4 mb-5">
     <div class="form-header">
-        <h2>{% if post %}✏️ Edit Post{% else %}➕ Create New Post{% endif %}</h2>
+    <h2>{% if post %}<i class="fa-solid fa-pen" aria-hidden="true"></i> Edit Post{% else %}<i class="fa-solid fa-plus" aria-hidden="true"></i> Create New Post{% endif %}</h2>
         <p class="mb-0 opacity-75">{{ team.name }} Discussion Board</p>
     </div>
     

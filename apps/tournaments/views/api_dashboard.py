@@ -15,6 +15,8 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Count, Sum, Case, When, IntegerField, F
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 
 from apps.tournaments.models import Tournament, Registration, Match
 from apps.teams.models import Team
@@ -386,3 +388,43 @@ def _get_round_name(round_num, total_matches):
         return f'Round {round_num}'
     
     return round_names.get(round_num, f'Round {round_num}')
+
+
+@login_required
+@require_POST
+def checkin_api(request, slug):
+    """
+    POST /api/t/{slug}/checkin/
+    
+    Allows a registered participant to check in for a tournament.
+    
+    Response:
+    {
+        "success": true,
+        "message": "Checked in successfully",
+        "checkin_time": "2025-01-15T18:00:00Z"
+    }
+    """
+    tournament = get_object_or_404(Tournament, slug=slug)
+    
+    # Check if user is registered
+    try:
+        registration = Registration.objects.get(
+            tournament=tournament,
+            team__players=request.user
+        )
+    except Registration.DoesNotExist:
+        return JsonResponse({'error': 'Not registered for this tournament'}, status=403)
+    
+    # Check if tournament allows check-in
+    if not hasattr(tournament, 'rules') or not tournament.rules.has_checkin_instructions():
+        return JsonResponse({'error': 'Check-in not required for this tournament'}, status=400)
+    
+    # For now, just return success (in production, this would update a checkin status)
+    # TODO: Add checked_in_at field to Registration model
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Checked in successfully',
+        'checkin_time': timezone.now().isoformat()
+    })

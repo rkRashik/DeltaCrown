@@ -249,7 +249,7 @@
             </div>
             <div>
                 <a href="{% url 'teams:discussion_post_create' team.slug %}" class="create-post-btn">
-                    ➕ New Post
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i> New Post
                 </a>
             </div>
         </div>
@@ -276,7 +276,7 @@
                                 <span class="pin-icon" title="Pinned">📌</span>
                                 {% endif %}
                                 {% if post.is_locked %}
-                                <span class="lock-icon" title="Locked">🔒</span>
+                                <span class="lock-icon" title="Locked"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
                                 {% endif %}
                             </div>
                             <h3 class="post-title">{{ post.title }}</h3>
@@ -314,7 +314,7 @@
                         </div>
                         <div>
                             {% if post.visibility == 'private' %}
-                            <span class="badge bg-secondary">🔒 Team Only</span>
+                            <span class="badge bg-secondary"><i class="fa-solid fa-lock" aria-hidden="true"></i> Team Only</span>
                             {% else %}
                             <span class="badge bg-success">🌐 Public</span>
                             {% endif %}

@@ -1,5 +1,5 @@
 /**
- * 🎮 USER PROFILE DASHBOARD INTERACTIONS 🎮
+ * USER PROFILE DASHBOARD INTERACTIONS
  * Professional JavaScript for profile page animations and interactions
  * Extracted from inline code for better maintainability
  */
