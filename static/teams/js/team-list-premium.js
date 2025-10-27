@@ -91,12 +91,13 @@
             });
         }
 
-        // Game filters
+        // Game filters - Use natural navigation since links have href
+        // No need to prevent default or use AJAX, the links work fine
         elements.gameFilters.forEach(filter => {
+            // Just add visual feedback on click
             filter.addEventListener('click', (e) => {
-                e.preventDefault();
-                const game = filter.dataset.game;
-                selectGame(game);
+                // Let the link navigate naturally
+                filter.classList.add('loading');
             });
         });
 
@@ -208,6 +209,10 @@
     // GAME SELECTION
     // ========================================
     function selectGame(game) {
+        // This function is no longer used - game filtering uses standard navigation
+        // Keeping it here for potential future AJAX implementation
+        return;
+        
         // Update state
         state.currentGame = game;
         state.page = 1;
@@ -222,7 +227,7 @@
         });
 
         // Load teams
-        loadTeams();
+        // loadTeams(); // Disabled - using standard navigation
     }
 
     // ========================================
