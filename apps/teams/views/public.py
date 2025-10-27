@@ -585,6 +585,18 @@ def team_list(request):
 
     teams_on_page = list(page_obj.object_list)
     start_rank = (page_obj.number - 1) * paginator.per_page
+    
+    # Get user's team memberships for button logic
+    user_team_ids = set()
+    if request.user.is_authenticated:
+        profile = _ensure_profile(request.user)
+        user_team_ids = set(
+            TeamMembership.objects.filter(
+                profile=profile,
+                status=TeamMembership.Status.ACTIVE
+            ).values_list('team_id', flat=True)
+        )
+    
     for index, team in enumerate(teams_on_page, start=1):
         # Ensure all team attributes are properly set with safe defaults
         team.total_points = getattr(team, 'total_points', None) or 0
@@ -607,6 +619,15 @@ def team_list(request):
         # Ensure calculated ranking score exists
         if not hasattr(team, 'calculated_ranking_score') or team.calculated_ranking_score is None:
             team.calculated_ranking_score = team.power_rank
+        
+        # Add user membership flag for button logic
+        team.user_is_member = team.id in user_team_ids
+        
+        # Determine if Join button should be shown
+        team.show_join_button = (
+            not team.user_is_member and 
+            (getattr(team, 'is_recruiting', False) or getattr(team, 'allow_join_requests', False))
+        )
 
     game_options = _build_game_options()
     games = [code for code, _ in game_options]
@@ -707,7 +728,8 @@ def team_list(request):
                     'rank_position': getattr(team, 'rank_position', 0) or 0,
                     'power_rank': getattr(team, 'power_rank', 0) or 0,
                     'url': team.get_absolute_url() if hasattr(team, 'get_absolute_url') else '#',
-                    'allow_join': getattr(team, 'allow_join_requests', False) or False,
+                    'allow_join': getattr(team, 'show_join_button', False),
+                    'user_is_member': getattr(team, 'user_is_member', False),
                     'join_url': f"/teams/{team.slug}/join/" if hasattr(team, 'slug') and team.slug else '#'
                 }
                 teams_data.append(team_data)

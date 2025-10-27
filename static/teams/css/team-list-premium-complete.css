@@ -1827,6 +1827,18 @@
     transform: translateY(-2px);
 }
 
+.btn-action.member-badge {
+    background: var(--dark-elevated);
+    border: 2px solid var(--accent-green);
+    color: var(--accent-green);
+    cursor: default;
+    pointer-events: none;
+}
+
+.btn-action.member-badge i {
+    color: var(--accent-green);
+}
+
 /* ========================================
    POWER RANK INDICATOR
    ======================================== */

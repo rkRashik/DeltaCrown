@@ -495,13 +495,18 @@
                             <div class="team-actions-premium">
                                 <a href="{{ team.get_absolute_url }}" class="btn-action primary-action">
                                     <i class="fas fa-eye"></i>
-                                    <span>View Profile</span>
+                                    <span>View Team</span>
                                 </a>
-                                {% if team.allow_join_requests %}
+                                {% if team.show_join_button %}
                                     <button class="btn-action secondary-action" onclick="quickJoin('{{ team.slug }}'); event.stopPropagation();">
                                         <i class="fas fa-user-plus"></i>
                                         <span>Join</span>
                                     </button>
+                                {% elif team.user_is_member %}
+                                    <span class="btn-action member-badge" title="You are a member">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Member</span>
+                                    </span>
                                 {% endif %}
                             </div>
                         </div>
