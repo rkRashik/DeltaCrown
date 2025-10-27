@@ -19,7 +19,7 @@ from django.views.generic import FormView
 
 from . import oauth
 from .emails import send_otp_email
-from .forms import SignUpForm, VerifyEmailForm
+from .forms import SignUpForm, VerifyEmailForm, EmailOrUsernameAuthenticationForm
 from .models import EmailOTP, PendingSignup
 
 User = get_user_model()
@@ -49,6 +49,7 @@ def _clear_pending(session):
 class DCLoginView(LoginView):
     template_name = "account/login.html"
     redirect_authenticated_user = True
+    form_class = EmailOrUsernameAuthenticationForm
     
     def get_success_url(self):
         # Get the 'next' parameter from GET or POST

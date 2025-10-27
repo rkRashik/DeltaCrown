@@ -43,9 +43,9 @@
             {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
 
             <div class="form-group">
-                <label for="id_username" class="form-label">Username</label>
+                <label for="id_username" class="form-label">Username or Email</label>
                 <input type="text" name="username" id="id_username" value="{{ form.username.value|default_if_none:'' }}"
-                       autocomplete="username" required class="form-input" placeholder="Enter your username">
+                       autocomplete="username" required class="form-input" placeholder="Enter your username or email">
                 {% if form.username.errors %}<div class="form-error">{{ form.username.errors|join:', ' }}</div>{% endif %}
             </div>
 

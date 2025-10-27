@@ -1,11 +1,34 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
 
 from .models import PendingSignup
 
 User = get_user_model()
+
+
+class EmailOrUsernameAuthenticationForm(AuthenticationForm):
+    """
+    Custom authentication form that accepts either username or email.
+    """
+    username = forms.CharField(
+        label="Username or Email",
+        max_length=254,
+        widget=forms.TextInput(attrs={
+            'autofocus': True,
+            'placeholder': 'Enter your username or email'
+        })
+    )
+
+    error_messages = {
+        'invalid_login': (
+            "Please enter a correct username/email and password. Note that both "
+            "fields may be case-sensitive."
+        ),
+        'inactive': "This account is inactive.",
+    }
 
 
 class SignUpForm(forms.Form):

@@ -281,7 +281,9 @@ CKEDITOR_5_FILE_UPLOAD_PERMISSION = "staff"
 SITE_ID = int(os.getenv("SITE_ID", "1"))
 
 # Allauth authentication backends
-AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
+AUTHENTICATION_BACKENDS = (
+    "apps.accounts.backends.EmailOrUsernameBackend",
+)
 
 # Optional: django-allauth wiring (guarded to avoid ImportError in dev without package)
 if os.getenv("ENABLE_ALLAUTH", "0") == "1":
@@ -292,7 +294,7 @@ if os.getenv("ENABLE_ALLAUTH", "0") == "1":
         "allauth.socialaccount.providers.google",
     ]
     AUTHENTICATION_BACKENDS = (
-        "django.contrib.auth.backends.ModelBackend",
+        "apps.accounts.backends.EmailOrUsernameBackend",
         "allauth.account.auth_backends.AuthenticationBackend",
     )
     ACCOUNT_AUTHENTICATION_METHOD = "username_email"
