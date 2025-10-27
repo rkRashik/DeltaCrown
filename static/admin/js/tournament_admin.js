@@ -3,9 +3,15 @@
  * Shows/hides game-specific configuration inlines based on selected game
  */
 
-(function($) {
+(function($, django) {
     'use strict';
-    
+
+    // Defensive check - ensure django.jQuery and django are available
+    if (typeof django === 'undefined' || typeof django.jQuery === 'undefined') {
+        console.warn('Django admin JavaScript not loaded. Tournament admin enhancements disabled.');
+        return;
+    }
+
     $(document).ready(function() {
         // Game-specific inline selectors
         const GAME_INLINES = {
@@ -187,4 +193,4 @@
         
         console.log('Tournament Admin JS loaded successfully');
     });
-})(django.jQuery);
+})(django.jQuery, django);

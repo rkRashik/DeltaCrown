@@ -513,7 +513,9 @@ class TournamentAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
     
     def has_delete_permission(self, request, obj=None):
-        """Prevent deletion of archived tournaments"""
+        """Allow superusers to delete any tournament, prevent deletion of archived tournaments for regular users"""
+        if request.user.is_superuser:
+            return True
         if obj and hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
             return False
         return super().has_delete_permission(request, obj)

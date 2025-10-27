@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.admin.sites import NotRegistered
 from django.utils.safestring import mark_safe
 from django.utils.html import format_html
@@ -111,7 +111,9 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         return {"slug": ("name",)}
     
     def has_delete_permission(self, request, obj=None):
-        """Prevent deletion of archived tournaments."""
+        """Allow superusers to delete any tournament, prevent deletion of archived tournaments for regular users."""
+        if request.user.is_superuser:
+            return True
         if obj:
             try:
                 if hasattr(obj, 'archive') and obj.archive and obj.archive.is_archived:
@@ -121,6 +123,24 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
             except Exception:
                 pass
         return super().has_delete_permission(request, obj)
+    
+    def delete_view(self, request, object_id, extra_context=None):
+        """Allow superusers to delete tournaments without related object permission checks."""
+        if request.user.is_superuser:
+            # For superusers, proceed directly with deletion
+            obj = self.get_object(request, object_id)
+            if obj:
+                obj_display = str(obj)
+                obj.delete()
+                self.message_user(
+                    request,
+                    f'The tournament "{obj_display}" was deleted successfully.',
+                    messages.SUCCESS
+                )
+                return self.response_delete(request, obj)
+        
+        # Fall back to default behavior for non-superusers
+        return super().delete_view(request, object_id, extra_context)
     
     def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
         """Add archived status notice to change form."""
@@ -516,24 +536,19 @@ class TournamentAdmin(AdminLinkMixin, ExportBracketMixin, ActionsMixin, admin.Mo
         if archived_count > 0:
             messages.success(request, f"Successfully archived {archived_count} tournament(s).")
     
-    actions = (
-        # Tournament management
-        "action_clone_tournaments",
-        "action_archive_tournaments",
-        # Status management actions
-        "action_publish_tournaments",
-        "action_start_tournaments",
-        "action_complete_tournaments",
-        "action_reset_to_draft",
-        # Bracket actions
-        "action_generate_bracket_safe",
-        "action_force_regenerate_bracket",
-        "action_lock_bracket",
-        "action_unlock_bracket",
-        # Scheduling actions
-        "action_auto_schedule",
-        "action_clear_schedule",
-        # Coin award actions
-        "action_award_participation",
-        "action_award_placements",
-    )
+    def delete_queryset(self, request, queryset):
+        """Allow superusers to delete tournaments without permission restrictions."""
+        if request.user.is_superuser:
+            # Superusers can delete any tournaments
+            count = 0
+            for obj in queryset:
+                obj.delete()
+                count += 1
+            self.message_user(
+                request,
+                f'Successfully deleted {count} tournament(s).',
+                messages.SUCCESS
+            )
+        else:
+            # Regular users go through normal permission checks
+            super().delete_queryset(request, queryset)
