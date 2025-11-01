@@ -864,7 +864,9 @@ def get_roster_with_game_ids(request, team_slug):
 @permission_classes([AllowAny])
 def get_tournaments(request, team_slug):
     """Get team tournaments (active, upcoming, history)"""
-    from apps.tournaments.models import Tournament, Registration
+    from django.apps import apps
+    Tournament = apps.get_model('tournaments', 'Tournament')
+    Registration = apps.get_model('tournaments', 'Registration')
     
     team = get_object_or_404(Team, slug=team_slug)
     

@@ -156,7 +156,10 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     
     try:
         if profile:
-            from apps.tournaments.models import Registration, Tournament
+            from django.apps import apps
+            
+            # Get models via apps registry (indirect access)
+            Registration = apps.get_model('tournaments', 'Registration')
             
             # Get tournament registrations
             registrations = Registration.objects.filter(

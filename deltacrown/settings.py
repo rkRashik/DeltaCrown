@@ -53,6 +53,9 @@ INSTALLED_APPS = [
     "django_ckeditor_5",
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 
+    # Core infrastructure (MUST be first)
+    "apps.core",
+
     # Local apps
     "apps.common",
     "apps.corelib",

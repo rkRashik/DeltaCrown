@@ -1,4 +1,7 @@
-﻿from django.apps import AppConfig
+﻿import logging
+from django.apps import AppConfig
+
+logger = logging.getLogger(__name__)
 
 
 class NotificationsConfig(AppConfig):
@@ -7,5 +10,16 @@ class NotificationsConfig(AppConfig):
     label = "notifications"
 
     def ready(self):
-        # Connect signal subscribers (idempotent)
-        from . import subscribers  # noqa: F401
+        # NEW: Register event handlers for event-driven architecture
+        try:
+            from .events import register_notification_event_handlers
+            register_notification_event_handlers()
+            logger.info("✅ Notification event handlers registered")
+        except Exception as e:
+            logger.error(f"❌ Failed to register notification event handlers: {e}")
+        
+        # LEGACY: Keep old signal subscribers during migration
+        try:
+            from . import subscribers  # noqa: F401
+        except Exception:
+            pass

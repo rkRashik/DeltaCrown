@@ -254,8 +254,12 @@ try:
         
         This task is idempotent and can be run multiple times safely.
         """
-        from apps.tournaments.models import Tournament, TournamentRegistration
+        from django.apps import apps
         from django.db import transaction
+        
+        # Get models via apps registry
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        Registration = apps.get_model('tournaments', 'Registration')
         
         try:
             logger.info(f"Starting ranking recalculation for tournament_id={tournament_id}")
@@ -274,7 +278,7 @@ try:
                         return {'status': 'skipped', 'reason': 'tournament_not_completed'}
                     
                     # Get all teams that participated
-                    registrations = TournamentRegistration.objects.filter(
+                    registrations = Registration.objects.filter(
                         tournament=tournament,
                         status='approved'
                     ).select_related('team')
@@ -287,7 +291,7 @@ try:
                 updated_count = 0
                 for team in teams_to_update:
                     # Calculate total wins, losses, and points from tournament participations
-                    registrations = TournamentRegistration.objects.filter(
+                    registrations = Registration.objects.filter(
                         team=team,
                         tournament__status='completed'
                     )
@@ -332,7 +336,9 @@ try:
         Args:
             tournament_id: ID of the completed tournament
         """
-        from apps.tournaments.models import Tournament, TournamentRegistration
+        from django.apps import apps
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        Registration = apps.get_model('tournaments', 'Registration')
         from apps.economy.models import CoinTransaction
         from apps.teams.models import TeamAchievement
         from django.db import transaction
@@ -362,7 +368,7 @@ try:
                     return {'status': 'skipped', 'reason': 'already_distributed', 'dedup_key': dedup_key}
                 
                 # Get winning teams (top 3)
-                top_teams = TournamentRegistration.objects.filter(
+                top_teams = Registration.objects.filter(
                     tournament=tournament,
                     status='approved'
                 ).order_by('-points_earned', '-wins', 'losses')[:3]
@@ -586,7 +592,8 @@ try:
             match_id: ID of the match
         """
         from apps.notifications.services import NotificationService
-        from apps.tournaments.models import Match
+        from django.apps import apps
+        Match = apps.get_model('tournaments', 'Match')
         
         try:
             match = Match.objects.select_related('tournament', 'team1', 'team2').get(id=match_id)

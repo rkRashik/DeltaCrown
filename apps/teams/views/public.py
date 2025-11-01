@@ -1795,7 +1795,10 @@ def tournament_history_view(request, slug: str):
         return redirect('teams:detail', slug=team.slug)
     
     # Get tournament registrations for this team
-    from apps.tournaments.models import Registration
+    from django.apps import apps
+    
+    # Get Registration model via apps registry
+    Registration = apps.get_model('tournaments', 'Registration')
     
     registrations = Registration.objects.filter(
         team=team

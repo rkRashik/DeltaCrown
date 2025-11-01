@@ -6,7 +6,51 @@ DeltaCrown is a Django-based esports platform for managing tournaments, teams, p
 
 ---
 
-## 📢 Tournament System Redesign Documentation
+## � Core Infrastructure (NEW!)
+
+**DeltaCrown now has professional, industry-standard infrastructure!**
+
+### Phase 1: Complete ✅ (23/23 tests passing)
+
+The core infrastructure is implemented and tested:
+- ✅ **Event Bus** - Replaces Django signals with explicit events
+- ✅ **Service Registry** - Loose coupling between apps
+- ✅ **Plugin Framework** - Extensible game system
+- ✅ **API Gateway** - Internal APIs with versioning
+
+### Quick Start:
+- **Get Started in 5 mins:** [`QUICK_START_CORE_INFRASTRUCTURE.md`](QUICK_START_CORE_INFRASTRUCTURE.md)
+- **Full Documentation:** [`apps/core/README.md`](apps/core/README.md)
+- **Migration Guide:** [`MIGRATION_GUIDE_SIGNALS_TO_EVENTS.md`](MIGRATION_GUIDE_SIGNALS_TO_EVENTS.md)
+- **Phase 1 Summary:** [`PHASE_1_COMPLETE.md`](PHASE_1_COMPLETE.md)
+
+### What This Means:
+- 🔧 **No more "Signal Hell"** - Explicit, traceable events
+- 🔌 **Loosely coupled apps** - No direct imports between apps
+- 🎮 **Add new games easily** - Plugin system
+- 🧪 **Easy to test** - Can disable handlers, mock services
+- 📊 **Full visibility** - Event history, statistics, monitoring
+
+### Example Usage:
+```python
+# Publish an event
+from apps.core.events.bus import event_bus
+from apps.core.events.events import TournamentCreatedEvent
+
+event = TournamentCreatedEvent(data={'tournament_id': 123})
+event_bus.publish(event)
+
+# Subscribe to events
+event_bus.subscribe('tournament.created', handle_tournament_created)
+
+# Use services (no direct imports!)
+from apps.core.registry.service_registry import service_registry
+tournament_service = service_registry.get('tournament_service')
+```
+
+---
+
+## �📢 Tournament System Redesign Documentation
 
 **For Development Teams:** Comprehensive documentation about the current tournament system has been prepared for redesign planning. See: [`Documents/For_New_Tournament_design/`](Documents/For_New_Tournament_design/)
 

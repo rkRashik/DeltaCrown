@@ -1,4 +1,7 @@
+import logging
 from django.apps import AppConfig
+
+logger = logging.getLogger(__name__)
 
 
 class TeamsConfig(AppConfig):
@@ -6,7 +9,15 @@ class TeamsConfig(AppConfig):
     name = "apps.teams"
 
     def ready(self):
-        # wire signals
+        # NEW: Register event handlers for event-driven architecture
+        try:
+            from .events import register_team_event_handlers
+            register_team_event_handlers()
+            logger.info("✅ Team event handlers registered")
+        except Exception as e:
+            logger.error(f"❌ Failed to register team event handlers: {e}")
+        
+        # LEGACY: Keep old signals during migration
         try:
             from . import signals  # noqa: F401
         except Exception:

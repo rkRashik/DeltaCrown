@@ -341,9 +341,12 @@ def validate_tournament_roster_lock(team: 'BaseTeam') -> None:
     """
     # Check if team is registered in active tournaments
     try:
-        from apps.tournaments.models import TournamentRegistration
+        from django.apps import apps
         
-        active_registrations = TournamentRegistration.objects.filter(
+        # Get Registration model via apps registry
+        Registration = apps.get_model('tournaments', 'Registration')
+        
+        active_registrations = Registration.objects.filter(
             team=team,
             status__in=['APPROVED', 'CONFIRMED', 'CHECKED_IN']
         ).exists()

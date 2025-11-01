@@ -604,14 +604,17 @@ class NotificationService:
             tournament: Tournament object
         """
         from django.urls import reverse
-        from apps.tournaments.models import TournamentRegistration
+        from django.apps import apps
+        
+        # Get Registration model via apps registry
+        Registration = apps.get_model('tournaments', 'Registration')
         
         title = f"Bracket Ready: {tournament.name}"
         body = f"The tournament bracket has been generated. Check your matches!"
         url = reverse('tournaments:tournament_detail', kwargs={'slug': tournament.slug})
         
         # Get all registered teams' members
-        registrations = TournamentRegistration.objects.filter(
+        registrations = Registration.objects.filter(
             tournament=tournament,
             status='approved'
         ).select_related('team')

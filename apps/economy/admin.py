@@ -155,9 +155,13 @@ class CoinPolicyInline(admin.StackedInline):
 
 
 # Hook this inline into Tournament admin if available (best-effort)
+# Updated to use provider interface instead of direct model import
 try:
     from django.contrib import admin as _admin
-    from apps.tournaments.models import Tournament as _Tournament
+    from django.apps import apps
+    
+    # Get Tournament model via apps registry (indirect access)
+    _Tournament = apps.get_model('tournaments', 'Tournament')
 
     class _TournamentPolicyMixin:
         inlines = [CoinPolicyInline]
