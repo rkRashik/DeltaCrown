@@ -1,9 +1,344 @@
 # DeltaCrown
 
-From the **Delta** to the **Crown** — *Where Champions Rise.*  
-DeltaCrown is a Bangladesh‑born, globally oriented esports platform for running tournaments and leagues, managing teams and player profiles, handling payments and disputes, and building a culture around competition.
+> **Where Champions Rise** — A comprehensive esports tournament platform for Bangladesh and beyond.
 
-> **Stack:** Python 3.11 • Django 4.2 • MySQL • Redis • S3‑compatible object storage
+DeltaCrown is a Django-based esports platform for managing tournaments, teams, players, payments, and community engagement across multiple games.
+
+---
+
+## 📋 Project Overview
+
+**Tech Stack:**
+- Python 3.11
+- Django 4.2
+- PostgreSQL
+- Redis (Celery + Channels)
+- Django REST Framework
+- CKEditor 5
+
+**Database:** PostgreSQL (configured with `dc_user`)  
+**Time Zone:** Asia/Dhaka  
+**Authentication:** Custom user model with email/username login
+
+---
+
+## 🎮 Core Features
+
+### 1. **Tournament System**
+- Multiple bracket types: Single/Double Elimination, Round Robin, Swiss
+- Tournament registration and payment verification
+- Match scheduling and result reporting
+- Check-in system and attendance tracking
+- Dispute resolution workflow
+- Live brackets and timeline events
+- Media management (banners, sponsors)
+- CSV exports for tournament data
+
+### 2. **Team Management**
+- Team creation and roster management
+- Captain and co-captain roles
+- Team rankings and analytics
+- Game-specific configurations (Valorant, eFootball)
+- Team presets and quick setup
+- Social media integration
+- Team uniqueness validation
+- Public team directory with search
+
+### 3. **Game Integration**
+- **Valorant**: Riot ID validation, agent selection, rank verification
+- **eFootball**: Platform-specific player IDs, team setup
+- Game-specific validators and configurations
+- Cross-platform player tracking
+
+### 4. **User System**
+- Custom user model (`accounts.User`)
+- User profiles with avatars
+- Authentication via email or username
+- Optional Google OAuth (django-allauth)
+- Profile editing and management
+- Player statistics and history
+
+### 5. **Economy & Payments**
+- DeltaCoins virtual currency system
+- Payment processing (bKash/Nagad/Rocket/Bank - manual verification)
+- Transaction history and audit trails
+- Coin management and distribution
+- Payment verification workflow
+
+### 6. **E-commerce**
+- Store functionality (planned)
+- Bangladesh payment gateway configuration
+- Product management
+- Order processing
+
+### 7. **Notifications**
+- In-app notification system
+- Email notifications (Gmail SMTP)
+- Discord webhook integration
+- Real-time notifications via Django Channels
+- Notification preferences per user
+- Mark as read/unread functionality
+- Notification dashboard
+
+### 8. **Real-time Features**
+- WebSocket support via Django Channels
+- Live tournament updates
+- Real-time match results
+- In-memory channel layer (production-ready)
+
+### 9. **Background Tasks**
+- Celery integration with Redis
+- Async task processing
+- Tournament notifications
+- Email sending
+- Task deduplication
+
+### 10. **Admin & Management**
+- Advanced Django Admin customizations
+- CSV export functionality
+- Batch operations
+- Tournament management tools
+- User and team moderation
+- Payment verification tools
+
+### 11. **SEO & Marketing**
+- Custom SEO meta tags
+- Open Graph integration
+- Sitemap generation
+- Social media sharing
+- Canonical URLs
+- Custom error pages (403, 404, 500)
+
+### 12. **UI & Design**
+- Multiple homepage themes (Cyberpunk, Modern)
+- Responsive design
+- Custom dashboard widgets
+- Template tag libraries
+- CKEditor 5 integration
+- Asset management system
+
+---
+
+## 📁 Project Structure
+
+```
+DeltaCrown/
+├── apps/
+│   ├── accounts/          # Custom user authentication
+│   ├── common/            # Shared utilities and context processors
+│   ├── corelib/           # Core library functions
+│   ├── corepages/         # Static pages (about, community, etc.)
+│   ├── dashboard/         # User dashboard
+│   ├── ecommerce/         # Store and products
+│   ├── economy/           # DeltaCoins and transactions
+│   ├── game_efootball/    # eFootball game integration
+│   ├── game_valorant/     # Valorant game integration
+│   ├── notifications/     # Notification system
+│   ├── players/           # Player profiles and stats
+│   ├── search/            # Search functionality
+│   ├── siteui/            # UI settings and navigation
+│   ├── support/           # Support and help system
+│   ├── teams/             # Team management
+│   ├── tournaments/       # Tournament system (modular)
+│   └── user_profile/      # User profile management
+├── deltacrown/            # Project settings
+│   ├── settings.py        # Main configuration
+│   ├── urls.py            # Root URL configuration
+│   ├── celery.py          # Celery configuration
+│   ├── asgi.py            # ASGI config for Channels
+│   └── wsgi.py            # WSGI config
+├── templates/             # Global templates
+├── static/                # Static files (CSS, JS, images)
+├── tests/                 # Comprehensive test suite (94+ test files)
+├── manage.py              # Django management script
+├── requirements.txt       # Python dependencies
+└── pytest.ini             # Pytest configuration
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.11+
+- PostgreSQL
+- Redis (for Celery and Channels)
+
+### Installation
+
+1. **Clone the repository**
+```powershell
+git clone <repository-url>
+cd DeltaCrown
+```
+
+2. **Create virtual environment**
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+3. **Install dependencies**
+```powershell
+pip install -r requirements.txt
+```
+
+4. **Configure environment variables**
+Create a `.env` file or set these variables:
+```bash
+DJANGO_DEBUG=1
+DJANGO_SECRET_KEY=your-secret-key-here
+DB_NAME=deltacrown
+DB_USER=dc_user
+DB_PASSWORD=your-password
+DB_HOST=localhost
+DB_PORT=5432
+CELERY_BROKER_URL=redis://localhost:6379/0
+DISCORD_WEBHOOK_URL=your-webhook-url
+```
+
+5. **Setup database**
+```powershell
+python manage.py migrate
+python manage.py createsuperuser
+```
+
+6. **Run development server**
+```powershell
+python manage.py runserver
+```
+
+Visit: `http://127.0.0.1:8000/`
+
+### Running with Celery
+```powershell
+# Terminal 1: Django server
+python manage.py runserver
+
+# Terminal 2: Celery worker
+celery -A deltacrown worker -l info
+```
+
+---
+
+## 🧪 Testing
+
+The project includes 94+ comprehensive test files covering:
+- Tournament core functionality
+- Team management and rankings
+- Payment processing
+- Game integrations (Valorant, eFootball)
+- Notification system
+- Admin functionality
+- API endpoints
+
+**Run tests:**
+```powershell
+pytest
+pytest -v  # verbose output
+pytest tests/test_specific.py  # specific test file
+```
+
+---
+
+## 🌐 Key URLs
+
+- **Home**: `/`
+- **Tournaments**: `/tournaments/`
+- **Teams**: `/teams/`
+- **Profile**: `/profile/`
+- **Dashboard**: `/dashboard/`
+- **Notifications**: `/notifications/`
+- **Admin**: `/admin/`
+- **API**: Various endpoints under each app
+
+---
+
+## 🔧 Configuration Highlights
+
+### Authentication
+- Custom `User` model: `accounts.User`
+- Email or username login supported
+- Optional Google OAuth integration
+- Password reset via email
+
+### Database
+- PostgreSQL with user `dc_user`
+- Timezone: Asia/Dhaka
+- Migration support for all apps
+
+### Notifications
+- Channels: In-app, Email, Discord
+- Configurable per notification type
+- Real-time updates via WebSockets
+
+### Static & Media
+- Static files: `/static/`
+- Media uploads: `/media/`
+- CDN-ready configuration
+
+---
+
+## 📊 Feature Status
+
+| Feature | Status |
+|---------|--------|
+| Tournament Management | ✅ Complete |
+| Team System | ✅ Complete |
+| User Authentication | ✅ Complete |
+| Notifications | ✅ Complete |
+| Payment Processing | ✅ Manual Verification |
+| Game Integrations | ✅ Valorant + eFootball |
+| Real-time Updates | ✅ WebSockets Active |
+| E-commerce | 🟡 In Development |
+| Mobile App | ❌ Planned |
+| Payment Gateway API | 🟡 Planned |
+
+---
+
+## 📝 Development Notes
+
+### Custom Template Tags
+- `seo_tags` - Meta tags and Open Graph
+- `assets` - Asset management
+- `dashboard_widgets` - Dashboard components
+- `string_utils` - String manipulation
+
+### Context Processors
+- Notification counts
+- UI settings
+- Game assets
+- Homepage context
+- Site navigation
+
+### Middleware
+Standard Django middleware + CSRF trusted origins for ngrok testing
+
+---
+
+## 🤝 Contributing
+
+1. Maintain modular app structure
+2. Write tests for new features
+3. Follow Django best practices
+4. Use string foreign keys to avoid circular imports
+5. Keep migrations clean and reversible
+
+---
+
+## 📄 License
+
+[Add your license here]
+
+---
+
+## 👥 Team
+
+Developed by rkRashik and the DeltaCrown team.
+
+---
+
+**Last Updated:** November 2, 2025
 
 ---
 
