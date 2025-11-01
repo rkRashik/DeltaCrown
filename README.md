@@ -6,6 +6,24 @@ DeltaCrown is a Django-based esports platform for managing tournaments, teams, p
 
 ---
 
+## 📢 Tournament System Redesign Documentation
+
+**For Development Teams:** Comprehensive documentation about the current tournament system has been prepared for redesign planning. See: [`Documents/For_New_Tournament_design/`](Documents/For_New_Tournament_design/)
+
+**Start Here:** [`00_README_START_HERE.md`](Documents/For_New_Tournament_design/00_README_START_HERE.md)
+
+The documentation package includes:
+- Complete project overview and architecture
+- Current technology stack analysis
+- Tournament models and business logic reference
+- Game integration system details
+- Signal system analysis ("Signal Hell" problems)
+- Current architectural problems and limitations
+- Data flow diagrams and dependencies
+- 15+ comprehensive documents for redesign planning
+
+---
+
 ## 📋 Project Overview
 
 **Tech Stack:**
