@@ -124,10 +124,41 @@ TEMPLATES[0]["OPTIONS"]["context_processors"] += [
     "apps.notifications.context_processors.unread_notifications",
 ]
 
-# ensure cache exists (in dev the locmem cache is fine)
-CACHES = {
-    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
-}
+# Redis Cache Configuration
+# Use Redis for production/staging, fallback to locmem for testing
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+if "REDIS_URL" in os.environ:
+    # Production/Development with Redis
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "PARSER_CLASS": "redis.connection.HiredisParser",
+                "CONNECTION_POOL_KWARGS": {
+                    "max_connections": 50,
+                    "retry_on_timeout": True,
+                },
+                "SOCKET_CONNECT_TIMEOUT": 5,
+                "SOCKET_TIMEOUT": 5,
+                "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+                "IGNORE_EXCEPTIONS": True,  # Don't crash if Redis is down
+            },
+            "KEY_PREFIX": "deltacrown",
+            "TIMEOUT": 300,  # Default cache timeout: 5 minutes
+        }
+    }
+    
+    # Configure sessions to use Redis
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    # Fallback for testing without Redis
+    CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+    }
 
 
 WSGI_APPLICATION = "deltacrown.wsgi.application"
@@ -150,6 +181,13 @@ DATABASES = {
         'PASSWORD': DB_PASSWORD,
         'HOST': DB_HOST,
         'PORT': DB_PORT,
+        'CONN_MAX_AGE': 600,  # Connection pooling - keep connections alive for 10 minutes
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c search_path=public',
+        },
+        # Connection pool settings
+        'CONN_HEALTH_CHECKS': True,  # Django 4.1+ health checks
     }
 }
 
