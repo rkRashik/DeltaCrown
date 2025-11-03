@@ -167,7 +167,8 @@ class CSVExportService:
         ])
         
         # Write data rows
-        for match in queryset.select_related('team', 'tournament'):
+        # NOTE: tournament is now IntegerField (tournament_id), removed select_related
+        for match in queryset.select_related('team'):
             writer.writerow([
                 match.match_date.strftime('%Y-%m-%d %H:%M:%S'),
                 match.team.name,
@@ -178,7 +179,7 @@ class CSVExportService:
                 match.team_score,
                 match.opponent_score,
                 match.points_earned,
-                match.tournament.name if match.tournament else 'N/A',
+                f'Legacy Tournament ID: {match.tournament_id}' if match.tournament_id else 'N/A',
                 match.map_played or 'N/A',
                 match.duration_minutes if match.duration_minutes else 'N/A',
                 match.replay_url or 'N/A'

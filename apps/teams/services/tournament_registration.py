@@ -392,24 +392,27 @@ class TournamentRegistrationService:
         """
         TeamTournamentRegistration = apps.get_model('teams', 'TeamTournamentRegistration')
         
+        # NOTE: tournament is now IntegerField (tournament_id), removed select_related
+        # Tournament system moved to legacy - return empty list
         registrations = TeamTournamentRegistration.objects.filter(
             team=team
-        ).select_related('tournament', 'registered_by')
+        ).select_related('registered_by')
         
         if status:
             registrations = registrations.filter(status=status)
         
         registrations = registrations.order_by('-registered_at')
         
+        # Return simplified data (tournament object not available)
         return [
             {
                 'id': reg.id,
                 'tournament': {
-                    'id': reg.tournament.id,
-                    'name': reg.tournament.name,
-                    'slug': reg.tournament.slug,
-                    'game': reg.tournament.game,
-                    'start_date': reg.tournament.start_at,
+                    'id': reg.tournament_id,
+                    'name': f'Legacy Tournament {reg.tournament_id}',
+                    'slug': f'legacy-{reg.tournament_id}',
+                    'game': 'N/A',
+                    'start_date': None,
                 },
                 'status': reg.status,
                 'registered_at': reg.registered_at,

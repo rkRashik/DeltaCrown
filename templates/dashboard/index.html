@@ -114,7 +114,7 @@
         <ul class="grid gap-2 text-sm">
           {% for m in matches %}
             <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
-              <span class="flex-1 truncate">{% firstof m.tournament.name "Tournament" %}</span>
+              <span class="flex-1 truncate">Match</span>
               <span class="text-muted text-xs">{% if m.when %}{{ m.when|date:"M d, H:i" }}{% else %}TBA{% endif %}</span>
             </li>
           {% endfor %}
@@ -137,13 +137,14 @@
           <i class="fas fa-trophy mr-2 text-primary"></i>
           My Registrations
         </h3>
-        <a href="{% url 'tournaments:hub' %}" class="text-sm text-primary hover:underline">Browse Tournaments</a>
+        {# Tournament system moved to legacy - link disabled #}
+        {# <a href="{% url 'tournaments:hub' %}" class="text-sm text-primary hover:underline">Browse Tournaments</a> #}
       </div>
       {% if registrations %}
         <ul class="grid gap-2 text-sm">
           {% for r in registrations %}
             <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
-              <a class="link-nav flex-1 truncate" href="/tournaments/{{ r.tournament.slug }}/">{{ r.tournament.name }}</a>
+              <span class="flex-1 truncate">Registration</span>
               <span class="text-xs px-2 py-1 rounded-full 
                 {% if r.status == 'confirmed' %}bg-green-600/20 text-green-400
                 {% elif r.status == 'pending' %}bg-yellow-600/20 text-yellow-400
@@ -156,10 +157,10 @@
       {% else %}
         <div class="text-center py-6">
           <i class="fas fa-clipboard-list text-4xl text-muted/30 mb-3"></i>
-          <p class="text-muted text-sm mb-3">No tournament registrations yet.</p>
-          <a href="{% url 'tournaments:hub' %}" class="btn-sm btn-primary">
+          <p class="text-muted text-sm mb-3">Tournament system moved to legacy.</p>
+          {# <a href="{% url 'tournaments:hub' %}" class="btn-sm btn-primary">
             <i class="fas fa-trophy mr-1"></i>Browse Tournaments
-          </a>
+          </a> #}
         </div>
       {% endif %}
     </article>
@@ -176,7 +177,7 @@
         <ul class="grid gap-2 text-sm">
           {% for p in payouts %}
             <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
-              <span class="flex-1 truncate">{% firstof p.tournament.name "Tournament" %}</span>
+              <span class="flex-1 truncate">Payout</span>
               <span class="text-green-400 font-semibold">{% if p.amount_bdt %}৳{{ p.amount_bdt }}{% else %}—{% endif %}</span>
             </li>
           {% endfor %}

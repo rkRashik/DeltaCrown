@@ -62,15 +62,11 @@ class DeltaCrownTransaction(models.Model):
     reason = models.CharField(max_length=32, choices=Reason.choices)
 
     # Context (optional but helps audit)
-    tournament = models.ForeignKey(
-        "tournaments.Tournament", on_delete=models.PROTECT, null=True, blank=True, related_name="coin_transactions"
-    )
-    registration = models.ForeignKey(
-        "tournaments.Registration", on_delete=models.PROTECT, null=True, blank=True, related_name="coin_transactions"
-    )
-    match = models.ForeignKey(
-        "tournaments.Match", on_delete=models.PROTECT, null=True, blank=True, related_name="coin_transactions"
-    )
+    # NOTE: Changed to IntegerField - tournament app moved to legacy (Nov 2, 2025)
+    # Stores legacy tournament/registration/match IDs for historical reference
+    tournament_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="Legacy tournament ID (reference only)")
+    registration_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="Legacy registration ID (reference only)")
+    match_id = models.IntegerField(null=True, blank=True, help_text="Legacy match ID (reference only)")
 
     note = models.CharField(max_length=255, blank=True, default="")
     created_by = models.ForeignKey(
@@ -86,8 +82,6 @@ class DeltaCrownTransaction(models.Model):
         ordering = ("-created_at", "id")
         indexes = [
             models.Index(fields=["reason", "created_at"]),
-            models.Index(fields=["tournament", "created_at"]),
-            models.Index(fields=["registration"]),
             models.Index(fields=["wallet"]),
         ]
         verbose_name = "DeltaCrown Transaction"
@@ -110,12 +104,9 @@ class DeltaCrownTransaction(models.Model):
 class CoinPolicy(models.Model):
     """
     Per-tournament coin policy. Enabled by default.
+    NOTE: Changed to IntegerField - tournament app moved to legacy (Nov 2, 2025)
     """
-    tournament = models.OneToOneField(
-        "tournaments.Tournament",
-        on_delete=models.CASCADE,
-        related_name="coin_policy",
-    )
+    tournament_id = models.IntegerField(unique=True, null=True, blank=True, db_index=True, help_text="Legacy tournament ID (reference only)")
     enabled = models.BooleanField(default=True)
 
     participation = models.PositiveIntegerField(default=5)
@@ -127,4 +118,4 @@ class CoinPolicy(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
-        return f"CoinPolicy({getattr(self.tournament, 'name', self.tournament_id)})"
+        return f"CoinPolicy(tournament_id={self.tournament_id})"

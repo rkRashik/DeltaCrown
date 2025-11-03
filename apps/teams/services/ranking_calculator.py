@@ -94,10 +94,11 @@ class TeamRankingCalculator:
         }
         
         # Get tournament-related achievements
+        # NOTE: tournament is now IntegerField (tournament_id), removed select_related
         achievements = TeamAchievement.objects.filter(
             team=self.team,
-            tournament__isnull=False
-        ).select_related('tournament')
+            tournament_id__isnull=False
+        )
         
         # Count unique tournament participations
         unique_tournaments = set()

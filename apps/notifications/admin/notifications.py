@@ -37,11 +37,11 @@ class NotificationAdmin(admin.ModelAdmin):
     )
     list_filter = ("type", "is_read", "created_at")
     search_fields = ("title", "body", "recipient__user__username", "recipient__display_name")
-    readonly_fields = ("recipient", "type", "title", "body", "url", "is_read", "created_at", "tournament", "match")
+    readonly_fields = ("recipient", "type", "title", "body", "url", "is_read", "created_at", "tournament_id", "match_id")
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return _safe_select_related(qs, "recipient__user", "tournament", "match")
+        return _safe_select_related(qs, "recipient__user")
 
     # ---- safe accessors ----
     def recipient_display(self, obj):
@@ -61,13 +61,11 @@ class NotificationAdmin(admin.ModelAdmin):
     created_at_display.short_description = "Created"
 
     def tournament_display(self, obj):
-        t = getattr(obj, "tournament", None)
-        return getattr(t, "name", None) or "—"
+        tid = getattr(obj, "tournament_id", None)
+        return f"Tournament #{tid}" if tid else "—"
     tournament_display.short_description = "Tournament"
 
     def match_display(self, obj):
-        m = getattr(obj, "match", None)
-        if not m:
-            return "—"
-        return f"R{getattr(m, 'round_no', '-')}-P{getattr(m, 'position', '-')}"
+        mid = getattr(obj, "match_id", None)
+        return f"Match #{mid}" if mid else "—"
     match_display.short_description = "Match"

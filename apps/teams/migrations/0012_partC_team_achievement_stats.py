@@ -5,7 +5,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
     dependencies = [
         ("teams", "0011_alter_team_game"),
-        ("tournaments", "0001_initial"),
+        # ("tournaments", "0001_initial"),  # Commented - tournament app moved to legacy
     ]
 
     operations = [

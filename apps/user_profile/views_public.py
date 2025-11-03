@@ -52,36 +52,35 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     efootball_id = getattr(profile, "efootball_id", None)
     discord_id = getattr(profile, "discord_id", None)
 
-    # Aggregate basic player stats from tournaments.Match if available
+    # Tournament system moved to legacy - player stats disabled
     stats = None
     match_history = []
-    try:
-        from apps.tournaments.models.match import Match
-        if profile:
-            qs = Match.objects.filter(
-                Q(user_a=profile) | Q(user_b=profile)
-            ).order_by("-created_at")
-            total = qs.count()
-            wins = qs.filter(winner_user=profile).count()
-            win_rate = round((wins / total) * 100) if total else 0
-            stats = {
-                "matches": total,
-                "win_rate": win_rate,
-                "rank": None,
-            }
-
-            # shape minimal history for the template
-            for m in qs[:6]:
-                match_history.append({
-                    "tournament_name": getattr(m.tournament, "name", "Tournament"),
-                    "result": ("Win" if getattr(m, "winner_user_id", None) == profile.id else ("Loss" if m.winner_user_id else "-")),
-                    "game": getattr(m.tournament, "game", None) or "—",
-                    "played_at": getattr(m, "created_at", None),
-                    "url": f"/tournaments/{getattr(m.tournament, 'id', '')}/matches/{m.id}/" if getattr(m, 'id', None) else "#",
-                    "summary": "",
-                })
-    except Exception:
-        pass
+    # try:
+    #     from apps.tournaments.models.match import Match
+    #     if profile:
+    #         qs = Match.objects.filter(
+    #             Q(user_a=profile) | Q(user_b=profile)
+    #         ).order_by("-created_at")
+    #         total = qs.count()
+    #         wins = qs.filter(winner_user=profile).count()
+    #         win_rate = round((wins / total) * 100) if total else 0
+    #         stats = {
+    #             "matches": total,
+    #             "win_rate": win_rate,
+    #             "rank": None,
+    #         }
+    #         # shape minimal history for the template
+    #         for m in qs[:6]:
+    #             match_history.append({
+    #                 "tournament_name": getattr(m.tournament, "name", "Tournament"),
+    #                 "result": ("Win" if getattr(m, "winner_user_id", None) == profile.id else ("Loss" if m.winner_user_id else "-")),
+    #                 "game": getattr(m.tournament, "game", None) or "—",
+    #                 "played_at": getattr(m, "created_at", None),
+    #                 "url": f"/tournaments/{getattr(m.tournament, 'id', '')}/matches/{m.id}/" if getattr(m, 'id', None) else "#",
+    #                 "summary": "",
+    #             })
+    # except Exception:
+    #     pass
 
     # Social links from profile fields → list of dicts expected by template
     social = []
@@ -155,31 +154,8 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     upcoming_tournaments = []
     
     try:
-        if profile:
-            from django.apps import apps
-            
-            # Get models via apps registry (indirect access)
-            Registration = apps.get_model('tournaments', 'Registration')
-            
-            # Get tournament registrations
-            registrations = Registration.objects.filter(
-                Q(user=profile) | Q(team__memberships__profile=profile, team__memberships__status='ACTIVE')
-            ).select_related('tournament').distinct().order_by('-created_at')[:10]
-            
-            for reg in registrations:
-                tournament_data = {
-                    'tournament': reg.tournament,
-                    'registered_at': reg.created_at,
-                    'as_team': reg.team is not None,
-                    'team': reg.team,
-                    'status': getattr(reg, 'status', 'registered')
-                }
-                
-                # Check if tournament is upcoming or past
-                if reg.tournament.registration_end and reg.tournament.registration_end > timezone.now():
-                    upcoming_tournaments.append(tournament_data)
-                else:
-                    tournament_history.append(tournament_data)
+        # Tournament system moved to legacy - no longer displaying registration data
+        pass
                     
     except Exception as e:
         # Fail gracefully if tournament models aren't available
@@ -200,9 +176,10 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             wallet_balance = wallet.cached_balance
             
             # Get recent transactions
+            # NOTE: tournament, registration, match are now IntegerFields, not ForeignKeys
             recent_transactions = DeltaCrownTransaction.objects.filter(
                 wallet=wallet
-            ).select_related('tournament', 'registration', 'match').order_by('-created_at')[:10]
+            ).order_by('-created_at')[:10]
             
     except Exception as e:
         print(f"Error loading economy data: {e}")
@@ -367,36 +344,13 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
                 logger = logging.getLogger(__name__)
                 logger.warning(f'Error checking authorization for profile {profile_id}: {str(e)}')
         
-        # Try to get real tournament statistics
-        try:
-            from django.apps import apps
-            Match = apps.get_model('tournaments', 'Match')
-            Tournament = apps.get_model('tournaments', 'Tournament')
-            
-            # Get actual match statistics for this user
-            user_matches = Match.objects.filter(
-                Q(team_a__memberships__profile=profile, team_a__memberships__status='ACTIVE') |
-                Q(team_b__memberships__profile=profile, team_b__memberships__status='ACTIVE')
-            ).distinct()
-            
-            matches_played = user_matches.count()
-            wins = user_matches.filter(
-                Q(team_a__memberships__profile=profile, winner_team_id=F('team_a_id')) |
-                Q(team_b__memberships__profile=profile, winner_team_id=F('team_b_id'))
-            ).count()
-            
-            # Calculate a basic rating based on performance
-            win_rate = wins / matches_played if matches_played > 0 else 0
-            base_rating = 1200 + (win_rate * 800) + (matches_played * 2)
-            rating = min(int(base_rating), 2500)
-            
-        except Exception:
-            # Fallback to consistent fake data based on user ID
-            user_hash = int(hashlib.md5(f"{profile.user.username}{profile_id}".encode()).hexdigest()[:8], 16)
-            matches_played = (user_hash % 200) + 50  # 50-250 matches
-            win_rate = 0.4 + ((user_hash % 400) / 1000)  # 40-80% win rate
-            wins = int(matches_played * win_rate)
-            rating = 1200 + (user_hash % 800)  # 1200-2000 rating
+        # Tournament system moved to legacy - use fallback data
+        # Fallback to consistent fake data based on user ID
+        user_hash = int(hashlib.md5(f"{profile.user.username}{profile_id}".encode()).hexdigest()[:8], 16)
+        matches_played = (user_hash % 200) + 50  # 50-250 matches
+        win_rate = 0.4 + ((user_hash % 400) / 1000)  # 40-80% win rate
+        wins = int(matches_played * win_rate)
+        rating = 1200 + (user_hash % 800)  # 1200-2000 rating
         
         # Get team information with game IDs if authorized
         try:

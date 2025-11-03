@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('tournaments', '0044_alter_tournamentfinance_prize_distribution'),
+        # ('tournaments', '0044_alter_tournamentfinance_prize_distribution'),  # Commented - tournament app moved to legacy
         ('user_profile', '0007_fix_user_fk_constraint'),
         ('teams', '0040_add_game_specific_team_models'),
     ]

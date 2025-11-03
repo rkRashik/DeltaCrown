@@ -37,11 +37,8 @@ class TeamTournamentRegistration(models.Model):
         related_name='tournament_registrations'
     )
     
-    tournament = models.ForeignKey(
-        'tournaments.Tournament',
-        on_delete=models.CASCADE,
-        related_name='team_registrations_v2'
-    )
+    # NOTE: Changed to IntegerField - tournament app moved to legacy (Nov 2, 2025)
+    tournament_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="Legacy tournament ID (reference only)")
     
     # Registration metadata
     registered_by = models.ForeignKey(
@@ -151,27 +148,26 @@ class TeamTournamentRegistration(models.Model):
         verbose_name_plural = "Team Tournament Registrations"
         ordering = ['-registered_at']
         indexes = [
-            models.Index(fields=['tournament', 'status']),
-            models.Index(fields=['team', 'tournament']),
+            models.Index(fields=['tournament_id', 'status']),
+            models.Index(fields=['team', 'tournament_id']),
             models.Index(fields=['status', '-registered_at']),
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=['team', 'tournament'],
+                fields=['team', 'tournament_id'],
                 name='unique_team_tournament_registration'
             )
         ]
 
     def __str__(self):
-        return f"{self.team.name} → {self.tournament.name} ({self.status})"
+        return f"{self.team.name} → Tournament#{self.tournament_id} ({self.status})"
 
     def clean(self):
         """Validate registration requirements."""
         errors = {}
         
-        # Check if team game matches tournament game
-        if self.team.game != self.tournament.game:
-            errors['team'] = f"Team game ({self.team.game}) doesn't match tournament game ({self.tournament.game})"
+        # NOTE: Validation disabled - tournament app moved to legacy
+        # Can be re-enabled when new Tournament Engine is built
         
         # Check if captain is registering
         if self.registered_by != self.team.captain:
@@ -532,15 +528,15 @@ class TournamentParticipation(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.player.display_name} in {self.registration.tournament.name}"
+        return f"{self.player.display_name} in Tournament#{self.registration.tournament_id}"
 
     def clean(self):
         """Validate participation."""
         # Check if player is in another team for same tournament
-        tournament = self.registration.tournament
+        tournament_id = self.registration.tournament_id
         
         other_participations = TournamentParticipation.objects.filter(
-            registration__tournament=tournament,
+            registration__tournament_id=tournament_id,
             player=self.player,
             registration__status__in=['approved', 'confirmed']
         ).exclude(

@@ -44,22 +44,21 @@ class DeltaCrownTransactionAdmin(admin.ModelAdmin):
         "wallet",
         "amount",
         "reason",
-        "tournament",
-        "registration",
-        "match",
+        "tournament_id",
+        "registration_id",
+        "match_id",
         "created_by",
         "created_at",
     )
-    list_filter = ("reason", "tournament")
+    list_filter = ("reason",)  # Removed "tournament" filter (legacy app removed)
     search_fields = (
         "wallet__profile__user__username",
         "wallet__profile__user__email",
-        "registration__id",
         "idempotency_key",
         "note",
     )
-    readonly_fields = ("created_at",)
-    autocomplete_fields = ("wallet", "tournament", "registration", "match", "created_by")
+    readonly_fields = ("created_at", "tournament_id", "registration_id", "match_id")  # Legacy fields readonly
+    autocomplete_fields = ("wallet", "created_by")  # Removed tournament/registration/match (legacy)
     actions = ["export_csv", "adjust_balance"]
 
     @admin.action(description="Export selected rows to CSV")
@@ -146,32 +145,18 @@ class DeltaCrownTransactionAdmin(admin.ModelAdmin):
         return TemplateResponse(request, "admin/economy/adjust_balance.html", context)
 
 
-class CoinPolicyInline(admin.StackedInline):
-    model = CoinPolicy
-    can_delete = False
-    extra = 0
-    fk_name = "tournament"
-    fields = ("enabled", "participation", "top4", "runner_up", "winner")
+# Legacy Tournament Integration - Disabled (November 2, 2025)
+# This inline was used to attach CoinPolicy to Tournament admin
+# Will be reimplemented when new Tournament Engine is built
 
+# class CoinPolicyInline(admin.StackedInline):
+#     model = CoinPolicy
+#     can_delete = False
+#     extra = 0
+#     fk_name = "tournament"
+#     fields = ("enabled", "participation", "top4", "runner_up", "winner")
 
-# Hook this inline into Tournament admin if available (best-effort)
-# Updated to use provider interface instead of direct model import
-try:
-    from django.contrib import admin as _admin
-    from django.apps import apps
-    
-    # Get Tournament model via apps registry (indirect access)
-    _Tournament = apps.get_model('tournaments', 'Tournament')
-
-    class _TournamentPolicyMixin:
-        inlines = [CoinPolicyInline]
-
-    # If a TournamentAdmin exists, mix in our inline dynamically.
-    _reg = _admin.site._registry.get(_Tournament)
-    if _reg:
-        # Monkey-patch the class to include our inline without re-registering
-        if CoinPolicyInline not in getattr(_reg.__class__, "inlines", []):
-            _reg.__class__.inlines = list(getattr(_reg.__class__, "inlines", [])) + [CoinPolicyInline]  # type: ignore
-except Exception:
-    # Never break admin on import issues
-    pass
+# NOTE: When new Tournament Engine is built, re-enable this pattern:
+# 1. Create CoinPolicyInline (similar to above)
+# 2. Hook into new Tournament admin via try/except
+# 3. Use apps.get_model() to avoid direct imports

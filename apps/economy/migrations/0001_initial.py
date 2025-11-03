@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('user_profile', '0001_initial'),
-        ('tournaments', '0002_sync_ts_audit_columns'),
+        # ('tournaments', '0002_sync_ts_audit_columns'),  # Commented - tournament app moved to legacy
     ]
 
     operations = [

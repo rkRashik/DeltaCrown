@@ -12,6 +12,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from .forms import MyMatchesFilterForm
+from apps.common.serializers import TournamentSerializer
 
 
 def _get_model(label: str):
@@ -108,7 +109,9 @@ def _filter_matches_for_user(user, form: MyMatchesFilterForm):
         # If form validation completely failed, create empty cleaned_data
         form.cleaned_data = {}
     
-    Match = _get_model("tournaments.Match") or _get_model("matches.Match") or _get_model("brackets.Match")
+    # Tournament system moved to legacy - Match model not available
+    # Match = _get_model("tournaments.Match") or _get_model("matches.Match") or _get_model("brackets.Match")
+    Match = None
     if not Match:
         return Match, []
 
@@ -139,26 +142,8 @@ def _filter_matches_for_user(user, form: MyMatchesFilterForm):
                 except Exception:
                     continue
 
-    # Tournament choices & filter
-    Tournament = _get_model("tournaments.Tournament")
+    # Tournament choices & filter - DISABLED (tournament app removed)
     tournament_choices = []
-    tfield = None
-    if Tournament:
-        try:
-            for f in Match._meta.get_fields():
-                if isinstance(f, models.ForeignKey) and getattr(getattr(f, "remote_field", None), "model", None) == Tournament:
-                    tfield = f.name
-                    break
-            if tfield:
-                t_ids = qs.values_list(f"{tfield}", flat=True).distinct()
-                t_qs = Tournament.objects.filter(id__in=t_ids)
-                tournament_choices = [(str(t.id), getattr(t, "name", str(t))) for t in t_qs]
-        except Exception:
-            tournament_choices = []
-
-    tournament = form.cleaned_data.get("tournament")
-    if tournament and Tournament and tournament.isdigit() and tfield:
-        qs = qs.filter(**{tfield: int(tournament)})
 
     # Date range
     df = form.cleaned_data.get("date_from")
@@ -263,6 +248,12 @@ def my_matches_view(request: HttpRequest) -> HttpResponse:
         elif hasattr(m, "user_a") or hasattr(m, "user_b"):
             team1 = getattr(getattr(m, "user_a", None), "display_name", None)
             team2 = getattr(getattr(m, "user_b", None), "display_name", None)
+        
+        # DECOUPLED: Use serializer for consistent tournament data structure
+        tournament_data = TournamentSerializer.serialize_legacy_tournament(
+            getattr(m, "tournament_id", None)
+        )
+        
         mapped.append({
             "id": getattr(m, "id", None),
             "when": when,
@@ -270,7 +261,7 @@ def my_matches_view(request: HttpRequest) -> HttpResponse:
             "team2_name": team2,
             "score1": getattr(m, "score_a", None),
             "score2": getattr(m, "score_b", None),
-            "tournament": getattr(m, "tournament", None),
+            "tournament": tournament_data,  # Serialized via TournamentSerializer
         })
 
     context = {
@@ -286,44 +277,15 @@ from django.contrib.auth.decorators import login_required
 @login_required
 def dashboard_index(request: HttpRequest) -> HttpResponse:
     """Enhanced dashboard with teams, registrations, matches, and invites."""
-    Registration = _get_model("tournaments.Registration")
-    Match = _get_model("tournaments.Match") or _get_model("brackets.Match")
+    # NOTE: Tournament system moved to legacy - no longer displaying tournament data
     Team = _get_model("teams.Team")
     TeamInvite = _get_model("teams.TeamInvite")
 
-    # Get registrations
+    # Get registrations - DISABLED (tournament app removed)
     regs = []
-    try:
-        prof = _get_user_profile(request.user)
-        if Registration and prof:
-            regs = (
-                Registration.objects.filter(user=prof)
-                .select_related("tournament")
-                .order_by("-created_at")[:8]
-            )
-    except Exception:
-        regs = []
 
-    # Get matches
+    # Get matches - DISABLED (tournament app removed)
     matches = []
-    try:
-        form = MyMatchesFilterForm({})
-        form.is_valid()
-        _, mlist, _ = _filter_matches_for_user(request.user, form)
-        # Map minimal fields for index
-        mapped = []
-        for m in mlist[:8]:
-            when = (
-                getattr(m, "scheduled_at", None)
-                or getattr(m, "start_time", None)
-                or getattr(m, "starts_at", None)
-                or getattr(m, "start_at", None)
-                or getattr(m, "created_at", None)
-            )
-            mapped.append({"tournament": getattr(m, "tournament", None), "when": when})
-        matches = mapped
-    except Exception:
-        matches = []
 
     # Get user's teams
     my_teams = []

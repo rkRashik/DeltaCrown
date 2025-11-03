@@ -9,7 +9,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tournaments', '0044_alter_tournamentfinance_prize_distribution'),
+        # ('tournaments', '0044_alter_tournamentfinance_prize_distribution'),  # Commented - tournament app moved to legacy
         ('user_profile', '0007_fix_user_fk_constraint'),
         ('teams', '0041_teamtournamentregistration_tournamentrosterlock_and_more'),
     ]

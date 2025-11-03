@@ -289,9 +289,10 @@ def team_ranking_detail_view(request, team_slug):
     
     # Get team achievements
     TeamAchievement = apps.get_model('teams', 'TeamAchievement')
+    # NOTE: tournament is now IntegerField (tournament_id), removed select_related
     achievements = TeamAchievement.objects.filter(
         team=team
-    ).select_related('tournament').order_by('-year', 'placement')
+    ).order_by('-year', 'placement')
     
     context = {
         'team': team,

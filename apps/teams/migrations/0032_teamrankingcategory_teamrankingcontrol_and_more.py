@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('tournaments', '0028_delete_tournamentregistrationpolicy'),
+        # ('tournaments', '0028_delete_tournamentregistrationpolicy'),  # Commented - tournament app moved to legacy
         ('teams', '0031_remove_teampointsadjustment_admin_user_and_more'),
     ]
 

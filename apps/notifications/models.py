@@ -40,26 +40,16 @@ class Notification(models.Model):
         related_name="notifications",
     )
 
-    tournament = models.ForeignKey(
-        "tournaments.Tournament",
-        on_delete=models.SET_NULL,
-        related_name="notifications",
-        null=True,
-        blank=True,
-    )
-    match = models.ForeignKey(
-        "tournaments.Match",
-        on_delete=models.SET_NULL,
-        related_name="notifications",
-        null=True,
-        blank=True,
-    )
+    # NOTE: Changed to IntegerField - tournament app moved to legacy (Nov 2, 2025)
+    # Stores legacy tournament/match IDs for historical reference
+    tournament_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="Legacy tournament ID (reference only)")
+    match_id = models.IntegerField(null=True, blank=True, help_text="Legacy match ID (reference only)")
 
     class Meta:
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["recipient", "is_read", "created_at"]),
-            models.Index(fields=["recipient", "type", "tournament", "match"]),
+            models.Index(fields=["recipient", "type"]),
         ]
 
     def __str__(self) -> str:

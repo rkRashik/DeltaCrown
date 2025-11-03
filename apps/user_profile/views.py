@@ -18,42 +18,14 @@ def _get_upcoming_matches_for_user(user, limit=5):
     """
     Best-effort query for a user's active/upcoming matches.
     Safe against schema differences; returns [] on any issue.
+    
+    NOTE: Tournament system moved to legacy - this function disabled.
     """
-    try:
-        from django.apps import apps
-        Match = apps.get_model("tournaments", "Match")
-        TeamMembership = apps.get_model("teams", "TeamMembership")
-
-        # Get profile safely
-        p = getattr(user, "userprofile", None) or getattr(user, "profile", None)
-        if not p:
-            return []
-
-        team_ids = list(
-            TeamMembership.objects.filter(profile=p, status="ACTIVE").values_list("team_id", flat=True)
-        )
-
-        qs = (
-            Match.objects.filter(state__in=["PENDING", "SCHEDULED"])
-            .filter(
-                Q(user_a=p) | Q(user_b=p) | Q(team_a_id__in=team_ids) | Q(team_b_id__in=team_ids)
-            )
-            .select_related("tournament", "user_a", "user_b", "team_a", "team_b")
-            .order_by("round_no", "id")[:limit]
-        )
-        return list(qs)
-    except Exception:
-        # If schema/fields differ, fail silently and show an empty state.
-        return []
+    # Tournament system moved to legacy - no longer displaying match data
+    return []
 
 
 # ProfileForm moved to forms.py as UserProfileForm
-        help_texts = {
-            "is_private": "Hide entire profile from public.",
-            "show_email": "Allow showing my email on public profile.",
-            "show_phone": "Allow showing my phone on public profile.",
-            "show_socials": "Allow showing my social links/IDs on public profile.",
-        }
 
 
 
@@ -167,9 +139,10 @@ def profile_view(request, username=None):
             wallet_balance = wallet.cached_balance
             
             # Get recent transactions
+            # NOTE: tournament, registration, match are now IntegerFields, not ForeignKeys
             recent_transactions = DeltaCrownTransaction.objects.filter(
                 wallet=wallet
-            ).select_related('tournament', 'registration', 'match').order_by('-created_at')[:10]
+            ).order_by('-created_at')[:10]
             
     except Exception as e:
         print(f"Error loading economy data: {e}")
@@ -217,28 +190,11 @@ def profile_view(request, username=None):
 def my_tournaments_view(request):
     """
     Shows tournaments the current user is registered in (either solo or via teams).
+    
+    NOTE: Tournament system moved to legacy - this function disabled.
     """
-    try:
-        from django.apps import apps
-        Registration = apps.get_model("tournaments", "Registration")
-        TeamMembership = apps.get_model("teams", "TeamMembership")
-
-        profile = getattr(request.user, "userprofile", None) or getattr(request.user, "profile", None)
-        if not profile:
-            return render(request, "user_profile/my_tournaments.html", {"registrations": []})
-
-        team_ids = list(
-            TeamMembership.objects.filter(profile=profile, status="ACTIVE").values_list("team_id", flat=True)
-        )
-
-        regs = (
-            Registration.objects.filter(Q(user=profile) | Q(team_id__in=team_ids))
-            .select_related("tournament")
-            .order_by("-created_at")
-        )
-    except Exception:
-        regs = []
-
+    # Tournament system moved to legacy - no longer displaying tournament data
+    regs = []
     return render(request, "user_profile/my_tournaments.html", {"registrations": regs})
 
 

@@ -587,26 +587,14 @@ try:
     def send_match_result_notification(self, match_id):
         """
         Send notification when match result is submitted.
+        NOTE: Tournament system moved to legacy - task disabled.
         
         Args:
             match_id: ID of the match
         """
-        from apps.notifications.services import NotificationService
-        from django.apps import apps
-        Match = apps.get_model('tournaments', 'Match')
-        
-        try:
-            match = Match.objects.select_related('tournament', 'team1', 'team2').get(id=match_id)
-            
-            NotificationService.notify_match_result(match)
-            
-            logger.info(f"Sent match result notification for match {match_id}")
-            
-            return {'status': 'success'}
-            
-        except Exception as exc:
-            logger.error(f"Error sending match result notification: {str(exc)}", exc_info=True)
-            return {'status': 'error', 'message': str(exc)}
+        # Tournament system moved to legacy - task disabled
+        logger.info(f"Match result notification task disabled (tournament system in legacy)")
+        return {'status': 'disabled', 'message': 'Tournament system moved to legacy'}
 
 except ImportError:
     # Celery not available, tasks can still be run as regular functions

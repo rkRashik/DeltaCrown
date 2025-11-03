@@ -1796,15 +1796,20 @@ def tournament_history_view(request, slug: str):
     
     # Get tournament registrations for this team
     from django.apps import apps
+    from apps.common.serializers import TournamentSerializer
     
-    # Get Registration model via apps registry
-    Registration = apps.get_model('tournaments', 'Registration')
+    # DECOUPLED: Use TeamTournamentRegistration (tournaments app moved to legacy)
+    TeamTournamentRegistration = apps.get_model('teams', 'TeamTournamentRegistration')
     
-    registrations = Registration.objects.filter(
+    registrations_qs = TeamTournamentRegistration.objects.filter(
         team=team
-    ).select_related(
-        'tournament'
-    ).order_by('-created_at')
+    ).order_by('-registered_at')
+    
+    # DECOUPLED: Use serializer for consistent data structure
+    registrations = [
+        TournamentSerializer.serialize_registration(reg)
+        for reg in registrations_qs
+    ]
     
     context = {
         'team': team,

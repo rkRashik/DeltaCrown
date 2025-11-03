@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tournaments', '0004_remove_paymentverification_pv_payer_account_idx_and_more'),
+        # ('tournaments', '0004_remove_paymentverification_pv_payer_account_idx_and_more'),  # Commented - tournament app moved to legacy
         ('economy', '0004_coins_polish'),
     ]
 

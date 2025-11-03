@@ -60,9 +60,11 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.corelib",
     "apps.teams",
-    "apps.tournaments.apps.TournamentsConfig",
-    "apps.game_valorant",
-    "apps.game_efootball",
+    # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
+    # New Tournament Engine will be built from scratch in tournament_engine/
+    # "apps.tournaments.apps.TournamentsConfig",
+    # "apps.game_valorant",
+    # "apps.game_efootball",
     "apps.user_profile",
     "apps.notifications",
     "apps.ecommerce",

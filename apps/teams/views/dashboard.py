@@ -426,22 +426,10 @@ def team_profile_view(request, slug: str):
             achievements_by_year[year] = []
         achievements_by_year[year].append(ach)
     
-    # 4. Recent matches
-    try:
-        Match = apps.get_model("tournaments", "Match")
-        recent_matches = Match.objects.filter(
-            Q(team_a=team) | Q(team_b=team),
-            state="VERIFIED"
-        ).select_related("team_a", "team_b", "tournament").order_by("-start_at")[:5]
-        
-        upcoming_matches = Match.objects.filter(
-            Q(team_a=team) | Q(team_b=team),
-            state="SCHEDULED",
-            start_at__gte=timezone.now()
-        ).select_related("team_a", "team_b", "tournament").order_by("start_at")[:5]
-    except:
-        recent_matches = []
-        upcoming_matches = []
+    # 4. Recent matches - Tournament system moved to legacy
+    # Match model moved to legacy, return empty lists
+    recent_matches = []
+    upcoming_matches = []
     
     # 5. Public posts
     posts = TeamPost.objects.filter(

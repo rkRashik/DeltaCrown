@@ -14,7 +14,8 @@ class TeamAchievement(models.Model):
     placement = models.CharField(max_length=20, choices=Placement.choices, default=Placement.PARTICIPANT)
     year = models.PositiveIntegerField(blank=True, null=True)
     notes = models.CharField(max_length=255, blank=True, default="")
-    tournament = models.ForeignKey("tournaments.Tournament", null=True, blank=True, on_delete=models.SET_NULL, related_name="team_achievements")
+    # NOTE: Changed to IntegerField - tournament app moved to legacy (Nov 2, 2025)
+    tournament_id = models.IntegerField(null=True, blank=True, db_index=True, help_text="Legacy tournament ID (reference only)")
 
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -306,13 +306,12 @@ class MatchRecord(models.Model):
         related_name='match_records'
     )
     
-    tournament = models.ForeignKey(
-        'tournaments.Tournament',
-        on_delete=models.SET_NULL,
+    # NOTE: Changed to IntegerField - tournament app moved to legacy (Nov 2, 2025)
+    tournament_id = models.IntegerField(
         null=True,
         blank=True,
-        related_name='match_records',
-        help_text="Tournament this match was part of (if any)"
+        db_index=True,
+        help_text="Legacy tournament ID - Tournament this match was part of (if any)"
     )
     
     opponent_name = models.CharField(
@@ -415,7 +414,7 @@ class MatchRecord(models.Model):
         ordering = ['-match_date']
         indexes = [
             models.Index(fields=['team', '-match_date']),
-            models.Index(fields=['tournament', '-match_date']),
+            models.Index(fields=['tournament_id', '-match_date']),
             models.Index(fields=['game', '-match_date']),
             models.Index(fields=['result']),
         ]

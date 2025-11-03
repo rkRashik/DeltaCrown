@@ -15,6 +15,7 @@ from django.views.decorators.cache import cache_page
 
 from apps.teams.models import Team, TeamAnalytics, PlayerStats, MatchRecord
 from apps.teams.services import AnalyticsCalculator, AnalyticsAggregator, CSVExportService
+from apps.common.serializers import TournamentSerializer
 
 
 class TeamAnalyticsDashboardView(LoginRequiredMixin, DetailView):
@@ -62,12 +63,16 @@ class TeamAnalyticsDashboardView(LoginRequiredMixin, DetailView):
             ).select_related('player__user').order_by('-contribution_score')[:10]
             context['player_stats'] = player_stats
             
-            # Get recent matches
-            recent_matches = MatchRecord.objects.filter(
+            # Get recent matches - DECOUPLED: Use serializer
+            recent_matches_qs = MatchRecord.objects.filter(
                 team=team,
                 game=game
             ).order_by('-match_date')[:10]
-            context['recent_matches'] = recent_matches
+            
+            context['recent_matches'] = [
+                TournamentSerializer.serialize_match(match)
+                for match in recent_matches_qs
+            ]
             
             # Get period stats
             context['week_stats'] = AnalyticsAggregator.aggregate_team_stats_by_period(

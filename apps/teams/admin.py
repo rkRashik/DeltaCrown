@@ -71,9 +71,15 @@ class TeamAchievementInline(admin.StackedInline):
     """Inline display of team achievements"""
     model = TeamAchievement
     extra = 0
-    fields = ['title', 'placement', 'year', 'notes', 'tournament', 'created_at']
+    # Removed 'tournament' field (legacy app removed - November 2, 2025)
+    # Will be re-added when new Tournament Engine is built
+    fields = ['title', 'placement', 'year', 'notes', 'created_at']
     readonly_fields = ['created_at']
     can_delete = True
+    
+    def get_exclude(self, request, obj=None):
+        # Exclude tournament field since tournament app is removed
+        return ['tournament']
 
 
 # ============================================================================
@@ -98,7 +104,9 @@ class TeamAdmin(admin.ModelAdmin):
         'posts_count', 'logo_preview', 'banner_preview'
     ]
     
-    inlines = [TeamMembershipInline, TeamInviteInline, TeamAchievementInline]
+    # Temporarily disabled TeamAchievementInline (November 2, 2025)
+    # Re-enable when new Tournament Engine is built
+    inlines = [TeamMembershipInline, TeamInviteInline]  # TeamAchievementInline removed
     
     fieldsets = (
         ('Basic Information', {
@@ -582,10 +590,10 @@ class TeamAnalyticsAdmin(admin.ModelAdmin):
 
 @admin.register(TeamTournamentRegistration)
 class TeamTournamentRegistrationAdmin(admin.ModelAdmin):
-    list_display = ['team', 'tournament', 'status', 'registered_at', 'validation_passed']
-    list_filter = ['status', 'validation_passed', 'registered_at', 'tournament']
-    search_fields = ['team__name', 'tournament__name']
-    readonly_fields = ['registered_at', 'updated_at', 'locked_at', 'roster_snapshot']
+    list_display = ['team', 'tournament_id', 'status', 'registered_at', 'validation_passed']
+    list_filter = ['status', 'validation_passed', 'registered_at']
+    search_fields = ['team__name']
+    readonly_fields = ['registered_at', 'updated_at', 'locked_at', 'roster_snapshot', 'tournament_id']
 
 
 @admin.register(TeamRankingHistory)
