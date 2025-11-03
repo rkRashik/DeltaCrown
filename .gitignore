@@ -54,6 +54,18 @@ build/
 *_backup.*
 *_old.*
 
+# Docker
+*.dockerfile.swp
+docker-compose.override.yml
+
+# Database dumps
+*.sql
+*.dump
+backups/
+
+# Logs
+logs/
+
 # Documentation clutter (keep only README.md)
 *_COMPLETE.md
 *_SUMMARY.md

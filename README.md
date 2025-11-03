@@ -222,31 +222,120 @@ DeltaCrown/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.11+
-- PostgreSQL
-- Redis (for Celery and Channels)
+- **Docker & Docker Compose** (Recommended) - For containerized development
+- OR Python 3.11+, PostgreSQL, Redis (for local development)
 
-### Installation
+---
 
-1. **Clone the repository**
+### 🐳 **Option A: Docker Setup (RECOMMENDED)**
+
+Docker provides a complete, consistent development environment with all services pre-configured.
+
+#### 1. **Clone the repository**
 ```powershell
 git clone <repository-url>
 cd DeltaCrown
 ```
 
-2. **Create virtual environment**
+#### 2. **Configure environment variables**
+Copy `.env.example` to `.env` and customize:
 ```powershell
-python -m venv .venv
-.venv\Scripts\activate
+Copy-Item .env.example .env
 ```
 
-3. **Install dependencies**
+Edit `.env` file with your settings:
+```bash
+# Minimal required changes:
+DJANGO_SECRET_KEY=your-random-secret-key-here-50-chars
+DB_PASSWORD=secure_password_here
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+```
+
+#### 3. **Start all services**
+```powershell
+docker-compose up -d
+```
+
+This will start:
+- ✅ **Django** application (http://localhost:8000)
+- ✅ **PostgreSQL** database with extensions
+- ✅ **Redis** for cache and Celery
+- ✅ **Nginx** reverse proxy (http://localhost:8080)
+- ✅ **Celery Worker** for async tasks
+- ✅ **Celery Beat** for scheduled tasks
+
+#### 4. **Run migrations and create superuser**
+```powershell
+docker-compose exec django python manage.py migrate
+docker-compose exec django python manage.py createsuperuser
+```
+
+#### 5. **Collect static files (optional)**
+```powershell
+docker-compose exec django python manage.py collectstatic --noinput
+```
+
+#### 6. **Access the application**
+- **Django App**: http://localhost:8000
+- **Nginx (with static files)**: http://localhost:8080
+- **Admin Panel**: http://localhost:8000/admin
+
+#### 7. **Useful Docker commands**
+```powershell
+# View logs
+docker-compose logs -f django
+
+# Stop all services
+docker-compose down
+
+# Rebuild after code changes
+docker-compose up -d --build
+
+# Access Django shell
+docker-compose exec django python manage.py shell
+
+# Run tests
+docker-compose exec django pytest
+
+# Check service health
+docker-compose ps
+```
+
+#### Hot Reload
+Code changes are automatically detected! Just edit your files - no need to restart containers.
+
+---
+
+### 💻 **Option B: Local Development Setup**
+
+For developers who prefer running services locally without Docker.
+
+#### Prerequisites
+- Python 3.11+
+- PostgreSQL 15+
+- Redis 7+
+
+#### 1. **Clone the repository**
+```powershell
+git clone <repository-url>
+cd DeltaCrown
+```
+
+#### 2. **Create virtual environment**
+```powershell
+python -m venv venv
+.\venv\Scripts\activate
+```
+
+#### 3. **Install dependencies**
 ```powershell
 pip install -r requirements.txt
+pip install -r requirements-dev.txt  # for development tools
 ```
 
-4. **Configure environment variables**
-Create a `.env` file or set these variables:
+#### 4. **Configure environment variables**
+Create a `.env` file:
 ```bash
 DJANGO_DEBUG=1
 DJANGO_SECRET_KEY=your-secret-key-here
@@ -255,30 +344,54 @@ DB_USER=dc_user
 DB_PASSWORD=your-password
 DB_HOST=localhost
 DB_PORT=5432
+REDIS_URL=redis://localhost:6379/0
 CELERY_BROKER_URL=redis://localhost:6379/0
 DISCORD_WEBHOOK_URL=your-webhook-url
 ```
 
-5. **Setup database**
+#### 5. **Setup PostgreSQL database**
+```sql
+-- In PostgreSQL shell (psql)
+CREATE DATABASE deltacrown_dev;
+CREATE USER deltacrown_user WITH PASSWORD 'your-password';
+ALTER ROLE deltacrown_user SET client_encoding TO 'utf8';
+ALTER ROLE deltacrown_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE deltacrown_user SET timezone TO 'Asia/Dhaka';
+GRANT ALL PRIVILEGES ON DATABASE deltacrown_dev TO deltacrown_user;
+
+-- Enable required extensions
+\c deltacrown_dev
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS unaccent;
+```
+
+#### 6. **Run migrations**
 ```powershell
 python manage.py migrate
 python manage.py createsuperuser
 ```
 
-6. **Run development server**
+#### 7. **Run development server**
 ```powershell
 python manage.py runserver
 ```
 
 Visit: `http://127.0.0.1:8000/`
 
-### Running with Celery
+#### 8. **Running with Celery (separate terminals)**
 ```powershell
 # Terminal 1: Django server
 python manage.py runserver
 
-# Terminal 2: Celery worker
+# Terminal 2: Redis (if not running as service)
+redis-server
+
+# Terminal 3: Celery worker
 celery -A deltacrown worker -l info
+
+# Terminal 4: Celery beat (optional - for scheduled tasks)
+celery -A deltacrown beat -l info
 ```
 
 ---
