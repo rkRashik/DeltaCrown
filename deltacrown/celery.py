@@ -6,7 +6,7 @@ from celery import Celery
 from celery.schedules import crontab
 
 # Set the default Django settings module
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deltacrown.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deltacrown.settings.production')
 
 app = Celery('deltacrown')
 
