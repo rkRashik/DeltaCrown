@@ -99,19 +99,19 @@ class TeamCreationForm(forms.ModelForm):
         self.fields['region'].required = True  # Make region required
 
     def clean_logo(self):
-        """Validate logo file size (max 10MB)"""
+        """Validate logo file size (max 20MB)"""
         logo = self.cleaned_data.get('logo')
         if logo:
-            if logo.size > 10 * 1024 * 1024:  # 10MB in bytes
-                raise ValidationError('Logo file size must be under 10MB.')
+            if logo.size > 20 * 1024 * 1024:  # 20MB in bytes
+                raise ValidationError('Logo file size must be under 20MB.')
         return logo
 
     def clean_banner_image(self):
-        """Validate banner image file size (max 10MB)"""
+        """Validate banner image file size (max 20MB)"""
         banner = self.cleaned_data.get('banner_image')
         if banner:
-            if banner.size > 10 * 1024 * 1024:  # 10MB in bytes
-                raise ValidationError('Banner image file size must be under 10MB.')
+            if banner.size > 20 * 1024 * 1024:  # 20MB in bytes
+                raise ValidationError('Banner image file size must be under 20MB.')
         return banner
 
     def clean_region(self):
@@ -181,9 +181,9 @@ class TeamCreationForm(forms.ModelForm):
     def clean_logo(self):
         logo = self.cleaned_data.get('logo')
         if logo:
-            # Check file size (max 2MB)
-            if logo.size > 2 * 1024 * 1024:
-                raise ValidationError("Logo file size cannot exceed 2MB.")
+            # Check file size (max 20MB)
+            if logo.size > 20 * 1024 * 1024:
+                raise ValidationError("Logo file size cannot exceed 20MB.")
             
             # Check file format
             if not logo.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
@@ -193,9 +193,9 @@ class TeamCreationForm(forms.ModelForm):
     def clean_banner_image(self):
         banner = self.cleaned_data.get('banner_image')
         if banner:
-            # Check file size (max 2MB)
-            if banner.size > 2 * 1024 * 1024:
-                raise ValidationError("Banner file size cannot exceed 2MB.")
+            # Check file size (max 20MB)
+            if banner.size > 20 * 1024 * 1024:
+                raise ValidationError("Banner file size cannot exceed 20MB.")
             
             # Check file format
             if not banner.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):

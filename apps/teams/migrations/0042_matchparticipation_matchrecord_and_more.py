@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
                 ('opponent_team', models.ForeignKey(blank=True, help_text='Opponent team (if in our system)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='matches_against', to='teams.team')),
                 ('participants', models.ManyToManyField(related_name='match_participations', through='teams.MatchParticipation', to='user_profile.userprofile')),
                 ('team', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='match_records', to='teams.team')),
-                ('tournament', models.ForeignKey(blank=True, help_text='Tournament this match was part of (if any)', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='match_records', to='tournaments.tournament')),
+                ('tournament_id', models.IntegerField(blank=True, null=True, help_text='Legacy tournament ID this match was part of (tournaments app moved to legacy)')),
             ],
             options={
                 'verbose_name': 'Match Record',
@@ -137,7 +137,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name='matchrecord',
-            index=models.Index(fields=['tournament', '-match_date'], name='teams_analy_tournam_7636f8_idx'),
+            index=models.Index(fields=['tournament_id', '-match_date'], name='teams_analy_tournam_7636f8_idx'),
         ),
         migrations.AddIndex(
             model_name='matchrecord',

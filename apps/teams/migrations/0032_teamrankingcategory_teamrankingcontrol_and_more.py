@@ -60,7 +60,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('awarded_by', models.ForeignKey(blank=True, help_text='Admin who manually awarded these points (if manual)', null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
                 ('source_achievement', models.ForeignKey(blank=True, help_text='Achievement that generated these points', null=True, on_delete=django.db.models.deletion.CASCADE, to='teams.teamachievement')),
-                ('source_tournament', models.ForeignKey(blank=True, help_text='Tournament that generated these points', null=True, on_delete=django.db.models.deletion.CASCADE, to='tournaments.tournament')),
+                ('source_tournament_id', models.IntegerField(blank=True, null=True, help_text='Legacy tournament ID that generated these points (tournaments app moved to legacy)')),
                 ('team', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='ranking_points', to='teams.team')),
             ],
             options={

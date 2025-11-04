@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RemoveField(
             model_name='teamrankingpoints',
-            name='source_tournament',
+            name='source_tournament_id',
         ),
         migrations.RemoveField(
             model_name='teamrankingpoints',

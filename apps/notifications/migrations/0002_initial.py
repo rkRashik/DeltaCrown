@@ -25,24 +25,20 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="notification",
-            name="tournament",
-            field=models.ForeignKey(
+            name="tournament_id",
+            field=models.IntegerField(
                 blank=True,
                 null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="notifications",
-                to="tournaments.tournament",
+                help_text="Legacy tournament ID (tournaments app moved to legacy)",
             ),
         ),
         migrations.AddField(
             model_name="notification",
-            name="match",
-            field=models.ForeignKey(
+            name="match_id",
+            field=models.IntegerField(
                 blank=True,
                 null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                related_name="notifications",
-                to="tournaments.match",
+                help_text="Legacy match ID (tournaments app moved to legacy)",
             ),
         ),
         migrations.AddIndex(
@@ -51,6 +47,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="notification",
-            index=models.Index(fields=["recipient", "type", "tournament", "match"], name="noti_rec_type_tour_match_idx"),
+            index=models.Index(fields=["recipient", "type", "tournament_id", "match_id"], name="noti_rec_type_tour_match_idx"),
         ),
     ]

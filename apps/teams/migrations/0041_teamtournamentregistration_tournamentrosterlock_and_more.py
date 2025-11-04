@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('payment_verified_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='verified_team_registrations', to=settings.AUTH_USER_MODEL)),
                 ('registered_by', models.ForeignKey(help_text='Captain who registered the team', on_delete=django.db.models.deletion.PROTECT, related_name='team_tournament_registrations', to='user_profile.userprofile')),
                 ('team', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='tournament_registrations', to='teams.team')),
-                ('tournament', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='team_registrations_v2', to='tournaments.tournament')),
+                ('tournament_id', models.IntegerField(help_text='Legacy tournament ID (tournaments app moved to legacy)')),
             ],
             options={
                 'verbose_name': 'Team Tournament Registration',
@@ -93,11 +93,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name='teamtournamentregistration',
-            index=models.Index(fields=['tournament', 'status'], name='teams_tourn_tournam_00b2f4_idx'),
+            index=models.Index(fields=['tournament_id', 'status'], name='teams_tourn_tournam_00b2f4_idx'),
         ),
         migrations.AddIndex(
             model_name='teamtournamentregistration',
-            index=models.Index(fields=['team', 'tournament'], name='teams_tourn_team_id_4ef1a7_idx'),
+            index=models.Index(fields=['team', 'tournament_id'], name='teams_tourn_team_id_4ef1a7_idx'),
         ),
         migrations.AddIndex(
             model_name='teamtournamentregistration',
@@ -105,6 +105,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name='teamtournamentregistration',
-            constraint=models.UniqueConstraint(fields=('team', 'tournament'), name='unique_team_tournament_registration'),
+            constraint=models.UniqueConstraint(fields=('team', 'tournament_id'), name='unique_team_tournament_registration'),
         ),
     ]

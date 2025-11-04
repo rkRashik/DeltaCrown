@@ -27,7 +27,7 @@ djangorestframework-stubs==3.14.5
 
 # Security
 bandit==1.7.6
-safety==2.3.5
+safety==3.2.0
 pip-audit==2.6.1
 
 # Pre-commit Hooks

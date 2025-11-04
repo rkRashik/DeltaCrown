@@ -4,7 +4,7 @@
 {% block title %}Create Your Team | DeltaCrown{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'teams/css/team-create-fixed.css' %}?v=1.0">
+    <link rel="stylesheet" href="{% static 'teams/css/team-create-fixed.css' %}?v=5.0">
 {% endblock %}
 
 {% block content %}
@@ -48,6 +48,7 @@
                         Team Name <span class="required">*</span>
                     </label>
                     <input type="text" name="name" id="id_name" class="form-control" 
+                           value="{{ form.name.value|default:'' }}"
                            placeholder="Enter your team name" required minlength="3" maxlength="50">
                     <span id="name-feedback" class="validation-feedback"></span>
                     <small class="form-text">Choose a unique name (3-50 characters)</small>
@@ -58,6 +59,7 @@
                         Team Tag <span class="required">*</span>
                     </label>
                     <input type="text" name="tag" id="id_tag" class="form-control" 
+                           value="{{ form.tag.value|default:'' }}"
                            placeholder="e.g., TL, G2, LOUD" required minlength="2" maxlength="10">
                     <span id="tag-feedback" class="validation-feedback"></span>
                     <small class="form-text">2-10 characters (e.g., TL, G2, LOUD)</small>
@@ -66,6 +68,7 @@
                 <div class="form-group">
                     <label for="id_tagline" class="form-label">Tagline / Motto</label>
                     <input type="text" name="tagline" id="id_tagline" class="form-control" 
+                           value="{{ form.tagline.value|default:'' }}"
                            placeholder="e.g., 'Rise Above', 'Never Back Down', 'Victory Awaits'" maxlength="200">
                     <small class="form-text">A short motto or catchphrase for your team (optional)</small>
                 </div>
@@ -73,7 +76,7 @@
                 <div class="form-group">
                     <label for="id_description" class="form-label">Description</label>
                     <textarea name="description" id="id_description" class="form-control" 
-                              placeholder="Tell others about your team (optional)" maxlength="500"></textarea>
+                              placeholder="Tell others about your team (optional)" maxlength="500">{{ form.description.value|default:'' }}</textarea>
                     <small class="form-text">Briefly describe your team and goals (optional)</small>
                 </div>
             </div>
@@ -94,7 +97,7 @@
                         <option value="">Select your game...</option>
                         {% for value, label in form.game.field.choices %}
                             {% if value %}
-                            <option value="{{ value }}">{{ label }}</option>
+                            <option value="{{ value }}" {% if form.game.value == value %}selected{% endif %}>{{ label }}</option>
                             {% endif %}
                         {% endfor %}
                     </select>
@@ -130,7 +133,7 @@
                         <option value="">Select region...</option>
                         {% for value, label in form.region.field.choices %}
                             {% if value %}
-                            <option value="{{ value }}">{{ label }}</option>
+                            <option value="{{ value }}" {% if form.region.value == value %}selected{% endif %}>{{ label }}</option>
                             {% endif %}
                         {% endfor %}
                     </select>
@@ -138,78 +141,112 @@
                 </div>
             </div>
 
-            <div class="form-section">
+            <div class="form-section branding-section">
                 <div class="section-header">
                     <div class="section-icon">
-                        <i class="fas fa-image"></i>
+                        <i class="fas fa-palette"></i>
                     </div>
-                    <h2 class="section-title">Team Branding (Optional)</h2>
+                    <div class="section-info">
+                        <h2 class="section-title">Visual Identity</h2>
+                        <p class="section-subtitle">Personalize your team with custom branding • Optional but recommended</p>
+                    </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group col-md-6">
-                        <label for="id_logo" class="form-label">Team Logo</label>
-                        <div class="modern-file-upload" id="logo-upload-area">
-                            <input type="file" name="logo" id="id_logo" accept="image/*" style="display: none;">
-                            <div class="upload-placeholder" id="logo-placeholder">
-                                <div class="upload-icon">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                </div>
-                                <div class="upload-text">
-                                    <p class="upload-title">Upload Team Logo</p>
-                                    <p class="upload-subtitle">Drag & drop or click to browse</p>
-                                    <p class="upload-format">Square image (PNG, JPG) - Max 10MB</p>
-                                </div>
+                <!-- Compact Side-by-Side Upload Cards -->
+                <div class="upload-cards-grid">
+                    <!-- Logo Upload -->
+                    <div class="upload-card compact-card">
+                        <div class="compact-header">
+                            <div class="compact-title">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Team Logo</span>
                             </div>
-                            <div class="upload-preview" id="logo-preview" style="display: none;">
-                                <img src="" alt="Logo Preview" id="logo-preview-img">
-                                <div class="preview-overlay">
-                                    <button type="button" class="btn-preview-remove" id="logo-remove">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
-                                    <button type="button" class="btn-preview-change" id="logo-change">
-                                        <i class="fas fa-sync"></i> Change
-                                    </button>
+                            <div class="compact-specs">
+                                <span>Square • 512px • 20MB</span>
+                            </div>
+                        </div>
+                        <div class="compact-body">
+                            <div class="modern-file-upload compact-upload" id="logo-upload-area">
+                                <input type="file" name="logo" id="id_logo" accept="image/png,image/jpeg,image/jpg,image/webp" style="display: none;">
+                                <div class="upload-placeholder" id="logo-placeholder">
+                                    <div class="compact-upload-zone">
+                                        <div class="upload-icon-compact">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                        </div>
+                                        <h4>Drop logo here</h4>
+                                        <p>PNG, JPG, WebP • Transparent backgrounds work best</p>
+                                    </div>
                                 </div>
-                                <div class="preview-info">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span id="logo-filename">image.png</span>
+                                <div class="upload-preview" id="logo-preview" style="display: none;">
+                                    <div class="preview-wrapper">
+                                        <img src="" alt="Logo Preview" id="logo-preview-img">
+                                        <div class="preview-actions-overlay">
+                                            <button type="button" class="action-btn-compact change-btn" id="logo-change" title="Change">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                            <button type="button" class="action-btn-compact remove-btn" id="logo-remove" title="Remove">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="preview-footer-compact">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span id="logo-filename" class="file-name-compact">image.png</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-group col-md-6">
-                        <label for="id_banner_image" class="form-label">Team Banner</label>
-                        <div class="modern-file-upload banner-upload" id="banner-upload-area">
-                            <input type="file" name="banner_image" id="id_banner_image" accept="image/*" style="display: none;">
-                            <div class="upload-placeholder" id="banner-placeholder">
-                                <div class="upload-icon">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                </div>
-                                <div class="upload-text">
-                                    <p class="upload-title">Upload Team Banner</p>
-                                    <p class="upload-subtitle">Drag & drop or click to browse</p>
-                                    <p class="upload-format">Wide format 16:9 (PNG, JPG) - Max 10MB</p>
-                                </div>
+                    <!-- Banner Upload -->
+                    <div class="upload-card compact-card">
+                        <div class="compact-header">
+                            <div class="compact-title">
+                                <i class="fas fa-panorama"></i>
+                                <span>Team Banner</span>
                             </div>
-                            <div class="upload-preview" id="banner-preview" style="display: none;">
-                                <img src="" alt="Banner Preview" id="banner-preview-img">
-                                <div class="preview-overlay">
-                                    <button type="button" class="btn-preview-remove" id="banner-remove">
-                                        <i class="fas fa-times"></i> Remove
-                                    </button>
-                                    <button type="button" class="btn-preview-change" id="banner-change">
-                                        <i class="fas fa-sync"></i> Change
-                                    </button>
+                            <div class="compact-specs">
+                                <span>16:9 • 1920×1080px • 20MB</span>
+                            </div>
+                        </div>
+                        <div class="compact-body">
+                            <div class="modern-file-upload compact-upload banner-compact" id="banner-upload-area">
+                                <input type="file" name="banner_image" id="id_banner_image" accept="image/png,image/jpeg,image/jpg,image/webp" style="display: none;">
+                                <div class="upload-placeholder" id="banner-placeholder">
+                                    <div class="compact-upload-zone">
+                                        <div class="upload-icon-compact">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                        <h4>Drop banner here</h4>
+                                        <p>PNG, JPG, WebP • Landscape orientation for best results</p>
+                                    </div>
                                 </div>
-                                <div class="preview-info">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span id="banner-filename">image.png</span>
+                                <div class="upload-preview banner-preview-compact" id="banner-preview" style="display: none;">
+                                    <div class="preview-wrapper">
+                                        <img src="" alt="Banner Preview" id="banner-preview-img">
+                                        <div class="preview-actions-overlay">
+                                            <button type="button" class="action-btn-compact change-btn" id="banner-change" title="Change">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                            <button type="button" class="action-btn-compact remove-btn" id="banner-remove" title="Remove">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="preview-footer-compact">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span id="banner-filename" class="file-name-compact">image.png</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Quick Tips - More Compact -->
+                <div class="branding-tips-compact">
+                    <i class="fas fa-lightbulb"></i>
+                    <span><strong>Pro Tip:</strong> Use transparent PNGs for logos and high-quality images for banners to create a professional look</span>
                 </div>
             </div>
 

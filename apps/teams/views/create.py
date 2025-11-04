@@ -87,7 +87,14 @@ def team_create_view(request):
             except Exception as e:
                 messages.error(request, f"Error creating team: {str(e)}")
         else:
-            messages.error(request, "Please correct the errors below.")
+            # Display specific field errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, f"{error}")
+                    else:
+                        field_label = form.fields.get(field).label if field in form.fields else field
+                        messages.error(request, f"{field_label}: {error}")
     else:
         # Pre-fill game from query string
         initial = {}

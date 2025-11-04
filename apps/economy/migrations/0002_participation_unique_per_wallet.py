@@ -27,7 +27,7 @@ END $$;
         migrations.AddConstraint(
             model_name="deltacrowntransaction",
             constraint=models.UniqueConstraint(
-                fields=("registration", "wallet", "reason"),
+                fields=("registration_id", "wallet", "reason"),
                 condition=models.Q(("reason", "participation")),
                 name="uq_participation_once_per_registration_wallet",
             ),

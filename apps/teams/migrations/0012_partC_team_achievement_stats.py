@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 ("notes", models.CharField(blank=True, default="", max_length=255)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("team", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="achievements", to="teams.team")),
-                ("tournament", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="team_achievements", to="tournaments.tournament")),
+                ("tournament_id", models.IntegerField(blank=True, null=True, help_text="Legacy tournament ID (tournaments app moved to legacy)")),
             ],
             options={"ordering": ["-year", "title"]},
         ),
