@@ -44,7 +44,7 @@ django-silk==5.0.4
 locust==2.20.0
 
 # Documentation
-sphinx==7.2.6
+sphinx==8.2.3
 sphinx-rtd-theme==2.0.0
 
 # Coverage Reporting
