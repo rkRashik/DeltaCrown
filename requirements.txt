@@ -3,7 +3,7 @@
 # =============================================================================
 
 # Django Framework
-Django==4.2.7
+Django==4.2.25
 djangorestframework==3.14.0
 
 # Database
@@ -12,35 +12,35 @@ psycopg2-binary==2.9.9
 # Cache & Sessions
 redis==5.0.1
 hiredis==2.2.3
-django-redis==5.4.0
+django-redis==6.0.0
 
 # Async Tasks
 celery==5.3.4
-django-celery-beat==2.5.0
+django-celery-beat==2.8.1
 
 # Authentication & Security
 djangorestframework-simplejwt==5.3.0
-django-cors-headers==4.3.1
+django-cors-headers==4.9.0
 
 # Environment Variables
 python-decouple==3.8
-django-environ==0.11.2
+django-environ==0.12.0
 
 # File Storage (AWS S3)
 boto3==1.34.0
-django-storages==1.14.2
+django-storages==1.14.6
 
 # Image Processing
 Pillow==10.1.0
 
 # Rich Text Editor
-django-ckeditor-5==0.2.12
+django-ckeditor-5==0.2.18
 
 # API Documentation
 drf-spectacular==0.27.0
 
 # Email
-django-anymail==10.2
+django-anymail==13.1
 
 # WebSockets (Django Channels)
 channels==4.0.0
@@ -54,14 +54,14 @@ pytz==2023.3
 
 # Utilities
 python-slugify==8.0.1
-django-extensions==3.2.3
+django-extensions==4.1
 django-widget-tweaks==1.5.0
 
 # Monitoring & Logging
 sentry-sdk==1.39.1
 
 # Django Allauth (Social Authentication)
-django-allauth==0.57.0
+django-allauth==65.13.0
 
 # Humanize
 django-humanize==0.1.2
