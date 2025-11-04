@@ -151,19 +151,90 @@ We follow **PEP 8** with some modifications:
 
 ### Code Formatting Tools
 
+We use automated code quality tools to maintain consistent code style. All tools are configured in `pyproject.toml`, `.flake8`, and `.pylintrc`.
+
+#### Installation
+
 ```bash
-# Format code with black
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Install pre-commit hooks (RECOMMENDED)
+pre-commit install
+```
+
+#### Manual Tool Usage
+
+```bash
+# Format code with black (auto-fixes)
 black apps/ deltacrown/ tests/
 
-# Sort imports
+# Sort imports (auto-fixes)
 isort apps/ deltacrown/ tests/
 
 # Check code style
 flake8 apps/ deltacrown/ tests/
 
+# Advanced linting
+pylint apps/ deltacrown/ tests/
+
 # Type checking
-mypy apps/
+mypy apps/ deltacrown/
+
+# Run all checks at once
+pre-commit run --all-files
 ```
+
+#### Pre-commit Hooks (Automatic)
+
+Once installed, pre-commit hooks automatically run on `git commit`:
+
+- **black**: Code formatting
+- **isort**: Import sorting
+- **flake8**: Style guide enforcement
+- **trailing-whitespace**: Remove trailing whitespace
+- **end-of-file-fixer**: Ensure files end with newline
+- **check-yaml**: YAML syntax validation
+- **check-added-large-files**: Prevent large files (>500KB)
+- **detect-secrets**: Scan for hardcoded secrets
+
+To bypass hooks (not recommended):
+```bash
+git commit --no-verify
+```
+
+#### Code Quality Standards
+
+- **Line Length**: 88 characters (black default)
+- **Import Order**: stdlib → third-party → local (isort)
+- **Docstrings**: Google style for all public functions/classes
+- **Type Hints**: Required for all function signatures
+- **Test Coverage**: Minimum 80% required
+- **Cyclomatic Complexity**: Max 10 per function
+
+#### Tool Configuration Files
+
+| Tool | Configuration File | Purpose |
+|------|-------------------|---------|
+| black | `pyproject.toml` | Code formatting rules |
+| isort | `pyproject.toml` | Import sorting rules |
+| flake8 | `.flake8` | Style guide enforcement |
+| pylint | `.pylintrc` | Advanced linting rules |
+| mypy | `pyproject.toml` | Type checking configuration |
+| pytest | `pytest.ini` | Test configuration |
+| coverage | `pyproject.toml` | Coverage requirements |
+| pre-commit | `.pre-commit-config.yaml` | Hook configuration |
+
+#### CI/CD Integration
+
+All code quality checks run automatically in GitHub Actions:
+
+- **On Pull Request**: Runs full test suite + linting
+- **On Push to Master**: Runs tests + builds Docker image
+- **Code Quality Jobs**: black, isort, flake8, pylint, mypy, bandit, safety
+- **Required**: All checks must pass before merge
+
+See `.github/workflows/ci.yml` for complete CI pipeline configuration.
 
 ### Django Best Practices
 

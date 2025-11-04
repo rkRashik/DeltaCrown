@@ -252,6 +252,15 @@ EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-app-password
 ```
 
+**📚 For complete environment configuration guide, see:** [`docs/ENVIRONMENT_CONFIGURATION.md`](docs/ENVIRONMENT_CONFIGURATION.md)
+
+The guide includes:
+- All required and optional environment variables
+- Environment-specific configurations (dev/staging/production)
+- GitHub secrets setup for CI/CD
+- Secrets rotation policy
+- Security best practices
+
 #### 3. **Start all services**
 ```powershell
 docker-compose up -d
