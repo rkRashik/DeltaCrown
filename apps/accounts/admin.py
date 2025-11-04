@@ -7,37 +7,83 @@ from .models import EmailOTP, PendingSignup, User
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ("username", "email", "is_active", "is_verified", "is_staff")
-    list_filter = ("is_verified", "is_active", "is_staff")
-    search_fields = ("username", "email")
-    ordering = ("username",)
+    """
+    Enhanced User Admin with UUID support and extended profile fields.
+    """
+    list_display = (
+        "username",
+        "email",
+        "role",
+        "is_active",
+        "is_verified",
+        "is_staff",
+        "date_joined"
+    )
+    list_filter = (
+        "role",
+        "is_verified",
+        "is_active",
+        "is_staff",
+        "is_superuser",
+        "date_joined"
+    )
+    search_fields = ("username", "email", "first_name", "last_name", "phone_number")
+    ordering = ("-date_joined",)
+    readonly_fields = ("id", "uuid", "date_joined", "last_login", "email_verified_at")
+    
     fieldsets = (
-        (None, {"fields": ("username", "password")} ),
-        ("Personal info", {"fields": ("first_name", "last_name", "email")} ),
-        (
-            "Permissions",
-            {
-                "fields": (
-                    "is_active",
-                    "is_verified",
-                    "is_staff",
-                    "is_superuser",
-                    "groups",
-                    "user_permissions",
-                )
-            },
-        ),
-        ("Important dates", {"fields": ("last_login", "date_joined", "email_verified_at")} ),
+        (None, {
+            "fields": ("id", "uuid", "username", "password")
+        }),
+        ("Personal Info", {
+            "fields": (
+                "first_name",
+                "last_name",
+                "email",
+                "phone_number",
+                "date_of_birth",
+                "country"
+            )
+        }),
+        ("Profile", {
+            "fields": ("avatar", "bio")
+        }),
+        ("Role & Permissions", {
+            "fields": (
+                "role",
+                "is_active",
+                "is_verified",
+                "is_staff",
+                "is_superuser",
+                "groups",
+                "user_permissions",
+            )
+        }),
+        ("Important Dates", {
+            "fields": ("last_login", "date_joined", "email_verified_at")
+        }),
     )
+    
     add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": ("username", "email", "password1", "password2", "is_staff", "is_superuser"),
-            },
-        ),
+        (None, {
+            "classes": ("wide",),
+            "fields": (
+                "username",
+                "email",
+                "password1",
+                "password2",
+                "role",
+                "is_staff",
+                "is_superuser"
+            ),
+        }),
     )
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Make UUID readonly after creation."""
+        if obj:  # Editing existing object
+            return self.readonly_fields + ("username",)
+        return self.readonly_fields
 
 
 @admin.register(PendingSignup)

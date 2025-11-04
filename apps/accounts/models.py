@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import secrets
+import uuid
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -40,25 +41,158 @@ class UserManager(DjangoUserManager):
 
 
 class User(AbstractUser):
-    """Project user model with mandatory unique email and verification flag."""
-
-    email = models.EmailField("email address", unique=True)
-    is_verified = models.BooleanField(default=False)
-    email_verified_at = models.DateTimeField(null=True, blank=True)
-
+    """
+    Custom User model for DeltaCrown Tournament Engine.
+    
+    Features:
+    - UUID primary key for security
+    - Email-based authentication (unique, required)
+    - Extended profile fields (phone, DOB, country, avatar, bio)
+    - Role-based access (PLAYER, ORGANIZER, ADMIN)
+    - Email verification system
+    """
+    
+    # User Roles
+    class Role(models.TextChoices):
+        PLAYER = 'PLAYER', 'Player'
+        ORGANIZER = 'ORGANIZER', 'Organizer'
+        ADMIN = 'ADMIN', 'Admin'
+    
+    # Note: UUID field added but kept BigAutoField as primary key for existing data compatibility
+    # In a fresh installation, this should be: id = models.UUIDField(primary_key=True, ...)
+    # For existing database, we use 'uuid' as a unique field
+    uuid = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="UUID identifier for this user (will become primary key in future)"
+    )
+    
+    # Authentication Fields
+    email = models.EmailField(
+        "email address",
+        unique=True,
+        help_text="Email address used for authentication"
+    )
+    
+    # Email Verification
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="Whether the user's email has been verified"
+    )
+    email_verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when email was verified"
+    )
+    
+    # Role & Permissions
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        default=Role.PLAYER,
+        help_text="User's primary role in the system"
+    )
+    
+    # Extended Profile Fields
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Contact phone number"
+    )
+    
+    date_of_birth = models.DateField(
+        null=True,
+        blank=True,
+        help_text="User's date of birth"
+    )
+    
+    country = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Country of residence"
+    )
+    
+    avatar = models.ImageField(
+        upload_to='avatars/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        help_text="User's profile picture"
+    )
+    
+    bio = models.TextField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="User biography (max 500 characters)"
+    )
+    
+    # Manager
     objects = UserManager()
 
+    # Email is required for authentication
     REQUIRED_FIELDS = ["email"]
 
     class Meta(AbstractUser.Meta):  # type: ignore[misc]
         swappable = "AUTH_USER_MODEL"
+        verbose_name = "User"
+        verbose_name_plural = "Users"
+        ordering = ['-date_joined']
+        indexes = [
+            models.Index(fields=['email']),
+            models.Index(fields=['role']),
+            models.Index(fields=['is_verified']),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.username} ({self.email})"
 
     def mark_email_verified(self):
+        """Mark the user's email as verified."""
         if not self.is_verified:
             self.is_verified = True
             self.email_verified_at = timezone.now()
             self.is_active = True
             self.save(update_fields=["is_verified", "email_verified_at", "is_active"])
+    
+    @property
+    def is_player(self) -> bool:
+        """Check if user has PLAYER role."""
+        return self.role == self.Role.PLAYER
+    
+    @property
+    def is_organizer(self) -> bool:
+        """Check if user has ORGANIZER role."""
+        return self.role == self.Role.ORGANIZER
+    
+    @property
+    def is_admin_role(self) -> bool:
+        """Check if user has ADMIN role."""
+        return self.role == self.Role.ADMIN
+    
+    @property
+    def full_name(self) -> str:
+        """Return user's full name or username as fallback."""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        return self.username
+    
+    @property
+    def age(self) -> int | None:
+        """Calculate user's age from date of birth."""
+        if not self.date_of_birth:
+            return None
+        today = timezone.now().date()
+        age = today.year - self.date_of_birth.year
+        if today.month < self.date_of_birth.month or (
+            today.month == self.date_of_birth.month and today.day < self.date_of_birth.day
+        ):
+            age -= 1
+        return age
 
 
 class PendingSignup(models.Model):
