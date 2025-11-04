@@ -1,68 +1,339 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Create account — DeltaCrown{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'siteui/css/auth.css' %}" />
-{% endblock %}
+{% block title %}Create Account — DeltaCrown{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <div class="auth-bg"></div>
-    <div class="auth-bg-pattern"></div>
-
-    <!-- Decorative elements -->
-    <div class="auth-decoration decoration-1"></div>
-    <div class="auth-decoration decoration-2"></div>
-    <div class="auth-decoration decoration-3"></div>
-
-    <div class="auth-card">
-        <div class="auth-header">
-            <a href="/" class="auth-logo">
-                <img src="{% static 'siteui/svg/logo-deltacrown-static.svg' %}" alt="DeltaCrown logo">
-                DeltaCrown
-            </a>
-            <h1 class="auth-title">Join the Arena</h1>
-            <p class="auth-subtitle">Create your account to start competing</p>
-        </div>
-
-        <form class="auth-form" method="post" action="{% url 'account:signup' %}">
-            {% csrf_token %}
-            {% if redirect_field_value %}
-                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
-            {% endif %}
-
-            {% if form.non_field_errors %}
-                <div class="form-error">{{ form.non_field_errors }}</div>
-            {% endif %}
-
-            {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                    <div class="form-error">{{ field.errors|join:', ' }}</div>
-                {% endif %}
-                {% if field.help_text %}
-                    <div class="form-help">{{ field.help_text }}</div>
-                {% endif %}
+<!-- Auth Container with Gaming Background -->
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12">
+    
+    <!-- Animated Background Gradients -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute top-0 left-0 w-96 h-96 bg-secondary-600/20 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-accent-500/20 rounded-full blur-3xl animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+    </div>
+    
+    <!-- Grid Pattern Overlay -->
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(168,85,247,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(168,85,247,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+    
+    <!-- Auth Card -->
+    <div class="relative z-10 w-full max-w-lg mx-4">
+        <div class="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+            
+            <!-- Header -->
+            <div class="px-8 pt-8 pb-6 text-center border-b border-gray-200 dark:border-gray-700">
+                <!-- Logo -->
+                <a href="/" class="inline-flex items-center justify-center mb-4 text-2xl font-bold text-gray-900 dark:text-white hover:text-secondary-600 transition-colors">
+                    <img src="{% static 'siteui/svg/logo-deltacrown-static.svg' %}" alt="DeltaCrown" class="w-10 h-10 mr-3">
+                    <span class="bg-gradient-to-r from-secondary-600 to-accent-600 bg-clip-text text-transparent">DeltaCrown</span>
+                </a>
+                
+                <!-- Title -->
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    Join the Arena
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400">
+                    Create your account and start your esports journey
+                </p>
             </div>
-            {% endfor %}
+            
+            <!-- Form Body -->
+            <div class="px-8 py-6">
+                <form method="post" action="{% url 'account:signup' %}" class="space-y-4" id="signupForm">
+                    {% csrf_token %}
+                    {% if redirect_field_value %}
+                        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                    {% endif %}
 
-            <button type="submit" class="btn-auth">Create Account</button>
-        </form>
+                    {# Non-field errors #}
+                    {% if form.non_field_errors %}
+                        <div class="bg-error-50 border-l-4 border-error-500 text-error-700 p-4 rounded-md" role="alert">
+                            <div class="flex items-start">
+                                <i class="fas fa-exclamation-circle mt-0.5 mr-3"></i>
+                                <div>
+                                    {% for error in form.non_field_errors %}
+                                        <p>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
 
-        <div class="auth-divider">
-            <span>Already competing?</span>
+                    <!-- Email Field -->
+                    <div class="form-group">
+                        <label for="id_email" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-envelope text-secondary-500 mr-2"></i>
+                            Email Address <span class="text-error-500">*</span>
+                        </label>
+                        <input 
+                            type="email" 
+                            name="email" 
+                            id="id_email" 
+                            value="{{ form.email.value|default_if_none:'' }}"
+                            autocomplete="email" 
+                            required 
+                            class="w-full px-4 py-3 bg-white dark:bg-gray-700 border {% if form.email.errors %}border-error-500{% else %}border-gray-300 dark:border-gray-600{% endif %} rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all" 
+                            placeholder="your.email@example.com"
+                        >
+                        {% if form.email.errors %}
+                            <p class="mt-2 text-sm text-error-600">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                {{ form.email.errors|join:', ' }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Username Field -->
+                    {% if form.username %}
+                    <div class="form-group">
+                        <label for="id_username" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-user text-secondary-500 mr-2"></i>
+                            Username <span class="text-error-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            name="username" 
+                            id="id_username" 
+                            value="{{ form.username.value|default_if_none:'' }}"
+                            autocomplete="username" 
+                            required 
+                            class="w-full px-4 py-3 bg-white dark:bg-gray-700 border {% if form.username.errors %}border-error-500{% else %}border-gray-300 dark:border-gray-600{% endif %} rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all" 
+                            placeholder="Choose a unique username"
+                        >
+                        {% if form.username.errors %}
+                            <p class="mt-2 text-sm text-error-600">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                {{ form.username.errors|join:', ' }}
+                            </p>
+                        {% endif %}
+                        {% if form.username.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.username.help_text }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Password Field -->
+                    <div class="form-group">
+                        <label for="id_password1" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-lock text-secondary-500 mr-2"></i>
+                            Password <span class="text-error-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="password" 
+                                name="password1" 
+                                id="id_password1" 
+                                autocomplete="new-password"
+                                required 
+                                class="w-full px-4 py-3 bg-white dark:bg-gray-700 border {% if form.password1.errors %}border-error-500{% else %}border-gray-300 dark:border-gray-600{% endif %} rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all pr-12" 
+                                placeholder="Create a strong password"
+                                oninput="checkPasswordStrength(this.value)"
+                            >
+                            <button 
+                                type="button" 
+                                onclick="togglePasswordField('id_password1', 'toggleIcon1')" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                            >
+                                <i class="fas fa-eye" id="toggleIcon1"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Password Strength Indicator -->
+                        <div class="mt-2">
+                            <div class="flex items-center justify-between text-xs mb-1">
+                                <span class="text-gray-600 dark:text-gray-400">Password strength:</span>
+                                <span id="strengthText" class="font-semibold text-gray-500">-</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div id="strengthBar" class="h-full bg-gray-400 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        {% if form.password1.errors %}
+                            <p class="mt-2 text-sm text-error-600">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                {{ form.password1.errors|join:', ' }}
+                            </p>
+                        {% endif %}
+                        {% if form.password1.help_text %}
+                            <p class="mt-2 text-xs text-gray-500">{{ form.password1.help_text }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Confirm Password Field -->
+                    <div class="form-group">
+                        <label for="id_password2" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-lock text-secondary-500 mr-2"></i>
+                            Confirm Password <span class="text-error-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input 
+                                type="password" 
+                                name="password2" 
+                                id="id_password2" 
+                                autocomplete="new-password"
+                                required 
+                                class="w-full px-4 py-3 bg-white dark:bg-gray-700 border {% if form.password2.errors %}border-error-500{% else %}border-gray-300 dark:border-gray-600{% endif %} rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-secondary-500 focus:border-transparent transition-all pr-12" 
+                                placeholder="Confirm your password"
+                            >
+                            <button 
+                                type="button" 
+                                onclick="togglePasswordField('id_password2', 'toggleIcon2')" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                            >
+                                <i class="fas fa-eye" id="toggleIcon2"></i>
+                            </button>
+                        </div>
+                        {% if form.password2.errors %}
+                            <p class="mt-2 text-sm text-error-600">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                {{ form.password2.errors|join:', ' }}
+                            </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Terms Acceptance (if exists) -->
+                    {% if form.terms %}
+                    <div class="form-group">
+                        <label class="flex items-start cursor-pointer">
+                            <input type="checkbox" name="terms" required class="mt-1 w-4 h-4 text-secondary-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-secondary-500">
+                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                                I agree to the <a href="/legal/terms/" class="text-secondary-600 hover:text-secondary-700 underline" target="_blank">Terms of Service</a> and <a href="/legal/privacy/" class="text-secondary-600 hover:text-secondary-700 underline" target="_blank">Privacy Policy</a>
+                            </span>
+                        </label>
+                    </div>
+                    {% endif %}
+
+                    <!-- Submit Button -->
+                    <button 
+                        type="submit" 
+                        class="w-full bg-gradient-to-r from-secondary-600 to-secondary-700 hover:from-secondary-700 hover:to-secondary-800 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 focus:ring-4 focus:ring-secondary-500/50 mt-6"
+                        id="submitBtn"
+                    >
+                        <span id="btnText">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Create Account
+                        </span>
+                        <span id="btnLoader" class="hidden">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Creating account...
+                        </span>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Footer -->
+            <div class="px-8 py-6 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700 text-center">
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Already have an account? 
+                    <a href="{% url 'account:login' %}" class="text-secondary-600 hover:text-secondary-700 font-semibold transition-colors">
+                        Sign in
+                    </a>
+                </p>
+            </div>
         </div>
-
-        <div class="auth-links">
-            <a href="{% url 'account:login' %}" class="auth-link">Sign in to your account</a>
-        </div>
-
-        <div class="auth-footer">
-            <p>© {% now "Y" %} DeltaCrown — Where Champions Rise</p>
-        </div>
+        
+        <!-- Bottom Text -->
+        <p class="text-center text-sm text-gray-400 mt-6">
+            © {% now "Y" %} DeltaCrown — Where Champions Rise
+        </p>
     </div>
 </div>
+
+<!-- Enhanced JavaScript for Signup Page -->
+<script>
+// Password visibility toggle
+function togglePasswordField(fieldId, iconId) {
+    const passwordInput = document.getElementById(fieldId);
+    const toggleIcon = document.getElementById(iconId);
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+}
+
+// Password strength checker
+function checkPasswordStrength(password) {
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    
+    let strength = 0;
+    let text = '';
+    let color = '';
+    
+    if (password.length === 0) {
+        strength = 0;
+        text = '-';
+        color = 'bg-gray-400';
+    } else if (password.length < 6) {
+        strength = 20;
+        text = 'Very Weak';
+        color = 'bg-error-500';
+    } else if (password.length < 8) {
+        strength = 40;
+        text = 'Weak';
+        color = 'bg-warning-500';
+    } else {
+        strength = 60;
+        text = 'Fair';
+        color = 'bg-warning-400';
+        
+        // Check for uppercase
+        if (/[A-Z]/.test(password)) strength += 10;
+        
+        // Check for lowercase
+        if (/[a-z]/.test(password)) strength += 10;
+        
+        // Check for numbers
+        if (/\d/.test(password)) strength += 10;
+        
+        // Check for special characters
+        if (/[^A-Za-z0-9]/.test(password)) strength += 10;
+        
+        if (strength >= 90) {
+            text = 'Very Strong';
+            color = 'bg-success-600';
+        } else if (strength >= 80) {
+            text = 'Strong';
+            color = 'bg-success-500';
+        } else if (strength >= 70) {
+            text = 'Good';
+            color = 'bg-success-400';
+        }
+    }
+    
+    strengthBar.style.width = strength + '%';
+    strengthBar.className = 'h-full transition-all duration-300 ' + color;
+    strengthText.textContent = text;
+    strengthText.className = 'font-semibold ' + (
+        color === 'bg-error-500' ? 'text-error-600' :
+        color === 'bg-warning-500' || color === 'bg-warning-400' ? 'text-warning-600' :
+        color.includes('success') ? 'text-success-600' : 'text-gray-500'
+    );
+}
+
+// Loading state on form submit
+document.getElementById('signupForm').addEventListener('submit', function() {
+    const btn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnLoader = document.getElementById('btnLoader');
+    
+    btn.disabled = true;
+    btnText.classList.add('hidden');
+    btnLoader.classList.remove('hidden');
+});
+
+// Auto-focus on email field
+document.addEventListener('DOMContentLoaded', function() {
+    const emailInput = document.getElementById('id_email');
+    if (emailInput && !emailInput.value) {
+        emailInput.focus();
+    }
+});
+</script>
 {% endblock %}

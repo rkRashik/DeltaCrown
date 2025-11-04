@@ -1,0 +1,150 @@
+{# Tournament Card Component - Specialized card for tournament listings #}
+{# 
+Usage:
+{% include 'components/card_tournament.html' with 
+    title="Valorant Championship 2025"
+    game="Valorant"
+    game_icon="/static/img/valorant-icon.png"
+    banner="/static/img/tournament-banner.jpg"
+    date="Dec 15, 2025"
+    prize_pool="$10,000"
+    teams_registered=24
+    teams_max=32
+    status="registration"
+    url="/tournaments/123/"
+%}
+#}
+
+<div class="card bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 {{ extra_classes }}">
+    {# Tournament Banner #}
+    <div class="relative h-48 overflow-hidden">
+        {% if banner %}
+        <img src="{{ banner }}" alt="{{ title }}" class="w-full h-full object-cover">
+        {% else %}
+        <div class="w-full h-full bg-gradient-to-br from-primary-600 via-secondary-600 to-accent-600"></div>
+        {% endif %}
+        
+        {# Overlay gradient #}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        
+        {# Game Badge #}
+        {% if game_icon or game %}
+        <div class="absolute top-3 left-3 flex items-center space-x-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5">
+            {% if game_icon %}
+            <img src="{{ game_icon }}" alt="{{ game }}" class="w-5 h-5 rounded">
+            {% endif %}
+            {% if game %}
+            <span class="text-sm font-semibold text-white">{{ game }}</span>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {# Status Badge #}
+        {% if status %}
+        <div class="absolute top-3 right-3">
+            <span class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wide
+                {% if status == 'registration' or status == 'upcoming' %}
+                    bg-success-500 text-white
+                {% elif status == 'live' or status == 'ongoing' %}
+                    bg-error-500 text-white animate-pulse
+                {% elif status == 'completed' %}
+                    bg-gray-500 text-white
+                {% else %}
+                    bg-info-500 text-white
+                {% endif %}">
+                {% if status == 'live' or status == 'ongoing' %}
+                <i class="fas fa-circle mr-1.5 text-xs"></i>
+                {% endif %}
+                {{ status }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+    
+    {# Card Content #}
+    <div class="p-5">
+        {# Title #}
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+            {% if url %}
+            <a href="{{ url }}">{{ title }}</a>
+            {% else %}
+            {{ title }}
+            {% endif %}
+        </h3>
+        
+        {# Tournament Info Grid #}
+        <div class="space-y-2 mb-4">
+            {# Date #}
+            {% if date %}
+            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <i class="fas fa-calendar-alt w-5 text-primary-500"></i>
+                <span class="ml-2">{{ date }}</span>
+            </div>
+            {% endif %}
+            
+            {# Prize Pool #}
+            {% if prize_pool %}
+            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <i class="fas fa-trophy w-5 text-warning-500"></i>
+                <span class="ml-2 font-semibold text-warning-600 dark:text-warning-400">{{ prize_pool }}</span>
+            </div>
+            {% endif %}
+            
+            {# Team Registration Progress #}
+            {% if teams_registered and teams_max %}
+            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <i class="fas fa-users w-5 text-secondary-500"></i>
+                <span class="ml-2">{{ teams_registered }}/{{ teams_max }} Teams</span>
+            </div>
+            
+            {# Progress Bar #}
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+                {% widthratio teams_registered teams_max 100 as progress_percent %}
+                <div class="bg-gradient-to-r from-primary-600 to-secondary-600 h-2 rounded-full transition-all duration-500" 
+                     style="width: {{ progress_percent }}%"></div>
+            </div>
+            {% endif %}
+            
+            {# Format/Type #}
+            {% if format %}
+            <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <i class="fas fa-sitemap w-5 text-info-500"></i>
+                <span class="ml-2">{{ format }}</span>
+            </div>
+            {% endif %}
+        </div>
+        
+        {# Tags #}
+        {% if tags %}
+        <div class="flex flex-wrap gap-2 mb-4">
+            {% for tag in tags %}
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                {{ tag }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {# Action Buttons #}
+        <div class="flex items-center space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            {% if url %}
+            <a href="{{ url }}" class="flex-1 text-center px-4 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
+                <i class="fas fa-info-circle mr-2"></i>
+                View Details
+            </a>
+            {% endif %}
+            
+            {% if can_register %}
+            <button class="px-4 py-2.5 bg-success-600 hover:bg-success-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
+                <i class="fas fa-sign-in-alt"></i>
+            </button>
+            {% endif %}
+            
+            {% if can_favorite %}
+            <button class="px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-700 dark:text-gray-300 rounded-lg transition-colors">
+                <i class="far fa-heart"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -25,13 +25,13 @@
     <link rel="manifest" href="{% static 'img/favicon/site.webmanifest' %}">
 
     {% include "partials/seo_meta.html" %}
-    <title>{% block title %}DeltaCrown — Bangladesh’s Esports Superbrand{% endblock %}</title>
+    <title>{% block title %}DeltaCrown — Bangladesh's Esports Superbrand{% endblock %}</title>
 
-    <!-- Tailwind CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="{% static 'siteui/js/tailwind-config.js' %}"></script>
+    <!-- Compiled Tailwind CSS (build pipeline) -->
+    <link rel="preload" href="{% static 'css/dist/main.css' %}" as="style" />
+    <link rel="stylesheet" href="{% static 'css/dist/main.css' %}?v=2.0" />
 
-    <!-- Site CSS -->
+    <!-- Site CSS (custom styles) -->
     <link rel="preload" href="{% static 'siteui/css/tokens.css' %}" as="style" />
     <link rel="stylesheet" href="{% static 'siteui/css/tokens.css' %}" />
     <link rel="stylesheet" href="{% static 'siteui/css/base.css' %}" />

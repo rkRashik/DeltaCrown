@@ -1,0 +1,38 @@
+{
+  "name": "deltacrown",
+  "version": "1.0.0",
+  "description": "DeltaCrown Tournament Engine - Frontend Build Tools",
+  "scripts": {
+    "build:css": "postcss static/css/src/main.css -o static/css/dist/main.css",
+    "watch:css": "postcss static/css/src/main.css -o static/css/dist/main.css --watch",
+    "build:css:prod": "NODE_ENV=production postcss static/css/src/main.css -o static/css/dist/main.css",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": [
+    "esports",
+    "tournament",
+    "gaming"
+  ],
+  "author": "DeltaCrown Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10",
+    "@testing-library/dom": "^9.3.4",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/user-event": "^14.5.1",
+    "autoprefixer": "^10.4.16",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "postcss": "^8.4.32",
+    "postcss-cli": "^11.0.0",
+    "tailwindcss": "^3.4.0"
+  },
+  "dependencies": {
+    "alpinejs": "^3.13.3",
+    "htmx.org": "^1.9.10",
+    "zxcvbn": "^4.4.2"
+  }
+}

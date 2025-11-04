@@ -1,0 +1,158 @@
+{# File Upload Component #}
+{# 
+Usage:
+{% include 'components/form_file.html' with 
+    field=form.avatar 
+    label="Profile Picture"
+    help_text="Max size: 2MB. Accepted formats: JPG, PNG, GIF"
+    accept="image/*"
+    preview=True
+    required=True
+%}
+
+Or manual:
+{% include 'components/form_file.html' with 
+    id="avatar"
+    name="avatar"
+    label="Upload Avatar"
+    accept=".jpg,.jpeg,.png"
+    max_size="2"
+    preview=True
+%}
+#}
+
+{% load widget_tweaks %}
+
+<div class="form-group {% if extra_classes %}{{ extra_classes }}{% endif %}">
+    {# Label #}
+    {% if label %}
+    <label for="{{ field.id_for_label|default:id }}" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        {% if icon %}
+        <i class="fas {{ icon }} text-primary-500 mr-2"></i>
+        {% endif %}
+        {{ label }}
+        {% if required %}
+        <span class="text-error-500">*</span>
+        {% endif %}
+    </label>
+    {% endif %}
+    
+    {# File Input with Custom Styling #}
+    <div class="relative">
+        {# Hidden File Input #}
+        {% if field %}
+            {% render_field field class="hidden"|add:input_classes accept=accept|default:"" %}
+        {% else %}
+            <input 
+                type="file"
+                id="{{ id }}"
+                name="{{ name }}"
+                {% if accept %}accept="{{ accept }}"{% endif %}
+                {% if required %}required{% endif %}
+                {% if disabled %}disabled{% endif %}
+                {% if multiple %}multiple{% endif %}
+                class="hidden {{ input_classes }}"
+                {% if preview %}onchange="previewFile_{{ field.id_for_label|default:id }}(event)"{% endif %}
+            >
+        {% endif %}
+        
+        {# Custom Upload Button #}
+        <label 
+            for="{{ field.id_for_label|default:id }}"
+            class="flex items-center justify-center w-full px-4 py-3 bg-white dark:bg-gray-700 border-2 border-dashed {% if error or field.errors %}border-error-500{% else %}border-gray-300 dark:border-gray-600{% endif %} rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-gray-600 transition-all"
+        >
+            <div class="text-center">
+                <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    <span class="font-semibold text-primary-600 hover:text-primary-700">Click to upload</span> or drag and drop
+                </p>
+                {% if help_text %}
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    {{ help_text }}
+                </p>
+                {% elif max_size %}
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                    Maximum file size: {{ max_size }}MB
+                </p>
+                {% endif %}
+            </div>
+        </label>
+        
+        {# File Name Display #}
+        <div id="fileName_{{ field.id_for_label|default:id }}" class="mt-2 text-sm text-gray-600 dark:text-gray-400 hidden">
+            <i class="fas fa-file mr-2"></i>
+            <span id="fileNameText_{{ field.id_for_label|default:id }}"></span>
+        </div>
+    </div>
+    
+    {# Preview Container (for images) #}
+    {% if preview %}
+    <div id="preview_{{ field.id_for_label|default:id }}" class="mt-4 hidden">
+        <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
+        <div class="relative inline-block">
+            <img 
+                id="previewImage_{{ field.id_for_label|default:id }}"
+                src="" 
+                alt="Preview" 
+                class="w-32 h-32 object-cover rounded-lg border-2 border-gray-300 dark:border-gray-600"
+            >
+            <button 
+                type="button"
+                onclick="clearPreview_{{ field.id_for_label|default:id }}()"
+                class="absolute -top-2 -right-2 w-6 h-6 bg-error-500 hover:bg-error-600 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        function previewFile_{{ field.id_for_label|default:id }}(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('preview_{{ field.id_for_label|default:id }}');
+            const previewImage = document.getElementById('previewImage_{{ field.id_for_label|default:id }}');
+            const fileName = document.getElementById('fileName_{{ field.id_for_label|default:id }}');
+            const fileNameText = document.getElementById('fileNameText_{{ field.id_for_label|default:id }}');
+            
+            if (file) {
+                // Show file name
+                fileName.classList.remove('hidden');
+                fileNameText.textContent = file.name;
+                
+                // Show image preview if it's an image
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                        preview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+        
+        function clearPreview_{{ field.id_for_label|default:id }}() {
+            const input = document.getElementById('{{ field.id_for_label|default:id }}');
+            const preview = document.getElementById('preview_{{ field.id_for_label|default:id }}');
+            const fileName = document.getElementById('fileName_{{ field.id_for_label|default:id }}');
+            
+            input.value = '';
+            preview.classList.add('hidden');
+            fileName.classList.add('hidden');
+        }
+    </script>
+    {% endif %}
+    
+    {# Error Message #}
+    {% if field and field.errors %}
+    <p class="mt-2 text-sm text-error-600 dark:text-error-400">
+        <i class="fas fa-exclamation-circle mr-1"></i>
+        {{ field.errors|join:', ' }}
+    </p>
+    {% elif error %}
+    <p class="mt-2 text-sm text-error-600 dark:text-error-400">
+        <i class="fas fa-exclamation-circle mr-1"></i>
+        {{ error }}
+    </p>
+    {% endif %}
+</div>

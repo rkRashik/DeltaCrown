@@ -1,0 +1,100 @@
+{# Stats Card Component - For displaying key metrics and statistics #}
+{# 
+Usage:
+{% include 'components/card_stats.html' with 
+    title="Total Players"
+    value="1,234"
+    icon="fa-users"
+    trend="up"
+    trend_value="+12%"
+    trend_label="vs last month"
+    variant="primary"
+%}
+#}
+
+<div class="card bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow duration-300 {{ extra_classes }}">
+    <div class="p-6">
+        <div class="flex items-start justify-between">
+            <div class="flex-1">
+                {# Title #}
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {{ title }}
+                </p>
+                
+                {# Value #}
+                <p class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    {{ value }}
+                </p>
+                
+                {# Trend Indicator #}
+                {% if trend %}
+                <div class="flex items-center space-x-2">
+                    {% if trend == 'up' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400">
+                            <i class="fas fa-arrow-up mr-1"></i>
+                            {{ trend_value }}
+                        </span>
+                    {% elif trend == 'down' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-error-100 text-error-800 dark:bg-error-900/30 dark:text-error-400">
+                            <i class="fas fa-arrow-down mr-1"></i>
+                            {{ trend_value }}
+                        </span>
+                    {% elif trend == 'neutral' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="fas fa-minus mr-1"></i>
+                            {{ trend_value }}
+                        </span>
+                    {% endif %}
+                    
+                    {% if trend_label %}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ trend_label }}
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            
+            {# Icon #}
+            {% if icon %}
+            <div class="flex-shrink-0 ml-4">
+                <div class="w-12 h-12 rounded-lg flex items-center justify-center
+                    {% if variant == 'primary' or not variant %}
+                        bg-primary-100 dark:bg-primary-900/30
+                    {% elif variant == 'success' %}
+                        bg-success-100 dark:bg-success-900/30
+                    {% elif variant == 'warning' %}
+                        bg-warning-100 dark:bg-warning-900/30
+                    {% elif variant == 'danger' %}
+                        bg-error-100 dark:bg-error-900/30
+                    {% elif variant == 'info' %}
+                        bg-info-100 dark:bg-info-900/30
+                    {% endif %}">
+                    <i class="fas {{ icon }} text-2xl
+                        {% if variant == 'primary' or not variant %}
+                            text-primary-600 dark:text-primary-400
+                        {% elif variant == 'success' %}
+                            text-success-600 dark:text-success-400
+                        {% elif variant == 'warning' %}
+                            text-warning-600 dark:text-warning-400
+                        {% elif variant == 'danger' %}
+                            text-error-600 dark:text-error-400
+                        {% elif variant == 'info' %}
+                            text-info-600 dark:text-info-400
+                        {% endif %}"></i>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {# Optional Footer Action #}
+    {% if action_text and action_url %}
+    <div class="px-6 py-3 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+        <a href="{{ action_url }}" class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center group">
+            {{ action_text }}
+            <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
+        </a>
+    </div>
+    {% endif %}
+</div>

@@ -1,0 +1,104 @@
+{# Radio Button Group Component #}
+{# 
+Usage:
+{% include 'components/form_radio.html' with 
+    field=form.notification_preference 
+    label="Notification Preferences"
+    help_text="How would you like to receive notifications?"
+    required=True
+%}
+
+Or manual (without Django form):
+{% include 'components/form_radio.html' with 
+    name="notification_type"
+    label="Notification Type"
+    options=notification_options
+    value="email"
+    layout="horizontal"
+%}
+
+Options format: [{'value': 'email', 'label': 'Email'}, {'value': 'sms', 'label': 'SMS'}]
+#}
+
+{% load widget_tweaks %}
+
+<div class="form-group {% if extra_classes %}{{ extra_classes }}{% endif %}">
+    {# Label #}
+    {% if label %}
+    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+        {% if icon %}
+        <i class="fas {{ icon }} text-primary-500 mr-2"></i>
+        {% endif %}
+        {{ label }}
+        {% if required %}
+        <span class="text-error-500">*</span>
+        {% endif %}
+    </label>
+    {% endif %}
+    
+    {# Help Text (above options) #}
+    {% if help_text %}
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+        {{ help_text }}
+    </p>
+    {% elif field and field.help_text %}
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+        {{ field.help_text }}
+    </p>
+    {% endif %}
+    
+    {# Radio Options #}
+    <div class="{% if layout == 'horizontal' %}flex flex-wrap gap-4{% else %}space-y-3{% endif %}">
+        {% if field %}
+            {# Django form field - iterate through choices #}
+            {% for choice_value, choice_label in field.field.choices %}
+            <div class="flex items-center">
+                <input 
+                    type="radio"
+                    id="{{ field.id_for_label }}_{{ forloop.counter }}"
+                    name="{{ field.html_name }}"
+                    value="{{ choice_value }}"
+                    {% if field.value == choice_value or field.value|stringformat:"s" == choice_value|stringformat:"s" %}checked{% endif %}
+                    {% if field.field.required %}required{% endif %}
+                    class="w-4 h-4 text-primary-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 cursor-pointer"
+                >
+                <label for="{{ field.id_for_label }}_{{ forloop.counter }}" class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                    {{ choice_label }}
+                </label>
+            </div>
+            {% endfor %}
+        {% elif options %}
+            {# Manual radio buttons #}
+            {% for option in options %}
+            <div class="flex items-center">
+                <input 
+                    type="radio"
+                    id="{{ id|default:name }}_{{ forloop.counter }}"
+                    name="{{ name }}"
+                    value="{% if option.value %}{{ option.value }}{% else %}{{ option }}{% endif %}"
+                    {% if value and value == option.value or value == option %}checked{% endif %}
+                    {% if required %}required{% endif %}
+                    {% if disabled %}disabled{% endif %}
+                    class="w-4 h-4 text-primary-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 cursor-pointer {{ input_classes }}"
+                >
+                <label for="{{ id|default:name }}_{{ forloop.counter }}" class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                    {% if option.label %}{{ option.label }}{% else %}{{ option }}{% endif %}
+                </label>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    {# Error Message #}
+    {% if field and field.errors %}
+    <p class="mt-2 text-sm text-error-600 dark:text-error-400">
+        <i class="fas fa-exclamation-circle mr-1"></i>
+        {{ field.errors|join:', ' }}
+    </p>
+    {% elif error %}
+    <p class="mt-2 text-sm text-error-600 dark:text-error-400">
+        <i class="fas fa-exclamation-circle mr-1"></i>
+        {{ error }}
+    </p>
+    {% endif %}
+</div>

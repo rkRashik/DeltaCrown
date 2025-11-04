@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'django_ckeditor_5',
     'channels',
     'corsheaders',
+    'widget_tweaks',
 
     # Core Infrastructure
     'apps.core',

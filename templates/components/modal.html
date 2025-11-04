@@ -1,19 +1,295 @@
-{# Props: id, title, body (safe), primary_label, on_primary (data-close-modal or custom), close_label='Close' #}
-<div id="{{ id }}" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title"
-     class="fixed inset-0 z-50 flex items-end md:items-center justify-center"
-     aria-hidden="true" hidden>
-  <div data-modal-overlay class="absolute inset-0 bg-black/50"></div>
-  <div data-modal-panel class="relative bg-surface border border-line rounded-2xl w-full max-w-lg mx-auto p-6 transition
-                              opacity-0 translate-y-4 md:translate-y-0 md:opacity-100">
-    <h2 id="{{ id }}-title" class="text-lg font-semibold">{{ title }}</h2>
-    <div class="mt-3 prose prose-invert max-w-none">
-      {{ body|safe }}
-    </div>
-    <div class="mt-6 flex gap-2 justify-end">
-      {% include "components/button.html" with label=close_label|default:"Close" variant="outline" id=id|add:"-close" aria_label="Close modal" %}
-      {% if on_primary %}
-        <button class="btn btn-primary" data-close-modal="{{ id }}">{{ primary_label|default:"OK" }}</button>
-      {% endif %}
-    </div>
-  </div>
+{# Modal/Dialog Component with Backdrop and Focus Management #}
+{# 
+Usage:
+{% include 'components/modal.html' with 
+    id="confirmModal"
+    title="Confirm Action"
+    size="md"
+    content="<p>Are you sure?</p>"
+    cancel_text="Cancel"
+    confirm_text="Confirm"
+%}
+
+Control with JavaScript:
+openModal('confirmModal');
+closeModal('confirmModal');
+
+Or use data attributes:
+<button data-modal-open="confirmModal">Open</button>
+<button data-modal-close="confirmModal">Close</button>
+
+Legacy support: body, primary_label, on_primary, close_label still work
+#}
+
+{# Modal Backdrop #}
+<div 
+    id="{{ id }}_backdrop" 
+    data-modal-overlay
+    class="modal-backdrop fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"
+    onclick="closeModal('{{ id }}')"
+    aria-hidden="true"
+>
 </div>
+
+{# Modal Container #}
+<div 
+    id="{{ id }}"
+    class="modal-container fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 hidden"
+    role="dialog"
+    aria-modal="true"
+    {% if title %}aria-labelledby="{{ id }}_title"{% endif %}
+    aria-hidden="true"
+>
+    {# Modal Content #}
+    <div 
+        data-modal-panel
+        class="modal-content bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full
+        {# Size variants #}
+        {% if size == 'sm' %}
+            max-w-sm
+        {% elif size == 'lg' %}
+            max-w-2xl
+        {% elif size == 'xl' %}
+            max-w-4xl
+        {% elif size == 'full' %}
+            max-w-7xl max-h-[90vh] overflow-auto
+        {% else %}
+            max-w-md
+        {% endif %}
+        
+        transform scale-95 opacity-0 transition-all duration-300 ease-out translate-y-4 md:translate-y-0"
+        onclick="event.stopPropagation()"
+    >
+        {# Modal Header #}
+        {% if title or closeable != False %}
+        <div class="modal-header flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center space-x-3">
+                {# Icon #}
+                {% if icon %}
+                <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <i class="fas {{ icon }} text-primary-600 dark:text-primary-400"></i>
+                </div>
+                {% endif %}
+                
+                {# Title #}
+                <div>
+                    {% if title %}
+                    <h2 id="{{ id }}_title" class="text-xl font-bold text-gray-900 dark:text-white">
+                        {{ title }}
+                    </h2>
+                    {% endif %}
+                    
+                    {% if subtitle %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                        {{ subtitle }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {# Close Button #}
+            {% if closeable != False %}
+            <button 
+                type="button"
+                onclick="closeModal('{{ id }}')"
+                id="{{ id }}-close"
+                class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Close modal"
+            >
+                <i class="fas fa-times text-lg"></i>
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {# Modal Body #}
+        <div class="modal-body p-6 {% if body_classes %}{{ body_classes }}{% endif %}">
+            {# New content parameter #}
+            {% if content %}
+                {{ content|safe }}
+            {# Legacy body parameter #}
+            {% elif body %}
+                <div class="prose dark:prose-invert max-w-none">
+                    {{ body|safe }}
+                </div>
+            {% endif %}
+        </div>
+        
+        {# Modal Footer #}
+        {% if show_footer or footer_content or cancel_text or confirm_text or close_label or primary_label %}
+        <div class="modal-footer flex items-center justify-end space-x-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+            {% if footer_content %}
+                {{ footer_content|safe }}
+            {% else %}
+                {# Cancel/Close button #}
+                {% if cancel_text or close_label %}
+                <button 
+                    type="button"
+                    onclick="closeModal('{{ id }}')"
+                    class="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-lg transition-colors"
+                >
+                    {{ cancel_text|default:close_label|default:"Cancel" }}
+                </button>
+                {% endif %}
+                
+                {# Confirm/Primary button #}
+                {% if confirm_text or primary_label %}
+                <button 
+                    type="button"
+                    {% if confirm_action %}onclick="{{ confirm_action }}"{% endif %}
+                    {% if on_primary %}data-close-modal="{{ id }}"{% endif %}
+                    class="px-4 py-2 bg-gradient-to-r
+                    {% if confirm_variant == 'danger' %}
+                        from-error-600 to-error-700 hover:from-error-700 hover:to-error-800
+                    {% elif confirm_variant == 'success' %}
+                        from-success-600 to-success-700 hover:from-success-700 hover:to-success-800
+                    {% else %}
+                        from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800
+                    {% endif %}
+                    text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                    {{ confirm_text|default:primary_label|default:"Confirm" }}
+                </button>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# Include Modal JavaScript (only once per page) #}
+<script>
+// Modal management functions
+if (typeof window.modalScriptLoaded === 'undefined') {
+    window.modalScriptLoaded = true;
+    window.activeModals = [];
+    
+    // Open modal function
+    window.openModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        const backdrop = document.getElementById(modalId + '_backdrop');
+        const content = modal ? modal.querySelector('[data-modal-panel]') : null;
+        
+        if (!modal || !backdrop) {
+            console.error('Modal not found:', modalId);
+            return;
+        }
+        
+        // Add to active modals stack
+        window.activeModals.push(modalId);
+        
+        // Show modal and backdrop
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        backdrop.classList.remove('hidden');
+        
+        // Trigger animation
+        setTimeout(() => {
+            backdrop.classList.remove('opacity-0');
+            if (content) {
+                content.classList.remove('scale-95', 'opacity-0', 'translate-y-4');
+                content.classList.add('scale-100', 'opacity-100', 'translate-y-0');
+            }
+        }, 10);
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+        
+        // Focus first focusable element
+        setTimeout(() => {
+            const firstFocusable = modal.querySelector('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) {
+                firstFocusable.focus();
+            }
+        }, 100);
+        
+        // Dispatch custom event
+        modal.dispatchEvent(new CustomEvent('modalOpened', { detail: { modalId } }));
+    };
+    
+    // Close modal function
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        const backdrop = document.getElementById(modalId + '_backdrop');
+        const content = modal ? modal.querySelector('[data-modal-panel]') : null;
+        
+        if (!modal || !backdrop) {
+            console.error('Modal not found:', modalId);
+            return;
+        }
+        
+        // Animate out
+        backdrop.classList.add('opacity-0');
+        if (content) {
+            content.classList.remove('scale-100', 'opacity-100', 'translate-y-0');
+            content.classList.add('scale-95', 'opacity-0', 'translate-y-4');
+        }
+        
+        // Hide after animation
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+            backdrop.classList.add('hidden');
+            
+            // Remove from active modals stack
+            const index = window.activeModals.indexOf(modalId);
+            if (index > -1) {
+                window.activeModals.splice(index, 1);
+            }
+            
+            // Restore body scroll if no modals are open
+            if (window.activeModals.length === 0) {
+                document.body.style.overflow = '';
+            }
+        }, 300);
+        
+        // Dispatch custom event
+        modal.dispatchEvent(new CustomEvent('modalClosed', { detail: { modalId } }));
+    };
+    
+    // Toggle modal function
+    window.toggleModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal && !modal.classList.contains('hidden')) {
+            closeModal(modalId);
+        } else {
+            openModal(modalId);
+        }
+    };
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && window.activeModals.length > 0) {
+            const lastModal = window.activeModals[window.activeModals.length - 1];
+            closeModal(lastModal);
+        }
+    });
+    
+    // Setup data attribute listeners
+    document.addEventListener('click', function(e) {
+        // Open modal
+        const openTrigger = e.target.closest('[data-modal-open]');
+        if (openTrigger) {
+            e.preventDefault();
+            const modalId = openTrigger.getAttribute('data-modal-open');
+            openModal(modalId);
+        }
+        
+        // Close modal
+        const closeTrigger = e.target.closest('[data-modal-close]');
+        if (closeTrigger) {
+            e.preventDefault();
+            const modalId = closeTrigger.getAttribute('data-modal-close');
+            closeModal(modalId);
+        }
+        
+        // Toggle modal
+        const toggleTrigger = e.target.closest('[data-modal-toggle]');
+        if (toggleTrigger) {
+            e.preventDefault();
+            const modalId = toggleTrigger.getAttribute('data-modal-toggle');
+            toggleModal(modalId);
+        }
+    });
+}
+</script>

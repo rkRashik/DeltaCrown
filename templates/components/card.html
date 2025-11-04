@@ -1,7 +1,165 @@
-{# Props: title (optional), body_html (safe) #}
-<div class="bg-surface border border-line rounded-2xl p-6">
-  {% if title %}<h3 class="text-lg font-semibold mb-2">{{ title }}</h3>{% endif %}
-  <div class="prose prose-invert max-w-none">
-    {% if body_html %}{{ body_html|safe }}{% endif %}
-  </div>
+{# Card Component #}
+{# 
+Usage Examples:
+
+1. Simple card with title and content:
+{% include 'components/card.html' with 
+    title="Tournament Details"
+    subtitle="View and edit tournament information"
+%}
+
+2. Card with icon and actions:
+{% include 'components/card.html' with 
+    title="Team Statistics"
+    icon="fa-chart-bar"
+    variant="elevated"
+    header_action='<button class="text-primary-600">Edit</button>'
+%}
+
+3. Interactive card (clickable):
+{% include 'components/card.html' with 
+    title="Join Tournament"
+    variant="interactive"
+    onclick="location.href='/tournaments/123/'"
+%}
+
+4. Gaming variant card:
+{% include 'components/card.html' with 
+    title="Valorant Championship"
+    subtitle="Finals starting soon"
+    variant="gaming"
+    icon="fa-trophy"
+%}
+
+5. Card with image and footer:
+{% include 'components/card.html' with 
+    title="Tournament Banner"
+    image="/static/img/tournament.jpg"
+    footer_text="Last updated: 2 hours ago"
+%}
+
+6. Legacy support (body_html):
+{% include 'components/card.html' with 
+    title="Legacy Content"
+    body_html="<p>Safe HTML content</p>"
+%}
+#}
+
+<div class="card
+    {# Base styles #}
+    bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden
+    
+    {# Variant styles #}
+    {% if variant == 'elevated' %}
+        shadow-lg hover:shadow-xl transition-shadow duration-300
+    {% elif variant == 'interactive' %}
+        shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer transform hover:-translate-y-1
+    {% elif variant == 'bordered' %}
+        border-2 shadow-none
+    {% elif variant == 'flat' %}
+        shadow-none border-none
+    {% elif variant == 'gaming' %}
+        shadow-lg shadow-primary-500/20 border-primary-500/30 bg-gradient-to-br from-gray-800 to-gray-900
+    {% else %}
+        shadow-sm
+    {% endif %}
+    
+    {# Size variants #}
+    {% if size == 'sm' %}
+        text-sm
+    {% elif size == 'lg' %}
+        text-lg
+    {% endif %}
+    
+    {# Full width #}
+    {% if full_width %}w-full{% endif %}
+    
+    {# Custom classes #}
+    {{ extra_classes }}"
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if onclick %}onclick="{{ onclick }}" role="button" tabindex="0"{% endif %}
+>
+    {# Card Header #}
+    {% if title or subtitle or header_action or icon %}
+    <div class="card-header px-6 py-4 border-b border-gray-200 dark:border-gray-700 
+        {% if variant == 'gaming' %}bg-gradient-to-r from-primary-900/20 to-transparent{% else %}bg-gray-50 dark:bg-gray-900/50{% endif %}">
+        <div class="flex items-start justify-between">
+            <div class="flex items-start space-x-3 flex-1">
+                {# Icon #}
+                {% if icon %}
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                        <i class="fas {{ icon }} text-primary-600 dark:text-primary-400"></i>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="flex-1 min-w-0">
+                    {# Title #}
+                    {% if title %}
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white {% if title_truncate %}truncate{% endif %}">
+                        {{ title }}
+                    </h3>
+                    {% endif %}
+                    
+                    {# Subtitle #}
+                    {% if subtitle %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {{ subtitle }}
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {# Header Action #}
+            {% if header_action %}
+            <div class="flex-shrink-0 ml-4">
+                {{ header_action|safe }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {# Card Body #}
+    <div class="card-body p-6 {% if body_classes %}{{ body_classes }}{% endif %}">
+        {% if image %}
+            {# Featured Image #}
+            <div class="mb-4 -mx-6 -mt-6">
+                <img src="{{ image }}" alt="{{ image_alt|default:'Card image' }}" class="w-full h-48 object-cover">
+            </div>
+        {% endif %}
+        
+        {# Main Content #}
+        {% if body_html %}
+            {# Legacy support for body_html parameter #}
+            <div class="prose prose-invert max-w-none dark:prose-invert">
+                {{ body_html|safe }}
+            </div>
+        {% elif content %}
+            {{ content|safe }}
+        {% endif %}
+    </div>
+    
+    {# Card Footer #}
+    {% if footer_text or footer_actions or show_footer %}
+    <div class="card-footer px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div class="flex items-center justify-between">
+            {# Footer Text #}
+            {% if footer_text %}
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                {{ footer_text }}
+            </p>
+            {% endif %}
+            
+            {# Footer Actions #}
+            {% if footer_actions %}
+            <div class="flex items-center space-x-3">
+                {{ footer_actions|safe }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
+

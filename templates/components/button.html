@@ -1,18 +1,152 @@
-{# Props: label, href (optional), variant='primary'|'outline'|'ghost', size='md'|'sm', type='button', id, aria_label #}
-{% with variant_local=variant|default:"primary" %}
-  {% if href %}
-    <a href="{{ href }}"
-       id="{{ id|default_if_none:'' }}"
-       class="btn {% if variant_local == 'primary' %}btn-primary{% elif variant_local == 'outline' %}border-line{% else %}border-transparent{% endif %} {% if size == 'sm' %}text-sm py-2{% endif %}"
-       aria-label="{{ aria_label|default:'' }}">
-       {{ label }}
+{# Button Component #}
+{# 
+Usage:
+{% include 'components/button.html' with 
+    text="Save Changes"
+    variant="primary"
+    size="md"
+    type="submit"
+    icon="fa-save"
+%}
+#}
+
+{% if href %}
+    {# Render as link #}
+    <a 
+        href="{{ href }}"
+        {% if id %}id="{{ id }}"{% endif %}
+        {% if target %}target="{{ target }}"{% endif %}
+        {% if disabled %}aria-disabled="true" tabindex="-1"{% endif %}
+        {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}
+        class="inline-flex items-center justify-center font-semibold transition-all duration-200 focus:ring-4 focus:outline-none
+        {# Variant Classes #}
+        {% if variant == 'primary' or not variant %}
+            bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-lg hover:shadow-xl focus:ring-primary-500/50
+        {% elif variant == 'secondary' %}
+            bg-gradient-to-r from-secondary-600 to-secondary-700 hover:from-secondary-700 hover:to-secondary-800 text-white shadow-lg hover:shadow-xl focus:ring-secondary-500/50
+        {% elif variant == 'success' %}
+            bg-gradient-to-r from-success-600 to-success-700 hover:from-success-700 hover:to-success-800 text-white shadow-lg hover:shadow-xl focus:ring-success-500/50
+        {% elif variant == 'danger' %}
+            bg-gradient-to-r from-error-600 to-error-700 hover:from-error-700 hover:to-error-800 text-white shadow-lg hover:shadow-xl focus:ring-error-500/50
+        {% elif variant == 'warning' %}
+            bg-gradient-to-r from-warning-500 to-warning-600 hover:from-warning-600 hover:to-warning-700 text-white shadow-lg hover:shadow-xl focus:ring-warning-500/50
+        {% elif variant == 'ghost' %}
+            bg-transparent border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500/50
+        {% elif variant == 'outline' or variant == 'outline-primary' %}
+            bg-transparent border-2 border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-primary-600 dark:text-primary-400 focus:ring-primary-500/50
+        {% elif variant == 'outline-secondary' %}
+            bg-transparent border-2 border-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 text-secondary-600 dark:text-secondary-400 focus:ring-secondary-500/50
+        {% elif variant == 'link' %}
+            bg-transparent hover:underline text-primary-600 dark:text-primary-400 focus:ring-primary-500/50
+        {% endif %}
+        {# Size Classes #}
+        {% if size == 'xs' %}
+            px-3 py-1.5 text-xs rounded-md
+        {% elif size == 'sm' %}
+            px-4 py-2 text-sm rounded-lg
+        {% elif size == 'lg' %}
+            px-6 py-3.5 text-lg rounded-lg
+        {% elif size == 'xl' %}
+            px-8 py-4 text-xl rounded-xl
+        {% else %}
+            px-5 py-3 text-base rounded-lg
+        {% endif %}
+        {# Width #}
+        {% if full_width %}w-full{% endif %}
+        {# Disabled State #}
+        {% if disabled %}opacity-50 cursor-not-allowed pointer-events-none{% endif %}
+        {# Loading State #}
+        {% if loading %}opacity-75 cursor-wait{% endif %}
+        {# Custom Classes #}
+        {{ extra_classes }}"
+    >
+        {# Icon Before #}
+        {% if icon_before %}
+        <i class="fas {{ icon_before }} {% if text or label %}mr-2{% endif %}"></i>
+        {% endif %}
+        
+        {# Loading Spinner #}
+        {% if loading %}
+        <i class="fas fa-spinner fa-spin {% if text or label %}mr-2{% endif %}"></i>
+        {% endif %}
+        
+        {# Button Text #}
+        {{ text|default:label }}
+        
+        {# Icon After #}
+        {% if icon_after or icon %}
+        <i class="fas {{ icon_after|default:icon }} {% if text or label %}ml-2{% endif %}"></i>
+        {% endif %}
     </a>
-  {% else %}
-    <button type="{{ type|default:'button' }}"
-       id="{{ id|default_if_none:'' }}"
-       class="btn {% if variant_local == 'primary' %}btn-primary{% elif variant_local == 'outline' %}border-line{% else %}border-transparent{% endif %} {% if size == 'sm' %}text-sm py-2{% endif %}"
-       aria-label="{{ aria_label|default:'' }}">
-       {{ label }}
+{% else %}
+    {# Render as button #}
+    <button 
+        type="{{ type|default:'button' }}"
+        {% if id %}id="{{ id }}"{% endif %}
+        {% if name %}name="{{ name }}"{% endif %}
+        {% if value %}value="{{ value }}"{% endif %}
+        {% if disabled %}disabled{% endif %}
+        {% if form %}form="{{ form }}"{% endif %}
+        {% if onclick %}onclick="{{ onclick }}"{% endif %}
+        {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}
+        class="inline-flex items-center justify-center font-semibold transition-all duration-200 focus:ring-4 focus:outline-none
+        {# Variant Classes #}
+        {% if variant == 'primary' or not variant %}
+            bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:ring-primary-500/50
+        {% elif variant == 'secondary' %}
+            bg-gradient-to-r from-secondary-600 to-secondary-700 hover:from-secondary-700 hover:to-secondary-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:ring-secondary-500/50
+        {% elif variant == 'success' %}
+            bg-gradient-to-r from-success-600 to-success-700 hover:from-success-700 hover:to-success-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:ring-success-500/50
+        {% elif variant == 'danger' %}
+            bg-gradient-to-r from-error-600 to-error-700 hover:from-error-700 hover:to-error-800 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:ring-error-500/50
+        {% elif variant == 'warning' %}
+            bg-gradient-to-r from-warning-500 to-warning-600 hover:from-warning-600 hover:to-warning-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:ring-warning-500/50
+        {% elif variant == 'ghost' %}
+            bg-transparent border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500/50
+        {% elif variant == 'outline' or variant == 'outline-primary' %}
+            bg-transparent border-2 border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-primary-600 dark:text-primary-400 focus:ring-primary-500/50
+        {% elif variant == 'outline-secondary' %}
+            bg-transparent border-2 border-secondary-600 hover:bg-secondary-50 dark:hover:bg-secondary-900/20 text-secondary-600 dark:text-secondary-400 focus:ring-secondary-500/50
+        {% elif variant == 'link' %}
+            bg-transparent hover:underline text-primary-600 dark:text-primary-400 focus:ring-primary-500/50 shadow-none
+        {% endif %}
+        {# Size Classes #}
+        {% if size == 'xs' %}
+            px-3 py-1.5 text-xs rounded-md
+        {% elif size == 'sm' %}
+            px-4 py-2 text-sm rounded-lg
+        {% elif size == 'lg' %}
+            px-6 py-3.5 text-lg rounded-lg
+        {% elif size == 'xl' %}
+            px-8 py-4 text-xl rounded-xl
+        {% else %}
+            px-5 py-3 text-base rounded-lg
+        {% endif %}
+        {# Width #}
+        {% if full_width %}w-full{% endif %}
+        {# Disabled State #}
+        {% if disabled %}opacity-50 cursor-not-allowed{% endif %}
+        {# Loading State #}
+        {% if loading %}opacity-75 cursor-wait{% endif %}
+        {# Custom Classes #}
+        {{ extra_classes }}"
+    >
+        {# Icon Before #}
+        {% if icon_before %}
+        <i class="fas {{ icon_before }} {% if text or label %}mr-2{% endif %}"></i>
+        {% endif %}
+        
+        {# Loading Spinner #}
+        {% if loading %}
+        <i class="fas fa-spinner fa-spin {% if text or label %}mr-2{% endif %}"></i>
+        {% endif %}
+        
+        {# Button Text #}
+        {{ text|default:label }}
+        
+        {# Icon After #}
+        {% if icon_after or icon %}
+        <i class="fas {{ icon_after|default:icon }} {% if text or label %}ml-2{% endif %}"></i>
+        {% endif %}
     </button>
-  {% endif %}
-{% endwith %}
+{% endif %}

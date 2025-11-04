@@ -32,7 +32,7 @@ def _get_upcoming_matches_for_user(user, limit=5):
 class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = UserProfile
     form_class = UserProfileForm
-    template_name = "users/profile_edit_modern.html"
+    template_name = "users/profile_edit.html"  # New Tailwind-based template with Sprint 2 design system
     success_url = reverse_lazy("user_profile:edit")  # stay on the edit page
 
     class Meta:

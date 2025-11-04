@@ -37,10 +37,14 @@ Thumbs.db
 .vscode/
 *.sublime-*
 
-# Node (if any)
+# Node
 node_modules/
 npm-debug.log
 yarn-error.log
+package-lock.json
+
+# Compiled CSS
+static/css/dist/
 
 # Build
 dist/

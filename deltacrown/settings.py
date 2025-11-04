@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "rest_framework",
     "django_ckeditor_5",
+    "widget_tweaks",
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 
     # Core infrastructure (MUST be first)

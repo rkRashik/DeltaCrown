@@ -1,0 +1,315 @@
+/*
+ * DeltaCrown - Main Tailwind CSS Entry Point
+ * This file compiles to static/css/dist/main.css
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   BASE LAYER - Global styles and resets
+   ============================================ */
+@layer base {
+  /* CSS Custom Properties for theming */
+  :root {
+    /* Light theme */
+    --color-body: 255 255 255;
+    --color-body-secondary: 249 250 251;
+    --color-text-body: 17 24 39;
+    --color-text-muted: 107 114 128;
+    --color-border: 229 231 235;
+    --color-card-bg: 255 255 255;
+  }
+  
+  [data-theme="dark"] {
+    /* Dark theme */
+    --color-body: 17 24 39;
+    --color-body-secondary: 31 41 55;
+    --color-text-body: 243 244 246;
+    --color-text-muted: 156 163 175;
+    --color-border: 55 65 81;
+    --color-card-bg: 31 41 55;
+  }
+  
+  /* System preference fallback */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-body: 17 24 39;
+      --color-body-secondary: 31 41 55;
+      --color-text-body: 243 244 246;
+      --color-text-muted: 156 163 175;
+      --color-border: 55 65 81;
+      --color-card-bg: 31 41 55;
+    }
+  }
+  
+  /* Typography base */
+  html {
+    @apply antialiased;
+  }
+  
+  body {
+    @apply bg-body text-text-body;
+  }
+  
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-text-body;
+  }
+  
+  h1 {
+    @apply text-4xl lg:text-5xl;
+  }
+  
+  h2 {
+    @apply text-3xl lg:text-4xl;
+  }
+  
+  h3 {
+    @apply text-2xl lg:text-3xl;
+  }
+  
+  h4 {
+    @apply text-xl lg:text-2xl;
+  }
+  
+  /* Links */
+  a {
+    @apply text-primary-600 hover:text-primary-700 transition-colors;
+  }
+  
+  /* Focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+  
+  /* Skip link (accessibility) */
+  .skip-link {
+    @apply absolute left-[-9999px] top-0 z-50 bg-primary-600 text-white px-4 py-2 rounded-md;
+  }
+  
+  .skip-link:focus {
+    @apply left-4 top-4;
+  }
+}
+
+/* ============================================
+   COMPONENTS LAYER - Reusable components
+   ============================================ */
+@layer components {
+  /* Button variants */
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-all duration-200 focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-primary-600 border border-primary-600 hover:bg-primary-50 focus:ring-primary-500;
+  }
+  
+  .btn-ghost {
+    @apply bg-transparent text-primary-600 hover:bg-primary-50 focus:ring-primary-500;
+  }
+  
+  .btn-danger {
+    @apply bg-error-600 text-white hover:bg-error-700 focus:ring-error-500;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-lg;
+  }
+  
+  .btn-loading {
+    @apply relative text-transparent hover:text-transparent;
+  }
+  
+  .btn-loading::after {
+    content: "";
+    @apply absolute inset-0 m-auto w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin;
+  }
+  
+  /* Card component */
+  .card {
+    @apply bg-card-bg border border-border rounded-lg shadow-sm;
+  }
+  
+  .card-elevated {
+    @apply shadow-md hover:shadow-lg transition-shadow;
+  }
+  
+  .card-interactive {
+    @apply cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all;
+  }
+  
+  .card-header {
+    @apply px-6 py-4 border-b border-border;
+  }
+  
+  .card-body {
+    @apply px-6 py-4;
+  }
+  
+  .card-footer {
+    @apply px-6 py-4 border-t border-border bg-body-secondary rounded-b-lg;
+  }
+  
+  /* Form elements */
+  .form-group {
+    @apply mb-4;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-text-body mb-1;
+  }
+  
+  .form-label-required::after {
+    content: " *";
+    @apply text-error-500;
+  }
+  
+  .form-input {
+    @apply w-full px-3 py-2 border border-border rounded-md bg-white text-text-body placeholder:text-text-muted focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all;
+  }
+  
+  .form-input-error {
+    @apply border-error-500 focus:ring-error-500;
+  }
+  
+  .form-error {
+    @apply text-sm text-error-600 mt-1;
+  }
+  
+  .form-helper {
+    @apply text-sm text-text-muted mt-1;
+  }
+  
+  /* Modal/Dialog */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity;
+  }
+  
+  .modal-container {
+    @apply fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4;
+  }
+  
+  .modal-content {
+    @apply relative bg-card-bg rounded-lg shadow-xl max-w-md w-full;
+  }
+  
+  .modal-header {
+    @apply flex items-center justify-between px-6 py-4 border-b border-border;
+  }
+  
+  .modal-body {
+    @apply px-6 py-4;
+  }
+  
+  .modal-footer {
+    @apply px-6 py-4 border-t border-border flex justify-end gap-2;
+  }
+  
+  /* Alert/Toast */
+  .alert {
+    @apply p-4 rounded-md border;
+  }
+  
+  .alert-info {
+    @apply bg-info-50 border-info-500 text-info-600;
+  }
+  
+  .alert-success {
+    @apply bg-success-50 border-success-500 text-success-600;
+  }
+  
+  .alert-warning {
+    @apply bg-warning-50 border-warning-500 text-warning-600;
+  }
+  
+  .alert-error {
+    @apply bg-error-50 border-error-500 text-error-600;
+  }
+  
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800;
+  }
+  
+  .badge-success {
+    @apply bg-success-100 text-success-800;
+  }
+  
+  .badge-warning {
+    @apply bg-warning-100 text-warning-800;
+  }
+  
+  .badge-error {
+    @apply bg-error-100 text-error-800;
+  }
+}
+
+/* ============================================
+   UTILITIES LAYER - Custom utilities
+   ============================================ */
+@layer utilities {
+  /* Text utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  /* Scrollbar styling */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-body-secondary;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-text-muted rounded-full;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-body;
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply backdrop-blur-md bg-white/30 border border-white/20;
+  }
+  
+  /* Gaming glow effect */
+  .glow-primary {
+    @apply shadow-glow-md;
+  }
+  
+  .glow-accent {
+    @apply shadow-glow-accent;
+  }
+}
