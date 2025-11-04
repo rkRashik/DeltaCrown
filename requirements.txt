@@ -50,7 +50,7 @@ channels-redis==4.1.0
 requests==2.31.0
 
 # Timezone Support
-pytz==2023.3
+pytz==2025.2
 
 # Utilities
 python-slugify==8.0.1
