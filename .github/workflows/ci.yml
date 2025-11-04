@@ -1,44 +1,341 @@
-name: CI
+name: CI/CD Pipeline
 
 on:
   push:
+    branches: [ master ]
   pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  POSTGRES_VERSION: '15'
+  REDIS_VERSION: '7'
 
 jobs:
-  test:
+  # ==========================================
+  # Code Quality Checks
+  # ==========================================
+  lint:
+    name: Code Linting & Formatting
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: deltatest
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-
-    env:
-      # point Django at the CI DB (adapt if your settings read DATABASE_URL)
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/deltatest
-      # emails
-      DeltaCrownEmail: deltacrownhq@gmail.com
-      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
-      DJANGO_SETTINGS_MODULE: deltacrown.settings  # adjust if different
-
+    
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          python-version: "3.11"
-          cache: "pip"
-      - name: Install deps
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-django
-      - name: Run migrations\r\n        run: python manage.py migrate --noinput\r\n      - name: Run tests\r\n        run: pytest --maxfail=1 --disable-warnings -q
+          pip install -r requirements-dev.txt
+      
+      - name: Check code formatting with Black
+        run: |
+          black --check --diff apps/ deltacrown/ tests/
+      
+      - name: Check import sorting with isort
+        run: |
+          isort --check-only --diff apps/ deltacrown/ tests/
+      
+      - name: Lint with flake8
+        run: |
+          flake8 apps/ deltacrown/ tests/ --statistics --count
+      
+      - name: Lint with pylint
+        run: |
+          pylint apps/ deltacrown/ --rcfile=.pylintrc || true
+        continue-on-error: true
+      
+      - name: Type checking with mypy
+        run: |
+          mypy apps/ --config-file=pyproject.toml || true
+        continue-on-error: true
+
+  # ==========================================
+  # Security Scanning
+  # ==========================================
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+      
+      - name: Run Bandit security scan
+        run: |
+          bandit -r apps/ deltacrown/ -f json -o bandit-report.json || true
+          bandit -r apps/ deltacrown/ -ll
+        continue-on-error: true
+      
+      - name: Check for known security vulnerabilities
+        run: |
+          safety check --json || true
+          safety check --short-report
+        continue-on-error: true
+      
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+          retention-days: 30
+
+  # ==========================================
+  # Database & Migrations Check
+  # ==========================================
+  migrations:
+    name: Check Migrations
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: deltacrown_test
+          POSTGRES_PASSWORD: testpass123
+          POSTGRES_DB: deltacrown_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Check for migration conflicts
+        env:
+          DATABASE_URL: postgresql://deltacrown_test:testpass123@localhost:5432/deltacrown_test
+          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
+        run: |
+          python manage.py makemigrations --check --dry-run --no-input
+      
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgresql://deltacrown_test:testpass123@localhost:5432/deltacrown_test
+          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
+        run: |
+          python manage.py migrate --no-input
+
+  # ==========================================
+  # Unit & Integration Tests
+  # ==========================================
+  test:
+    name: Test Suite (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: deltacrown_test
+          POSTGRES_PASSWORD: testpass123
+          POSTGRES_DB: deltacrown_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgresql://deltacrown_test:testpass123@localhost:5432/deltacrown_test
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
+          SECRET_KEY: test-secret-key-for-ci-cd-pipeline
+        run: |
+          pytest --cov --cov-report=xml --cov-report=html --cov-report=term
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        if: matrix.python-version == '3.11'
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-deltacrown
+          fail_ci_if_error: false
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        if: matrix.python-version == '3.11'
+        with:
+          name: coverage-reports
+          path: |
+            htmlcov/
+            coverage.xml
+          retention-days: 30
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-py${{ matrix.python-version }}
+          path: |
+            .pytest_cache/
+          retention-days: 7
+
+  # ==========================================
+  # Docker Build Test
+  # ==========================================
+  docker-build:
+    name: Docker Build Verification
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: deltacrown:ci-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+      
+      - name: Test Docker Compose configuration
+        run: |
+          docker-compose config
+
+  # ==========================================
+  # Code Coverage Summary
+  # ==========================================
+  coverage-summary:
+    name: Coverage Summary
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    
+    steps:
+      - name: Download coverage reports
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-reports
+        continue-on-error: true
+      
+      - name: Display coverage summary
+        run: |
+          if [ -f coverage.xml ]; then
+            echo "Coverage report generated successfully"
+            cat coverage.xml | grep -o 'line-rate="[^"]*"' | head -1
+          else
+            echo "No coverage report found"
+          fi
+
+  # ==========================================
+  # Status Check (Required for Branch Protection)
+  # ==========================================
+  ci-status:
+    name: CI Status Check
+    runs-on: ubuntu-latest
+    needs: [lint, security, migrations, test, docker-build]
+    if: always()
+    
+    steps:
+      - name: Check CI status
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.migrations.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.docker-build.result }}" != "success" ]; then
+            echo "CI pipeline failed"
+            exit 1
+          fi
+          echo "All CI checks passed successfully!"
+      
+      - name: Post status
+        if: always()
+        run: |
+          echo "## CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Linting: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Migrations: ${{ needs.migrations.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker Build: ${{ needs.docker-build.result }}" >> $GITHUB_STEP_SUMMARY
 

@@ -1,0 +1,250 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/deploy-staging.yml'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/deltacrown
+
+jobs:
+  # ==========================================
+  # Build and Push Docker Image
+  # ==========================================
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=staging
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+  # ==========================================
+  # Database Backup (Pre-deployment)
+  # ==========================================
+  backup:
+    name: Backup Database
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+      
+      - name: Add staging server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.STAGING_SERVER_IP }} >> ~/.ssh/known_hosts
+      
+      - name: Create database backup
+        run: |
+          ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_IP }} << 'EOF'
+            cd /var/www/deltacrown
+            docker-compose exec -T postgres pg_dump -U $POSTGRES_USER $POSTGRES_DB > backup_$(date +%Y%m%d_%H%M%S).sql
+            echo "Backup created successfully"
+          EOF
+        continue-on-error: true
+
+  # ==========================================
+  # Deploy to Staging Server
+  # ==========================================
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, backup]
+    environment:
+      name: staging
+      url: https://staging.deltacrown.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+      
+      - name: Add staging server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.STAGING_SERVER_IP }} >> ~/.ssh/known_hosts
+      
+      - name: Deploy to staging server
+        run: |
+          ssh ${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SERVER_IP }} << 'EOF'
+            set -e
+            
+            echo "🚀 Starting deployment to staging..."
+            
+            # Navigate to project directory
+            cd /var/www/deltacrown
+            
+            # Pull latest changes
+            echo "📥 Pulling latest code..."
+            git pull origin master
+            
+            # Pull latest Docker images
+            echo "🐳 Pulling Docker images..."
+            docker-compose pull
+            
+            # Stop services
+            echo "🛑 Stopping services..."
+            docker-compose down
+            
+            # Run migrations
+            echo "📊 Running database migrations..."
+            docker-compose run --rm django python manage.py migrate --no-input
+            
+            # Collect static files
+            echo "📦 Collecting static files..."
+            docker-compose run --rm django python manage.py collectstatic --no-input --clear
+            
+            # Start services
+            echo "▶️ Starting services..."
+            docker-compose up -d
+            
+            # Wait for services to be healthy
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 10
+            
+            # Check service health
+            echo "🏥 Checking service health..."
+            docker-compose ps
+            
+            echo "✅ Deployment completed successfully!"
+          EOF
+      
+      - name: Verify deployment
+        run: |
+          sleep 5
+          curl -f https://staging.deltacrown.com/healthz || exit 1
+          echo "✅ Health check passed"
+
+  # ==========================================
+  # Run Smoke Tests
+  # ==========================================
+  smoke-tests:
+    name: Run Smoke Tests
+    runs-on: ubuntu-latest
+    needs: deploy
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install test dependencies
+        run: |
+          pip install requests pytest
+      
+      - name: Run API smoke tests
+        env:
+          STAGING_URL: https://staging.deltacrown.com
+        run: |
+          python << 'PYTHON_SCRIPT'
+          import requests
+          import sys
+          
+          base_url = "https://staging.deltacrown.com"
+          
+          # Test endpoints
+          endpoints = [
+              ("/healthz", 200),
+              ("/api/auth/login/", 200),
+              ("/api/auth/register/", 200),
+          ]
+          
+          all_passed = True
+          for endpoint, expected_status in endpoints:
+              url = f"{base_url}{endpoint}"
+              try:
+                  response = requests.get(url, timeout=10)
+                  if response.status_code == expected_status:
+                      print(f"✅ {endpoint}: {response.status_code}")
+                  else:
+                      print(f"❌ {endpoint}: Expected {expected_status}, got {response.status_code}")
+                      all_passed = False
+              except Exception as e:
+                  print(f"❌ {endpoint}: Error - {str(e)}")
+                  all_passed = False
+          
+          if not all_passed:
+              sys.exit(1)
+          print("\n✅ All smoke tests passed!")
+          PYTHON_SCRIPT
+
+  # ==========================================
+  # Notify Deployment Status
+  # ==========================================
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: [deploy, smoke-tests]
+    if: always()
+    
+    steps:
+      - name: Send deployment notification
+        run: |
+          echo "Deployment to staging completed"
+          echo "Status: ${{ needs.deploy.result }}"
+          echo "Smoke tests: ${{ needs.smoke-tests.result }}"
+          
+          # Add Slack/Discord webhook notification here if needed
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          #   -H 'Content-Type: application/json' \
+          #   -d '{"text":"Deployment to staging: ${{ needs.deploy.result }}"}'

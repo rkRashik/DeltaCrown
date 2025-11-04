@@ -1,0 +1,234 @@
+# DeltaCrown Tournament Engine - pyproject.toml
+# Configuration for Python tooling
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deltacrown"
+version = "0.1.0"
+description = "Enterprise-grade tournament management platform for esports competitions"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "DeltaCrown Team", email = "dev@deltacrown.com"}
+]
+keywords = ["django", "esports", "tournament", "management", "gaming"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django :: 4.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Games/Entertainment",
+]
+
+[project.urls]
+Homepage = "https://github.com/rkRashik/DeltaCrown"
+Documentation = "https://github.com/rkRashik/DeltaCrown/wiki"
+Repository = "https://github.com/rkRashik/DeltaCrown"
+Issues = "https://github.com/rkRashik/DeltaCrown/issues"
+
+# ============================
+# Black - Code Formatter
+# ============================
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+  | __pycache__
+)/
+'''
+
+# ============================
+# isort - Import Sorter
+# ============================
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+skip_glob = ["*/migrations/*", "*/venv/*", "*/__pycache__/*"]
+known_first_party = ["apps", "deltacrown"]
+known_django = ["django"]
+sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# ============================
+# Coverage.py - Code Coverage
+# ============================
+[tool.coverage.run]
+source = ["apps", "deltacrown"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/virtualenv/*",
+    "manage.py",
+    "*/wsgi.py",
+    "*/asgi.py",
+    "*/settings/*",
+    "*/conftest.py",
+]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+# ============================
+# MyPy - Static Type Checker
+# ============================
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = true
+plugins = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = "*.migrations.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "*.tests.*"
+ignore_errors = true
+
+[tool.django-stubs]
+django_settings_module = "deltacrown.settings.base"
+
+# ============================
+# Pylint - Code Linter
+# ============================
+[tool.pylint.main]
+py-version = "3.11"
+jobs = 0
+suggestion-mode = true
+load-plugins = ["pylint_django"]
+django-settings-module = "deltacrown.settings.base"
+
+[tool.pylint.messages_control]
+max-line-length = 100
+disable = [
+    "C0111",  # missing-docstring
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "C0116",  # missing-function-docstring
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+    "W0212",  # protected-access
+    "C0103",  # invalid-name (for Django conventions)
+]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.design]
+max-attributes = 10
+max-args = 8
+max-locals = 20
+
+[tool.pylint.similarities]
+min-similarity-lines = 4
+ignore-comments = true
+ignore-docstrings = true
+ignore-imports = true
+
+# ============================
+# Bandit - Security Linter
+# ============================
+[tool.bandit]
+targets = ["apps", "deltacrown"]
+exclude_dirs = [
+    "/tests/",
+    "/migrations/",
+    "/venv/",
+    "/__pycache__/",
+]
+skips = ["B101", "B601"]  # Skip assert_used, paramiko_calls
+
+# ============================
+# Pytest - Testing Framework
+# ============================
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "deltacrown.settings_test_pg"
+python_files = ["tests.py", "test_*.py", "*_test.py"]
+testpaths = ["tests"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--tb=short",
+    "--cov=apps",
+    "--cov=deltacrown",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+    "--no-cov-on-fail",
+    "--maxfail=5",
+    "--reuse-db",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow running tests",
+    "api: API endpoint tests",
+    "models: Model tests",
+    "views: View tests",
+    "serializers: Serializer tests",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

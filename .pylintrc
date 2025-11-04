@@ -1,0 +1,154 @@
+# Pylint Configuration for Django Projects
+
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=0
+
+# Load Django plugin
+load-plugins=pylint_django
+
+# Django settings module
+django-settings-module=deltacrown.settings.base
+
+# Pickle collected data for later comparisons
+persistent=yes
+
+# List of plugins (as comma separated values of python modules names) to load
+extension-pkg-whitelist=
+
+[MESSAGES CONTROL]
+# Disable specific messages
+disable=
+    C0111,  # missing-docstring
+    C0114,  # missing-module-docstring
+    C0115,  # missing-class-docstring
+    C0116,  # missing-function-docstring
+    R0903,  # too-few-public-methods (common in Django models)
+    R0913,  # too-many-arguments (common in Django views)
+    W0212,  # protected-access (common in Django)
+    C0103,  # invalid-name (Django conventions)
+    R0801,  # duplicate-code
+    W0613,  # unused-argument (common in Django signals)
+    C0330,  # bad-continuation (conflicts with black)
+    R0901,  # too-many-ancestors (Django inheritance)
+    R0902,  # too-many-instance-attributes (Django models)
+    R0904,  # too-many-public-methods (Django models/views)
+    E1101,  # no-member (Django ORM dynamic attributes)
+
+[REPORTS]
+# Set the output format
+output-format=colorized
+
+# Include message's id in output
+include-ids=yes
+
+# Put messages in a separate file for each module / package
+files-output=no
+
+# Display a full report
+reports=no
+
+# Python expression for score evaluation
+evaluation=10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
+
+[BASIC]
+# Good variable names
+good-names=i,j,k,ex,Run,_,id,pk,db
+
+# Bad variable names
+bad-names=foo,bar,baz,toto,tutu,tata
+
+# Regular expression matching correct argument names
+argument-rgx=[a-z_][a-z0-9_]{0,30}$
+
+# Regular expression matching correct attribute names
+attr-rgx=[a-z_][a-z0-9_]{0,30}$
+
+# Regular expression matching correct class attribute names
+class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{0,30}|(__.*__))$
+
+# Regular expression matching correct class names
+class-rgx=[A-Z_][a-zA-Z0-9]+$
+
+# Regular expression matching correct constant names
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__))$
+
+# Regular expression matching correct function names
+function-rgx=[a-z_][a-z0-9_]{0,30}$
+
+# Regular expression matching correct method names
+method-rgx=[a-z_][a-z0-9_]{0,30}$
+
+# Regular expression matching correct module names
+module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+
+# Regular expression matching correct variable names
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=100
+
+# Maximum number of lines in a module
+max-module-lines=1000
+
+# String used as indentation unit
+indent-string='    '
+
+# Number of spaces of indent required inside a hanging or continued line
+indent-after-paren=4
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=8
+
+# Maximum number of attributes for a class
+max-attributes=10
+
+# Maximum number of boolean expressions in an if statement
+max-bool-expr=5
+
+# Maximum number of branch for function / method body
+max-branches=12
+
+# Maximum number of locals for function / method body
+max-locals=20
+
+# Maximum number of parents for a class
+max-parents=7
+
+# Maximum number of public methods for a class
+max-public-methods=20
+
+# Maximum number of return / yield for function / method body
+max-returns=6
+
+# Maximum number of statements in function / method body
+max-statements=50
+
+# Minimum number of public methods for a class
+min-public-methods=0
+
+[IMPORTS]
+# Deprecated modules which should not be used
+deprecated-modules=optparse,imp
+
+# Create a graph of external dependencies
+ext-import-graph=
+
+# Create a graph of internal dependencies
+int-import-graph=
+
+[CLASSES]
+# List of method names used to declare (i.e. assign) instance attributes
+defining-attr-methods=__init__,__new__,setUp
+
+# List of valid names for the first argument in a class method
+valid-classmethod-first-arg=cls
+
+# List of valid names for the first argument in a metaclass class method
+valid-metaclass-classmethod-first-arg=mcs
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when caught
+overgeneral-exceptions=Exception
