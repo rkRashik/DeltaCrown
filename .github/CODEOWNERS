@@ -1,0 +1,74 @@
+# DeltaCrown Code Owners
+# 
+# This file defines who is responsible for reviewing changes to specific parts of the codebase.
+# The last matching pattern takes precedence.
+#
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @rkRashik
+
+# Backend & Django Core
+/apps/ @rkRashik
+/deltacrown/ @rkRashik
+manage.py @rkRashik
+/scripts/ @rkRashik
+
+# Authentication & User Management
+/apps/accounts/ @rkRashik
+/apps/user_profile/ @rkRashik
+
+# Tournament System
+/apps/tournaments/ @rkRashik
+/apps/teams/ @rkRashik
+/apps/players/ @rkRashik
+
+# Game Integrations
+/apps/game_efootball/ @rkRashik
+/apps/game_valorant/ @rkRashik
+
+# Ecommerce & Economy
+/apps/ecommerce/ @rkRashik
+/apps/economy/ @rkRashik
+
+# Infrastructure & DevOps
+/docker-compose.yml @rkRashik
+/Dockerfile @rkRashik
+/nginx/ @rkRashik
+/.github/ @rkRashik
+/scripts/ @rkRashik
+
+# Configuration Files
+*.env.example @rkRashik
+/deltacrown/settings/ @rkRashik
+pytest.ini @rkRashik
+.flake8 @rkRashik
+pyproject.toml @rkRashik
+
+# Dependencies
+requirements.txt @rkRashik
+requirements-dev.txt @rkRashik
+
+# Database
+/scripts/*db* @rkRashik
+*.sql @rkRashik
+
+# CI/CD
+/.github/workflows/ @rkRashik
+
+# Documentation
+*.md @rkRashik
+/docs/ @rkRashik
+
+# Tests
+/tests/ @rkRashik
+test_*.py @rkRashik
+conftest.py @rkRashik
+
+# Frontend Assets
+/static/ @rkRashik
+/templates/ @rkRashik
+
+# Security-sensitive files (require admin review)
+/deltacrown/settings/production.py @rkRashik
+.env.example @rkRashik

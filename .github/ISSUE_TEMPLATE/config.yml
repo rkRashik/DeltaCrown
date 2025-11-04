@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussion Forum
+    url: https://github.com/rkRashik/DeltaCrown/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/rkRashik/DeltaCrown/security/advisories/new
+    about: Report security vulnerabilities privately
+  - name: 📧 Contact Team
+    url: mailto:support@deltacrown.com
+    about: Direct communication with the DeltaCrown team

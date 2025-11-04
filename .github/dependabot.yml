@@ -1,0 +1,83 @@
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "rkRashik"
+    assignees:
+      - "rkRashik"
+    labels:
+      - "dependencies"
+      - "python"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Group Django related packages
+    groups:
+      django:
+        patterns:
+          - "django*"
+      drf:
+        patterns:
+          - "djangorestframework*"
+      testing:
+        patterns:
+          - "pytest*"
+          - "factory-boy"
+          - "faker"
+      security:
+        patterns:
+          - "cryptography"
+          - "pyjwt"
+    # Ignore specific versions
+    ignore:
+      # Ignore major version updates for Django (manual review needed)
+      - dependency-name: "django"
+        update-types: ["version-update:semver-major"]
+  
+  # Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "rkRashik"
+    assignees:
+      - "rkRashik"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "automated"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+  
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "rkRashik"
+    assignees:
+      - "rkRashik"
+    labels:
+      - "dependencies"
+      - "ci"
+      - "automated"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
