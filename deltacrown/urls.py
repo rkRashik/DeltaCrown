@@ -34,10 +34,13 @@ urlpatterns = [
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
     
     # API endpoints
+    # Authentication API
+    path("api/auth/", include("apps.accounts.api_urls")),
+    
     # Legacy tournament API moved to legacy_backup/
     # path("api/tournaments/", include("apps.tournaments.api_urls")),
 
-    # User profile â€” include ONCE with namespace & prefix invariant
+    # User profile â€" include ONCE with namespace & prefix invariant
     path("user/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
 
     # Optional extras mounted if present
