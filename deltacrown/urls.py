@@ -22,6 +22,12 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("account/", include(("apps.accounts.urls", "account"), namespace="account")),
 
+    # Favicon test page
+    path("favicon-test/", TemplateView.as_view(template_name="favicon_test.html"), name="favicon_test"),
+
+    # Favicon - Direct route for browser default lookup
+    path("favicon.ico", RedirectView.as_view(url=settings.STATIC_URL + "img/favicon/favicon.ico", permanent=False)),
+
     # Crawlers / SEO
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
     path("sitemap.xml", TemplateView.as_view(template_name="sitemap.xml", content_type="application/xml")),

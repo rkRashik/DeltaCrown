@@ -15,17 +15,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Favicon -->
-    <link rel="icon" href="{% static 'img/favicon/favicon.ico' %}" sizes="any">
-    <link rel="icon" href="{% static 'img/favicon/favicon-16x16.png' %}" sizes="16x16" type="image/png">
-    <link rel="icon" href="{% static 'img/favicon/favicon-32x32.png' %}" sizes="32x32" type="image/png">
-    <link rel="icon" href="{% static 'img/favicon/favicon-48x48.png' %}" sizes="48x48" type="image/png">
-    <link rel="icon" href="{% static 'img/favicon/favicon-64x64.png' %}" sizes="64x64" type="image/png">
-    <link rel="apple-touch-icon" href="{% static 'img/favicon/favicon-180x180.png' %}">
-    <link rel="manifest" href="{% static 'img/favicon/site.webmanifest' %}">
+    <!-- Favicon - New Logo -->
+    <link rel="icon" href="{% static 'img/favicon/favicon.ico' %}?v=new" sizes="any">
+    <link rel="icon" href="{% static 'img/favicon/favicon-16x16.png' %}?v=new" sizes="16x16" type="image/png">
+    <link rel="icon" href="{% static 'img/favicon/favicon-32x32.png' %}?v=new" sizes="32x32" type="image/png">
+    <link rel="icon" href="{% static 'img/favicon/favicon-48x48.png' %}?v=new" sizes="48x48" type="image/png">
+    <link rel="icon" href="{% static 'img/favicon/favicon-64x64.png' %}?v=new" sizes="64x64" type="image/png">
+    <link rel="apple-touch-icon" href="{% static 'img/favicon/favicon-180x180.png' %}?v=new">
+    <link rel="manifest" href="{% static 'img/favicon/site-v2.webmanifest' %}">
+
 
     {% include "partials/seo_meta.html" %}
-    <title>{% block title %}DeltaCrown — Bangladesh’s Esports Superbrand{% endblock %}</title>
+    <title>{% block title %}DeltaCrown{% endblock %}</title>
 
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
