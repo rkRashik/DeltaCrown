@@ -43,14 +43,28 @@ class PaymentInline(admin.StackedInline):
     ]
     
     def payment_proof_display(self, obj):
-        """Display payment proof image if available."""
-        if obj.payment_proof:
-            return format_html(
-                '<a href="{}" target="_blank"><img src="{}" style="max-width:200px;"/></a>',
-                obj.payment_proof,
-                obj.payment_proof
-            )
-        return "No proof uploaded"
+        """Display payment proof file if available (Module 3.2)."""
+        if not obj.payment_proof:
+            return format_html('<span style="color: gray;">No proof uploaded</span>')
+        
+        try:
+            file_url = obj.payment_proof.url
+            
+            if obj.file_type == 'PDF':
+                return format_html(
+                    '<a href="{}" target="_blank">📄 View PDF</a>',
+                    file_url
+                )
+            else:  # IMAGE
+                return format_html(
+                    '<a href="{}" target="_blank">'
+                    '<img src="{}" style="max-width:200px; border: 1px solid #ddd;"/>'
+                    '</a>',
+                    file_url,
+                    file_url
+                )
+        except ValueError:
+            return format_html('<span style="color: red;">File not found</span>')
     payment_proof_display.short_description = "Payment Proof"
     
     def has_add_permission(self, request, obj=None):
@@ -212,7 +226,7 @@ class PaymentAdmin(admin.ModelAdmin):
     """
     list_display = [
         'id', 'registration_participant', 'tournament_display', 'payment_method',
-        'amount', 'status_display', 'submitted_at', 'verified_by', 'verified_at'
+        'amount', 'reference_number', 'status_display', 'submitted_at', 'verified_by', 'verified_at'
     ]
     list_filter = [
         'status', 'payment_method', 'submitted_at', 'verified_at',
@@ -223,8 +237,8 @@ class PaymentAdmin(admin.ModelAdmin):
         'transaction_id', 'admin_notes'
     ]
     readonly_fields = [
-        'registration', 'payment_method', 'amount', 'transaction_id',
-        'payment_proof_display', 'submitted_at', 'updated_at',
+        'registration', 'payment_method', 'amount', 'transaction_id', 'reference_number',
+        'payment_proof_display', 'file_type', 'submitted_at', 'updated_at',
         'is_verified', 'is_pending_verification', 'can_be_verified'
     ]
     
@@ -234,8 +248,8 @@ class PaymentAdmin(admin.ModelAdmin):
         }),
         ('Payment Information', {
             'fields': (
-                'payment_method', 'amount', 'transaction_id',
-                'payment_proof_display', 'payment_proof'
+                'payment_method', 'amount', 'transaction_id', 'reference_number',
+                'payment_proof_display', 'payment_proof', 'file_type'
             )
         }),
         ('Verification', {
@@ -297,17 +311,34 @@ class PaymentAdmin(admin.ModelAdmin):
     status_display.admin_order_field = 'status'
     
     def payment_proof_display(self, obj):
-        """Display payment proof image if available."""
-        if obj.payment_proof:
-            return format_html(
-                '<a href="{}" target="_blank">'
-                '<img src="{}" style="max-width:400px; max-height:400px;"/>'
-                '</a>',
-                obj.payment_proof,
-                obj.payment_proof
-            )
-        return "No proof uploaded"
-    payment_proof_display.short_description = "Payment Proof Image"
+        """Display payment proof file if available (Module 3.2: enhanced with file type handling)."""
+        if not obj.payment_proof:
+            return format_html('<span style="color: gray;">No proof uploaded</span>')
+        
+        try:
+            file_url = obj.payment_proof.url
+            
+            # Display based on file type
+            if obj.file_type == 'PDF':
+                return format_html(
+                    '<a href="{}" target="_blank" class="button">'
+                    '<svg width="16" height="16" style="vertical-align: middle; margin-right: 4px;"><use href="#icon-pdf"/></svg>'
+                    'View PDF Document'
+                    '</a>',
+                    file_url
+                )
+            else:  # IMAGE
+                return format_html(
+                    '<a href="{}" target="_blank" data-lightbox="payment-proof">'
+                    '<img src="{}" style="max-width:400px; max-height:400px; border: 1px solid #ddd; border-radius: 4px;"/>'
+                    '</a>'
+                    '<br><small style="color: #666;">Click to view full size</small>',
+                    file_url,
+                    file_url
+                )
+        except ValueError:
+            return format_html('<span style="color: red;">File not found</span>')
+    payment_proof_display.short_description = "Payment Proof"
     
     def verify_payments(self, request, queryset):
         """

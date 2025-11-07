@@ -381,6 +381,101 @@ class RegistrationService:
     
     @staticmethod
     @transaction.atomic
+    def submit_payment_proof(
+        registration_id: int,
+        payment_proof_file,
+        reference_number: str = '',
+        notes: str = ''
+    ) -> Payment:
+        """
+        Submit payment proof file for a registration (Module 3.2: Payment Processing).
+        
+        This method handles file upload for manual payment verification (bKash, Nagad, etc.).
+        Replaces any existing pending proof submission.
+        
+        Args:
+            registration_id: ID of registration to submit proof for
+            payment_proof_file: Uploaded file (Django UploadedFile object)
+            reference_number: Payment reference number from receipt (optional)
+            notes: Additional notes about the payment (optional)
+        
+        Returns:
+            Payment: Updated payment instance with proof file
+        
+        Raises:
+            Registration.DoesNotExist: If registration not found
+            ValidationError: If proof submission fails validation
+        
+        File Validation:
+            - Size: Maximum 5MB
+            - Types: JPG, PNG, PDF only
+            - Automatically determines file_type based on extension
+        
+        Example:
+            >>> from django.core.files.uploadedfile import SimpleUploadedFile
+            >>> proof_file = request.FILES['payment_proof']
+            >>> payment = RegistrationService.submit_payment_proof(
+            ...     registration_id=123,
+            ...     payment_proof_file=proof_file,
+            ...     reference_number='BKH123456789',
+            ...     notes='Paid via bKash on 2025-11-08'
+            ... )
+        """
+        # Get registration with payment
+        try:
+            registration = Registration.objects.select_related(
+                'tournament', 'payment'
+            ).get(id=registration_id)
+        except Registration.DoesNotExist:
+            raise ValidationError(f"Registration with ID {registration_id} not found")
+        
+        # Check if payment exists
+        if not hasattr(registration, 'payment'):
+            raise ValidationError(
+                "No payment record found for this registration. "
+                "Please submit payment details first using submit_payment()."
+            )
+        
+        payment = registration.payment
+        
+        # Validate payment status - can only submit proof for pending/submitted payments
+        if payment.status not in [Payment.PENDING, Payment.SUBMITTED, Payment.REJECTED]:
+            raise ValidationError(
+                f"Cannot submit proof for payment with status '{payment.get_status_display()}'. "
+                f"Payment proof can only be submitted for pending, submitted, or rejected payments."
+            )
+        
+        # Delete existing proof file if replacing (for resubmission after rejection)
+        if payment.payment_proof:
+            try:
+                payment.payment_proof.delete(save=False)
+            except Exception:
+                pass  # Ignore errors if file doesn't exist
+        
+        # Assign new file
+        payment.payment_proof = payment_proof_file
+        payment.reference_number = reference_number
+        payment.admin_notes = notes if notes else payment.admin_notes
+        payment.status = Payment.SUBMITTED
+        
+        # Validate (this will trigger file size/type validation in model's clean())
+        payment.full_clean()
+        payment.save()
+        
+        # Update registration status
+        if registration.status != Registration.PAYMENT_SUBMITTED:
+            registration.status = Registration.PAYMENT_SUBMITTED
+            registration.save(update_fields=['status'])
+        
+        # TODO: Module 3.2 - Future integration points
+        # - Send notification to organizer (apps.notifications)
+        # - Celery task: send_proof_uploaded_email(payment.id)
+        # - Log proof submission event in audit log
+        
+        return payment
+    
+    @staticmethod
+    @transaction.atomic
     def verify_payment(
         payment_id: int,
         verified_by,

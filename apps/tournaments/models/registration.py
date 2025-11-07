@@ -311,11 +311,30 @@ class Payment(models.Model):
         help_text="Transaction ID from payment provider"
     )
     
-    payment_proof = models.CharField(
-        max_length=200,
+    # Payment proof file upload (Module 3.2: Payment Processing)
+    payment_proof = models.FileField(
+        upload_to='payment_proofs/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text="Payment proof file upload (image or PDF, max 5MB)"
+    )
+    
+    file_type = models.CharField(
+        max_length=10,
         blank=True,
         default='',
-        help_text="Path to payment proof image (e.g., screenshot)"
+        choices=[
+            ('IMAGE', 'Image'),
+            ('PDF', 'PDF Document'),
+        ],
+        help_text="Type of uploaded proof file"
+    )
+    
+    reference_number = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Payment reference number from receipt"
     )
     
     # Status and verification
@@ -416,6 +435,47 @@ class Payment(models.Model):
                 raise ValidationError(
                     "Verified payments must have verified_by and verified_at set"
                 )
+        
+        # Validate file upload (Module 3.2)
+        if self.payment_proof:
+            self._validate_proof_file()
+    
+    def _validate_proof_file(self) -> None:
+        """
+        Validate payment proof file (Module 3.2: Payment Processing).
+        
+        Validates:
+        - File size (max 5MB)
+        - File type (JPG, PNG, PDF only)
+        - Sets file_type field based on content type
+        
+        Raises:
+            ValidationError: If file is invalid
+        """
+        file = self.payment_proof
+        
+        # Check file size (5MB max)
+        max_size = 5 * 1024 * 1024  # 5MB in bytes
+        if file.size > max_size:
+            raise ValidationError(
+                f"Payment proof file is too large ({file.size / 1024 / 1024:.1f}MB). "
+                f"Maximum size is 5MB."
+            )
+        
+        # Check file extension
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.pdf']
+        file_extension = file.name.lower().split('.')[-1]
+        if f'.{file_extension}' not in allowed_extensions:
+            raise ValidationError(
+                f"Invalid file type '.{file_extension}'. "
+                f"Allowed types: JPG, PNG, PDF"
+            )
+        
+        # Determine file type
+        if file_extension == 'pdf':
+            self.file_type = 'PDF'
+        else:
+            self.file_type = 'IMAGE'
     
     def verify(self, verified_by: Any, admin_notes: str = '') -> None:
         """
@@ -474,4 +534,18 @@ class Payment(models.Model):
     @property
     def can_be_verified(self) -> bool:
         """Check if payment can be verified (has proof and is submitted)"""
-        return self.status == self.SUBMITTED and bool(self.payment_proof or self.transaction_id)
+        # For DeltaCoin, only transaction_id is needed
+        if self.payment_method == self.DELTACOIN:
+            return self.status == self.SUBMITTED and bool(self.transaction_id)
+        # For manual payments (bKash, Nagad, etc.), payment proof file is required
+        return self.status == self.SUBMITTED and (bool(self.payment_proof) or bool(self.transaction_id))
+    
+    @property
+    def proof_file_url(self) -> Optional[str]:
+        """Get payment proof file URL if available"""
+        if self.payment_proof:
+            try:
+                return self.payment_proof.url
+            except ValueError:
+                return None
+        return None
