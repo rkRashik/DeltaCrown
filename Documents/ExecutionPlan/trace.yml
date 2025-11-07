@@ -1,0 +1,116 @@
+# Machine-checkable mapping used by CI. Fill as you implement modules.
+phase_0:
+  module_0_1:
+    implements:
+      - Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md#phase-0
+      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md
+
+phase_1:
+  module_1_1:
+    implements: []
+  module_1_2:
+    implements: []
+  module_1_3:
+    implements: []
+  module_1_4:
+    implements: []
+  module_1_5:
+    implements: []
+
+phase_2:
+  module_2_1:
+    implements: []
+  module_2_2:
+    implements: []
+  module_2_3:
+    implements: []
+  module_2_4:
+    implements: []
+  module_2_5:
+    implements: []
+
+phase_3:
+  module_3_1:
+    implements: []
+  module_3_2:
+    implements: []
+  module_3_3:
+    implements: []
+  module_3_4:
+    implements: []
+  module_3_5:
+    implements: []
+
+phase_4:
+  module_4_1:
+    implements: []
+  module_4_2:
+    implements: []
+  module_4_3:
+    implements: []
+  module_4_4:
+    implements: []
+  module_4_5:
+    implements: []
+  module_4_6:
+    implements: []
+
+phase_5:
+  module_5_1:
+    implements: []
+  module_5_2:
+    implements: []
+  module_5_3:
+    implements: []
+  module_5_4:
+    implements: []
+
+phase_6:
+  module_6_1:
+    implements: []
+  module_6_2:
+    implements: []
+  module_6_3:
+    implements: []
+  module_6_4:
+    implements: []
+  module_6_5:
+    implements: []
+
+phase_7:
+  module_7_1:
+    implements: []
+  module_7_2:
+    implements: []
+  module_7_3:
+    implements: []
+  module_7_4:
+    implements: []
+  module_7_5:
+    implements: []
+
+phase_8:
+  module_8_1:
+    implements: []
+  module_8_2:
+    implements: []
+  module_8_3:
+    implements: []
+  module_8_4:
+    implements: []
+  module_8_5:
+    implements: []
+
+phase_9:
+  module_9_1:
+    implements: []
+  module_9_2:
+    implements: []
+  module_9_3:
+    implements: []
+  module_9_4:
+    implements: []
+  module_9_5:
+    implements: []
+  module_9_6:
+    implements: []

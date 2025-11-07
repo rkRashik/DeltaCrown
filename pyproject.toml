@@ -1,0 +1,45 @@
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | migrations
+  | staticfiles
+  | media
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip_glob = ["*/migrations/*", "staticfiles/*", "media/*"]
+known_django = "django"
+known_first_party = ["apps", "deltacrown"]
+sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+exclude = ["migrations", "staticfiles", "media", "venv"]
+
+[[tool.mypy.overrides]]
+module = [
+    "django.*",
+    "channels.*",
+    "celery.*",
+    "redis.*"
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "deltacrown.settings_test_pg"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+addopts = "--reuse-db --nomigrations"

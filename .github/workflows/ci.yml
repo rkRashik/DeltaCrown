@@ -1,44 +1,119 @@
-name: CI
+name: CIname: CI
+
+on: [push, pull_request]
 
 on:
-  push:
-  pull_request:
 
-jobs:
-  test:
+jobs:  push:
+
+  test:  pull_request:
+
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: deltatest
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
 
-    env:
-      # point Django at the CI DB (adapt if your settings read DATABASE_URL)
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/deltatest
-      # emails
-      DeltaCrownEmail: deltacrownhq@gmail.com
-      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
-      DJANGO_SETTINGS_MODULE: deltacrown.settings  # adjust if different
+    jobs:
 
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+    services:  test:
+
+      postgres:    runs-on: ubuntu-latest
+
+        image: postgres:15    services:
+
+        env:      postgres:
+
+          POSTGRES_USER: postgres        image: postgres:16
+
+          POSTGRES_PASSWORD: postgres        env:
+
+          POSTGRES_DB: deltacrown_test          POSTGRES_USER: postgres
+
+        ports:          POSTGRES_PASSWORD: postgres
+
+          - 5432:5432          POSTGRES_DB: deltatest
+
+        options: >-        ports: ["5432:5432"]
+
+          --health-cmd pg_isready        options: >-
+
+          --health-interval 10s          --health-cmd "pg_isready -U postgres"
+
+          --health-timeout 5s          --health-interval 5s
+
+          --health-retries 5          --health-timeout 5s
+
+                --health-retries 20
+
+      redis:
+
+        image: redis:7    env:
+
+        ports:      # point Django at the CI DB (adapt if your settings read DATABASE_URL)
+
+          - 6379:6379      DATABASE_URL: postgres://postgres:postgres@localhost:5432/deltatest
+
+        options: >-      # emails
+
+          --health-cmd "redis-cli ping"      DeltaCrownEmail: deltacrownhq@gmail.com
+
+          --health-interval 10s      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
+
+          --health-timeout 5s      DJANGO_SETTINGS_MODULE: deltacrown.settings  # adjust if different
+
+          --health-retries 5
+
+        steps:
+
+    env:      - uses: actions/checkout@v4
+
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deltacrown_test      - uses: actions/setup-python@v5
+
+      REDIS_URL: redis://localhost:6379/0        with:
+
+      DeltaCrownEmail: deltacrownhq@gmail.com          python-version: "3.11"
+
+      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend          cache: "pip"
+
+      DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg      - name: Install deps
+
+            run: |
+
+    steps:          python -m pip install --upgrade pip
+
+      - name: Checkout code          pip install -r requirements.txt
+
+        uses: actions/checkout@v4          pip install pytest pytest-django
+
+            - name: Run migrations\r\n        run: python manage.py migrate --noinput\r\n      - name: Run tests\r\n        run: pytest --maxfail=1 --disable-warnings -q
+
+      - name: Set up Python
+
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          cache: "pip"
-      - name: Install deps
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-django
-      - name: Run migrations\r\n        run: python manage.py migrate --noinput\r\n      - name: Run tests\r\n        run: pytest --maxfail=1 --disable-warnings -q
-
+          pip install black isort flake8 mypy pytest pytest-django pytest-cov pyyaml
+      
+      - name: Run Black (code formatting)
+        run: black --check .
+      
+      - name: Run isort (import sorting)
+        run: isort --check-only .
+      
+      - name: Run flake8 (linting)
+        run: flake8 .
+      
+      - name: Run mypy (type checking)
+        run: mypy apps || true
+      
+      - name: Run migrations
+        run: python manage.py migrate --noinput
+      
+      - name: Run tests
+        run: pytest -q --maxfail=1 --disable-warnings --cov=apps --cov-report=term-missing
+      
+      - name: Verify traceability
+        run: python scripts/verify_trace.py
