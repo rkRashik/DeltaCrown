@@ -18,7 +18,7 @@ from rest_framework import serializers
 from django.core.exceptions import ValidationError as DjangoValidationError
 from apps.tournaments.models.registration import Registration
 from apps.tournaments.models.tournament import Tournament
-from apps.tournaments.services.registration_service import RegistrationService, RegistrationEligibilityError
+from apps.tournaments.services.registration_service import RegistrationService
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -160,7 +160,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 registration_data=validated_data.get('registration_data', {})
             )
             return registration
-        except (DjangoValidationError, RegistrationEligibilityError) as e:
+        except DjangoValidationError as e:
             raise serializers.ValidationError(str(e))
 
 
