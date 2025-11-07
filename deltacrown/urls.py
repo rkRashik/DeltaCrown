@@ -5,19 +5,29 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from .views import healthz, test_game_assets
+from .views import healthz, readiness, test_game_assets
 from django.views.generic import TemplateView
 from apps.players import views as player_views
 from apps.search import views as search_views
 from apps.siteui import views as site_views
 from apps.support import views as support_views
 from django.views.generic import RedirectView
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+    TokenVerifyView,
+)
 
 
 urlpatterns = [
     # Root + health
     path("", include("apps.siteui.urls")),
     path("healthz/", healthz, name="healthz"),
+    path("readiness/", readiness, name="readiness"),  # Module 2.4: Security Hardening
+    
+    # Prometheus metrics (Phase 3 Prep: Monitoring)
+    path("metrics/", include("django_prometheus.urls")),
+    
     path("test-game-assets/", test_game_assets, name="test_game_assets"),
     path("admin/", admin.site.urls),
     path("account/", include(("apps.accounts.urls", "account"), namespace="account")),
@@ -32,6 +42,13 @@ urlpatterns = [
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
     path("sitemap.xml", TemplateView.as_view(template_name="sitemap.xml", content_type="application/xml")),
 
+    # -------------------------------------------------------------------------
+    # JWT Authentication API (Phase 2: Real-Time Features & Security)
+    # -------------------------------------------------------------------------
+    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+
 
     # Core apps (explicit)
     # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
@@ -40,8 +57,8 @@ urlpatterns = [
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
     
     # API endpoints
-    # Legacy tournament API moved to legacy_backup/
-    # path("api/tournaments/", include("apps.tournaments.api_urls")),
+    # Module 3.1: Registration Flow & Validation API
+    path("api/tournaments/", include("apps.tournaments.api.urls")),
 
     # User profile â€” include ONCE with namespace & prefix invariant
     path("user/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),

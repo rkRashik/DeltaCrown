@@ -1,0 +1,95 @@
+# ============================================================================
+# DELTACROWN TOURNAMENT PLATFORM - DEPENDENCIES
+# ============================================================================
+# Python 3.11+ Required
+# Last Updated: 2025-11-XX
+# Phase 2: Real-Time Features & Security
+# ============================================================================
+
+# -----------------------------------------------------------------------------
+# Core Django Framework
+# -----------------------------------------------------------------------------
+Django>=5.2.8,<6.0
+psycopg2-binary>=2.9.10  # PostgreSQL adapter
+python-decouple>=3.8     # Environment variable management
+
+# -----------------------------------------------------------------------------
+# Django REST Framework & API
+# -----------------------------------------------------------------------------
+djangorestframework>=3.15.2
+djangorestframework-simplejwt>=5.3.0  # JWT authentication (Phase 2)
+django-filter>=24.3                    # API filtering
+django-cors-headers>=4.3.1             # CORS headers for frontend integration
+
+# -----------------------------------------------------------------------------
+# Real-Time & WebSocket (Phase 2)
+# -----------------------------------------------------------------------------
+channels>=4.1.0                  # Django Channels for WebSocket
+channels-redis>=4.2.0            # Redis channel layer backend
+daphne>=4.1.2                    # ASGI server for Channels
+
+# -----------------------------------------------------------------------------
+# Caching & Background Tasks
+# -----------------------------------------------------------------------------
+redis>=5.0.8                     # Redis client for cache/Celery/Channels
+celery>=5.4.0                    # Distributed task queue
+django-redis>=5.4.0              # Django cache backend for Redis
+
+# -----------------------------------------------------------------------------
+# Authentication & Authorization
+# -----------------------------------------------------------------------------
+django-allauth>=65.0.0           # Social authentication (Google OAuth)
+PyJWT>=2.9.0                     # JSON Web Token implementation
+
+# -----------------------------------------------------------------------------
+# Content & Media
+# -----------------------------------------------------------------------------
+django-ckeditor-5>=0.2.15        # Rich text editor
+Pillow>=11.0.0                   # Image processing
+python-magic>=0.4.27             # MIME type detection (Phase 2 security)
+
+# -----------------------------------------------------------------------------
+# Monitoring & Logging (Phase 2)
+# -----------------------------------------------------------------------------
+sentry-sdk>=2.18.0               # Error tracking and monitoring
+prometheus-client>=0.21.0        # Metrics collection
+django-prometheus>=2.3.1         # Prometheus metrics for Django (Phase 3 Prep)
+python-json-logger>=2.0.7        # Structured JSON logging
+
+# -----------------------------------------------------------------------------
+# Data Validation & Serialization
+# -----------------------------------------------------------------------------
+marshmallow>=3.23.1              # Object serialization
+pydantic>=2.10.2                 # Data validation with type hints
+
+# -----------------------------------------------------------------------------
+# Testing & Development
+# -----------------------------------------------------------------------------
+pytest>=8.3.4                    # Testing framework
+pytest-django>=4.9.0             # Django integration for pytest
+pytest-asyncio>=0.24.0           # Async test support (Phase 2 WebSocket)
+pytest-cov>=6.0.0                # Coverage reporting
+factory-boy>=3.3.1               # Test fixtures
+faker>=33.1.0                    # Fake data generation
+
+# -----------------------------------------------------------------------------
+# Code Quality & Linting
+# -----------------------------------------------------------------------------
+black>=24.10.0                   # Code formatting
+isort>=5.13.2                    # Import sorting
+flake8>=7.1.1                    # Linting
+mypy>=1.13.0                     # Static type checking
+django-stubs>=5.1.1              # Django type stubs for mypy
+
+# -----------------------------------------------------------------------------
+# Documentation
+# -----------------------------------------------------------------------------
+Sphinx>=8.1.3                    # Documentation generator
+sphinx-rtd-theme>=3.0.2          # ReadTheDocs theme
+
+# -----------------------------------------------------------------------------
+# Utilities
+# -----------------------------------------------------------------------------
+python-dateutil>=2.9.0           # Date/time utilities
+pytz>=2024.2                     # Timezone support
+requests>=2.32.3                 # HTTP library

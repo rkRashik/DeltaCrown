@@ -56,8 +56,75 @@ def healthz(request):
     """
     Lightweight health endpoint for uptime checks and load balancers.
     Returns HTTP 200 with a tiny JSON body.
+    No authentication required.
+    
+    Phase 2: Module 2.4 - Security Hardening
     """
     return JsonResponse({"status": "ok"})
+
+
+def readiness(request):
+    """
+    Readiness check endpoint with dependency validation.
+    
+    Checks:
+        - Database connectivity
+        - Redis connectivity (if configured)
+        
+    Returns HTTP 200 if all checks pass, HTTP 503 if any fail.
+    
+    Phase 2: Module 2.4 - Security Hardening
+    """
+    from django.db import connection
+    from django.core.cache import cache
+    from django.conf import settings
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    checks = {}
+    all_passed = True
+    
+    # Check database connectivity
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+        checks['database'] = 'ok'
+    except Exception as e:
+        checks['database'] = f'error: {str(e)}'
+        all_passed = False
+        logger.error(f"Database health check failed: {e}", exc_info=True)
+    
+    # Check Redis connectivity (if configured)
+    if getattr(settings, 'USE_REDIS_CHANNELS', False):
+        try:
+            # Test Redis with a simple get/set
+            cache.set('healthcheck_ping', 'pong', timeout=10)
+            value = cache.get('healthcheck_ping')
+            if value == 'pong':
+                checks['redis'] = 'ok'
+            else:
+                checks['redis'] = 'error: Value mismatch'
+                all_passed = False
+        except Exception as e:
+            checks['redis'] = f'error: {str(e)}'
+            all_passed = False
+            logger.error(f"Redis health check failed: {e}", exc_info=True)
+    else:
+        checks['redis'] = 'disabled'
+    
+    # Return appropriate status
+    if all_passed:
+        return JsonResponse({
+            'status': 'ready',
+            'checks': checks
+        })
+    else:
+        return JsonResponse({
+            'status': 'not_ready',
+            'checks': checks,
+            'error': 'One or more dependency checks failed'
+        }, status=503)
 
 
 def test_game_assets(request):

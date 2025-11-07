@@ -7,38 +7,108 @@ phase_0:
 
 phase_1:
   module_1_1:
-    implements: []
+    implements:
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#common-models
+      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-003
   module_1_2:
-    implements: []
+    implements:
+      - Documents/Planning/PART_2.1_PROJECT_OVERVIEW.md#section-4.1
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-3
+      - Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-003
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004
   module_1_3:
-    implements: []
+    implements:
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-4
+      - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-5
+      - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md
+      - Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-003
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004
   module_1_4:
-    implements: []
+    implements:
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-6
+      - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6
+      - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md
+      - Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-003
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
   module_1_5:
-    implements: []
+    implements:
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-5
+      - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service
+      - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#bracket-visualization
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004
 
 phase_2:
   module_2_1:
-    implements: []
+    implements:
+      - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md#section-7
+      - Documents/Planning/PROPOSAL_PART_5_IMPLEMENTATION_ROADMAP.md#jwt-authentication
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008
   module_2_2:
-    implements: []
+    implements:
+      - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md#section-7.2
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#websocket-auth
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
   module_2_3:
-    implements: []
+    implements:
+      - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md#section-7.3
+      - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#real-time-notifications
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-010
   module_2_4:
-    implements: []
+    name: "Security Hardening"
+    status: "complete"
+    implements:
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#authentication-authorization
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008
+      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#security-standards
+    tests:
+      - tests/integration/test_security_hardening.py
+      - tests/integration/test_audit_log.py
   module_2_5:
     implements: []
 
 phase_3:
   module_3_1:
-    implements: []
+    name: "Registration Flow & Validation"
+    status: "complete"
+    implements:
+      - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md#registration-flow
+      - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#registration-service
+      - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#api-endpoints
+      - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#api-security
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#role-based-access-control
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-002
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
+    files:
+      - apps/tournaments/api/permissions.py
+      - apps/tournaments/api/serializers.py
+      - apps/tournaments/api/views.py
+      - apps/tournaments/api/urls.py
+      - apps/tournaments/api/__init__.py
+      - apps/tournaments/realtime/consumers.py  # Added registration event handlers
+      - deltacrown/urls.py  # Activated API routes
   module_3_2:
+    name: "Payment Processing & Verification"
     implements: []
   module_3_3:
+    name: "Team Management"
     implements: []
   module_3_4:
-    implements: []
-  module_3_5:
+    name: "Check-in System"
     implements: []
 
 phase_4:

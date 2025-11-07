@@ -1,0 +1,71 @@
+# Docker Compose for DeltaCrown Development Environment
+#
+# Implements:
+#     - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#local-development
+#     - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#development-environment
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: deltacrown_db
+    environment:
+      POSTGRES_DB: deltacrown
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for Channels + Celery)
+  redis:
+    image: redis:7-alpine
+    container_name: deltacrown_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django Web Application
+  web:
+    build:
+      context: .
+      target: development
+    container_name: deltacrown_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/deltacrown
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=True
+      - USE_REDIS_CHANNELS=1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

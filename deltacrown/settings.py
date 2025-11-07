@@ -34,9 +34,65 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # -----------------------------------------------------------------------------
+# CORS Configuration (Frontend Integration - Phase 3 Prep)
+# -----------------------------------------------------------------------------
+# Implements: Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#frontend-integration
+# Implements: Documents/FRONTEND_INTEGRATION.md#cors-configuration
+
+# Parse comma-separated list of origins from environment
+import os
+_cors_allowed = os.getenv('CORS_ALLOWED_ORIGINS', '')
+CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_allowed.split(',') if origin.strip()]
+
+# Default frontend origins for development
+if DEBUG and not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",      # React default
+        "http://localhost:5173",      # Vite default
+        "http://localhost:4200",      # Angular default
+        "http://localhost:8080",      # Vue default
+    ]
+
+# Allow credentials (cookies, authorization headers)
+CORS_ALLOW_CREDENTIALS = True
+
+# Allowed methods for CORS requests
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Allowed headers for CORS requests
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# WebSocket CORS origins (for Channel's ASGI)
+_ws_allowed = os.getenv('WS_ALLOWED_ORIGINS', '')
+WS_ALLOWED_ORIGINS = [origin.strip() for origin in _ws_allowed.split(',') if origin.strip()]
+
+if DEBUG and not WS_ALLOWED_ORIGINS:
+    WS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS  # Mirror HTTP origins in dev
+
+# -----------------------------------------------------------------------------
 # Applications
 # -----------------------------------------------------------------------------
 INSTALLED_APPS = [
+    # Monitoring (must be FIRST for middleware timing)
+    "django_prometheus",  # Prometheus metrics (Phase 3 Prep)
+    
     # Django core
     "django.contrib.admin",
     "django.contrib.auth",
@@ -51,6 +107,7 @@ INSTALLED_APPS = [
     "django.contrib.sitemaps",
     "rest_framework",
     "django_ckeditor_5",
+    "corsheaders",  # CORS headers for frontend integration
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
 
     # Core infrastructure (MUST be first)
@@ -61,8 +118,8 @@ INSTALLED_APPS = [
     "apps.corelib",
     "apps.teams",
     # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
-    # New Tournament Engine will be built from scratch in tournament_engine/
-    # "apps.tournaments.apps.TournamentsConfig",
+    # New Tournament Engine being built (Phase 1, Module 1.2 - November 2025)
+    "apps.tournaments",
     # "apps.game_valorant",
     # "apps.game_efootball",
     "apps.user_profile",
@@ -78,13 +135,16 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",  # Prometheus timing (FIRST)
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",  # Prometheus timing (LAST)
 ]
 
 ROOT_URLCONF = "deltacrown.urls"
@@ -187,11 +247,16 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # -----------------------------------------------------------------------------
-# DRF (minimal, fine for tests)
+# -----------------------------------------------------------------------------
+# Django REST Framework Configuration (Phase 2: JWT Authentication)
 # -----------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        # JWT authentication (Phase 2) - for API and WebSocket
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # Session auth - for browser-based requests
         "rest_framework.authentication.SessionAuthentication",
+        # Basic auth - for development/testing
         "rest_framework.authentication.BasicAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -208,6 +273,49 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
 }
+
+# -----------------------------------------------------------------------------
+# SimpleJWT Configuration (Phase 2)
+# -----------------------------------------------------------------------------
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    # Token lifetimes
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),      # 1 hour access
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),         # 7 days refresh
+    
+    # Token rotation for security
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    
+    # Algorithm and signing
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    
+    # Token headers
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    
+    # Token validation
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    
+    # Sliding tokens (optional)
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=60),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=7),
+}
+
+# JWT clock skew tolerance for WebSocket connections (Module 2.4: Security Hardening)
+# Allows tokens to be accepted if expiry is within this many seconds
+# Prevents connection failures due to slight clock differences between client/server
+JWT_LEEWAY_SECONDS = int(os.getenv('JWT_LEEWAY_SECONDS', '60'))  # Default: 60 seconds
 
 
 LOGIN_URL = "/account/login/"
@@ -320,11 +428,56 @@ if os.getenv("ENABLE_ALLAUTH", "0") == "1":
     }
 
 ASGI_APPLICATION = 'deltacrown.asgi.application'
+
+# -----------------------------------------------------------------------------
+# Django Channels Configuration (Phase 2: Real-Time Features)
+# -----------------------------------------------------------------------------
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        # Use Redis for production/development with Redis running
+        # Falls back to InMemory for testing or when Redis unavailable
+        'BACKEND': os.getenv(
+            'CHANNEL_LAYERS_BACKEND',
+            'channels_redis.core.RedisChannelLayer' if not DEBUG or os.getenv('USE_REDIS_CHANNELS') else 'channels.layers.InMemoryChannelLayer'
+        ),
+        'CONFIG': {
+            "hosts": [(
+                os.getenv('CHANNEL_LAYERS_HOST', 'localhost'),
+                int(os.getenv('CHANNEL_LAYERS_PORT', 6379))
+            )],
+            # Connection pool settings
+            "capacity": 1500,  # Maximum messages in queue
+            "expiry": 10,      # Message expiry in seconds
+        } if not DEBUG or os.getenv('USE_REDIS_CHANNELS') else {}
     }
 }
+
+# -----------------------------------------------------------------------------
+# WebSocket Rate Limiting Configuration (Module 2.5)
+# -----------------------------------------------------------------------------
+
+# Message rate limits (token bucket algorithm)
+WS_RATE_MSG_RPS = float(os.getenv('WS_RATE_MSG_RPS', '10.0'))  # Messages per second per user
+WS_RATE_MSG_BURST = int(os.getenv('WS_RATE_MSG_BURST', '20'))  # Burst capacity per user
+
+# IP-based message rate limits (for anonymous/unauthenticated connections)
+WS_RATE_MSG_RPS_IP = float(os.getenv('WS_RATE_MSG_RPS_IP', '20.0'))  # Messages per second per IP
+WS_RATE_MSG_BURST_IP = int(os.getenv('WS_RATE_MSG_BURST_IP', '40'))  # Burst capacity per IP
+
+# Connection limits
+WS_RATE_CONN_PER_USER = int(os.getenv('WS_RATE_CONN_PER_USER', '3'))  # Max concurrent connections per user
+WS_RATE_CONN_PER_IP = int(os.getenv('WS_RATE_CONN_PER_IP', '10'))  # Max concurrent connections per IP
+
+# Room limits
+WS_RATE_ROOM_MAX_MEMBERS = int(os.getenv('WS_RATE_ROOM_MAX_MEMBERS', '2000'))  # Max spectators per tournament room
+
+# Payload limits
+WS_MAX_PAYLOAD_BYTES = int(os.getenv('WS_MAX_PAYLOAD_BYTES', str(16 * 1024)))  # 16 KB max message size
+
+# Origin validation (comma-separated list of allowed origins)
+# Leave empty to disable origin checking (development mode)
+# Example: "https://deltacrown.com,https://www.deltacrown.com"
+WS_ALLOWED_ORIGINS = os.getenv('WS_ALLOWED_ORIGINS', '')  # Empty = allow all origins (dev only)
 
 # -----------------------------------------------------------------------------
 # Celery Configuration
@@ -361,3 +514,177 @@ DEFAULT_NOTIFICATION_PREFERENCES = {
     'sponsor_approved': ['in_app', 'email'],
     'promotion_started': ['in_app'],
 }
+
+# -----------------------------------------------------------------------------
+# Sentry Error Tracking (Phase 2: Monitoring & Logging)
+# -----------------------------------------------------------------------------
+SENTRY_DSN = os.getenv('SENTRY_DSN', '')
+
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+    
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            RedisIntegration(),
+        ],
+        # Performance monitoring
+        traces_sample_rate=float(os.getenv('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+        
+        # Error sampling
+        sample_rate=1.0,  # Capture 100% of errors
+        
+        # Send user PII (disable for GDPR compliance)
+        send_default_pii=os.getenv('SENTRY_SEND_PII', 'False') == 'True',
+        
+        # Environment
+        environment='production' if not DEBUG else 'development',
+        
+        # Release tracking (optional - set via CI/CD)
+        release=os.getenv('SENTRY_RELEASE', None),
+        
+        # Before send hook (optional - filter sensitive data)
+        # before_send=lambda event, hint: event if should_send_event(event) else None,
+    )
+
+# -----------------------------------------------------------------------------
+# Structured Logging (Phase 2: JSON Logging)
+# -----------------------------------------------------------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+        # JSON formatter for production (requires python-json-logger)
+        'json': {
+            'format': '%(levelname)s %(asctime)s %(name)s %(message)s',
+            'class': 'pythonjsonlogger.jsonlogger.JsonFormatter' if os.getenv('USE_JSON_LOGGING') else 'logging.Formatter',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'json' if os.getenv('USE_JSON_LOGGING') else 'simple',
+        },
+        'console_debug': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'deltacrown.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10MB
+            'backupCount': 5,
+            'formatter': 'json' if os.getenv('USE_JSON_LOGGING') else 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Tournament app logging (Phase 2)
+        'apps.tournaments': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'apps.tournaments.realtime': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Celery logging
+        'celery': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console_debug'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# -----------------------------------------------------------------------------
+# Security Settings (Phase 2: Production Hardening)
+# -----------------------------------------------------------------------------
+if not DEBUG:
+    # HTTPS/SSL Configuration
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True') == 'True'
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
+    # HSTS (HTTP Strict Transport Security)
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', 31536000))  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Cookie security
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    
+    # Browser security
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # Content Security Policy (optional - customize per app needs)
+    # CSP_DEFAULT_SRC = ("'self'",)
+    # CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")
+    # CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
+
+# -----------------------------------------------------------------------------
+# Media Upload Validation (Phase 2: Security)
+# -----------------------------------------------------------------------------
+# Maximum upload sizes
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB for images
+MAX_PAYMENT_PROOF_SIZE = 10 * 1024 * 1024  # 10MB for payment proofs
+
+# Allowed MIME types for uploads
+ALLOWED_IMAGE_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+]
+
+ALLOWED_DOCUMENT_TYPES = [
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+]

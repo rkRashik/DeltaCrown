@@ -1,0 +1,107 @@
+# Docker Compose for DeltaCrown Staging Environment
+#
+# Implements:
+#     - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#staging-deployment
+#     - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#staging-environment
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: deltacrown_staging_db
+    environment:
+      POSTGRES_DB: deltacrown_staging
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Redis (for Channels + Celery)
+  redis:
+    image: redis:7-alpine
+    container_name: deltacrown_staging_redis
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  # Django Web Application
+  web:
+    build:
+      context: .
+      target: production
+    container_name: deltacrown_staging_web
+    command: daphne -b 0.0.0.0 -p 8000 deltacrown.asgi:application
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/deltacrown_staging
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=False
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:?ALLOWED_HOSTS required}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY required}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENV=staging
+      - USE_REDIS_CHANNELS=1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: deltacrown_staging_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/staging.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
