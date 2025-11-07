@@ -139,7 +139,7 @@ class Migration(migrations.Migration):
                 ('seed', models.IntegerField(blank=True, help_text='Seeding number for bracket generation (lower = higher seed)', null=True)),
                 ('deleted_by', models.ForeignKey(blank=True, help_text='User who deleted this record', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(class)s_deletions', to=settings.AUTH_USER_MODEL)),
                 ('user', models.ForeignKey(blank=True, help_text='User who registered (for solo tournaments or team captain)', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='tournament_registrations', to=settings.AUTH_USER_MODEL)),
-                ('tournament', models.ForeignKey(help_text='Tournament being registered for', on_delete=django.db.models.deletion.CASCADE, related_name='registrations', to='tournaments.tournament')),
+                ('tournament', models.ForeignKey(help_text='Tournament being registered for', on_delete=django.db.models.deletion.CASCADE, related_name='registrations', to='tournaments.Tournament')),
             ],
             options={
                 'verbose_name': 'Registration',
@@ -176,7 +176,7 @@ class Migration(migrations.Migration):
                 ('completed_at', models.DateTimeField(blank=True, help_text='When match was completed (state → COMPLETED)', null=True, verbose_name='Completed At')),
                 ('bracket', models.ForeignKey(blank=True, help_text='Bracket this match belongs to (null for group stage)', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='matches', to='tournaments.bracket', verbose_name='Bracket')),
                 ('deleted_by', models.ForeignKey(blank=True, help_text='User who deleted this record', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='%(class)s_deletions', to=settings.AUTH_USER_MODEL)),
-                ('tournament', models.ForeignKey(help_text='Tournament this match belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='matches', to='tournaments.tournament', verbose_name='Tournament')),
+                ('tournament', models.ForeignKey(help_text='Tournament this match belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='matches', to='tournaments.Tournament', verbose_name='Tournament')),
             ],
             options={
                 'verbose_name': 'Match',
@@ -197,7 +197,7 @@ class Migration(migrations.Migration):
                 ('order', models.PositiveIntegerField(default=0, help_text='Display order (lower numbers first)')),
                 ('is_required', models.BooleanField(default=False, help_text='Whether this field is required')),
                 ('help_text', models.CharField(blank=True, help_text='Help text shown to users', max_length=200)),
-                ('tournament', models.ForeignKey(help_text='Tournament this field belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='custom_fields', to='tournaments.tournament')),
+                ('tournament', models.ForeignKey(help_text='Tournament this field belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='custom_fields', to='tournaments.Tournament')),
             ],
             options={
                 'verbose_name': 'Custom Field',
@@ -208,7 +208,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='bracket',
             name='tournament',
-            field=models.OneToOneField(help_text='Tournament this bracket belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='bracket', to='tournaments.tournament', verbose_name='Tournament'),
+            field=models.OneToOneField(help_text='Tournament this bracket belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='bracket', to='tournaments.Tournament', verbose_name='Tournament'),
         ),
         migrations.CreateModel(
             name='TournamentVersion',
@@ -222,7 +222,7 @@ class Migration(migrations.Migration):
                 ('rolled_back_at', models.DateTimeField(blank=True, help_text='When this version was rolled back to', null=True)),
                 ('changed_by', models.ForeignKey(help_text='User who made this change', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tournament_version_changes', to=settings.AUTH_USER_MODEL)),
                 ('rolled_back_by', models.ForeignKey(blank=True, help_text='User who performed the rollback', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='tournament_version_rollbacks', to=settings.AUTH_USER_MODEL)),
-                ('tournament', models.ForeignKey(help_text='Tournament this version belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='versions', to='tournaments.tournament')),
+                ('tournament', models.ForeignKey(help_text='Tournament this version belongs to', on_delete=django.db.models.deletion.CASCADE, related_name='versions', to='tournaments.Tournament')),
             ],
             options={
                 'verbose_name': 'Tournament Version',
