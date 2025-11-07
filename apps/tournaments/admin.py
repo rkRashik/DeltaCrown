@@ -102,7 +102,7 @@ class TournamentAdmin(admin.ModelAdmin):
     ]
     search_fields = ['name', 'slug', 'description', 'organizer__username']
     readonly_fields = [
-        'slug', 'created_at', 'updated_at', 'published_at',
+        'created_at', 'updated_at', 'published_at',
         'total_registrations', 'total_matches', 'completed_matches',
         'deleted_at', 'deleted_by'
     ]

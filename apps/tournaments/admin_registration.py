@@ -120,7 +120,8 @@ class RegistrationAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Include soft-deleted registrations in admin."""
-        return Registration.all_objects.select_related(
+        # Use objects manager which includes soft-deleted items in admin
+        return Registration.objects.select_related(
             'tournament', 'user', 'deleted_by'
         ).prefetch_related('payment')
     

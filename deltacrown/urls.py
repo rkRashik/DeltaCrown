@@ -51,9 +51,9 @@ urlpatterns = [
 
 
     # Core apps (explicit)
-    # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
-    # New Tournament Engine will be built from scratch
-    # path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
+    # Tournament system - Admin only (frontend moved to legacy November 2, 2025)
+    # URL namespace kept active for admin panel functionality
+    path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
     
     # API endpoints
