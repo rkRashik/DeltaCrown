@@ -900,8 +900,8 @@ class TestBracketGenerationRankedSeeding:
         for team in ranked_teams:
             reg = Registration.objects.create(
                 tournament=tournament,
-                team=team,
-                status="APPROVED"
+                team_id=team.id,
+                status="confirmed"
             )
             regs.append(reg)
         return regs
@@ -921,7 +921,7 @@ class TestBracketGenerationRankedSeeding:
         
         response = api_client.post(url, payload, format='json')
         
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_201_CREATED, f"Error: {response.data}"
         assert 'id' in response.data
         assert response.data['bracket_format'] == 'SINGLE_ELIMINATION'
         assert response.data['seeding_method'] == 'ranked'
@@ -954,8 +954,8 @@ class TestBracketGenerationRankedSeeding:
         
         reg = Registration.objects.create(
             tournament=tournament,
-            team=unranked_team,
-            status="APPROVED"
+            team_id=unranked_team.id,
+            status="confirmed"
         )
         
         api_client.force_authenticate(user=organizer)
@@ -982,7 +982,6 @@ class TestBracketGenerationRankedSeeding:
     ):
         """Test that ranked seeding with individual participants returns 400."""
         User = get_user_model()
-        from apps.user_profile.models import UserProfile
         
         # Create individual participant
         player = User.objects.create_user(
@@ -990,12 +989,13 @@ class TestBracketGenerationRankedSeeding:
             email="solo@test.com",
             password="pass"
         )
-        profile = UserProfile.objects.create(user=player, phone_number="1234567890")
+        # UserProfile is created automatically by signal
+        profile = player.profile
         
         reg = Registration.objects.create(
             tournament=tournament,
-            participant=profile,
-            status="APPROVED"
+            user=player,
+            status="confirmed"
         )
         
         api_client.force_authenticate(user=organizer)
