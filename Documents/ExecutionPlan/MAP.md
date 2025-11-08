@@ -562,19 +562,32 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 ---
 
 ### Module 4.1: Bracket Generation Algorithm
-- **Status**: 📋 Planned
+- **Status**: ✅ Complete (2025-11-08)
 - **Implements**:
   - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-5-bracket-models
   - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service
   - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#bracket-visualization
-- **ADRs**: ADR-010 (Bracket Seeding Strategies - TBD)
-- **Scope**:
-  - API endpoint: `POST /api/tournaments/{id}/generate-bracket/`
-  - Seeding strategies: random, manual, ranked
+- **Completion Doc**: Documents/ExecutionPlan/MODULE_4.1_COMPLETION_STATUS.md
+- **Files Created**:
+  - apps/tournaments/api/bracket_views.py (321 lines)
+  - tests/test_bracket_api_module_4_1.py (613 lines)
+- **Files Modified**:
+  - apps/tournaments/services/bracket_service.py (participant ID fix)
+  - apps/tournaments/api/serializers.py (+118 lines, 4 serializers)
+  - apps/tournaments/api/permissions.py (+26 lines, IsOrganizerOrAdmin)
+  - apps/tournaments/realtime/utils.py (+32 lines, broadcast_bracket_generated)
+  - apps/tournaments/realtime/consumers.py (+8 lines, bracket_generated handler)
+- **Test Results**: 24/24 passing (100% pass rate)
+- **Coverage**: 56% overall (Views: 71%, Service: 55%, Serializers: 55%, Permissions: 36%)
+- **Scope Delivered**:
+  - API endpoint: `POST /api/tournaments/brackets/tournaments/{id}/generate/`
+  - Seeding strategies: slot-order (default), random, manual, ranked (signature ready)
+  - Single-elimination brackets (double-elim deferred to Module 4.4)
+  - WebSocket broadcast: bracket_generated event
   - Bye handling for odd participant counts
-  - Bracket finalization (prevent regeneration after start)
-- **Estimated Tests**: 15 tests (seeding, byes, edge cases)
-- **Estimated Effort**: 16 hours (2 days)
+  - Tournament start validation (prevent regeneration after start)
+- **Deferred**: Double-elimination (Module 4.4), round-robin (Module 4.6), ranked seeding implementation (Module 4.2)
+- **Critical Bug Fixed**: Participant ID type mismatch (string → integer)
 
 ### Module 4.2: Match Management & Scheduling
 - **Status**: 📋 Planned
