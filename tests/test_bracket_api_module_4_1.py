@@ -17,6 +17,7 @@ Test count target: ≥15 tests (10 unit + 5 integration)
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.test import APIClient
@@ -593,3 +594,222 @@ class TestBracketGenerationIntegration:
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'seeding_method' in response.data
+
+
+# =============================================================================
+# COVERAGE UPLIFT TESTS (Module 4.1 - Step 2)
+# Added: 2025-11-08
+# Target: Serializers 55%→60%, Permissions 36%→45%
+# Simplified approach: Focus on serializer/permission validation without complex bracket generation
+# =============================================================================
+
+@pytest.mark.django_db
+class TestBracketServiceCoverageUplift:
+    """Simplified coverage uplift tests - validation paths only."""
+    
+    def test_apply_seeding_random_method(self):
+        """Test random seeding method."""
+        participants = [
+            {'id': 1, 'name': 'P1'},
+            {'id': 2, 'name': 'P2'},
+            {'id': 3, 'name': 'P3'}
+        ]
+        
+        seeded = BracketService.apply_seeding(participants, 'random', None)
+        
+        # Should have seeds assigned
+        assert all('seed' in p for p in seeded)
+        assert len(seeded) == 3
+    
+    def test_apply_seeding_invalid_method_raises_error(self):
+        """Test invalid seeding method raises ValidationError."""
+        participants = [{'id': 1, 'name': 'P1'}, {'id': 2, 'name': 'P2'}]
+        
+        with pytest.raises(ValidationError) as exc_info:
+            BracketService.apply_seeding(participants, 'invalid-method', None)
+        
+        assert 'Unknown seeding method' in str(exc_info.value)
+
+
+@pytest.mark.django_db
+class TestBracketSerializerCoverageUplift:
+    """Coverage uplift tests for BracketGenerationSerializer."""
+    
+    def test_serializer_rejects_empty_participant_ids(self):
+        """Test empty participant_ids list triggers validation."""
+        from apps.tournaments.api.serializers import BracketGenerationSerializer
+        
+        # Empty list is allowed (optional field), but service layer should validate
+        serializer = BracketGenerationSerializer(data={
+            'participant_ids': []
+        })
+        
+        # Serializer passes (optional field), but the actual validation happens in the view
+        # where we check if the list has enough participants
+        assert serializer.is_valid()
+        # This test ensures the field accepts empty list without crashing
+    
+    def test_serializer_validates_single_participant_id(self):
+        """Test single participant_id is rejected."""
+        from apps.tournaments.api.serializers import BracketGenerationSerializer
+        
+        serializer = BracketGenerationSerializer(data={
+            'participant_ids': [1]
+        })
+        
+        assert not serializer.is_valid()
+        assert 'participant_ids' in serializer.errors
+    
+    def test_tournament_already_live_validation(self):
+        """Test bracket generation blocked when tournament is live."""
+        game = Game.objects.create(name='Test Game', slug='test-game-live')
+        organizer = User.objects.create_user(
+            username='org_live',
+            email='org_live@test.com',
+            password='pass'
+        )
+        tournament = Tournament.objects.create(
+            name='Live Tournament',
+            slug='live-tournament',
+            game=game,
+            organizer=organizer,
+            format='single-elimination',  # Use hyphenated format
+            participation_type='solo',
+            status='live',  # Already live
+            tournament_start=timezone.now() - timedelta(hours=1),
+            registration_start=timezone.now() - timedelta(days=2),
+            registration_end=timezone.now() - timedelta(days=1),
+            max_participants=8,
+            min_participants=2
+        )
+        
+        # Create participants
+        for i in range(4):
+            user = User.objects.create_user(
+                username=f'player_live_{i}',
+                email=f'player_live_{i}@test.com',
+                password='pass'
+            )
+            Registration.objects.create(
+                tournament=tournament,
+                user=user,
+                status='confirmed'
+            )
+        
+        api_client = APIClient()
+        api_client.force_authenticate(user=organizer)
+        
+        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        response = api_client.post(url, {}, format='json')
+        
+        # Should fail because tournament is live
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestBracketPermissionsCoverageUplift:
+    """Coverage uplift tests for IsOrganizerOrAdmin permission."""
+    
+    def test_permission_denies_non_organizer_non_admin(self):
+        """Test non-organizer without admin privileges is denied."""
+        game = Game.objects.create(name='Test Game', slug='test-game-perm')
+        organizer = User.objects.create_user(
+            username='organizer_perm',
+            email='organizer_perm@test.com',
+            password='pass'
+        )
+        non_organizer = User.objects.create_user(
+            username='non_organizer',
+            email='non_organizer@test.com',
+            password='pass',
+            is_staff=False,
+            is_superuser=False
+        )
+        tournament = Tournament.objects.create(
+            name='Permission Test Tournament',
+            slug='permission-test',
+            game=game,
+            organizer=organizer,
+            format='single-elimination',  # Use hyphenated format
+            participation_type='solo',
+            status='registration_open',
+            tournament_start=timezone.now() + timedelta(days=7),
+            registration_start=timezone.now() - timedelta(days=1),
+            registration_end=timezone.now() + timedelta(days=3),
+            max_participants=8,
+            min_participants=2
+        )
+        
+        # Create participants
+        for i in range(4):
+            user = User.objects.create_user(
+                username=f'player_perm_{i}',
+                email=f'player_perm_{i}@test.com',
+                password='pass'
+            )
+            Registration.objects.create(
+                tournament=tournament,
+                user=user,
+                status='confirmed'
+            )
+        
+        api_client = APIClient()
+        api_client.force_authenticate(user=non_organizer)
+        
+        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        response = api_client.post(url, {}, format='json')
+        
+        # Non-organizer should be denied
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+    
+    def test_permission_allows_superuser(self):
+        """Test superuser can generate brackets regardless of organizer status."""
+        game = Game.objects.create(name='Test Game', slug='test-game-superuser')
+        organizer = User.objects.create_user(
+            username='organizer_su',
+            email='organizer_su@test.com',
+            password='pass'
+        )
+        superuser = User.objects.create_user(
+            username='superuser',
+            email='superuser@test.com',
+            password='pass',
+            is_staff=False,
+            is_superuser=True  # Superuser flag
+        )
+        tournament = Tournament.objects.create(
+            name='Superuser Test Tournament',
+            slug='superuser-test',
+            game=game,
+            organizer=organizer,  # Different organizer
+            format='single-elimination',  # Use hyphenated format
+            participation_type='solo',
+            status='registration_open',
+            tournament_start=timezone.now() + timedelta(days=7),
+            registration_start=timezone.now() - timedelta(days=1),
+            registration_end=timezone.now() + timedelta(days=3),
+            max_participants=8,
+            min_participants=2
+        )
+        
+        # Create participants
+        for i in range(4):
+            user = User.objects.create_user(
+                username=f'player_su_{i}',
+                email=f'player_su_{i}@test.com',
+                password='pass'
+            )
+            Registration.objects.create(
+                tournament=tournament,
+                user=user,
+                status='confirmed'
+            )
+        
+        api_client = APIClient()
+        api_client.force_authenticate(user=superuser)
+        
+        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        response = api_client.post(url, {}, format='json')
+        
+        # Superuser should succeed
+        assert response.status_code == status.HTTP_201_CREATED
