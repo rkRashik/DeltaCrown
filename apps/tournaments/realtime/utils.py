@@ -155,3 +155,33 @@ def broadcast_bracket_updated(tournament_id: int, bracket_data: Dict[str, Any]) 
         bracket_data: Bracket update (bracket_id, updated_nodes, next_matches, etc.)
     """
     broadcast_tournament_event(tournament_id, 'bracket_updated', bracket_data)
+
+
+def broadcast_bracket_generated(tournament_id: int, bracket_data: Dict[str, Any]) -> None:
+    """
+    Convenience wrapper for broadcasting bracket_generated events.
+    
+    Sent when a new bracket is generated or regenerated for a tournament.
+    Clients can use this to refresh bracket visualization.
+    
+    Module: 4.1 - Bracket Generation API
+    
+    Args:
+        tournament_id: Tournament ID
+        bracket_data: Bracket details (bracket_id, format, total_matches, seeding_method, etc.)
+    
+    Example:
+        >>> broadcast_bracket_generated(
+        ...     tournament_id=1,
+        ...     bracket_data={
+        ...         'bracket_id': 456,
+        ...         'format': 'single-elimination',
+        ...         'seeding_method': 'random',
+        ...         'total_rounds': 3,
+        ...         'total_matches': 7,
+        ...         'generated_at': '2025-01-08T10:30:00Z',
+        ...         'generated_by': 42,
+        ...     }
+        ... )
+    """
+    broadcast_tournament_event(tournament_id, 'bracket_generated', bracket_data)

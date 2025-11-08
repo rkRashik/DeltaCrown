@@ -501,3 +501,129 @@ class PaymentRefundSerializer(serializers.Serializer):
             })
         
         return attrs
+
+
+# =============================================================================
+# MODULE 4.1: BRACKET SERIALIZERS
+# =============================================================================
+# Implements: Documents/ExecutionPlan/PHASE_4_IMPLEMENTATION_PLAN.md#module-41
+
+
+class BracketGenerationSerializer(serializers.Serializer):
+    """
+    Serializer for bracket generation request.
+    
+    Validates bracket generation parameters for POST /api/brackets/tournaments/{id}/generate/
+    
+    Module: 4.1 - Bracket Generation API
+    Source: PHASE_4_IMPLEMENTATION_PLAN.md Module 4.1 Technical Requirements
+    """
+    
+    bracket_format = serializers.ChoiceField(
+        choices=[
+            ('single-elimination', 'Single Elimination'),
+            ('double-elimination', 'Double Elimination'),
+            ('round-robin', 'Round Robin'),
+        ],
+        required=False,
+        help_text="Bracket format (defaults to tournament.format)"
+    )
+    
+    seeding_method = serializers.ChoiceField(
+        choices=[
+            ('slot-order', 'Slot Order (Registration order)'),
+            ('random', 'Random'),
+            ('manual', 'Manual (requires seed values)'),
+            ('ranked', 'Ranked (from team rankings)'),
+        ],
+        default='slot-order',
+        required=False,
+        help_text="Seeding strategy for participant placement"
+    )
+    
+    participant_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_empty=True,
+        help_text="Optional: Manual participant selection (registration IDs)"
+    )
+    
+    def validate_bracket_format(self, value):
+        """Validate bracket format."""
+        # Double elimination deferred to future module
+        if value == 'double-elimination':
+            raise serializers.ValidationError(
+                "Double elimination is not yet implemented. Use 'single-elimination' or 'round-robin'."
+            )
+        return value
+    
+    def validate_participant_ids(self, value):
+        """Validate participant IDs list."""
+        if value and len(value) < 2:
+            raise serializers.ValidationError(
+                "At least 2 participants required for bracket generation."
+            )
+        return value
+
+
+class BracketNodeSerializer(serializers.Serializer):
+    """
+    Serializer for BracketNode (nested in BracketDetailSerializer).
+    
+    Read-only representation of bracket node.
+    """
+    
+    id = serializers.IntegerField()
+    position = serializers.IntegerField()
+    round_number = serializers.IntegerField()
+    match_number_in_round = serializers.IntegerField()
+    participant1_id = serializers.IntegerField(allow_null=True)
+    participant1_name = serializers.CharField(allow_null=True)
+    participant2_id = serializers.IntegerField(allow_null=True)
+    participant2_name = serializers.CharField(allow_null=True)
+    winner_id = serializers.IntegerField(allow_null=True)
+    is_bye = serializers.BooleanField()
+    parent_slot = serializers.IntegerField(allow_null=True)
+    match_id = serializers.SerializerMethodField()
+    
+    def get_match_id(self, obj):
+        """Get match ID if match exists."""
+        return obj.match.id if hasattr(obj, 'match') and obj.match else None
+
+
+class BracketSerializer(serializers.Serializer):
+    """
+    Serializer for Bracket model (list view).
+    
+    Read-only basic bracket information without nodes.
+    """
+    
+    id = serializers.IntegerField()
+    tournament_id = serializers.IntegerField(source='tournament.id')
+    tournament_name = serializers.CharField(source='tournament.name')
+    format = serializers.CharField()
+    format_display = serializers.CharField(source='get_format_display')
+    seeding_method = serializers.CharField()
+    seeding_method_display = serializers.CharField(source='get_seeding_method_display')
+    total_rounds = serializers.IntegerField()
+    total_matches = serializers.IntegerField()
+    is_finalized = serializers.BooleanField()
+    generated_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField()
+
+
+class BracketDetailSerializer(BracketSerializer):
+    """
+    Serializer for Bracket model (detail view with nodes).
+    
+    Includes full bracket structure with all nodes.
+    """
+    
+    bracket_structure = serializers.JSONField()
+    nodes = serializers.SerializerMethodField()
+    
+    def get_nodes(self, obj):
+        """Get all bracket nodes."""
+        from apps.tournaments.models.bracket import BracketNode
+        nodes = BracketNode.objects.filter(bracket=obj).select_related('match').order_by('round_number', 'position')
+        return BracketNodeSerializer(nodes, many=True).data

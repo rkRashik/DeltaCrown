@@ -372,6 +372,42 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             f"nodes_updated={len(event['data'].get('updated_nodes', []))}"
         )
     
+    async def bracket_generated(self, event: Dict[str, Any]):
+        """
+        Handle bracket_generated event from channel layer.
+        
+        Module 4.1: Bracket Generation API
+        
+        Args:
+            event: Event dict with 'type' and 'data' keys
+                data: {
+                    'bracket_id': int,
+                    'tournament_id': int,
+                    'tournament_name': str,
+                    'format': str,  # 'single-elimination', 'round-robin', etc.
+                    'seeding_method': str,  # 'random', 'slot-order', 'ranked', etc.
+                    'total_rounds': int,
+                    'total_matches': int,
+                    'generated_at': str (ISO 8601),
+                    'generated_by': int (user_id),
+                    'is_regeneration': bool (optional),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='bracket_generated' and event data
+        """
+        await self.send_json({
+            'type': 'bracket_generated',
+            'data': event['data']
+        })
+        
+        logger.info(
+            f"Sent bracket_generated event to user {self.user.username}: "
+            f"bracket_id={event['data'].get('bracket_id')}, "
+            f"format={event['data'].get('format')}, "
+            f"total_matches={event['data'].get('total_matches')}"
+        )
+    
     async def registration_created(self, event: Dict[str, Any]):
         """
         Handle registration.created event from channel layer.

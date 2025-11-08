@@ -13,11 +13,13 @@ Source Documents:
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.tournaments.api import views
+from apps.tournaments.api.bracket_views import BracketViewSet
 
 # Router for DRF viewsets
 router = DefaultRouter()
 router.register(r'registrations', views.RegistrationViewSet, basename='registration')
 router.register(r'payments', views.PaymentViewSet, basename='payment')
+router.register(r'brackets', BracketViewSet, basename='bracket')
 
 app_name = 'tournaments_api'
 

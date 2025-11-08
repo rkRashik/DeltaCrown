@@ -92,3 +92,35 @@ class IsPlayerOrSpectator(permissions.BasePermission):
         
         # Default: no access
         return False
+
+
+class IsOrganizerOrAdmin(permissions.BasePermission):
+    """
+    Allow access only to tournament organizers or admin users.
+    
+    Used for bracket generation, match management, and other
+    tournament administration actions.
+    
+    Module: 4.1 - Bracket Generation API
+    Source: PHASE_4_IMPLEMENTATION_PLAN.md Module 4.1
+    """
+    
+    def has_permission(self, request, view):
+        """Check if user is authenticated."""
+        return request.user and request.user.is_authenticated
+    
+    def has_object_permission(self, request, view, obj):
+        """Check if user is organizer or admin."""
+        # Staff/superuser have full access
+        if request.user.is_staff or request.user.is_superuser:
+            return True
+        
+        # Check if user is tournament organizer
+        if hasattr(obj, 'tournament'):
+            # Object is related to tournament (e.g., Bracket, Match)
+            return obj.tournament.organizer_id == request.user.id
+        elif hasattr(obj, 'organizer'):
+            # Object is tournament itself
+            return obj.organizer_id == request.user.id
+        
+        return False

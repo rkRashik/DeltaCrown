@@ -13,28 +13,38 @@ Modules:
 """
 
 from apps.tournaments.api.views import RegistrationViewSet
+from apps.tournaments.api.bracket_views import BracketViewSet
 from apps.tournaments.api.serializers import (
     RegistrationSerializer,
     RegistrationDetailSerializer,
-    RegistrationCancelSerializer
+    RegistrationCancelSerializer,
+    BracketGenerationSerializer,
+    BracketSerializer,
+    BracketDetailSerializer
 )
 from apps.tournaments.api.permissions import (
     IsOrganizerOrReadOnly,
     IsOwnerOrOrganizer,
-    IsPlayerOrSpectator
+    IsPlayerOrSpectator,
+    IsOrganizerOrAdmin
 )
 
 __all__ = [
     # ViewSets
     'RegistrationViewSet',
+    'BracketViewSet',
     
     # Serializers
     'RegistrationSerializer',
     'RegistrationDetailSerializer',
     'RegistrationCancelSerializer',
+    'BracketGenerationSerializer',
+    'BracketSerializer',
+    'BracketDetailSerializer',
     
     # Permissions
     'IsOrganizerOrReadOnly',
     'IsOwnerOrOrganizer',
     'IsPlayerOrSpectator',
+    'IsOrganizerOrAdmin',
 ]

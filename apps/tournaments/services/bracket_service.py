@@ -263,13 +263,13 @@ class BracketService:
             # Determine participant ID and name
             if reg.team_id:
                 # Team-based tournament
-                participant_id = f"team-{reg.team_id}"
+                participant_id = reg.team_id  # Store as integer
                 # Fetch team name from apps.teams (to be implemented)
                 # For now, use generic name
                 participant_name = f"Team #{reg.team_id}"
             else:
                 # Solo tournament
-                participant_id = f"user-{reg.user_id}"
+                participant_id = reg.user_id  # Store as integer
                 participant_name = reg.user.username if reg.user else f"User #{reg.user_id}"
             
             participants.append({
