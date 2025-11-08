@@ -536,25 +536,117 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - ⚠️ Team check-in integration pending full TeamMembership validation
 
 ---
-## Phase 4: Tournament During (Match & Competition)
 
-### Module 4.1: Bracket Generation
-*[To be filled when implementation starts]*
+## Phase 4: Tournament Live Operations – 📋 PLANNED
+
+**Status**: 📋 Planned (Phase 3 complete ✅, ready to start)  
+**Estimated Duration**: 3 weeks (120 hours)  
+**Goal**: Real-time match management, bracket progression, score tracking, and live updates  
+**Planning Doc**: [PHASE_4_IMPLEMENTATION_PLAN.md](./PHASE_4_IMPLEMENTATION_PLAN.md)
+
+| Module | Status | Estimated Tests | Target Coverage | Planning |
+|--------|--------|----------------|-----------------|----------|
+| 4.1 Bracket Generation API | 📋 Planned | 15 tests | 85% | Bracket API, seeding strategies |
+| 4.2 Match Management | 📋 Planned | 20 tests | 85% | Match lifecycle, scheduling |
+| 4.3 Result Submission | 📋 Planned | 18 tests | 85% | Dual-confirmation workflow |
+| 4.4 Dispute Resolution | 📋 Planned | 16 tests | 80% | Dispute lifecycle, admin resolution |
+| 4.5 WebSocket Enhancement | 📋 Planned | 12 tests | 75% | Real-time match events |
+| 4.6 Live Match HUD | 📋 Planned | 5 tests | N/A (UI) | Frontend components |
+
+**Prerequisites**:
+- ✅ Phase 3 complete (registration, payment, check-in)
+- ✅ BracketService foundation (Module 1.5)
+- ✅ MatchService foundation (Module 1.4)
+- ✅ WebSocket infrastructure (Module 2.1-2.3)
+
+---
+
+### Module 4.1: Bracket Generation Algorithm
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-5-bracket-models
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service
+  - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#bracket-visualization
+- **ADRs**: ADR-010 (Bracket Seeding Strategies - TBD)
+- **Scope**:
+  - API endpoint: `POST /api/tournaments/{id}/generate-bracket/`
+  - Seeding strategies: random, manual, ranked
+  - Bye handling for odd participant counts
+  - Bracket finalization (prevent regeneration after start)
+- **Estimated Tests**: 15 tests (seeding, byes, edge cases)
+- **Estimated Effort**: 16 hours (2 days)
 
 ### Module 4.2: Match Management & Scheduling
-*[To be filled when implementation starts]*
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md#section-3.4-match-app
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-match-service
+  - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#match-workflows
+- **ADRs**: ADR-011 (Match State Machine - TBD)
+- **Scope**:
+  - API endpoints: list, retrieve, update, start match
+  - Match state machine validation
+  - Schedule management with notifications
+  - Coordinator assignment
+  - Lobby info management
+- **Estimated Tests**: 20 tests (state machine, permissions, scheduling)
+- **Estimated Effort**: 20 hours (2.5 days)
 
-### Module 4.3: Score Submission & Validation
-*[To be filled when implementation starts]*
+### Module 4.3: Result Submission & Confirmation
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-match-service
+  - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#match-workflows
+- **ADRs**: ADR-012 (Dual-Confirmation Workflow - TBD)
+- **Scope**:
+  - Dual-confirmation workflow (submit, confirm, reject)
+  - Evidence upload support
+  - Bracket progression trigger
+  - Auto-complete after timeout
+- **Estimated Tests**: 18 tests (workflow, permissions, bracket progression)
+- **Estimated Effort**: 18 hours (2.25 days)
 
-### Module 4.4: Dispute Resolution
-*[To be filled when implementation starts]*
+### Module 4.4: Dispute Resolution System
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-match-service (dispute integration)
+  - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#match-workflows
+- **ADRs**: ADR-013 (Dispute Workflow - TBD)
+- **Scope**:
+  - Dispute lifecycle: create, review, resolve
+  - Evidence attachments
+  - Comment threading
+  - Admin resolution workflows
+- **Estimated Tests**: 16 tests (lifecycle, permissions, resolutions)
+- **Estimated Effort**: 16 hours (2 days)
 
-### Module 4.5: Live Match Updates
-*[To be filled when implementation starts]*
+### Module 4.5: Real-time Updates (WebSocket Enhancement)
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#websocket-channels
+  - Documents/ExecutionPlan/MODULE_2.3_COMPLETION_STATUS.md (enhance existing)
+- **ADRs**: ADR-014 (WebSocket Channels - TBD)
+- **Scope**:
+  - Match-specific channels (`match_{id}`)
+  - Event types: match_started, score_updated, match_completed, bracket_updated, disputes
+  - Connection management (heartbeat, reconnect)
+  - Message batching and rate limiting
+- **Estimated Tests**: 12 tests (events, connections, rate limits)
+- **Estimated Effort**: 14 hours (1.75 days)
 
-### Module 4.6: Match Admin Interface
-*[To be filled when implementation starts]*
+### Module 4.6: Live Match HUD
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#bracket-visualization
+  - Documents/Planning/PART_4.5_SPECTATOR_MOBILE_ACCESSIBILITY.md
+- **ADRs**: None (UI implementation)
+- **Scope**:
+  - Frontend components: Match HUD, bracket viewer, live matches list
+  - WebSocket client integration
+  - Spectator controls (fullscreen, zoom, filters)
+  - Mobile-responsive design
+- **Estimated Tests**: 5 tests (JS unit tests, manual UI testing)
+- **Estimated Effort**: 16 hours (2 days)
 
 ---
 
