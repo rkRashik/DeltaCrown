@@ -669,3 +669,228 @@ class TestCheckinWebSocket:
         assert payload['type'] == 'registration_checked_in'
         assert payload['registration_id'] == registration.id
         assert payload['checked_in'] is True
+
+
+@pytest.mark.django_db
+class TestCheckinAPIEdgeCases:
+    """Test API edge cases and error handling for coverage polish"""
+    
+    @pytest.fixture
+    def client(self):
+        """API client"""
+        return APIClient()
+    
+    @pytest.fixture
+    def game(self):
+        """Create game"""
+        return Game.objects.create(
+            name='Valorant',
+            slug='valorant',
+            default_team_size=5,
+            profile_id_field='riot_id',
+            default_result_type='map_score',
+            is_active=True
+        )
+    
+    @pytest.fixture
+    def organizer(self):
+        """Create organizer"""
+        return User.objects.create_user(
+            username='organizer',
+            email='organizer@test.com',
+            password='pass123'
+        )
+    
+    @pytest.fixture
+    def tournament(self, game, organizer):
+        """Create tournament"""
+        return Tournament.objects.create(
+            name='Test Tournament',
+            slug='test-tournament-edge',
+            description='Test tournament',
+            game=game,
+            organizer=organizer,
+            max_participants=16,
+            participation_type='solo',
+            status='registration_open',
+            tournament_start=timezone.now() + timedelta(minutes=25),
+            registration_start=timezone.now() - timedelta(days=1),
+            registration_end=timezone.now() + timedelta(days=1),
+        )
+    
+    def test_check_in_validation_error_returns_400(self, client, tournament):
+        """Test ValidationError in check-in returns 400"""
+        player = User.objects.create_user(username='player', email='player@test.com')
+        
+        # Create pending (not confirmed) registration
+        registration = Registration.objects.create(
+            tournament=tournament,
+            user=player,
+            status='pending'  # Not confirmed - will trigger ValidationError
+        )
+        
+        client.force_authenticate(user=player)
+        url = f'/api/tournaments/checkin/{registration.id}/check-in/'
+        response = client.post(url)
+        
+        assert response.status_code == 400
+        assert 'error' in response.data
+        assert 'confirmed' in response.data['error'].lower()
+    
+    def test_check_in_permission_error_returns_403(self, client, tournament):
+        """Test PermissionDenied in check-in returns 403"""
+        player = User.objects.create_user(username='player', email='player@test.com')
+        other = User.objects.create_user(username='other', email='other@test.com')
+        
+        registration = Registration.objects.create(
+            tournament=tournament,
+            user=player,
+            status='confirmed'
+        )
+        
+        # Try to check in as non-owner
+        client.force_authenticate(user=other)
+        url = f'/api/tournaments/checkin/{registration.id}/check-in/'
+        response = client.post(url)
+        
+        assert response.status_code == 403
+        assert 'error' in response.data
+    
+    def test_check_in_not_found_returns_404(self, client, tournament):
+        """Test non-existent registration returns 404"""
+        player = User.objects.create_user(username='player', email='player@test.com')
+        
+        client.force_authenticate(user=player)
+        url = '/api/tournaments/checkin/99999/check-in/'
+        response = client.post(url)
+        
+        assert response.status_code == 404
+    
+    def test_undo_validation_error_returns_400(self, client, tournament):
+        """Test ValidationError in undo returns 400"""
+        player = User.objects.create_user(username='player', email='player@test.com')
+        
+        registration = Registration.objects.create(
+            tournament=tournament,
+            user=player,
+            status='confirmed'
+        )
+        # Not checked in yet - will trigger ValidationError
+        
+        client.force_authenticate(user=player)
+        url = f'/api/tournaments/checkin/{registration.id}/undo/'
+        response = client.post(url, {'reason': 'Test'})
+        
+        assert response.status_code == 400
+        assert 'error' in response.data
+        assert 'not checked in' in response.data['error'].lower()
+    
+    def test_undo_permission_error_returns_403(self, client, tournament):
+        """Test PermissionDenied in undo returns 403"""
+        player = User.objects.create_user(username='player', email='player@test.com')
+        other = User.objects.create_user(username='other', email='other@test.com')
+        
+        registration = Registration.objects.create(
+            tournament=tournament,
+            user=player,
+            status='confirmed'
+        )
+        
+        # Check in first
+        CheckinService.check_in(registration.id, player)
+        
+        # Try to undo as non-owner
+        client.force_authenticate(user=other)
+        url = f'/api/tournaments/checkin/{registration.id}/undo/'
+        response = client.post(url, {'reason': 'Test'})
+        
+        assert response.status_code == 403
+    
+    def test_bulk_validation_error_returns_400(self, client, tournament, organizer):
+        """Test ValidationError in bulk returns 400"""
+        client.force_authenticate(user=organizer)
+        
+        # Empty list will trigger ValidationError
+        url = '/api/tournaments/checkin/bulk/'
+        response = client.post(url, {'registration_ids': []}, format='json')
+        
+        assert response.status_code == 400
+        # Serializer validation error has field-specific errors
+        assert 'registration_ids' in response.data
+    
+    def test_bulk_permission_error_returns_403(self, client, tournament):
+        """Test PermissionDenied in bulk returns 403"""
+        player = User.objects.create_user(username='player', email='player@test.com')
+        
+        registration = Registration.objects.create(
+            tournament=tournament,
+            user=player,
+            status='confirmed'
+        )
+        
+        # Try bulk as non-organizer
+        client.force_authenticate(user=player)
+        url = '/api/tournaments/checkin/bulk/'
+        response = client.post(url, {'registration_ids': [registration.id]}, format='json')
+        
+        assert response.status_code == 403
+    
+    def test_status_endpoint_not_found_returns_404(self, client):
+        """Test status endpoint with non-existent registration returns 404"""
+        player = User.objects.create_user(username='player', email='player@test.com')
+        
+        client.force_authenticate(user=player)
+        url = '/api/tournaments/checkin/99999/status/'
+        response = client.get(url)
+        
+        assert response.status_code == 404
+    
+    @patch('apps.tournaments.api.checkin.views.get_channel_layer')
+    def test_websocket_broadcast_handles_missing_channel_layer(
+        self, mock_get_layer, tournament
+    ):
+        """Test WebSocket broadcast gracefully handles missing channel layer"""
+        # Simulate missing channel layer
+        mock_get_layer.return_value = None
+        
+        player = User.objects.create_user(username='player', email='player@test.com')
+        registration = Registration.objects.create(
+            tournament=tournament,
+            user=player,
+            status='confirmed'
+        )
+        
+        from apps.tournaments.api.checkin.views import CheckinViewSet
+        
+        viewset = CheckinViewSet()
+        # Should not raise exception even with no channel layer
+        viewset._broadcast_checkin_event(registration, checked_in=True)
+        
+        assert mock_get_layer.called
+    
+    @patch('apps.tournaments.api.checkin.views.get_channel_layer')
+    @patch('apps.tournaments.api.checkin.views.async_to_sync')
+    def test_websocket_broadcast_handles_exception(
+        self, mock_async, mock_get_layer, tournament
+    ):
+        """Test WebSocket broadcast handles exceptions gracefully"""
+        # Setup mocks to raise exception
+        mock_layer = MagicMock()
+        mock_get_layer.return_value = mock_layer
+        mock_group_send = MagicMock(side_effect=Exception("Channel error"))
+        mock_async.return_value = mock_group_send
+        
+        player = User.objects.create_user(username='player', email='player@test.com')
+        registration = Registration.objects.create(
+            tournament=tournament,
+            user=player,
+            status='confirmed'
+        )
+        
+        from apps.tournaments.api.checkin.views import CheckinViewSet
+        
+        viewset = CheckinViewSet()
+        # Should not propagate exception
+        viewset._broadcast_checkin_event(registration, checked_in=True)
+        
+        # Exception should be caught and logged (not raised)
