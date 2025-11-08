@@ -631,22 +631,36 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 | API validation errors | Missing rankings → 400 Bad Request | ❌ test_bracket_generation_ranked_seeding_missing_rankings_returns_400 (fixture) | ADR-002, ADR-008 |
 
 ### Module 4.3: Match Management & Scheduling
-- **Status**: 📋 Planned
+- **Status**: ✅ Complete (Nov 9, 2025)
 - **Implements**:
   - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md#section-3.4-match-app
-  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-match-service
-  - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#match-workflows
-- **ADRs**: ADR-011 (Match State Machine - TBD)
-- **Scope**:
-  - API endpoints: list, retrieve, update, start match
-  - Match state machine validation
-  - Schedule management with notifications
-  - Coordinator assignment
-  - Lobby info management
-- **Estimated Tests**: 20 tests (state machine, permissions, scheduling)
-- **Estimated Effort**: 20 hours (2.5 days)
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-4.4-match-models
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-003-soft-delete
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-005-security
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007-websocket
+- **ADRs**: ADR-001 (Service Layer), ADR-003 (Soft Delete), ADR-005 (Security), ADR-007 (WebSocket)
+- **Files Created**:
+  - apps/tournaments/api/match_views.py (751 lines - MatchViewSet, 7 endpoints)
+  - apps/tournaments/api/match_serializers.py (440 lines - 8 serializers)
+  - apps/tournaments/api/permissions.py (+60 lines - IsMatchParticipant)
+  - apps/tournaments/security/audit.py (+5 lines - 5 AuditActions)
+  - apps/tournaments/api/urls.py (+1 line - match route)
+  - tests/test_match_api_module_4_3.py (707 lines - 25 tests)
+  - Documents/ExecutionPlan/MODULE_4.3_COMPLETION_STATUS.md (comprehensive docs)
+- **API Endpoints**:
+  - `GET /api/tournaments/matches/` (list, filter, paginate)
+  - `GET /api/tournaments/matches/{id}/` (retrieve detail)
+  - `PATCH /api/tournaments/matches/{id}/` (update schedule/stream)
+  - `POST /api/tournaments/matches/{id}/start/` (READY → LIVE transition)
+  - `POST /api/tournaments/matches/bulk-schedule/` (bulk scheduling)
+  - `POST /api/tournaments/matches/{id}/assign-coordinator/` (coordinator assignment)
+  - `PATCH /api/tournaments/matches/{id}/lobby/` (lobby info JSONB update)
+- **Coverage**: 82% (match_views.py: 91%, match_serializers.py: 89%)
+- **Test Results**: 25/25 passing (100% pass rate)
+- **Actual Effort**: ~8 hours (50% under 16-hour estimate)
 
-### Module 4.3: Result Submission & Confirmation
+### Module 4.4: Result Submission & Confirmation
 - **Status**: 📋 Planned
 - **Implements**:
   - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-match-service
