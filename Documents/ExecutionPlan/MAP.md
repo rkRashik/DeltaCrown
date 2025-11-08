@@ -417,7 +417,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 | Audit logging | Service layer calls `audit_event()` for verify/reject/refund | Module 2.4 audit tests | ADR-008 |
 
 ### Module 3.3: Team Management
-- **Status**: � Planned (Not Yet Implemented)
+- **Status**: 🔄 In Progress
 - **Implements**:
   - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-creation
   - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#roster-management

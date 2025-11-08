@@ -24,7 +24,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'deltacrown.settings')
 django_asgi_app = get_asgi_application()
 
 # Import WebSocket routing and middleware after Django setup
-from apps.tournaments.realtime.routing import websocket_urlpatterns
+from apps.tournaments.realtime.routing import websocket_urlpatterns as tournament_ws_urls
+from apps.teams.realtime.routing import websocket_urlpatterns as team_ws_urls
 from apps.tournaments.realtime.middleware import JWTAuthMiddleware
 from apps.tournaments.realtime.middleware_ratelimit import RateLimitMiddleware
 
@@ -32,16 +33,16 @@ application = ProtocolTypeRouter({
     # Django's ASGI application to handle traditional HTTP requests
     "http": django_asgi_app,
     
-    # WebSocket handler for real-time tournament updates
+    # WebSocket handler for real-time tournament and team updates
     # Middleware chain (innermost to outermost):
-    # 1. URLRouter: Routes to TournamentConsumer
+    # 1. URLRouter: Routes to TournamentConsumer (Module 2.2) and TeamConsumer (Module 3.3)
     # 2. AllowedHostsOriginValidator: Validates host header
     # 3. RateLimitMiddleware (Module 2.5): Enforces connection/message rate limits
     # 4. JWTAuthMiddleware: Validates JWT token and injects user
     "websocket": JWTAuthMiddleware(
         RateLimitMiddleware(
             AllowedHostsOriginValidator(
-                URLRouter(websocket_urlpatterns)
+                URLRouter(tournament_ws_urls + team_ws_urls)
             )
         )
     ),

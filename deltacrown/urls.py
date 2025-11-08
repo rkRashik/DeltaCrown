@@ -59,8 +59,11 @@ urlpatterns = [
     # API endpoints
     # Module 3.1: Registration Flow & Validation API
     path("api/tournaments/", include("apps.tournaments.api.urls")),
+    
+    # Module 3.3: Team Management API
+    path("api/teams/", include("apps.teams.api.urls")),
 
-    # User profile â€” include ONCE with namespace & prefix invariant
+    # User profile â€" include ONCE with namespace & prefix invariant
     path("user/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
 
     # Optional extras mounted if present
