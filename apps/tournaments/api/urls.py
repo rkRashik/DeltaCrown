@@ -15,6 +15,7 @@ from rest_framework.routers import DefaultRouter
 from apps.tournaments.api import views
 from apps.tournaments.api.bracket_views import BracketViewSet
 from apps.tournaments.api.match_views import MatchViewSet
+from apps.tournaments.api.result_views import ResultViewSet  # Module 4.4
 
 # Router for DRF viewsets
 router = DefaultRouter()
@@ -22,6 +23,7 @@ router.register(r'registrations', views.RegistrationViewSet, basename='registrat
 router.register(r'payments', views.PaymentViewSet, basename='payment')
 router.register(r'brackets', BracketViewSet, basename='bracket')
 router.register(r'matches', MatchViewSet, basename='match')  # Module 4.3
+router.register(r'results', ResultViewSet, basename='result')  # Module 4.4
 
 app_name = 'tournaments_api'
 

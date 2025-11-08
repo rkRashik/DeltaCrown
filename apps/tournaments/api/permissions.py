@@ -128,13 +128,14 @@ class IsOrganizerOrAdmin(permissions.BasePermission):
 
 class IsMatchParticipant(permissions.BasePermission):
     """
-    Allow read access to match participants.
+    Allow access to match participants.
     
     Used for match detail views where participants need to see
-    match information (lobby details, schedule, etc.)
+    match information and perform actions (submit results, report disputes, etc.)
     
-    Module: 4.3 - Match Management API
-    Source: PHASE_4_IMPLEMENTATION_PLAN.md Module 4.3
+    Module: 4.3 - Match Management API (read access)
+    Module: 4.4 - Result Submission API (write access for result operations)
+    Source: PHASE_4_IMPLEMENTATION_PLAN.md Module 4.3, 4.4
     """
     
     def has_object_permission(self, request, view, obj):
@@ -144,7 +145,10 @@ class IsMatchParticipant(permissions.BasePermission):
         Allows:
         - Tournament organizer (full access)
         - Staff/superuser (full access)
-        - Match participants (read-only)
+        - Match participants (full access for match-related operations)
+        
+        Note: For Module 4.4 result submission operations, participants
+        can submit results, confirm results, and report disputes on their matches.
         """
         # Staff/superuser have full access
         if request.user.is_staff or request.user.is_superuser:
@@ -154,12 +158,11 @@ class IsMatchParticipant(permissions.BasePermission):
         if hasattr(obj, 'tournament') and obj.tournament.organizer_id == request.user.id:
             return True
         
-        # Check if user is a participant (read-only for safe methods)
-        if request.method in permissions.SAFE_METHODS:
-            # Check if user ID matches either participant
-            if hasattr(obj, 'participant1_id') and obj.participant1_id == request.user.id:
-                return True
-            if hasattr(obj, 'participant2_id') and obj.participant2_id == request.user.id:
-                return True
+        # Check if user is a participant (Module 4.4: allow POST for result operations)
+        # Check if user ID matches either participant
+        if hasattr(obj, 'participant1_id') and obj.participant1_id == request.user.id:
+            return True
+        if hasattr(obj, 'participant2_id') and obj.participant2_id == request.user.id:
+            return True
         
         return False

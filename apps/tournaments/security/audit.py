@@ -86,6 +86,11 @@ class AuditAction(str, Enum):
     MATCH_COORDINATOR_ASSIGN = 'match_coordinator_assign'  # Module 4.3: Coordinator assignment
     MATCH_LOBBY_UPDATE = 'match_lobby_update'  # Module 4.3: Lobby info update
     
+    # Result submission operations (Module 4.4)
+    RESULT_SUBMIT = 'result_submit'  # Module 4.4: Result submission
+    RESULT_CONFIRM = 'result_confirm'  # Module 4.4: Result confirmation
+    # Note: DISPUTE_CREATE already defined in "Dispute operations" section above
+    
     # Administrative actions
     ADMIN_BAN_PARTICIPANT = 'admin_ban_participant'
     ADMIN_UNBAN_PARTICIPANT = 'admin_unban_participant'
