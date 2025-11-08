@@ -210,18 +210,30 @@ class BracketService:
             return shuffled
         
         elif seeding_method == Bracket.RANKED:
-            # Ranked seeding - fetch rankings from apps.teams
+            # Module 4.2: Ranked seeding from apps.teams
             if tournament is None:
                 raise ValidationError("Tournament required for ranked seeding")
             
-            # Fetch rankings from apps.teams (to be implemented)
-            # For now, fall back to slot order
-            # TODO: Integrate with apps.teams ranking service
-            for i, participant in enumerate(participants, start=1):
-                participant['seed'] = participant.get('seed', i)
+            # Import ranking service (lazy to avoid circular imports)
+            from apps.tournaments.services.ranking_service import ranking_service
             
-            # Sort by seed (lower is better)
-            return sorted(participants, key=lambda p: p['seed'])
+            # Get ranked participants (sorted by team ranking)
+            # ranking_service validates all teams have rankings and raises
+            # ValidationError (400-level) if data is incomplete
+            try:
+                ranked_participants = ranking_service.get_ranked_participants(
+                    participants=participants,
+                    tournament=tournament
+                )
+                return ranked_participants
+            except ValidationError:
+                # Re-raise validation errors as-is (400 Bad Request)
+                raise
+            except Exception as e:
+                # Catch unexpected errors and wrap with context
+                raise ValidationError(
+                    f"Failed to apply ranked seeding: {str(e)}"
+                )
         
         elif seeding_method == Bracket.MANUAL:
             # Manual seeding - use provided seed values

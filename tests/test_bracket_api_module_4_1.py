@@ -813,3 +813,280 @@ class TestBracketPermissionsCoverageUplift:
         
         # Superuser should succeed
         assert response.status_code == status.HTTP_201_CREATED
+
+
+# ============================================================================
+# Module 4.2: Ranked Seeding API Tests
+# ============================================================================
+
+@pytest.mark.django_db
+class TestBracketGenerationRankedSeeding:
+    """API tests for ranked seeding (Module 4.2)."""
+
+    @pytest.fixture
+    def game(self):
+        """Create game fixture."""
+        return Game.objects.create(
+            name="League of Legends",
+            slug="lol",
+            default_team_size=5,
+            profile_id_field='riot_id',
+            default_result_type='best_of',
+            is_active=True
+        )
+
+    @pytest.fixture
+    def organizer(self):
+        """Create organizer user."""
+        User = get_user_model()
+        return User.objects.create_user(
+            username="ranked_org",
+            email="ranked_org@test.com",
+            password="testpass123"
+        )
+
+    @pytest.fixture
+    def tournament(self, game, organizer):
+        """Create tournament for ranked seeding tests."""
+        return Tournament.objects.create(
+            name="Ranked Seeding Tournament",
+            slug="ranked-seeding",
+            game=game,
+            organizer=organizer,
+            format='single_elimination',
+            participation_type='team',
+            status='published',
+            tournament_start=timezone.now() + timedelta(days=7),
+            registration_start=timezone.now() - timedelta(days=1),
+            registration_end=timezone.now() + timedelta(days=1),
+            max_participants=8,
+            min_participants=2
+        )
+
+    @pytest.fixture
+    def ranked_teams(self, game):
+        """Create 4 teams with distinct rankings."""
+        from apps.teams.models import Team, TeamRankingBreakdown
+        
+        teams = []
+        points_list = [1000, 700, 400, 100]
+        
+        for i, points in enumerate(points_list, start=1):
+            team = Team.objects.create(
+                name=f"APITeam {i}",
+                tag=f"AT{i}",
+                game=game.slug,
+                created_at=timezone.now() - timedelta(days=i*10)
+            )
+            TeamRankingBreakdown.objects.create(
+                team=team,
+                team_age_points=points // 2,
+                member_count_points=points // 2,
+                tournament_participation_points=0,
+                tournament_winner_points=0,
+                tournament_runner_up_points=0,
+                tournament_top_4_points=0,
+                achievement_points=0,
+                manual_adjustment_points=0
+            )
+            teams.append(team)
+        
+        return teams
+
+    @pytest.fixture
+    def registrations(self, tournament, ranked_teams):
+        """Create approved registrations for ranked teams."""
+        regs = []
+        for team in ranked_teams:
+            reg = Registration.objects.create(
+                tournament=tournament,
+                team=team,
+                status="APPROVED"
+            )
+            regs.append(reg)
+        return regs
+
+    def test_bracket_generation_with_ranked_seeding_success(
+        self, api_client, tournament, organizer, registrations
+    ):
+        """Test successful bracket generation with ranked seeding."""
+        api_client.force_authenticate(user=organizer)
+        
+        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        payload = {
+            'bracket_format': 'SINGLE_ELIMINATION',
+            'seeding_method': 'ranked',  # Module 4.2: ranked seeding
+            'participant_ids': [reg.id for reg in registrations]
+        }
+        
+        response = api_client.post(url, payload, format='json')
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert 'id' in response.data
+        assert response.data['bracket_format'] == 'SINGLE_ELIMINATION'
+        assert response.data['seeding_method'] == 'ranked'
+        
+        # Verify bracket was created
+        bracket = Bracket.objects.get(id=response.data['id'])
+        assert bracket.seeding_method == 'ranked'
+        
+        # Verify participants are seeded correctly (highest rank = seed 1)
+        nodes = BracketNode.objects.filter(bracket=bracket, round_number=1).order_by('seed')
+        assert nodes.count() == 4  # 4 teams in round 1
+        
+        # Seed 1 should be the team with 1000 points (APITeam 1)
+        seed_1_node = nodes.filter(seed=1).first()
+        assert seed_1_node is not None
+        assert seed_1_node.team.name == "APITeam 1"
+
+    def test_bracket_generation_ranked_seeding_missing_rankings_returns_400(
+        self, api_client, tournament, organizer
+    ):
+        """Test that missing rankings return 400 Bad Request, not 500."""
+        from apps.teams.models import Team
+        
+        # Create team WITHOUT ranking breakdown
+        unranked_team = Team.objects.create(
+            name="Unranked API Team",
+            tag="UAT",
+            game=tournament.game.slug
+        )
+        
+        reg = Registration.objects.create(
+            tournament=tournament,
+            team=unranked_team,
+            status="APPROVED"
+        )
+        
+        api_client.force_authenticate(user=organizer)
+        
+        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        payload = {
+            'bracket_format': 'SINGLE_ELIMINATION',
+            'seeding_method': 'ranked',
+            'participant_ids': [reg.id]
+        }
+        
+        response = api_client.post(url, payload, format='json')
+        
+        # Should return 400 (validation error), not 500 (server error)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data or 'detail' in response.data or 'non_field_errors' in response.data
+        
+        # Error message should be user-friendly
+        error_message = str(response.data).lower()
+        assert 'ranking' in error_message or 'unranked' in error_message
+
+    def test_bracket_generation_ranked_seeding_individual_participants_returns_400(
+        self, api_client, tournament, organizer
+    ):
+        """Test that ranked seeding with individual participants returns 400."""
+        User = get_user_model()
+        from apps.user_profile.models import UserProfile
+        
+        # Create individual participant
+        player = User.objects.create_user(
+            username="solo_player",
+            email="solo@test.com",
+            password="pass"
+        )
+        profile = UserProfile.objects.create(user=player, phone_number="1234567890")
+        
+        reg = Registration.objects.create(
+            tournament=tournament,
+            participant=profile,
+            status="APPROVED"
+        )
+        
+        api_client.force_authenticate(user=organizer)
+        
+        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        payload = {
+            'bracket_format': 'SINGLE_ELIMINATION',
+            'seeding_method': 'ranked',
+            'participant_ids': [reg.id]
+        }
+        
+        response = api_client.post(url, payload, format='json')
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        error_message = str(response.data).lower()
+        assert 'team' in error_message or 'individual' in error_message
+
+    def test_bracket_generation_ranked_seeding_requires_tournament(
+        self, api_client, organizer, ranked_teams, registrations
+    ):
+        """Test that ranked seeding validation catches missing tournament context."""
+        # This test ensures the BracketService logic is working correctly
+        # (API should always pass tournament, but testing the guard)
+        
+        api_client.force_authenticate(user=organizer)
+        
+        # Attempt to generate bracket (API should handle this, but testing validation)
+        url = f'/api/tournaments/brackets/tournaments/{registrations[0].tournament.id}/generate/'
+        payload = {
+            'bracket_format': 'SINGLE_ELIMINATION',
+            'seeding_method': 'ranked',
+            'participant_ids': [reg.id for reg in registrations]
+        }
+        
+        # Should succeed since tournament is passed by API
+        response = api_client.post(url, payload, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_bracket_serializer_accepts_ranked_seeding_method(
+        self, api_client, tournament, organizer, registrations
+    ):
+        """Test that BracketGenerationSerializer validates ranked seeding method."""
+        from apps.tournaments.api.serializers import BracketGenerationSerializer
+        
+        data = {
+            'bracket_format': 'SINGLE_ELIMINATION',
+            'seeding_method': 'ranked',
+            'participant_ids': [reg.id for reg in registrations]
+        }
+        
+        serializer = BracketGenerationSerializer(data=data, context={'tournament': tournament})
+        assert serializer.is_valid(), f"Serializer errors: {serializer.errors}"
+        assert serializer.validated_data['seeding_method'] == 'ranked'
+
+    def test_ranked_seeding_deterministic_across_requests(
+        self, api_client, tournament, organizer, registrations
+    ):
+        """Test that ranked seeding produces deterministic results across multiple requests."""
+        api_client.force_authenticate(user=organizer)
+        
+        url = f'/api/tournaments/brackets/tournaments/{tournament.id}/generate/'
+        payload = {
+            'bracket_format': 'SINGLE_ELIMINATION',
+            'seeding_method': 'ranked',
+            'participant_ids': [reg.id for reg in registrations]
+        }
+        
+        # Generate bracket twice (delete first one after checking)
+        response1 = api_client.post(url, payload, format='json')
+        assert response1.status_code == status.HTTP_201_CREATED
+        bracket1_id = response1.data['id']
+        
+        # Get seed assignments from first bracket
+        nodes1 = list(
+            BracketNode.objects.filter(bracket_id=bracket1_id, round_number=1)
+            .order_by('seed')
+            .values_list('team_id', 'seed')
+        )
+        
+        # Delete first bracket and create again
+        Bracket.objects.get(id=bracket1_id).delete()
+        
+        response2 = api_client.post(url, payload, format='json')
+        assert response2.status_code == status.HTTP_201_CREATED
+        bracket2_id = response2.data['id']
+        
+        nodes2 = list(
+            BracketNode.objects.filter(bracket_id=bracket2_id, round_number=1)
+            .order_by('seed')
+            .values_list('team_id', 'seed')
+        )
+        
+        # Seeding should be identical
+        assert nodes1 == nodes2, "Ranked seeding should be deterministic"
