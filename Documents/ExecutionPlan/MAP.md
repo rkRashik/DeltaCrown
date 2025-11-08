@@ -417,20 +417,34 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 | Audit logging | Service layer calls `audit_event()` for verify/reject/refund | Module 2.4 audit tests | ADR-008 |
 
 ### Module 3.3: Team Management
-- **Status**: 🔄 Pending
+- **Status**: � Planned (Not Yet Implemented)
 - **Implements**:
-  - TBD: Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#team-models
-  - TBD: Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#team-service
-- **ADRs**: TBD
+  - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-creation
+  - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#roster-management
+  - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#invitations
+  - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#captain-transfer
+  - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-dissolution
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#team-schema
+  - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#team-channels
+- **ADRs**: ADR-001 (Service Layer), ADR-009 (API Design)
 - **Files to Create**:
-  - TBD: Team create/join/leave endpoints
-  - TBD: Roster management, organizer controls
-  - TBD: Integration tests
+  - apps/teams/services/team_service.py (TeamService - 9 methods)
+  - apps/teams/api/views.py (TeamViewSet - 9 endpoints)
+  - apps/teams/api/serializers.py (5 serializers)
+  - apps/teams/realtime/consumers.py (5 team event handlers)
+  - tests/test_team_api.py (27 tests)
+  - tests/integration/test_team_websocket_events.py (5 tests)
+  - Documents/ExecutionPlan/MODULE_3.3_IMPLEMENTATION_PLAN.md ✅ Created
+  - Documents/ExecutionPlan/MODULE_3.3_COMPLETION_STATUS.md (pending implementation)
 - **Traceability**:
 
 | Requirement | Implementation | Tests | ADRs |
 |-------------|---------------|-------|------|
-| TBD | TBD | TBD | TBD |
+| Team creation | `TeamService.create_team()` + POST `/api/teams/` | `test_create_team_success` (5 tests) | ADR-001, ADR-009 |
+| Roster management | `TeamService.invite_player()`, `accept_invite()`, `remove_member()` | `TeamInviteTestCase` (8 tests) | ADR-001 |
+| Captain transfer | `TeamService.transfer_captain()` + POST `/api/teams/{id}/transfer-captain/` | `test_transfer_captain_success` (3 tests) | ADR-001 |
+| Team dissolution | `TeamService.disband_team()` + DELETE `/api/teams/{id}/` | `TeamDisbandTestCase` (4 tests) | ADR-001 |
+| WebSocket events | 5 event handlers (team_created, member_joined, etc.) | `test_team_websocket_events.py` (5 tests) | ADR-007 |
 
 ### Module 3.4: Check-in System
 - **Status**: 🔄 Pending

@@ -124,13 +124,29 @@ phase_3:
       - apps/tournaments/api/urls.py  # Registered PaymentViewSet
       - apps/tournaments/realtime/consumers.py  # 4 payment event handlers
     tests:
-      - tests/test_payment_api.py  # 29 tests (payment API)
+      - tests/test_payment_api.py  # 34 tests (payment API)
   module_3_3:
     name: "Team Management"
-    implements: []
+    status: "planned"
+    implements:
+      - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-creation
+      - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#roster-management
+      - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#invitations
+      - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#captain-transfer
+      - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-dissolution
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#team-schema
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#team-channels
+      - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md#service-layer
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-009
+      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#api-design
+    files: []  # Pending implementation
+    tests: []  # Pending implementation
   module_3_4:
     name: "Check-in System"
+    status: "planned"
     implements: []
+    files: []
+    tests: []
 
 phase_4:
   module_4_1:
