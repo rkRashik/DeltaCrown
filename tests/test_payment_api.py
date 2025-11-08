@@ -766,3 +766,284 @@ class PaymentAPIDeltaCoinTestCase(TestCase):
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('payment_method', response.data)
+
+
+class PaymentPermissionTestCase(TestCase):
+    """Test permission boundaries for payment API endpoints"""
+    
+    def setUp(self):
+        """Set up test data"""
+        self.player1 = User.objects.create_user(
+            username='player1',
+            email='player1@test.com',
+            password='testpass123'
+        )
+        
+        self.player2 = User.objects.create_user(
+            username='player2',
+            email='player2@test.com',
+            password='testpass123'
+        )
+        
+        self.organizer = User.objects.create_user(
+            username='permorganizer',
+            email='permorganizer@test.com',
+            password='testpass123'
+        )
+        
+        # Create game
+        from apps.tournaments.models.tournament import Game
+        game = Game.objects.create(
+            name='Valorant Perm',
+            slug='valorant-perm',
+            default_team_size=5,
+            default_result_type=Game.MAP_SCORE
+        )
+        
+        self.tournament = Tournament.objects.create(
+            name='Permission Test Tournament',
+            slug='perm-test-tournament',
+            description='Test Description',
+            game=game,
+            organizer=self.organizer,
+            format=Tournament.SINGLE_ELIM,
+            participation_type=Tournament.SOLO,
+            max_participants=16,
+            min_participants=2,
+            registration_start=timezone.now(),
+            registration_end=timezone.now() + timezone.timedelta(days=7),
+            tournament_start=timezone.now() + timezone.timedelta(days=14),
+            tournament_end=timezone.now() + timezone.timedelta(days=15),
+            status=Tournament.REGISTRATION_OPEN,
+            has_entry_fee=True,
+            entry_fee_amount=Decimal('500.00')
+        )
+        self.tournament.payment_methods = ['bkash']
+        self.tournament.save()
+        
+        # Player1's registration and payment
+        self.registration1 = Registration.objects.create(
+            tournament=self.tournament,
+            user=self.player1,
+            status=Registration.PENDING
+        )
+        
+        self.payment1 = Payment.objects.create(
+            registration=self.registration1,
+            payment_method='bkash',
+            amount=Decimal('500.00'),
+            status=Payment.SUBMITTED
+        )
+        
+        # Player2's registration and payment
+        self.registration2 = Registration.objects.create(
+            tournament=self.tournament,
+            user=self.player2,
+            status=Registration.PENDING
+        )
+        
+        self.payment2 = Payment.objects.create(
+            registration=self.registration2,
+            payment_method='bkash',
+            amount=Decimal('500.00'),
+            status=Payment.SUBMITTED
+        )
+        
+        self.client = APIClient()
+    
+    def test_player_cannot_retrieve_other_players_payment(self):
+        """Test player cannot view another player's payment details"""
+        self.client.force_authenticate(user=self.player2)
+        
+        # Try to access player1's payment
+        url = f'/api/tournaments/payments/{self.payment1.id}/'
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_player_cannot_verify_payment(self):
+        """Test regular player cannot verify any payment"""
+        self.client.force_authenticate(user=self.player1)
+        
+        url = f'/api/tournaments/payments/{self.payment1.id}/verify/'
+        data = {'admin_notes': 'Trying to verify own payment'}
+        
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('error', response.data)
+    
+    def test_player_cannot_reject_payment(self):
+        """Test regular player cannot reject any payment"""
+        self.client.force_authenticate(user=self.player1)
+        
+        url = f'/api/tournaments/payments/{self.payment1.id}/reject/'
+        data = {'admin_notes': 'Trying to reject own payment'}
+        
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('error', response.data)
+    
+    def test_player_cannot_refund_payment(self):
+        """Test regular player cannot refund any payment"""
+        # Set payment to verified
+        self.payment1.status = Payment.VERIFIED
+        self.payment1.verified_at = timezone.now()
+        self.payment1.verified_by = self.organizer
+        self.payment1.save()
+        
+        self.client.force_authenticate(user=self.player1)
+        
+        url = f'/api/tournaments/payments/{self.payment1.id}/refund/'
+        data = {
+            'admin_notes': 'Trying to refund own payment',
+            'refund_method': 'same'
+        }
+        
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('error', response.data)
+    
+    def test_organizer_can_access_all_tournament_payments(self):
+        """Test organizer can access all payments for their tournament"""
+        self.client.force_authenticate(user=self.organizer)
+        
+        # Access player1's payment
+        url1 = f'/api/tournaments/payments/{self.payment1.id}/'
+        response1 = self.client.get(url1)
+        self.assertEqual(response1.status_code, status.HTTP_200_OK)
+        
+        # Access player2's payment
+        url2 = f'/api/tournaments/payments/{self.payment2.id}/'
+        response2 = self.client.get(url2)
+        self.assertEqual(response2.status_code, status.HTTP_200_OK)
+    
+    def test_organizer_can_verify_payments(self):
+        """Test organizer can verify payments for their tournament"""
+        self.client.force_authenticate(user=self.organizer)
+        
+        url = f'/api/tournaments/payments/{self.payment1.id}/verify/'
+        data = {'admin_notes': 'Organizer verification'}
+        
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.payment1.refresh_from_db()
+        self.assertEqual(self.payment1.status, Payment.VERIFIED)
+
+
+class PaymentValidationTestCase(TestCase):
+    """Test validation edge cases for payment API endpoints"""
+    
+    def setUp(self):
+        """Set up test data"""
+        self.player = User.objects.create_user(
+            username='valplayer',
+            email='valplayer@test.com',
+            password='testpass123'
+        )
+        
+        self.organizer = User.objects.create_user(
+            username='valorganizer',
+            email='valorganizer@test.com',
+            password='testpass123'
+        )
+        
+        # Create game
+        from apps.tournaments.models.tournament import Game
+        game = Game.objects.create(
+            name='Valorant Val',
+            slug='valorant-val',
+            default_team_size=5,
+            default_result_type=Game.MAP_SCORE
+        )
+        
+        self.tournament = Tournament.objects.create(
+            name='Validation Test Tournament',
+            slug='val-test-tournament',
+            description='Test Description',
+            game=game,
+            organizer=self.organizer,
+            format=Tournament.SINGLE_ELIM,
+            participation_type=Tournament.SOLO,
+            max_participants=16,
+            min_participants=2,
+            registration_start=timezone.now(),
+            registration_end=timezone.now() + timezone.timedelta(days=7),
+            tournament_start=timezone.now() + timezone.timedelta(days=14),
+            tournament_end=timezone.now() + timezone.timedelta(days=15),
+            status=Tournament.REGISTRATION_OPEN,
+            has_entry_fee=True,
+            entry_fee_amount=Decimal('500.00')
+        )
+        self.tournament.payment_methods = ['bkash']
+        self.tournament.save()
+        
+        self.registration = Registration.objects.create(
+            tournament=self.tournament,
+            user=self.player,
+            status=Registration.PENDING
+        )
+        
+        self.payment = Payment.objects.create(
+            registration=self.registration,
+            payment_method='bkash',
+            amount=Decimal('500.00'),
+            status=Payment.VERIFIED,
+            verified_at=timezone.now(),
+            verified_by=self.organizer
+        )
+        
+        self.client = APIClient()
+    
+    def test_refund_missing_refund_method_returns_400(self):
+        """Test refund without refund_method returns 400 with specific error"""
+        self.client.force_authenticate(user=self.organizer)
+        
+        url = f'/api/tournaments/payments/{self.payment.id}/refund/'
+        data = {
+            'admin_notes': 'Tournament cancelled'
+            # Missing refund_method
+        }
+        
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('refund_method', response.data)
+        self.assertEqual(response.data['refund_method'][0], 'This field is required.')
+    
+    def test_refund_missing_admin_notes_returns_400(self):
+        """Test refund without admin_notes returns 400 with specific error"""
+        self.client.force_authenticate(user=self.organizer)
+        
+        url = f'/api/tournaments/payments/{self.payment.id}/refund/'
+        data = {
+            'refund_method': 'same'
+            # Missing admin_notes
+        }
+        
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('admin_notes', response.data)
+        self.assertEqual(response.data['admin_notes'][0], 'This field is required.')
+    
+    def test_reject_missing_admin_notes_returns_400(self):
+        """Test reject without admin_notes returns 400 with specific error"""
+        self.payment.status = Payment.SUBMITTED
+        self.payment.verified_at = None
+        self.payment.verified_by = None
+        self.payment.save()
+        
+        self.client.force_authenticate(user=self.organizer)
+        
+        url = f'/api/tournaments/payments/{self.payment.id}/reject/'
+        data = {}  # Missing admin_notes
+        
+        response = self.client.post(url, data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('admin_notes', response.data)
+        self.assertEqual(response.data['admin_notes'][0], 'This field is required.')
