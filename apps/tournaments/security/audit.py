@@ -80,6 +80,11 @@ class AuditAction(str, Enum):
     MATCH_SCORE_UPDATE = 'match_score_update'
     MATCH_FORCE_WIN = 'match_force_win'
     MATCH_RESET = 'match_reset'
+    MATCH_START = 'match_start'  # Module 4.3: Match start
+    MATCH_SCHEDULE = 'match_schedule'  # Module 4.3: Schedule update
+    MATCH_BULK_SCHEDULE = 'match_bulk_schedule'  # Module 4.3: Bulk scheduling
+    MATCH_COORDINATOR_ASSIGN = 'match_coordinator_assign'  # Module 4.3: Coordinator assignment
+    MATCH_LOBBY_UPDATE = 'match_lobby_update'  # Module 4.3: Lobby info update
     
     # Administrative actions
     ADMIN_BAN_PARTICIPANT = 'admin_ban_participant'

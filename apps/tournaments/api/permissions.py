@@ -124,3 +124,42 @@ class IsOrganizerOrAdmin(permissions.BasePermission):
             return obj.organizer_id == request.user.id
         
         return False
+
+
+class IsMatchParticipant(permissions.BasePermission):
+    """
+    Allow read access to match participants.
+    
+    Used for match detail views where participants need to see
+    match information (lobby details, schedule, etc.)
+    
+    Module: 4.3 - Match Management API
+    Source: PHASE_4_IMPLEMENTATION_PLAN.md Module 4.3
+    """
+    
+    def has_object_permission(self, request, view, obj):
+        """
+        Check if user is a participant in the match.
+        
+        Allows:
+        - Tournament organizer (full access)
+        - Staff/superuser (full access)
+        - Match participants (read-only)
+        """
+        # Staff/superuser have full access
+        if request.user.is_staff or request.user.is_superuser:
+            return True
+        
+        # Tournament organizer has full access
+        if hasattr(obj, 'tournament') and obj.tournament.organizer_id == request.user.id:
+            return True
+        
+        # Check if user is a participant (read-only for safe methods)
+        if request.method in permissions.SAFE_METHODS:
+            # Check if user ID matches either participant
+            if hasattr(obj, 'participant1_id') and obj.participant1_id == request.user.id:
+                return True
+            if hasattr(obj, 'participant2_id') and obj.participant2_id == request.user.id:
+                return True
+        
+        return False
