@@ -90,6 +90,8 @@ class AuditAction(str, Enum):
     # Registration operations
     REGISTRATION_OVERRIDE = 'registration_override'
     REGISTRATION_FORCE_CHECKIN = 'registration_force_checkin'
+    REGISTRATION_CHECKIN = 'registration_checkin'
+    REGISTRATION_CHECKIN_REVERT = 'registration_checkin_revert'
 
 
 # AuditLog model is defined in apps/tournaments/models/security.py

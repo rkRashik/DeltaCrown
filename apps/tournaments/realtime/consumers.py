@@ -617,6 +617,96 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         )
     
     # -------------------------------------------------------------------------
+    # Check-in Event Handlers (Module 3.4)
+    # -------------------------------------------------------------------------
+    
+    async def registration_checked_in(self, event: Dict[str, Any]):
+        """
+        Handle registration_checked_in event from channel layer.
+        
+        Module 3.4: Real-time check-in updates
+        
+        Args:
+            event: Event dict with 'type' and payload keys
+                {
+                    'type': 'registration_checked_in',
+                    'tournament_id': int,
+                    'registration_id': int,
+                    'checked_in': bool (True),
+                    'checked_in_at': str (ISO 8601),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='registration_checked_in' and event data
+            
+        Security:
+            - Room isolation validated
+        """
+        # Validate room isolation
+        if not self._validate_room_isolation(event.get('tournament_id')):
+            return
+        
+        await self.send_json({
+            'type': 'registration_checked_in',
+            'data': {
+                'tournament_id': event.get('tournament_id'),
+                'registration_id': event.get('registration_id'),
+                'checked_in': event.get('checked_in'),
+                'checked_in_at': event.get('checked_in_at'),
+                # Note: checked_in_by field not yet in Registration model
+            }
+        })
+        
+        logger.info(
+            f"Sent registration_checked_in event to user {self.user.username}: "
+            f"registration_id={event.get('registration_id')}, "
+            f"tournament_id={event.get('tournament_id')}"
+        )
+    
+    async def registration_checkin_reverted(self, event: Dict[str, Any]):
+        """
+        Handle registration_checkin_reverted event from channel layer.
+        
+        Module 3.4: Real-time check-in undo updates
+        
+        Args:
+            event: Event dict with 'type' and payload keys
+                {
+                    'type': 'registration_checkin_reverted',
+                    'tournament_id': int,
+                    'registration_id': int,
+                    'checked_in': bool (False),
+                    'checked_in_at': None,
+                }
+                
+        Broadcasts to client:
+            JSON message with type='registration_checkin_reverted' and event data
+            
+        Security:
+            - Room isolation validated
+        """
+        # Validate room isolation
+        if not self._validate_room_isolation(event.get('tournament_id')):
+            return
+        
+        await self.send_json({
+            'type': 'registration_checkin_reverted',
+            'data': {
+                'tournament_id': event.get('tournament_id'),
+                'registration_id': event.get('registration_id'),
+                'checked_in': event.get('checked_in'),
+                'checked_in_at': event.get('checked_in_at'),
+                # Note: checked_in_by field not yet in Registration model
+            }
+        })
+        
+        logger.info(
+            f"Sent registration_checkin_reverted event to user {self.user.username}: "
+            f"registration_id={event.get('registration_id')}, "
+            f"tournament_id={event.get('tournament_id')}"
+        )
+    
+    # -------------------------------------------------------------------------
     # Client Message Handling (Module 2.5: Schema Validation)
     # -------------------------------------------------------------------------
     

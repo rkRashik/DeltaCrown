@@ -23,4 +23,5 @@ app_name = 'tournaments_api'
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('checkin/', include('apps.tournaments.api.checkin.urls', namespace='checkin')),
 ]
