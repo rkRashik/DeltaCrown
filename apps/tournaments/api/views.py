@@ -319,15 +319,13 @@ class PaymentViewSet(viewsets.GenericViewSet):
         if user.is_staff:
             return Payment.objects.select_related(
                 'registration__tournament',
-                'registration__user',
-                'registration__team'
+                'registration__user'
             ).all()
         
         # Filter payments for user's registrations or organized tournaments
         return Payment.objects.select_related(
             'registration__tournament',
-            'registration__user',
-            'registration__team'
+            'registration__user'
         ).filter(
             models.Q(registration__user=user) |
             models.Q(registration__tournament__organizer=user)

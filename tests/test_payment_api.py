@@ -67,17 +67,20 @@ class PaymentAPITestCase(TestCase):
         self.tournament = Tournament.objects.create(
             name='Test Tournament',
             slug='test-tournament',
+            description='Test Description',
             game=game,
             organizer=self.organizer,
-            format='single_elimination',
-            team_size=5,
-            max_teams=16,
+            format=Tournament.SINGLE_ELIM,
+            participation_type=Tournament.SOLO,
+            max_participants=16,
+            min_participants=2,
             registration_start=timezone.now(),
             registration_end=timezone.now() + timezone.timedelta(days=7),
             tournament_start=timezone.now() + timezone.timedelta(days=14),
             tournament_end=timezone.now() + timezone.timedelta(days=15),
-            status=Tournament.UPCOMING,
-            entry_fee=Decimal('500.00'),
+            status=Tournament.REGISTRATION_OPEN,
+            has_entry_fee=True,
+            entry_fee_amount=Decimal('500.00'),
             prize_pool=Decimal('5000.00'),
             entry_fee_deltacoin=100,
         )
@@ -88,7 +91,6 @@ class PaymentAPITestCase(TestCase):
         self.registration = Registration.objects.create(
             tournament=self.tournament,
             user=self.player,
-            participant_type=Registration.SOLO,
             status=Registration.PENDING
         )
         
@@ -641,19 +643,22 @@ class PaymentAPIDeltaCoinTestCase(TestCase):
         )
         
         self.tournament = Tournament.objects.create(
-            name='DeltaCoin Tournament',
-            slug='deltacoin-tournament',
+            name='Test Tournament DeltaCoin',
+            slug='test-tournament-deltacoin',
+            description='Test Description DeltaCoin',
             game=game,
             organizer=self.organizer,
-            format='single_elimination',
-            team_size=5,
-            max_teams=16,
+            format=Tournament.SINGLE_ELIM,
+            participation_type=Tournament.SOLO,
+            max_participants=16,
+            min_participants=2,
             registration_start=timezone.now(),
             registration_end=timezone.now() + timezone.timedelta(days=7),
             tournament_start=timezone.now() + timezone.timedelta(days=14),
             tournament_end=timezone.now() + timezone.timedelta(days=15),
-            status=Tournament.UPCOMING,
-            entry_fee=Decimal('0.00'),
+            status=Tournament.REGISTRATION_OPEN,
+            has_entry_fee=True,
+            entry_fee_amount=Decimal('0.00'),
             entry_fee_deltacoin=100,
         )
         self.tournament.payment_methods = ['deltacoin']
@@ -662,7 +667,6 @@ class PaymentAPIDeltaCoinTestCase(TestCase):
         self.registration = Registration.objects.create(
             tournament=self.tournament,
             user=self.player,
-            participant_type=Registration.SOLO,
             status=Registration.PENDING
         )
         
