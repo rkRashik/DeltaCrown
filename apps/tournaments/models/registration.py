@@ -14,6 +14,7 @@ This module defines:
 
 from decimal import Decimal
 from typing import Optional, Any
+from django.conf import settings
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -108,6 +109,15 @@ class Registration(SoftDeleteModel, TimestampedModel):
         null=True,
         blank=True,
         help_text="When participant checked in"
+    )
+    
+    checked_in_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='checked_in_registrations',
+        help_text="User who performed the check-in (owner, captain, or organizer)"
     )
     
     # Bracket/seeding fields

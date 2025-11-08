@@ -101,14 +101,20 @@ class TestCheckinService:
     @pytest.fixture
     def team(self, player):
         """Create team with player as captain"""
+        from apps.user_profile.models import UserProfile
+        
         team = Team.objects.create(
             name='Test Team',
             tag='TST',
             description='Test team',
         )
+        
+        # Ensure player has profile
+        profile, _ = UserProfile.objects.get_or_create(user=player)
+        
         TeamMembership.objects.create(
             team=team,
-            user=player,
+            profile=profile,
             role='OWNER',
             status='ACTIVE',
         )
@@ -123,7 +129,7 @@ class TestCheckinService:
         
         return Registration.objects.create(
             tournament=tournament,
-            team=team,
+            team_id=team.id,
             status='confirmed',
         )
     
@@ -253,8 +259,9 @@ class TestCheckinService:
         CheckinService.check_in(solo_registration.id, player)
         
         # Manually set checked_in_at to past (simulate expired window)
+        solo_registration.refresh_from_db()
         solo_registration.checked_in_at = timezone.now() - timedelta(minutes=20)
-        solo_registration.save()
+        solo_registration.save(update_fields=['checked_in_at'])
         
         with pytest.raises(ValidationError, match='only be undone within'):
             CheckinService.undo_check_in(solo_registration.id, player)
@@ -265,8 +272,9 @@ class TestCheckinService:
         CheckinService.check_in(solo_registration.id, player)
         
         # Manually expire window
+        solo_registration.refresh_from_db()
         solo_registration.checked_in_at = timezone.now() - timedelta(hours=1)
-        solo_registration.save()
+        solo_registration.save(update_fields=['checked_in_at'])
         
         # Organizer can still undo
         result = CheckinService.undo_check_in(
@@ -648,9 +656,11 @@ class TestCheckinWebSocket:
         assert mock_get_layer.called
         assert mock_async.called
         
-        # Verify group_send called with correct data
-        mock_async.assert_called_once()
-        call_args = mock_async.call_args[0]
+        # Verify group_send wrapper was called
+        # async_to_sync(channel_layer.group_send) returns mock_group_send
+        # Then mock_group_send(group_name, payload) is called
+        assert mock_group_send.called
+        call_args, call_kwargs = mock_group_send.call_args
         
         group_name = call_args[0]
         payload = call_args[1]

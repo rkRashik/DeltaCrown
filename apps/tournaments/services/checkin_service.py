@@ -69,8 +69,8 @@ class CheckinService:
         # Perform check-in
         registration.checked_in = True
         registration.checked_in_at = timezone.now()
-        # Note: checked_in_by field not yet added to model (future enhancement)
-        registration.save(update_fields=['checked_in', 'checked_in_at'])
+        registration.checked_in_by = actor
+        registration.save(update_fields=['checked_in', 'checked_in_at', 'checked_in_by'])
         
         # Audit log
         audit_event(
@@ -141,8 +141,8 @@ class CheckinService:
         # Perform undo
         registration.checked_in = False
         registration.checked_in_at = None
-        # Note: checked_in_by field not yet added to model (future enhancement)
-        registration.save(update_fields=['checked_in', 'checked_in_at'])
+        registration.checked_in_by = None
+        registration.save(update_fields=['checked_in', 'checked_in_at', 'checked_in_by'])
         
         # Audit log
         audit_event(
@@ -198,7 +198,7 @@ class CheckinService:
             tournament = Tournament.objects.get(id=tournament_id)
             if not CheckinService._is_organizer_or_admin(actor, tournament):
                 raise PermissionDenied(
-                    f"You must be organizer of tournament {tournament.title} "
+                    f"You must be organizer of tournament {tournament.name} "
                     f"to perform bulk check-in"
                 )
         
@@ -231,9 +231,9 @@ class CheckinService:
                 # Perform check-in
                 registration.checked_in = True
                 registration.checked_in_at = timezone.now()
-                # Note: checked_in_by field not yet added to model (future enhancement)
+                registration.checked_in_by = actor
                 registration.save(update_fields=[
-                    'checked_in', 'checked_in_at'
+                    'checked_in', 'checked_in_at', 'checked_in_by'
                 ])
                 
                 results['success'].append({
@@ -288,16 +288,16 @@ class CheckinService:
         if registration.status == 'cancelled':
             raise ValidationError("Cannot check in cancelled registration")
         
+        # Tournament must not have started yet
+        if tournament.tournament_start and timezone.now() >= tournament.tournament_start:
+            raise ValidationError("Tournament has already started")
+        
         # Check-in window must be open
         if not CheckinService._is_check_in_window_open(tournament):
             raise ValidationError(
                 f"Check-in opens {CheckinService.CHECK_IN_WINDOW_BEFORE_START} "
                 f"minutes before tournament start"
             )
-        
-        # Tournament must not have started yet
-        if tournament.tournament_start and timezone.now() >= tournament.tournament_start:
-            raise ValidationError("Tournament has already started")
         
         # Check permissions
         if not skip_permission_check:
@@ -351,15 +351,20 @@ class CheckinService:
         if registration.team_id:
             try:
                 from apps.teams.models import TeamMembership
+                from apps.user_profile.models import UserProfile
                 
-                membership = TeamMembership.objects.filter(
-                    team_id=registration.team_id,
-                    user=user,
-                    role='OWNER',
-                    status='ACTIVE'
-                ).exists()
-                
-                return membership
+                # TeamMembership uses profile FK, not user
+                try:
+                    profile = UserProfile.objects.get(user=user)
+                    membership = TeamMembership.objects.filter(
+                        team_id=registration.team_id,
+                        profile=profile,
+                        role='OWNER',
+                        status='ACTIVE'
+                    ).exists()
+                    return membership
+                except UserProfile.DoesNotExist:
+                    return False
             except Exception:
                 return False
         

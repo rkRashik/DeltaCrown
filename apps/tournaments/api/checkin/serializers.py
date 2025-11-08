@@ -98,11 +98,10 @@ class CheckedInBySerializer(serializers.ModelSerializer):
 class CheckinStatusSerializer(serializers.ModelSerializer):
     """Serializer for check-in status response"""
     
-    # Note: checked_in_by field not yet added to Registration model (future enhancement)
-    # checked_in_by_details = CheckedInBySerializer(
-    #     source='checked_in_by',
-    #     read_only=True
-    # )
+    checked_in_by_details = CheckedInBySerializer(
+        source='checked_in_by',
+        read_only=True
+    )
     
     tournament_id = serializers.IntegerField(source='tournament.id', read_only=True)
     tournament_title = serializers.CharField(source='tournament.name', read_only=True)
@@ -121,8 +120,8 @@ class CheckinStatusSerializer(serializers.ModelSerializer):
             'status',
             'checked_in',
             'checked_in_at',
-            # 'checked_in_by',
-            # 'checked_in_by_details',
+            'checked_in_by',
+            'checked_in_by_details',
             'can_undo',
         ]
         read_only_fields = fields

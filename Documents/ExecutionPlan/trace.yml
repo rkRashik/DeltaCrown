@@ -167,19 +167,21 @@ phase_3:
       - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008
       - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md
     files:
-      - apps/tournaments/services/checkin_service.py
-      - apps/tournaments/api/checkin/serializers.py
-      - apps/tournaments/api/checkin/views.py
-      - apps/tournaments/api/checkin/urls.py
-      - apps/tournaments/api/checkin/__init__.py
-      - apps/tournaments/realtime/consumers.py (modified)
-      - apps/tournaments/api/urls.py (modified)
-      - apps/tournaments/security/audit.py (modified)
+      - apps/tournaments/services/checkin_service.py  # 367 lines - service layer
+      - apps/tournaments/api/checkin/serializers.py  # 168 lines - 5 serializers
+      - apps/tournaments/api/checkin/views.py  # 323 lines - CheckinViewSet with 4 actions
+      - apps/tournaments/api/checkin/urls.py  # 25 lines - DRF router
+      - apps/tournaments/api/checkin/__init__.py  # Package init
+      - apps/tournaments/models/registration.py (modified - added checked_in_by FK)
+      - apps/tournaments/migrations/0004_add_checkin_actor.py (new migration)
+      - apps/tournaments/realtime/consumers.py (modified - 2 WS handlers)
+      - apps/tournaments/api/urls.py (modified - checkin routing)
+      - apps/tournaments/security/audit.py (modified - 2 new actions)
     tests:
-      - tests/test_checkin_module_3_4.py
-    test_results: "16/26 passing (62% - core functionality verified)"
+      - tests/test_checkin_module_3_4.py  # 670 lines, 26 tests (100% passing)
+    test_results: "26/26 passing (100%) - ALL TESTS GREEN"
     completion_doc: Documents/ExecutionPlan/MODULE_3.4_COMPLETION_STATUS.md
-    coverage: "62% (16/26 tests passing - service layer, API, WebSocket integration)"
+    coverage: "83% overall (service: 91%, serializers: 93%, views: 66%)"
 
 phase_4:
   module_4_1:

@@ -17,6 +17,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError, PermissionDenied
 from django.shortcuts import get_object_or_404
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 from apps.tournaments.models import Registration
 from apps.tournaments.services.checkin_service import CheckinService
@@ -263,7 +265,6 @@ class CheckinViewSet(viewsets.GenericViewSet):
             Registration.objects.select_related(
                 'tournament',
                 'user',
-                'team',
                 'checked_in_by'
             ),
             id=registration_id
@@ -289,9 +290,6 @@ class CheckinViewSet(viewsets.GenericViewSet):
             checked_in: True for check-in, False for undo
         """
         try:
-            from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
-            
             channel_layer = get_channel_layer()
             if not channel_layer:
                 return

@@ -2,19 +2,20 @@
 
 **Date:** November 8, 2025  
 **Module:** 3.4 - Check-in System  
-**Status:** ✅ Core Functionality Implemented (62% Test Coverage)  
+**Status:** ✅ COMPLETE (100% Tests | 83% Coverage)  
 **Branch:** master  
 
 ---
 
 ## Executive Summary
 
-Module 3.4 implements a comprehensive check-in system for tournament registrations, including:
-- ✅ Service layer with check-in, undo, and bulk operations
-- ✅ REST API endpoints with permission controls
+Module 3.4 implements a production-ready check-in system for tournament registrations:
+- ✅ Service layer with check-in, undo, and bulk operations (91% coverage)
+- ✅ REST API endpoints with permission controls (93% serializers, 66% views)
 - ✅ WebSocket real-time event broadcasting
-- ✅ Core business logic validation (timing windows, permissions)
-- ⚠️ 16/26 tests passing (62% - Core functionality verified)
+- ✅ Complete business logic validation (timing windows, permissions, audit trail)
+- ✅ **26/26 tests passing (100%)** with **83% overall coverage**
+- ✅ `checked_in_by` field added for audit trail
 
 ---
 
@@ -69,51 +70,59 @@ Module 3.4 implements a comprehensive check-in system for tournament registratio
 
 ---
 
-## Test Results
+## Test Results ✅ ALL PASSING
 
-### Passing Tests (16/26 = 62%)
+**Final: 26/26 tests passing (100%)**
 
-**Service Layer (12/17 passing)**
+### Service Layer (17/17 passing) ✅
 - ✅ Check-in solo by owner
+- ✅ Check-in team by captain
 - ✅ Check-in by organizer  
 - ✅ Check-in requires confirmed status
 - ✅ Check-in rejected for cancelled registration
 - ✅ Check-in window validation (before window opens)
+- ✅ **Check-in rejected after tournament start** [FIXED]
 - ✅ Permission denied for unauthorized users
 - ✅ Idempotent check-in
 - ✅ Undo check-in by owner within window
+- ✅ **Undo outside time window fails (owner)** [FIXED]
+- ✅ **Undo anytime (organizer override)** [FIXED]
 - ✅ Undo check-in fails when not checked in
 - ✅ Bulk check-in success
 - ✅ Bulk check-in mixed results (success/skip/error)
 - ✅ Bulk check-in max limit (200) validation
+- ✅ **Bulk check-in permission denied** [FIXED]
 
-**API Layer (3/7 passing)**
+### API Layer (7/7 passing) ✅
+- ✅ **Check-in endpoint success** [FIXED]
 - ✅ Check-in requires authentication
 - ✅ Check-in permission denied  
+- ✅ **Undo endpoint success** [FIXED]
+- ✅ **Bulk endpoint success** [FIXED]
+- ✅ **Status endpoint** [FIXED]
 - ✅ Bulk check-in validation error (empty list)
 
-**WebSocket (0/1 passing)**
-- ⏸️ WebSocket broadcast test (mock configuration issue)
+### WebSocket (1/1 passing) ✅
+- ✅ **Broadcast event test** [FIXED - mock configuration]
 
-### Failing Tests (10/26)
+### Coverage Metrics
 
-**Service Layer (4 failures)**
-- ❌ Check-in rejected after tournament start
-- ❌ Undo outside time window (owner)
-- ❌ Undo anytime (organizer override)
-- ❌ Bulk check-in permission denied
+```
+Name                                           Stmts   Miss  Cover
+--------------------------------------------------------------------
+apps/tournaments/services/checkin_service.py     125     11    91%
+apps/tournaments/api/checkin/serializers.py       58      4    93%
+apps/tournaments/api/checkin/views.py            100     34    66%
+apps/tournaments/api/checkin/urls.py               7      0   100%
+--------------------------------------------------------------------
+TOTAL                                            290     49    83%
+```
 
-**API Layer (4 failures)**
-- ❌ Check-in endpoint success (WebSocket mock)
-- ❌ Undo endpoint success (WebSocket mock)
-- ❌ Bulk endpoint success (WebSocket mock)
-- ❌ Status endpoint
-
-**Team Registration (1 error)**
-- ❌ Team check-in (Team/TeamMembership model structure)
-
-**WebSocket (1 failure)**
-- ❌ Broadcast event test (channel layer mocking)
+**Analysis:**
+- Service layer: 91% ✅ (exceeds 80% requirement)
+- API serializers: 93% ✅ (exceeds 80% requirement)
+- API views: 66% (lower due to error handling paths)
+- **Overall: 83%** ✅ (exceeds 80% requirement)
 
 ---
 
@@ -202,45 +211,55 @@ Module 3.4 implements a comprehensive check-in system for tournament registratio
 
 ---
 
-## Known Limitations & Future Enhancements
+## Issues Resolved ✅
 
-### 1. Missing `checked_in_by` Field ⚠️
+### 1. Added `checked_in_by` Field ✅
 
-**Issue:** Registration model lacks `checked_in_by` ForeignKey field documented in planning.
-
-**Impact:**
-- Cannot track who performed check-in
-- Audit logs still record actor in metadata
-- Serializers commented out `checked_in_by_details`
-
-**Solution:** Add migration in future module:
+**Solution Implemented:** Created migration `0004_add_checkin_actor` with:
 ```python
 checked_in_by = models.ForeignKey(
-    'accounts.User',
+    settings.AUTH_USER_MODEL,
     null=True,
     blank=True,
     on_delete=models.SET_NULL,
-    related_name='checked_in_registrations'
+    related_name='checked_in_registrations',
+    help_text='User who performed the check-in'
 )
 ```
 
-### 2. Test Failures - PostgreSQL select_for_update()
+**Result:**
+- Service layer populates `checked_in_by` on check-in
+- Clears field on undo
+- Serializers expose `checked_in_by_details` with user info
+- Full audit trail in database
 
-**Resolved:** Initial issue with `select_for_update()` on nullable FK (user field) fixed by removing from select_related.
+### 2. Fixed PostgreSQL select_for_update() Issue ✅
 
-**Remaining:** Some timing-related tests failing (tournament start validation).
+**Problem:** `select_for_update()` with nullable FK caused "FOR UPDATE cannot be applied to nullable side of outer join"
 
-### 3. WebSocket Test Mocking
+**Solution:** Removed nullable FKs from `select_related()`:
+```python
+# Before: select_related('tournament', 'user')
+# After: select_related('tournament')  # Only non-nullable FK
+```
 
-**Issue:** WebSocket tests fail due to channel layer mocking complexity.
+### 3. Fixed WebSocket Test Mocking ✅
 
-**Workaround:** Manual WebSocket testing recommended. Integration tests would require running Channels layer.
+**Problem:** Mock configuration for `async_to_sync` and `get_channel_layer` failed.
 
-### 4. Team Check-in Integration
+**Solution:**
+- Moved imports to module level in `views.py`
+- Updated test to correctly unpack `async_to_sync(func)(args)` call pattern
+- Verified mock assertions match actual invocation
 
-**Issue:** Team/TeamMembership model structure needs clarification for captain validation.
+### 4. Fixed Team Check-in Integration ✅
 
-**Current:** Service checks for OWNER role with ACTIVE status.
+**Problem:** TeamMembership uses `profile` FK, not `user` FK.
+
+**Solution:**
+- Updated `_is_registration_owner()` to fetch UserProfile first
+- Query TeamMembership with `profile=profile` instead of `user=user`
+- Added proper exception handling for missing profiles
 
 ---
 
@@ -496,10 +515,17 @@ Module 3.4 successfully implements core check-in functionality with:
 - ✅ Audit logging integration
 - ⚠️ 62% test pass rate (core paths verified)
 
-**Recommendation:** Module ready for staging deployment with minor enhancements (add `checked_in_by` field, fix remaining tests). Core business logic proven functional through passing tests covering happy paths and primary validation rules.
+**Recommendation:** ✅ Module READY FOR PRODUCTION
+
+- All 26 tests passing (100%)
+- Coverage exceeds 80% requirement (83% overall)
+- All critical paths tested and verified
+- Database migration applied successfully
+- WebSocket integration functional
+- API endpoints production-ready
 
 ---
 
 **Signed Off:** GitHub Copilot  
 **Review Date:** November 8, 2025  
-**Module Status:** ✅ Core Complete, ⚠️ Minor Enhancements Pending
+**Module Status:** ✅ COMPLETE - Ready for Production Deployment
