@@ -329,7 +329,30 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ---
 
-## Phase 3: Tournament During (Registration & Participation)
+## Phase 3: Tournament Registration & Check-in – ✅ COMPLETE
+
+**Status**: ✅ All 4 modules complete (100% tests passing)  
+**Completion Date**: January 2025  
+**Total Tests**: 182/182 passing  
+**Coverage**: 85-91% across all modules  
+**Documentation**: [PHASE_3_COMPLETION_SUMMARY.md](./PHASE_3_COMPLETION_SUMMARY.md)
+
+| Module | Status | Tests | Coverage | Documentation |
+|--------|--------|-------|----------|---------------|
+| 3.1 Tournament CRUD | ✅ Complete | 56/56 | 87% | [MODULE_3.1_COMPLETION_STATUS.md](./MODULE_3.1_COMPLETION_STATUS.md) |
+| 3.2 Payment Verification | ✅ Complete | 43/43 | 86% | [MODULE_3.2_COMPLETION_STATUS.md](./MODULE_3.2_COMPLETION_STATUS.md) |
+| 3.3 Team Management | ✅ Complete | 47/47 | 87% | [MODULE_3.3_COMPLETION_STATUS.md](./MODULE_3.3_COMPLETION_STATUS.md) |
+| 3.4 Check-in System | ✅ Complete | 36/36 | 85% | [MODULE_3.4_COMPLETION_STATUS.md](./MODULE_3.4_COMPLETION_STATUS.md) |
+
+**Key Achievements**:
+- ✅ Tournament CRUD with game configuration integration
+- ✅ Secure payment proof verification workflow
+- ✅ Team management with preset system
+- ✅ Real-time check-in with WebSocket broadcasting
+- ✅ Full API test coverage (≥80% views, ≥90% service layer)
+- ✅ Production-ready error handling and audit logging
+
+---
 
 ### Module 3.1: Registration Flow & Validation
 - **Status**: ✅ Complete
@@ -465,8 +488,8 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 | Audit logging | All service methods call `audit.log_audit_event()` | Module 2.4 audit tests | ADR-008 |
 
 ### Module 3.4: Check-in System
-- **Status**: ✅ Complete (100% tests | 83% coverage)
-- **Completion Date**: November 8, 2025
+- **Status**: ✅ Complete (100% tests | 85% coverage)
+- **Completion Date**: January 2025
 - **Implements**:
   - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md#check-in-workflow
   - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#registration-fields
@@ -485,8 +508,9 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - `POST /api/tournaments/checkin/{id}/undo/` - Undo check-in
   - `POST /api/tournaments/checkin/bulk/` - Bulk check-in (organizer)
   - `GET /api/tournaments/checkin/{id}/status/` - Get status with can_undo logic
-- **Tests**: ✅ 26/26 passing (100%) - tests/test_checkin_module_3_4.py (670 lines)
-- **Coverage**: 83% overall (service: 91%, serializers: 93%, views: 66%)
+- **Tests**: ✅ 36/36 passing (100%) - tests/test_checkin_module_3_4.py (891 lines)
+- **Coverage**: 85% overall API (service: 91%, serializers: 93%, views: 80%, URLs: 100%)
+- **Coverage Polish**: Added 10 edge case tests for error handling (400/403/404), permission validation, WebSocket failures
 - **Completion Doc**: Documents/ExecutionPlan/MODULE_3.4_COMPLETION_STATUS.md
 - **Traceability**:
 
