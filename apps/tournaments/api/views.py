@@ -483,7 +483,7 @@ class PaymentViewSet(viewsets.GenericViewSet):
             verified_payment = RegistrationService.verify_payment(
                 payment_id=payment.id,
                 verified_by=request.user,
-                admin_notes=serializer.validated_data.get('notes', '')
+                admin_notes=serializer.validated_data.get('admin_notes', '')
             )
             
             # Broadcast payment verified event
@@ -555,11 +555,11 @@ class PaymentViewSet(viewsets.GenericViewSet):
             rejected_payment = RegistrationService.reject_payment(
                 payment_id=payment.id,
                 rejected_by=request.user,
-                reason=serializer.validated_data['reason']
+                reason=serializer.validated_data['admin_notes']
             )
             
             # Broadcast payment rejected event
-            self._broadcast_payment_rejected(rejected_payment, serializer.validated_data['reason'])
+            self._broadcast_payment_rejected(rejected_payment, serializer.validated_data['admin_notes'])
             
             # Return updated payment status
             response_serializer = PaymentStatusSerializer(rejected_payment)
@@ -628,11 +628,11 @@ class PaymentViewSet(viewsets.GenericViewSet):
             refunded_payment = RegistrationService.refund_payment(
                 payment_id=payment.id,
                 refunded_by=request.user,
-                reason=serializer.validated_data['reason']
+                reason=serializer.validated_data['admin_notes']
             )
             
             # Broadcast payment refunded event
-            self._broadcast_payment_refunded(refunded_payment, serializer.validated_data['reason'])
+            self._broadcast_payment_refunded(refunded_payment, serializer.validated_data['admin_notes'])
             
             # Return updated payment status
             response_serializer = PaymentStatusSerializer(refunded_payment)

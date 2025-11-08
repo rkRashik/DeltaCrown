@@ -531,8 +531,8 @@ class RegistrationService:
                 'payment_id': payment_id,
                 'tournament_id': registration.tournament_id,
                 'registration_id': registration.id,
-                'participant_type': registration.participant_type,
-                'participant_id': registration.participant_id,
+                'user_id': registration.user_id if registration.user_id else None,
+                'team_id': registration.team_id if registration.team_id else None,
                 'amount': str(payment.amount) if payment.amount else '0',
                 'payment_method': payment.payment_method,
                 'admin_notes': admin_notes,
@@ -603,8 +603,8 @@ class RegistrationService:
                 'payment_id': payment_id,
                 'tournament_id': registration.tournament_id,
                 'registration_id': registration.id,
-                'participant_type': registration.participant_type,
-                'participant_id': registration.participant_id,
+                'user_id': registration.user_id if registration.user_id else None,
+                'team_id': registration.team_id if registration.team_id else None,
                 'reason': reason,
             }
         )

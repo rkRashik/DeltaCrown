@@ -384,12 +384,10 @@ class PaymentStatusSerializer(serializers.ModelSerializer):
             'status',
             'status_display',
             'proof_file_url',
-            'notes',
+            'admin_notes',
             'submitted_at',
             'verified_at',
             'verified_by',
-            'rejected_at',
-            'rejection_reason',
         ]
         read_only_fields = fields
     
@@ -405,7 +403,7 @@ class PaymentVerifySerializer(serializers.Serializer):
     Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
     """
     
-    notes = serializers.CharField(
+    admin_notes = serializers.CharField(
         max_length=500,
         required=False,
         allow_blank=True,
@@ -438,17 +436,10 @@ class PaymentRejectSerializer(serializers.Serializer):
     Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
     """
     
-    reason = serializers.CharField(
+    admin_notes = serializers.CharField(
         max_length=500,
         required=True,
         help_text="Reason for rejection (required)"
-    )
-    
-    notes = serializers.CharField(
-        max_length=500,
-        required=False,
-        allow_blank=True,
-        help_text="Additional notes about the rejection"
     )
     
     def validate(self, attrs):
@@ -477,7 +468,7 @@ class PaymentRefundSerializer(serializers.Serializer):
     Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
     """
     
-    reason = serializers.CharField(
+    admin_notes = serializers.CharField(
         max_length=500,
         required=True,
         help_text="Reason for refund (required)"
@@ -491,13 +482,6 @@ class PaymentRefundSerializer(serializers.Serializer):
         ],
         required=True,
         help_text="Method for processing refund"
-    )
-    
-    notes = serializers.CharField(
-        max_length=500,
-        required=False,
-        allow_blank=True,
-        help_text="Additional notes about the refund"
     )
     
     def validate(self, attrs):

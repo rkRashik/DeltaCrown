@@ -386,8 +386,7 @@ class PaymentAPITestCase(TestCase):
         
         url = f'/api/tournaments/payments/{self.payment.id}/reject/'
         data = {
-            'reason': 'Transaction ID does not match our records',
-            'notes': 'Please check and resubmit'
+            'admin_notes': 'Transaction ID does not match our records'
         }
         
         response = self.client.post(url, data, format='json')
@@ -397,8 +396,8 @@ class PaymentAPITestCase(TestCase):
         # Verify payment was updated
         self.payment.refresh_from_db()
         self.assertEqual(self.payment.status, Payment.REJECTED)
-        self.assertEqual(self.payment.rejection_reason, 'Transaction ID does not match our records')
-        self.assertIsNotNone(self.payment.rejected_at)
+        self.assertEqual(self.payment.admin_notes, 'Transaction ID does not match our records')
+        self.assertIsNotNone(self.payment.verified_at)
         
         # Verify registration status reverted to PENDING
         self.registration.refresh_from_db()
@@ -417,7 +416,7 @@ class PaymentAPITestCase(TestCase):
         response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('reason', response.data)
+        self.assertIn('admin_notes', response.data)
     
     def test_reject_payment_player_cannot_reject(self):
         """Test player cannot reject payments"""
@@ -428,7 +427,7 @@ class PaymentAPITestCase(TestCase):
         
         url = f'/api/tournaments/payments/{self.payment.id}/reject/'
         data = {
-            'reason': 'Test reason'
+            'admin_notes': 'Test reason'
         }
         
         response = self.client.post(url, data, format='json')
@@ -447,9 +446,8 @@ class PaymentAPITestCase(TestCase):
         
         url = f'/api/tournaments/payments/{self.payment.id}/refund/'
         data = {
-            'reason': 'Tournament cancelled',
-            'refund_method': 'same',
-            'notes': 'Refund will be processed within 7 business days'
+            'admin_notes': 'Tournament cancelled',
+            'refund_method': 'same'
         }
         
         response = self.client.post(url, data, format='json')
@@ -467,7 +465,7 @@ class PaymentAPITestCase(TestCase):
         
         url = f'/api/tournaments/payments/{self.payment.id}/refund/'
         data = {
-            'reason': 'Test reason',
+            'admin_notes': 'Test reason',
             'refund_method': 'same'
         }
         
@@ -489,7 +487,7 @@ class PaymentAPITestCase(TestCase):
         response = self.client.post(url, data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('reason', response.data)
+        self.assertIn('admin_notes', response.data)
         self.assertIn('refund_method', response.data)
     
     def test_get_payment_status_success(self):
@@ -578,8 +576,7 @@ class PaymentAPITestCase(TestCase):
         
         reject_url = f'/api/tournaments/payments/{self.payment.id}/reject/'
         reject_data = {
-            'reason': 'Invalid transaction ID',
-            'notes': 'Please resubmit with correct ID'
+            'admin_notes': 'Invalid transaction ID - Please resubmit with correct ID'
         }
         
         reject_response = self.client.post(reject_url, reject_data, format='json')
@@ -602,7 +599,7 @@ class PaymentAPITestCase(TestCase):
         
         verify_url = f'/api/tournaments/payments/{self.payment.id}/verify/'
         verify_data = {
-            'notes': 'Corrected payment confirmed'
+            'admin_notes': 'Corrected payment confirmed'
         }
         
         verify_response = self.client.post(verify_url, verify_data, format='json')
