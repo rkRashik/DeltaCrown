@@ -437,6 +437,186 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         )
     
     # -------------------------------------------------------------------------
+    # Payment Event Handlers (Module 3.2)
+    # -------------------------------------------------------------------------
+    
+    async def payment_proof_submitted(self, event: Dict[str, Any]):
+        """
+        Handle payment.proof_submitted event from channel layer.
+        
+        Module 3.2: Real-time payment proof submission updates
+        
+        Args:
+            event: Event dict with 'type' and 'data' keys
+                data: {
+                    'payment_id': int,
+                    'registration_id': int,
+                    'tournament_id': int,
+                    'status': str,  # 'submitted'
+                    'timestamp': str (ISO 8601),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='payment_proof_submitted' and event data
+            
+        Security:
+            - Room isolation validated (tournament_id must match)
+            - No sensitive data exposed (file URLs, reference numbers excluded)
+        """
+        # Validate room isolation
+        if not self._validate_room_isolation(event.get('tournament_id')):
+            return
+        
+        await self.send_json({
+            'type': 'payment_proof_submitted',
+            'data': {
+                'payment_id': event.get('payment_id'),
+                'registration_id': event.get('registration_id'),
+                'tournament_id': event.get('tournament_id'),
+                'status': event.get('status'),
+                'timestamp': event.get('timestamp'),
+            }
+        })
+        
+        logger.info(
+            f"Sent payment_proof_submitted event to user {self.user.username}: "
+            f"payment_id={event.get('payment_id')}, "
+            f"tournament_id={event.get('tournament_id')}"
+        )
+    
+    async def payment_verified(self, event: Dict[str, Any]):
+        """
+        Handle payment.verified event from channel layer.
+        
+        Module 3.2: Real-time payment verification updates
+        
+        Args:
+            event: Event dict with 'type' and 'data' keys
+                data: {
+                    'payment_id': int,
+                    'registration_id': int,
+                    'tournament_id': int,
+                    'verified_by': str (username),
+                    'timestamp': str (ISO 8601),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='payment_verified' and event data
+            
+        Security:
+            - Room isolation validated
+            - Verified_by username exposed for transparency
+        """
+        # Validate room isolation
+        if not self._validate_room_isolation(event.get('tournament_id')):
+            return
+        
+        await self.send_json({
+            'type': 'payment_verified',
+            'data': {
+                'payment_id': event.get('payment_id'),
+                'registration_id': event.get('registration_id'),
+                'tournament_id': event.get('tournament_id'),
+                'verified_by': event.get('verified_by'),
+                'timestamp': event.get('timestamp'),
+            }
+        })
+        
+        logger.info(
+            f"Sent payment_verified event to user {self.user.username}: "
+            f"payment_id={event.get('payment_id')}, "
+            f"verified_by={event.get('verified_by')}"
+        )
+    
+    async def payment_rejected(self, event: Dict[str, Any]):
+        """
+        Handle payment.rejected event from channel layer.
+        
+        Module 3.2: Real-time payment rejection updates
+        
+        Args:
+            event: Event dict with 'type' and 'data' keys
+                data: {
+                    'payment_id': int,
+                    'registration_id': int,
+                    'tournament_id': int,
+                    'reason': str,
+                    'timestamp': str (ISO 8601),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='payment_rejected' and event data
+            
+        Security:
+            - Room isolation validated
+            - Reason exposed to guide resubmission
+        """
+        # Validate room isolation
+        if not self._validate_room_isolation(event.get('tournament_id')):
+            return
+        
+        await self.send_json({
+            'type': 'payment_rejected',
+            'data': {
+                'payment_id': event.get('payment_id'),
+                'registration_id': event.get('registration_id'),
+                'tournament_id': event.get('tournament_id'),
+                'reason': event.get('reason'),
+                'timestamp': event.get('timestamp'),
+            }
+        })
+        
+        logger.info(
+            f"Sent payment_rejected event to user {self.user.username}: "
+            f"payment_id={event.get('payment_id')}, "
+            f"reason={event.get('reason')[:50]}"  # Log first 50 chars
+        )
+    
+    async def payment_refunded(self, event: Dict[str, Any]):
+        """
+        Handle payment.refunded event from channel layer.
+        
+        Module 3.2: Real-time payment refund updates
+        
+        Args:
+            event: Event dict with 'type' and 'data' keys
+                data: {
+                    'payment_id': int,
+                    'registration_id': int,
+                    'tournament_id': int,
+                    'reason': str,
+                    'timestamp': str (ISO 8601),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='payment_refunded' and event data
+            
+        Security:
+            - Room isolation validated
+            - Reason exposed for transparency
+        """
+        # Validate room isolation
+        if not self._validate_room_isolation(event.get('tournament_id')):
+            return
+        
+        await self.send_json({
+            'type': 'payment_refunded',
+            'data': {
+                'payment_id': event.get('payment_id'),
+                'registration_id': event.get('registration_id'),
+                'tournament_id': event.get('tournament_id'),
+                'reason': event.get('reason'),
+                'timestamp': event.get('timestamp'),
+            }
+        })
+        
+        logger.info(
+            f"Sent payment_refunded event to user {self.user.username}: "
+            f"payment_id={event.get('payment_id')}, "
+            f"reason={event.get('reason')[:50]}"
+        )
+    
+    # -------------------------------------------------------------------------
     # Client Message Handling (Module 2.5: Schema Validation)
     # -------------------------------------------------------------------------
     

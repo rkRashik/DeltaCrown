@@ -16,7 +16,7 @@ Source Documents:
 
 from rest_framework import serializers
 from django.core.exceptions import ValidationError as DjangoValidationError
-from apps.tournaments.models.registration import Registration
+from apps.tournaments.models.registration import Registration, Payment
 from apps.tournaments.models.tournament import Tournament
 from apps.tournaments.services.registration_service import RegistrationService
 
@@ -247,5 +247,273 @@ class RegistrationCancelSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Cannot cancel registration after tournament has started"
             )
+        
+        return attrs
+
+
+# ============================================================================
+# Payment API Serializers (Module 3.2: Payment Processing)
+# ============================================================================
+
+
+class PaymentProofSubmitSerializer(serializers.Serializer):
+    """
+    Serializer for payment proof file upload (multipart/form-data).
+    
+    Handles:
+    - File upload validation (size, type)
+    - Reference number validation
+    - Manual payment methods (bKash, Nagad, Rocket, Bank Transfer)
+    
+    Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
+    """
+    
+    payment_proof = serializers.FileField(
+        required=True,
+        help_text="Payment proof file (JPG/PNG/PDF, max 5MB)",
+        allow_empty_file=False
+    )
+    
+    reference_number = serializers.CharField(
+        max_length=100,
+        required=False,
+        allow_blank=True,
+        help_text="Payment reference number from receipt (e.g., TxnID from bKash)"
+    )
+    
+    notes = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        help_text="Additional notes about the payment"
+    )
+    
+    def validate_payment_proof(self, value):
+        """
+        Validate uploaded file.
+        
+        Validation Rules (PART_4.4_REGISTRATION_PAYMENT_FLOW.md):
+        - Maximum size: 5MB
+        - Allowed types: JPG, PNG, PDF
+        
+        Note: File content validation happens in Payment model's clean() method.
+        """
+        # Check file size (5MB = 5 * 1024 * 1024 bytes)
+        max_size = 5 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError(
+                f"File size ({value.size / 1024 / 1024:.1f}MB) exceeds maximum allowed size (5MB)"
+            )
+        
+        # Check file extension
+        allowed_extensions = ['jpg', 'jpeg', 'png', 'pdf']
+        file_extension = value.name.split('.')[-1].lower()
+        if file_extension not in allowed_extensions:
+            raise serializers.ValidationError(
+                f"File type '.{file_extension}' not allowed. Allowed types: {', '.join(allowed_extensions)}"
+            )
+        
+        return value
+    
+    def validate(self, attrs):
+        """Cross-field validation"""
+        # Registration instance passed via context
+        registration = self.context.get('registration')
+        
+        if not registration:
+            raise serializers.ValidationError("Registration not found in context")
+        
+        # Check if payment exists
+        if not hasattr(registration, 'payment'):
+            raise serializers.ValidationError({
+                'non_field_errors': [
+                    "No payment record found for this registration. "
+                    "Payment must be created before submitting proof."
+                ]
+            })
+        
+        payment = registration.payment
+        
+        # Check payment method - only manual methods require proof
+        manual_methods = ['bkash', 'nagad', 'rocket', 'bank_transfer']
+        if payment.payment_method not in manual_methods:
+            raise serializers.ValidationError({
+                'payment_method': [
+                    f"Payment method '{payment.payment_method}' does not require proof upload. "
+                    f"Proof upload only required for: {', '.join(manual_methods)}"
+                ]
+            })
+        
+        # Check payment status - can only submit for pending/submitted/rejected
+        allowed_statuses = [Payment.PENDING, Payment.SUBMITTED, Payment.REJECTED]
+        if payment.status not in allowed_statuses:
+            raise serializers.ValidationError({
+                'status': [
+                    f"Cannot submit proof for payment with status '{payment.get_status_display()}'. "
+                    f"Proof can only be submitted for: Pending, Submitted, or Rejected payments."
+                ]
+            })
+        
+        return attrs
+
+
+class PaymentStatusSerializer(serializers.ModelSerializer):
+    """
+    Serializer for payment status retrieval.
+    
+    Returns payment details including proof file URL, status, and verification info.
+    
+    Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
+    """
+    
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    proof_file_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Payment
+        fields = [
+            'id',
+            'registration',
+            'payment_method',
+            'payment_method_display',
+            'amount',
+            'transaction_id',
+            'reference_number',
+            'file_type',
+            'status',
+            'status_display',
+            'proof_file_url',
+            'notes',
+            'submitted_at',
+            'verified_at',
+            'verified_by',
+            'rejected_at',
+            'rejection_reason',
+        ]
+        read_only_fields = fields
+    
+    def get_proof_file_url(self, obj):
+        """Return payment proof file URL if available"""
+        return obj.proof_file_url
+
+
+class PaymentVerifySerializer(serializers.Serializer):
+    """
+    Serializer for payment verification by organizer/admin.
+    
+    Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
+    """
+    
+    notes = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        help_text="Optional notes about the verification"
+    )
+    
+    def validate(self, attrs):
+        """Validate verification request"""
+        payment = self.context.get('payment')
+        
+        if not payment:
+            raise serializers.ValidationError("Payment not found in context")
+        
+        # Check payment status - can only verify submitted payments
+        if payment.status != Payment.SUBMITTED:
+            raise serializers.ValidationError({
+                'status': [
+                    f"Cannot verify payment with status '{payment.get_status_display()}'. "
+                    "Only submitted payments can be verified."
+                ]
+            })
+        
+        return attrs
+
+
+class PaymentRejectSerializer(serializers.Serializer):
+    """
+    Serializer for payment rejection by organizer/admin.
+    
+    Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
+    """
+    
+    reason = serializers.CharField(
+        max_length=500,
+        required=True,
+        help_text="Reason for rejection (required)"
+    )
+    
+    notes = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        help_text="Additional notes about the rejection"
+    )
+    
+    def validate(self, attrs):
+        """Validate rejection request"""
+        payment = self.context.get('payment')
+        
+        if not payment:
+            raise serializers.ValidationError("Payment not found in context")
+        
+        # Check payment status - can only reject submitted payments
+        if payment.status != Payment.SUBMITTED:
+            raise serializers.ValidationError({
+                'status': [
+                    f"Cannot reject payment with status '{payment.get_status_display()}'. "
+                    "Only submitted payments can be rejected."
+                ]
+            })
+        
+        return attrs
+
+
+class PaymentRefundSerializer(serializers.Serializer):
+    """
+    Serializer for payment refund processing by organizer/admin.
+    
+    Source: PART_4.4_REGISTRATION_PAYMENT_FLOW.md Section 6.2
+    """
+    
+    reason = serializers.CharField(
+        max_length=500,
+        required=True,
+        help_text="Reason for refund (required)"
+    )
+    
+    refund_method = serializers.ChoiceField(
+        choices=[
+            ('same', 'Same payment method'),
+            ('deltacoin', 'DeltaCoin credit'),
+            ('manual', 'Manual refund'),
+        ],
+        required=True,
+        help_text="Method for processing refund"
+    )
+    
+    notes = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        help_text="Additional notes about the refund"
+    )
+    
+    def validate(self, attrs):
+        """Validate refund request"""
+        payment = self.context.get('payment')
+        
+        if not payment:
+            raise serializers.ValidationError("Payment not found in context")
+        
+        # Check payment status - can only refund verified payments
+        if payment.status != Payment.VERIFIED:
+            raise serializers.ValidationError({
+                'status': [
+                    f"Cannot refund payment with status '{payment.get_status_display()}'. "
+                    "Only verified payments can be refunded."
+                ]
+            })
         
         return attrs

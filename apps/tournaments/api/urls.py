@@ -17,6 +17,7 @@ from apps.tournaments.api import views
 # Router for DRF viewsets
 router = DefaultRouter()
 router.register(r'registrations', views.RegistrationViewSet, basename='registration')
+router.register(r'payments', views.PaymentViewSet, basename='payment')
 
 app_name = 'tournaments_api'
 
