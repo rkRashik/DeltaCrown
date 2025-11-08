@@ -719,7 +719,7 @@ class PaymentViewSet(viewsets.GenericViewSet):
                     "registration_id": payment.registration.id,
                     "tournament_id": payment.registration.tournament.id,
                     "reason": reason,
-                    "timestamp": payment.rejected_at.isoformat() if payment.rejected_at else timezone.now().isoformat(),
+                    "timestamp": payment.verified_at.isoformat() if payment.verified_at else timezone.now().isoformat(),
                 }
             )
     

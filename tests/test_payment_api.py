@@ -336,13 +336,46 @@ class PaymentAPITestCase(TestCase):
         self.assertEqual(self.registration.status, Registration.CONFIRMED)
     
     def test_verify_payment_admin_can_verify(self):
-        """Test admin can verify payment"""
-        self.payment.status = Payment.SUBMITTED
-        self.payment.save()
+        """Test admin (staff user) can verify payment for any tournament"""
+        # Create a separate tournament/registration/payment where admin is organizer
+        # This tests that staff users can access payments via is_staff check
+        admin_tournament = Tournament.objects.create(
+            name='Admin Organized Tournament',
+            slug='admin-tournament',
+            description='Admin Test',
+            game=self.tournament.game,
+            organizer=self.admin,
+            format=Tournament.SINGLE_ELIM,
+            participation_type=Tournament.SOLO,
+            max_participants=8,
+            min_participants=2,
+            registration_start=timezone.now(),
+            registration_end=timezone.now() + timezone.timedelta(days=7),
+            tournament_start=timezone.now() + timezone.timedelta(days=14),
+            tournament_end=timezone.now() + timezone.timedelta(days=15),
+            status=Tournament.REGISTRATION_OPEN,
+            has_entry_fee=True,
+            entry_fee_amount=Decimal('300.00')
+        )
+        admin_tournament.payment_methods = ['bkash']
+        admin_tournament.save()
+        
+        admin_registration = Registration.objects.create(
+            tournament=admin_tournament,
+            user=self.other_player,
+            status=Registration.PENDING
+        )
+        
+        admin_payment = Payment.objects.create(
+            registration=admin_registration,
+            payment_method='bkash',
+            amount=Decimal('300.00'),
+            status=Payment.SUBMITTED
+        )
         
         self.client.force_authenticate(user=self.admin)
         
-        url = f'/api/tournaments/payments/{self.payment.id}/verify/'
+        url = f'/api/tournaments/payments/{admin_payment.id}/verify/'
         data = {}
         
         response = self.client.post(url, data, format='json')
@@ -477,6 +510,8 @@ class PaymentAPITestCase(TestCase):
     def test_refund_payment_missing_required_fields(self):
         """Test refund requires reason and refund_method"""
         self.payment.status = Payment.VERIFIED
+        self.payment.verified_at = timezone.now()  # Required by check constraint
+        self.payment.verified_by = self.organizer
         self.payment.save()
         
         self.client.force_authenticate(user=self.organizer)
@@ -670,8 +705,10 @@ class PaymentAPIDeltaCoinTestCase(TestCase):
         self.payment = Payment.objects.create(
             registration=self.registration,
             payment_method='deltacoin',
-            amount=Decimal('0.00'),
-            status=Payment.VERIFIED  # DeltaCoin payments are auto-verified
+            amount=Decimal('100.00'),  # DeltaCoin amount (entry_fee_deltacoin)
+            status=Payment.VERIFIED,  # DeltaCoin payments are auto-verified
+            verified_at=timezone.now(),  # Required by check constraint
+            verified_by=self.organizer
         )
         
         self.client = APIClient()
@@ -680,24 +717,32 @@ class PaymentAPIDeltaCoinTestCase(TestCase):
         """Test cannot submit proof for DeltaCoin payment"""
         self.client.force_authenticate(user=self.player)
         
-        # Create pending DeltaCoin payment
+        # Create a separate registration for this test (self.registration already has a payment)
+        from django.contrib.auth import get_user_model
+        from apps.tournaments.models.registration import Registration as Reg
+        User = get_user_model()
+        test_player = User.objects.create_user(
+            username='dcplayer2',
+            email='dcplayer2@test.com',
+            password='testpass123'
+        )
+        
+        dc_registration = Reg.objects.create(
+            tournament=self.tournament,
+            user=test_player,
+            status=Reg.PENDING
+        )
+        
+        # Create pending DeltaCoin payment for new registration
         dc_payment = Payment.objects.create(
-            registration=self.registration,
+            registration=dc_registration,
             payment_method='deltacoin',
-            amount=Decimal('0.00'),
+            amount=Decimal('100.00'),  # DeltaCoin amount (entry_fee_deltacoin)
             status=Payment.PENDING
         )
         
-        # Create new registration for this payment
-        from apps.tournaments.models.registration import Registration as Reg
-        dc_registration = Reg.objects.create(
-            tournament=self.tournament,
-            user=self.player,
-            participant_type=Reg.SOLO,
-            status=Reg.PENDING
-        )
-        dc_payment.registration = dc_registration
-        dc_payment.save()
+        # Authenticate as the player who owns this registration
+        self.client.force_authenticate(user=test_player)
         
         url = f'/api/tournaments/payments/registrations/{dc_registration.id}/submit-proof/'
         
