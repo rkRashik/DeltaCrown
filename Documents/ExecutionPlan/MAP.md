@@ -874,7 +874,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Completion Doc**: Documents/ExecutionPlan/MODULE_5.1_COMPLETION_STATUS.md
 
 ### Module 5.2: Prize Payouts & Reconciliation
-- **Status**: 📋 Planned
+- **Status**: � In Progress - Milestone 2 Complete (Nov 10, 2025)
 - **Implements**:
   - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-integration-patterns (apps.economy)
   - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (prize_pool, prize_distribution)
@@ -888,23 +888,31 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - Refund entry fees for cancelled tournaments
   - Reconciliation verification (total payouts ≤ prize pool)
   - Audit trail for all transactions
+- **Milestones**:
+  - ✅ Milestone 1: Models & Migrations (Complete)
+  - ✅ Milestone 2: PayoutService (Complete)
+  - 📋 Milestone 3: API Endpoints (Planned)
 - **Models**:
   - `PrizeTransaction` (tournament, participant, placement, amount, coin_transaction FK, status, processed_by)
 - **Services**:
   - `PayoutService` (calculate_distribution, process_payouts, process_refunds, verify_reconciliation)
-- **Test Plan**: 18 tests (12 unit + 6 integration)
-  - Prize distribution calculation (3 tests)
-  - Payout amount rounding (2 tests)
-  - Refund calculation (2 tests)
-  - Reconciliation verification (2 tests)
-  - Edge cases: zero prize pool, single winner (3 tests)
-  - End-to-end payout processing (2 tests)
-  - apps.economy integration (2 tests)
-  - Refund workflow (1 test)
-  - WebSocket notification (1 test)
+- **Files Created**:
+  - apps/tournaments/models/prize.py (PrizeTransaction - 196 lines)
+  - apps/tournaments/admin_prize.py (View-only admin - 189 lines)
+  - apps/tournaments/services/payout_service.py (PayoutService - 607 lines, 4 methods)
+  - apps/tournaments/migrations/0007_prize_transaction.py
+  - tests/test_prize_transaction_module_5_2.py (4 tests - model validation)
+  - tests/test_payout_service_module_5_2.py (19 tests - service logic)
+- **Test Results**: 23 passing (4 model + 19 service)
+  - TestPayoutServiceDistribution: 6 tests (fixed/percent modes, rounding, validation)
+  - TestPayoutServicePayouts: 6 tests (happy path, idempotency, economy failures, preconditions, partial placements)
+  - TestPayoutServiceRefunds: 3 tests (happy path, idempotency, validation)
+  - TestPayoutServiceReconciliation: 4 tests (happy path, missing payouts, amount mismatches, failed transactions)
 - **Target Coverage**: ≥85%
-- **Estimated Effort**: ~20 hours
+- **Estimated Effort**: ~20 hours (12h spent on Milestones 1-2)
 - **Dependencies**: Module 5.1 (winner determination)
+- **Known Issues**:
+  - JSON serialization converts integer keys to strings in prize_distribution (handled in service code)
 
 ### Module 5.3: Certificates & Achievement Proofs
 - **Status**: 📋 Planned
