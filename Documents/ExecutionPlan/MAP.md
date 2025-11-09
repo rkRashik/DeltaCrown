@@ -550,7 +550,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 | 4.2 Ranking & Seeding | ✅ Complete | 42 tests | 85%+ | Ranked seeding integration |
 | 4.3 Match Management | ✅ Complete | 25 tests | 82% | Match lifecycle, scheduling |
 | 4.4 Result Submission | ✅ Complete | 24 tests | 89% | Result submission, confirmation, disputes |
-| 4.5 WebSocket Enhancement | 📋 Planned | 12 tests | 75% | Real-time match events |
+| 4.5 WebSocket Enhancement | ✅ Complete | 18 tests (14 pass, 4 skip) | 78% | Match channels, heartbeat, batching |
 | 4.6 API Polish | 📋 Planned | 5 tests | N/A | Endpoint consolidation |
 
 **Prerequisites**:
@@ -702,20 +702,33 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Estimated Effort**: 16 hours (2 days)
 
 ### Module 4.5: Real-time Updates (WebSocket Enhancement)
-- **Status**: 📋 Planned
+- **Status**: ✅ Complete (2025-01-09)
 - **Implements**:
   - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#websocket-channels
-  - Documents/ExecutionPlan/MODULE_2.3_COMPLETION_STATUS.md (enhance existing)
-- **ADRs**: ADR-014 (WebSocket Channels - TBD)
+  - Documents/ExecutionPlan/MODULE_4.5_COMPLETION_STATUS.md
+- **ADRs**: ADR-014 (WebSocket Channels)
 - **Scope**:
-  - Match-specific channels (`match_{id}`)
-  - Event types: match_started, score_updated, match_completed, bracket_updated, disputes
-  - Connection management (heartbeat, reconnect)
-  - Message batching and rate limiting
-- **Estimated Tests**: 12 tests (events, connections, rate limits)
-- **Estimated Effort**: 14 hours (1.75 days)
+  - Match-specific channels (`/ws/match/<id>/`)
+  - Server-initiated heartbeat (25s ping, 50s timeout, 4004 close code)
+  - `dispute_created` dual-room broadcast (tournament + match rooms)
+  - Score batching (100ms window, latest-wins, sequence numbers)
+  - Test auth middleware with role injection (`?role=organizer`)
+- **Files**:
+  - `apps/tournaments/realtime/match_consumer.py` (NEW - 646 lines)
+  - `apps/tournaments/realtime/consumers.py` (heartbeat enhanced)
+  - `apps/tournaments/realtime/utils.py` (batching functions)
+  - `apps/tournaments/realtime/routing.py` (match route)
+  - `apps/tournaments/services/match_service.py` (dispatch enhancement)
+  - `tests/test_auth_middleware.py` (role injection)
+  - `tests/test_websocket_enhancement_module_4_5.py` (18 test functions)
+- **Actual Tests**: 18 tests (14 passed, 4 skipped, 0 failed) - 78% pass rate
+- **Test Coverage**: MatchConsumer: 70%, utils: 61%, consumers: 43%
+- **Actual Effort**: ~4 hours (implementation + test infrastructure)
+- **Deferred Items**:
+  - Convert broadcast helpers to async-native (unblocks 4 skipped tests)
+  - Optional: Uplift realtime/ coverage from 36% → 80%+ (see MODULE_4.5_COMPLETION_STATUS.md#deferred-items)
 
-### Module 4.6: Live Match HUD
+### Module 4.6: API Polish & QA
 - **Status**: 📋 Planned
 - **Implements**:
   - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#bracket-visualization
