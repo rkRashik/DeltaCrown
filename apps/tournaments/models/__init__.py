@@ -30,6 +30,9 @@ from .match import (
 from .security import (
     AuditLog,  # Full implementation (Module 2.4)
 )
+from .result import (
+    TournamentResult,  # Module 5.1: Winner Determination
+)
 
 __all__ = [
     'Game',
@@ -43,4 +46,5 @@ __all__ = [
     'Match',
     'Dispute',
     'AuditLog',
+    'TournamentResult',
 ]

@@ -451,8 +451,8 @@ phase_4:
 phase_5:
   module_5_1:
     name: "Winner Determination & Verification"
-    status: "planned"
-    started_date: null
+    status: "in_progress"
+    started_date: "2025-11-09"
     completed_date: null
     implements:
       - "PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service (winner progression)"
@@ -460,17 +460,22 @@ phase_5:
       - "PHASE_5_IMPLEMENTATION_PLAN.md#module-51-winner-determination--verification"
       - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
       - "01_ARCHITECTURE_DECISIONS.md#adr-007-websocket-integration (tournament_completed event)"
-    files: []
-    tests: []
+    files:
+      - "apps/tournaments/models/result.py"
+      - "apps/tournaments/admin_result.py"
+      - "apps/tournaments/migrations/0005_tournament_result.py"
+      - "tests/test_winner_determination_module_5_1.py"
+    tests:
+      - "tests/test_winner_determination_module_5_1.py"
     coverage: null
     deliverables:
       - "apps/tournaments/models/result.py (TournamentResult model)"
       - "apps/tournaments/services/winner_service.py (WinnerDeterminationService)"
       - "apps/tournaments/admin_result.py (TournamentResultAdmin)"
-      - "apps/tournaments/migrations/0XXX_tournament_result.py"
-      - "tests/test_winner_determination_module_5_1.py (23 tests: 15 unit, 8 integration)"
+      - "apps/tournaments/migrations/0005_tournament_result.py"
+      - "tests/test_winner_determination_module_5_1.py (25 tests: 17 unit, 8 integration)"
       - "WebSocket event: tournament_completed"
-    notes: "Automated winner determination when all matches complete. Bracket tree traversal, tie-breaking, audit trail, organizer review workflow."
+    notes: "Automated winner determination when all matches complete. Bracket tree traversal, tie-breaking, audit trail, organizer review workflow. Step 1 (Models & Migrations) complete."
   
   module_5_2:
     name: "Prize Payouts & Reconciliation"
