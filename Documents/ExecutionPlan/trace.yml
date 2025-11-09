@@ -77,8 +77,43 @@ phase_2:
     tests:
       - tests/integration/test_security_hardening.py
       - tests/integration/test_audit_log.py
+  
   module_2_5:
-    implements: []
+    name: "Rate Limiting & Abuse Protection"
+    description: "Redis-backed token bucket rate limiting for WebSocket connections"
+    status: "complete"
+    completed_date: "2025-11-07"
+    implements:
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#rate-limiting
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#connection-limits
+      - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#websocket-behavior
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007  # WebSocket
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008  # Security
+      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#limits
+    planning_refs:
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#rate-limiting
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#connection-limits
+    files:
+      - apps/tournaments/realtime/middleware_ratelimit.py  # Token bucket middleware
+      - apps/tournaments/realtime/ratelimit.py  # Redis-backed rate limiter with LUA scripts
+      - apps/tournaments/realtime/consumers.py  # Enhanced with rate limit checks
+      - deltacrown/settings.py  # WS_RATE_* configuration
+      - .env.example  # Rate limiting environment variables
+    tests:
+      - tests/test_ratelimit_module_2_5.py  # 15 integration tests
+    test_file: tests/test_ratelimit_module_2_5.py
+    test_results: "15/15 passing (100% pass rate)"
+    coverage: "85%+ (middleware_ratelimit.py, ratelimit.py)"
+    completion_doc: Documents/ExecutionPlan/MODULE_2.5_COMPLETION_STATUS.md
+    features_delivered:
+      - "Redis-backed token bucket algorithm (per-user, per-IP)"
+      - "Multi-level throttling (message rate, connection limits, room capacity)"
+      - "Graceful degradation (in-memory fallback when Redis unavailable)"
+      - "Payload validation (size limits, schema validation)"
+      - "Origin validation (configurable allowlist)"
+      - "9 configurable environment variables"
+    actual_effort: "~6 hours (implementation + Redis integration + tests)"
+    estimated_effort: "12 hours (1.5 days)"
 
 phase_3:
   module_3_1:
@@ -336,7 +371,7 @@ phase_4:
     name: "WebSocket Enhancement"
     description: "Match-specific channels, server heartbeat, dispute_created dual broadcast, score batching"
     status: "complete"
-    completed_date: "2025-01-09"
+    completed_date: "2025-11-09"
     implements:
       - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#websocket-channels
       - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007  # WebSocket

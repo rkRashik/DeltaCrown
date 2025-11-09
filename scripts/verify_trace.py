@@ -61,33 +61,51 @@ def check_headers():
 
 
 def check_trace():
-    """Check that trace.yml is properly populated."""
+    """Check that trace.yml is properly populated.
+    
+    Returns tuple: (errors, warnings)
+    - errors: modules with status='complete' and empty implements (FAIL)
+    - warnings: modules with status='planned'/'in_progress' and empty implements (WARN)
+    """
     if not os.path.exists(TRACE_PATH):
         print(f"Error: {TRACE_PATH} not found")
-        return ["trace.yml missing"]
+        return (["trace.yml missing"], [])
     
     try:
         with open(TRACE_PATH, "r", encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
     except Exception as e:
         print(f"Error reading trace.yml: {e}")
-        return ["trace.yml invalid"]
+        return (["trace.yml invalid"], [])
     
-    empty = []
+    errors = []
+    warnings = []
+    
     for phase, modules in (data or {}).items():
         if not isinstance(modules, dict):
             continue
         for m, payload in (modules or {}).items():
             if not payload or not payload.get("implements"):
-                empty.append(f"{phase}:{m}")
+                module_key = f"{phase}:{m}"
+                status = payload.get("status") if payload else None
+                
+                # Fail only if status is explicitly 'complete' with empty implements
+                if status == "complete":
+                    errors.append(module_key)
+                # Warn if planned/in_progress (acceptable during development)
+                elif status in ["planned", "in_progress"]:
+                    warnings.append(module_key)
+                # No status or unknown status = treat as placeholder (warn only)
+                else:
+                    warnings.append(module_key)
     
-    return empty
+    return (errors, warnings)
 
 
 def main():
     """Run all checks."""
     missing_headers = check_headers()
-    empty_trace = check_trace()
+    trace_errors, trace_warnings = check_trace()
     
     fail = False
     
@@ -97,20 +115,26 @@ def main():
             print(" -", os.path.relpath(p, ROOT))
         fail = True
     
-    if empty_trace:
-        print("\nTrace entries with empty 'implements':")
-        for k in empty_trace:
+    if trace_errors:
+        print("\n[ERROR] Complete modules with empty 'implements':")
+        for k in trace_errors:
             print(" -", k)
-        print("\nFill 'Documents/Planning/...' anchors for each module before merging.")
-        # Not fatal during initial setup
-        # Uncomment to enforce later:
-        # fail = True
+        print("\nComplete modules MUST have planning document references.")
+        fail = True
+    
+    if trace_warnings:
+        print("\n[WARNING] Planned/in-progress modules with empty 'implements':")
+        for k in trace_warnings:
+            print(" -", k)
+        print("(This is acceptable during development; fill before marking complete)")
     
     if fail:
-        print("\n❌ Traceability checks failed")
+        print("\n[FAIL] Traceability checks failed")
         sys.exit(1)
     else:
-        print("✅ Traceability checks passed")
+        print("\n[PASS] Traceability checks passed")
+        if trace_warnings:
+            print("       (with warnings for planned modules)")
 
 
 if __name__ == "__main__":
