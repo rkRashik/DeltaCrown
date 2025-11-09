@@ -801,7 +801,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 ---
 
 ### Module 5.1: Winner Determination & Verification
-- **Status**: 📋 Planned
+- **Status**: � In Progress (Step 2/7 Complete)
 - **Implements**:
   - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service (winner progression)
   - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (status transitions)
@@ -811,26 +811,45 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Scope**:
   - Automated winner determination when all matches complete
   - Bracket tree traversal to find final winner
-  - Tie-breaking rules (configurable per tournament)
-  - Audit trail for winner determination reasoning
-  - Organizer review workflow (optional)
+  - Tie-breaking rules (5-step cascade: head-to-head → score diff → seed → completion time → ValidationError)
+  - Audit trail for winner determination reasoning (JSONB rules_applied)
+  - Organizer review workflow (requires_review flag for forfeit chains)
   - WebSocket event: `tournament_completed`
 - **Models**:
-  - `TournamentResult` (winner, runner-up, 3rd place, determination method, audit fields)
+  - ✅ `TournamentResult` (winner, runner-up, 3rd place, determination_method, requires_review, rules_applied JSONB, audit fields)
 - **Services**:
-  - `WinnerDeterminationService` (determine_winner, verify_completion, apply_tiebreaker, create_audit_log)
-- **Test Plan**: 23 tests (15 unit + 8 integration)
-  - Winner determination for complete brackets (4 tests)
-  - Incomplete bracket handling (3 tests)
-  - Tie-breaking logic (3 tests)
-  - Audit log creation (2 tests)
-  - Edge cases: forfeit chains, bye matches (3 tests)
-  - End-to-end winner determination (2 tests)
-  - WebSocket event broadcasting (2 tests)
-  - Organizer review workflow (2 tests)
-  - Dispute resolution integration (2 tests)
+  - ✅ `WinnerDeterminationService` (807 lines, 4 public methods + 10+ private helpers)
+    - `determine_winner()` - Main entry with idempotency, atomicity, WebSocket broadcast
+    - `verify_tournament_completion()` - Validates all matches complete/forfeit/disputed
+    - `apply_tiebreaker_rules()` - 5-step cascade with audit trail
+    - `create_audit_log()` - Structured JSONB with {rule, data, outcome} per step
+    - ID normalization helpers: `_rid()`, `_opt_rid()` for FK/ID consistency
+- **Files Created**:
+  - apps/tournaments/models/result.py (TournamentResult model)
+  - apps/tournaments/admin_result.py (TournamentResultAdmin - view-only interface)
+  - apps/tournaments/services/winner_service.py (WinnerDeterminationService - 807 lines)
+  - apps/tournaments/migrations/0005_tournament_result.py (TournamentResult model)
+  - apps/tournaments/migrations/0006_add_combined_index_tournament_method.py (performance index)
+  - apps/tournaments/realtime/utils.py (tournament_completed WebSocket event type)
+  - tests/test_winner_determination_module_5_1.py (1172 lines, 25 tests total: 12 core PASSING ✅, 13 scaffolded)
+- **Test Status**: 12 core tests passing (100%)
+  - ✅ test_verify_completion_blocks_when_any_match_not_completed (Guard)
+  - ✅ test_verify_completion_blocks_when_any_match_disputed (Guard)
+  - ✅ test_determine_winner_is_idempotent_returns_existing_result (Idempotency)
+  - ✅ test_determine_winner_normal_final_sets_completed_and_broadcasts (Happy path)
+  - ✅ test_forfeit_chain_marks_requires_review_and_method_forfeit_chain (Forfeit detection)
+  - ✅ test_tiebreaker_head_to_head_decides_winner (Tie-breaker rule 1)
+  - ✅ test_tiebreaker_score_diff_when_head_to_head_unavailable (Tie-breaker rule 2)
+  - ✅ test_tiebreaker_seed_when_head_to_head_tied (Tie-breaker rule 3)
+  - ✅ test_tiebreaker_completion_time_when_seed_tied (Tie-breaker rule 4)
+  - ✅ test_tiebreaker_unresolved_raises_validation_error_no_result_written (Tie-breaker rule 5)
+  - ✅ test_runner_up_finals_loser_third_place_from_match_or_semifinal (Placements)
+  - ✅ test_rules_applied_structured_ordered_with_outcomes (Audit trail)
+  - 📋 13 additional tests scaffolded (smoke, edge cases, integration tests)
+- **Current Coverage**: 83% (winner_service.py from 12 core tests)
 - **Target Coverage**: ≥85%
 - **Estimated Effort**: ~24 hours
+- **Steps**: 7 total (1. Models ✅, 2. Service Layer ✅, 3. Admin Integration ✅, 4. WebSocket, 5. Unit Tests, 6. Integration Tests, 7. Coverage & Docs)
 
 ### Module 5.2: Prize Payouts & Reconciliation
 - **Status**: 📋 Planned

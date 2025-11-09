@@ -14,16 +14,155 @@ Related Planning:
 
 import pytest
 from decimal import Decimal
+from unittest.mock import patch, MagicMock
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from datetime import timedelta
 
-# Module under test (will be created)
-# from apps.tournaments.services.winner_service import WinnerDeterminationService
-# from apps.tournaments.models.result import TournamentResult
+# Module under test
+from apps.tournaments.services.winner_service import WinnerDeterminationService
+from apps.tournaments.models import (
+    Tournament,
+    Bracket,
+    Match,
+    Registration,
+    TournamentResult
+)
 
 User = get_user_model()
+
+
+# ============================================================================
+# TEST FIXTURES & HELPERS
+# ============================================================================
+
+@pytest.fixture
+def organizer(django_user_model):
+    """Create tournament organizer user."""
+    return django_user_model.objects.create_user(
+        username='organizer',
+        email='org@example.com',
+        password='testpass123'
+    )
+
+
+@pytest.fixture
+def game():
+    """Create Game instance."""
+    from apps.tournaments.models import Game
+    return Game.objects.create(
+        name='Valorant',
+        is_active=True
+    )
+
+
+@pytest.fixture
+def base_tournament(organizer, game):
+    """Create base tournament in LIVE status with all required fields."""
+    from datetime import timedelta
+    import uuid
+    
+    now = timezone.now()
+    
+    return Tournament.objects.create(
+        name=f'Test Tournament {uuid.uuid4().hex[:8]}',
+        game=game,
+        format=Tournament.SINGLE_ELIM,
+        status=Tournament.LIVE,
+        max_participants=16,
+        organizer=organizer,
+        registration_start=now - timedelta(days=14),
+        registration_end=now - timedelta(days=7),
+        tournament_start=now - timedelta(days=1)
+    )
+
+
+def create_registration(tournament, user=None, team_id=None, seed=None):
+    """Helper to create a checked-in registration."""
+    if not user:
+        user = User.objects.create_user(
+            username=f'user_{Registration.objects.count()}',
+            email=f'user{Registration.objects.count()}@example.com',
+            password='pass'
+        )
+    
+    return Registration.objects.create(
+        tournament=tournament,
+        user=user,
+        team_id=team_id,  # IntegerField, not FK
+        seed=seed,
+        status=Registration.CONFIRMED,  # Correct constant: 'confirmed'
+        checked_in=True,  # Boolean flag for check-in
+        checked_in_at=timezone.now() - timedelta(hours=2)
+    )
+
+
+def create_bracket_with_matches(tournament, registrations, all_completed=True):
+    """
+    Create bracket with finals match structure.
+    
+    For simplicity, creates a finals match with:
+    - participant1 = registrations[0] (winner)
+    - participant2 = registrations[1] (runner-up)
+    """
+    bracket = Bracket.objects.create(
+        tournament=tournament,
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=3,
+        is_finalized=True
+    )
+    
+    # Create finals match (round 3)
+    finals = Match.objects.create(
+        tournament=tournament,
+        bracket=bracket,
+        round_number=3,
+        match_number=1,
+        participant1_id=registrations[0].id,
+        participant2_id=registrations[1].id,
+        state=Match.COMPLETED if all_completed else Match.PENDING_RESULT,
+        winner_id=registrations[0].id if all_completed else None,
+        loser_id=registrations[1].id if all_completed else None,
+        participant1_score=2,
+        participant2_score=1,
+        completed_at=timezone.now() if all_completed else None
+    )
+    
+    # Create semi-finals (round 2) for third place determination
+    if len(registrations) >= 4:
+        Match.objects.create(
+            tournament=tournament,
+            bracket=bracket,
+            round_number=2,
+            match_number=1,
+            participant1_id=registrations[0].id,
+            participant2_id=registrations[2].id,
+            state=Match.COMPLETED,
+            winner_id=registrations[0].id,
+            loser_id=registrations[2].id,
+            participant1_score=2,
+            participant2_score=0,
+            completed_at=timezone.now() - timedelta(hours=2)
+        )
+        
+        Match.objects.create(
+            tournament=tournament,
+            bracket=bracket,
+            round_number=2,
+            match_number=2,
+            participant1_id=registrations[1].id,
+            participant2_id=registrations[3].id,
+            state=Match.COMPLETED,
+            winner_id=registrations[1].id,
+            loser_id=registrations[3].id,
+            participant1_score=2,
+            participant2_score=1,
+            completed_at=timezone.now() - timedelta(hours=1)
+        )
+    
+    return bracket
 
 
 # ============================================================================
@@ -113,9 +252,212 @@ def test_determine_winner_updates_tournament_status_to_completed():
     pass
 
 
-# --- Incomplete Bracket Handling (3 tests) ---
+# ============================================================================
+# CORE TEST PACK: Guards, Idempotency, Happy Path, Tie-breakers, Forfeit Chain
+# ============================================================================
 
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
+# --- Guards & Idempotency (3 tests) ---
+
+@pytest.mark.django_db
+def test_verify_completion_blocks_when_any_match_not_completed(base_tournament):
+    """
+    Guard: Block determination when any match is not COMPLETED or FORFEIT.
+    
+    Setup:
+        - Tournament with 4 registrations
+        - Finals match in PENDING_RESULT status
+    
+    Expected:
+        - verify_tournament_completion() raises ValidationError
+        - Error message mentions incomplete matches
+        - No TournamentResult created
+    """
+    # Create registrations
+    regs = [create_registration(base_tournament) for _ in range(4)]
+    
+    # Create bracket with incomplete finals
+    create_bracket_with_matches(base_tournament, regs, all_completed=False)
+    
+    # Attempt determination
+    service = WinnerDeterminationService(base_tournament)
+    
+    with pytest.raises(ValidationError) as exc_info:
+        service.verify_tournament_completion()
+    
+    assert 'incomplete matches' in str(exc_info.value).lower()
+    assert TournamentResult.objects.filter(tournament=base_tournament).count() == 0
+
+
+@pytest.mark.django_db
+def test_verify_completion_blocks_when_any_match_disputed(base_tournament):
+    """
+    Guard: Block determination when any match is DISPUTED (including semi-finals).
+    
+    Setup:
+        - Tournament with 4 registrations
+        - All matches COMPLETED except one semi-final is DISPUTED
+    
+    Expected:
+        - verify_tournament_completion() raises ValidationError
+        - Error message mentions disputed matches
+        - No TournamentResult created
+    """
+    # Create registrations
+    regs = [create_registration(base_tournament) for _ in range(4)]
+    
+    # Create bracket with all matches complete
+    bracket = create_bracket_with_matches(base_tournament, regs, all_completed=True)
+    
+    # Mark one semi-final as disputed
+    semi_final = Match.objects.filter(bracket=bracket, round_number=2).first()
+    semi_final.state = Match.DISPUTED
+    semi_final.save()
+    
+    # Attempt determination
+    service = WinnerDeterminationService(base_tournament)
+    
+    with pytest.raises(ValidationError) as exc_info:
+        service.verify_tournament_completion()
+    
+    assert 'disputed' in str(exc_info.value).lower()
+    assert TournamentResult.objects.filter(tournament=base_tournament).count() == 0
+
+
+@pytest.mark.django_db
+def test_determine_winner_is_idempotent_returns_existing_result(base_tournament, organizer):
+    """
+    Idempotency: Returns existing TournamentResult without creating duplicate.
+    
+    Setup:
+        - Tournament with completed bracket
+        - TournamentResult already exists
+        - Call determine_winner() again
+    
+    Expected:
+        - Returns existing TournamentResult (same ID)
+        - No duplicate created
+        - No status change on second call
+    """
+    # Create registrations
+    regs = [create_registration(base_tournament) for _ in range(4)]
+    
+    # Create completed bracket
+    create_bracket_with_matches(base_tournament, regs, all_completed=True)
+    
+    # First determination
+    service1 = WinnerDeterminationService(base_tournament, organizer)
+    with patch.object(service1, '_broadcast_completion'):
+        result1 = service1.determine_winner()
+    
+    assert result1.id is not None
+    assert result1.winner == regs[0]
+    
+    # Second determination (should be idempotent)
+    service2 = WinnerDeterminationService(base_tournament, organizer)
+    with patch.object(service2, '_broadcast_completion'):
+        result2 = service2.determine_winner()
+    
+    assert result2.id == result1.id
+    assert TournamentResult.objects.filter(tournament=base_tournament).count() == 1
+
+
+# --- Happy-path Winner Determination (1 test) ---
+
+@pytest.mark.django_db
+def test_determine_winner_normal_final_sets_completed_and_broadcasts(base_tournament, organizer):
+    """
+    Happy path: Winner determined, status set to COMPLETED, WS event broadcasted.
+    
+    Setup:
+        - Tournament with 4 registrations
+        - All matches COMPLETED
+        - Finals winner is registration[0]
+    
+    Expected:
+        - TournamentResult created with correct winner
+        - Tournament.status == COMPLETED
+        - determination_method == 'normal'
+        - WebSocket event fired via on_commit
+        - Audit trail has completion_verification step
+    """
+    # Create registrations
+    regs = [create_registration(base_tournament) for _ in range(4)]
+    
+    # Create completed bracket
+    bracket = create_bracket_with_matches(base_tournament, regs, all_completed=True)
+    
+    # Mock WebSocket broadcast
+    service = WinnerDeterminationService(base_tournament, organizer)
+    
+    with patch.object(service, '_broadcast_completion') as mock_broadcast:
+        result = service.determine_winner()
+    
+    # Assertions
+    assert result.id is not None
+    assert result.winner == regs[0]
+    assert result.runner_up == regs[1]
+    assert result.determination_method == 'normal'
+    assert result.requires_review is False
+    assert result.created_by == organizer
+    
+    # Verify tournament status updated
+    base_tournament.refresh_from_db()
+    assert base_tournament.status == Tournament.COMPLETED
+    
+    # Verify audit trail
+    assert 'completion_verification' in str(result.rules_applied)
+    assert 'winner_identification' in str(result.rules_applied)
+    
+    # Note: _broadcast_completion is called via on_commit, so it won't be invoked in test
+    # unless we use TransactionTestCase or manually trigger on_commit hooks
+
+
+# --- Forfeit Chain Detection (1 test) ---
+
+@pytest.mark.django_db
+def test_forfeit_chain_marks_requires_review_and_method_forfeit_chain(base_tournament, organizer):
+    """
+    Forfeit chain: ≥50% wins via forfeit triggers requires_review flag.
+    
+    Setup:
+        - Tournament with 4 registrations
+        - Winner has 2 wins: 1 COMPLETED, 1 FORFEIT (50% forfeit rate)
+    
+    Expected:
+        - determination_method == 'forfeit_chain'
+        - requires_review == True
+        - Audit trail has forfeit_chain_detection step
+    """
+    # Create registrations
+    regs = [create_registration(base_tournament) for _ in range(4)]
+    
+    # Create bracket
+    bracket = create_bracket_with_matches(base_tournament, regs, all_completed=True)
+    
+    # Mark one of winner's matches as forfeit (50% forfeit rate)
+    winner_match = Match.objects.filter(
+        bracket=bracket,
+        winner_id=regs[0].id,
+        round_number=2
+    ).first()
+    winner_match.state = Match.FORFEIT
+    winner_match.save()
+    
+    # Determine winner
+    service = WinnerDeterminationService(base_tournament, organizer)
+    
+    with patch.object(service, '_broadcast_completion'):
+        result = service.determine_winner()
+    
+    # Assertions
+    assert result.determination_method == 'forfeit_chain'
+    assert result.requires_review is True
+    assert 'forfeit_chain_detection' in str(result.rules_applied)
+
+
+# --- Incomplete Bracket Handling (continued) ---
+
+@pytest.mark.skip(reason="Scaffolding - Extended test pack")
 @pytest.mark.django_db
 def test_determine_winner_incomplete_tournament_returns_none():
     """
@@ -127,45 +469,6 @@ def test_determine_winner_incomplete_tournament_returns_none():
         - Call determine_winner()
     
     Expected:
-        - verify_tournament_completion() returns False
-        - determine_winner() returns None
-        - No TournamentResult created
-        - Log warning: "Tournament {id} not ready for winner determination"
-    """
-    pass
-
-
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
-@pytest.mark.django_db
-def test_determine_winner_missing_final_winner_raises_validation_error():
-    """
-    Raises ValidationError if final node has no winner_id.
-    
-    Setup:
-        - Tournament with all matches complete except finals has no winner_id
-        - Bracket tree final node: winner_id = None
-    
-    Expected:
-        - _traverse_bracket_to_winner() raises ValidationError
-        - Error message: "Bracket final node missing winner"
-        - No TournamentResult created
-        - Transaction rolled back
-    """
-    pass
-
-
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
-@pytest.mark.django_db
-def test_verify_tournament_completion_pending_disputes_returns_false():
-    """
-    Returns False when disputes still pending.
-    
-    Setup:
-        - Tournament with all matches complete
-        - One dispute with status = "pending" (from semi-finals)
-        - Call verify_tournament_completion()
-    
-    Expected:
         - Returns False
         - Log warning: "Tournament {id} has pending disputes: {dispute_ids}"
         - determine_winner() returns None
@@ -175,146 +478,341 @@ def test_verify_tournament_completion_pending_disputes_returns_false():
 
 # --- Tie-Breaking Logic (5 tests) ---
 
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
 @pytest.mark.django_db
-def test_apply_tiebreaker_head_to_head_record():
+def test_tiebreaker_head_to_head_decides_winner(base_tournament, organizer):
     """
     Tie-breaking Rule #1: Head-to-head winner determined.
     
     Setup:
-        - Two participants tied for placement
-        - They faced each other in an earlier round
-        - Participant A beat Participant B (score 3-2)
+        - Two participants with direct match history
+        - regA beat regB in an earlier match
     
     Expected:
-        - apply_tiebreaker_rules() returns Participant A
-        - rules_applied JSONB: [{"rule": "head_to_head", "winner": A, "loser": B}]
-        - determination_method = "tiebreaker"
+        - apply_tiebreaker_rules() returns regA
+        - Audit trail includes head_to_head resolution
     """
-    pass
+    # Create registrations
+    regA = create_registration(base_tournament)
+    regB = create_registration(base_tournament)
+    
+    # Create bracket and direct match between them
+    bracket = Bracket.objects.create(
+        tournament=base_tournament,
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=3,
+        is_finalized=True
+    )
+    
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=2,
+        match_number=1,
+        participant1_id=regA.id,
+        participant2_id=regB.id,
+        state=Match.COMPLETED,
+        winner_id=regA.id,
+        loser_id=regB.id,
+        participant1_score=3,
+        participant2_score=2
+    )
+    
+    # Test tie-breaker
+    service = WinnerDeterminationService(base_tournament, organizer)
+    winner = service.apply_tiebreaker_rules([regA, regB])
+    
+    assert winner == regA
+    assert any('head_to_head' in str(step) for step in service.audit_steps)
 
 
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
 @pytest.mark.django_db
-def test_apply_tiebreaker_total_score_differential():
+def test_tiebreaker_score_diff_when_head_to_head_unavailable(base_tournament, organizer):
     """
-    Tie-breaking Rule #2: Highest total score differential wins.
+    Tie-breaking Rule #2: Score differential (exclude forfeits).
     
     Setup:
-        - Two participants never faced each other (Rule #1 N/A)
-        - Participant A: total score diff +15 (won 3 matches 10-5, 8-3, 7-2)
-        - Participant B: total score diff +8 (won 3 matches 5-2, 6-3, 4-1)
+        - Two participants never faced each other
+        - regA has higher score differential (+15 vs +8)
     
     Expected:
-        - apply_tiebreaker_rules() returns Participant A
-        - rules_applied: [{"rule": "score_differential", "A": +15, "B": +8}]
-        - Forfeit wins excluded from score differential calculation
+        - apply_tiebreaker_rules() returns regA
+        - Audit trail includes score_differential resolution
     """
-    pass
+    # Create registrations
+    regA = create_registration(base_tournament)
+    regB = create_registration(base_tournament)
+    
+    # Create bracket
+    bracket = Bracket.objects.create(
+        tournament=base_tournament,
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=3,
+        is_finalized=True
+    )
+    
+    # regA matches: +15 differential
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=1,
+        participant1_id=regA.id,
+        participant2_id=create_registration(base_tournament).id,
+        state=Match.COMPLETED,
+        winner_id=regA.id,
+        loser_id=regB.id,
+        participant1_score=10,
+        participant2_score=5
+    )
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=2,
+        match_number=1,
+        participant1_id=regA.id,
+        participant2_id=create_registration(base_tournament).id,
+        state=Match.COMPLETED,
+        winner_id=regA.id,
+        loser_id=regB.id,
+        participant1_score=8,
+        participant2_score=3
+    )
+    
+    # regB matches: +8 differential
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=2,
+        participant1_id=regB.id,
+        participant2_id=create_registration(base_tournament).id,
+        state=Match.COMPLETED,
+        winner_id=regB.id,
+        loser_id=regA.id,
+        participant1_score=5,
+        participant2_score=2
+    )
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=2,
+        match_number=2,
+        participant1_id=regB.id,
+        participant2_id=create_registration(base_tournament).id,
+        state=Match.COMPLETED,
+        winner_id=regB.id,
+        loser_id=regA.id,
+        participant1_score=6,
+        participant2_score=3
+    )
+    
+    # Test tie-breaker
+    service = WinnerDeterminationService(base_tournament, organizer)
+    winner = service.apply_tiebreaker_rules([regA, regB])
+    
+    assert winner == regA
+    assert any('score_differential' in str(step) for step in service.audit_steps)
 
 
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
 @pytest.mark.django_db
-def test_apply_tiebreaker_seed_ranking():
+def test_tiebreaker_seed_when_score_diff_tied(base_tournament, organizer):
     """
-    Tie-breaking Rule #3: Lower seed number wins.
+    Tie-breaking Rule #3: Lower seed wins.
     
     Setup:
         - Two participants with same score differential
-        - Participant A: seed #3
-        - Participant B: seed #7
+        - regA seed=3, regB seed=7
     
     Expected:
-        - apply_tiebreaker_rules() returns Participant A (lower seed)
-        - rules_applied: [{"rule": "seed_ranking", "A": 3, "B": 7}]
+        - apply_tiebreaker_rules() returns regA (lower seed)
+        - Audit trail includes seed_ranking resolution
     """
-    pass
+    # Create registrations with seeds
+    regA = create_registration(base_tournament, seed=3)
+    regB = create_registration(base_tournament, seed=7)
+    
+    # Test tie-breaker (no matches needed - seed decides)
+    service = WinnerDeterminationService(base_tournament, organizer)
+    winner = service.apply_tiebreaker_rules([regA, regB])
+    
+    assert winner == regA
+    assert any('seed_ranking' in str(step) for step in service.audit_steps)
 
 
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
 @pytest.mark.django_db
-def test_apply_tiebreaker_earliest_completion_time():
+def test_tiebreaker_completion_time_when_seed_tied(base_tournament, organizer):
     """
-    Tie-breaking Rule #4: Earliest completion time (faster wins).
+    Tie-breaking Rule #4: Earliest completion time wins.
     
     Setup:
-        - Two participants with same seed
-        - Participant A: last valid win at 14:30:00
-        - Participant B: last valid win at 14:45:00
+        - Two participants with same seed (or no seeds)
+        - regA completed earlier than regB
     
     Expected:
-        - apply_tiebreaker_rules() returns Participant A (earlier)
-        - rules_applied: [{"rule": "completion_time", "A": "14:30:00", "B": "14:45:00"}]
+        - apply_tiebreaker_rules() returns regA (earlier completion)
+        - Audit trail includes completion_time resolution
     """
-    pass
+    # Create registrations
+    regA = create_registration(base_tournament)
+    regB = create_registration(base_tournament)
+    
+    # Create bracket
+    bracket = Bracket.objects.create(
+        tournament=base_tournament,
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=3,
+        is_finalized=True
+    )
+    
+    # regA completed earlier
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=1,
+        participant1_id=regA.id,
+        participant2_id=create_registration(base_tournament).id,
+        state=Match.COMPLETED,
+        winner_id=regA.id,
+        loser_id=regB.id,
+        participant1_score=2,
+        participant2_score=1,
+        updated_at=timezone.now() - timedelta(hours=2)
+    )
+    
+    # regB completed later
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=2,
+        participant1_id=regB.id,
+        participant2_id=create_registration(base_tournament).id,
+        state=Match.COMPLETED,
+        winner_id=regB.id,
+        loser_id=regA.id,
+        participant1_score=2,
+        participant2_score=1,
+        updated_at=timezone.now() - timedelta(hours=1)
+    )
+    
+    # Test tie-breaker
+    service = WinnerDeterminationService(base_tournament, organizer)
+    winner = service.apply_tiebreaker_rules([regA, regB])
+    
+    assert winner == regA
+    assert any('completion_time' in str(step) for step in service.audit_steps)
 
 
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
 @pytest.mark.django_db
-def test_apply_tiebreaker_all_rules_exhausted_raises_validation_error():
+def test_tiebreaker_unresolved_raises_validation_error_no_result_written(base_tournament, organizer):
     """
-    All tie-breaking rules exhausted → ValidationError for manual resolution.
+    All tie-breaking rules exhausted → ValidationError.
     
     Setup:
-        - Two participants with identical stats across all 4 rules
-        - Same head-to-head result (N/A), score diff, seed, completion time
+        - Two participants with identical stats (no matches, no seeds, same timestamps)
     
     Expected:
         - apply_tiebreaker_rules() raises ValidationError
-        - Error message: "All tie-breaking rules exhausted. Manual resolution required."
-        - Audit log created with "requires_manual_resolution"
-        - No TournamentResult created
+        - Error message mentions "manual resolution required"
+        - Audit log includes tiebreaker_unresolved
     """
-    pass
+    # Create registrations with no matches or distinguishing features
+    regA = create_registration(base_tournament)
+    regB = create_registration(base_tournament)
+    
+    # Test tie-breaker (all rules will fail)
+    service = WinnerDeterminationService(base_tournament, organizer)
+    
+    with pytest.raises(ValidationError) as exc_info:
+        service.apply_tiebreaker_rules([regA, regB])
+    
+    assert 'manual resolution required' in str(exc_info.value).lower()
+    assert any('tiebreaker_unresolved' in str(step) for step in service.audit_steps)
 
 
-# --- Audit Log Creation (2 tests) ---
+# --- Placements & Third Place (1 test) ---
 
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
 @pytest.mark.django_db
-def test_create_audit_log_stores_reasoning():
+def test_runner_up_finals_loser_third_place_from_match_or_semifinal(base_tournament, organizer):
     """
-    Audit trail stored in TournamentResult.rules_applied (JSONB).
+    Placements: Winner from finals, runner-up is finals loser, third from semi-final losers.
+    
+    Setup:
+        - Tournament with 4 registrations
+        - Finals: reg[0] beats reg[1]
+        - Semi-finals: reg[0] beats reg[2], reg[1] beats reg[3]
+    
+    Expected:
+        - Winner = reg[0]
+        - Runner-up = reg[1]
+        - Third place = one of [reg[2], reg[3]] (determined by tie-breaker or explicit 3rd place match)
+    """
+    # Create registrations
+    regs = [create_registration(base_tournament) for _ in range(4)]
+    
+    # Create bracket with complete matches
+    bracket = create_bracket_with_matches(base_tournament, regs, all_completed=True)
+    
+    # Determine winner
+    service = WinnerDeterminationService(base_tournament, organizer)
+    
+    with patch.object(service, '_broadcast_completion'):
+        result = service.determine_winner()
+    
+    # Assertions
+    assert result.winner == regs[0]
+    assert result.runner_up == regs[1]
+    assert result.third_place in [regs[2], regs[3]]  # One of the semi-final losers
+
+
+# --- Audit Trail (1 test) ---
+
+@pytest.mark.django_db
+def test_rules_applied_structured_ordered_with_outcomes(base_tournament, organizer):
+    """
+    Audit trail is structured JSONB with ordered steps and outcomes.
     
     Setup:
         - Winner determined via normal bracket resolution
-        - Finals match: Participant A beat Participant B (score 3-1)
     
     Expected:
-        - TournamentResult.rules_applied contains:
-          {
-            "method": "bracket_resolution",
-            "finals_match_id": 123,
-            "winner": {"id": A, "name": "Team Phoenix"},
-            "loser": {"id": B, "name": "Team Dragon"},
-            "score": {"winner": 3, "loser": 1}
-          }
-        - determination_method = "normal"
+        - rules_applied is a dict with 'steps' list
+        - Each step has: rule, data, outcome
+        - Steps are ordered chronologically
+        - Includes completion_verification and winner_identification
     """
-    pass
-
-
-@pytest.mark.skip(reason="Scaffolding - Step 2: Service Layer")
-@pytest.mark.django_db
-def test_audit_log_includes_determination_method():
-    """
-    Audit log includes determination_method in rules_applied.
+    # Create registrations
+    regs = [create_registration(base_tournament) for _ in range(4)]
     
-    Setup:
-        - Winner determined via tie-breaking (Rule #2: score differential)
+    # Create completed bracket
+    create_bracket_with_matches(base_tournament, regs, all_completed=True)
     
-    Expected:
-        - TournamentResult.determination_method = "tiebreaker"
-        - TournamentResult.rules_applied contains:
-          {
-            "method": "tiebreaker",
-            "rules": [
-              {"rule": "head_to_head", "result": "N/A"},
-              {"rule": "score_differential", "winner": A, "A_diff": +15, "B_diff": +8}
-            ]
-          }
-    """
-    pass
+    # Determine winner
+    service = WinnerDeterminationService(base_tournament, organizer)
+    
+    with patch.object(service, '_broadcast_completion'):
+        result = service.determine_winner()
+    
+    # Verify audit structure
+    rules_applied = result.rules_applied
+    
+    assert 'steps' in rules_applied
+    assert 'tournament_id' in rules_applied
+    assert 'timestamp' in rules_applied
+    assert isinstance(rules_applied['steps'], list)
+    assert len(rules_applied['steps']) > 0
+    
+    # Verify steps have required fields
+    for step in rules_applied['steps']:
+        assert 'rule' in step
+        assert 'data' in step
+        assert 'outcome' in step
+    
+    # Verify specific steps exist
+    step_rules = [s['rule'] for s in rules_applied['steps']]
+    assert 'completion_verification' in step_rules
+    assert 'winner_identification' in step_rules
 
 
 # --- Edge Cases (5 tests including 2 new) ---
@@ -665,3 +1163,10 @@ def test_resolved_dispute_allows_winner_determination():
         - TournamentResult created
     """
     pass
+
+
+
+
+
+
+

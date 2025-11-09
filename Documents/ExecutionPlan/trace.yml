@@ -463,19 +463,23 @@ phase_5:
     files:
       - "apps/tournaments/models/result.py"
       - "apps/tournaments/admin_result.py"
+      - "apps/tournaments/services/winner_service.py"
       - "apps/tournaments/migrations/0005_tournament_result.py"
+      - "apps/tournaments/migrations/0006_add_combined_index_tournament_method.py"
+      - "apps/tournaments/realtime/utils.py"
       - "tests/test_winner_determination_module_5_1.py"
     tests:
       - "tests/test_winner_determination_module_5_1.py"
-    coverage: null
+    coverage: 83
     deliverables:
       - "apps/tournaments/models/result.py (TournamentResult model)"
-      - "apps/tournaments/services/winner_service.py (WinnerDeterminationService)"
-      - "apps/tournaments/admin_result.py (TournamentResultAdmin)"
-      - "apps/tournaments/migrations/0005_tournament_result.py"
-      - "tests/test_winner_determination_module_5_1.py (25 tests: 17 unit, 8 integration)"
-      - "WebSocket event: tournament_completed"
-    notes: "Automated winner determination when all matches complete. Bracket tree traversal, tie-breaking, audit trail, organizer review workflow. Step 1 (Models & Migrations) complete."
+      - "apps/tournaments/services/winner_service.py (WinnerDeterminationService - 807 lines)"
+      - "apps/tournaments/admin_result.py (TournamentResultAdmin - view-only interface)"
+      - "apps/tournaments/migrations/0005_tournament_result.py (TournamentResult model)"
+      - "apps/tournaments/migrations/0006_add_combined_index_tournament_method.py (performance index)"
+      - "apps/tournaments/realtime/utils.py (tournament_completed WebSocket event type)"
+      - "tests/test_winner_determination_module_5_1.py (25 tests: 12 core PASSING, 13 scaffolded)"
+    notes: "Step 2/7 complete: WinnerDeterminationService with comprehensive ID normalization, 12 core tests passing (guards, idempotency, happy path, forfeit chain, 5 tie-breaker rules, placements, audit trail). 83% coverage from core tests. 5-step tie-breaker cascade: head-to-head → score diff → seed → completion time → ValidationError. Includes idempotency, atomicity, WebSocket broadcast, forfeit chain detection (requires_review flag). Remaining: unskip 13 tests, integration tests, ≥85% coverage target."
   
   module_5_2:
     name: "Prize Payouts & Reconciliation"
