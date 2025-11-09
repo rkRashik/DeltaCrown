@@ -89,16 +89,78 @@ class WinnerDeterminationService:
         self.created_by = created_by
         self.audit_steps: List[Dict[str, Any]] = []
     
-    # --- ID Normalization Helpers (private) ---
+    # ============================================================================
+    # ID Normalization Helpers (private)
+    # ============================================================================
+    #
+    # These helpers provide consistent FK/ID handling throughout the service.
+    # Django models use IntegerFields for FK IDs (e.g., Match.winner_id) but
+    # tests often work with Registration objects. These helpers normalize both.
+    #
+    # **Usage in Service Code:**
+    #   - Use _rid(x) when x MUST be an ID (raises ValueError if None)
+    #   - Use _opt_rid(x) when x CAN be None (returns None if None)
+    #   - Always use for winner/runner_up/third_place comparisons
+    #   - Always use when querying Match.winner_id, participant1_id, etc.
+    #
+    # **Usage in Tests/Fixtures:**
+    #   - When creating Match objects: always use .id explicitly
+    #     ✅ Match.objects.create(winner_id=reg.id, ...)
+    #     ❌ Match.objects.create(winner=reg, ...)  # No FK field
+    #   - When comparing placements: use _rid() in assertions
+    #     ✅ assert service._rid(result.winner) == reg_a.id
+    #     ❌ assert result.winner == reg_a  # FK comparison fails
+    #
+    # **Why Needed:**
+    #   Match model uses IntegerFields (winner_id, participant1_id, etc.) for
+    #   performance and to avoid N+1 queries. Tests create Registration objects
+    #   but service must work with IDs. These helpers bridge the gap.
+    #
+    # **Examples:**
+    #   >>> reg = Registration.objects.create(...)
+    #   >>> service._rid(reg)         # Returns: 42 (reg.pk)
+    #   >>> service._rid(42)          # Returns: 42 (already int)
+    #   >>> service._opt_rid(None)    # Returns: None (allows None)
+    #   >>> service._rid(None)        # Raises: ValueError
+    #
     
     def _rid(self, x) -> int:
-        """Normalize registration/entity to ID (int). Handles both FKs and raw IDs."""
+        """
+        Normalize registration/entity to ID (int). Raises if None.
+        
+        Args:
+            x: Registration object, int ID, or object with .pk attribute
+            
+        Returns:
+            int: Registration ID
+            
+        Raises:
+            ValueError: If x is None (use _opt_rid for nullable fields)
+            
+        Usage:
+            winner_id = self._rid(winner)  # winner can be Registration or int
+            Match.objects.filter(winner_id=winner_id)  # Always int query
+        """
         if x is None:
             raise ValueError("Cannot normalize None to registration ID")
         return x.pk if hasattr(x, 'pk') else int(x)
     
     def _opt_rid(self, x) -> Optional[int]:
-        """Normalize registration/entity to ID, allowing None."""
+        """
+        Normalize registration/entity to ID (int), allowing None.
+        
+        Args:
+            x: Registration object, int ID, object with .pk, or None
+            
+        Returns:
+            int | None: Registration ID or None
+            
+        Usage:
+            third_place_id = self._opt_rid(third_place)  # Can be None
+            result = TournamentResult.objects.create(
+                third_place_id=third_place_id  # None is OK
+            )
+        """
         if x is None:
             return None
         return x.pk if hasattr(x, 'pk') else int(x)
@@ -792,38 +854,61 @@ class WinnerDeterminationService:
     
     def _broadcast_completion(self, result: TournamentResult) -> None:
         """
-        Broadcast tournament_completed event to WebSocket clients.
+        Broadcast tournament_completed event to WebSocket clients using validated schema.
         
-        Event schema:
+        Uses broadcast_tournament_completed() helper which enforces:
+        - Privacy: Only registration IDs (no PII leakage)
+        - Schema validation: Guaranteed payload structure
+        - Condensed rules_applied summary (full audit trail in DB only)
+        
+        Event schema (see realtime.utils.broadcast_tournament_completed):
         {
             'type': 'tournament_completed',
             'tournament_id': int,
-            'winner_id': int,
-            'runner_up_id': int | null,
-            'third_place_id': int | null,
+            'winner_registration_id': int,
+            'runner_up_registration_id': int | null,
+            'third_place_registration_id': int | null,
             'determination_method': str,
-            'timestamp': str (ISO 8601),
-            'rules_applied': dict,
-            'requires_review': bool
+            'requires_review': bool,
+            'rules_applied_summary': dict | null,
+            'timestamp': str (ISO 8601)
         }
         """
         try:
-            broadcast_tournament_event(
+            from apps.tournaments.realtime.utils import broadcast_tournament_completed
+            import json
+            
+            # Condense rules_applied for WebSocket (full audit trail stays in DB)
+            rules_summary = None
+            if result.rules_applied:
+                # rules_applied might be a string (JSON) or already parsed list
+                rules_list = result.rules_applied
+                if isinstance(rules_list, str):
+                    try:
+                        rules_list = json.loads(rules_list)
+                    except (json.JSONDecodeError, TypeError):
+                        rules_list = []
+                
+                # Extract just the rule names and final outcome for WS
+                if isinstance(rules_list, list) and rules_list:
+                    rules_summary = {
+                        'rules': [step.get('rule') for step in rules_list if isinstance(step, dict) and step.get('rule')],
+                        'outcome': rules_list[-1].get('outcome') if isinstance(rules_list[-1], dict) else None
+                    }
+            
+            broadcast_tournament_completed(
                 tournament_id=self.tournament.id,
-                event_type='tournament_completed',
-                data={
-                    'tournament_id': self.tournament.id,
-                    'winner_id': result.winner_id,
-                    'runner_up_id': result.runner_up_id,
-                    'third_place_id': result.third_place_id,
-                    'determination_method': result.determination_method,
-                    'timestamp': timezone.now().isoformat(),
-                    'rules_applied': result.rules_applied,
-                    'requires_review': result.requires_review
-                }
+                winner_registration_id=result.winner_id,
+                runner_up_registration_id=result.runner_up_id,
+                third_place_registration_id=result.third_place_id,
+                determination_method=result.determination_method,
+                requires_review=result.requires_review,
+                rules_applied_summary=rules_summary,
+                timestamp=timezone.now().isoformat()
             )
             logger.info(
-                f"Broadcast tournament_completed for tournament {self.tournament.id}"
+                f"Broadcast tournament_completed for tournament {self.tournament.id}, "
+                f"winner={result.winner_id}, method={result.determination_method}"
             )
         except Exception as e:
             logger.error(

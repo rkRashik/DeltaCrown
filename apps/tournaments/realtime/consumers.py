@@ -32,10 +32,15 @@ Security Features (Module 2.5):
     - Max payload size enforcement (16 KB default)
     - Schema validation for client messages
     - Room isolation (no cross-tournament broadcasts)
+
+Module 4.5 Enhancements:
+    - Server-initiated heartbeat (25s ping, 50s timeout)
+    - dispute_created event handler
 """
 
 import logging
 import json
+import asyncio
 from typing import Dict, Any, List, Optional
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.contrib.auth.models import AnonymousUser
@@ -99,6 +104,10 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
     # Configuration
     # =========================================================================
     
+    # Module 4.5: Server-initiated heartbeat configuration
+    HEARTBEAT_INTERVAL = 25  # seconds
+    HEARTBEAT_TIMEOUT = 50  # seconds (2 intervals)
+    
     @staticmethod
     def get_allowed_origins() -> Optional[List[str]]:
         """Get allowed origins from settings."""
@@ -158,8 +167,9 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         # MODULE 2.4: Role-Based Access Control
         # =====================================================================
         
-        # Determine user's tournament role
-        self.user_role = get_user_tournament_role(self.user)
+        # Determine user's tournament role (wrap sync function for async context)
+        from channels.db import database_sync_to_async
+        self.user_role = await database_sync_to_async(get_user_tournament_role)(self.user)
         
         # All authenticated users can connect (minimum: SPECTATOR)
         # Specific actions will be validated in receive_json
@@ -207,6 +217,13 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             f"channel={self.channel_name}"
         )
         
+        # =====================================================================
+        # Module 4.5: Start server-initiated heartbeat
+        # =====================================================================
+        
+        self.last_pong_time = asyncio.get_event_loop().time()
+        self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+        
         # Send welcome message to client
         await self.send_json({
             'type': 'connection_established',
@@ -216,6 +233,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'username': self.user.username,
                 'role': self.user_role.value,  # Inform client of their role
                 'message': f'Connected to tournament {self.tournament_id} updates',
+                'heartbeat_interval': self.HEARTBEAT_INTERVAL,  # Module 4.5
             }
         })
     
@@ -227,13 +245,23 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             close_code: WebSocket close code
             
         Process:
-            1. Leave tournament room group
-            2. Log disconnection
+            1. Cancel heartbeat task (Module 4.5)
+            2. Leave tournament room group
+            3. Log disconnection
             
         Side Effects:
+            - Cancels asyncio heartbeat task
             - Removes connection from channel layer group
             - Logs disconnection with close code
         """
+        # Module 4.5: Cancel heartbeat task
+        if hasattr(self, 'heartbeat_task'):
+            self.heartbeat_task.cancel()
+            try:
+                await self.heartbeat_task
+            except asyncio.CancelledError:
+                pass
+        
         if hasattr(self, 'room_group_name'):
             # Leave tournament room group
             await self.channel_layer.group_discard(
@@ -406,6 +434,81 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             f"bracket_id={event['data'].get('bracket_id')}, "
             f"format={event['data'].get('format')}, "
             f"total_matches={event['data'].get('total_matches')}"
+        )
+    
+    async def dispute_created(self, event: Dict[str, Any]):
+        """
+        Handle dispute_created event from channel layer.
+        
+        Module 4.5: NEW event for dispute reporting.
+        
+        Args:
+            event: Event dict with 'type' and 'data' keys
+                data: {
+                    'match_id': int,
+                    'tournament_id': int,
+                    'dispute_id': int,
+                    'initiated_by': int (user_id),
+                    'reason': str,
+                    'status': str,  # 'open', 'under_review', etc.
+                    'timestamp': str (ISO 8601),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='dispute_created' and event data
+        """
+        await self.send_json({
+            'type': 'dispute_created',
+            'data': event['data']
+        })
+        
+        logger.info(
+            f"Sent dispute_created event to user {self.user.username}: "
+            f"match_id={event['data'].get('match_id')}, "
+            f"dispute_id={event['data'].get('dispute_id')}"
+        )
+    
+    async def tournament_completed(self, event: Dict[str, Any]):
+        """
+        Handle tournament_completed event from channel layer.
+        
+        Module 5.1: Tournament winner determination.
+        
+        Sent when tournament winner is determined and tournament status 
+        transitions to COMPLETED. This is a lightweight no-op handler that 
+        forwards the event to connected clients and logs receipt.
+        
+        Args:
+            event: Event dict with 'type' and 'data' keys
+                data: {
+                    'type': 'tournament_completed',
+                    'tournament_id': int,
+                    'winner_registration_id': int,
+                    'runner_up_registration_id': int | null,
+                    'third_place_registration_id': int | null,
+                    'determination_method': str,
+                    'requires_review': bool,
+                    'rules_applied_summary': dict | null,
+                    'timestamp': str (ISO 8601),
+                }
+                
+        Broadcasts to client:
+            JSON message with type='tournament_completed' and event data.
+            
+        Privacy:
+            Only registration IDs are included (no PII). Clients must fetch
+            user details via separate authenticated API calls.
+        """
+        await self.send_json({
+            'type': 'tournament_completed',
+            'data': event['data']
+        })
+        
+        logger.info(
+            f"Sent tournament_completed event to user {self.user.username}: "
+            f"tournament_id={event['data'].get('tournament_id')}, "
+            f"winner_registration_id={event['data'].get('winner_registration_id')}, "
+            f"determination_method={event['data'].get('determination_method')}"
         )
     
     async def registration_created(self, event: Dict[str, Any]):
@@ -811,6 +914,23 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         # Message Type Handlers
         # =====================================================================
         
+        # =====================================================================
+        # Module 4.5: Heartbeat - Client pong response
+        # =====================================================================
+        
+        if message_type == 'pong':
+            # Update last pong time (client responded to server ping)
+            self.last_pong_time = asyncio.get_event_loop().time()
+            logger.debug(
+                f"Heartbeat pong received from user {self.user.username}, "
+                f"tournament={self.tournament_id}"
+            )
+            return
+        
+        # =====================================================================
+        # Legacy client-initiated ping (still supported)
+        # =====================================================================
+        
         if message_type == 'ping':
             # Heartbeat keepalive (allowed for all roles)
             await self.send_json({
@@ -974,4 +1094,63 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             return False
         
         return True
+    
+    # =========================================================================
+    # Module 4.5: Server-Initiated Heartbeat
+    # =========================================================================
+    
+    async def _heartbeat_loop(self):
+        """
+        Server-initiated heartbeat loop.
+        
+        Module 4.5: Ping client every 25s, expect pong within 50s.
+        
+        Process:
+            1. Wait HEARTBEAT_INTERVAL seconds
+            2. Send ping to client with timestamp
+            3. Check if client responded with pong within timeout
+            4. If no pong after HEARTBEAT_TIMEOUT, close connection
+            5. Repeat
+            
+        Close Code:
+            4004: Heartbeat timeout (no pong from client)
+        """
+        try:
+            while True:
+                await asyncio.sleep(self.HEARTBEAT_INTERVAL)
+                
+                # Check if client responded to previous ping
+                current_time = asyncio.get_event_loop().time()
+                time_since_pong = current_time - self.last_pong_time
+                
+                if time_since_pong > self.HEARTBEAT_TIMEOUT:
+                    logger.warning(
+                        f"Heartbeat timeout for user {self.user.username}, "
+                        f"tournament={self.tournament_id}, no pong for {time_since_pong:.1f}s"
+                    )
+                    await self.close(code=4004)  # 4004: Heartbeat timeout
+                    return
+                
+                # Send ping to client
+                await self.send_json({
+                    'type': 'ping',
+                    'timestamp': current_time,
+                })
+                
+                logger.debug(
+                    f"Heartbeat ping sent to user {self.user.username}, "
+                    f"tournament={self.tournament_id}"
+                )
+                
+        except asyncio.CancelledError:
+            logger.debug(
+                f"Heartbeat loop cancelled for user {self.user.username}, "
+                f"tournament={self.tournament_id}"
+            )
+        except Exception as e:
+            logger.error(
+                f"Heartbeat loop error for user {self.user.username}, "
+                f"tournament={self.tournament_id}: {e}",
+                exc_info=True
+            )
 

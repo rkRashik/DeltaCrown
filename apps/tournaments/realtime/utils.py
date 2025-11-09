@@ -367,3 +367,110 @@ def broadcast_dispute_created(tournament_id: int, dispute_data: Dict[str, Any]) 
     """
     broadcast_tournament_event(tournament_id, 'dispute_created', dispute_data)
 
+
+def broadcast_tournament_completed(
+    tournament_id: int,
+    winner_registration_id: int,
+    runner_up_registration_id: Optional[int],
+    third_place_registration_id: Optional[int],
+    determination_method: str,
+    requires_review: bool,
+    rules_applied_summary: Optional[Dict[str, Any]] = None,
+    timestamp: Optional[str] = None
+) -> None:
+    """
+    Broadcast tournament_completed event with validated schema.
+    
+    Sent when tournament winner is determined and tournament status transitions
+    to COMPLETED. Notifies all connected clients of final results.
+    
+    **PRIVACY**: Only registration IDs are broadcast. No PII (emails, phone numbers,
+    addresses) should ever be included in WebSocket payloads. Clients must fetch
+    user details via separate authenticated API calls.
+    
+    Module: 5.1 - Winner Determination & Verification
+    
+    Args:
+        tournament_id: Tournament ID
+        winner_registration_id: Registration ID of winner (required)
+        runner_up_registration_id: Registration ID of runner-up (optional, finals loser)
+        third_place_registration_id: Registration ID of 3rd place (optional, from 3rd place match or semi-final)
+        determination_method: Method used ('normal', 'tiebreaker', 'forfeit_chain', etc.)
+        requires_review: Whether organizer review is needed (forfeit chains)
+        rules_applied_summary: Optional summary of tie-breaker rules applied (condensed for WS)
+        timestamp: ISO8601 timestamp of determination (auto-generated if None)
+    
+    Schema (guaranteed fields):
+        {
+            'type': 'tournament_completed',
+            'tournament_id': int,
+            'winner_registration_id': int,
+            'runner_up_registration_id': int | null,
+            'third_place_registration_id': int | null,
+            'determination_method': str,
+            'requires_review': bool,
+            'rules_applied_summary': dict | null,
+            'timestamp': str (ISO8601)
+        }
+    
+    Example:
+        >>> from django.utils import timezone
+        >>> broadcast_tournament_completed(
+        ...     tournament_id=1,
+        ...     winner_registration_id=42,
+        ...     runner_up_registration_id=43,
+        ...     third_place_registration_id=44,
+        ...     determination_method='normal',
+        ...     requires_review=False,
+        ...     rules_applied_summary=None,
+        ...     timestamp=timezone.now().isoformat()
+        ... )
+        
+        >>> # Tie-breaker scenario with review required
+        >>> broadcast_tournament_completed(
+        ...     tournament_id=2,
+        ...     winner_registration_id=100,
+        ...     runner_up_registration_id=101,
+        ...     third_place_registration_id=None,
+        ...     determination_method='tiebreaker',
+        ...     requires_review=False,
+        ...     rules_applied_summary={
+        ...         'rules': ['head_to_head', 'score_differential'],
+        ...         'outcome': 'decided_by_score_differential'
+        ...     }
+        ... )
+    """
+    from django.utils import timezone
+    
+    # Auto-generate timestamp if not provided
+    if timestamp is None:
+        timestamp = timezone.now().isoformat()
+    
+    # Construct validated payload
+    # PRIVACY NOTE: Only IDs, no user PII
+    payload = {
+        'type': 'tournament_completed',  # Explicit type field for client routing
+        'tournament_id': tournament_id,
+        'winner_registration_id': winner_registration_id,
+        'runner_up_registration_id': runner_up_registration_id,
+        'third_place_registration_id': third_place_registration_id,
+        'determination_method': determination_method,
+        'requires_review': requires_review,
+        'rules_applied_summary': rules_applied_summary,
+        'timestamp': timestamp,
+    }
+    
+    logger.info(
+        f"Broadcasting tournament_completed for tournament {tournament_id}, "
+        f"winner={winner_registration_id}, method={determination_method}",
+        extra={
+            'tournament_id': tournament_id,
+            'winner_registration_id': winner_registration_id,
+            'determination_method': determination_method,
+            'requires_review': requires_review,
+        }
+    )
+    
+    # Broadcast to tournament room only (no match room needed)
+    broadcast_tournament_event(tournament_id, 'tournament_completed', payload)
+

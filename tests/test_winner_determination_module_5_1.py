@@ -991,10 +991,9 @@ def test_determine_winner_manual_override_path():
 
 # --- End-to-End Winner Determination (2 tests) ---
 
-@pytest.mark.skip(reason="Scaffolding - Step 3+: Integration")
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_end_to_end_winner_determination_8_teams():
+def test_end_to_end_winner_determination_8_teams(base_tournament, organizer):
     """
     Full flow: create tournament → play matches → determine winner.
     
@@ -1011,7 +1010,157 @@ def test_end_to_end_winner_determination_8_teams():
         - Audit trail complete
         - Database queries optimized (no N+1)
     """
-    pass
+    # Create 8 registrations (participants)
+    regs = [
+        create_registration(base_tournament, seed=i+1)
+        for i in range(8)
+    ]
+    
+    # Create bracket with 7 matches (single-elimination: 4 + 2 + 1)
+    bracket = Bracket.objects.create(
+        tournament=base_tournament,
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=3,
+        is_finalized=True
+    )
+    
+    # Round 1: 4 matches (quarterfinals)
+    qf1 = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=1,
+        participant1_id=regs[0].id,
+        participant2_id=regs[1].id,
+        state=Match.COMPLETED,
+        winner_id=regs[0].id,
+        loser_id=regs[1].id,
+        participant1_score=2,
+        participant2_score=1
+    )
+    qf2 = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=2,
+        participant1_id=regs[2].id,
+        participant2_id=regs[3].id,
+        state=Match.COMPLETED,
+        winner_id=regs[2].id,
+        loser_id=regs[3].id,
+        participant1_score=2,
+        participant2_score=0
+    )
+    qf3 = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=3,
+        participant1_id=regs[4].id,
+        participant2_id=regs[5].id,
+        state=Match.COMPLETED,
+        winner_id=regs[4].id,
+        loser_id=regs[5].id,
+        participant1_score=2,
+        participant2_score=1
+    )
+    qf4 = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=4,
+        participant1_id=regs[6].id,
+        participant2_id=regs[7].id,
+        state=Match.COMPLETED,
+        winner_id=regs[6].id,
+        loser_id=regs[7].id,
+        participant1_score=2,
+        participant2_score=1
+    )
+    
+    # Round 2: 2 matches (semifinals)
+    sf1 = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=2,
+        match_number=1,
+        participant1_id=regs[0].id,  # QF1 winner
+        participant2_id=regs[2].id,  # QF2 winner
+        state=Match.COMPLETED,
+        winner_id=regs[0].id,
+        loser_id=regs[2].id,
+        participant1_score=3,
+        participant2_score=2
+    )
+    sf2 = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=2,
+        match_number=2,
+        participant1_id=regs[4].id,  # QF3 winner
+        participant2_id=regs[6].id,  # QF4 winner
+        state=Match.COMPLETED,
+        winner_id=regs[4].id,
+        loser_id=regs[6].id,
+        participant1_score=2,
+        participant2_score=1
+    )
+    
+    # Round 3: 1 match (finals)
+    finals = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=3,
+        match_number=1,
+        participant1_id=regs[0].id,  # SF1 winner
+        participant2_id=regs[4].id,  # SF2 winner
+        state=Match.COMPLETED,
+        winner_id=regs[0].id,
+        loser_id=regs[4].id,
+        participant1_score=3,
+        participant2_score=1
+    )
+    
+    # 3rd place match (optional) - SF losers
+    third_place_match = Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=2,  # Same round as semis
+        match_number=3,
+        participant1_id=regs[2].id,  # SF1 loser
+        participant2_id=regs[6].id,  # SF2 loser
+        state=Match.COMPLETED,
+        winner_id=regs[2].id,
+        loser_id=regs[6].id,
+        participant1_score=2,
+        participant2_score=1
+    )
+    
+    # Update tournament status to LIVE (prerequisite for completion)
+    base_tournament.status = Tournament.LIVE
+    base_tournament.save()
+    
+    # Determine winner (with mocked broadcast to avoid WS dependency)
+    service = WinnerDeterminationService(base_tournament, organizer)
+    with patch.object(service, '_broadcast_completion'):
+        result = service.determine_winner()
+    
+    # Assertions
+    assert result is not None
+    assert result.winner_id == regs[0].id  # Team #1 (seed 1) won
+    assert result.runner_up_id == regs[4].id  # Team #5 (seed 5) was runner-up
+    assert result.third_place_id == regs[2].id  # Team #3 (seed 3) won 3rd place match
+    assert result.determination_method == 'normal'
+    assert result.requires_review == False
+    assert result.rules_applied is not None  # Audit trail present
+    
+    # Tournament status updated
+    base_tournament.refresh_from_db()
+    assert base_tournament.status == Tournament.COMPLETED
+    
+    # Idempotency check
+    result2 = service.determine_winner()
+    assert result2.id == result.id  # Same result returned
 
 
 @pytest.mark.skip(reason="Scaffolding - Step 3+: Integration")
@@ -1037,23 +1186,134 @@ def test_end_to_end_winner_determination_with_prize_pool():
 
 # --- WebSocket Event Broadcasting (2 tests) ---
 
-@pytest.mark.skip(reason="Scaffolding - Step 4: WebSocket")
 @pytest.mark.django_db
 @pytest.mark.integration
-def test_tournament_completed_event_broadcasted():
+def test_tournament_completed_event_broadcasted(base_tournament, organizer):
     """
-    tournament_completed event sent to tournament_{id} group.
+    tournament_completed event sent to tournament_{id} group with correct schema.
     
     Setup:
-        - WebSocket client connected to tournament_{id} room
-        - Determine winner
+        - Mock channel layer to capture broadcast
+        - Create completed bracket with winner
+        - Call determine_winner()
     
     Expected:
-        - Client receives tournament_completed event
-        - Event type = "tournament_completed"
+        - broadcast_tournament_completed() called with correct args
+        - Event payload matches schema (registration IDs only, no PII)
         - Broadcast triggered via on_commit hook (after transaction)
     """
-    pass
+    # Create 4 registrations for minimal bracket
+    regA = create_registration(base_tournament, seed=1)
+    regB = create_registration(base_tournament, seed=2)
+    regC = create_registration(base_tournament, seed=3)
+    regD = create_registration(base_tournament, seed=4)
+    
+    # Create bracket with complete matches
+    bracket = Bracket.objects.create(
+        tournament=base_tournament,
+        format=Bracket.SINGLE_ELIMINATION,
+        total_rounds=2,
+        is_finalized=True
+    )
+    
+    # Semifinals
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=1,
+        participant1_id=regA.id,
+        participant2_id=regB.id,
+        state=Match.COMPLETED,
+        winner_id=regA.id,
+        loser_id=regB.id,
+        participant1_score=2,
+        participant2_score=1
+    )
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=2,
+        participant1_id=regC.id,
+        participant2_id=regD.id,
+        state=Match.COMPLETED,
+        winner_id=regC.id,
+        loser_id=regD.id,
+        participant1_score=2,
+        participant2_score=0
+    )
+    
+    # Finals
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=2,
+        match_number=1,
+        participant1_id=regA.id,
+        participant2_id=regC.id,
+        state=Match.COMPLETED,
+        winner_id=regA.id,
+        loser_id=regC.id,
+        participant1_score=3,
+        participant2_score=2
+    )
+    
+    # 3rd place match
+    Match.objects.create(
+        tournament=base_tournament,
+        bracket=bracket,
+        round_number=1,
+        match_number=3,
+        participant1_id=regB.id,
+        participant2_id=regD.id,
+        state=Match.COMPLETED,
+        winner_id=regB.id,
+        loser_id=regD.id,
+        participant1_score=2,
+        participant2_score=1
+    )
+    
+    base_tournament.status = Tournament.LIVE
+    base_tournament.save()
+    
+    # Call _broadcast_completion directly to test payload without transaction.on_commit complications
+    service = WinnerDeterminationService(base_tournament, organizer)
+    
+    # Determine winner first (with mocked broadcast to avoid WS)
+    with patch.object(service, '_broadcast_completion'):
+        result = service.determine_winner()
+    
+    # Now test the broadcast method directly with mock
+    from apps.tournaments.realtime import utils as realtime_utils
+    with patch.object(realtime_utils, 'broadcast_tournament_completed') as mock_broadcast:
+        service._broadcast_completion(result)
+    
+    # Verify broadcast was called
+    assert mock_broadcast.called
+    call_args = mock_broadcast.call_args
+    
+    # Verify call arguments match schema
+    assert call_args.kwargs['tournament_id'] == base_tournament.id
+    assert call_args.kwargs['winner_registration_id'] == regA.id
+    assert call_args.kwargs['runner_up_registration_id'] == regC.id
+    assert call_args.kwargs['third_place_registration_id'] == regB.id
+    assert call_args.kwargs['determination_method'] == 'normal'
+    assert call_args.kwargs['requires_review'] == False
+    assert 'rules_applied_summary' in call_args.kwargs
+    assert 'timestamp' in call_args.kwargs
+    
+    # Verify rules_applied_summary structure (condensed for WS)
+    rules_summary = call_args.kwargs['rules_applied_summary']
+    if rules_summary:  # May be None for normal determination
+        assert 'rules' in rules_summary or rules_summary is None
+        assert 'outcome' in rules_summary or rules_summary is None
+    
+    # Verify no PII in payload (registration IDs only)
+    payload_keys = call_args.kwargs.keys()
+    assert 'winner_registration_id' in payload_keys
+    assert 'winner_email' not in payload_keys
+    assert 'winner_name' not in payload_keys
 
 
 @pytest.mark.skip(reason="Scaffolding - Step 4: WebSocket")
