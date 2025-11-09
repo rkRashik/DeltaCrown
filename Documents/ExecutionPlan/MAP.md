@@ -779,19 +779,160 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ---
 
-## Phase 5: Tournament After (Results & Rewards)
+## Phase 5: Tournament Post-Game – 📋 PLANNED
+
+**Status**: 📋 Planned (Phase 4 complete ✅, ready to start)  
+**Estimated Duration**: 2-3 weeks (~84 hours)  
+**Goal**: Winner determination, prize payouts, certificates, analytics  
+**Planning Doc**: [PHASE_5_IMPLEMENTATION_PLAN.md](./PHASE_5_IMPLEMENTATION_PLAN.md)
+
+| Module | Status | Est. Tests | Est. Coverage | Planning |
+|--------|--------|-----------|---------------|----------|
+| 5.1 Winner Determination | 📋 Planned | 23 (15 unit, 8 integration) | ≥85% | Winner detection, tie-breaking, audit trail |
+| 5.2 Prize Payouts | 📋 Planned | 18 (12 unit, 6 integration) | ≥85% | apps.economy integration, refunds, reconciliation |
+| 5.3 Certificates | 📋 Planned | 15 (10 unit, 5 integration) | ≥85% | PDF/image generation, QR verification |
+| 5.4 Analytics | 📋 Planned | 12 (8 unit, 4 integration) | ≥80% | Organizer/participant dashboards, CSV exports |
+
+**Prerequisites**:
+- ✅ Phase 4 complete (match results, bracket progression)
+- ✅ `apps.economy` exists (CoinTransaction model)
+- ⚠️ Python libs needed: `reportlab` or `weasyprint`, `Pillow`, `qrcode`
+
+---
 
 ### Module 5.1: Winner Determination & Verification
-*[To be filled when implementation starts]*
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service (winner progression)
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (status transitions)
+  - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-51
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007-websocket (tournament_completed event)
+- **Scope**:
+  - Automated winner determination when all matches complete
+  - Bracket tree traversal to find final winner
+  - Tie-breaking rules (configurable per tournament)
+  - Audit trail for winner determination reasoning
+  - Organizer review workflow (optional)
+  - WebSocket event: `tournament_completed`
+- **Models**:
+  - `TournamentResult` (winner, runner-up, 3rd place, determination method, audit fields)
+- **Services**:
+  - `WinnerDeterminationService` (determine_winner, verify_completion, apply_tiebreaker, create_audit_log)
+- **Test Plan**: 23 tests (15 unit + 8 integration)
+  - Winner determination for complete brackets (4 tests)
+  - Incomplete bracket handling (3 tests)
+  - Tie-breaking logic (3 tests)
+  - Audit log creation (2 tests)
+  - Edge cases: forfeit chains, bye matches (3 tests)
+  - End-to-end winner determination (2 tests)
+  - WebSocket event broadcasting (2 tests)
+  - Organizer review workflow (2 tests)
+  - Dispute resolution integration (2 tests)
+- **Target Coverage**: ≥85%
+- **Estimated Effort**: ~24 hours
 
-### Module 5.2: Prize Distribution
-*[To be filled when implementation starts]*
+### Module 5.2: Prize Payouts & Reconciliation
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-integration-patterns (apps.economy)
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (prize_pool, prize_distribution)
+  - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-52
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+- **Scope**:
+  - Prize distribution based on `prize_pool` and `prize_distribution` (JSONB)
+  - Integration with `apps.economy.CoinTransaction`
+  - Calculate payout amounts (1st/2nd/3rd place or custom)
+  - Handle rounding errors (remainder to 1st place)
+  - Refund entry fees for cancelled tournaments
+  - Reconciliation verification (total payouts ≤ prize pool)
+  - Audit trail for all transactions
+- **Models**:
+  - `PrizeTransaction` (tournament, participant, placement, amount, coin_transaction FK, status, processed_by)
+- **Services**:
+  - `PayoutService` (calculate_distribution, process_payouts, process_refunds, verify_reconciliation)
+- **Test Plan**: 18 tests (12 unit + 6 integration)
+  - Prize distribution calculation (3 tests)
+  - Payout amount rounding (2 tests)
+  - Refund calculation (2 tests)
+  - Reconciliation verification (2 tests)
+  - Edge cases: zero prize pool, single winner (3 tests)
+  - End-to-end payout processing (2 tests)
+  - apps.economy integration (2 tests)
+  - Refund workflow (1 test)
+  - WebSocket notification (1 test)
+- **Target Coverage**: ≥85%
+- **Estimated Effort**: ~20 hours
+- **Dependencies**: Module 5.1 (winner determination)
 
-### Module 5.3: Certificate Generation
-*[To be filled when implementation starts]*
+### Module 5.3: Certificates & Achievement Proofs
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#sprint-6 (certificate generation)
+  - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-53
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+- **Scope**:
+  - PDF generation using ReportLab or WeasyPrint
+  - Image generation using Pillow (PNG/JPEG)
+  - Templates: Winner, Runner-up, Participant
+  - Dynamic fields: Name, tournament, date, placement, verification code
+  - Verification system: UUID + SHA256 hash
+  - QR code on certificate (links to verification page)
+  - Multi-language support (Bengali, English)
+  - Public verification endpoint (tamper detection)
+- **Models**:
+  - `Certificate` (tournament, participant, type, placement, file_pdf, file_image, verification_code, certificate_hash, downloaded_at, download_count)
+- **Services**:
+  - `CertificateService` (generate_certificate, verify_certificate, create_qr_code)
+- **API Endpoints**:
+  - `GET /api/tournaments/certificates/<id>/` (download, IsParticipant permission)
+  - `GET /api/tournaments/certificates/verify/<uuid>/` (verify, AllowAny permission)
+- **Test Plan**: 15 tests (10 unit + 5 integration)
+  - Certificate generation (PDF + image) (2 tests)
+  - Template rendering (2 tests)
+  - Verification code uniqueness (1 test)
+  - Hash calculation (1 test)
+  - Download counter increment (1 test)
+  - Edge cases: missing name, long title (3 tests)
+  - End-to-end generation (1 test)
+  - Download endpoint (1 test)
+  - Verification endpoint (1 test)
+  - QR code generation (1 test)
+  - Tamper detection (1 test)
+- **Target Coverage**: ≥85%
+- **Estimated Effort**: ~24 hours
+- **Dependencies**: Module 5.1, Module 5.2, Python libs (reportlab/weasyprint, Pillow, qrcode)
 
-### Module 5.4: Tournament Analytics & Reports
-*[To be filled when implementation starts]*
+### Module 5.4: Analytics & Reports
+- **Status**: 📋 Planned
+- **Implements**:
+  - Documents/Planning/PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#phase-3 (analytics features)
+  - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-54
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+- **Scope**:
+  - Organizer analytics: Participants, matches, revenue, check-in rate, dispute rate
+  - Participant reports: Win/loss record, placements, prize winnings, match performance
+  - CSV exports for all analytics
+  - Materialized views for performance (tournament_participant_stats)
+  - Scheduled reports (weekly organizer digest)
+- **Services**:
+  - `AnalyticsService` (calculate_organizer_analytics, calculate_participant_stats, export_csv)
+- **API Endpoints**:
+  - `GET /api/tournaments/analytics/organizer/<tournament_id>/` (IsOrganizerOrAdmin)
+  - `GET /api/tournaments/analytics/participant/<user_id>/` (IsSelfOrAdmin)
+  - `GET /api/tournaments/analytics/export/<tournament_id>/?format=csv` (IsOrganizerOrAdmin)
+- **Test Plan**: 12 tests (8 unit + 4 integration)
+  - Analytics calculation (3 tests)
+  - CSV export formatting (2 tests)
+  - Permission checks (2 tests)
+  - Edge case: no tournaments (1 test)
+  - End-to-end analytics retrieval (1 test)
+  - CSV export (1 test)
+  - Materialized view refresh (1 test)
+  - Dashboard API integration (1 test)
+- **Target Coverage**: ≥80%
+- **Estimated Effort**: ~16 hours
+- **Dependencies**: All Phase 4 modules, Module 5.1, Module 5.2
 
 ---
 

@@ -450,13 +450,89 @@ phase_4:
 
 phase_5:
   module_5_1:
-    implements: []
+    name: "Winner Determination & Verification"
+    status: "planned"
+    started_date: null
+    completed_date: null
+    implements:
+      - "PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service (winner progression)"
+      - "PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (status: COMPLETED → CONCLUDED)"
+      - "PHASE_5_IMPLEMENTATION_PLAN.md#module-51-winner-determination--verification"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-007-websocket-integration (tournament_completed event)"
+    files: []
+    tests: []
+    coverage: null
+    deliverables:
+      - "apps/tournaments/models/result.py (TournamentResult model)"
+      - "apps/tournaments/services/winner_service.py (WinnerDeterminationService)"
+      - "apps/tournaments/admin_result.py (TournamentResultAdmin)"
+      - "apps/tournaments/migrations/0XXX_tournament_result.py"
+      - "tests/test_winner_determination_module_5_1.py (23 tests: 15 unit, 8 integration)"
+      - "WebSocket event: tournament_completed"
+    notes: "Automated winner determination when all matches complete. Bracket tree traversal, tie-breaking, audit trail, organizer review workflow."
+  
   module_5_2:
-    implements: []
+    name: "Prize Payouts & Reconciliation"
+    status: "planned"
+    started_date: null
+    completed_date: null
+    implements:
+      - "PART_2.2_SERVICES_INTEGRATION.md#section-6-integration-patterns (apps.economy integration)"
+      - "PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (prize_pool, prize_distribution)"
+      - "PHASE_5_IMPLEMENTATION_PLAN.md#module-52-prize-payouts--reconciliation"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
+    files: []
+    tests: []
+    coverage: null
+    deliverables:
+      - "apps/tournaments/models/prize.py (PrizeTransaction model)"
+      - "apps/tournaments/services/payout_service.py (PayoutService)"
+      - "apps/tournaments/admin_prize.py (PrizeTransactionAdmin)"
+      - "apps/tournaments/migrations/0XXX_prize_transaction.py"
+      - "tests/test_prize_payout_module_5_2.py (18 tests: 12 unit, 6 integration)"
+    notes: "Prize distribution to winners via apps.economy CoinTransaction. Refunds for cancelled tournaments. Reconciliation verification."
+  
   module_5_3:
-    implements: []
+    name: "Certificates & Achievement Proofs"
+    status: "planned"
+    started_date: null
+    completed_date: null
+    implements:
+      - "PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#sprint-6-community--certificates (certificate generation)"
+      - "PHASE_5_IMPLEMENTATION_PLAN.md#module-53-certificates--achievement-proofs"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
+    files: []
+    tests: []
+    coverage: null
+    deliverables:
+      - "apps/tournaments/models/certificate.py (Certificate model)"
+      - "apps/tournaments/services/certificate_service.py (CertificateService)"
+      - "apps/tournaments/api/certificate_views.py (download + verify endpoints)"
+      - "apps/tournaments/templates/certificates/winner.html (PDF template)"
+      - "apps/tournaments/migrations/0XXX_certificate.py"
+      - "tests/test_certificate_module_5_3.py (15 tests: 10 unit, 5 integration)"
+    notes: "PDF/image certificate generation using ReportLab or WeasyPrint. QR code verification. Multi-language support."
+  
   module_5_4:
-    implements: []
+    name: "Analytics & Reports"
+    status: "planned"
+    started_date: null
+    completed_date: null
+    implements:
+      - "PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#phase-3-advanced-features (analytics)"
+      - "PHASE_5_IMPLEMENTATION_PLAN.md#module-54-analytics--reports"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
+    files: []
+    tests: []
+    coverage: null
+    deliverables:
+      - "apps/tournaments/services/analytics_service.py (AnalyticsService)"
+      - "apps/tournaments/api/analytics_views.py (organizer + participant endpoints)"
+      - "apps/tournaments/api/serializers_analytics.py (analytics serializers)"
+      - "Database materialized view: tournament_participant_stats"
+      - "tests/test_analytics_module_5_4.py (12 tests: 8 unit, 4 integration)"
+    notes: "Organizer analytics (revenue, participation trends), participant reports (win/loss, placements), CSV exports."
 
 phase_6:
   module_6_1:
