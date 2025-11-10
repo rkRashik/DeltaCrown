@@ -50,6 +50,7 @@ from apps.tournaments.models import (
 
 # Module 2.3: Real-time WebSocket broadcasting
 from apps.tournaments.realtime.utils import broadcast_bracket_updated
+from asgiref.sync import async_to_sync  # Module 6.1: Wrap async broadcast helpers
 
 logger = logging.getLogger(__name__)
 
@@ -736,8 +737,9 @@ class BracketService:
             logger.info(f"Match {match.id} is finals - bracket complete")
             
             # Broadcast bracket_updated (tournament complete)
+            # Module 6.1: Wrap async broadcast with async_to_sync
             try:
-                broadcast_bracket_updated(
+                async_to_sync(broadcast_bracket_updated)(
                     tournament_id=match.tournament_id,
                     bracket_data={
                         'bracket_id': node.bracket.id,
@@ -802,8 +804,9 @@ class BracketService:
             })
         
         # Module 2.3: Broadcast bracket_updated event to WebSocket clients
+        # Module 6.1: Wrap async broadcast with async_to_sync
         try:
-            broadcast_bracket_updated(
+            async_to_sync(broadcast_bracket_updated)(
                 tournament_id=match.tournament_id,
                 bracket_data={
                     'bracket_id': node.bracket.id,

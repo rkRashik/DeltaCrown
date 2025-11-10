@@ -52,6 +52,7 @@ from apps.tournaments.realtime.utils import (
     broadcast_score_updated,
     broadcast_match_completed,
 )
+from asgiref.sync import async_to_sync  # Module 6.1: Wrap async broadcast helpers
 
 logger = logging.getLogger(__name__)
 
@@ -276,8 +277,9 @@ class MatchService:
         match.save()
         
         # Module 2.3: Broadcast match_started event to WebSocket clients
+        # Module 6.1: Wrap async broadcast with async_to_sync
         try:
-            broadcast_match_started(
+            async_to_sync(broadcast_match_started)(
                 tournament_id=match.tournament_id,
                 match_data={
                     'match_id': match.id,
@@ -371,8 +373,9 @@ class MatchService:
         match.save()
         
         # Module 2.3: Broadcast score_updated event to WebSocket clients
+        # Module 6.1: Wrap async broadcast with async_to_sync
         try:
-            broadcast_score_updated(
+            async_to_sync(broadcast_score_updated)(
                 tournament_id=match.tournament_id,
                 score_data={
                     'match_id': match.id,
@@ -436,8 +439,9 @@ class MatchService:
         match.save()
         
         # Module 2.3: Broadcast match_completed event to WebSocket clients
+        # Module 6.1: Wrap async broadcast with async_to_sync
         try:
-            broadcast_match_completed(
+            async_to_sync(broadcast_match_completed)(
                 tournament_id=match.tournament_id,
                 result_data={
                     'match_id': match.id,
@@ -554,8 +558,48 @@ class MatchService:
         match.state = Match.DISPUTED
         match.save()
         
+        # =====================================================================
+        # Module 4.5: WebSocket broadcast - dispute_created event
+        # =====================================================================
+        from apps.tournaments.realtime.utils import broadcast_tournament_event
+        
+        # Broadcast to both tournament and match rooms
+        dispute_data = {
+            'match_id': match.id,
+            'tournament_id': match.tournament_id,
+            'dispute_id': dispute.id,
+            'initiated_by': initiated_by_id,
+            'reason': reason,
+            'status': dispute.status,
+            'timestamp': dispute.created_at.isoformat(),
+        }
+        
+        # Broadcast to tournament room
+        broadcast_tournament_event(
+            tournament_id=match.tournament_id,
+            event_type='dispute_created',
+            data=dispute_data
+        )
+        
+        # Broadcast to match room
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            try:
+                async_to_sync(channel_layer.group_send)(
+                    f'match_{match.id}',
+                    {
+                        'type': 'dispute_created',
+                        'data': dispute_data,
+                    }
+                )
+                logger.info(f"Broadcast dispute_created to match_{match.id}")
+            except Exception as e:
+                logger.error(f"Failed to broadcast dispute_created to match room: {e}")
+        
         # TODO: Notify organizer of new dispute (Module 2.x)
-        # TODO: WebSocket broadcast: dispute created (ADR-007)
         
         return dispute
     

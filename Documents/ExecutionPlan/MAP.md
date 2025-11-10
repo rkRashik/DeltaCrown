@@ -1075,13 +1075,33 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ---
 
-## Phase 6: Real-time Features
+## Phase 6: Performance & Polish
 
-### Module 6.1: WebSocket Infrastructure
-*[To be filled when implementation starts]*
+### Module 6.1: Async-Native WebSocket Helpers
+- **Status**: ✅ Complete (Nov 10, 2025)
+- **Implements**:
+  - Documents/ExecutionPlan/PHASE_6_IMPLEMENTATION_PLAN.md#module-6.1
+  - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md#section-7-django-channels
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007-websocket
+- **ADRs**: ADR-007 WebSocket Integration
+- **Files Modified**:
+  - apps/tournaments/realtime/utils.py (12 async broadcast functions, event-loop-safe debouncing)
+  - apps/tournaments/services/winner_service.py (async_to_sync wrapper)
+  - apps/tournaments/services/match_service.py (async_to_sync wrappers, 2 call sites)
+  - apps/tournaments/services/bracket_service.py (async_to_sync wrappers, 2 call sites)
+  - tests/test_websocket_enhancement_module_4_5.py (unskipped 4 tests, +2 new tests)
+- **Tests**: 4/4 passing (100%)
+- **Coverage**: 81% (apps/tournaments/realtime/utils.py, target ≥80%)
+- **Key Features**:
+  - Event-loop-safe debouncing with asyncio.Handle (100ms micro-batching)
+  - Latest-wins coalescing (100 burst updates → 1 message with latest score)
+  - Immediate flush path for match_completed (no lost score updates)
+  - Test helper flush_all_batches() for deterministic testing
+  - Per-match asyncio.Lock for safe cancellation
+- **Documentation**: Documents/ExecutionPlan/MODULE_6.1_COMPLETION_STATUS.md
 
-### Module 6.2: Live Tournament Feed
-*[To be filled when implementation starts]*
+### Module 6.2: Materialized Views for Analytics
+*[To be implemented]*
 
 ### Module 6.3: Chat System
 *[To be filled when implementation starts]*

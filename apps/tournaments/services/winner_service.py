@@ -861,6 +861,8 @@ class WinnerDeterminationService:
         - Schema validation: Guaranteed payload structure
         - Condensed rules_applied summary (full audit trail in DB only)
         
+        Module 6.1: Updated to use async_to_sync wrapper for async broadcast_tournament_completed.
+        
         Event schema (see realtime.utils.broadcast_tournament_completed):
         {
             'type': 'tournament_completed',
@@ -876,6 +878,7 @@ class WinnerDeterminationService:
         """
         try:
             from apps.tournaments.realtime.utils import broadcast_tournament_completed
+            from asgiref.sync import async_to_sync
             import json
             
             # Condense rules_applied for WebSocket (full audit trail stays in DB)
@@ -896,7 +899,8 @@ class WinnerDeterminationService:
                         'outcome': rules_list[-1].get('outcome') if isinstance(rules_list[-1], dict) else None
                     }
             
-            broadcast_tournament_completed(
+            # Module 6.1: Wrap async broadcast with async_to_sync (sync context)
+            async_to_sync(broadcast_tournament_completed)(
                 tournament_id=self.tournament.id,
                 winner_registration_id=result.winner_id,
                 runner_up_registration_id=result.runner_up_id,
