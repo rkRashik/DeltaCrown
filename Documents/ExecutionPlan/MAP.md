@@ -1201,13 +1201,112 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 **Impact**: Module 4.2 (Ranking & Seeding) tests now at 100% pass rate (was 68%)
 
-### Module 6.5: Notifications System
+### Module 6.5: Certificate Storage Planning (S3 Migration)
+
+**Status**: ✅ Planning Complete (Nov 10, 2025) - **No Implementation**  
+**Implements**: PHASE_6_IMPLEMENTATION_PLAN.md#module-6.5  
+**Phase 7 Implementation**: Q1-Q2 2026  
+
+**Scope**: Planning/design only (no production changes, no AWS provisioning, no live migration)
+
+**Deliverables**:
+- ✅ **S3_MIGRATION_DESIGN.md** (700 lines, 10 sections)
+  - Executive summary (goals, non-goals, timeline, success metrics)
+  - Current state analysis (MEDIA_ROOT limitations, usage stats)
+  - S3 architecture (bucket structure, presigned URLs, storage classes)
+  - Cost estimation ($15-25/month with lifecycle optimization)
+  - Security & compliance (SSE-S3, SSE-KMS option, IAM policies, PII safeguards)
+  - Lifecycle & retention (Standard → IA @90d → Glacier @1y → Delete @7y)
+  - Migration strategy (6-phase rollout: provision → test → dual-write 30d → migrate → switch → deprecate)
+  - Rollback plan (15-minute revert procedure, dual-write safety net)
+  - Risks & mitigations (S3 outage, bill spike, link instability, PII exposure, data corruption, migration data loss)
+  - Monitoring & alerts (CloudWatch metrics, alarms, S3 access logs, CloudTrail)
+
+- ✅ **settings_s3.example.py** (230 lines, commented config)
+  - Feature flag: `USE_S3_FOR_CERTS` environment toggle (staging can test without code changes)
+  - AWS credentials: IAM role (production) vs access keys (dev/staging)
+  - S3 bucket config: `deltacrown-certificates-prod` (us-east-1)
+  - Security: Private objects (`AWS_DEFAULT_ACL = None`), presigned URLs (10min TTL)
+  - Encryption: SSE-S3 (AES256) default, SSE-KMS customer-managed key option documented
+  - Object parameters: `CacheControl: private, max-age=600`, `ServerSideEncryption: AES256`
+  - Bucket policy JSON: Deny unencrypted uploads + deny insecure transport (HTTP)
+  - IAM policy JSON: Least-privilege (PutObject/GetObject/DeleteObject only)
+
+- ✅ **scripts/migrate_certificates_to_s3.py** (270 lines, skeleton scaffold)
+  - Argparse CLI: `--dry-run`, `--batch-size`, `--tournament-id` flags
+  - Idempotent logic: Check `migrated_to_s3_at` timestamp (skip already-migrated)
+  - Integrity verification: ETag check for standard uploads, SHA-256 for large files
+  - Batch processing: `queryset.iterator()` to avoid memory exhaustion
+  - Progress reporting: Summary stats (total, migrated, skipped, failed)
+  - TODO comments for Phase 7 implementation (no production code)
+
+- ✅ **S3_OPERATIONS_CHECKLIST.md** (550 lines, ops guide)
+  - Bucket provisioning (AWS console + Terraform IaC template)
+  - IAM role/policy configuration (least-privilege, EC2 vs IAM user)
+  - Bucket policy & encryption (deny unencrypted, KMS setup)
+  - Lifecycle & retention (Standard → IA → Glacier → Delete)
+  - Logging & monitoring (S3 access logs, CloudTrail, CloudWatch alarms)
+  - Credential rotation (quarterly IAM access key rotation)
+  - Staging environment setup (separate bucket, IAM user, tests)
+  - Production deployment (dual-write 30d, background migration, switch, deprecate local 60d)
+  - Emergency rollback (15-minute revert procedure, trigger conditions)
+  - Routine maintenance (weekly, monthly, quarterly, annual tasks)
+
+- ✅ **MODULE_6.5_COMPLETION_STATUS.md** (250 lines, completion summary)
+
+**Key Decisions**:
+- **Encryption**: SSE-S3 (AES256) default, SSE-KMS optional (if already using KMS elsewhere)
+- **TTL**: 10-minute presigned URLs (not 15) to reduce token reuse window
+- **Integrity**: ETag verification for standard uploads, SHA-256 checksum for large files (>5MB)
+- **Caching**: `Cache-Control: private, max-age=600` (10-minute browser cache)
+- **Key Naming**: UUID-based filenames, no PII in S3 keys (`pdf/YYYY/MM/uuid.pdf`)
+- **Feature Flag**: `USE_S3_FOR_CERTS` environment toggle (staging can switch without code changes)
+- **Logging**: S3 server access logs + optional CloudTrail data events (production only, $5-10/month)
+
+**Security Posture**:
+- ✅ Private objects with 10-minute presigned URLs (SigV4 signing)
+- ✅ Encryption at rest (SSE-S3 enforced via bucket policy)
+- ✅ Encryption in transit (HTTPS enforced, HTTP denied)
+- ✅ IAM least-privilege (PutObject/GetObject only, condition requires encryption)
+- ✅ No PII in object keys (UUID filenames, no usernames/emails/tournament names)
+- ✅ Audit trail (S3 access logs 90-day retention, CloudTrail optional)
+
+**Cost Estimate**: $15-25/month (1MB avg cert, 10k certs/month, 100k downloads/month)
+- S3 storage (with lifecycle): $1.42/month (Standard + IA + Glacier)
+- Requests: $0.006/month (PUT) + $0.0008/month (GET)
+- Data transfer: $0.18/month (2 GB OUT)
+- CloudWatch alarms: $0.30/month (3 alarms)
+- CloudTrail (optional): $5.00/month (production only)
+
+**Migration Strategy**: 6-phase rollout (12 weeks total)
+1. **Week 1**: Provision bucket, IAM role, lifecycle policy, logging (ops task)
+2. **Week 2-3**: Staging tests (certificate generation → S3 upload → presigned URL → expiration verification)
+3. **Week 4-5**: Dual-write 30 days (save to local + S3, monitor success rate, rollback safety net)
+4. **Week 6-8**: Background migration (batch process existing certs, idempotent, ETag verification)
+5. **Week 9**: Switch to S3 primary (all new certs to S3 only, keep local as backup)
+6. **Week 17**: Deprecate local storage (archive to S3 `_archive/`, delete local files after 60d)
+
+**Rollback Plan**: 15-minute revert procedure
+- Trigger: 403 rate >5%, 5xx >1%, cost >$50/month, data loss
+- Revert: Flip `USE_S3_FOR_CERTS=false`, deploy, restore local files from S3 if needed
+- Safety Net: Dual-write keeps local files for 30 days (zero-downtime rollback)
+
+**Risks & Mitigations**:
+- **S3 outage**: CloudFront CDN (Phase 8), cross-region replication, presigned URL caching
+- **Bill spike**: 10-min TTL, CloudFront rate limiting (Phase 8), AWS Budgets alert ($50 threshold)
+- **Link instability**: Short TTL + regeneration, Django cache 5min, user education
+- **PII exposure**: UUID-only filenames, code review, automated tests, quarterly audit
+- **Data corruption**: ETag/SHA-256 verification, S3 versioning 30d, weekly spot checks
+- **Migration data loss**: Dual-write 30d, idempotent script, dry-run, post-validation
+
+**Production Impact**: Zero (planning only, no code changes, no AWS provisioning)
+
+**Next Steps**: Phase 7 (Q1-Q2 2026) implementation based on this planning work
+
+### Module 6.6: Realtime Coverage Uplift
 *[To be filled when implementation starts]*
 
-### Module 6.6: Spectator Mode
-*[To be filled when implementation starts]*
-
-### Module 6.5: Spectator Mode
+### Module 6.7: Fuzz Testing for API Edge Cases
 *[To be filled when implementation starts]*
 
 ---
