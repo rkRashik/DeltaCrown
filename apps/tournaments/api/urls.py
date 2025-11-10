@@ -16,6 +16,7 @@ from apps.tournaments.api import views
 from apps.tournaments.api.bracket_views import BracketViewSet
 from apps.tournaments.api.match_views import MatchViewSet
 from apps.tournaments.api.result_views import ResultViewSet  # Module 4.4
+from apps.tournaments.api import payout_views  # Module 5.2
 
 # Router for DRF viewsets
 router = DefaultRouter()
@@ -30,4 +31,9 @@ app_name = 'tournaments_api'
 urlpatterns = [
     path('', include(router.urls)),
     path('checkin/', include('apps.tournaments.api.checkin.urls', namespace='checkin')),
+    
+    # Module 5.2: Prize Payouts & Refunds
+    path('<int:tournament_id>/payouts/', payout_views.process_payouts, name='process-payouts'),
+    path('<int:tournament_id>/refunds/', payout_views.process_refunds, name='process-refunds'),
+    path('<int:tournament_id>/payouts/verify/', payout_views.verify_reconciliation, name='verify-reconciliation'),
 ]

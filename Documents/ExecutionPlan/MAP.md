@@ -1,4 +1,4 @@
-# Plan ↔ Implementation Map (Human-Readable)
+﻿# Plan ↔ Implementation Map (Human-Readable)
 
 This file maps each Phase/Module to the exact Planning doc sections used.
 
@@ -874,10 +874,10 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Completion Doc**: Documents/ExecutionPlan/MODULE_5.1_COMPLETION_STATUS.md
 
 ### Module 5.2: Prize Payouts & Reconciliation
-- **Status**: � In Progress - Milestone 2 Complete (Nov 10, 2025)
+- **Status**:  Complete - All Milestones (Nov 10, 2025)
 - **Implements**:
   - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-integration-patterns (apps.economy)
-  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (prize_pool, prize_distribution)
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (prize_pool, prize_distribution)\n  - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#api-routing
   - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-52
   - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
 - **Scope**:
@@ -887,11 +887,11 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - Handle rounding errors (remainder to 1st place)
   - Refund entry fees for cancelled tournaments
   - Reconciliation verification (total payouts ≤ prize pool)
-  - Audit trail for all transactions
+  - Audit trail for all transactions\n  - REST API endpoints for organizer/admin payout operations\n  - Idempotent processing (prevents duplicate transactions)\n  - PII protection (responses use Registration IDs only)
 - **Milestones**:
   - ✅ Milestone 1: Models & Migrations (Complete)
   - ✅ Milestone 2: PayoutService (Complete)
-  - 📋 Milestone 3: API Endpoints (Planned)
+  - ✅ Milestone 3: API Endpoints (Complete)
 - **Models**:
   - `PrizeTransaction` (tournament, participant, placement, amount, coin_transaction FK, status, processed_by)
 - **Services**:
@@ -900,17 +900,34 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - apps/tournaments/models/prize.py (PrizeTransaction - 196 lines)
   - apps/tournaments/admin_prize.py (View-only admin - 189 lines)
   - apps/tournaments/services/payout_service.py (PayoutService - 607 lines, 4 methods)
+  - apps/tournaments/api/payout_views.py (3 endpoints - 396 lines)
+  - apps/tournaments/api/payout_serializers.py (5 serializers - 89 lines)
+  - apps/tournaments/api/urls.py (updated with 3 routes)
   - apps/tournaments/migrations/0007_prize_transaction.py
   - tests/test_prize_transaction_module_5_2.py (4 tests - model validation)
   - tests/test_payout_service_module_5_2.py (19 tests - service logic)
-- **Test Results**: 23 passing (4 model + 19 service)
+  - tests/test_payout_api_module_5_2.py (13 tests - API endpoints)
+  - Documents/ExecutionPlan/MODULE_5.2_COMPLETION_STATUS.md (operational runbook)
+- **Test Results**: **36/36 passing** (4 model + 19 service + 13 API)
+  - TestPrizeTransactionConstraints: 4 tests (model validation, constraints)
   - TestPayoutServiceDistribution: 6 tests (fixed/percent modes, rounding, validation)
   - TestPayoutServicePayouts: 6 tests (happy path, idempotency, economy failures, preconditions, partial placements)
   - TestPayoutServiceRefunds: 3 tests (happy path, idempotency, validation)
   - TestPayoutServiceReconciliation: 4 tests (happy path, missing payouts, amount mismatches, failed transactions)
+  - TestPayoutAPIPermissions: 5 tests (401 anonymous, 403 non-organizer, 200 organizer/admin)
+  - TestPayoutAPIHappyPath: 3 tests (returns transaction IDs, creates records, idempotency)
+  - TestRefundAPIHappyPath: 2 tests (returns transaction IDs, idempotency)
+  - TestReconciliationAPI: 1 test (happy path validation)
+  - TestPayoutAPIErrorCases: 3 tests (409 state conflicts, 400 invalid distribution)
 - **Target Coverage**: ≥85%
-- **Estimated Effort**: ~20 hours (12h spent on Milestones 1-2)
+- **Estimated Effort**: ~20 hours (completed)
 - **Dependencies**: Module 5.1 (winner determination)
+- **API Endpoints**:
+  - `POST /api/tournaments/<id>/payouts/` - Process prize payouts (IsOrganizerOrAdmin)
+  - `POST /api/tournaments/<id>/refunds/` - Process refunds for cancelled tournaments (IsOrganizerOrAdmin)
+  - `GET /api/tournaments/<id>/payouts/verify/` - Verify payout reconciliation (IsOrganizerOrAdmin)
+- **Breaking Changes**: None (new functionality only)
+- **Security**: All endpoints require authentication; organizer or admin role verified; no PII in responses (Registration IDs only)
 - **Known Issues**:
   - JSON serialization converts integer keys to strings in prize_distribution (handled in service code)
 

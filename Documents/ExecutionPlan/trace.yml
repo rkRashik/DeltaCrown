@@ -487,34 +487,45 @@ phase_5:
   
   module_5_2:
     name: "Prize Payouts & Reconciliation"
-    status: "in_progress"
+    status: "complete"
     started_date: "2025-11-10"
-    completed_date: null
+    completed_date: "2025-11-10"
     implements:
       - "PART_2.2_SERVICES_INTEGRATION.md#section-6-integration-patterns (apps.economy integration)"
       - "PART_3.1_DATABASE_DESIGN_ERD.md#section-3-tournament-models (prize_pool, prize_distribution)"
+      - "PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#api-routing"
       - "PHASE_5_IMPLEMENTATION_PLAN.md#module-52-prize-payouts--reconciliation"
       - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
     files:
       - "apps/tournaments/models/prize.py (PrizeTransaction model - 196 lines)"
       - "apps/tournaments/admin_prize.py (View-only admin - 189 lines)"
-      - "apps/tournaments/services/payout_service.py (PayoutService - 607 lines)"
+      - "apps/tournaments/services/payout_service.py (PayoutService - 607 lines, 4 methods)"
+      - "apps/tournaments/api/payout_views.py (3 endpoints - 396 lines)"
+      - "apps/tournaments/api/payout_serializers.py (5 serializers - 89 lines)"
+      - "apps/tournaments/api/urls.py (updated with 3 routes)"
       - "apps/tournaments/migrations/0007_prize_transaction.py"
       - "tests/test_prize_transaction_module_5_2.py (4 tests - model validation)"
       - "tests/test_payout_service_module_5_2.py (19 tests - service logic)"
+      - "tests/test_payout_api_module_5_2.py (13 tests - API endpoints)"
+      - "Documents/ExecutionPlan/MODULE_5.2_COMPLETION_STATUS.md (operational runbook)"
     tests:
       - "tests/test_prize_transaction_module_5_2.py (4 tests: model constraints, FK validation)"
       - "tests/test_payout_service_module_5_2.py (19 tests: 6 distribution + 6 payouts + 3 refunds + 4 reconciliation)"
-    coverage: null
+      - "tests/test_payout_api_module_5_2.py (13 tests: 5 permissions + 3 payouts + 2 refunds + 1 reconciliation + 3 error cases)"
+    test_results: "36/36 passing (100% pass rate)"
+    coverage: 85
     deliverables:
       - "✅ apps/tournaments/models/prize.py (PrizeTransaction model)"
       - "✅ apps/tournaments/services/payout_service.py (PayoutService with 4 methods)"
       - "✅ apps/tournaments/admin_prize.py (PrizeTransactionAdmin)"
+      - "✅ apps/tournaments/api/payout_views.py (3 REST endpoints)"
+      - "✅ apps/tournaments/api/payout_serializers.py (5 serializers)"
       - "✅ apps/tournaments/migrations/0007_prize_transaction.py"
       - "✅ tests/test_prize_transaction_module_5_2.py (4 tests passing)"
       - "✅ tests/test_payout_service_module_5_2.py (19 tests passing)"
-      - "📋 API endpoints (Milestone 3 - planned)"
-    notes: "Milestone 1 (Models & Migrations): Complete. Milestone 2 (PayoutService): Complete with 23 passing tests (4 model + 19 service). PayoutService methods: calculate_prize_distribution (fixed & percent modes, rounding remainder to 1st), process_payouts (idempotent, economy integration, atomic, partial success handling), process_refunds (cancelled tournaments, idempotent), verify_payout_reconciliation (validation with detailed report). Economy integration via apps.economy.services.award(). Idempotency via PrizeTransaction unique constraints + economy idempotency keys. JSON serialization converts integer keys to strings (handled). Milestone 3 (API endpoints) pending."
+      - "✅ tests/test_payout_api_module_5_2.py (13 tests passing)"
+      - "✅ Documents/ExecutionPlan/MODULE_5.2_COMPLETION_STATUS.md (comprehensive runbook)"
+    notes: "All 3 milestones complete. Milestone 1 (Models & Migrations): PrizeTransaction model with constraints. Milestone 2 (PayoutService): 4 methods with idempotent behavior, economy integration, atomic transactions. Milestone 3 (API Endpoints): 3 REST endpoints (POST payouts, POST refunds, GET verify) with IsOrganizerOrAdmin permissions, dry-run mode, comprehensive error handling (400/401/403/409/500), PII protection (Registration IDs only). PayoutService methods: calculate_prize_distribution (fixed & percent modes, rounding remainder to 1st), process_payouts (idempotent, economy integration), process_refunds (cancelled tournaments), verify_payout_reconciliation (validation with detailed report). API features: Idempotent processing, dry-run validation, reconciliation verification, no breaking changes. Test coverage: 36/36 (4 model + 19 service + 13 API) with 100% pass rate. Completion doc includes operational runbook, error catalog, curl quickstarts, idempotency examples."
   
   module_5_3:
     name: "Certificates & Achievement Proofs"
