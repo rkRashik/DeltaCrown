@@ -29,6 +29,9 @@ from .admin_registration import RegistrationAdmin, PaymentAdmin
 # Import Match and Dispute admin classes (Module 1.4)
 from .admin_match import MatchAdmin, DisputeAdmin
 
+# Import Certificate admin class (Module 5.3)
+from .admin_certificate import CertificateAdmin
+
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):

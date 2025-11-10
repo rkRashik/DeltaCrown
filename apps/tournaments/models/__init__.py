@@ -33,6 +33,12 @@ from .security import (
 from .result import (
     TournamentResult,  # Module 5.1: Winner Determination
 )
+from .prize import (
+    PrizeTransaction,  # Module 5.2: Prize Payouts & Reconciliation
+)
+from .certificate import (
+    Certificate,  # Module 5.3: Certificates & Achievement Proofs
+)
 
 __all__ = [
     'Game',
@@ -47,4 +53,6 @@ __all__ = [
     'Dispute',
     'AuditLog',
     'TournamentResult',
+    'PrizeTransaction',
+    'Certificate',
 ]
