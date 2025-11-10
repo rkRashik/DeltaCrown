@@ -928,6 +928,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - `GET /api/tournaments/<id>/payouts/verify/` - Verify payout reconciliation (IsOrganizerOrAdmin)
 - **Breaking Changes**: None (new functionality only)
 - **Security**: All endpoints require authentication; organizer or admin role verified; no PII in responses (Registration IDs only)
+- **Operational Note**: ⚠️ **Payouts/refunds require organizer or admin role**. Always **dry-run first in staging** (`"dry_run": true`) before production execution. See MODULE_5.2_COMPLETION_STATUS.md for rollback/replay procedures.
 - **Known Issues**:
   - JSON serialization converts integer keys to strings in prize_distribution (handled in service code)
 

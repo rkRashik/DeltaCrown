@@ -434,6 +434,91 @@ curl "http://localhost:8000/api/tournaments/123/payouts/verify/" \
 
 ---
 
+### Rollback & Replay
+
+**Rollback Strategy (if something goes wrong)**:
+- ❌ **NEVER delete** PrizeTransaction records (audit trail preservation)
+- ✅ Mark failed transactions as `status='failed'` in database
+- ✅ Use admin interface to inspect failed records
+- ✅ Check `notes` field for failure details
+- ✅ Investigate economy service logs (`apps.economy.CoinTransaction`)
+
+**Replay Strategy (safe re-execution)**:
+- ✅ Rely on **idempotency keys** for safe re-runs (no duplicates)
+- ✅ Re-run same API request → returns existing transaction IDs
+- ✅ Economy service won't duplicate payments (idempotency at economy layer too)
+- ✅ Use dry-run first to validate preconditions: `{"dry_run": true}`
+- ✅ Check reconciliation before replay: `GET /api/tournaments/<id>/payouts/verify/`
+
+**Example Replay Flow**:
+```bash
+# 1. Check current state
+curl "http://localhost:8000/api/tournaments/123/payouts/verify/" \
+  -H "Authorization: Bearer ${TOKEN}"
+
+# 2. If ok=false, inspect details (missing payouts, mismatches)
+
+# 3. Dry-run to validate (no processing)
+curl -X POST "http://localhost:8000/api/tournaments/123/payouts/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"dry_run": true}'
+
+# 4. If validation passes, replay (idempotent, safe)
+curl -X POST "http://localhost:8000/api/tournaments/123/payouts/" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"dry_run": false, "notes": "Replay after economy service recovery"}'
+
+# 5. Verify again
+curl "http://localhost:8000/api/tournaments/123/payouts/verify/" \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
+**Sentry Breadcrumbs (for operations monitoring)**:
+```python
+# In production, add Sentry breadcrumbs for debugging:
+import sentry_sdk
+
+# Before payout processing
+sentry_sdk.add_breadcrumb(
+    category='payout',
+    message=f'Processing payouts for tournament {tournament_id}',
+    level='info',
+    data={'tournament_id': tournament_id, 'dry_run': dry_run}
+)
+
+# After successful processing
+sentry_sdk.add_breadcrumb(
+    category='payout',
+    message=f'Payouts processed successfully: {len(transaction_ids)} transactions',
+    level='info',
+    data={'tournament_id': tournament_id, 'transaction_count': len(transaction_ids)}
+)
+
+# On failure
+sentry_sdk.add_breadcrumb(
+    category='payout',
+    message=f'Payout processing failed: {str(e)}',
+    level='error',
+    data={'tournament_id': tournament_id, 'error': str(e)}
+)
+```
+
+**Search Sentry for**:
+- `category:payout` - All payout operations
+- `Processing payouts for tournament` - Payout starts
+- `Payouts processed successfully` - Successful completions
+- `Payout processing failed` - Failures requiring investigation
+
+**Dashboard Counter (Phase 7 monitoring)**:
+- **Metric**: `failed_prize_transactions_count` (count of PrizeTransaction where status='failed')
+- **Alert**: If count > 0, notify ops team
+- **Query**: `SELECT COUNT(*) FROM tournaments_prizetransaction WHERE status = 'failed'`
+- **Suggested Dashboard**: Grafana panel with 24h rolling window
+
+---
+
 ## Traceability Verification
 
 Run `scripts/verify_trace.py` to validate module implementation:
