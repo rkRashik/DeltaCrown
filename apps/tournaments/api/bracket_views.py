@@ -67,13 +67,13 @@ class BracketViewSet(viewsets.ReadOnlyModelViewSet):
             return BracketGenerationSerializer
         return BracketSerializer
     
-    @action(detail=False, methods=['post'], url_path=r'tournaments/(?P<tournament_id>[^/.]+)/generate',
+    @action(detail=False, methods=['post'], url_path=r'(?P<tournament_id>[^/.]+)/generate',
             permission_classes=[IsOrganizerOrAdmin])
     def generate_bracket(self, request, tournament_id=None):
         """
         Generate bracket for tournament.
         
-        POST /api/brackets/tournaments/{tournament_id}/generate/
+        POST /api/tournaments/brackets/{tournament_id}/generate/
         
         Request body:
         {
