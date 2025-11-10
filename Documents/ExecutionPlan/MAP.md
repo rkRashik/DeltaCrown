@@ -1010,35 +1010,55 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Completion Doc**: Documents/Development/MODULE_5.3_COMPLETION_STATUS.md (quickstarts, error catalog, test matrix, PII policy, future enhancements)
 
 ### Module 5.4: Analytics & Reports
-- **Status**: 📋 Planned
+- **Status**: ✅ Complete (Nov 10, 2025)
 - **Implements**:
   - Documents/Planning/PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#phase-3 (analytics features)
   - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-54
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#AnalyticsService
   - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
-- **Scope**:
-  - Organizer analytics: Participants, matches, revenue, check-in rate, dispute rate
-  - Participant reports: Win/loss record, placements, prize winnings, match performance
-  - CSV exports for all analytics
-  - Materialized views for performance (tournament_participant_stats)
-  - Scheduled reports (weekly organizer digest)
-- **Services**:
-  - `AnalyticsService` (calculate_organizer_analytics, calculate_participant_stats, export_csv)
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-002-data-access
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008-security
+- **Files Created**:
+  - apps/tournaments/services/analytics_service.py (606 lines, 3 public + 6 helper methods)
+  - apps/tournaments/api/analytics_views.py (295 lines, 3 function-based views)
+  - apps/tournaments/api/urls.py (updated: 3 new routes)
+  - tests/test_analytics_service_module_5_4.py (842 lines, 31 unit tests)
+  - tests/test_analytics_api_module_5_4.py (600 lines, 6 integration tests)
+  - Documents/ExecutionPlan/MODULE_5.4_COMPLETION_STATUS.md (comprehensive status report)
+- **Test Results**: 37/37 passing (31 unit + 6 integration)
+- **Coverage**:
+  - Service (analytics_service.py): 96% (target: ≥90%) ✅
+  - Views (analytics_views.py): 86% (target: ≥80%) ✅
+  - Overall Module 5.4: 93% (target: ≥85%) ✅
+
+| Component | Coverage | Target | Status |
+|-----------|----------|--------|--------|
+| AnalyticsService | 96% | ≥90% | ✅ PASS |
+| API Views | 86% | ≥80% | ✅ PASS |
+| Overall | 93% | ≥85% | ✅ PASS |
+
 - **API Endpoints**:
-  - `GET /api/tournaments/analytics/organizer/<tournament_id>/` (IsOrganizerOrAdmin)
-  - `GET /api/tournaments/analytics/participant/<user_id>/` (IsSelfOrAdmin)
-  - `GET /api/tournaments/analytics/export/<tournament_id>/?format=csv` (IsOrganizerOrAdmin)
-- **Test Plan**: 12 tests (8 unit + 4 integration)
-  - Analytics calculation (3 tests)
-  - CSV export formatting (2 tests)
-  - Permission checks (2 tests)
-  - Edge case: no tournaments (1 test)
-  - End-to-end analytics retrieval (1 test)
-  - CSV export (1 test)
-  - Materialized view refresh (1 test)
-  - Dashboard API integration (1 test)
-- **Target Coverage**: ≥80%
-- **Estimated Effort**: ~16 hours
-- **Dependencies**: All Phase 4 modules, Module 5.1, Module 5.2
+  
+| Endpoint | Method | Permission | Description |
+|----------|--------|------------|-------------|
+| `/api/tournaments/analytics/organizer/<tournament_id>/` | GET | Organizer OR Admin | 14 tournament metrics (participants, matches, prizes, engagement) |
+| `/api/tournaments/analytics/participant/<user_id>/` | GET | Self OR Admin | 11 participant metrics (tournaments, placements, win_rate, prizes) |
+| `/api/tournaments/analytics/export/<tournament_id>/` | GET | Organizer OR Admin | CSV export (UTF-8 BOM, streaming, 12 columns, PII-safe) |
+
+- **Key Features**:
+  - **Organizer Analytics**: 14 metrics (check_in_rate, dispute_rate, avg_match_duration, prize distribution)
+  - **Participant Analytics**: 11 metrics (win_rate, placements, tournaments_by_game, total_winnings)
+  - **CSV Export**: Streaming (memory-bounded), UTF-8 BOM (Excel-compatible), 12 columns
+  - **PII Protection**: Display names only, no emails (verified in tests)
+  - **Performance Monitoring**: 500ms warning threshold for slow queries
+- **Deferred Features**:
+  - Materialized views (optimization for Phase 6)
+  - Scheduled reports (weekly digest, Phase 6)
+  - Payment status in CSV (requires payment architecture review)
+- **Known Limitations**:
+  - `avg_match_duration_minutes` may show `null` in tests (auto_now fields can't be overridden)
+  - Payment status placeholder (`"No Payment"` until payment tracking designed)
+- **Dependencies**: Tournament, Registration, Match, TournamentResult, PrizeTransaction models
 
 ---
 

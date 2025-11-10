@@ -18,6 +18,7 @@ from apps.tournaments.api.match_views import MatchViewSet
 from apps.tournaments.api.result_views import ResultViewSet  # Module 4.4
 from apps.tournaments.api import payout_views  # Module 5.2
 from apps.tournaments.api import certificate_views  # Module 5.3
+from apps.tournaments.api import analytics_views  # Module 5.4
 
 # Router for DRF viewsets
 router = DefaultRouter()
@@ -41,4 +42,9 @@ urlpatterns = [
     # Module 5.3: Certificates & Achievement Proofs
     path('certificates/<int:pk>/', certificate_views.download_certificate, name='download-certificate'),
     path('certificates/verify/<uuid:code>/', certificate_views.verify_certificate, name='verify-certificate'),
+    
+    # Module 5.4: Analytics & Reports
+    path('analytics/organizer/<int:tournament_id>/', analytics_views.organizer_analytics, name='analytics-organizer'),
+    path('analytics/participant/<int:user_id>/', analytics_views.participant_analytics, name='analytics-participant'),
+    path('analytics/export/<int:tournament_id>/', analytics_views.export_tournament_csv, name='analytics-export-csv'),
 ]

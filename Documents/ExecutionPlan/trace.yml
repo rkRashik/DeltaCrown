@@ -572,23 +572,36 @@ phase_5:
   
   module_5_4:
     name: "Analytics & Reports"
-    status: "planned"
-    started_date: null
-    completed_date: null
+    status: "complete"
+    started_date: "2025-11-10"
+    completed_date: "2025-11-10"
     implements:
       - "PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#phase-3-advanced-features (analytics)"
       - "PHASE_5_IMPLEMENTATION_PLAN.md#module-54-analytics--reports"
+      - "PART_2.2_SERVICES_INTEGRATION.md#AnalyticsService"
       - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
-    files: []
-    tests: []
-    coverage: null
+      - "01_ARCHITECTURE_DECISIONS.md#adr-002-data-access-patterns"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-008-security-model"
+    files:
+      - "apps/tournaments/services/analytics_service.py (606 lines, 3 public + 6 helper methods)"
+      - "apps/tournaments/api/analytics_views.py (295 lines, 3 function-based views)"
+      - "apps/tournaments/api/urls.py (updated with 3 analytics routes)"
+      - "tests/test_analytics_service_module_5_4.py (842 lines, 31 unit tests)"
+      - "tests/test_analytics_api_module_5_4.py (600 lines, 6 integration tests)"
+      - "Documents/ExecutionPlan/MODULE_5.4_COMPLETION_STATUS.md (comprehensive runbook)"
+    tests:
+      - "tests/test_analytics_service_module_5_4.py (31 tests: organizer analytics, participant analytics, CSV export, helpers, error handling)"
+      - "tests/test_analytics_api_module_5_4.py (6 tests: permissions, accuracy, streaming, PII protection)"
+    test_results: "37/37 passing (100% pass rate) - 31 unit + 6 integration"
+    coverage: 93
     deliverables:
-      - "apps/tournaments/services/analytics_service.py (AnalyticsService)"
-      - "apps/tournaments/api/analytics_views.py (organizer + participant endpoints)"
-      - "apps/tournaments/api/serializers_analytics.py (analytics serializers)"
-      - "Database materialized view: tournament_participant_stats"
-      - "tests/test_analytics_module_5_4.py (12 tests: 8 unit, 4 integration)"
-    notes: "Organizer analytics (revenue, participation trends), participant reports (win/loss, placements), CSV exports."
+      - "✅ apps/tournaments/services/analytics_service.py (AnalyticsService with 3 methods: calculate_organizer_analytics, calculate_participant_analytics, export_tournament_csv)"
+      - "✅ apps/tournaments/api/analytics_views.py (3 endpoints: organizer_analytics, participant_analytics, export_tournament_csv)"
+      - "✅ apps/tournaments/api/urls.py (3 routes: analytics/organizer/<id>/, analytics/participant/<id>/, analytics/export/<id>/)"
+      - "✅ tests/test_analytics_service_module_5_4.py (31 unit tests, 96% service coverage)"
+      - "✅ tests/test_analytics_api_module_5_4.py (6 integration tests, 86% views coverage)"
+      - "✅ Documents/ExecutionPlan/MODULE_5.4_COMPLETION_STATUS.md (metrics dictionary, curl quickstarts, operational runbook)"
+    notes: "All implementation steps complete. AnalyticsService: 14 organizer metrics (participants, check-ins, matches, disputes, prizes), 11 participant metrics (tournaments, placements, win_rate, prizes), CSV export with streaming (UTF-8 BOM, 12 columns, memory-bounded generator). API endpoints: organizer_analytics (requires organizer OR admin), participant_analytics (requires self OR admin), export_tournament_csv (streaming CSV with proper Content-Disposition headers). Features: 4-decimal rates, 2-decimal money strings, UTC ISO-8601 timestamps, 500ms performance warnings, PII protection (display names only, no emails verified). Deferred features: Materialized views (optimization for Phase 6), scheduled reports (weekly digest), payment status in CSV (requires payment architecture review). Known limitations: avg_match_duration_minutes may show null in tests (auto_now fields), payment status placeholder ('No Payment'). Test coverage: Service 96%, Views 86%, Overall 93% (all targets exceeded). Dependencies: Tournament, Registration, Match, TournamentResult, PrizeTransaction models."
 
 phase_6:
   module_6_1:
