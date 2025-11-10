@@ -933,42 +933,81 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - JSON serialization converts integer keys to strings in prize_distribution (handled in service code)
 
 ### Module 5.3: Certificates & Achievement Proofs
-- **Status**: 📋 Planned
+- **Status**: ✅ Complete (Nov 10, 2025)
 - **Implements**:
   - Documents/Planning/PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#sprint-6 (certificate generation)
   - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-53
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (service layer patterns)
   - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
-- **Scope**:
-  - PDF generation using ReportLab or WeasyPrint
-  - Image generation using Pillow (PNG/JPEG)
-  - Templates: Winner, Runner-up, Participant
-  - Dynamic fields: Name, tournament, date, placement, verification code
-  - Verification system: UUID + SHA256 hash
-  - QR code on certificate (links to verification page)
-  - Multi-language support (Bengali, English)
-  - Public verification endpoint (tamper detection)
+- **Milestones**:
+  - ✅ Milestone 1: Models & Migrations (commit 1c269a7)
+  - ✅ Milestone 2: CertificateService (commit fb4d0a4)
+  - ✅ Milestone 3: API Endpoints (commit 3a8cee3)
+- **Scope Delivered**:
+  - PDF generation (ReportLab, A4 landscape, 842x595pt)
+  - PNG image generation (Pillow, 1920x1080px)
+  - 3 certificate types: Winner, Runner-up, Participant
+  - SHA-256 tamper detection (hash over exact PDF bytes)
+  - QR code embedding with verification URL
+  - Multi-language support (English + Bengali with Noto Sans font)
+  - Streaming file downloads with ETag caching
+  - Public verification endpoint (no PII exposure)
+  - Certificate revocation with reason tracking
+  - Download metrics (count + timestamp)
+  - Idempotent generation (one cert per registration)
 - **Models**:
-  - `Certificate` (tournament, participant, type, placement, file_pdf, file_image, verification_code, certificate_hash, downloaded_at, download_count)
+  - `Certificate` (tournament, participant, certificate_type, placement, file_pdf, file_image, verification_code, certificate_hash, generated_at, downloaded_at, download_count, is_revoked, revoked_at, revoked_reason)
 - **Services**:
-  - `CertificateService` (generate_certificate, verify_certificate, create_qr_code)
+  - `CertificateService` (813 lines, 6 methods)
+    - `generate_certificate()` - PDF/PNG generation with QR codes
+    - `verify_certificate()` - Tamper detection + revocation status
+    - `_generate_pdf()` - ReportLab layout engine
+    - `_generate_image()` - Pillow rasterization
+    - `_build_verification_url()` - QR code URL construction
+    - `_get_participant_display_name()` - Display name helper (no PII)
 - **API Endpoints**:
-  - `GET /api/tournaments/certificates/<id>/` (download, IsParticipant permission)
-  - `GET /api/tournaments/certificates/verify/<uuid>/` (verify, AllowAny permission)
-- **Test Plan**: 15 tests (10 unit + 5 integration)
-  - Certificate generation (PDF + image) (2 tests)
-  - Template rendering (2 tests)
-  - Verification code uniqueness (1 test)
-  - Hash calculation (1 test)
-  - Download counter increment (1 test)
-  - Edge cases: missing name, long title (3 tests)
-  - End-to-end generation (1 test)
-  - Download endpoint (1 test)
-  - Verification endpoint (1 test)
-  - QR code generation (1 test)
-  - Tamper detection (1 test)
-- **Target Coverage**: ≥85%
-- **Estimated Effort**: ~24 hours
-- **Dependencies**: Module 5.1, Module 5.2, Python libs (reportlab/weasyprint, Pillow, qrcode)
+  - `GET /api/tournaments/certificates/<id>/` (download certificate)
+    - Permission: IsParticipantOrOrganizerOrAdmin (owner/organizer/admin)
+    - Streaming FileResponse (PDF primary, PNG fallback via ?format=png)
+    - Headers: Content-Type, Content-Disposition (attachment), ETag (SHA-256), Cache-Control (private, max-age=300)
+    - Metrics: Increment download_count, set downloaded_at on first download
+    - Status Codes: 200 (OK), 401 (unauthorized), 403 (forbidden), 404 (not found), 410 (revoked)
+  - `GET /api/tournaments/certificates/verify/<uuid>/` (verify certificate - public)
+    - Permission: AllowAny (public verification)
+    - JSON response with validity status, tamper detection, revocation
+    - No PII: Display names only, no emails/usernames
+    - Fields: certificate_id, tournament, participant_display_name, certificate_type, placement, generated_at, valid, revoked, is_tampered, verification_url
+    - Status Codes: 200 (OK with flags), 404 (invalid code)
+- **Files Created**:
+  - apps/tournaments/models/certificate.py (185 lines) - Certificate model
+  - apps/tournaments/admin_certificate.py (150 lines) - Admin interface with view/regenerate/revoke
+  - apps/tournaments/services/certificate_service.py (813 lines) - Service layer
+  - apps/tournaments/api/certificate_views.py (241 lines) - 2 function-based views
+  - apps/tournaments/api/certificate_serializers.py (175 lines) - 2 serializers (no PII)
+  - apps/tournaments/migrations/0010_certificate.py - Certificate table + indexes
+  - static/fonts/README.md - Bengali font installation instructions
+  - tests/test_certificate_model_module_5_3.py (120 lines) - 3 model tests
+  - tests/test_certificate_service_module_5_3.py (971 lines) - 20 service tests
+  - tests/test_certificate_api_module_5_3.py (520+ lines) - 12 API tests
+  - Documents/Development/MODULE_5.3_COMPLETION_STATUS.md (519 lines) - Operational runbook
+- **Files Modified**:
+  - apps/tournaments/api/urls.py (added 2 certificate routes)
+  - apps/tournaments/services/__init__.py (export CertificateService)
+  - requirements.txt (added reportlab>=4.2.5, qrcode[pil]>=8.0)
+- **Test Results**: **35/35 passing** (100%), 1 skipped (Bengali font)
+  - Model tests: 3/3 ✅ (creation, revocation, unique constraint)
+  - Service tests: 20/20 ✅, 1 skipped (Bengali font - manual install required)
+  - API tests: 12/12 ✅ (download owner/forbidden/anonymous, verify valid/invalid/revoked/tampered, organizer access, PNG format, QR end-to-end)
+- **Coverage**: Estimated 85%+ (all critical paths tested)
+- **PII Policy**: **Display names only** - No email/username exposure in API responses or certificate files
+- **Known Limitations**:
+  - Local MEDIA_ROOT storage (S3 migration planned for Phase 6/7)
+  - No batch generation API endpoint (planned for future)
+  - Bengali font requires manual installation (test skipped with clear reason)
+- **Actual Effort**: ~24 hours (Milestone 1: 4h, Milestone 2: 12h, Milestone 3: 8h)
+- **Dependencies**: Module 5.1 (winner determination), reportlab, qrcode[pil], Pillow
+- **Commits**: 1c269a7 (M1), fb4d0a4 (M2), 3a8cee3 (M3), a138795 (docs)
+- **Completion Doc**: Documents/Development/MODULE_5.3_COMPLETION_STATUS.md (quickstarts, error catalog, test matrix, PII policy, future enhancements)
 
 ### Module 5.4: Analytics & Reports
 - **Status**: 📋 Planned

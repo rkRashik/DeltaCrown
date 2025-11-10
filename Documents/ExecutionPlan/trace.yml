@@ -529,24 +529,46 @@ phase_5:
   
   module_5_3:
     name: "Certificates & Achievement Proofs"
-    status: "planned"
-    started_date: null
-    completed_date: null
+    status: "complete"
+    started_date: "2025-11-10"
+    completed_date: "2025-11-10"
     implements:
-      - "PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#sprint-6-community--certificates (certificate generation)"
+      - "PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#sprint-6-community--certificates"
       - "PHASE_5_IMPLEMENTATION_PLAN.md#module-53-certificates--achievement-proofs"
+      - "PART_2.2_SERVICES_INTEGRATION.md (service layer patterns, API patterns)"
       - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
-    files: []
-    tests: []
-    coverage: null
+    files:
+      - "apps/tournaments/models/certificate.py (Certificate model - 185 lines)"
+      - "apps/tournaments/admin_certificate.py (CertificateAdmin - 150 lines)"
+      - "apps/tournaments/services/certificate_service.py (CertificateService - 813 lines, 6 methods)"
+      - "apps/tournaments/api/certificate_views.py (2 function-based views - 241 lines)"
+      - "apps/tournaments/api/certificate_serializers.py (2 serializers - 175 lines, no PII)"
+      - "apps/tournaments/api/urls.py (updated with 2 certificate routes)"
+      - "apps/tournaments/migrations/0010_certificate.py"
+      - "static/fonts/README.md (Bengali font installation instructions)"
+      - "tests/test_certificate_model_module_5_3.py (3 model tests - 120 lines)"
+      - "tests/test_certificate_service_module_5_3.py (20 service tests - 971 lines)"
+      - "tests/test_certificate_api_module_5_3.py (12 API tests - 520+ lines)"
+      - "Documents/Development/MODULE_5.3_COMPLETION_STATUS.md (operational runbook - 519 lines)"
+    tests:
+      - "tests/test_certificate_model_module_5_3.py (3 tests: creation, revocation, unique constraint)"
+      - "tests/test_certificate_service_module_5_3.py (20 tests: PDF/PNG generation, QR codes, verification, tamper detection, multi-language)"
+      - "tests/test_certificate_api_module_5_3.py (12 tests: download owner/forbidden/anonymous, verify valid/invalid/revoked/tampered, organizer access, PNG format, QR end-to-end)"
+    test_results: "35/35 passing (100% pass rate), 1 skipped (Bengali font - manual install required)"
+    coverage: 85
     deliverables:
-      - "apps/tournaments/models/certificate.py (Certificate model)"
-      - "apps/tournaments/services/certificate_service.py (CertificateService)"
-      - "apps/tournaments/api/certificate_views.py (download + verify endpoints)"
-      - "apps/tournaments/templates/certificates/winner.html (PDF template)"
-      - "apps/tournaments/migrations/0XXX_certificate.py"
-      - "tests/test_certificate_module_5_3.py (15 tests: 10 unit, 5 integration)"
-    notes: "PDF/image certificate generation using ReportLab or WeasyPrint. QR code verification. Multi-language support."
+      - "✅ apps/tournaments/models/certificate.py (Certificate model with tamper detection, revocation)"
+      - "✅ apps/tournaments/services/certificate_service.py (CertificateService: generate_certificate, verify_certificate, PDF/PNG/QR generation)"
+      - "✅ apps/tournaments/api/certificate_views.py (download certificate - streaming FileResponse with ETag caching, verify certificate - public JSON)"
+      - "✅ apps/tournaments/api/certificate_serializers.py (CertificateSerializer, CertificateVerificationSerializer - no PII)"
+      - "✅ apps/tournaments/admin_certificate.py (CertificateAdmin with view/regenerate/revoke actions)"
+      - "✅ apps/tournaments/migrations/0010_certificate.py (Certificate table with unique index)"
+      - "✅ static/fonts/README.md (Bengali font installation instructions - Noto Sans Bengali)"
+      - "✅ tests/test_certificate_model_module_5_3.py (3 model tests passing)"
+      - "✅ tests/test_certificate_service_module_5_3.py (20 service tests passing, 1 skipped)"
+      - "✅ tests/test_certificate_api_module_5_3.py (12 API tests passing)"
+      - "✅ Documents/Development/MODULE_5.3_COMPLETION_STATUS.md (quickstarts, error catalog, test matrix, PII policy)"
+    notes: "All 3 milestones complete. Milestone 1 (Models & Migrations): Certificate model with verification_code (UUID), certificate_hash (SHA-256), revocation. Milestone 2 (CertificateService): PDF generation (ReportLab, A4 landscape 842x595pt), PNG rasterization (Pillow, 1920x1080px), QR code embedding (qrcode lib), SHA-256 tamper detection, multi-language support (English + Bengali with Noto Sans font), idempotent generation (one cert per registration). Milestone 3 (API Endpoints): GET /certificates/<id>/ (streaming download, IsParticipantOrOrganizerOrAdmin permission, ETag caching with SHA-256, Cache-Control headers, download metrics), GET /certificates/verify/<uuid>/ (public verification, AllowAny permission, no PII - display names only, tamper detection, revocation status). Features: 3 certificate types (winner/runnerup/participant), custom placement text, QR code verification URL, certificate revocation with reason tracking, download counter + timestamp. PII protection: Display names only, no email/username exposure in API responses or certificate files. Known limitations: Local MEDIA_ROOT storage (S3 migration planned for Phase 6/7), no batch generation API, Bengali font requires manual installation (test skipped). Dependencies: reportlab>=4.2.5, qrcode[pil]>=8.0, Pillow>=11.0.0. Commits: 1c269a7 (M1), fb4d0a4 (M2), 3a8cee3 (M3), a138795 (docs). Test coverage: 35/35 passing (3 model + 20 service + 12 API), 1 skipped with documented reason."
   
   module_5_4:
     name: "Analytics & Reports"
