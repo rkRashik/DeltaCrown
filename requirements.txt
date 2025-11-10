@@ -93,3 +93,9 @@ sphinx-rtd-theme>=3.0.2          # ReadTheDocs theme
 python-dateutil>=2.9.0           # Date/time utilities
 pytz>=2024.2                     # Timezone support
 requests>=2.32.3                 # HTTP library
+
+# -----------------------------------------------------------------------------
+# PDF Generation & Certificates (Module 5.3)
+# -----------------------------------------------------------------------------
+reportlab>=4.2.5                 # PDF generation for certificates
+qrcode[pil]>=8.0                 # QR code generation with image support
