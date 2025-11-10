@@ -1166,7 +1166,45 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 **Quick Win**: ~1 hour, 1 line changed, 6 tests green
 
-### Module 6.4: Notifications System
+### Module 6.4: Fix Module 4.2 (Ranking & Seeding) Tests
+
+**Status**: ✅ Complete (Nov 10, 2025)
+
+**Implements**:
+- Documents/ExecutionPlan/PHASE_6_IMPLEMENTATION_PLAN.md#module-64-module-42-test-fixes
+
+**Files Modified**:
+- apps/common/context_homepage.py (1 line: `tournament.settings.start_at` → `tournament.tournament_start`, bug fix)
+- tests/test_bracket_api_module_4_1.py (40+ lines: URL/constant/field fixes)
+
+**Files Created**:
+- Documents/ExecutionPlan/MODULE_6.4_COMPLETION_STATUS.md
+
+**Tests**: 19/19 passing (100%)
+- test_ranking_service_module_4_2.py: 13/13 ✅
+- test_bracket_api_module_4_1.py::TestBracketGenerationRankedSeeding: 6/6 ✅
+
+**Fix Summary**:
+- **Production Bug**: context_homepage.py accessed non-existent `tournament.settings` field → Fixed to use `tournament.tournament_start`
+- **Test Bug 1**: Tests used old URL with duplicate `tournaments/` prefix from before Module 6.3 → Fixed to use correct route
+- **Test Bug 2**: Tests used `'SINGLE_ELIMINATION'` constant → Fixed to `'single-elimination'` (model format)
+- **Test Bug 3**: Tests referenced non-existent `seed` field → Fixed to use `position` field
+- **Test Bug 4**: Tests checked wrong serializer field name → Fixed to use correct `format` field
+- **Test Bug 5**: Tests had incorrect validation assertions → Fixed to handle flexible error keys
+- **Test Bug 6**: Tests expected wrong bracket node count → Fixed to match single-elimination structure
+
+**User Constraints Met**:
+- ✅ Preferred test fixes over production changes (6 of 7 bugs were test-only)
+- ✅ Minimal production change (1 line for undeniable bug)
+- ✅ Clear rationale documented (settings field doesn't exist)
+- ✅ No breaking changes (bug fix using correct existing field)
+
+**Impact**: Module 4.2 (Ranking & Seeding) tests now at 100% pass rate (was 68%)
+
+### Module 6.5: Notifications System
+*[To be filled when implementation starts]*
+
+### Module 6.6: Spectator Mode
 *[To be filled when implementation starts]*
 
 ### Module 6.5: Spectator Mode
