@@ -1,37 +1,47 @@
 """
-Analytics Service for Tournament Statistics & Reports (Module 5.4)
+Analytics Service for Tournament Statistics & Reports (Module 5.4 + 6.2)
 
 Provides read-only aggregation functions for organizer and participant analytics.
 All methods return dicts/primitives (no ORM objects). No mutations.
 
+Module 6.2 Enhancement:
+- Query materialized view first (if fresh)
+- Fallback to live aggregates if view stale or missing
+- Freshness threshold: 15 minutes (configurable)
+- Cache metadata in API responses
+
 Implements:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-54-analytics--reports
+- Documents/ExecutionPlan/PHASE_6_IMPLEMENTATION_PLAN.md#module-62-materialized-views-for-analytics
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#analyticsservice
 - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-architecture
 
 Source Documents:
 - PHASE_5_IMPLEMENTATION_PLAN.md (Module 5.4 scope, metrics definitions)
+- PHASE_6_IMPLEMENTATION_PLAN.md (Module 6.2 materialized view optimization)
 - PART_2.2_SERVICES_INTEGRATION.md (AnalyticsService methods)
-- 01_ARCHITECTURE_DECISIONS.md (ADR-001 service layer patterns)
+- 01_ARCHITECTURE_DECISIONS.md (ADR-001 service layer patterns, ADR-004 PostgreSQL features)
 
-Author: Module 5.4 implementation
+Author: Module 5.4 implementation, Module 6.2 enhancement
 Date: 2025-11-10
 """
 
 import csv
 import logging
-from typing import Generator, Dict, Any, Optional
+from typing import Generator, Dict, Any, Optional, Tuple
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from io import StringIO
 
+from django.db import connection
 from django.db.models import (
     Count, Q, Avg, Sum, Case, When, F,
     Value, CharField, DurationField, ExpressionWrapper
 )
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.conf import settings
 
 from apps.tournaments.models import (
     Tournament,
@@ -43,10 +53,18 @@ from apps.tournaments.models import (
 
 logger = logging.getLogger(__name__)
 
+# Module 6.2: Materialized view freshness threshold (configurable)
+ANALYTICS_FRESHNESS_MINUTES = getattr(settings, 'ANALYTICS_FRESHNESS_MINUTES', 15)
+
 
 class AnalyticsService:
     """
     Analytics service for tournament statistics and reports.
+    
+    Module 6.2: Query optimization with materialized views.
+    - Queries MV first if fresh (<15 min since refresh)
+    - Falls back to live aggregates if stale or missing
+    - Returns cache metadata in response
     
     All methods are read-only aggregations. No database mutations.
     Returns dicts/primitives for easy serialization.
@@ -59,16 +77,123 @@ class AnalyticsService:
     """
     
     # ========================================================================
+    # MODULE 6.2: MATERIALIZED VIEW HELPERS
+    # ========================================================================
+    
+    @staticmethod
+    def _query_analytics_mv(tournament_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Query materialized view for tournament analytics.
+        
+        Module 6.2: Fast path for cached analytics.
+        
+        Args:
+            tournament_id: Tournament ID
+        
+        Returns:
+            dict with analytics data + cache metadata, or None if not found
+        """
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT
+                        tournament_id,
+                        tournament_status,
+                        total_participants,
+                        checked_in_count,
+                        check_in_rate,
+                        total_matches,
+                        completed_matches,
+                        disputed_matches,
+                        dispute_rate,
+                        avg_match_duration_minutes,
+                        prize_pool_total,
+                        prizes_distributed,
+                        payout_count,
+                        started_at,
+                        concluded_at,
+                        last_refresh_at
+                    FROM tournament_analytics_summary
+                    WHERE tournament_id = %s
+                    """,
+                    [tournament_id]
+                )
+                
+                row = cursor.fetchone()
+                if not row:
+                    return None
+                
+                # Convert row to dict
+                columns = [col[0] for col in cursor.description]
+                mv_data = dict(zip(columns, row))
+                
+                # Convert Decimal to string for consistency with live queries
+                mv_data['prize_pool_total'] = AnalyticsService._format_decimal(
+                    mv_data['prize_pool_total']
+                )
+                mv_data['prizes_distributed'] = AnalyticsService._format_decimal(
+                    mv_data['prizes_distributed']
+                )
+                
+                # Format timestamps
+                mv_data['started_at'] = AnalyticsService._format_datetime(
+                    mv_data['started_at']
+                )
+                mv_data['concluded_at'] = AnalyticsService._format_datetime(
+                    mv_data['concluded_at']
+                )
+                
+                return mv_data
+        
+        except Exception as e:
+            logger.warning(
+                f"Materialized view query failed for tournament {tournament_id}: {e}",
+                exc_info=True
+            )
+            return None
+    
+    @staticmethod
+    def _is_mv_fresh(last_refresh_at: Optional[datetime], threshold_minutes: int = ANALYTICS_FRESHNESS_MINUTES) -> bool:
+        """
+        Check if materialized view data is fresh.
+        
+        Module 6.2: Freshness policy for cache invalidation.
+        
+        Args:
+            last_refresh_at: Timestamp from MV last_refresh_at column
+            threshold_minutes: Freshness threshold in minutes (default: 15)
+        
+        Returns:
+            True if data is fresh (age < threshold), False otherwise
+        """
+        if not last_refresh_at:
+            return False
+        
+        # Make last_refresh_at timezone-aware if naive
+        if last_refresh_at.tzinfo is None:
+            last_refresh_at = timezone.make_aware(last_refresh_at)
+        
+        age = timezone.now() - last_refresh_at
+        return age < timedelta(minutes=threshold_minutes)
+    
+    # ========================================================================
     # PUBLIC API
     # ========================================================================
     
     @staticmethod
-    def calculate_organizer_analytics(tournament_id: int) -> Dict[str, Any]:
+    def calculate_organizer_analytics(tournament_id: int, force_refresh: bool = False) -> Dict[str, Any]:
         """
         Calculate tournament-level analytics for organizers.
         
+        Module 6.2: Optimized with materialized view (MV-first routing).
+        - Queries MV if fresh (<15 min) and not force_refresh
+        - Falls back to live aggregates if stale/missing
+        - Returns cache metadata in response
+        
         Args:
             tournament_id: Tournament ID
+            force_refresh: If True, bypass MV and use live queries (default: False)
         
         Returns:
             dict with keys:
@@ -86,15 +211,54 @@ class AnalyticsService:
                 - tournament_status (str): Tournament status
                 - started_at (str|None): Tournament start time (UTC ISO-8601)
                 - concluded_at (str|None): Tournament conclusion time (UTC ISO-8601)
+                - cache (dict): Cache metadata
+                    - source (str): "materialized" or "live"
+                    - as_of (str): UTC ISO-8601 timestamp of data snapshot
+                    - age_minutes (float): Age of data in minutes (0 if live)
         
         Raises:
             Tournament.DoesNotExist: If tournament not found
         
         Performance:
-            - Uses annotated aggregates (no Python loops)
+            - MV path: <100ms target (cached aggregates)
+            - Live path: 400-600ms (annotated aggregates with 5 table joins)
             - Logs warning if execution > 500ms
         """
         start_time = timezone.now()
+        
+        # Module 6.2: Try materialized view first (if not force_refresh)
+        if not force_refresh:
+            mv_data = AnalyticsService._query_analytics_mv(tournament_id)
+            if mv_data:
+                last_refresh_at = mv_data.pop('last_refresh_at', None)
+                is_fresh = AnalyticsService._is_mv_fresh(last_refresh_at)
+                
+                if is_fresh:
+                    # Calculate age in minutes
+                    age = timezone.now() - last_refresh_at
+                    age_minutes = round(age.total_seconds() / 60, 2)
+                    
+                    # Add cache metadata
+                    mv_data['cache'] = {
+                        'source': 'materialized',
+                        'as_of': last_refresh_at.isoformat() if last_refresh_at else None,
+                        'age_minutes': age_minutes
+                    }
+                    
+                    # Performance monitoring (should be <100ms)
+                    duration_ms = (timezone.now() - start_time).total_seconds() * 1000
+                    logger.info(
+                        f"Analytics for tournament {tournament_id} served from MV ({duration_ms:.2f}ms, age {age_minutes:.1f}min)"
+                    )
+                    
+                    return mv_data
+                else:
+                    # MV exists but stale - fallback to live queries
+                    age = timezone.now() - last_refresh_at if last_refresh_at else None
+                    age_minutes = round(age.total_seconds() / 60, 2) if age else None
+                    logger.info(
+                        f"MV stale for tournament {tournament_id} (age {age_minutes:.1f}min > {ANALYTICS_FRESHNESS_MINUTES}min threshold), falling back to live queries"
+                    )
         
         try:
             tournament = Tournament.objects.get(id=tournament_id)
@@ -173,6 +337,17 @@ class AnalyticsService:
                 logger.warning(
                     f"Analytics calculation for tournament {tournament_id} took {duration_ms:.2f}ms (>500ms threshold)"
                 )
+            else:
+                logger.info(
+                    f"Analytics for tournament {tournament_id} served from live queries ({duration_ms:.2f}ms)"
+                )
+            
+            # Module 6.2: Add cache metadata for live queries
+            cache_metadata = {
+                'source': 'live',
+                'as_of': timezone.now().isoformat(),
+                'age_minutes': 0.0
+            }
             
             return {
                 'total_participants': total_participants,
@@ -189,6 +364,7 @@ class AnalyticsService:
                 'tournament_status': tournament_status,
                 'started_at': started_at,
                 'concluded_at': concluded_at,
+                'cache': cache_metadata,
             }
         
         except Tournament.DoesNotExist:

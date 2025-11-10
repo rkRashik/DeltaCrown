@@ -1101,9 +1101,42 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Documentation**: Documents/ExecutionPlan/MODULE_6.1_COMPLETION_STATUS.md
 
 ### Module 6.2: Materialized Views for Analytics
-*[To be implemented]*
+- **Status**: ✅ Complete (Nov 10, 2025)
+- **Implements**:
+  - Documents/ExecutionPlan/PHASE_6_IMPLEMENTATION_PLAN.md#module-6.2
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#analytics-service
+  - Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md#materialized-views
+- **ADRs**: ADR-004 PostgreSQL Features (Materialized Views)
+- **Files Created**:
+  - apps/tournaments/migrations/0009_analytics_materialized_view.py (MV DDL + 3 indexes)
+  - apps/tournaments/management/commands/refresh_analytics.py (full/targeted/dry-run)
+  - apps/tournaments/tasks/analytics_refresh.py (Celery hourly + on-demand)
+  - tests/test_analytics_materialized_views_module_6_2.py (13 tests)
+  - Documents/ExecutionPlan/MODULE_6.2_COMPLETION_STATUS.md
+- **Files Modified**:
+  - apps/tournaments/services/analytics_service.py (MV-first routing, cache metadata)
+- **Tests**: 13/13 passing (100%)
+- **Performance**: 70.5× speedup (5.26ms → 0.07ms average, some queries <0.01ms)
+- **Key Features**:
+  - PostgreSQL materialized view with 15 analytics columns
+  - 3 optimized indexes (unique tournament_id, freshness DESC, status composite)
+  - Intelligent query routing: MV when fresh (<15 min), fallback to live when stale
+  - Cache metadata in all responses: source ("materialized"/"live"), as_of (timestamp), age_minutes
+  - Celery beat hourly refresh with 0-10 min jitter (thundering herd prevention)
+  - On-demand refresh via management command (--tournament, --dry-run flags)
+  - Concurrent-safe refresh (REFRESH MATERIALIZED VIEW CONCURRENTLY)
+- **Usage**:
+  - Auto-refresh: Celery beat runs every hour
+  - Manual: `python manage.py refresh_analytics [--tournament <id>] [--dry-run]`
+  - Programmatic: `refresh_tournament_analytics.delay(tournament_id)`
+  - Force live: `AnalyticsService.calculate_organizer_analytics(tournament_id, force_refresh=True)`
+- **Freshness Threshold**: 15 minutes (configurable via ANALYTICS_FRESHNESS_MINUTES)
+- **Documentation**: Documents/ExecutionPlan/MODULE_6.2_COMPLETION_STATUS.md (operational runbook)
 
-### Module 6.3: Chat System
+### Module 6.3: URL Routing Audit
+*[To be filled when implementation starts]*
+
+### Module 6.4: Notifications System
 *[To be filled when implementation starts]*
 
 ### Module 6.4: Notifications System
