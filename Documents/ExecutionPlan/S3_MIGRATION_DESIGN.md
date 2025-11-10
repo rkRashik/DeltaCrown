@@ -1187,9 +1187,157 @@ $ python scripts/migrate_certificates_to_s3.py --batch-size 100
 
 ---
 
+## 13. Future Enhancements (Phase 8+)
+
+### Versioned Key Prefix (v1/)
+
+**Use Case:** Support future migrations or storage schema changes without breaking existing certificates.
+
+**Implementation:**
+```python
+# Current key structure (Phase 7)
+pdf/2025/11/a3f8e9c7-4b21-4d1a-8e3f-9c7a4b218e3f.pdf
+
+# Future versioned structure (Phase 8+)
+v1/pdf/2025/11/a3f8e9c7-4b21-4d1a-8e3f-9c7a4b218e3f.pdf
+v2/pdf/2025/11/a3f8e9c7-4b21-4d1a-8e3f-9c7a4b218e3f.pdf  # New format
+```
+
+**Benefits:**
+- Gradual rollout of new certificate formats (e.g., v2 with watermarks, digital signatures)
+- Parallel operation during migration (v1 and v2 coexist)
+- Clear deprecation path (lifecycle policy targets `v1/` prefix after cutover)
+
+**Tradeoffs:**
+- Adds complexity to key generation logic
+- Increases key length (4 bytes per object)
+- Requires version-aware presigned URL generation
+
+**Recommendation:** Defer to Phase 8 unless multiple certificate formats are planned within 12 months.
+
+### PDF Hash in S3 Object Metadata
+
+**Use Case:** Independent integrity verification without database access (e.g., AWS Lambda spot-check script).
+
+**Implementation:**
+```python
+# Upload with metadata
+s3_client.put_object(
+    Bucket='deltacrown-certificates-prod',
+    Key='pdf/2025/11/uuid.pdf',
+    Body=file_content,
+    Metadata={
+        'sha256': 'abcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab',
+        'tournament_id': '123',
+        'placement': '1',
+        'generated_at': '2025-11-10T12:00:00Z'
+    }
+)
+
+# Verify without database
+response = s3_client.head_object(Bucket='...', Key='...')
+s3_sha256 = response['Metadata']['sha256']
+# Compare against freshly computed hash
+```
+
+**Benefits:**
+- Spot-check integrity without Certificate model query
+- Audit trail preserved in S3 (survives database restore)
+- AWS Lambda can run weekly integrity checks (compute hash from S3 object, compare metadata)
+
+**Tradeoffs:**
+- Increases PUT request size (~100 bytes metadata per object)
+- Metadata immutable after upload (cannot fix without re-upload)
+- Redundant with Certificate.sha256_hash DB field (adds storage cost)
+
+**Recommendation:** Add in Phase 7 if weekly integrity spot-checks are required (low operational overhead).
+
+### CloudFront CDN Adoption Thresholds
+
+**When to Add CloudFront:**
+
+| Metric | Threshold | Action |
+|--------|-----------|--------|
+| **Avg Latency (p50)** | >200ms globally | Add CloudFront (cache at edge, <50ms p50) |
+| **Download Volume** | >1M requests/month | CloudFront reduces S3 GET costs (cache hit ratio 80%+) |
+| **Geographic Distribution** | >30% users outside US-East-1 | CloudFront edge locations (200+ global PoPs) |
+| **Bandwidth Cost** | >$100/month S3 transfer | CloudFront cheaper ($0.085/GB vs $0.09/GB S3) |
+| **Availability SLA** | >99.99% required | CloudFront multi-region failover + S3 replication |
+
+**Implementation Considerations:**
+- **Signed URLs vs Signed Cookies**: Signed cookies better UX (1-hour session vs 10-min URLs), but requires session management
+- **Cache Invalidation**: Manual invalidation costs $0.005 per path (batch invalidations recommended)
+- **Origin Failover**: Primary origin S3 us-east-1, failover origin S3 us-west-2 (cross-region replication)
+- **WAF Integration**: Rate limiting (100 req/min per IP), geo-blocking (if needed)
+
+**Cost Model (1M requests/month):**
+- S3 Direct: $0.40 GET + $90 transfer = **$90.40/month**
+- CloudFront: $0.08 GET (20% cache miss) + $85 transfer (80% cache hit) = **$85.08/month**
+- Savings: ~6% ($5/month), but adds operational complexity
+
+**Recommendation:** Add CloudFront when monthly download volume exceeds 1M requests OR p50 latency >200ms for >30% users.
+
+### Multi-Region Retention & Compliance
+
+**Jurisdictional Requirements:**
+
+| Region | Retention Period | Regulation | Notes |
+|--------|------------------|------------|-------|
+| **US** | 7 years | IRS (tax records) | Default retention policy |
+| **EU** | 6 years | GDPR (Art. 17) | Right to erasure (soft delete 30d buffer) |
+| **UK** | 7 years | HMRC (VAT records) | Post-Brexit alignment with IRS |
+| **Canada** | 6 years | CRA (business records) | Shorter retention |
+| **Australia** | 7 years | ATO (tax records) | Alignment with IRS |
+
+**Multi-Region Strategy:**
+
+**Option A: Single Bucket with Regional Tagging**
+```python
+# Tag objects by user jurisdiction
+s3_client.put_object_tagging(
+    Bucket='deltacrown-certificates-prod',
+    Key='pdf/2025/11/uuid.pdf',
+    Tagging={'TagSet': [{'Key': 'jurisdiction', 'Value': 'EU'}]}
+)
+
+# Lifecycle policy per jurisdiction
+{
+  "Rules": [
+    {
+      "Id": "DeleteEU6Years",
+      "Filter": {"Tag": {"Key": "jurisdiction", "Value": "EU"}},
+      "Expiration": {"Days": 2190}  # 6 years
+    },
+    {
+      "Id": "DeleteUS7Years",
+      "Filter": {"Tag": {"Key": "jurisdiction", "Value": "US"}},
+      "Expiration": {"Days": 2555}  # 7 years
+    }
+  ]
+}
+```
+
+**Option B: Regional Buckets**
+- `deltacrown-certificates-us-prod` (us-east-1, 7-year retention)
+- `deltacrown-certificates-eu-prod` (eu-west-1, 6-year retention)
+- `deltacrown-certificates-ap-prod` (ap-southeast-2, 7-year retention)
+
+**Tradeoffs:**
+- **Option A**: Simpler (1 bucket), but requires tagging discipline and complex lifecycle rules
+- **Option B**: Regional compliance isolation, but adds operational overhead (3 buckets, 3 IAM policies, 3 monitoring dashboards)
+
+**Recommendation:** Use Option A (single bucket with tagging) unless GDPR data residency requirements mandate EU data in eu-west-1 (then use Option B for EU only).
+
+**GDPR Right to Erasure:**
+- Soft delete: Mark `Certificate.deleted_at` timestamp, keep S3 object for 30 days (compliance buffer for audits)
+- Hard delete: After 30 days, delete S3 object (via lifecycle policy or Lambda trigger)
+- Audit trail: Log deletion events in CloudTrail (7-year retention for audit compliance)
+
+---
+
 ## Document Metadata
 
-**Version:** 1.0  
+**Version:** 1.1  
 **Last Updated:** November 10, 2025  
 **Authors:** Backend Team  
 **Reviewers:** Engineering Lead, DevOps Team  
@@ -1197,5 +1345,6 @@ $ python scripts/migrate_certificates_to_s3.py --batch-size 100
 
 **Change Log:**
 - 2025-11-10: Initial version (Module 6.5 planning)
+- 2025-11-10: Added Section 13 - Future Enhancements (versioned keys, hash metadata, CloudFront thresholds, multi-region compliance)
 
 **Next Review:** Q1 2026 (before Phase 7 implementation)
