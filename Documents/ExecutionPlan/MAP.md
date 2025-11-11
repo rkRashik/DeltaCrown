@@ -1565,13 +1565,13 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Next**: Module 7.5 - Promotional System (optional) or conclude Phase 7
 
 ### Module 7.4: Revenue Analytics
-- **Status**: ✅ Complete (November 12, 2025)
+- **Status**: ✅ **COMPLETE** (November 12, 2025) — **Coverage Uplift Accepted**
 - **Implements**: Revenue analytics and business intelligence for DeltaCrown economy
-- **Test Results**: 27/27 passed (100%), runtime 2.70s
-- **Coverage**: 51% overall (78% models, 49% services*)
-  - *Services includes legacy Module 7.1-7.3 functions; Module 7.4 functions estimated ~75% coverage
+- **Test Results**: **42/42 passed (100%)**, runtime 3.19s
+- **Coverage**: 51% overall (78% models, 49% services legacy), **Module 7.4 Services: 97.5%** (542/556 covered)
+  - Module 7.4-specific missing lines: 14 (primarily hasattr/date conversion checks)
 - **Files Created/Modified**:
-  - `tests/economy/test_revenue_analytics_module_7_4.py` (+551 lines): 10 test classes, 27 tests
+  - `tests/economy/test_revenue_analytics_module_7_4.py` (~1000 lines total): **16 test classes, 42 tests** (+15 edge case tests in uplift)
   - `apps/economy/services.py` (+749 lines): 12 new revenue analytics functions
 - **Key Features**:
   - Daily/weekly/monthly revenue metrics with refunds accounting and net revenue
@@ -1595,7 +1595,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   10. `export_revenue_csv_streaming(start, end, chunk_size)` → Streaming generator
   11. `get_cohort_revenue(year, month)` → Cohort-based revenue grouping
   12. `get_cohort_revenue_retention(cohort_month, months)` → Retention tracking
-- **Test Classes** (10 classes, 27 tests):
+- **Test Classes** (16 classes, 42 tests):
   - TestDailyRevenueMetrics (4 tests): Basic, refunds, empty days, multi-user
   - TestWeeklyRevenueMetrics (2 tests): Aggregates, gap handling
   - TestMonthlyRevenueMetrics (2 tests): Aggregates, daily trend
@@ -1606,13 +1606,24 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - TestRevenueCohortAnalysis (2 tests): Cohort revenue, retention
   - TestRevenueAnalyticsEdgeCases (4 tests): Future dates, inverted ranges, negatives, empty
   - TestRevenuePerformance (2 tests): Monthly <2s, time series <3s
-- **Performance**: Monthly queries <2s, 90-day time series <3s, runtime 2.70s (≤90s target)
+  - **TestRevenueDateBoundaries** (3 tests): Date filtering, Monday start, variable-day months
+  - **TestRevenueZeroDivision** (3 tests): ARPPU/ARPU/growth with 0 values (NaN/Inf checks)
+  - **TestRevenueTimeSeriesGapFilling** (2 tests): All dates present, first/last day values
+  - **TestCSVStreamingInvariants** (3 tests): BOM once, chunk boundaries, no PII
+  - **TestCohortAccuracy** (2 tests): Zero-activity months, retention never exceeds size
+  - **TestRevenuePrecision** (2 tests): All ints, no Decimal leaks
+- **Performance**: Monthly queries <2s, 90-day time series <3s, runtime 3.19s (≤90s target)
 - **Query Strategy**: Django ORM aggregates (Sum, Count) with Q filters, efficient date filtering with created_at index, DISTINCT counts for paying users, gap-filled time series
-- **Documentation**: MODULE_7.4_COMPLETION_STATUS.md with query plan analysis
-- **Artifacts**: Coverage HTML at `Artifacts/coverage/module_7_4/`
-- **Commit**: *Pending local commit*
-- **Tag**: *Not tagged* (standard practice: no tag for module-level commits)
-- **Next**: Module 7.5 (Promotional System) or conclude Phase 7
+- **Edge Cases**: Zero-division, date boundaries, timezone, gap filling, CSV BOM/chunks/PII, cohort accuracy, precision/type safety
+- **Date Semantics**: `[start, end]` inclusive, Monday week start, variable-day months (28/29/30/31), timezone-aware
+- **CSV Guarantees**: BOM once, chunk integrity, no PII (usernames/emails excluded)
+- **Documentation**: MODULE_7.4_COMPLETION_STATUS.md with query plan analysis, edge case inventory, 97.5% coverage details
+- **Artifacts**: Coverage HTML at `Artifacts/coverage/module_7_4/` (97.5% Module 7.4 services)
+- **Commits**: 
+  - 1152180 (Initial implementation: 27 tests, 12 functions)
+  - b5e2851 (Coverage uplift: 42 tests, 97.5% coverage, edge cases)
+- **Tag**: **v7.4.0-analytics** (to be created before push)
+- **Next**: Push to origin/master, then choose: Phase 6 residuals closeout OR Phase 8 kickoff
 
 ### Module 7.5: Promotional System
 *[To be filled when implementation starts]*
