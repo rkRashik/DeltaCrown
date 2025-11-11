@@ -1471,14 +1471,17 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Test Coverage**: 52 tests total (all xfail/skip until implementation)
 - **Coverage Target**: ≥85% on apps/economy/ (100% on financial logic)
 - **Integration**: Zero regressions on Module 5.2 tournament payouts (award_participation, award_placements backward compatible)
+- **Completed Steps**:
+  - Step 1: Test Scaffolding (2 hours) - 52 tests across 5 files, all xfail/skip
+  - Step 2: Ledger Invariants (3 hours) - exceptions, allow_overdraft field, immutability, atomic recalc, 9/9 tests passing
 - **Pending Steps**:
-  - Step 2: Ledger Invariants Implementation (~3 hours) - add exceptions, allow_overdraft field, validation, recalc atomic
   - Step 3: Service API Enhancement (~3 hours) - implement credit(), debit(), transfer(), get_balance(), get_history()
   - Step 4: Idempotency Hardening (~2 hours) - duplicate request handling, deterministic keys, Module 5.2 integration
   - Step 5: Admin Integration (~2 hours) - recalc_all_wallets command with dry-run, exit codes, PII discipline
-- **Total Effort**: ~10-12 hours (Step 1 complete, 2 hours elapsed)
+- **Total Effort**: ~10-12 hours (Steps 1-2 complete, 5 hours elapsed)
 - **Dependencies**: Module 5.2 complete (tournament payouts), existing apps/economy/ models
-- **Next**: Step 2 - Ledger Invariants Implementation
+- **Coverage**: models.py 91% (exceeds target), exceptions.py 100%
+- **Next**: Step 3 - Service API Enhancement
 
 ### Module 7.2: Shop & Purchases
 *[To be filled when implementation starts]*
