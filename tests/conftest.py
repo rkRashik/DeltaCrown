@@ -5,6 +5,7 @@ Provides:
 - Unique user factory for WebSocket tests (no fixture reuse issues)
 - Settings overrides for test environment
 - WebSocket testing utilities
+- Redis fixtures for Module 6.8 rate limit tests
 """
 
 import asyncio
@@ -13,6 +14,9 @@ import uuid
 from django.contrib.auth import get_user_model
 from channels.testing import WebsocketCommunicator
 from django.conf import settings
+
+# Import Redis fixtures for Module 6.8
+pytest_plugins = ['tests.redis_fixtures']
 
 
 User = get_user_model()
