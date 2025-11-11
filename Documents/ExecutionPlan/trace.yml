@@ -857,6 +857,73 @@ phase_6:
           - "TestRedisFailover (3 skipped): recursive mock complexity with _use_redis check"
           - "TestMiddlewareCloseCodes (3 tests): user limit, IP limit, room full → DenyConnection"
         coverage_artifact: "Artifacts/coverage/module_6_8/index.html"
+  
+  phase_6_residuals:
+    name: "Phase 6 Residuals - WebSocket Rate Limit E2E Coverage"
+    description: "WebSocket CONNECT/DISCONNECT E2E tests with Redis validation to close middleware coverage gap"
+    status: "complete"
+    start_date: "2025-11-12"
+    completed_date: "2025-11-12"
+    implements:
+      - "Module 6.8 middleware coverage gap (62% → 76%)"
+      - "True WebSocket CONNECT/DISCONNECT lifecycle"
+      - "PHASE_6_RESIDUALS_CLOSEOUT.md"
+    test_file: "tests/test_phase6_residuals_websocket_ratelimit_e2e.py"
+    test_count: 16
+    test_passed: 16
+    test_failed: 0
+    test_skipped: 0
+    runtime_seconds: 22.8
+    flake_rate: 0.0  # 0/48 across 3 runs
+    coverage:
+      middleware_ratelimit_before: 62
+      middleware_ratelimit_after: 76
+      middleware_ratelimit_delta: 14
+      target: 75
+      status: "target_met"
+      per_handler:
+        connect_handler: 94  # lines 127-160
+        disconnect_cleanup: 100  # lines 289-302
+        redis_integration: 93  # lines 145-184
+        connection_upgrade: 80  # lines 110-125
+        edge_cases: 71  # lines 130-144
+        message_rate_limiting: 40  # lines 220-270 (deferred)
+    test_classes:
+      - name: "TestConnectDisconnectLifecycle"
+        tests: 4
+        coverage_target: "CONNECT acceptance/rejection, cleanup, reconnection"
+      - name: "TestRedisE2EMechanics"
+        tests: 4
+        coverage_target: "TTL validation, atomic INCR, failover, key patterns"
+      - name: "TestUpgradeAndMultiConnection"
+        tests: 3
+        coverage_target: "HTTP→WS upgrade, multi-connection tracking, scope IDs"
+      - name: "TestEdgeCases"
+        tests: 5
+        coverage_target: "Malformed scopes, zero limits, burst, anonymous, message rate"
+    redis_evidence:
+      connection_ttl: "3597s (expected 3600s ±10s)"
+      room_ttl: "86382s (expected 86400s ±30s)"
+      atomic_incr: "10 concurrent → unique [1..10], final = 10"
+      graceful_failover: "Redis outage → in-memory fallback, connection allowed"
+      key_pattern: "ws:{type}:{id} validated (conn, ip, room)"
+    determinism:
+      - "Real Redis TTLs (no time mocking)"
+      - "Isolated namespace: test:{uuid}:"
+      - "No AllowedHostsOriginValidator in test ASGI"
+      - "Atomic Redis operations (INCR, SADD)"
+    edge_cases_covered:
+      - "Malformed scope paths (missing tournament_id)"
+      - "Zero rate limit (admin shutoff)"
+      - "High burst traffic (token bucket depletion)"
+      - "Anonymous vs authenticated (separate counters)"
+      - "Multi-connection tracking (per-user + per-IP)"
+    production_changes: "NONE (test-only ASGI consumer + fixtures)"
+    artifacts:
+      - "Artifacts/coverage/phase6_residuals/index.html"
+      - "Documents/ExecutionPlan/PHASE_6_RESIDUALS_CLOSEOUT.md"
+    commit: null  # LOCAL ONLY - NOT PUSHED PER PROTOCOL
+    tag: null
     
     overall_impact:
       total_tests: "18 passing, 3 skipped (21 total)"

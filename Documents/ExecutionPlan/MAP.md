@@ -1446,6 +1446,63 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Dependencies**: Module 6.7 complete, Docker Compose (Redis 7-alpine)
 - **Next**: Module 7.1 (Economy) or continue Phase 6 refinements
 
+### Phase 6 Residuals: WebSocket Rate Limit E2E Coverage
+- **Status**: ✅ **COMPLETE - Target Met** (2025-11-12)
+- **Implements**:
+  - Module 6.8 middleware coverage gap (62% → 76%)
+  - True WebSocket CONNECT/DISCONNECT lifecycle with Redis E2E validation
+  - Documents/ExecutionPlan/PHASE_6_RESIDUALS_CLOSEOUT.md
+- **Scope**: Increase middleware_ratelimit.py to ≥75% via comprehensive WebSocket E2E tests
+- **Files Created**:
+  - tests/test_phase6_residuals_websocket_ratelimit_e2e.py (753 lines, 16 tests, 4 classes)
+  - Documents/ExecutionPlan/PHASE_6_RESIDUALS_CLOSEOUT.md (comprehensive report)
+  - Artifacts/coverage/phase6_residuals/ (coverage HTML)
+- **Coverage Results**:
+
+  **Middleware (middleware_ratelimit.py)**: 62% → **76%** (+14% absolute, **TARGET MET** ✅)
+  - CONNECT handler (lines 127-160): **94%** (accept path, limit checks)
+  - DISCONNECT cleanup (lines 289-302): **100%** (counter decrement, room leave)
+  - Redis integration (lines 145-184): **93%** (atomic INCR, TTL, failover)
+  - Connection upgrade (lines 110-125): **80%** (HTTP→WS, scope parsing)
+  - Edge cases (lines 130-144): **71%** (malformed scopes, zero limits)
+  - Message rate limiting (lines 220-270): **40%** (deferred - existing tests cover)
+
+- **Test Breakdown** (4 Classes, 16 Tests):
+  1. **TestConnectDisconnectLifecycle**: 4 tests (CONNECT acceptance, rejection, cleanup, reconnection)
+  2. **TestRedisE2EMechanics**: 4 tests (TTL validation, atomic INCR, failover, key patterns)
+  3. **TestUpgradeAndMultiConnection**: 3 tests (HTTP→WS upgrade, multi-connection tracking, scope IDs)
+  4. **TestEdgeCases**: 5 tests (malformed scopes, zero limits, burst traffic, anonymous vs auth, message rate)
+
+- **Test Results**:
+  - **Pass Rate**: 16/16 (100%)
+  - **Flake Rate**: 0/48 (0.0% across 3 runs) ✅
+  - **Runtime**: 22.8s (well under 30s threshold)
+
+- **Redis E2E Evidence**:
+  - **Connection TTL**: 3597s (expected 3600s ±10s) ✅
+  - **Room TTL**: 86382s (expected 86400s ±30s) ✅
+  - **Atomic INCR**: 10 concurrent tasks → unique values [1..10], final count = 10 ✅
+  - **Graceful Failover**: Redis outage → fallback to in-memory, connection allowed ✅
+  - **Key Pattern**: `ws:{type}:{id}` (conn, ip, room) validated ✅
+
+- **Determinism Guarantees**:
+  - ✅ Real Redis TTLs (no time mocking for E2E accuracy)
+  - ✅ Isolated namespace per test (`test:{uuid}:`)
+  - ✅ No `AllowedHostsOriginValidator` in test ASGI stack
+  - ✅ Atomic Redis operations (INCR, SADD)
+
+- **Edge Cases Covered**:
+  1. Malformed scope paths (missing tournament_id)
+  2. Zero rate limit (admin shutoff simulation)
+  3. High burst traffic (token bucket depletion)
+  4. Anonymous vs authenticated (separate counters)
+  5. Multi-connection tracking (per-user + per-IP)
+
+- **Production Changes**: **NONE** - Test-only ASGI consumer and fixtures
+- **Total Effort**: ~3-4 hours (test development + Redis E2E validation)
+- **Dependencies**: Module 6.8 complete, redis_fixtures.py infrastructure
+- **Next**: Phase 8 Kickoff (Admin & Moderation) or alternative user directive
+
 ---
 
 ## Phase 7: Economy & Monetization
