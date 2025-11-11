@@ -6,6 +6,7 @@ from typing import Iterable, List, Optional, Union, Dict, Any
 from django.apps import apps
 from django.db import transaction
 from django.db import DatabaseError, IntegrityError
+from django.db.models import Count
 from time import sleep
 import random
 
@@ -20,6 +21,12 @@ __all__ = [
     "award_placements",
     "backfill_participation_for_verified_payments",
     "manual_adjust",
+    "get_transaction_history",
+    "get_transaction_history_cursor",
+    "get_transaction_totals",
+    "get_pending_holds_summary",
+    "export_transactions_csv",
+    "export_transactions_csv_streaming",
 ]
 
 # ---- Wallet helpers ---------------------------------------------------------
@@ -566,20 +573,416 @@ def get_balance(profile: Union[int, object]) -> int:
     return int(w.cached_balance) if w else 0
 
 
-def get_transaction_history(profile: Union[int, object], *, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
-    profile = _resolve_profile(profile)
-    w = DeltaCrownWallet.objects.filter(profile=profile).first()
-    if not w:
-        return []
-    qs = DeltaCrownTransaction.objects.filter(wallet=w).order_by("-created_at")[offset : offset + limit]
-    return [
+def get_transaction_history(
+    wallet_or_profile: Union[DeltaCrownWallet, object],
+    *,
+    page: int = 1,
+    page_size: int = 20,
+    transaction_type: Optional[str] = None,
+    reason: Optional[str] = None,
+    start_date: Optional[Any] = None,
+    end_date: Optional[Any] = None,
+    order: str = 'desc'
+) -> Dict[str, Any]:
+    """
+    Get paginated transaction history with filtering.
+    
+    Args:
+        wallet_or_profile: DeltaCrownWallet instance or profile object
+        page: Page number (1-indexed)
+        page_size: Number of transactions per page (default 20, max 100)
+        transaction_type: Filter by 'DEBIT' or 'CREDIT' (checks amount sign)
+        reason: Filter by transaction reason
+        start_date: Filter transactions >= this date
+        end_date: Filter transactions <= this date
+        order: 'desc' (newest first) or 'asc' (oldest first)
+    
+    Returns:
+        Dict with:
+            - transactions: List of transaction dictionaries
+            - page: Current page number
+            - page_size: Items per page
+            - total_count: Total matching transactions
+            - has_next: Boolean indicating more pages
+            - has_prev: Boolean indicating previous pages
+    """
+    # Resolve wallet
+    if isinstance(wallet_or_profile, DeltaCrownWallet):
+        wallet = wallet_or_profile
+    else:
+        profile = _resolve_profile(wallet_or_profile)
+        wallet = DeltaCrownWallet.objects.filter(profile=profile).first()
+        if not wallet:
+            return {
+                'transactions': [],
+                'page': page,
+                'page_size': page_size,
+                'total_count': 0,
+                'has_next': False,
+                'has_prev': False
+            }
+    
+    # Validate and cap page_size
+    page = max(1, int(page))
+    page_size = max(1, min(100, int(page_size)))
+    
+    # Build queryset
+    qs = DeltaCrownTransaction.objects.filter(wallet=wallet)
+    
+    # Apply filters
+    if transaction_type:
+        if transaction_type.upper() == 'DEBIT':
+            qs = qs.filter(amount__lt=0)
+        elif transaction_type.upper() == 'CREDIT':
+            qs = qs.filter(amount__gt=0)
+    
+    if reason:
+        qs = qs.filter(reason=reason)
+    
+    if start_date:
+        qs = qs.filter(created_at__gte=start_date)
+    
+    if end_date:
+        qs = qs.filter(created_at__lte=end_date)
+    
+    # Apply ordering
+    order_by = '-created_at' if order.lower() == 'desc' else 'created_at'
+    qs = qs.order_by(order_by)
+    
+    # Get total count
+    total_count = qs.count()
+    
+    # Calculate pagination
+    offset = (page - 1) * page_size
+    transactions_page = qs[offset:offset + page_size]
+    
+    # Build response
+    transactions = [
         {
-            "id": t.id,
-            "amount": int(t.amount),
-            "reason": t.reason,
-            "created_at": t.created_at,
-            "idempotency_key": t.idempotency_key,
+            'id': t.id,
+            'amount': int(t.amount),
+            'balance_after': int(t.cached_balance_after) if hasattr(t, 'cached_balance_after') else None,
+            'reason': t.reason,
+            'created_at': t.created_at,
+            'idempotency_key': t.idempotency_key,
         }
-        for t in qs
+        for t in transactions_page
     ]
+    
+    return {
+        'transactions': transactions,
+        'page': page,
+        'page_size': page_size,
+        'total_count': total_count,
+        'has_next': offset + page_size < total_count,
+        'has_prev': page > 1
+    }
+
+
+def get_transaction_history_cursor(
+    wallet: DeltaCrownWallet,
+    *,
+    cursor: Optional[int] = None,
+    limit: int = 20
+) -> Dict[str, Any]:
+    """
+    Get transaction history using cursor-based pagination for stable ordering.
+    
+    Args:
+        wallet: DeltaCrownWallet instance
+        cursor: Transaction ID to start from (exclusive)
+        limit: Number of transactions to return
+    
+    Returns:
+        Dict with:
+            - transactions: List of transaction dictionaries
+            - next_cursor: Transaction ID for next page (None if last page)
+            - has_more: Boolean indicating more data available
+    """
+    limit = max(1, min(100, int(limit)))
+    
+    # Build queryset (ordered by ID desc for stable cursor pagination)
+    qs = DeltaCrownTransaction.objects.filter(wallet=wallet).order_by('-id')
+    
+    if cursor:
+        qs = qs.filter(id__lt=cursor)
+    
+    transactions = list(qs[:limit + 1])  # Fetch one extra to check has_more
+    
+    has_more = len(transactions) > limit
+    if has_more:
+        transactions = transactions[:limit]
+    
+    next_cursor = transactions[-1].id if transactions and has_more else None
+    
+    return {
+        'transactions': [
+            {
+                'id': t.id,
+                'amount': int(t.amount),
+                'balance_after': int(t.cached_balance_after) if hasattr(t, 'cached_balance_after') else None,
+                'reason': t.reason,
+                'created_at': t.created_at,
+                'idempotency_key': t.idempotency_key,
+            }
+            for t in transactions
+        ],
+        'next_cursor': next_cursor,
+        'has_more': has_more
+    }
+
+
+def get_transaction_totals(
+    wallet: DeltaCrownWallet,
+    *,
+    start_date: Optional[Any] = None,
+    end_date: Optional[Any] = None
+) -> Dict[str, Any]:
+    """
+    Get transaction totals and summary statistics.
+    
+    Args:
+        wallet: DeltaCrownWallet instance
+        start_date: Optional start date filter
+        end_date: Optional end date filter
+    
+    Returns:
+        Dict with:
+            - current_balance: Current wallet balance
+            - total_credits: Sum of all credit transactions
+            - total_debits: Sum of all debit transactions (absolute value)
+            - transaction_count: Total number of transactions
+            - credits_count: Number of credit transactions
+            - debits_count: Number of debit transactions
+    """
+    from django.db.models import Sum, Count, Q
+    
+    qs = DeltaCrownTransaction.objects.filter(wallet=wallet)
+    
+    if start_date:
+        qs = qs.filter(created_at__gte=start_date)
+    
+    if end_date:
+        qs = qs.filter(created_at__lte=end_date)
+    
+    # Aggregate totals
+    aggregates = qs.aggregate(
+        total_credits=Sum('amount', filter=Q(amount__gt=0)),
+        total_debits=Sum('amount', filter=Q(amount__lt=0)),
+        transaction_count=Count('id'),
+        credits_count=Count('id', filter=Q(amount__gt=0)),
+        debits_count=Count('id', filter=Q(amount__lt=0))
+    )
+    
+    return {
+        'current_balance': int(wallet.cached_balance),
+        'total_credits': int(aggregates['total_credits'] or 0),
+        'total_debits': abs(int(aggregates['total_debits'] or 0)),  # Return as positive
+        'transaction_count': aggregates['transaction_count'],
+        'credits_count': aggregates['credits_count'],
+        'debits_count': aggregates['debits_count']
+    }
+
+
+def get_pending_holds_summary(wallet: DeltaCrownWallet) -> Dict[str, Any]:
+    """
+    Get summary of pending shop reservation holds.
+    
+    Args:
+        wallet: DeltaCrownWallet instance
+    
+    Returns:
+        Dict with:
+            - total_pending: Total amount in pending holds
+            - hold_count: Number of active holds
+            - available_balance: Current balance minus pending holds
+    """
+    from django.db.models import Sum
+    
+    # Import ReservationHold model (lazily to avoid circular imports)
+    try:
+        ReservationHold = apps.get_model("shop", "ReservationHold")
+    except LookupError:
+        # Shop app not installed
+        return {
+            'total_pending': 0,
+            'hold_count': 0,
+            'available_balance': int(wallet.cached_balance)
+        }
+    
+    # Get active holds
+    active_holds = ReservationHold.objects.filter(
+        wallet=wallet,
+        status='authorized'
+    ).aggregate(
+        total=Sum('amount'),
+        count=Count('id')
+    )
+    
+    total_pending = int(active_holds['total'] or 0)
+    hold_count = active_holds['count']
+    
+    return {
+        'total_pending': total_pending,
+        'hold_count': hold_count,
+        'available_balance': int(wallet.cached_balance) - total_pending
+    }
+
+
+def export_transactions_csv(
+    wallet: DeltaCrownWallet,
+    *,
+    transaction_type: Optional[str] = None,
+    reason: Optional[str] = None,
+    start_date: Optional[Any] = None,
+    end_date: Optional[Any] = None,
+    max_rows: int = 10000
+) -> str:
+    """
+    Export transaction history to CSV format.
+    
+    Args:
+        wallet: DeltaCrownWallet instance
+        transaction_type: Filter by 'DEBIT' or 'CREDIT'
+        reason: Filter by transaction reason
+        start_date: Filter transactions >= this date
+        end_date: Filter transactions <= this date
+        max_rows: Maximum number of rows (default 10000)
+    
+    Returns:
+        CSV string with BOM for Excel compatibility
+    """
+    import csv
+    import io
+    
+    # Build queryset with filters
+    qs = DeltaCrownTransaction.objects.filter(wallet=wallet)
+    
+    if transaction_type:
+        if transaction_type.upper() == 'DEBIT':
+            qs = qs.filter(amount__lt=0)
+        elif transaction_type.upper() == 'CREDIT':
+            qs = qs.filter(amount__gt=0)
+    
+    if reason:
+        qs = qs.filter(reason=reason)
+    
+    if start_date:
+        qs = qs.filter(created_at__gte=start_date)
+    
+    if end_date:
+        qs = qs.filter(created_at__lte=end_date)
+    
+    # Order and limit
+    qs = qs.order_by('-created_at')[:max_rows]
+    
+    # Create CSV
+    output = io.StringIO()
+    # Add BOM for Excel compatibility
+    output.write('\ufeff')
+    
+    writer = csv.DictWriter(
+        output,
+        fieldnames=['Date', 'Type', 'Amount', 'Balance After', 'Reason', 'ID'],
+        quoting=csv.QUOTE_MINIMAL
+    )
+    writer.writeheader()
+    
+    for txn in qs:
+        writer.writerow({
+            'Date': txn.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'Type': 'Credit' if txn.amount > 0 else 'Debit',
+            'Amount': int(txn.amount),
+            'Balance After': int(txn.cached_balance_after) if hasattr(txn, 'cached_balance_after') else '',
+            'Reason': txn.reason,
+            'ID': txn.id
+        })
+    
+    return output.getvalue()
+
+
+def export_transactions_csv_streaming(
+    wallet: DeltaCrownWallet,
+    *,
+    transaction_type: Optional[str] = None,
+    reason: Optional[str] = None,
+    start_date: Optional[Any] = None,
+    end_date: Optional[Any] = None,
+    chunk_size: int = 1000
+):
+    """
+    Export transaction history as CSV generator for streaming large datasets.
+    
+    Args:
+        wallet: DeltaCrownWallet instance
+        transaction_type: Filter by 'DEBIT' or 'CREDIT'
+        reason: Filter by transaction reason
+        start_date: Filter transactions >= this date
+        end_date: Filter transactions <= this date
+        chunk_size: Number of rows per chunk
+    
+    Yields:
+        CSV chunks as strings
+    """
+    import csv
+    import io
+    
+    # Build queryset with filters
+    qs = DeltaCrownTransaction.objects.filter(wallet=wallet)
+    
+    if transaction_type:
+        if transaction_type.upper() == 'DEBIT':
+            qs = qs.filter(amount__lt=0)
+        elif transaction_type.upper() == 'CREDIT':
+            qs = qs.filter(amount__gt=0)
+    
+    if reason:
+        qs = qs.filter(reason=reason)
+    
+    if start_date:
+        qs = qs.filter(created_at__gte=start_date)
+    
+    if end_date:
+        qs = qs.filter(created_at__lte=end_date)
+    
+    # Order by created_at descending
+    qs = qs.order_by('-created_at')
+    
+    # Yield header with BOM
+    output = io.StringIO()
+    output.write('\ufeff')
+    writer = csv.DictWriter(
+        output,
+        fieldnames=['Date', 'Type', 'Amount', 'Balance After', 'Reason', 'ID'],
+        quoting=csv.QUOTE_MINIMAL
+    )
+    writer.writeheader()
+    yield output.getvalue()
+    
+    # Stream rows in chunks
+    offset = 0
+    while True:
+        chunk = list(qs[offset:offset + chunk_size])
+        if not chunk:
+            break
+        
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=['Date', 'Type', 'Amount', 'Balance After', 'Reason', 'ID'],
+            quoting=csv.QUOTE_MINIMAL
+        )
+        
+        for txn in chunk:
+            writer.writerow({
+                'Date': txn.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'Type': 'Credit' if txn.amount > 0 else 'Debit',
+                'Amount': int(txn.amount),
+                'Balance After': int(txn.cached_balance_after) if hasattr(txn, 'cached_balance_after') else '',
+                'Reason': txn.reason,
+                'ID': txn.id
+            })
+        
+        yield output.getvalue()
+        offset += chunk_size
 
