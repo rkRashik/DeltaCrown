@@ -26,7 +26,7 @@ from unittest.mock import patch, MagicMock
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from apps.tournaments.realtime.middleware_ratelimit import RateLimitMiddleware
-from apps.tournaments.realtime.consumers import MatchConsumer
+from tests.redis_fixtures import create_test_user
 
 User = get_user_model()
 
@@ -47,7 +47,7 @@ class TestConnectionLimitRedis:
         self.namespace = test_namespace
         self.config = redis_rate_limit_config
     
-    async def test_user_connection_limit_enforced(self, user_factory):
+    async def test_user_connection_limit_enforced(self):
         """
         Test: Per-user connection limit enforced via Redis counter.
         
@@ -62,7 +62,7 @@ class TestConnectionLimitRedis:
         - Connection 3: rejected with close code 4008
         - Redis counter reaches 2, then rejects 3rd
         """
-        user = user_factory(username="test_conn_user")
+        user = await create_test_user(username="test_conn_user")
         
         # Mock application that accepts connections
         async def mock_app(scope, receive, send):
@@ -157,7 +157,7 @@ class TestConnectionLimitRedis:
         for comm in communicators:
             await comm.disconnect()
     
-    async def test_connection_cleanup_on_disconnect(self, user_factory):
+    async def test_connection_cleanup_on_disconnect(self):
         """
         Test: Redis counter decrements when connection closes.
         
@@ -172,7 +172,7 @@ class TestConnectionLimitRedis:
         - After disconnect: counter goes 2 → 1
         - 3rd connection succeeds (slot available)
         """
-        user = user_factory(username="test_cleanup_user")
+        user = await create_test_user(username="test_cleanup_user")
         
         async def mock_app(scope, receive, send):
             await asyncio.sleep(0.1)
@@ -212,7 +212,7 @@ class TestConnectionLimitRedis:
         await comm2.disconnect()
         await comm3.disconnect()
     
-    async def test_concurrent_connection_attempts_serialized(self, user_factory):
+    async def test_concurrent_connection_attempts_serialized(self):
         """
         Test: Concurrent connection attempts handled without race conditions.
         
@@ -227,7 +227,7 @@ class TestConnectionLimitRedis:
         - Remaining 3 rejected with code 4008
         - No Redis counter corruption
         """
-        user = user_factory(username="test_race_user")
+        user = await create_test_user(username="test_race_user")
         
         async def mock_app(scope, receive, send):
             await asyncio.sleep(0.05)
@@ -282,7 +282,7 @@ class TestRoomCapacityRedis:
         # Override room capacity to 10 for faster tests
         self.config['WS_RATE_ROOM_MAX_MEMBERS'] = 10
     
-    async def test_room_capacity_enforced_at_limit(self, user_factory):
+    async def test_room_capacity_enforced_at_limit(self):
         """
         Test: Room capacity enforced when limit reached.
         
@@ -308,7 +308,7 @@ class TestRoomCapacityRedis:
         # Join 10 users (should all succeed)
         communicators = []
         for i in range(10):
-            user = user_factory(username=f"room_user_{i}")
+            user = await create_test_user(username=f"room_user_{i}")
             comm = WebsocketCommunicator(middleware, f"/ws/match/{room_id}/")
             comm.scope['user'] = user
             comm.scope['client'] = ['192.168.4.100', 50000 + i]
@@ -324,7 +324,7 @@ class TestRoomCapacityRedis:
         assert self.redis.scard(room_key) == 10, "Room should have 10 members in Redis"
         
         # 11th user: should be rejected (room full)
-        user_overflow = user_factory(username="room_user_overflow")
+        user_overflow = await create_test_user(username="room_user_overflow")
         comm_overflow = WebsocketCommunicator(middleware, f"/ws/match/{room_id}/")
         comm_overflow.scope['user'] = user_overflow
         comm_overflow.scope['client'] = ['192.168.4.100', 60000]
@@ -338,7 +338,7 @@ class TestRoomCapacityRedis:
         for comm in communicators:
             await comm.disconnect()
     
-    async def test_room_join_leave_cycle_frees_slot(self, user_factory):
+    async def test_room_join_leave_cycle_frees_slot(self):
         """
         Test: Leaving room frees slot for new member.
         
@@ -362,7 +362,7 @@ class TestRoomCapacityRedis:
         # Fill room to capacity (10 users)
         communicators = []
         for i in range(10):
-            user = user_factory(username=f"cycle_user_{i}")
+            user = await create_test_user(username=f"cycle_user_{i}")
             comm = WebsocketCommunicator(middleware, f"/ws/match/{room_id}/")
             comm.scope['user'] = user
             comm.scope['client'] = ['192.168.5.50', 55000 + i]
@@ -381,7 +381,7 @@ class TestRoomCapacityRedis:
         assert self.redis.scard(room_key) == 9, "Room should have 9 members after disconnect"
         
         # New user should successfully join (slot freed)
-        new_user = user_factory(username="cycle_user_new")
+        new_user = await create_test_user(username="cycle_user_new")
         comm_new = WebsocketCommunicator(middleware, f"/ws/match/{room_id}/")
         comm_new.scope['user'] = new_user
         comm_new.scope['client'] = ['192.168.5.50', 66000]
@@ -396,7 +396,7 @@ class TestRoomCapacityRedis:
         for comm in communicators[1:]:  # Skip [0] (already disconnected)
             await comm.disconnect()
     
-    async def test_multiple_rooms_independent_capacity(self, user_factory):
+    async def test_multiple_rooms_independent_capacity(self):
         """
         Test: Multiple rooms have independent capacity tracking.
         
@@ -421,7 +421,7 @@ class TestRoomCapacityRedis:
         # Fill room A to capacity
         users_a = []
         for i in range(10):
-            user = user_factory(username=f"roomA_user_{i}")
+            user = await create_test_user(username=f"roomA_user_{i}")
             comm = WebsocketCommunicator(middleware, f"/ws/match/{room_a}/")
             comm.scope['user'] = user
             comm.scope['client'] = ['192.168.6.10', 60000 + i]
@@ -434,7 +434,7 @@ class TestRoomCapacityRedis:
         assert self.redis.scard(room_a_key) == 10, "Room A should be at capacity"
         
         # User joins room B (should succeed, room B is empty)
-        user_b = user_factory(username="roomB_user_0")
+        user_b = await create_test_user(username="roomB_user_0")
         comm_b = WebsocketCommunicator(middleware, f"/ws/match/{room_b}/")
         comm_b.scope['user'] = user_b
         comm_b.scope['client'] = ['192.168.6.10', 70000]
@@ -472,7 +472,7 @@ class TestMessageRateLimitRedis:
         self.config['WS_RATE_MSG_RPS'] = 5.0  # 5 messages per second
         self.config['WS_RATE_MSG_BURST'] = 10  # Burst of 10 messages
     
-    async def test_message_burst_enforced(self, user_factory):
+    async def test_message_burst_enforced(self):
         """
         Test: Message burst limit enforced via Redis.
         
@@ -487,7 +487,7 @@ class TestMessageRateLimitRedis:
         - Messages 11-12: rejected (burst exceeded)
         - Redis tracks message count in window
         """
-        user = user_factory(username="test_burst_user")
+        user = await create_test_user(username="test_burst_user")
         
         # Mock consumer that accepts messages
         async def mock_app(scope, receive, send):
@@ -538,7 +538,7 @@ class TestMessageRateLimitRedis:
         
         await comm.disconnect()
     
-    async def test_cooldown_recovery_after_burst(self, user_factory):
+    async def test_cooldown_recovery_after_burst(self):
         """
         Test: Message rate recovers after cooldown window.
         
@@ -552,7 +552,7 @@ class TestMessageRateLimitRedis:
         - Initial burst: limited
         - After cooldown: tokens refilled, messages accepted again
         """
-        user = user_factory(username="test_cooldown_user")
+        user = await create_test_user(username="test_cooldown_user")
         
         async def mock_app(scope, receive, send):
             while True:
@@ -605,7 +605,7 @@ class TestMessageRateLimitRedis:
         
         await comm.disconnect()
     
-    async def test_message_rate_per_user_independent(self, user_factory):
+    async def test_message_rate_per_user_independent(self):
         """
         Test: Message rate limits are per-user (no cross-user interference).
         
@@ -619,8 +619,8 @@ class TestMessageRateLimitRedis:
         - User A: rate limited
         - User B: messages accepted (independent limit)
         """
-        user_a = user_factory(username="test_rate_userA")
-        user_b = user_factory(username="test_rate_userB")
+        user_a = await create_test_user(username="test_rate_userA")
+        user_b = await create_test_user(username="test_rate_userB")
         
         async def mock_app(scope, receive, send):
             while True:
@@ -742,7 +742,7 @@ class TestPayloadSizeRedis:
         # Override payload limit for tests
         self.config['WS_MAX_PAYLOAD_BYTES'] = 1024  # 1KB limit
     
-    async def test_oversized_payload_rejected(self, user_factory):
+    async def test_oversized_payload_rejected(self):
         """
         Test: Oversized payload rejected with code 4009.
         
@@ -756,7 +756,7 @@ class TestPayloadSizeRedis:
         - Connection rejected with close code 4009
         - Redis tracks rejection event
         """
-        user = user_factory(username="test_payload_user")
+        user = await create_test_user(username="test_payload_user")
         
         async def mock_app(scope, receive, send):
             await asyncio.sleep(0.05)
@@ -787,7 +787,7 @@ class TestPayloadSizeRedis:
         
         await comm.disconnect()
     
-    async def test_boundary_payload_edge_cases(self, user_factory):
+    async def test_boundary_payload_edge_cases(self):
         """
         Test: Payload at boundary (1024 bytes) accepted, 1025 rejected.
         
@@ -801,7 +801,7 @@ class TestPayloadSizeRedis:
         - 1024 bytes: accepted
         - 1025 bytes: rejected with code 4009
         """
-        user = user_factory(username="test_boundary_user")
+        user = await create_test_user(username="test_boundary_user")
         
         async def mock_app(scope, receive, send):
             while True:
@@ -876,7 +876,7 @@ class TestRedisFailover:
         self.namespace = test_namespace
         self.config = redis_rate_limit_config
     
-    async def test_redis_down_graceful_degradation(self, user_factory):
+    async def test_redis_down_graceful_degradation(self):
         """
         Test: When Redis down, middleware falls back to in-memory limits.
         
@@ -891,7 +891,7 @@ class TestRedisFailover:
         - No crash or 500 error
         - Warning logged about Redis unavailability
         """
-        user = user_factory(username="test_failover_user")
+        user = await create_test_user(username="test_failover_user")
         
         async def mock_app(scope, receive, send):
             await asyncio.sleep(0.05)
@@ -913,7 +913,7 @@ class TestRedisFailover:
                     
                     await comm.disconnect()
     
-    async def test_redis_recovery_after_outage(self, user_factory):
+    async def test_redis_recovery_after_outage(self):
         """
         Test: After Redis recovers, enforcement resumes normally.
         
@@ -928,7 +928,7 @@ class TestRedisFailover:
         - First connection: succeeds with fallback
         - After recovery: Redis enforcement active again
         """
-        user = user_factory(username="test_recovery_user")
+        user = await create_test_user(username="test_recovery_user")
         
         async def mock_app(scope, receive, send):
             await asyncio.sleep(0.05)
