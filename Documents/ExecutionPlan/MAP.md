@@ -1522,10 +1522,47 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Regression**: Module 7.1 (economy) remains stable (50 passed, 1 skipped, 7 xfailed)
 - **Documentation**: MODULE_7.2_COMPLETION_STATUS.md includes state machine diagram, idempotency matrix, concurrency notes
 - **Artifacts**: Coverage HTML saved to Artifacts/coverage/module_7_2/
-- **Next**: Module 7.3 - Transaction History & Reporting
+- **Next**: Module 7.4 - Revenue Analytics
 
-### Module 7.3: Transaction History
-*[To be filled when implementation starts]*
+### Module 7.3: Transaction History & Reporting
+- **Status**: ✅ Complete (November 12, 2025)
+- **Implements**: Transaction history API with pagination, filtering, totals, CSV export
+- **Test Results**: 32/32 passed (100% pass rate), runtime 16.93s
+- **Files Created**: 
+  - tests/economy/conftest.py (2 fixtures)
+  - tests/economy/test_history_reporting_module_7_3.py (32 tests, 8 classes)
+- **Files Modified**: 
+  - apps/economy/services.py (+397 lines, 6 new functions)
+- **Coverage**: Module 7.3 functions fully tested (48% overall includes legacy code from 7.1/7.2)
+- **Key Features**:
+  - Dual pagination: Offset-based (page/page_size) + cursor-based (stable ordering)
+  - Multi-dimensional filtering: transaction type (DEBIT/CREDIT), reason, date ranges
+  - Transaction totals: current_balance, total_credits/debits, transaction_count with date filtering
+  - Shop integration: get_pending_holds_summary for available balance calculation
+  - CSV export: UTF-8 BOM for Excel, streaming generator for large datasets, row capping (max 10K)
+  - PII safety: Zero email, username, or user information in all responses
+- **Service Functions Added**:
+  1. get_transaction_history (enhanced with pagination metadata)
+  2. get_transaction_history_cursor (cursor-based pagination)
+  3. get_transaction_totals (summary statistics)
+  4. get_pending_holds_summary (shop holds integration)
+  5. export_transactions_csv (Excel-compatible with BOM)
+  6. export_transactions_csv_streaming (memory-efficient generator)
+- **Test Classes**:
+  - TestTransactionHistoryPagination: 5 tests (offset + cursor pagination)
+  - TestTransactionHistoryFiltering: 9 tests (type, reason, date filters)
+  - TestTransactionOrdering: 2 tests (DESC/ASC ordering)
+  - TestTransactionTotals: 3 tests (basic totals, date filtering, shop holds)
+  - TestCSVExport: 6 tests (basic export, filters, BOM, PII safety, streaming)
+  - TestTransactionDTOs: 2 tests (structure validation, no PII)
+  - TestPIISafety: 2 tests (no email in history, no PII in totals)
+  - TestEdgeCases: 3 tests (empty wallet, invalid params)
+- **Performance**: Query optimization uses existing indexes on wallet_id, created_at, reason
+- **Documentation**: MODULE_7.3_COMPLETION_STATUS.md with comprehensive test results, coverage analysis, query performance notes
+- **Artifacts**: Coverage HTML saved to Artifacts/coverage/module_7_3/
+- **Commit**: 17f70ce (Module 7.3 complete)
+- **Tag**: v7.3.0-history
+- **Next**: Module 7.4 - Revenue Analytics
 
 ### Module 7.4: Revenue Analytics
 *[To be filled when implementation starts]*
