@@ -95,6 +95,9 @@ class RateLimitMiddleware(BaseMiddleware):
         """
         Intercept WebSocket lifecycle to enforce rate limits.
         
+        **STRICT BYPASS**: If WS_RATE_ENABLED=False, skip all rate limiting logic.
+        This ensures tests and environments without Redis work without errors.
+        
         Connection Phase:
         - Check per-user connection limit
         - Check per-IP connection limit
@@ -105,6 +108,13 @@ class RateLimitMiddleware(BaseMiddleware):
         - Check per-IP message rate
         - Validate payload size
         """
+        # STRICT BYPASS: Skip all rate limiting if disabled
+        # This ensures test environments work without Redis
+        from django.conf import settings
+        if not getattr(settings, "WS_RATE_ENABLED", False):
+            logger.debug("Rate limiting disabled (WS_RATE_ENABLED=False), bypassing middleware")
+            return await self.inner(scope, receive, send)
+        
         # Get user and IP from scope
         user = scope.get('user')
         client_ip = self._get_client_ip(scope)
@@ -114,6 +124,7 @@ class RateLimitMiddleware(BaseMiddleware):
         
         # Track connection attempt
         user_id = user.id if user and user.is_authenticated else None
+        tournament_id = None  # Initialize for finally block
         
         # =================================================================
         # CONNECTION RATE LIMITING

@@ -125,7 +125,6 @@ def redis_rate_limit_config(test_namespace, settings):
             "LOCATION": f"redis://{REDIS_TEST_HOST}:{REDIS_TEST_PORT}/{REDIS_TEST_DB}",
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                "PARSER_CLASS": "redis.connection.HiredisParser",
                 "CONNECTION_POOL_CLASS_KWARGS": {"max_connections": 50},
                 "KEY_PREFIX": test_namespace,  # Namespace isolation
             },
