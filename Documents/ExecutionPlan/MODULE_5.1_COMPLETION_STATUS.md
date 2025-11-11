@@ -394,11 +394,19 @@ Planned/in-progress modules with empty 'implements': [Phase 6-9 modules not yet 
 - Payout calculation uses `TournamentResult.determination_method` for audit trail
 - Refund workflow checks `TournamentResult.requires_review` flag
 
-### Extended Test Pack (Deferred)
-- Implement 11 scaffolded tests to reach ≥85% coverage goal
-- Smoke tests: 8-team, 16-team bracket variations
-- Edge cases: Missing 3rd place match, forfeit chain thresholds (49% vs 50%), multiple disputes
-- Integration: End-to-end with live WebSocket clients, organizer review workflow
+### Extended Test Pack (Deferred to Backlog)
+
+**Reference**: See `Documents/ExecutionPlan/BACKLOG_PHASE_5_DEFERRED.md` for complete deferred test inventory.
+
+**Summary**:
+- **11 tests scaffolded** in `tests/test_winner_determination_module_5_1.py`
+- **Estimated effort**: ~14 hours to implement all deferred tests
+- **Coverage lift**: +4% to reach 85% (high priority: 4 tests), +3% to reach 90% (medium priority: 4 tests)
+
+**Categories**:
+1. **Smoke Tests (4)**: 8-team, 16-team, all-forfeit, 32-team partial completion
+2. **Edge Cases (5)**: Missing 3rd place match, forfeit thresholds (49%, 50%), multiple disputes, idempotency robustness
+3. **Integration Tests (2)**: Live WebSocket client, organizer review workflow (requires Module 5.4)
 
 ### Performance Optimization
 - Database query optimization (N+1 check with `select_related`/`prefetch_related`)

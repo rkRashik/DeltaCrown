@@ -72,7 +72,8 @@ Module 3.4 implements a production-ready check-in system for tournament registra
 
 ## Test Results ✅ ALL PASSING
 
-**Final: 26/26 tests passing (100%)**
+**Final: 36/36 tests passing (100%)**  
+*(26 original + 10 edge case tests for coverage polish)*
 
 ### Service Layer (17/17 passing) ✅
 - ✅ Check-in solo by owner
@@ -107,22 +108,32 @@ Module 3.4 implements a production-ready check-in system for tournament registra
 
 ### Coverage Metrics
 
+**Final (after edge case tests):**
+
 ```
 Name                                           Stmts   Miss  Cover
 --------------------------------------------------------------------
 apps/tournaments/services/checkin_service.py     125     11    91%
 apps/tournaments/api/checkin/serializers.py       58      4    93%
-apps/tournaments/api/checkin/views.py            100     34    66%
+apps/tournaments/api/checkin/views.py            100     20    80%
 apps/tournaments/api/checkin/urls.py               7      0   100%
 --------------------------------------------------------------------
-TOTAL                                            290     49    83%
+TOTAL                                            290     35    88%
 ```
 
 **Analysis:**
 - Service layer: 91% ✅ (exceeds 80% requirement)
 - API serializers: 93% ✅ (exceeds 80% requirement)
-- API views: 66% (lower due to error handling paths)
-- **Overall: 83%** ✅ (exceeds 80% requirement)
+- API views: 80% ✅ (meets 80% requirement after edge case tests)
+- API URLs: 100% ✅
+- **Overall: 88%** ✅ (exceeds 80% requirement)
+
+**Coverage Polish (Commit 8392fce):**
+- Added 10 edge case tests for error handling paths
+- Covered: ValidationError (400), PermissionDenied (403), DoesNotExist (404)
+- Tested WebSocket graceful degradation and exception handling
+- Views coverage improved from 66% → 80%
+- Overall API coverage improved from 83% → 88%
 
 ---
 

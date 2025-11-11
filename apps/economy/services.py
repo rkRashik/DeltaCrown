@@ -27,6 +27,19 @@ __all__ = [
     "get_pending_holds_summary",
     "export_transactions_csv",
     "export_transactions_csv_streaming",
+    # Module 7.4: Revenue Analytics
+    "get_daily_revenue",
+    "get_weekly_revenue",
+    "get_monthly_revenue",
+    "calculate_arppu",
+    "calculate_arpu",
+    "get_revenue_time_series",
+    "get_revenue_summary",
+    "export_daily_revenue_csv",
+    "export_monthly_summary_csv",
+    "export_revenue_csv_streaming",
+    "get_cohort_revenue",
+    "get_cohort_revenue_retention",
 ]
 
 # ---- Wallet helpers ---------------------------------------------------------
@@ -985,4 +998,729 @@ def export_transactions_csv_streaming(
         
         yield output.getvalue()
         offset += chunk_size
+
+
+# ================================================================================
+# Module 7.4: Revenue Analytics
+# ================================================================================
+
+def get_daily_revenue(date: Any) -> Dict[str, Any]:
+    """
+    Calculate daily revenue metrics for a specific date.
+    
+    Args:
+        date: Target date (datetime.date or datetime)
+    
+    Returns:
+        Dict with:
+            - date: The target date
+            - total_revenue: Sum of all credit transactions
+            - total_refunds: Sum of all refund transactions (absolute value)
+            - net_revenue: total_revenue - total_refunds
+            - transaction_count: Total number of transactions
+            - paying_users_count: Number of unique users with credit transactions
+    """
+    from django.db.models import Sum, Count, Q
+    from django.contrib.auth import get_user_model
+    
+    # Ensure date is a date object
+    if hasattr(date, 'date'):
+        date = date.date()
+    
+    # Query all transactions for the date
+    txns = DeltaCrownTransaction.objects.filter(
+        created_at__date=date
+    )
+    
+    # Calculate metrics
+    # Note: refunds are stored as negative amounts with reason='REFUND'
+    aggregates = txns.aggregate(
+        total_credits=Sum('amount', filter=Q(amount__gt=0)),
+        total_refunds=Sum('amount', filter=Q(reason='REFUND')),
+        transaction_count=Count('id')
+    )
+    
+    total_revenue = int(aggregates['total_credits'] or 0)
+    total_refunds = abs(int(aggregates['total_refunds'] or 0))
+    
+    # Count unique paying users (users with credit transactions)
+    paying_users = txns.filter(amount__gt=0).values('wallet__profile').distinct().count()
+    
+    return {
+        'date': date,
+        'total_revenue': total_revenue,
+        'total_refunds': total_refunds,
+        'net_revenue': total_revenue - total_refunds,
+        'transaction_count': aggregates['transaction_count'],
+        'paying_users_count': paying_users
+    }
+
+
+def get_weekly_revenue(week_start: Any) -> Dict[str, Any]:
+    """
+    Calculate weekly revenue metrics starting from week_start.
+    
+    Args:
+        week_start: Start date of the week (Monday)
+    
+    Returns:
+        Dict with:
+            - week_start: Start date of the week
+            - week_end: End date of the week (Sunday)
+            - total_revenue: Sum of revenue for the week
+            - daily_breakdown: List of daily metrics for each day of the week
+    """
+    from datetime import timedelta
+    
+    # Ensure date is a date object
+    if hasattr(week_start, 'date'):
+        week_start = week_start.date()
+    
+    week_end = week_start + timedelta(days=6)
+    
+    # Get daily metrics for each day of the week
+    daily_breakdown = []
+    total_revenue = 0
+    
+    for i in range(7):
+        day = week_start + timedelta(days=i)
+        day_metrics = get_daily_revenue(date=day)
+        daily_breakdown.append({
+            'date': day,
+            'revenue': day_metrics['net_revenue'],
+            'transactions': day_metrics['transaction_count']
+        })
+        total_revenue += day_metrics['net_revenue']
+    
+    return {
+        'week_start': week_start,
+        'week_end': week_end,
+        'total_revenue': total_revenue,
+        'daily_breakdown': daily_breakdown
+    }
+
+
+def get_monthly_revenue(year: int, month: int) -> Dict[str, Any]:
+    """
+    Calculate monthly revenue metrics.
+    
+    Args:
+        year: Year (e.g., 2025)
+        month: Month (1-12)
+    
+    Returns:
+        Dict with:
+            - year: Year
+            - month: Month
+            - total_revenue: Sum of all credits for the month
+            - total_refunds: Sum of all refunds
+            - net_revenue: total_revenue - total_refunds
+            - transaction_count: Total transactions
+            - daily_trend: List of daily metrics for visualization
+    """
+    from django.db.models import Sum, Count, Q
+    from datetime import date as date_class
+    import calendar
+    
+    # Get first and last day of month
+    first_day = date_class(year, month, 1)
+    last_day_num = calendar.monthrange(year, month)[1]
+    last_day = date_class(year, month, last_day_num)
+    
+    # Query transactions for the month
+    txns = DeltaCrownTransaction.objects.filter(
+        created_at__date__gte=first_day,
+        created_at__date__lte=last_day
+    )
+    
+    # Calculate aggregates
+    # Note: refunds are stored as negative amounts with reason='REFUND'
+    aggregates = txns.aggregate(
+        total_credits=Sum('amount', filter=Q(amount__gt=0)),
+        total_refunds=Sum('amount', filter=Q(reason='REFUND')),
+        transaction_count=Count('id')
+    )
+    
+    total_revenue = int(aggregates['total_credits'] or 0)
+    refunds_total = abs(int(aggregates['total_refunds'] or 0))
+    
+    # Get daily trend
+    daily_trend = []
+    for day_num in range(1, last_day_num + 1):
+        day = date_class(year, month, day_num)
+        day_metrics = get_daily_revenue(date=day)
+        daily_trend.append({
+            'day': day_num,
+            'date': day,
+            'revenue': day_metrics['net_revenue'],
+            'transactions': day_metrics['transaction_count']
+        })
+    
+    return {
+        'year': year,
+        'month': month,
+        'total_revenue': total_revenue,
+        'refunds_total': refunds_total,
+        'net_revenue': total_revenue - refunds_total,
+        'transaction_count': aggregates['transaction_count'],
+        'daily_trend': daily_trend
+    }
+
+
+def calculate_arppu(date: Any) -> Dict[str, Any]:
+    """
+    Calculate Average Revenue Per Paying User for a specific date.
+    
+    ARPPU = Total Revenue / Number of Paying Users
+    
+    Args:
+        date: Target date
+    
+    Returns:
+        Dict with:
+            - arppu: Average revenue per paying user
+            - paying_users: Number of users with credit transactions
+            - total_revenue: Total revenue for the date
+    """
+    from django.db.models import Sum
+    
+    # Ensure date is a date object
+    if hasattr(date, 'date'):
+        date = date.date()
+    
+    # Get transactions for the date with credits only
+    credit_txns = DeltaCrownTransaction.objects.filter(
+        created_at__date=date,
+        amount__gt=0
+    )
+    
+    # Count unique paying users
+    paying_users = credit_txns.values('wallet__profile').distinct().count()
+    
+    # Calculate total revenue
+    total_revenue = int(credit_txns.aggregate(total=Sum('amount'))['total'] or 0)
+    
+    # Calculate ARPPU
+    arppu = total_revenue / paying_users if paying_users > 0 else 0
+    
+    return {
+        'arppu': arppu,
+        'paying_users': paying_users,
+        'total_revenue': total_revenue,
+        'date': date
+    }
+
+
+def calculate_arpu(date: Any) -> Dict[str, Any]:
+    """
+    Calculate Average Revenue Per User for a specific date.
+    
+    ARPU = Total Revenue / Total Users
+    
+    Args:
+        date: Target date
+    
+    Returns:
+        Dict with:
+            - arpu: Average revenue per user (all users, not just paying)
+            - total_users: Total number of users in the system
+            - total_revenue: Total revenue for the date
+    """
+    from django.contrib.auth import get_user_model
+    from django.db.models import Sum
+    
+    User = get_user_model()
+    
+    # Ensure date is a date object
+    if hasattr(date, 'date'):
+        date = date.date()
+    
+    # Get total users
+    total_users = User.objects.count()
+    
+    # Get total revenue for the date
+    credit_txns = DeltaCrownTransaction.objects.filter(
+        created_at__date=date,
+        amount__gt=0
+    )
+    total_revenue = int(credit_txns.aggregate(total=Sum('amount'))['total'] or 0)
+    
+    # Calculate ARPU
+    arpu = total_revenue / total_users if total_users > 0 else 0
+    
+    return {
+        'arpu': arpu,
+        'total_users': total_users,
+        'total_revenue': total_revenue,
+        'date': date
+    }
+
+
+def get_revenue_time_series(
+    start_date: Any,
+    end_date: Any,
+    granularity: str = 'daily'
+) -> Dict[str, Any]:
+    """
+    Get revenue time series data for a date range.
+    
+    Args:
+        start_date: Start date of the range
+        end_date: End date of the range
+        granularity: 'daily' or 'weekly'
+    
+    Returns:
+        Dict with:
+            - data_points: List of time series data points
+            - start_date: Range start
+            - end_date: Range end
+            - granularity: Time granularity
+    """
+    from datetime import timedelta
+    
+    # Ensure dates are date objects
+    if hasattr(start_date, 'date'):
+        start_date = start_date.date()
+    if hasattr(end_date, 'date'):
+        end_date = end_date.date()
+    
+    data_points = []
+    
+    if granularity == 'daily':
+        current_date = start_date
+        while current_date <= end_date:
+            day_metrics = get_daily_revenue(date=current_date)
+            data_points.append({
+                'date': current_date,
+                'revenue': day_metrics['net_revenue'],
+                'transactions': day_metrics['transaction_count'],
+                'paying_users': day_metrics['paying_users_count']
+            })
+            current_date += timedelta(days=1)
+    
+    elif granularity == 'weekly':
+        # Start from the Monday of the week containing start_date
+        current_date = start_date - timedelta(days=start_date.weekday())
+        
+        while current_date <= end_date:
+            week_metrics = get_weekly_revenue(week_start=current_date)
+            data_points.append({
+                'week_start': current_date,
+                'week_end': current_date + timedelta(days=6),
+                'revenue': week_metrics['total_revenue'],
+                'daily_breakdown': week_metrics['daily_breakdown']
+            })
+            current_date += timedelta(days=7)
+    
+    return {
+        'data_points': data_points,
+        'start_date': start_date,
+        'end_date': end_date,
+        'granularity': granularity
+    }
+
+
+def get_revenue_summary(
+    start_date: Any,
+    end_date: Any,
+    include_growth: bool = False
+) -> Dict[str, Any]:
+    """
+    Get comprehensive revenue summary for a date range.
+    
+    Args:
+        start_date: Start date of the period
+        end_date: End date of the period
+        include_growth: Whether to include growth metrics vs previous period
+    
+    Returns:
+        Dict with:
+            - period: Date range
+            - total_revenue: Sum of all credits
+            - total_refunds: Sum of all refunds
+            - net_revenue: Revenue minus refunds
+            - transaction_count: Total transactions
+            - unique_paying_users: Count of unique paying users
+            - arppu: Average revenue per paying user
+            - average_transaction_value: Average value per transaction
+            - growth: Optional growth metrics vs previous period
+    """
+    from django.db.models import Sum, Count, Q
+    from datetime import timedelta
+    
+    # Ensure dates are date objects
+    if hasattr(start_date, 'date'):
+        start_date = start_date.date()
+    if hasattr(end_date, 'date'):
+        end_date = end_date.date()
+    
+    # Query transactions for the period
+    txns = DeltaCrownTransaction.objects.filter(
+        created_at__date__gte=start_date,
+        created_at__date__lte=end_date
+    )
+    
+    # Calculate aggregates
+    # Note: refunds are stored as negative amounts with reason='REFUND'
+    aggregates = txns.aggregate(
+        total_credits=Sum('amount', filter=Q(amount__gt=0)),
+        total_refunds=Sum('amount', filter=Q(reason='REFUND')),
+        transaction_count=Count('id'),
+        paying_user_txns=Count('id', filter=Q(amount__gt=0))
+    )
+    
+    total_revenue = int(aggregates['total_credits'] or 0)
+    total_refunds = abs(int(aggregates['total_refunds'] or 0))
+    net_revenue = total_revenue - total_refunds
+    transaction_count = aggregates['transaction_count']
+    
+    # Count unique paying users
+    unique_paying_users = txns.filter(amount__gt=0).values('wallet__profile').distinct().count()
+    
+    # Calculate metrics
+    arppu = total_revenue / unique_paying_users if unique_paying_users > 0 else 0
+    avg_transaction_value = total_revenue / transaction_count if transaction_count > 0 else 0
+    
+    result = {
+        'period': {
+            'start_date': start_date,
+            'end_date': end_date
+        },
+        'total_revenue': total_revenue,
+        'total_refunds': total_refunds,
+        'net_revenue': net_revenue,
+        'transaction_count': transaction_count,
+        'unique_paying_users': unique_paying_users,
+        'arppu': arppu,
+        'average_transaction_value': avg_transaction_value
+    }
+    
+    # Optional: Calculate growth metrics
+    if include_growth:
+        # Get previous period (same length)
+        period_length = (end_date - start_date).days + 1
+        prev_end = start_date - timedelta(days=1)
+        prev_start = prev_end - timedelta(days=period_length - 1)
+        
+        prev_summary = get_revenue_summary(prev_start, prev_end, include_growth=False)
+        
+        # Calculate growth percentages
+        revenue_growth = 0
+        if prev_summary['total_revenue'] > 0:
+            revenue_growth = ((total_revenue - prev_summary['total_revenue']) / prev_summary['total_revenue']) * 100
+        
+        user_growth = 0
+        if prev_summary['unique_paying_users'] > 0:
+            user_growth = ((unique_paying_users - prev_summary['unique_paying_users']) / prev_summary['unique_paying_users']) * 100
+        
+        result['growth'] = {
+            'revenue_growth_percent': revenue_growth,
+            'user_growth_percent': user_growth,
+            'previous_period': {
+                'start_date': prev_start,
+                'end_date': prev_end,
+                'total_revenue': prev_summary['total_revenue'],
+                'unique_paying_users': prev_summary['unique_paying_users']
+            }
+        }
+    
+    return result
+
+
+def export_daily_revenue_csv(start_date: Any, end_date: Any) -> str:
+    """
+    Export daily revenue data to CSV format.
+    
+    Args:
+        start_date: Start date of the range
+        end_date: End date of the range
+    
+    Returns:
+        CSV string with BOM for Excel compatibility
+    """
+    import csv
+    import io
+    from datetime import timedelta
+    
+    # Ensure dates are date objects
+    if hasattr(start_date, 'date'):
+        start_date = start_date.date()
+    if hasattr(end_date, 'date'):
+        end_date = end_date.date()
+    
+    output = io.StringIO()
+    output.write('\ufeff')  # BOM
+    
+    writer = csv.DictWriter(
+        output,
+        fieldnames=['Date', 'Revenue', 'Refunds', 'Net Revenue', 'Transactions', 'Paying Users', 'ARPPU'],
+        quoting=csv.QUOTE_MINIMAL
+    )
+    writer.writeheader()
+    
+    # Generate daily data
+    current_date = start_date
+    while current_date <= end_date:
+        day_metrics = get_daily_revenue(date=current_date)
+        arppu_metrics = calculate_arppu(date=current_date)
+        
+        writer.writerow({
+            'Date': current_date.strftime('%Y-%m-%d'),
+            'Revenue': day_metrics['total_revenue'],
+            'Refunds': day_metrics['total_refunds'],
+            'Net Revenue': day_metrics['net_revenue'],
+            'Transactions': day_metrics['transaction_count'],
+            'Paying Users': day_metrics['paying_users_count'],
+            'ARPPU': f"{arppu_metrics['arppu']:.2f}" if arppu_metrics['arppu'] > 0 else '0.00'
+        })
+        
+        current_date += timedelta(days=1)
+    
+    return output.getvalue()
+
+
+def export_monthly_summary_csv(year: int, month: int) -> str:
+    """
+    Export monthly revenue summary to CSV format.
+    
+    Args:
+        year: Year (e.g., 2025)
+        month: Month (1-12)
+    
+    Returns:
+        CSV string with BOM for Excel compatibility
+    """
+    import csv
+    import io
+    
+    monthly_data = get_monthly_revenue(year=year, month=month)
+    
+    output = io.StringIO()
+    output.write('\ufeff')  # BOM
+    
+    writer = csv.DictWriter(
+        output,
+        fieldnames=['Day', 'Date', 'Revenue', 'Transactions'],
+        quoting=csv.QUOTE_MINIMAL
+    )
+    writer.writeheader()
+    
+    for day_data in monthly_data['daily_trend']:
+        writer.writerow({
+            'Day': day_data['day'],
+            'Date': day_data['date'].strftime('%Y-%m-%d'),
+            'Revenue': day_data['revenue'],
+            'Transactions': day_data['transactions']
+        })
+    
+    return output.getvalue()
+
+
+def export_revenue_csv_streaming(start_date: Any, end_date: Any, chunk_size: int = 100):
+    """
+    Export revenue data as CSV generator for streaming large datasets.
+    
+    Args:
+        start_date: Start date of the range
+        end_date: End date of the range
+        chunk_size: Number of days per chunk
+    
+    Yields:
+        CSV chunks as strings
+    """
+    import csv
+    import io
+    from datetime import timedelta
+    
+    # Ensure dates are date objects
+    if hasattr(start_date, 'date'):
+        start_date = start_date.date()
+    if hasattr(end_date, 'date'):
+        end_date = end_date.date()
+    
+    # Yield header with BOM
+    output = io.StringIO()
+    output.write('\ufeff')
+    writer = csv.DictWriter(
+        output,
+        fieldnames=['Date', 'Revenue', 'Net Revenue', 'Transactions', 'Paying Users'],
+        quoting=csv.QUOTE_MINIMAL
+    )
+    writer.writeheader()
+    yield output.getvalue()
+    
+    # Stream data in chunks
+    current_date = start_date
+    chunk_count = 0
+    
+    while current_date <= end_date:
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=['Date', 'Revenue', 'Net Revenue', 'Transactions', 'Paying Users'],
+            quoting=csv.QUOTE_MINIMAL
+        )
+        
+        # Process chunk
+        for _ in range(chunk_size):
+            if current_date > end_date:
+                break
+            
+            day_metrics = get_daily_revenue(date=current_date)
+            writer.writerow({
+                'Date': current_date.strftime('%Y-%m-%d'),
+                'Revenue': day_metrics['total_revenue'],
+                'Net Revenue': day_metrics['net_revenue'],
+                'Transactions': day_metrics['transaction_count'],
+                'Paying Users': day_metrics['paying_users_count']
+            })
+            
+            current_date += timedelta(days=1)
+        
+        yield output.getvalue()
+        chunk_count += 1
+
+
+def get_cohort_revenue(year: int, month: int) -> Dict[str, Any]:
+    """
+    Get revenue grouped by user cohort (signup month).
+    
+    Args:
+        year: Year for analysis
+        month: Month for analysis
+    
+    Returns:
+        Dict with:
+            - cohorts: List of cohort data with signup month and revenue
+    """
+    from django.db.models import Sum, Count, Q
+    from django.contrib.auth import get_user_model
+    from datetime import date as date_class
+    import calendar
+    
+    User = get_user_model()
+    
+    # Get first and last day of target month
+    first_day = date_class(year, month, 1)
+    last_day_num = calendar.monthrange(year, month)[1]
+    last_day = date_class(year, month, last_day_num)
+    
+    # Get all transactions in this period
+    transactions = DeltaCrownTransaction.objects.filter(
+        created_at__date__gte=first_day,
+        created_at__date__lte=last_day,
+        amount__gt=0
+    ).select_related('wallet__profile__user')
+    
+    # Group by signup cohort
+    cohort_map = {}
+    for txn in transactions:
+        user = txn.wallet.profile.user
+        cohort_key = f"{user.date_joined.year}-{user.date_joined.month:02d}"
+        
+        if cohort_key not in cohort_map:
+            cohort_map[cohort_key] = {
+                'cohort_month': cohort_key,
+                'users': set(),
+                'total_revenue': 0
+            }
+        
+        cohort_map[cohort_key]['users'].add(user.id)
+        cohort_map[cohort_key]['total_revenue'] += int(txn.amount)
+    
+    # Convert to list format
+    cohorts = []
+    for cohort_data in cohort_map.values():
+        cohorts.append({
+            'cohort_month': cohort_data['cohort_month'],
+            'users_count': len(cohort_data['users']),
+            'total_revenue': cohort_data['total_revenue']
+        })
+    
+    cohorts.sort(key=lambda x: x['cohort_month'])
+    
+    return {
+        'analysis_period': {
+            'year': year,
+            'month': month
+        },
+        'cohorts': cohorts
+    }
+
+
+def get_cohort_revenue_retention(cohort_month: str, months: int = 6) -> Dict[str, Any]:
+    """
+    Track revenue retention for a user cohort over multiple months.
+    
+    Args:
+        cohort_month: Cohort month in format "YYYY-MM"
+        months: Number of months to track
+    
+    Returns:
+        Dict with:
+            - cohort_month: The cohort being analyzed
+            - retention_data: List of monthly retention metrics
+    """
+    from django.contrib.auth import get_user_model
+    from django.db.models import Sum, Q
+    from datetime import date as date_class
+    from dateutil.relativedelta import relativedelta
+    import calendar
+    
+    User = get_user_model()
+    
+    # Parse cohort month
+    year, month = map(int, cohort_month.split('-'))
+    cohort_start = date_class(year, month, 1)
+    
+    # Get users from this cohort
+    cohort_users = User.objects.filter(
+        date_joined__year=year,
+        date_joined__month=month
+    ).values_list('id', flat=True)
+    
+    cohort_size = len(cohort_users)
+    
+    # Track revenue for each subsequent month
+    retention_data = []
+    
+    for i in range(months):
+        target_date = cohort_start + relativedelta(months=i)
+        target_year = target_date.year
+        target_month = target_date.month
+        
+        # Get first and last day of target month
+        first_day = date_class(target_year, target_month, 1)
+        last_day_num = calendar.monthrange(target_year, target_month)[1]
+        last_day = date_class(target_year, target_month, last_day_num)
+        
+        # Calculate revenue from cohort users in this month
+        cohort_revenue = DeltaCrownTransaction.objects.filter(
+            wallet__profile__user_id__in=cohort_users,
+            created_at__date__gte=first_day,
+            created_at__date__lte=last_day,
+            amount__gt=0
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Count active users (users with transactions)
+        active_users = DeltaCrownTransaction.objects.filter(
+            wallet__profile__user_id__in=cohort_users,
+            created_at__date__gte=first_day,
+            created_at__date__lte=last_day,
+            amount__gt=0
+        ).values('wallet__profile__user').distinct().count()
+        
+        retention_data.append({
+            'month': i,
+            'date': target_date,
+            'revenue': int(cohort_revenue),
+            'active_users': active_users,
+            'retention_rate': (active_users / cohort_size * 100) if cohort_size > 0 else 0
+        })
+    
+    return {
+        'cohort_month': cohort_month,
+        'cohort_size': cohort_size,
+        'retention_data': retention_data
+    }
 
