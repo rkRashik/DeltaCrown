@@ -1488,8 +1488,41 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Artifacts**: Coverage HTML saved to Artifacts/coverage/module_7_1/
 - **Next**: Module 7.2 - DeltaCoin Shop
 
-### Module 7.2: Shop & Purchases
-*[To be filled when implementation starts]*
+### Module 7.2: Shop & Purchases (Spend Authorization Pipeline)
+- **Status**: ✅ Complete (Nov 11, 2025)
+- **Implements**:
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-3-economy-shop-services
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#shop-models
+  - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+  - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#idempotency-patterns
+- **ADRs**: ADR-001 Service Layer, ADR-004 PostgreSQL Features (CHECK constraints)
+- **Files Created**:
+  - apps/shop/models.py (ShopItem, ReservationHold - 34 statements, 97% coverage)
+  - apps/shop/services.py (authorize_spend, capture, release, refund, get_available_balance - 161 statements, 90% coverage)
+  - apps/shop/admin.py (ShopItemAdmin, ReservationHoldAdmin - 22 statements, 100% coverage)
+  - apps/shop/exceptions.py (10 custom exception classes - 20 statements, 100% coverage)
+  - apps/shop/migrations/0001_initial.py
+  - tests/shop/test_authorize_capture_release_module_7_2.py (22 tests)
+  - tests/shop/test_available_balance_module_7_2.py (6 tests)
+  - tests/shop/test_catalog_admin_module_7_2.py (5 tests)
+  - tests/shop/test_concurrency_module_7_2.py (4 tests, 1 skipped)
+  - tests/shop/test_coverage_closure_module_7_2.py (19 tests - NEW)
+  - tests/shop/test_edge_cases_coverage_module_7_2.py (9 tests)
+  - tests/shop/test_refund_module_7_2.py (8 tests)
+  - tests/shop/conftest.py (shared fixtures)
+  - Documents/ExecutionPlan/MODULE_7.2_COMPLETION_STATUS.md (comprehensive status report)
+- **Coverage**: 93% overall (models 97%, services 90%, admin 100%)
+- **Test Results**: 72 passed, 1 skipped (73 total)
+- **Key Features**:
+  - Two-phase commit pattern (authorize → capture/release)
+  - Full idempotency support with conflict detection
+  - Deterministic state machine (authorized → captured/released/expired)
+  - Concurrency-safe with lock ordering and retry logic
+  - Cumulative refund tracking via ReservationHold.meta
+- **Regression**: Module 7.1 (economy) remains stable (50 passed, 1 skipped, 7 xfailed)
+- **Documentation**: MODULE_7.2_COMPLETION_STATUS.md includes state machine diagram, idempotency matrix, concurrency notes
+- **Artifacts**: Coverage HTML saved to Artifacts/coverage/module_7_2/
+- **Next**: Module 7.3 - Transaction History & Reporting
 
 ### Module 7.3: Transaction History
 *[To be filled when implementation starts]*

@@ -15,7 +15,6 @@ Coverage:
 """
 
 import pytest
-from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -33,14 +32,14 @@ class TestAuthorizeSpend:
 
         result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('50.00'),
+            amount=50,
             sku='TEST_ITEM',
             idempotency_key='auth_001'
         )
 
         assert result['status'] == 'authorized'
         assert result['wallet_id'] == funded_wallet.id
-        assert result['amount'] == Decimal('50.00')
+        assert result['amount'] == 50
         assert result['sku'] == 'TEST_ITEM'
         assert 'hold_id' in result
         assert 'expires_at' in result
@@ -51,28 +50,28 @@ class TestAuthorizeSpend:
         from apps.shop.services import authorize_spend, get_available_balance
 
         initial_available = get_available_balance(funded_wallet)
-        assert initial_available == Decimal('1000.00')
+        assert initial_available == 1000
 
         authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('100.00'),
+            amount=100,
             sku='TEST_ITEM',
             idempotency_key='auth_002'
         )
 
         available_after = get_available_balance(funded_wallet)
-        assert available_after == Decimal('900.00')
+        assert available_after == 900
 
     
     def test_authorize_insufficient_funds_raises(self, funded_wallet):
         """Authorize with amount > available balance raises InsufficientFunds."""
         from apps.shop.services import authorize_spend
-        from apps.economy.exceptions import InsufficientFunds
+        from apps.shop.exceptions import InsufficientFunds
 
         with pytest.raises(InsufficientFunds):
             authorize_spend(
                 wallet=funded_wallet,
-                amount=Decimal('2000.00'),  # > balance
+                amount=2000,  # > balance
                 sku='EXPENSIVE_ITEM',
                 idempotency_key='auth_003'
             )
@@ -81,12 +80,12 @@ class TestAuthorizeSpend:
     def test_authorize_zero_amount_raises(self, funded_wallet):
         """Authorize with amount <= 0 raises InvalidAmount."""
         from apps.shop.services import authorize_spend
-        from apps.economy.exceptions import InvalidAmount
+        from apps.shop.exceptions import InvalidAmount
 
         with pytest.raises(InvalidAmount):
             authorize_spend(
                 wallet=funded_wallet,
-                amount=Decimal('0.00'),
+                amount=0,
                 sku='FREE_ITEM',
                 idempotency_key='auth_004'
             )
@@ -98,14 +97,14 @@ class TestAuthorizeSpend:
 
         result1 = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('75.00'),
+            amount=75,
             sku='REPLAY_ITEM',
             idempotency_key='auth_005'
         )
 
         result2 = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('75.00'),  # Same payload
+            amount=75,  # Same payload
             sku='REPLAY_ITEM',
             idempotency_key='auth_005'  # Same key
         )
@@ -117,12 +116,12 @@ class TestAuthorizeSpend:
     def test_authorize_cross_op_collision_raises(self, funded_wallet):
         """Reusing key for different operation raises IdempotencyConflict."""
         from apps.shop.services import authorize_spend
-        from apps.economy.exceptions import IdempotencyConflict
+        from apps.shop.exceptions import IdempotencyConflict
 
         # First authorize
         authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('50.00'),
+            amount=50,
             sku='ITEM_A',
             idempotency_key='collision_key'
         )
@@ -131,7 +130,7 @@ class TestAuthorizeSpend:
         with pytest.raises(IdempotencyConflict):
             authorize_spend(
                 wallet=funded_wallet,
-                amount=Decimal('50.00'),
+                amount=50,
                 sku='ITEM_B',  # Different SKU
                 idempotency_key='collision_key'
             )
@@ -144,7 +143,7 @@ class TestAuthorizeSpend:
         before = timezone.now()
         result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('25.00'),
+            amount=25,
             sku='TIMED_ITEM',
             expires_at=timezone.now() + timedelta(minutes=10)
         )
@@ -162,12 +161,12 @@ class TestAuthorizeSpend:
         from apps.shop.services import authorize_spend, get_available_balance
 
         # Create 3 holds
-        authorize_spend(funded_wallet, Decimal('100.00'), 'ITEM_1', idempotency_key='multi_1')
-        authorize_spend(funded_wallet, Decimal('150.00'), 'ITEM_2', idempotency_key='multi_2')
-        authorize_spend(funded_wallet, Decimal('250.00'), 'ITEM_3', idempotency_key='multi_3')
+        authorize_spend(funded_wallet, 100, sku='ITEM_1', idempotency_key='multi_1')
+        authorize_spend(funded_wallet, 150, sku='ITEM_2', idempotency_key='multi_2')
+        authorize_spend(funded_wallet, 250, sku='ITEM_3', idempotency_key='multi_3')
 
         available = get_available_balance(funded_wallet)
-        assert available == Decimal('500.00')  # 1000 - (100 + 150 + 250)
+        assert available == 500  # 1000 - (100 + 150 + 250)
 
 
 @pytest.mark.django_db
@@ -183,7 +182,7 @@ class TestCapture:
         # Create hold first
         auth_result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('200.00'),
+            amount=200,
             sku='CAPTURE_ITEM',
             idempotency_key='auth_for_capture'
         )
@@ -230,7 +229,7 @@ class TestCapture:
         )
 
         funded_wallet.refresh_from_db()
-        assert funded_wallet.cached_balance == initial_balance - Decimal('200.00')
+        assert funded_wallet.cached_balance == initial_balance - 200
         assert result['balance_after'] == funded_wallet.cached_balance
 
     
@@ -258,27 +257,24 @@ class TestCapture:
         """Capture on expired hold raises HoldExpired."""
         from apps.shop.services import authorize_spend, capture
         from apps.shop.exceptions import HoldExpired
-        from unittest.mock import patch
 
-        # Create hold with 1 second expiry
+        # Create hold with past expiry time (already expired)
+        expired_time = timezone.now() - timedelta(seconds=1)
         result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('50.00'),
+            amount=50,
             sku='EXPIRED_ITEM',
-            expires_at=timezone.now() + timedelta(seconds=1),
+            expires_at=expired_time,
             idempotency_key='auth_expired'
         )
 
-        # Mock time passing (or sleep for 2 seconds in real test)
-        with patch('django.utils.timezone.now') as mock_now:
-            mock_now.return_value = timezone.now() + timedelta(seconds=5)
-            
-            with pytest.raises(HoldExpired):
-                capture(
-                    wallet=funded_wallet,
-                    authorization_id=result['hold_id'],
-                    idempotency_key='cap_expired'
-                )
+        # Try to capture expired hold
+        with pytest.raises(HoldExpired):
+            capture(
+                wallet=funded_wallet,
+                authorization_id=result['hold_id'],
+                idempotency_key='cap_expired'
+            )
 
     
     def test_capture_released_hold_raises(self, funded_wallet):
@@ -289,7 +285,7 @@ class TestCapture:
         # Authorize and release
         auth_result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('75.00'),
+            amount=75,
             sku='RELEASED_ITEM',
             idempotency_key='auth_released'
         )
@@ -371,9 +367,9 @@ class TestRelease:
         """Release increases available balance by restoring hold amount."""
         from apps.shop.services import release, get_available_balance
 
-        # Available balance reduced by hold
+        # Available balance reduced by hold (authorized_hold fixture is 200)
         available_before = get_available_balance(funded_wallet)
-        assert available_before == Decimal('850.00')  # 1000 - 150
+        assert available_before == 800  # 1000 - 200
 
         release(
             wallet=funded_wallet,
@@ -382,7 +378,7 @@ class TestRelease:
         )
 
         available_after = get_available_balance(funded_wallet)
-        assert available_after == Decimal('1000.00')  # Hold released
+        assert available_after == 1000  # Hold released
 
     
     def test_release_idempotency_replay_returns_original(self, funded_wallet, authorized_hold):
@@ -414,7 +410,7 @@ class TestRelease:
         # Authorize and capture
         auth_result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('100.00'),
+            amount=100,
             sku='CAPTURED_ITEM',
             idempotency_key='auth_captured'
         )
@@ -437,29 +433,32 @@ class TestRelease:
     def test_release_expired_hold_succeeds(self, funded_wallet):
         """Release on expired hold succeeds (idempotent no-op)."""
         from apps.shop.services import authorize_spend, release
-        from unittest.mock import patch
+        from apps.shop.models import ReservationHold
 
-        # Create hold with 1 second expiry
+        # Create hold that's already expired
+        expired_time = timezone.now() - timedelta(seconds=1)
         result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('50.00'),
+            amount=50,
             sku='EXPIRED_REL_ITEM',
-            expires_at=timezone.now() + timedelta(seconds=1),
+            expires_at=expired_time,
             idempotency_key='auth_expired_rel'
         )
 
-        # Mock time passing
-        with patch('django.utils.timezone.now') as mock_now:
-            mock_now.return_value = timezone.now() + timedelta(seconds=5)
-            
-            # Release should succeed (no-op on expired hold)
-            result_rel = release(
-                wallet=funded_wallet,
-                authorization_id=result['hold_id'],
-                idempotency_key='rel_expired_hold'
-            )
+        # Manually set status to expired (simulating timeout)
+        hold = ReservationHold.objects.get(id=result['hold_id'])
+        hold.status = 'expired'
+        hold.save()
 
-            assert 'released_at' in result_rel
+        # Release should succeed (no-op on expired hold)
+        result_rel = release(
+            wallet=funded_wallet,
+            authorization_id=result['hold_id'],
+            idempotency_key='rel_expired_hold'
+        )
+
+        assert 'released_at' in result_rel
+        assert result_rel['status'] == 'released'
 
     
     def test_capture_then_release_fails(self, funded_wallet, authorized_hold):

@@ -5,7 +5,6 @@ Provides reusable fixtures for user, wallet, and economy setup.
 """
 
 import pytest
-from decimal import Decimal
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
@@ -66,7 +65,7 @@ def authorized_hold(funded_wallet):
     from apps.shop.services import authorize_spend
     result = authorize_spend(
         wallet=funded_wallet,
-        amount=Decimal('200.00'),
+        amount=200,
         sku='CAPTURE_ITEM',
         idempotency_key=f'auth_hold_{funded_wallet.id}'
     )
@@ -81,7 +80,7 @@ def captured_transaction(funded_wallet):
     # First authorize
     auth_result = authorize_spend(
         wallet=funded_wallet,
-        amount=Decimal('200.00'),
+        amount=200,
         sku='CAPTURE_ITEM',
         idempotency_key=f'auth_refund_{funded_wallet.id}'
     )

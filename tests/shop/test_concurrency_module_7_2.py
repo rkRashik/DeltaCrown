@@ -14,7 +14,6 @@ Coverage:
 """
 
 import pytest
-from decimal import Decimal
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.db import transaction, connection
@@ -28,12 +27,22 @@ class TestConcurrency:
     """Test concurrent spend operations with SELECT FOR UPDATE and lock ordering."""
 
     
-    def test_dual_capture_race_condition(self, funded_wallet, authorized_hold):
+    def test_dual_capture_race_condition(self, funded_wallet):
         """Two threads try to capture same hold - only one succeeds."""
-        from apps.shop.services import capture
+        from apps.shop.services import authorize_spend, capture
         from apps.shop.exceptions import InvalidStateTransition
+        from queue import Queue
 
-        hold_id = authorized_hold['hold_id']
+        # Create hold first
+        auth_result = authorize_spend(
+            wallet=funded_wallet,
+            amount=300,
+            sku='CONCURRENT_ITEM',
+            idempotency_key='auth_concurrent'
+        )
+        hold_id = auth_result['hold_id']
+
+        results_queue = Queue()
 
         def attempt_capture(idem_key):
             """Attempt to capture hold in separate thread."""
@@ -44,17 +53,24 @@ class TestConcurrency:
                     authorization_id=hold_id,
                     idempotency_key=idem_key
                 )
-                return ('success', result)
+                results_queue.put(('success', result))
             except InvalidStateTransition as e:
                 # Second thread should get "already captured" error
-                return ('failed', str(e))
+                results_queue.put(('failed', str(e)))
 
         # Execute two captures concurrently
         with ThreadPoolExecutor(max_workers=2) as executor:
             future_1 = executor.submit(attempt_capture, 'capture_thread_1')
             future_2 = executor.submit(attempt_capture, 'capture_thread_2')
 
-            results = [future.result() for future in as_completed([future_1, future_2])]
+            # Wait for completion
+            future_1.result()
+            future_2.result()
+
+        # Get results from queue
+        results = []
+        while not results_queue.empty():
+            results.append(results_queue.get())
 
         # Exactly one success, one failure
         statuses = [r[0] for r in results]
@@ -66,25 +82,43 @@ class TestConcurrency:
         hold = ReservationHold.objects.get(id=hold_id)
         assert hold.status == 'captured'
 
+        # Verify only ONE debit transaction created (shop purchases use ENTRY_FEE_DEBIT reason)
+        from apps.economy.models import DeltaCrownTransaction
+        debits = DeltaCrownTransaction.objects.filter(
+            wallet=funded_wallet,
+            reason='ENTRY_FEE_DEBIT'
+        )
+        assert debits.count() == 1
+
     
     def test_concurrent_authorize_different_keys(self, funded_wallet):
         """Multiple threads can authorize simultaneously with different keys."""
         from apps.shop.services import authorize_spend
+        from queue import Queue
+
+        results_queue = Queue()
 
         def authorize_with_key(idx):
             """Authorize spend in separate thread."""
             result = authorize_spend(
                 wallet=funded_wallet,
-                amount=Decimal('100.00'),
+                amount=100,
                 sku=f'CONCURRENT_SKU_{idx}',
                 idempotency_key=f'auth_concurrent_{idx}'
             )
-            return result
+            results_queue.put(result)
 
         # Execute 5 concurrent authorizations
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(authorize_with_key, i) for i in range(5)]
-            results = [future.result() for future in as_completed(futures)]
+            # Wait for all to complete
+            for future in futures:
+                future.result()
+
+        # Get results
+        results = []
+        while not results_queue.empty():
+            results.append(results_queue.get())
 
         # All 5 should succeed
         assert len(results) == 5
@@ -105,17 +139,18 @@ class TestConcurrency:
         # Create second wallet
         user2 = get_user_model().objects.create_user(
             username=f'user2_{timezone.now().timestamp()}',
+            email=f'user2_{timezone.now().timestamp()}@test.com',
             password='test123'
         )
         from apps.economy.models import DeltaCrownWallet
-        wallet2, _ = DeltaCrownWallet.objects.get_or_create(profile=user2.userprofile)
-        credit(wallet2, Decimal('1000.00'), reason='MANUAL_ADJUST', idempotency_key=f'fund_w2_{wallet2.id}')
+        wallet2, _ = DeltaCrownWallet.objects.get_or_create(profile=user2.profile)
+        credit(profile=user2.profile, amount=1000, reason='MANUAL_ADJUST', idempotency_key=f'fund_w2_{wallet2.id}')
 
         def cross_wallet_ops(w1, w2, suffix):
             """Perform operations on two wallets in thread."""
             # Authorize on both wallets (lock ordering should prevent deadlock)
-            authorize_spend(w1, Decimal('50.00'), f'ITEM_A_{suffix}', idempotency_key=f'auth_a_{suffix}')
-            authorize_spend(w2, Decimal('50.00'), f'ITEM_B_{suffix}', idempotency_key=f'auth_b_{suffix}')
+            authorize_spend(w1, 50, sku=f'ITEM_A_{suffix}', idempotency_key=f'auth_a_{suffix}')
+            authorize_spend(w2, 50, sku=f'ITEM_B_{suffix}', idempotency_key=f'auth_b_{suffix}')
             return 'success'
 
         # Execute cross-wallet operations concurrently
@@ -142,7 +177,7 @@ class TestConcurrency:
             # This test assumes a retry wrapper around atomic operations
             result = authorize_spend(
                 wallet=funded_wallet,
-                amount=Decimal('10.00'),
+                amount=10,
                 sku=f'RETRY_SKU_{idx}',
                 idempotency_key=f'retry_{idx}'
             )

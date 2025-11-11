@@ -15,7 +15,6 @@ Coverage:
 """
 
 import pytest
-from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -38,7 +37,7 @@ class TestRefund:
         result = refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('300.00'),
+            amount=200,  # Fixture captures 200, can't refund more
             idempotency_key='refund_001'
         )
 
@@ -51,17 +50,19 @@ class TestRefund:
         """Full refund restores original amount to wallet."""
         from apps.shop.services import refund
 
-        balance_before = funded_wallet.cached_balance
+        # Refresh to get balance after captured_transaction fixture ran
+        funded_wallet.refresh_from_db()
+        balance_before = funded_wallet.cached_balance  # Should be 800 (1000 - 200)
 
         result = refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('300.00'),  # Full amount
+            amount=200,  # Full amount (fixture captures 200)
             idempotency_key='refund_full'
         )
 
         funded_wallet.refresh_from_db()
-        assert funded_wallet.cached_balance == balance_before + Decimal('300.00')
+        assert funded_wallet.cached_balance == balance_before + 200  # Back to 1000
         assert result['balance_after'] == funded_wallet.cached_balance
 
     
@@ -69,30 +70,32 @@ class TestRefund:
         """Partial refund restores partial amount to wallet."""
         from apps.shop.services import refund
 
-        balance_before = funded_wallet.cached_balance
+        # Refresh to get balance after captured_transaction fixture ran
+        funded_wallet.refresh_from_db()
+        balance_before = funded_wallet.cached_balance  # Should be 800 (1000 - 200)
 
         result = refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('150.00'),  # Half of original 300
+            amount=150,  # Partial refund
             idempotency_key='refund_partial'
         )
 
         funded_wallet.refresh_from_db()
-        assert funded_wallet.cached_balance == balance_before + Decimal('150.00')
+        assert funded_wallet.cached_balance == balance_before + 150  # 800 + 150 = 950
         assert result['balance_after'] == funded_wallet.cached_balance
 
     
     def test_refund_amount_exceeds_original_raises(self, funded_wallet, captured_transaction):
         """Refund amount > original transaction raises InvalidAmount."""
         from apps.shop.services import refund
-        from apps.economy.exceptions import InvalidAmount
+        from apps.shop.exceptions import InvalidAmount
 
         with pytest.raises(InvalidAmount):
             refund(
                 wallet=funded_wallet,
                 capture_txn_id=captured_transaction,
-                amount=Decimal('500.00'),  # > original 300
+                amount=500,  # > original 300
                 idempotency_key='refund_exceed'
             )
 
@@ -105,8 +108,8 @@ class TestRefund:
 
         # Create a non-purchase credit transaction
         credit_result = credit(
-            wallet=funded_wallet,
-            amount=Decimal('100.00'),
+            profile=funded_wallet.profile,
+            amount=100,
             reason='MANUAL_ADJUST',
             idempotency_key='non_purchase_txn'
         )
@@ -114,8 +117,8 @@ class TestRefund:
         with pytest.raises(InvalidTransaction):
             refund(
                 wallet=funded_wallet,
-                transaction_id=credit_result['transaction_id'],
-                amount=Decimal('50.00'),
+                capture_txn_id=credit_result['transaction_id'],
+                amount=50,
                 idempotency_key='refund_non_purchase'
             )
 
@@ -127,14 +130,14 @@ class TestRefund:
         result1 = refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('100.00'),
+            amount=100,
             idempotency_key='refund_idem'
         )
 
         result2 = refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('100.00'),  # Same amount
+            amount=100,  # Same amount
             idempotency_key='refund_idem'  # Same key
         )
 
@@ -150,7 +153,7 @@ class TestRefund:
         refund1 = refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('100.00'),
+            amount=100,
             idempotency_key='refund_part1'
         )
 
@@ -158,19 +161,19 @@ class TestRefund:
         refund2 = refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('100.00'),
+            amount=100,
             idempotency_key='refund_part2'
         )
 
         assert refund1['refund_transaction_id'] != refund2['refund_transaction_id']
 
-        # Third refund exceeding total should raise
-        from apps.economy.exceptions import InvalidAmount
+        # Third refund exceeding total should raise (captured_transaction is 200)
+        from apps.shop.exceptions import InvalidAmount
         with pytest.raises(InvalidAmount):
             refund(
                 wallet=funded_wallet,
                 capture_txn_id=captured_transaction,
-                amount=Decimal('200.00'),  # Total would be 400 > original 300
+                amount=1,  # Total would be 201 > original 200
                 idempotency_key='refund_part3'
             )
 
@@ -179,15 +182,17 @@ class TestRefund:
         """Refund correctly updates wallet cached_balance."""
         from apps.shop.services import refund
 
-        # Balance after capture: 1000 - 300 = 700
-        assert funded_wallet.cached_balance == Decimal('700.00')
+        # Refresh to get balance after captured_transaction fixture ran
+        funded_wallet.refresh_from_db()
+        # Balance after capture: 1000 - 200 = 800 (captured_transaction fixture is 200)
+        assert funded_wallet.cached_balance == 800
 
         refund(
             wallet=funded_wallet,
             capture_txn_id=captured_transaction,
-            amount=Decimal('300.00'),
+            amount=200,
             idempotency_key='refund_balance_check'
         )
 
         funded_wallet.refresh_from_db()
-        assert funded_wallet.cached_balance == Decimal('1000.00')  # Fully refunded
+        assert funded_wallet.cached_balance == 1000  # Fully refunded

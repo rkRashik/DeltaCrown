@@ -16,7 +16,6 @@ Coverage:
 """
 
 import pytest
-from decimal import Decimal
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
@@ -32,7 +31,7 @@ class TestAvailableBalance:
         from apps.shop.services import get_available_balance
 
         available = get_available_balance(funded_wallet)
-        assert available == Decimal('1000.00')
+        assert available == 1000
         assert available == funded_wallet.cached_balance
 
     
@@ -42,13 +41,13 @@ class TestAvailableBalance:
 
         authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('250.00'),
+            amount=250,
             sku='ITEM_1',
             idempotency_key='hold_single'
         )
 
         available = get_available_balance(funded_wallet)
-        assert available == Decimal('750.00')  # 1000 - 250
+        assert available == 750  # 1000 - 250
 
     
     def test_available_balance_multiple_holds(self, funded_wallet):
@@ -56,13 +55,13 @@ class TestAvailableBalance:
         from apps.shop.services import authorize_spend, get_available_balance
 
         # Create 4 holds
-        authorize_spend(funded_wallet, Decimal('100.00'), 'ITEM_1', idempotency_key='multi_avail_1')
-        authorize_spend(funded_wallet, Decimal('150.00'), 'ITEM_2', idempotency_key='multi_avail_2')
-        authorize_spend(funded_wallet, Decimal('200.00'), 'ITEM_3', idempotency_key='multi_avail_3')
-        authorize_spend(funded_wallet, Decimal('250.00'), 'ITEM_4', idempotency_key='multi_avail_4')
+        authorize_spend(funded_wallet, 100, sku='ITEM_1', idempotency_key='multi_avail_1')
+        authorize_spend(funded_wallet, 150, sku='ITEM_2', idempotency_key='multi_avail_2')
+        authorize_spend(funded_wallet, 200, sku='ITEM_3', idempotency_key='multi_avail_3')
+        authorize_spend(funded_wallet, 250, sku='ITEM_4', idempotency_key='multi_avail_4')
 
         available = get_available_balance(funded_wallet)
-        assert available == Decimal('300.00')  # 1000 - (100 + 150 + 200 + 250)
+        assert available == 300  # 1000 - (100 + 150 + 200 + 250)
 
     
     def test_available_balance_after_capture(self, funded_wallet):
@@ -72,26 +71,26 @@ class TestAvailableBalance:
         # Authorize
         auth_result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('300.00'),
+            amount=300,
             sku='CAPTURE_ITEM',
             idempotency_key='auth_for_avail_cap'
         )
 
         # Available reduced by hold
         available_after_auth = get_available_balance(funded_wallet)
-        assert available_after_auth == Decimal('700.00')  # 1000 - 300
+        assert available_after_auth == 700  # 1000 - 300
 
         # Capture
         capture(
             wallet=funded_wallet,
-            hold_id=auth_result['hold_id'],
+            authorization_id=auth_result['hold_id'],
             idempotency_key='cap_for_avail'
         )
 
         # Available = balance (hold removed, balance reduced by debit)
         funded_wallet.refresh_from_db()
         available_after_cap = get_available_balance(funded_wallet)
-        assert available_after_cap == Decimal('700.00')  # New balance 700, no holds
+        assert available_after_cap == 700  # New balance 700, no holds
         assert available_after_cap == funded_wallet.cached_balance
 
     
@@ -102,25 +101,25 @@ class TestAvailableBalance:
         # Authorize
         auth_result = authorize_spend(
             wallet=funded_wallet,
-            amount=Decimal('400.00'),
+            amount=400,
             sku='RELEASE_ITEM',
             idempotency_key='auth_for_avail_rel'
         )
 
         # Available reduced by hold
         available_after_auth = get_available_balance(funded_wallet)
-        assert available_after_auth == Decimal('600.00')  # 1000 - 400
+        assert available_after_auth == 600  # 1000 - 400
 
         # Release
         release(
             wallet=funded_wallet,
-            hold_id=auth_result['hold_id'],
+            authorization_id=auth_result['hold_id'],
             idempotency_key='rel_for_avail'
         )
 
         # Available restored to full balance (hold removed, balance unchanged)
         available_after_rel = get_available_balance(funded_wallet)
-        assert available_after_rel == Decimal('1000.00')
+        assert available_after_rel == 1000
         assert available_after_rel == funded_wallet.cached_balance
 
     
@@ -135,11 +134,11 @@ class TestAvailableBalance:
         # Authorize hold (overdraft scenario)
         authorize_spend(
             wallet=wallet,
-            amount=Decimal('500.00'),
+            amount=500,
             sku='OVERDRAFT_ITEM',
             idempotency_key='hold_overdraft'
         )
 
         available = get_available_balance(wallet)
-        assert available == Decimal('-500.00')  # 0 - 500
+        assert available == -500  # 0 - 500
         assert available < 0
