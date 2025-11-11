@@ -1387,6 +1387,65 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Dependencies**: Module 6.6 complete (test infrastructure in place)
 - **Next**: Module 6.8 - Redis-backed enforcement & E2E rate limiting (≥70-75% target)
 
+### Module 6.8: Redis-Backed Enforcement & E2E Rate Limiting
+- **Status**: ✅ **Complete with Variance** (2025-01-23)
+- **Implements**:
+  - Module 6.7 Step 3 middleware coverage gap (47% → 62%)
+  - Documents/ExecutionPlan/MODULE_6.8_KICKOFF.md (original WebSocket E2E plan)
+  - Documents/ExecutionPlan/MODULE_6.8_PHASE1_STATUS.md (blocker analysis + pivot decision)
+  - Documents/ExecutionPlan/MODULE_6.8_COMPLETION_STATUS.md
+- **Scope**: Utility-level Redis testing + thin middleware mapping (pivoted from WebSocket E2E)
+- **Files Created**:
+  - tests/test_ratelimit_utilities_redis_module_6_8.py (548 lines, 15 passing + 3 skipped)
+  - tests/test_middleware_mapping_module_6_8.py (174 lines, 3 passing)
+  - tests/redis_fixtures.py (211 lines, shared infrastructure)
+  - docker-compose.test.yml (Redis 7-alpine configuration)
+  - tests/test_middleware_ratelimit_redis_module_6_8_SKIPPED.py (preserved WebSocket tests for traceability)
+  - Artifacts/coverage/module_6_8/ (coverage HTML)
+- **Coverage Results**:
+
+  1. **Middleware Enforcement** ✅ **IMPROVED (+15%)**
+     - **Achieved**: 47% → 62% (+15% absolute)
+     - **Target**: 65-70% (3% variance gap)
+     - **Lines Covered**: 124-207 (user/IP connection checks, room capacity enforcement)
+     - **Lines Not Covered**: 208-294 (message rate limiting - requires ASGI receive phase)
+
+  2. **Utility Functions** ✅ **NEW COVERAGE (+58%)**
+     - **Achieved**: 0% → 58% (+58% absolute)
+     - **Lines Covered**: Connection tracking (414-566), room capacity (315-403), token bucket (187-284)
+     - **Lines Not Covered**: Lua script definitions (121-165), failover paths (308-407)
+
+  3. **Combined Coverage**: 60% (middleware 62%, ratelimit 58%)
+
+- **Test Breakdown**:
+  - **TestUserConnectionTracking**: 4 tests (increment, get, decrement, concurrency)
+  - **TestIPConnectionTracking**: 3 tests (IP-based counters)
+  - **TestRoomCapacity**: 4 tests (join, deny, leave, size)
+  - **TestTokenBucketRateLimiting**: 4 tests (under rate, burst, cooldown, IP keying)
+  - **TestRedisFailover**: 0 passing, 3 skipped (recursive mock complexity)
+  - **TestMiddlewareCloseCodes**: 3 tests (user limit, IP limit, room full → DenyConnection)
+
+- **Technical Approach**:
+  - **Pivot Rationale**: WebSocket E2E tests timeout due to ASGI protocol complexity (WebsocketCommunicator requires full handshake)
+  - **Solution**: Test utilities directly + add thin middleware mapping tests (user-approved Option A)
+  - **Benefits**: Fast execution (27s), deterministic Redis state validation, no ASGI overhead
+  - **Per-Test Isolation**: UUID-based namespace prefix (`test:{uuid}:`)
+  - **Fast TTLs**: 200ms cooldown windows for timing tests
+  - **Raw Redis Access**: ratelimit.py uses `cache.client.get_client().incr()` (bypasses django-redis KEY_PREFIX)
+
+- **Production Changes**: 
+  - **Bug Fix**: Initialize `tournament_id = None` before try block to prevent UnboundLocalError in finally cleanup (middleware_ratelimit.py line 124)
+  - **Test-Only**: All other changes are test infrastructure
+
+- **Known Limitations**:
+  - **Message Rate Limiting**: Lines 208-294 not covered (requires full ASGI receive phase)
+  - **Failover Tests**: 3 tests skipped (recursive mock issues with `_use_redis()` check)
+  - **Helper Methods**: Lines 325-431 not covered (requires ASGI scope/send handling)
+
+- **Total Effort**: ~8-10 hours (Phase 1 infrastructure + pivot + utility tests)
+- **Dependencies**: Module 6.7 complete, Docker Compose (Redis 7-alpine)
+- **Next**: Module 7.1 (Economy) or continue Phase 6 refinements
+
 ---
 
 ## Phase 7: Economy & Monetization

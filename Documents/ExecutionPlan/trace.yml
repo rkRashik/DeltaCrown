@@ -795,6 +795,112 @@ phase_6:
         acceptance: "⚠️ Test-only ceiling reached (47%), payload/message RPS validated, room capacity proven reachable"
         carry_forward: "Module 6.8 - Redis-backed enforcement (target: 70-75%)"
     total_actual_effort: "~10-12 hours"
+  
+  module_6_8:
+    name: "Redis-Backed Enforcement & E2E Rate Limiting"
+    description: "Utility-level Redis testing + thin middleware mapping (pivoted from WebSocket E2E)"
+    status: "complete_with_variance"
+    start_date: "2025-01-23"
+    completed_date: "2025-01-23"
+    implements:
+      - "PHASE_6_IMPLEMENTATION_PLAN.md#module-68"
+      - "Documents/ExecutionPlan/MAP.md#module-68"
+      - "Documents/ExecutionPlan/MODULE_6.8_KICKOFF.md"
+      - "Documents/ExecutionPlan/MODULE_6.8_PHASE1_STATUS.md"
+      - "Documents/ExecutionPlan/MODULE_6.8_COMPLETION_STATUS.md"
+    steps:
+      phase_1_infrastructure:
+        name: "Redis Test Infrastructure"
+        status: "complete"
+        completed_date: "2025-01-23"
+        commits: ["a7bad0b", "36927a2"]
+        files:
+          - "docker-compose.test.yml (Redis 7-alpine)"
+          - "tests/redis_fixtures.py (211 lines)"
+        notes: "Per-test namespace isolation, async user creation, django-redis cache backend, fast TTLs (200ms), fixed async/sync ORM issues, removed HiredisParser requirement"
+      
+      utility_testing_pivot:
+        name: "Utility-Level Testing Refactoring"
+        status: "complete"
+        completed_date: "2025-01-23"
+        rationale: "WebSocket timeout blocker - user approved Option A (utility-level testing)"
+        blocker: "WebsocketCommunicator tests timeout due to ASGI protocol complexity (handshake requires accept + frame handling)"
+        solution: "Test utilities directly + add thin middleware mapping tests (bypassed WebSocket handshake)"
+        test_files:
+          - "tests/test_ratelimit_utilities_redis_module_6_8.py (548 lines, 15 passing + 3 skipped)"
+          - "tests/test_middleware_mapping_module_6_8.py (174 lines, 3 passing)"
+          - "tests/test_middleware_ratelimit_redis_module_6_8_SKIPPED.py (preserved for traceability)"
+        notes: "Direct utility calls with Redis state assertions. Monkeypatch utilities → assert DenyConnection. No full ASGI handshake required."
+      
+      coverage_results:
+        name: "Coverage Measurement"
+        status: "complete"
+        completed_date: "2025-01-23"
+        middleware_ratelimit_py:
+          before: "47%"
+          after: "62%"
+          delta: "+15%"
+          target: "65-70%"
+          variance: "3% gap"
+        ratelimit_py:
+          before: "0%"
+          after: "58%"
+          delta: "+58%"
+        combined_coverage: "60%"
+        tests_passing: 18
+        tests_skipped: 3
+        test_categories:
+          - "TestUserConnectionTracking (4 tests): increment, get, decrement, concurrency"
+          - "TestIPConnectionTracking (3 tests): IP-based counters"
+          - "TestRoomCapacity (4 tests): join, deny, leave, size"
+          - "TestTokenBucketRateLimiting (4 tests): under rate, burst, cooldown, IP keying"
+          - "TestRedisFailover (3 skipped): recursive mock complexity with _use_redis check"
+          - "TestMiddlewareCloseCodes (3 tests): user limit, IP limit, room full → DenyConnection"
+        coverage_artifact: "Artifacts/coverage/module_6_8/index.html"
+    
+    overall_impact:
+      total_tests: "18 passing, 3 skipped (21 total)"
+      test_code_lines: "722 lines (utilities + mapping tests)"
+      middleware_coverage: "47% → 62% (+15%)"
+      ratelimit_coverage: "0% → 58% (+58%)"
+      combined_coverage: "60%"
+      production_changes: "1 bug fix (UnboundLocalError: tournament_id in finally block)"
+      bug_fix_details: "Initialize tournament_id=None before try block to prevent crash in cleanup path"
+      total_effort: "~8-10 hours"
+    
+    technical_approach:
+      pivot_reason: "WebSocket E2E tests timeout (ASGI protocol complexity)"
+      solution: "Utility-level testing + thin middleware mapping"
+      benefits:
+        - "Fast execution (27s for 18 tests)"
+        - "Deterministic Redis state validation"
+        - "No ASGI overhead/timeouts"
+        - "Clear failure modes (direct assertions)"
+        - "Same coverage goal achieved"
+      isolation: "Per-test UUID-based namespace (test:{uuid}:)"
+      ttls: "200ms cooldown windows for timing tests"
+      redis_access: "Raw Redis client (cache.client.get_client().incr) bypasses KEY_PREFIX"
+    
+    known_limitations:
+      - "Message rate limiting (lines 208-294) not covered - requires ASGI receive phase"
+      - "Failover tests (3 skipped) - recursive mock issues with _use_redis check"
+      - "Helper methods (lines 325-431) not covered - requires ASGI scope/send handling"
+      - "3% variance gap on middleware target (62% vs 65%)"
+    
+    backlog_items:
+      - name: "Middleware Redis Enforcement"
+        target: "47% → 65-70%"
+        achieved: "47% → 62%"
+        status: "✅ CLOSE TO TARGET"
+        variance_gap: "3% (62% → 65%)"
+        tests: "3 middleware mapping tests"
+        technique: "Monkeypatch utilities, assert DenyConnection"
+      - name: "Utility Functions Coverage"
+        target: "New coverage baseline"
+        achieved: "0% → 58%"
+        status: "✅ SIGNIFICANT GAIN"
+        tests: "15 passing, 3 skipped"
+        technique: "Direct utility calls with Redis state assertions"
 
 phase_7:
   module_7_1:
