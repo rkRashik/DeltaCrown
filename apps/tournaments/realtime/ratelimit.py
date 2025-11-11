@@ -418,6 +418,10 @@ def increment_user_connections(user_id: int) -> int:
     Returns:
         Current connection count (after increment)
     """
+    from django.conf import settings
+    if not getattr(settings, "WS_RATE_ENABLED", False):
+        return 1  # Safe default when rate limiting is disabled
+    
     key = f"ws:conn:count:{user_id}"
     
     if _use_redis():
@@ -441,6 +445,10 @@ def decrement_user_connections(user_id: int) -> int:
     Returns:
         Current connection count (after decrement)
     """
+    from django.conf import settings
+    if not getattr(settings, "WS_RATE_ENABLED", False):
+        return 0  # Safe default when rate limiting is disabled
+    
     key = f"ws:conn:count:{user_id}"
     
     if _use_redis():
@@ -470,6 +478,10 @@ def get_user_connections(user_id: int) -> int:
     Returns:
         Number of active connections
     """
+    from django.conf import settings
+    if not getattr(settings, "WS_RATE_ENABLED", False):
+        return 0  # Safe default when rate limiting is disabled
+    
     key = f"ws:conn:count:{user_id}"
     
     if _use_redis():
@@ -489,6 +501,10 @@ def get_user_connections(user_id: int) -> int:
 
 def increment_ip_connections(ip_address: str) -> int:
     """Increment IP's active connection count."""
+    from django.conf import settings
+    if not getattr(settings, "WS_RATE_ENABLED", False):
+        return 1  # Safe default when rate limiting is disabled
+    
     key = f"ws:conn:ip:{ip_address}"
     
     if _use_redis():
@@ -506,6 +522,10 @@ def increment_ip_connections(ip_address: str) -> int:
 
 def decrement_ip_connections(ip_address: str) -> int:
     """Decrement IP's active connection count."""
+    from django.conf import settings
+    if not getattr(settings, "WS_RATE_ENABLED", False):
+        return 0  # Safe default when rate limiting is disabled
+    
     key = f"ws:conn:ip:{ip_address}"
     
     if _use_redis():
@@ -529,6 +549,10 @@ def decrement_ip_connections(ip_address: str) -> int:
 
 def get_ip_connections(ip_address: str) -> int:
     """Get IP's current connection count."""
+    from django.conf import settings
+    if not getattr(settings, "WS_RATE_ENABLED", False):
+        return 0  # Safe default when rate limiting is disabled
+    
     key = f"ws:conn:ip:{ip_address}"
     
     if _use_redis():

@@ -8,6 +8,7 @@ from .tournament_service import TournamentService
 from .registration_service import RegistrationService
 from .winner_service import WinnerDeterminationService
 from .certificate_service import CertificateService, certificate_service
+from .analytics_service import AnalyticsService, analytics_service
 
 __all__ = [
     'TournamentService',
@@ -15,4 +16,6 @@ __all__ = [
     'WinnerDeterminationService',
     'CertificateService',
     'certificate_service',
+    'AnalyticsService',
+    'analytics_service',
 ]

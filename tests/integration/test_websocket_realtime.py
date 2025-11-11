@@ -107,6 +107,8 @@ async def test_websocket_connect_with_valid_token(valid_jwt_token):
     
     # Should receive welcome message
     response = await communicator.receive_json_from(timeout=2)
+    if response['type'] != 'connection_established':
+        print(f"ERROR: Received error response: {response}")
     assert response['type'] == 'connection_established'
     assert response['data']['tournament_id'] == tournament_id
     assert 'username' in response['data']

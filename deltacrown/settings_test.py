@@ -24,6 +24,12 @@ CHANNEL_LAYERS = {
 # Disable rate limiting in tests
 WS_RATE_ENABLED = False
 
+# Allow all origins in tests (no origin validation)
+WS_ALLOWED_ORIGINS = []  # Empty list = allow all origins
+
+# Max payload size for WebSocket messages (16 KB)
+WS_MAX_PAYLOAD_BYTES = 16384
+
 # Faster password hashing for tests (significant speedup)
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',

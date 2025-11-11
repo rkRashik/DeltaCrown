@@ -280,16 +280,20 @@ class BracketService:
                 # Fetch team name from apps.teams (to be implemented)
                 # For now, use generic name
                 participant_name = f"Team #{reg.team_id}"
+                is_team = True
             else:
                 # Solo tournament
                 participant_id = reg.user_id  # Store as integer
                 participant_name = reg.user.username if reg.user else f"User #{reg.user_id}"
+                is_team = False
             
             participants.append({
                 'id': participant_id,
+                'participant_id': participant_id,  # Module 4.2: ranking_service expects this
                 'name': participant_name,
                 'seed': reg.seed if reg.seed else len(participants) + 1,
-                'registration_id': reg.id
+                'registration_id': reg.id,
+                'is_team': is_team  # Module 4.2: ranking_service uses this to validate team tournaments
             })
         
         return participants

@@ -373,7 +373,6 @@ async def broadcast_match_completed(tournament_id: int, result_data: Dict[str, A
     Module 6.1: Converted to async-native implementation.
     - Flushes any pending score batch for this match first (immediate flush)
     - Then broadcasts match_completed with no debounce
-    - Sends to both tournament and match channels (Module 4.5 spec)
     
     This ensures score updates are sent before completion event.
     
@@ -387,23 +386,8 @@ async def broadcast_match_completed(tournament_id: int, result_data: Dict[str, A
         logger.debug(f"Flushing pending score batch for match {match_id} before completion")
         await _flush_batch(match_id, tournament_id)
     
-    # Broadcast completion immediately (no batching) to tournament room
+    # Broadcast completion immediately (no batching)
     await broadcast_tournament_event(tournament_id, 'match_completed', result_data)
-    
-    # Module 4.5: Also broadcast to match-specific room
-    if match_id:
-        try:
-            channel_layer = get_channel_layer()
-            if channel_layer:
-                await channel_layer.group_send(
-                    f'match_{match_id}',
-                    {
-                        'type': 'match_completed',
-                        'data': result_data,
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Failed to broadcast match_completed to match room: {e}")
 
 
 async def broadcast_bracket_updated(tournament_id: int, bracket_data: Dict[str, Any]) -> None:
