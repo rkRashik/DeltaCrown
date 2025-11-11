@@ -22,14 +22,18 @@ from apps.user_profile.models import UserProfile
 @pytest.fixture
 def user_profile_factory(db):
     """Factory to create UserProfile instances for testing."""
+    import uuid
     def _create():
         from django.contrib.auth import get_user_model
         User = get_user_model()
+        unique_id = str(uuid.uuid4())[:8]
         user = User.objects.create_user(
-            username=f"testuser_{UserProfile.objects.count() + 1}",
-            email=f"test{UserProfile.objects.count() + 1}@example.com"
+            username=f"testuser_{unique_id}",
+            email=f"test{unique_id}@example.com"
         )
-        return UserProfile.objects.create(user=user)
+        # UserProfile auto-created via signal, fetch it
+        profile = UserProfile.objects.get(user=user)
+        return profile
     
     return _create
 
@@ -45,7 +49,6 @@ class TestDuplicateRequests:
     do not modify balance.
     """
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_duplicate_credit_same_key(self, user_profile_factory):
         """
         Test: credit() with duplicate idempotency_key returns original transaction.
@@ -58,18 +61,18 @@ class TestDuplicateRequests:
         idempotency_key = "test-credit-001"
         
         # First credit: 100 coins
-        wallet1, txn1 = services.credit(
+        result1 = services.credit(
             profile=profile,
             amount=100,
             reason=DeltaCrownTransaction.Reason.WINNER,
             idempotency_key=idempotency_key
         )
         
-        assert wallet1.cached_balance == 100
-        original_txn_id = txn1.id
+        assert result1['balance_after'] == 100
+        original_txn_id = result1['transaction_id']
         
         # Duplicate credit: same key, same amount
-        wallet2, txn2 = services.credit(
+        result2 = services.credit(
             profile=profile,
             amount=100,
             reason=DeltaCrownTransaction.Reason.WINNER,
@@ -77,16 +80,15 @@ class TestDuplicateRequests:
         )
         
         # Assert: Same transaction returned (no new transaction created)
-        assert txn2.id == original_txn_id
+        assert result2['transaction_id'] == original_txn_id
         
         # Assert: Balance unchanged (still 100, not 200)
-        wallet2.refresh_from_db()
-        assert wallet2.cached_balance == 100
+        assert result2['balance_after'] == 100
         
         # Assert: Only 1 transaction in DB
-        assert DeltaCrownTransaction.objects.filter(wallet=wallet1).count() == 1
+        wallet = DeltaCrownWallet.objects.get(profile=profile)
+        assert DeltaCrownTransaction.objects.filter(wallet=wallet).count() == 1
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_duplicate_debit_same_key(self, user_profile_factory):
         """
         Test: debit() with duplicate idempotency_key returns original transaction.
@@ -103,19 +105,18 @@ class TestDuplicateRequests:
         idempotency_key = "test-debit-001"
         
         # First debit: 50 coins
-        wallet1, txn1 = services.debit(
+        result1 = services.debit(
             profile=profile,
             amount=50,
             reason=DeltaCrownTransaction.Reason.ENTRY_FEE_DEBIT,
             idempotency_key=idempotency_key
         )
         
-        wallet1.refresh_from_db()
-        assert wallet1.cached_balance == 150
-        original_txn_id = txn1.id
+        assert result1['balance_after'] == 150
+        original_txn_id = result1['transaction_id']
         
         # Duplicate debit: same key
-        wallet2, txn2 = services.debit(
+        result2 = services.debit(
             profile=profile,
             amount=50,
             reason=DeltaCrownTransaction.Reason.ENTRY_FEE_DEBIT,
@@ -123,13 +124,11 @@ class TestDuplicateRequests:
         )
         
         # Assert: Same transaction returned
-        assert txn2.id == original_txn_id
+        assert result2['transaction_id'] == original_txn_id
         
         # Assert: Balance unchanged (still 150, not 100)
-        wallet2.refresh_from_db()
-        assert wallet2.cached_balance == 150
+        assert result2['balance_after'] == 150
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_duplicate_transfer_same_key(self, user_profile_factory):
         """
         Test: transfer() with duplicate idempotency_key returns original transactions.
@@ -147,7 +146,7 @@ class TestDuplicateRequests:
         idempotency_key = "test-transfer-001"
         
         # First transfer: 75 coins from A to B
-        from_wallet1, to_wallet1, debit_txn1, credit_txn1 = services.transfer(
+        result1 = services.transfer(
             from_profile=profile_a,
             to_profile=profile_b,
             amount=75,
@@ -155,16 +154,14 @@ class TestDuplicateRequests:
             idempotency_key=idempotency_key
         )
         
-        from_wallet1.refresh_from_db()
-        to_wallet1.refresh_from_db()
-        assert from_wallet1.cached_balance == 225
-        assert to_wallet1.cached_balance == 75
+        assert result1['from_balance_after'] == 225
+        assert result1['to_balance_after'] == 75
         
-        original_debit_id = debit_txn1.id
-        original_credit_id = credit_txn1.id
+        original_debit_id = result1['debit_transaction_id']
+        original_credit_id = result1['credit_transaction_id']
         
         # Duplicate transfer: same key
-        from_wallet2, to_wallet2, debit_txn2, credit_txn2 = services.transfer(
+        result2 = services.transfer(
             from_profile=profile_a,
             to_profile=profile_b,
             amount=75,
@@ -172,15 +169,13 @@ class TestDuplicateRequests:
             idempotency_key=idempotency_key
         )
         
-        # Assert: Same transactions returned
-        assert debit_txn2.id == original_debit_id
-        assert credit_txn2.id == original_credit_id
+        # Assert: Same transaction IDs returned (idempotent)
+        assert result2['debit_transaction_id'] == original_debit_id
+        assert result2['credit_transaction_id'] == original_credit_id
         
         # Assert: Balances unchanged
-        from_wallet2.refresh_from_db()
-        to_wallet2.refresh_from_db()
-        assert from_wallet2.cached_balance == 225
-        assert to_wallet2.cached_balance == 75
+        assert result2['from_balance_after'] == 225
+        assert result2['to_balance_after'] == 75
 
 
 # ============================================================================
@@ -194,7 +189,6 @@ class TestExistingFunctionIdempotency:
     maintain idempotency behavior.
     """
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_award_participation_idempotent(self, user_profile_factory):
         """
         Test: award_participation_for_registration() is idempotent (duplicate calls no-op).
@@ -203,30 +197,26 @@ class TestExistingFunctionIdempotency:
         Integration: Module 5.2 payout compatibility
         """
         from apps.economy import services
-        from apps.tournaments.models import TournamentRegistration
         
         profile = user_profile_factory()
         
-        # Create mock registration (simplified)
-        # TODO: Use actual TournamentRegistration fixture when available
-        # For now, test deterministic key generation pattern
-        
+        # Test deterministic key generation pattern
         registration_id = 12345
         idempotency_key = f"participation_award_reg_{registration_id}"
         
         # First award: 50 coins
-        wallet1, txn1 = services.credit(
+        result1 = services.credit(
             profile=profile,
             amount=50,
             reason=DeltaCrownTransaction.Reason.PARTICIPATION,
             idempotency_key=idempotency_key
         )
         
-        assert wallet1.cached_balance == 50
-        original_txn_id = txn1.id
+        assert result1['balance_after'] == 50
+        original_txn_id = result1['transaction_id']
         
         # Duplicate award (retry scenario)
-        wallet2, txn2 = services.credit(
+        result2 = services.credit(
             profile=profile,
             amount=50,
             reason=DeltaCrownTransaction.Reason.PARTICIPATION,
@@ -234,11 +224,9 @@ class TestExistingFunctionIdempotency:
         )
         
         # Assert: Same transaction returned, balance unchanged
-        assert txn2.id == original_txn_id
-        wallet2.refresh_from_db()
-        assert wallet2.cached_balance == 50
+        assert result2['transaction_id'] == original_txn_id
+        assert result2['balance_after'] == 50
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_award_placements_idempotent(self, user_profile_factory):
         """
         Test: award_placements() is idempotent (duplicate calls no-op).
@@ -256,18 +244,18 @@ class TestExistingFunctionIdempotency:
         idempotency_key = f"placement_award_reg_{registration_id}_place_{placement}"
         
         # First award: 500 coins (winner)
-        wallet1, txn1 = services.credit(
+        result1 = services.credit(
             profile=profile,
             amount=500,
             reason=DeltaCrownTransaction.Reason.WINNER,
             idempotency_key=idempotency_key
         )
         
-        assert wallet1.cached_balance == 500
-        original_txn_id = txn1.id
+        assert result1['balance_after'] == 500
+        original_txn_id = result1['transaction_id']
         
         # Duplicate award (retry scenario)
-        wallet2, txn2 = services.credit(
+        result2 = services.credit(
             profile=profile,
             amount=500,
             reason=DeltaCrownTransaction.Reason.WINNER,
@@ -275,9 +263,8 @@ class TestExistingFunctionIdempotency:
         )
         
         # Assert: Same transaction, balance unchanged
-        assert txn2.id == original_txn_id
-        wallet2.refresh_from_db()
-        assert wallet2.cached_balance == 500
+        assert result2['transaction_id'] == original_txn_id
+        assert result2['balance_after'] == 500
 
 
 # ============================================================================
@@ -290,7 +277,6 @@ class TestCollisionAndOrdering:
     Edge cases: collision detection, out-of-order requests, key reuse prevention.
     """
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_collision_different_amount_raises(self, user_profile_factory):
         """
         Test: Same idempotency_key with different amount raises error.
@@ -298,12 +284,13 @@ class TestCollisionAndOrdering:
         Target: Collision detection (prevents key reuse with different parameters)
         """
         from apps.economy import services
+        from apps.economy.exceptions import IdempotencyConflict
         
         profile = user_profile_factory()
         idempotency_key = "test-collision-001"
         
         # First credit: 100 coins
-        wallet1, txn1 = services.credit(
+        result1 = services.credit(
             profile=profile,
             amount=100,
             reason=DeltaCrownTransaction.Reason.WINNER,
@@ -311,7 +298,7 @@ class TestCollisionAndOrdering:
         )
         
         # Attempt to use same key with different amount (collision)
-        with pytest.raises(Exception) as exc_info:  # Specific exception TBD
+        with pytest.raises(IdempotencyConflict) as exc_info:
             services.credit(
                 profile=profile,
                 amount=200,  # Different amount
@@ -320,9 +307,8 @@ class TestCollisionAndOrdering:
             )
         
         # Assert: Error message indicates collision
-        assert "collision" in str(exc_info.value).lower() or "mismatch" in str(exc_info.value).lower()
+        assert "idempotency" in str(exc_info.value).lower() or "payload" in str(exc_info.value).lower()
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_out_of_order_requests_handled(self, user_profile_factory):
         """
         Test: Out-of-order duplicate requests return correct original transaction.
@@ -338,22 +324,19 @@ class TestCollisionAndOrdering:
         key2 = "test-order-002"
         key3 = "test-order-003"
         
-        wallet, txn1 = services.credit(profile=profile, amount=10, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key1)
-        wallet, txn2 = services.credit(profile=profile, amount=20, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key2)
-        wallet, txn3 = services.credit(profile=profile, amount=30, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key3)
+        result1 = services.credit(profile=profile, amount=10, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key1)
+        result2 = services.credit(profile=profile, amount=20, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key2)
+        result3 = services.credit(profile=profile, amount=30, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key3)
         
-        wallet.refresh_from_db()
-        assert wallet.cached_balance == 60
+        assert result3['balance_after'] == 60
         
         # Retry key2 (out-of-order)
-        wallet, txn2_retry = services.credit(profile=profile, amount=20, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key2)
+        result2_retry = services.credit(profile=profile, amount=20, reason=DeltaCrownTransaction.Reason.PARTICIPATION, idempotency_key=key2)
         
         # Assert: Same transaction returned, balance unchanged
-        assert txn2_retry.id == txn2.id
-        wallet.refresh_from_db()
-        assert wallet.cached_balance == 60
+        assert result2_retry['transaction_id'] == result2['transaction_id']
+        assert result2_retry['balance_after'] == 60  # Current balance, not balance at time of key2 creation
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_deterministic_key_generation(self, user_profile_factory):
         """
         Test: Idempotency keys are deterministic and collision-free.
@@ -380,6 +363,70 @@ class TestCollisionAndOrdering:
         
         key6 = f"placement_award_reg_{reg_id}_place_{placement + 1}"
         assert key3 != key6, "Different placements should have different keys"
+    
+    def test_cross_op_collision_raises(self, user_profile_factory):
+        """
+        Test: Reusing same idempotency_key for different operation type raises IdempotencyConflict.
+        
+        Target: Cross-operation collision detection (e.g., credit key reused for debit)
+        """
+        from apps.economy import services
+        from apps.economy.exceptions import IdempotencyConflict
+        
+        profile = user_profile_factory()
+        idempotency_key = "test-cross-op-001"
+        
+        # First: credit with this key
+        services.credit(profile=profile, amount=100, reason=DeltaCrownTransaction.Reason.WINNER, idempotency_key=idempotency_key)
+        
+        # Attempt to reuse same key for debit (different operation)
+        with pytest.raises(IdempotencyConflict):
+            services.debit(profile=profile, amount=50, reason=DeltaCrownTransaction.Reason.ENTRY_FEE_DEBIT, idempotency_key=idempotency_key)
+    
+    def test_concurrent_same_key_single_apply(self, user_profile_factory):
+        """
+        Test: Concurrent requests with same key result in single apply (one writes, others get original).
+        
+        Target: Race condition handling via DB unique constraint on idempotency_key
+        """
+        from apps.economy import services
+        import threading
+        
+        profile = user_profile_factory()
+        idempotency_key = "test-concurrent-001"
+        results = []
+        errors = []
+        
+        def do_credit():
+            try:
+                result = services.credit(
+                    profile=profile,
+                    amount=100,
+                    reason=DeltaCrownTransaction.Reason.WINNER,
+                    idempotency_key=idempotency_key
+                )
+                results.append(result)
+            except Exception as e:
+                errors.append(e)
+        
+        # Launch 5 concurrent threads with same key
+        threads = [threading.Thread(target=do_credit) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        
+        # Assert: All results should have same transaction_id (idempotent)
+        assert len(results) >= 1, "At least one result should succeed"
+        txn_ids = {r['transaction_id'] for r in results}
+        assert len(txn_ids) == 1, "All results should reference the same transaction"
+        
+        # Assert: Balance applied only once
+        wallet = DeltaCrownWallet.objects.get(profile=profile)
+        assert wallet.cached_balance == 100
+        
+        # Assert: Only 1 transaction created
+        assert DeltaCrownTransaction.objects.filter(wallet=wallet).count() == 1
 
 
 # ============================================================================
@@ -392,29 +439,29 @@ class TestManualAdjustments:
     Manual adjustments (without idempotency_key) should create new transactions each time.
     """
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 4")
     def test_manual_adjust_no_idempotency_key(self, user_profile_factory):
         """
-        Test: manual_adjust() without idempotency_key creates new transaction each call.
+        Test: credit() without idempotency_key creates new transaction each call.
         
-        Target: apps/economy/services.py - manual_adjust()
+        Target: apps/economy/services.py - credit() (no idempotency key = manual adjustments)
         """
         from apps.economy import services
         
         profile = user_profile_factory()
         
-        # Manual adjustment 1: +100
-        wallet1, txn1 = services.credit(
+        # Manual adjustment 1: +100 (no key)
+        result1 = services.credit(
             profile=profile,
             amount=100,
             reason=DeltaCrownTransaction.Reason.MANUAL_ADJUST
             # No idempotency_key
         )
         
-        assert wallet1.cached_balance == 100
+        assert result1['balance_after'] == 100
+        txn1_id = result1['transaction_id']
         
-        # Manual adjustment 2: +100 (should create new transaction)
-        wallet2, txn2 = services.credit(
+        # Manual adjustment 2: +100 (no key, should create new transaction)
+        result2 = services.credit(
             profile=profile,
             amount=100,
             reason=DeltaCrownTransaction.Reason.MANUAL_ADJUST
@@ -422,14 +469,14 @@ class TestManualAdjustments:
         )
         
         # Assert: Different transactions created
-        assert txn2.id != txn1.id
+        assert result2['transaction_id'] != txn1_id
         
         # Assert: Balance incremented both times
-        wallet2.refresh_from_db()
-        assert wallet2.cached_balance == 200
+        assert result2['balance_after'] == 200
         
         # Assert: 2 transactions in DB
-        assert DeltaCrownTransaction.objects.filter(wallet=wallet1).count() == 2
+        wallet = DeltaCrownWallet.objects.get(profile=profile)
+        assert DeltaCrownTransaction.objects.filter(wallet=wallet).count() == 2
 
 
 # ============================================================================

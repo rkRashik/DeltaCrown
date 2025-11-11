@@ -28,14 +28,16 @@ def wallet_with_drift(db):
     
     Returns: (wallet, expected_ledger_balance) tuple
     """
+    import uuid
     from django.contrib.auth import get_user_model
     User = get_user_model()
     
     user = User.objects.create_user(
-        username="drift_test_user",
-        email="drift@example.com"
+        username=f"drift_{uuid.uuid4().hex[:8]}",
+        email=f"drift_{uuid.uuid4().hex[:8]}@example.com"
     )
-    profile = UserProfile.objects.create(user=user)
+    # UserProfile auto-created by post_save signal
+    profile = UserProfile.objects.get(user=user)
     wallet = DeltaCrownWallet.objects.create(profile=profile, cached_balance=0)
     
     # Create transactions: +100, +50, -30 = 120 total
@@ -71,6 +73,7 @@ def multiple_wallets_with_drift(db):
     
     Returns: list of (wallet, expected_balance, has_drift) tuples
     """
+    import uuid
     from django.contrib.auth import get_user_model
     User = get_user_model()
     
@@ -78,10 +81,11 @@ def multiple_wallets_with_drift(db):
     
     for i in range(5):
         user = User.objects.create_user(
-            username=f"multi_test_user_{i}",
-            email=f"multi{i}@example.com"
+            username=f"multi_{uuid.uuid4().hex[:8]}",
+            email=f"multi{i}_{uuid.uuid4().hex[:8]}@example.com"
         )
-        profile = UserProfile.objects.create(user=user)
+        # UserProfile auto-created by post_save signal
+        profile = UserProfile.objects.get(user=user)
         wallet = DeltaCrownWallet.objects.create(profile=profile, cached_balance=0)
         
         # Create transactions
@@ -118,7 +122,6 @@ class TestRecalcAllWalletsCommand:
     Detects and corrects balance drift across all wallets.
     """
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 5")
     def test_dry_run_flags_drift_no_changes(self, wallet_with_drift):
         """
         Test: --dry-run mode detects drift but does not modify database.
@@ -129,7 +132,8 @@ class TestRecalcAllWalletsCommand:
         
         # Run command in dry-run mode
         out = StringIO()
-        call_command('recalc_all_wallets', '--dry-run', stdout=out)
+        with pytest.raises(SystemExit) as exc_info:
+            call_command('recalc_all_wallets', '--dry-run', stdout=out)
         
         output = out.getvalue()
         
@@ -142,11 +146,9 @@ class TestRecalcAllWalletsCommand:
         assert wallet.cached_balance == 999, "Dry-run should not modify balance"
         
         # Assert: Exit code 1 (drift detected)
-        # Note: pytest call_command doesn't expose exit code directly
-        # Verify via output message instead
+        assert exc_info.value.code == 1, "Should exit with code 1 when drift detected"
         assert "would correct" in output.lower() or "dry run" in output.lower()
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 5")
     def test_real_run_corrects_drift(self, wallet_with_drift):
         """
         Test: Real run (no --dry-run) corrects drift and updates database.
@@ -157,12 +159,16 @@ class TestRecalcAllWalletsCommand:
         
         # Run command without dry-run
         out = StringIO()
-        call_command('recalc_all_wallets', stdout=out)
+        with pytest.raises(SystemExit) as exc_info:
+            call_command('recalc_all_wallets', stdout=out)
         
         output = out.getvalue()
         
         # Assert: Output indicates correction applied
         assert "corrected" in output.lower() or "fixed" in output.lower()
+        
+        # Assert: Exit code 1 (drift was corrected)
+        assert exc_info.value.code == 1, "Should exit with code 1 when drift corrected"
         
         # Assert: cached_balance corrected to 120
         wallet.refresh_from_db()
@@ -172,7 +178,6 @@ class TestRecalcAllWalletsCommand:
         ledger_sum = DeltaCrownTransaction.objects.filter(wallet=wallet).aggregate(total=Sum('amount'))['total']
         assert wallet.cached_balance == ledger_sum
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 5")
     def test_multiple_wallets_selective_correction(self, multiple_wallets_with_drift):
         """
         Test: Command corrects only wallets with drift, leaves accurate wallets unchanged.
@@ -183,12 +188,16 @@ class TestRecalcAllWalletsCommand:
         
         # Run command
         out = StringIO()
-        call_command('recalc_all_wallets', stdout=out)
+        with pytest.raises(SystemExit) as exc_info:
+            call_command('recalc_all_wallets', stdout=out)
         
         output = out.getvalue()
         
         # Assert: Output indicates 3 wallets corrected (wallets 0, 2, 4)
         assert "3" in output or "three" in output.lower()
+        
+        # Assert: Exit code 1 (drift was corrected)
+        assert exc_info.value.code == 1
         
         # Verify each wallet
         for wallet, expected_balance, had_drift in wallets_data:
@@ -201,7 +210,6 @@ class TestRecalcAllWalletsCommand:
             ledger_sum = DeltaCrownTransaction.objects.filter(wallet=wallet).aggregate(total=Sum('amount'))['total']
             assert wallet.cached_balance == ledger_sum
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 5")
     def test_exit_codes(self, wallet_with_drift):
         """
         Test: Command returns correct exit codes for CI/CD integration.
@@ -216,31 +224,33 @@ class TestRecalcAllWalletsCommand:
         wallet, expected_balance = wallet_with_drift
         
         # Dry-run with drift → exit code 1
-        # Note: pytest call_command doesn't expose exit code directly
-        # This test documents expected behavior for manual validation
-        
         out = StringIO()
-        call_command('recalc_all_wallets', '--dry-run', stdout=out)
+        with pytest.raises(SystemExit) as exc_info:
+            call_command('recalc_all_wallets', '--dry-run', stdout=out)
         output = out.getvalue()
         
-        # Assert: Drift detected message
+        # Assert: Drift detected message and exit code 1
         assert "drift" in output.lower()
+        assert exc_info.value.code == 1
         
         # Real run → corrects drift, exit code 1 (drift was found)
         out2 = StringIO()
-        call_command('recalc_all_wallets', stdout=out2)
+        with pytest.raises(SystemExit) as exc_info2:
+            call_command('recalc_all_wallets', stdout=out2)
         output2 = out2.getvalue()
         
         assert "corrected" in output2.lower()
+        assert exc_info2.value.code == 1
         
         # Subsequent run → no drift, exit code 0
         out3 = StringIO()
-        call_command('recalc_all_wallets', stdout=out3)
+        with pytest.raises(SystemExit) as exc_info3:
+            call_command('recalc_all_wallets', stdout=out3)
         output3 = out3.getvalue()
         
         assert "no drift" in output3.lower() or "all accurate" in output3.lower()
+        assert exc_info3.value.code == 0
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 5")
     def test_no_pii_in_output(self, wallet_with_drift):
         """
         Test: Command output contains wallet IDs only (no usernames, emails, or PII).
@@ -251,16 +261,17 @@ class TestRecalcAllWalletsCommand:
         
         # Run command
         out = StringIO()
-        call_command('recalc_all_wallets', stdout=out)
+        with pytest.raises(SystemExit):
+            call_command('recalc_all_wallets', stdout=out)
         
         output = out.getvalue()
         
         # Assert: Wallet ID present
         assert str(wallet.id) in output
         
-        # Assert: No PII (username, email)
-        assert "drift_test_user" not in output, "Username should not appear in output"
-        assert "drift@example.com" not in output, "Email should not appear in output"
+        # Assert: No PII (UUID usernames and emails should not appear)
+        # The fixtures use UUID-based usernames/emails, verify none leak
+        assert "@example.com" not in output, "Email should not appear in output"
         
         # Assert: Generic identifiers only
         assert "wallet" in output.lower()
@@ -276,43 +287,56 @@ class TestRecalcEdgeCases:
     Edge cases: empty wallets, zero balance drift, negative balance reconciliation.
     """
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 5")
     def test_empty_wallet_no_transactions(self, db):
         """
         Test: Wallet with no transactions recalculates to zero balance.
         
         Target: Edge case for new wallets
         """
+        import uuid
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        user = User.objects.create_user(username="empty_user", email="empty@example.com")
-        profile = UserProfile.objects.create(user=user)
+        user = User.objects.create_user(
+            username=f"empty_{uuid.uuid4().hex[:8]}",
+            email=f"empty_{uuid.uuid4().hex[:8]}@example.com"
+        )
+        # UserProfile auto-created by post_save signal
+        profile = UserProfile.objects.get(user=user)
         
         # Create wallet with corrupted balance (should be 0)
         wallet = DeltaCrownWallet.objects.create(profile=profile, cached_balance=500)
         
         # Run command
         out = StringIO()
-        call_command('recalc_all_wallets', stdout=out)
+        with pytest.raises(SystemExit) as exc_info:
+            call_command('recalc_all_wallets', stdout=out)
+        
+        # Assert: Exit code 1 (drift was corrected)
+        assert exc_info.value.code == 1
         
         # Assert: Balance corrected to 0
         wallet.refresh_from_db()
         assert wallet.cached_balance == 0
     
-    @pytest.mark.xfail(reason="Implementation pending - Step 5")
     def test_negative_balance_reconciliation(self, db):
         """
         Test: Wallet with negative balance (overdraft) reconciles correctly.
         
         Target: Overdraft wallet handling
         """
+        import uuid
         from django.contrib.auth import get_user_model
         User = get_user_model()
         
-        user = User.objects.create_user(username="overdraft_user", email="overdraft@example.com")
-        profile = UserProfile.objects.create(user=user)
-        wallet = DeltaCrownWallet.objects.create(profile=profile, cached_balance=0)
+        user = User.objects.create_user(
+            username=f"overdraft_{uuid.uuid4().hex[:8]}",
+            email=f"overdraft_{uuid.uuid4().hex[:8]}@example.com"
+        )
+        # UserProfile auto-created by post_save signal
+        profile = UserProfile.objects.get(user=user)
+        # Enable overdraft to allow negative balance
+        wallet = DeltaCrownWallet.objects.create(profile=profile, cached_balance=0, allow_overdraft=True)
         
         # Create negative transaction (overdraft)
         DeltaCrownTransaction.objects.create(
@@ -325,7 +349,11 @@ class TestRecalcEdgeCases:
         DeltaCrownWallet.objects.filter(id=wallet.id).update(cached_balance=100)
         
         # Run command
-        call_command('recalc_all_wallets')
+        with pytest.raises(SystemExit) as exc_info:
+            call_command('recalc_all_wallets')
+        
+        # Assert: Exit code 1 (drift was corrected)
+        assert exc_info.value.code == 1
         
         # Assert: Balance corrected to -50
         wallet.refresh_from_db()

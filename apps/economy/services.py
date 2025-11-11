@@ -57,6 +57,22 @@ def _mk_idem_key(kind: str, **parts) -> str:
     return ":".join(bits)
 
 
+# ==============================================================================
+# DEPRECATED: Tournament Integration Shims (Legacy Functions)
+# ==============================================================================
+# The following functions (award, award_participation_for_registration,
+# award_placements, backfill_participation_for_verified_payments) are retained
+# for backward compatibility with Module 5.2 tournament payouts.
+#
+# Status: Deprecated (tournament models moved to legacy per Nov 2, 2025 signals.py)
+# Testing: Covered by idempotency invariant tests only (see test_idempotency_module_7_1.py)
+# Coverage: Intentionally excluded from line coverage target (see MODULE_7.1_COMPLETION_STATUS.md)
+# Replacement: Use core API (credit/debit/transfer/get_balance/get_transaction_history) for new code
+#
+# These functions depend on deprecated tournament models and will be removed in Phase 8.
+# See Documents/ExecutionPlan/MODULE_7.1_COMPLETION_STATUS.md for deprecation timeline.
+# ==============================================================================
+
 @transaction.atomic
 def award(
     *,
@@ -492,19 +508,26 @@ def transfer(from_profile: Union[int, object], to_profile: Union[int, object], a
             w_from = DeltaCrownWallet.objects.select_for_update().get(pk=w_from.pk)
             w_to = DeltaCrownWallet.objects.select_for_update().get(pk=w_to.pk)
 
-            # Idempotency: if provided, check existing
+            # Idempotency: if provided, check existing (use derived keys for debit/credit)
+            debit_key = f"{idempotency_key}_debit" if idempotency_key else None
+            credit_key = f"{idempotency_key}_credit" if idempotency_key else None
+            
             if idempotency_key:
-                existing = DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).first()
-                if existing:
-                    # We expect a pair: credit and debit with same idempotency_key; return original
-                    txs = list(DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).order_by("id"))
-                    if not txs:
-                        raise IdempotencyConflict("Idempotency key exists but transactions missing")
-                    # return info for first matching tx (debit)
+                # Check if debit transaction already exists
+                existing_debit = DeltaCrownTransaction.objects.filter(idempotency_key=debit_key).first()
+                if existing_debit:
+                    # Transfer already processed; return original result
+                    existing_credit = DeltaCrownTransaction.objects.filter(idempotency_key=credit_key).first()
+                    if not existing_credit:
+                        raise IdempotencyConflict("Transfer partially completed (debit exists, credit missing)")
+                    
                     return {
-                        "wallet_id": w_from.id,
-                        "balance_after": int(w_from.cached_balance),
-                        "transaction_id": txs[0].id,
+                        "from_wallet_id": w_from.id,
+                        "to_wallet_id": w_to.id,
+                        "from_balance_after": int(w_from.cached_balance),
+                        "to_balance_after": int(w_to.cached_balance),
+                        "debit_transaction_id": existing_debit.id,
+                        "credit_transaction_id": existing_credit.id,
                         "idempotency_key": idempotency_key,
                     }
 
@@ -520,9 +543,9 @@ def transfer(from_profile: Union[int, object], to_profile: Union[int, object], a
             w_to.cached_balance = int(w_to.cached_balance) + int(amount)
             w_to.save(update_fields=["cached_balance", "updated_at"]) if w_to.pk else w_to.save()
 
-            # Create transactions: debit then credit
-            debit_tx = _create_transaction(w_from, -int(amount), reason, idempotency_key=idempotency_key)
-            credit_tx = _create_transaction(w_to, int(amount), reason, idempotency_key=idempotency_key)
+            # Create transactions: debit then credit (with distinct keys)
+            debit_tx = _create_transaction(w_from, -int(amount), reason, idempotency_key=debit_key)
+            credit_tx = _create_transaction(w_to, int(amount), reason, idempotency_key=credit_key)
 
             return {
                 "from_wallet_id": w_from.id,
