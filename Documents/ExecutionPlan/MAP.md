@@ -1450,8 +1450,35 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ## Phase 7: Economy & Monetization
 
-### Module 7.1: Coin System
-*[To be filled when implementation starts]*
+### Module 7.1: Coin System (Economy Foundation)
+- **Status**: 🔄 **IN PROGRESS - Step 1 Complete** (2025-01-23)
+- **Approach**: Test-First, Minimal Schema, Service Layer Only
+- **Implements**:
+  - Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md (comprehensive implementation plan)
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-5-service-layer (business logic in services, not models/views)
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#economy-integration (minimal schema, IntegerField references)
+  - Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md (CHECK/UNIQUE constraints)
+  - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#section-8 (PII discipline)
+  - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#section-5 (testing strategy)
+- **Scope**: Test-first ledger invariants, service API (credit/debit/transfer), idempotency hardening, admin reconciliation
+- **Files Created (Step 1)**:
+  - tests/economy/test_ledger_invariants_module_7_1.py (10 tests: conservation law, non-negative, immutability, monotonic)
+  - tests/economy/test_service_api_module_7_1.py (15 tests: credit, debit, transfer, get_balance, get_history)
+  - tests/economy/test_idempotency_module_7_1.py (10 tests: duplicate keys, collision detection, deterministic keys)
+  - tests/economy/test_admin_reconcile_module_7_1.py (8 tests: dry-run, real run, exit codes, PII checks)
+  - tests/economy/test_transfer_properties_module_7_1.py (9 tests: property-based validation with random sequences)
+  - Documents/ExecutionPlan/MODULE_7.1_COMPLETION_STATUS.md (step-by-step status tracking)
+- **Test Coverage**: 52 tests total (all xfail/skip until implementation)
+- **Coverage Target**: ≥85% on apps/economy/ (100% on financial logic)
+- **Integration**: Zero regressions on Module 5.2 tournament payouts (award_participation, award_placements backward compatible)
+- **Pending Steps**:
+  - Step 2: Ledger Invariants Implementation (~3 hours) - add exceptions, allow_overdraft field, validation, recalc atomic
+  - Step 3: Service API Enhancement (~3 hours) - implement credit(), debit(), transfer(), get_balance(), get_history()
+  - Step 4: Idempotency Hardening (~2 hours) - duplicate request handling, deterministic keys, Module 5.2 integration
+  - Step 5: Admin Integration (~2 hours) - recalc_all_wallets command with dry-run, exit codes, PII discipline
+- **Total Effort**: ~10-12 hours (Step 1 complete, 2 hours elapsed)
+- **Dependencies**: Module 5.2 complete (tournament payouts), existing apps/economy/ models
+- **Next**: Step 2 - Ledger Invariants Implementation
 
 ### Module 7.2: Shop & Purchases
 *[To be filled when implementation starts]*

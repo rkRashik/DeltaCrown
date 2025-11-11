@@ -904,7 +904,102 @@ phase_6:
 
 phase_7:
   module_7_1:
-    implements: []
+    name: "Coin System (Economy Foundation)"
+    description: "Test-first ledger invariants, service API (credit/debit/transfer), idempotency hardening, admin reconciliation"
+    status: "in_progress"
+    start_date: "2025-01-23"
+    approach: "Test-First, Minimal Schema, Service Layer Only"
+    implements:
+      - "Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md"
+      - "Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-5-service-layer"
+      - "Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#economy-integration"
+      - "Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md"
+      - "Documents/Planning/PART_2.3_REALTIME_SECURITY.md#section-8-pii-discipline"
+      - "Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#section-5-testing-strategy"
+    steps:
+      step_1:
+        name: "Test-First Scaffolding"
+        status: "complete"
+        completed_date: "2025-01-23"
+        duration: "~2 hours"
+        files:
+          - "tests/economy/test_ledger_invariants_module_7_1.py (10 tests)"
+          - "tests/economy/test_service_api_module_7_1.py (15 tests)"
+          - "tests/economy/test_idempotency_module_7_1.py (10 tests)"
+          - "tests/economy/test_admin_reconcile_module_7_1.py (8 tests)"
+          - "tests/economy/test_transfer_properties_module_7_1.py (9 property tests)"
+          - "Documents/ExecutionPlan/MODULE_7.1_COMPLETION_STATUS.md"
+        notes: "All 52 tests marked xfail/skip until implementation. Test-first approach validated."
+      step_2:
+        name: "Ledger Invariants Implementation"
+        status: "pending"
+        estimated_duration: "~3 hours"
+        tasks:
+          - "Create apps/economy/exceptions.py (InsufficientFunds, InvalidAmount, InvalidWallet)"
+          - "Add migration: allow_overdraft BooleanField to DeltaCrownWallet"
+          - "Enhance DeltaCrownTransaction.save() validation (balance check, immutability)"
+          - "Make wallet.recalc_and_save() atomic"
+          - "Remove xfail markers from test_ledger_invariants_module_7_1.py"
+        acceptance:
+          - "10/10 ledger invariant tests passing"
+          - "Coverage ≥95% on apps/economy/models.py"
+      step_3:
+        name: "Service API Enhancement"
+        status: "pending"
+        estimated_duration: "~3 hours"
+        tasks:
+          - "Implement credit(profile, amount, reason, idempotency_key, **kwargs)"
+          - "Implement debit(profile, amount, reason, idempotency_key, **kwargs)"
+          - "Implement transfer(from_profile, to_profile, amount, reason, idempotency_key, **kwargs)"
+          - "Implement get_balance(profile)"
+          - "Implement get_transaction_history(profile, limit, offset)"
+          - "Remove xfail markers from test_service_api_module_7_1.py"
+        acceptance:
+          - "15/15 service API tests passing"
+          - "Coverage ≥90% on apps/economy/services.py"
+      step_4:
+        name: "Idempotency Hardening"
+        status: "pending"
+        estimated_duration: "~2 hours"
+        tasks:
+          - "Enhance credit/debit/transfer idempotency handling"
+          - "Update award_participation_for_registration() with deterministic keys"
+          - "Update award_placements() with deterministic keys"
+          - "Validate Module 5.2 backward compatibility"
+          - "Remove xfail markers from test_idempotency_module_7_1.py and test_transfer_properties_module_7_1.py"
+        acceptance:
+          - "10/10 idempotency tests passing"
+          - "9/9 property tests passing"
+          - "Coverage 100% on idempotency logic"
+      step_5:
+        name: "Admin Integration"
+        status: "pending"
+        estimated_duration: "~2 hours"
+        tasks:
+          - "Create apps/economy/management/commands/recalc_all_wallets.py"
+          - "Implement --dry-run flag with drift detection"
+          - "PII discipline: wallet IDs only in output"
+          - "Exit codes: 0=clean, 1=drift, 2=error"
+          - "Remove xfail markers from test_admin_reconcile_module_7_1.py"
+        acceptance:
+          - "8/8 admin reconcile tests passing"
+          - "Coverage ≥75% on management command"
+    coverage:
+      target: "≥85% on apps/economy/"
+      financial_logic_target: "100%"
+      service_layer_target: "≥90%"
+      admin_tools_target: "≥75%"
+    integration:
+      - module: "5.2"
+        constraint: "Zero regressions on tournament payout tests"
+      - module: "5.2"
+        constraint: "award_participation() backward compatible"
+      - module: "5.2"
+        constraint: "award_placements() backward compatible"
+    documentation:
+      - "Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md"
+      - "Documents/ExecutionPlan/MODULE_7.1_COMPLETION_STATUS.md"
+      - "Documents/ExecutionPlan/MAP.md#module-7-1"
   module_7_2:
     implements: []
   module_7_3:
