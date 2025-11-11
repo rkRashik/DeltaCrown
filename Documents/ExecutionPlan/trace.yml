@@ -1196,17 +1196,17 @@ phase_7:
 phase_8:
   module_8_1_8_2:
     name: "Sanctions Service + Audit Trail + Abuse Reports"
-    status: "complete"
+    status: "complete_hardened"
     completed_date: "2025-11-12"
-    test_count: 40
-    test_passed: 40
+    test_count: 69
+    test_passed: 69
     test_skipped: 0
     test_xfailed: 0
     test_flakes: 0
-    runtime_seconds: 2.7
-    coverage_overall: 92
+    runtime_seconds: 2.02
+    coverage_overall: 99
     coverage_services: 100
-    coverage_models: 80
+    coverage_models: 99
     implements:
       - "Sanctions Service: create_sanction with idempotency (unique key, replay-safe)"
       - "Sanctions Service: revoke_sanction with atomicity (row lock, double-revoke safe)"
@@ -1226,6 +1226,9 @@ phase_8:
       - "PII guarantee: IDs only in logs/audit/service outputs (no usernames/emails/IPs)"
       - "Test coverage: 22 sanctions tests (create/revoke/query/overlapping/idempotency)"
       - "Test coverage: 18 audit/reports tests (file/triage/list/state machine/pagination)"
+      - "Test coverage: 16 model tests (clean()/validation, __str__(), helper methods)"
+      - "Test coverage: 13 runtime gate tests (WebSocket/economy integration, performance)"
+      - "Hardening: +29 tests added, models 80%→99%, test-only integration assertions"
     schema:
       tables:
         - moderation_sanction:

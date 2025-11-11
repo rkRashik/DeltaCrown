@@ -1690,10 +1690,10 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 ## Phase 8: Admin & Moderation
 
 ### Module 8.1 & 8.2: Sanctions Service + Audit Trail + Abuse Reports
-- **Status**: ✅ **COMPLETE** (November 12, 2025)
+- **Status**: ✅ **COMPLETE + HARDENED** (November 12, 2025)
 - **Implements**: Service-layer moderation infrastructure (sanctions, audit trail, abuse reports)
-- **Test Results**: **40/40 passed (100%)**, 0 flakes, runtime 2.7s
-- **Coverage**: **92%** overall (services **100%**, models 80%)
+- **Test Results**: **69/69 passed (100%)**, 0 flakes, runtime 2.02s
+- **Coverage**: **99%** overall (services **100%**, models **99%**)
 - **Files Created**:
   - **Models**: `apps/moderation/models.py` (3 models: ModerationSanction, ModerationAudit, AbuseReport)
   - **Services**: `apps/moderation/services/sanctions_service.py` (100% coverage, 61 stmts)
@@ -1701,6 +1701,8 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - **Services**: `apps/moderation/services/audit_service.py` (100% coverage, 18 stmts)
   - **Tests**: `tests/moderation/test_sanctions_service.py` (22 tests: create, revoke, query, overlapping windows)
   - **Tests**: `tests/moderation/test_audit_reports_service.py` (18 tests: file, triage, list, state machine)
+  - **Tests**: `tests/moderation/test_model_coverage.py` (16 tests: model validation, clean(), __str__(), helper methods)
+  - **Tests**: `tests/moderation/test_runtime_gates.py` (13 tests: WebSocket gates, economy gates, performance checks)
   - **Admin**: `apps/moderation/admin.py` (Django admin UI, 93% coverage)
   - **Migration**: `apps/moderation/migrations/0001_initial.py` (3 tables, 4 indexes, 2 CHECK constraints)
 - **Key Features**:
@@ -1730,8 +1732,10 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Artifacts**:
   - Coverage HTML: `Artifacts/coverage/phase_8/index.html`
   - Completion Doc: `Documents/ExecutionPlan/MODULE_8.1_8.2_COMPLETION_STATUS.md`
-- **Commit**: *(Pending - local only, DO NOT PUSH)*
-- **Next**: User review, then commit locally (no push per protocol)
+- **Commit**: e8f9f65 (pushed to origin)
+- **Tag**: v8.1-8.2-moderation (pushed to origin)
+- **Hardening**: +29 tests (model coverage, runtime gates), models 80% → 99%, test-only integration checks
+- **Next**: Integration wiring (Option A) or Phase 9 (Polish & Optimization)
 
 ### Module 8.3: Content Moderation
 *[To be filled when implementation starts]*
