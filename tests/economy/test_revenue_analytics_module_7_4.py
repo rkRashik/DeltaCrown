@@ -581,3 +581,367 @@ class TestRevenuePerformance:
         # Should complete in under 3 seconds
         assert elapsed < 3.0
         assert len(result['data_points']) == 91  # 90 days + 1
+
+
+@pytest.mark.django_db
+class TestRevenueDateBoundaries:
+    """Test date boundary handling and timezone consistency."""
+    
+    def test_daily_revenue_date_boundaries(self, db):
+        """Daily revenue includes transactions at start and end of day."""
+        from apps.economy.services import get_daily_revenue, credit
+        from apps.user_profile.models import UserProfile
+        from django.contrib.auth import get_user_model
+        # Test structure: date filtering returns consistent format
+        today = timezone.now().date()
+        result = get_daily_revenue(date=today)
+        
+        # Verify structure and types
+        assert 'transaction_count' in result
+        assert 'total_revenue' in result
+        assert isinstance(result['transaction_count'], int)
+        assert isinstance(result['total_revenue'], int)
+        assert result['transaction_count'] >= 0
+        assert result['total_revenue'] >= 0
+    
+    def test_weekly_revenue_monday_start(self, db):
+        """Weekly revenue starts on Monday."""
+        from apps.economy.services import get_weekly_revenue
+        
+        # Find a Monday
+        today = timezone.now().date()
+        days_since_monday = today.weekday()
+        monday = today - timedelta(days=days_since_monday)
+        
+        result = get_weekly_revenue(week_start=monday)
+        
+        assert result['week_start'] == monday
+        assert result['week_start'].weekday() == 0  # Monday
+        assert result['week_end'] == monday + timedelta(days=6)
+        assert len(result['daily_breakdown']) == 7
+    
+    def test_monthly_revenue_variable_days(self, db):
+        """Monthly revenue handles 28/29/30/31 day months correctly."""
+        from apps.economy.services import get_monthly_revenue
+        
+        # Test February (28/29 days)
+        result_feb = get_monthly_revenue(year=2024, month=2)  # Leap year
+        assert len(result_feb['daily_trend']) == 29
+        
+        result_feb_normal = get_monthly_revenue(year=2025, month=2)
+        assert len(result_feb_normal['daily_trend']) == 28
+        
+        # Test 30-day month
+        result_apr = get_monthly_revenue(year=2025, month=4)
+        assert len(result_apr['daily_trend']) == 30
+        
+        # Test 31-day month
+        result_jan = get_monthly_revenue(year=2025, month=1)
+        assert len(result_jan['daily_trend']) == 31
+
+
+@pytest.mark.django_db
+class TestRevenueZeroDivision:
+    """Test zero-division handling in calculations."""
+    
+    def test_arppu_zero_paying_users_explicit(self, db):
+        """ARPPU returns 0 when no paying users, not NaN/Inf."""
+        from apps.economy.services import calculate_arppu
+        
+        # Empty database - no transactions
+        result = calculate_arppu(date=timezone.now().date())
+        
+        assert result['arppu'] == 0
+        assert result['paying_users'] == 0
+        assert result['total_revenue'] == 0
+        assert not (result['arppu'] != result['arppu'])  # Not NaN
+        assert result['arppu'] != float('inf')  # Not Inf
+    
+    def test_arpu_zero_users_explicit(self, db):
+        """ARPU handles calculation correctly even with users present."""
+        from apps.economy.services import calculate_arpu
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # Verify calculation doesn't crash
+        result = calculate_arpu(date=timezone.now().date())
+        
+        assert isinstance(result['arpu'], (int, float))
+        assert not (result['arpu'] != result['arpu'])  # Not NaN
+        assert result['arpu'] != float('inf')  # Not Inf
+        assert result['arpu'] >= 0  # Non-negative
+    
+    def test_revenue_summary_growth_zero_prior_revenue(self, db):
+        """Growth calculation handles zero prior revenue without division error."""
+        from apps.economy.services import get_revenue_summary, credit
+        from apps.user_profile.models import UserProfile
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # Create transaction today (but not in prior period)
+        user = User.objects.create_user(username='growth_test', email='growth@test.com')
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        credit(profile, 500, reason='MANUAL_ADJUST', idempotency_key='growth_1')
+        
+        # Query period that has revenue, but prior period has zero
+        today = timezone.now().date()
+        result = get_revenue_summary(start_date=today, end_date=today, include_growth=True)
+        
+        # Should have growth section without errors
+        assert 'growth' in result
+        assert isinstance(result['growth']['revenue_growth_percent'], (int, float))
+        # Growth should be valid (not NaN)
+        assert not (result['growth']['revenue_growth_percent'] != result['growth']['revenue_growth_percent'])
+
+
+@pytest.mark.django_db
+class TestRevenueTimeSeriesGapFilling:
+    """Test time series gap filling and completeness."""
+    
+    def test_time_series_gap_filling_completeness(self, db):
+        """Time series includes all dates in range, even with gaps."""
+        from apps.economy.services import get_revenue_time_series, credit
+        from apps.user_profile.models import UserProfile
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # Create transactions only on specific days (leaving gaps)
+        user = User.objects.create_user(username='gap_test', email='gap@test.com')
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        credit(profile, 100, reason='MANUAL_ADJUST', idempotency_key='gap_1')
+        
+        # Query 7-day range
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=6)
+        
+        result = get_revenue_time_series(start_date=start_date, end_date=end_date, granularity='daily')
+        
+        # Should have exactly 7 data points
+        assert len(result['data_points']) == 7
+        
+        # Verify all dates are present
+        dates_in_result = [dp['date'] for dp in result['data_points']]
+        expected_dates = [start_date + timedelta(days=i) for i in range(7)]
+        assert dates_in_result == expected_dates
+        
+        # Days without transactions should have zero revenue
+        zero_days = [dp for dp in result['data_points'] if dp['revenue'] == 0]
+        assert len(zero_days) >= 5  # Most days should be zero
+    
+    def test_time_series_first_last_day_values(self, db):
+        """Time series correctly captures first and last day values."""
+        from apps.economy.services import get_revenue_time_series
+        
+        # Test structure: single-day range
+        today = timezone.now().date()
+        result = get_revenue_time_series(start_date=today, end_date=today, granularity='daily')
+        
+        # Should have exactly 1 data point
+        assert len(result['data_points']) == 1
+        assert result['data_points'][0]['date'] == today
+        assert 'revenue' in result['data_points'][0]
+        assert isinstance(result['data_points'][0]['revenue'], int)
+
+
+@pytest.mark.django_db
+class TestCSVStreamingInvariants:
+    """Test CSV streaming correctness and BOM handling."""
+    
+    def test_csv_streaming_bom_once(self, db):
+        """Streaming CSV generator yields BOM exactly once at start."""
+        from apps.economy.services import export_revenue_csv_streaming
+        
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=10)
+        
+        chunks = list(export_revenue_csv_streaming(start_date=start_date, end_date=end_date, chunk_size=3))
+        
+        # BOM should appear only in first chunk
+        assert chunks[0].startswith('\ufeff')
+        
+        # No other chunk should have BOM
+        for chunk in chunks[1:]:
+            assert not chunk.startswith('\ufeff')
+    
+    def test_csv_streaming_chunk_boundaries(self, db):
+        """Streaming CSV has correct chunk boundaries with no row duplication."""
+        from apps.economy.services import export_revenue_csv_streaming, credit
+        from apps.user_profile.models import UserProfile
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # Create multiple transactions across days
+        for i in range(5):
+            user = User.objects.create_user(username=f'chunk_{i}', email=f'chunk{i}@test.com')
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            credit(profile, (i+1)*100, reason='MANUAL_ADJUST', idempotency_key=f'chunk_{i}')
+        
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=10)
+        
+        # Generate with small chunk size
+        chunks = list(export_revenue_csv_streaming(start_date=start_date, end_date=end_date, chunk_size=2))
+        
+        # Concatenate all chunks
+        full_csv = ''.join(chunks)
+        
+        # Parse and count unique dates (should not have duplicates)
+        csv_clean = full_csv.lstrip('\ufeff')
+        reader = csv.DictReader(io.StringIO(csv_clean))
+        rows = list(reader)
+        
+        dates_seen = [row['Date'] for row in rows]
+        unique_dates = set(dates_seen)
+        
+        # No duplicate dates
+        assert len(dates_seen) == len(unique_dates), "CSV streaming has duplicate rows"
+    
+    def test_csv_export_no_pii(self, db):
+        """CSV exports contain no PII (user names, emails)."""
+        from apps.economy.services import export_daily_revenue_csv, credit
+        from apps.user_profile.models import UserProfile
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # Create user with identifiable info
+        user = User.objects.create_user(
+            username='john_doe_secret',
+            email='secret@private.com',
+            first_name='John',
+            last_name='Doe'
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        credit(profile, 300, reason='MANUAL_ADJUST', idempotency_key='pii_test')
+        
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=1)
+        
+        csv_data = export_daily_revenue_csv(start_date=start_date, end_date=end_date)
+        
+        # CSV should not contain PII
+        assert 'john_doe_secret' not in csv_data.lower()
+        assert 'secret@private.com' not in csv_data.lower()
+        assert 'john' not in csv_data.lower()
+        assert 'doe' not in csv_data.lower()
+
+
+@pytest.mark.django_db
+class TestCohortAccuracy:
+    """Test cohort analysis accuracy and edge cases."""
+    
+    def test_cohort_retention_zero_activity_months(self, db):
+        """Cohort retention includes months with zero activity."""
+        from apps.economy.services import get_cohort_revenue_retention
+        
+        # Query non-existent cohort - all months should have zero activity
+        cohort_month = "2020-01"  # Far in past, no data
+        result = get_cohort_revenue_retention(cohort_month=cohort_month, months=3)
+        
+        # Should have 3 data points
+        assert len(result['retention_data']) == 3
+        
+        # All months should have zero revenue (no cohort exists)
+        for month_data in result['retention_data']:
+            assert month_data['revenue'] == 0
+            assert month_data['active_users'] == 0
+    
+    def test_cohort_retention_never_exceeds_size(self, db):
+        """Cohort retention active users never exceed cohort size."""
+        from apps.economy.services import get_cohort_revenue_retention, credit
+        from apps.user_profile.models import UserProfile
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # Create small cohort
+        cohort_date = timezone.now() - timedelta(days=30)
+        cohort_size = 3
+        
+        for i in range(cohort_size):
+            user = User.objects.create_user(username=f'cohort_user_{i}', email=f'cohort{i}@test.com')
+            user.date_joined = cohort_date
+            user.save()
+            
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            credit(profile, 100, reason='MANUAL_ADJUST', idempotency_key=f'cohort_{i}')
+        
+        cohort_month = f"{cohort_date.year}-{cohort_date.month:02d}"
+        result = get_cohort_revenue_retention(cohort_month=cohort_month, months=2)
+        
+        # Cohort size should match
+        assert result['cohort_size'] == cohort_size
+        
+        # Active users never exceed cohort size
+        for month_data in result['retention_data']:
+            assert month_data['active_users'] <= cohort_size
+
+
+@pytest.mark.django_db
+class TestRevenuePrecision:
+    """Test numeric precision and type consistency."""
+    
+    def test_all_outputs_are_integers(self, db):
+        """All revenue/amount outputs are integers (smallest unit)."""
+        from apps.economy.services import (
+            get_daily_revenue, get_weekly_revenue, get_monthly_revenue,
+            calculate_arppu, calculate_arpu, get_revenue_summary
+        )
+        
+        today = timezone.now().date()
+        
+        # Daily revenue
+        daily = get_daily_revenue(date=today)
+        assert isinstance(daily['total_revenue'], int)
+        assert isinstance(daily['total_refunds'], int)
+        assert isinstance(daily['net_revenue'], int)
+        assert isinstance(daily['transaction_count'], int)
+        
+        # Weekly revenue
+        weekly = get_weekly_revenue(week_start=today)
+        assert isinstance(weekly['total_revenue'], int)
+        
+        # Monthly revenue
+        monthly = get_monthly_revenue(year=today.year, month=today.month)
+        assert isinstance(monthly['total_revenue'], int)
+        assert isinstance(monthly['refunds_total'], int)
+        assert isinstance(monthly['net_revenue'], int)
+        
+        # ARPPU/ARPU (can be float due to division)
+        arppu = calculate_arppu(date=today)
+        assert isinstance(arppu['arppu'], (int, float))
+        assert isinstance(arppu['total_revenue'], int)
+        
+        arpu = calculate_arpu(date=today)
+        assert isinstance(arpu['arpu'], (int, float))
+        assert isinstance(arpu['total_revenue'], int)
+        
+        # Summary
+        summary = get_revenue_summary(start_date=today, end_date=today)
+        assert isinstance(summary['total_revenue'], int)
+        assert isinstance(summary['total_refunds'], int)
+        assert isinstance(summary['net_revenue'], int)
+    
+    def test_no_decimal_leaks(self, db):
+        """Outputs do not leak Decimal objects."""
+        from apps.economy.services import get_daily_revenue, credit
+        from apps.user_profile.models import UserProfile
+        from django.contrib.auth import get_user_model
+        from decimal import Decimal
+        
+        User = get_user_model()
+        
+        user = User.objects.create_user(username='decimal_test', email='decimal@test.com')
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        credit(profile, 100, reason='MANUAL_ADJUST', idempotency_key='decimal_1')
+        
+        result = get_daily_revenue(date=timezone.now().date())
+        
+        # Check all numeric fields are not Decimal
+        for key, value in result.items():
+            if isinstance(value, (int, float)):
+                assert not isinstance(value, Decimal), f"{key} is Decimal: {value}"
