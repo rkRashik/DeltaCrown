@@ -126,6 +126,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.ecommerce",
     "apps.economy",
+    "apps.shop",
     "apps.siteui",
     "apps.accounts",
     "channels",
