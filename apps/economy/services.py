@@ -1,10 +1,13 @@
 # apps/economy/services.py
 from __future__ import annotations
 
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Union, Dict, Any
 
 from django.apps import apps
 from django.db import transaction
+from django.db import DatabaseError, IntegrityError
+from time import sleep
+import random
 
 from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet
 
@@ -334,3 +337,226 @@ def manual_adjust(wallet: DeltaCrownWallet, amount: int, *, note: str = "", crea
         note=note or "Manual adjustment",
         created_by=created_by,
     )
+
+
+# ---- Service API (Step 3) -----------------------------------------------
+from .exceptions import InvalidAmount, InsufficientFunds, InvalidWallet, IdempotencyConflict
+
+
+def _resolve_profile(profile_or_id) -> Any:
+    """Accept either a UserProfile instance or an integer id."""
+    if profile_or_id is None:
+        return None
+    if isinstance(profile_or_id, int):
+        Profile = apps.get_model("user_profile", "UserProfile")
+        return Profile.objects.get(pk=profile_or_id)
+    return profile_or_id
+
+
+def _result_dict(wallet: DeltaCrownWallet, txn: DeltaCrownTransaction, idem: Optional[str]) -> Dict[str, Any]:
+    return {
+        "wallet_id": wallet.id,
+        "balance_after": int(wallet.cached_balance),
+        "transaction_id": txn.id,
+        "idempotency_key": idem,
+    }
+
+
+def _create_transaction(wallet: DeltaCrownWallet, amount: int, reason: str, *, idempotency_key: Optional[str], **kwargs) -> DeltaCrownTransaction:
+    """Create a transaction row and persist. Map DB integrity errors."""
+    try:
+        tx = DeltaCrownTransaction.objects.create(
+            wallet=wallet,
+            amount=int(amount),
+            reason=reason,
+            idempotency_key=idempotency_key,
+            **kwargs,
+        )
+        return tx
+    except IntegrityError as exc:
+        # Possible concurrent insert of same idempotency_key -> fetch existing
+        if idempotency_key:
+            existing = DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).first()
+            if existing:
+                return existing
+        raise
+
+
+def _with_retry(fn, retries: int = 3):
+    """Simple retry wrapper for serialization/deadlock errors."""
+    last = None
+    for attempt in range(1, retries + 1):
+        try:
+            return fn()
+        except DatabaseError as exc:
+            last = exc
+            msg = str(exc).lower()
+            # Retry on common transient DB errors
+            if "deadlock" in msg or "could not serialize" in msg or "serialization" in msg:
+                backoff = (0.05 * attempt) + random.random() * 0.05
+                sleep(backoff)
+                continue
+            raise
+    # exhausted
+    raise last
+
+
+def credit(profile: Union[int, object], amount: int, *, reason: str, idempotency_key: Optional[str] = None, meta: Optional[dict] = None) -> Dict[str, Any]:
+    """Credit a wallet atomically. Returns dict with wallet_id, balance_after, transaction_id, idempotency_key."""
+    if amount <= 0:
+        raise InvalidAmount("Transaction amount must be greater than zero")
+
+    profile = _resolve_profile(profile)
+
+    def _op():
+        with transaction.atomic():
+            wallet, _ = DeltaCrownWallet.objects.get_or_create(profile=profile)
+            # lock the wallet row
+            wallet = DeltaCrownWallet.objects.select_for_update().get(pk=wallet.pk)
+
+            # Idempotency: return existing if same key used
+            if idempotency_key:
+                existing = DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).first()
+                if existing:
+                    # Validate same payload
+                    if existing.amount != int(amount) or existing.reason != reason:
+                        raise IdempotencyConflict("Idempotency key reused with different payload")
+                    return _result_dict(wallet, existing, idempotency_key)
+
+            # Apply balance and create txn
+            wallet.cached_balance = int(wallet.cached_balance) + int(amount)
+            wallet.save(update_fields=["cached_balance", "updated_at"]) if wallet.pk else wallet.save()
+
+            txn = _create_transaction(wallet, amount, reason, idempotency_key=idempotency_key)
+            return _result_dict(wallet, txn, idempotency_key)
+
+    return _with_retry(_op)
+
+
+def debit(profile: Union[int, object], amount: int, *, reason: str, idempotency_key: Optional[str] = None, meta: Optional[dict] = None) -> Dict[str, Any]:
+    """Debit a wallet atomically; amount must be >0 (we store negative amounts)."""
+    if amount <= 0:
+        raise InvalidAmount("Transaction amount must be greater than zero")
+
+    profile = _resolve_profile(profile)
+
+    def _op():
+        with transaction.atomic():
+            wallet, _ = DeltaCrownWallet.objects.get_or_create(profile=profile)
+            wallet = DeltaCrownWallet.objects.select_for_update().get(pk=wallet.pk)
+
+            # Idempotency check
+            if idempotency_key:
+                existing = DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).first()
+                if existing:
+                    if existing.amount != -int(amount) or existing.reason != reason:
+                        raise IdempotencyConflict("Idempotency key reused with different payload")
+                    return _result_dict(wallet, existing, idempotency_key)
+
+            # Balance check
+            projected = int(wallet.cached_balance) - int(amount)
+            if projected < 0 and not wallet.allow_overdraft:
+                raise InsufficientFunds(f"Insufficient funds: {wallet.cached_balance} available, need {amount}")
+
+            wallet.cached_balance = projected
+            wallet.save(update_fields=["cached_balance", "updated_at"]) if wallet.pk else wallet.save()
+
+            txn = _create_transaction(wallet, -int(amount), reason, idempotency_key=idempotency_key)
+            return _result_dict(wallet, txn, idempotency_key)
+
+    return _with_retry(_op)
+
+
+def transfer(from_profile: Union[int, object], to_profile: Union[int, object], amount: int, *, reason: str, idempotency_key: Optional[str] = None, meta: Optional[dict] = None) -> Dict[str, Any]:
+    """Transfer amount from one wallet to another atomically. Returns dict with both transaction ids in meta."""
+    if amount <= 0:
+        raise InvalidAmount("Transaction amount must be greater than zero")
+
+    if from_profile == to_profile:
+        raise InvalidWallet("Cannot transfer to the same wallet/profile")
+
+    from_profile = _resolve_profile(from_profile)
+    to_profile = _resolve_profile(to_profile)
+
+    def _op():
+        with transaction.atomic():
+            # Acquire locks in stable order by wallet id (or temp create to get ids)
+            w_from, _ = DeltaCrownWallet.objects.get_or_create(profile=from_profile)
+            w_to, _ = DeltaCrownWallet.objects.get_or_create(profile=to_profile)
+
+            first, second = (w_from, w_to) if w_from.id <= w_to.id else (w_to, w_from)
+            # lock both
+            DeltaCrownWallet.objects.select_for_update().filter(pk__in=[first.pk, second.pk]).order_by("pk").count()
+
+            # Re-fetch locked wallets
+            w_from = DeltaCrownWallet.objects.select_for_update().get(pk=w_from.pk)
+            w_to = DeltaCrownWallet.objects.select_for_update().get(pk=w_to.pk)
+
+            # Idempotency: if provided, check existing
+            if idempotency_key:
+                existing = DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).first()
+                if existing:
+                    # We expect a pair: credit and debit with same idempotency_key; return original
+                    txs = list(DeltaCrownTransaction.objects.filter(idempotency_key=idempotency_key).order_by("id"))
+                    if not txs:
+                        raise IdempotencyConflict("Idempotency key exists but transactions missing")
+                    # return info for first matching tx (debit)
+                    return {
+                        "wallet_id": w_from.id,
+                        "balance_after": int(w_from.cached_balance),
+                        "transaction_id": txs[0].id,
+                        "idempotency_key": idempotency_key,
+                    }
+
+            # Balance check on sender
+            projected = int(w_from.cached_balance) - int(amount)
+            if projected < 0 and not w_from.allow_overdraft:
+                raise InsufficientFunds(f"Insufficient funds: {w_from.cached_balance} available, need {amount}")
+
+            # Apply balances
+            w_from.cached_balance = projected
+            w_from.save(update_fields=["cached_balance", "updated_at"]) if w_from.pk else w_from.save()
+
+            w_to.cached_balance = int(w_to.cached_balance) + int(amount)
+            w_to.save(update_fields=["cached_balance", "updated_at"]) if w_to.pk else w_to.save()
+
+            # Create transactions: debit then credit
+            debit_tx = _create_transaction(w_from, -int(amount), reason, idempotency_key=idempotency_key)
+            credit_tx = _create_transaction(w_to, int(amount), reason, idempotency_key=idempotency_key)
+
+            return {
+                "from_wallet_id": w_from.id,
+                "to_wallet_id": w_to.id,
+                "from_balance_after": int(w_from.cached_balance),
+                "to_balance_after": int(w_to.cached_balance),
+                "debit_transaction_id": debit_tx.id,
+                "credit_transaction_id": credit_tx.id,
+                "idempotency_key": idempotency_key,
+            }
+
+    return _with_retry(_op)
+
+
+def get_balance(profile: Union[int, object]) -> int:
+    profile = _resolve_profile(profile)
+    w = DeltaCrownWallet.objects.filter(profile=profile).only("cached_balance").first()
+    return int(w.cached_balance) if w else 0
+
+
+def get_transaction_history(profile: Union[int, object], *, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+    profile = _resolve_profile(profile)
+    w = DeltaCrownWallet.objects.filter(profile=profile).first()
+    if not w:
+        return []
+    qs = DeltaCrownTransaction.objects.filter(wallet=w).order_by("-created_at")[offset : offset + limit]
+    return [
+        {
+            "id": t.id,
+            "amount": int(t.amount),
+            "reason": t.reason,
+            "created_at": t.created_at,
+            "idempotency_key": t.idempotency_key,
+        }
+        for t in qs
+    ]
+
