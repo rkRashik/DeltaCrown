@@ -1345,27 +1345,26 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - Documents/ExecutionPlan/MODULE_6.6_INTEGRATION_UNBLOCK.md (root cause analysis)
 
 ### Module 6.7: Realtime Coverage Carry-Forward + Fuzz Testing
-- **Status**: 🔄 **In Progress - Step 1 Complete** (2025-11-11)
+- **Status**: 🔄 **In Progress - Steps 1 & 2 Complete** (2025-11-11)
 - **Implements**:
   - Module 6.6 carry-forward coverage gaps
   - Documents/ExecutionPlan/PHASE_6_IMPLEMENTATION_PLAN.md#module-67
 - **Scope**: Three scoped work items to complete Module 6.6 coverage + API fuzzing
 - **Step 1 Complete**: Utils batching coverage (29% → 77%, +48% ✅)
+- **Step 2 Complete**: Match consumer lifecycle (19% → 83%, +64% ✅)
 - **Backlog Items**:
 
-  1. **Utils Batching Coverage (29% → ≥65% target, +36% gap)**
-     - **Lines**: 153-261 (batch processing, debouncing, sequence numbers)
-     - **Tests**: 8-10 tests targeting latest-wins coalescing, per-match locks, sequence monotonicity, terminal flush, cancellation on disconnect
-     - **Technique**: Monkeypatch batch windows to milliseconds (0.01s instead of 1s), in-memory channel layer assertions
-     - **Acceptance**: Deterministic tests passing, coverage table shows utils.py ≥65%
-     - **Estimated Effort**: ~2-3 hours
+  1. **Utils Batching Coverage (29% → ≥65% target, +36% gap)** ✅ **COMPLETE**
+     - **Achieved**: 77% coverage (+48% absolute, 119% of target)
+     - **Tests**: 11 tests (target was 8-10) covering latest-wins coalescing, per-match locks, sequence monotonicity, terminal flush, cancellation on disconnect
+     - **Technique**: Real 100ms batch window with asyncio.sleep, in-memory channel layer + AsyncMock
+     - **File**: tests/test_utils_batching_module_6_7.py (420 lines)
 
-  2. **Match Consumer Lifecycle (19% → ≥55% target, +36% gap)**
-     - **Lines**: 131-242, 274-288, 482-543 (match lifecycle state machine)
-     - **Tests**: 15-20 tests covering state transitions, role-gated actions (organizer-only vs participant), malformed/missing fields, auth failures, graceful vs timeout disconnects
-     - **Technique**: Integration tests with committed membership fixtures, test ASGI mounting
-     - **Acceptance**: Integration tests pass with fixtures, match_consumer.py ≥55%
-     - **Estimated Effort**: ~4-5 hours
+  2. **Match Consumer Lifecycle (19% → ≥55% target, +36% gap)** ✅ **COMPLETE**
+     - **Achieved**: 83% coverage (+64% absolute, 151% of target)
+     - **Tests**: 20 passing, 1 skipped (21 total) covering connection auth, role-gated actions, event handlers, lifecycle, concurrency
+     - **Technique**: Integration tests with database-committed fixtures, test ASGI, fast heartbeat intervals (100ms)
+     - **File**: tests/test_match_consumer_lifecycle_module_6_7.py (~850 lines)
 
   3. **Rate-Limit Enforcement (41% → ≥65% target, +24% gap)**
      - **Lines**: 135-150, 154-174, 179-207 (middleware_ratelimit.py enforcement logic)
