@@ -712,17 +712,33 @@ phase_6:
   module_6_7:
     name: "Realtime Coverage Carry-Forward + Fuzz Testing"
     description: "Complete Module 6.6 coverage gaps (utils batching, match lifecycle, rate-limit enforcement) + API fuzzing"
-    status: "planned"
+    status: "in_progress"
+    start_date: "2025-11-11"
     implements:
       - "PHASE_6_IMPLEMENTATION_PLAN.md#module-67"
       - "Documents/ExecutionPlan/MAP.md#module-67-backlog"
+    steps:
+      step_1:
+        name: "Utils Batching Coverage"
+        status: "complete"
+        completed_date: "2025-11-11"
+        target: "29% → ≥65%"
+        achieved: "29% → 77% (+48%)"
+        tests: "11 tests passing"
+        effort: "~2 hours"
+        files:
+          - "tests/test_utils_batching_module_6_7.py (420 lines, 11 tests)"
+        coverage_artifact: "Artifacts/coverage/module_6_7/index.html"
+        notes: "Latest-wins coalescing, monotonic sequences, terminal flush, cancel on disconnect, per-match locks, concurrent matches, error handling. 119% of target achieved (77% vs 65% target). Real 100ms batch window works fine for deterministic tests."
     backlog_items:
       - name: "Utils Batching Coverage"
         target: "29% → ≥65% (+36% gap)"
-        tests: "8-10 tests"
-        effort: "~2-3 hours"
-        technique: "Monkeypatch batch windows to milliseconds, in-memory channel layer assertions"
-        acceptance: "Deterministic tests passing, utils.py ≥65%"
+        achieved: "29% → 77% (+48%)"
+        status: "✅ COMPLETE"
+        tests: "11 tests passing"
+        effort: "~2 hours (actual)"
+        technique: "Real 100ms batch window, in-memory channel layer, AsyncMock assertions"
+        acceptance: "✅ Deterministic tests passing, utils.py 77%"
       - name: "Match Consumer Lifecycle"
         target: "19% → ≥55% (+36% gap)"
         tests: "15-20 tests"
