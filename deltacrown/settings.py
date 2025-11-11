@@ -129,6 +129,7 @@ INSTALLED_APPS = [
     "apps.shop",
     "apps.siteui",
     "apps.accounts",
+    "apps.moderation",  # Phase 8: Admin & Moderation (sanctions, audit, reports)
     "channels",
 
 ]

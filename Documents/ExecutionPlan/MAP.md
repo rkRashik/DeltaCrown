@@ -1689,17 +1689,55 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ## Phase 8: Admin & Moderation
 
-### Module 8.1: Tournament Moderation
-*[To be filled when implementation starts]*
-
-### Module 8.2: User Moderation
-*[To be filled when implementation starts]*
+### Module 8.1 & 8.2: Sanctions Service + Audit Trail + Abuse Reports
+- **Status**: ✅ **COMPLETE** (November 12, 2025)
+- **Implements**: Service-layer moderation infrastructure (sanctions, audit trail, abuse reports)
+- **Test Results**: **40/40 passed (100%)**, 0 flakes, runtime 2.7s
+- **Coverage**: **92%** overall (services **100%**, models 80%)
+- **Files Created**:
+  - **Models**: `apps/moderation/models.py` (3 models: ModerationSanction, ModerationAudit, AbuseReport)
+  - **Services**: `apps/moderation/services/sanctions_service.py` (100% coverage, 61 stmts)
+  - **Services**: `apps/moderation/services/reports_service.py` (100% coverage, 35 stmts)
+  - **Services**: `apps/moderation/services/audit_service.py` (100% coverage, 18 stmts)
+  - **Tests**: `tests/moderation/test_sanctions_service.py` (22 tests: create, revoke, query, overlapping windows)
+  - **Tests**: `tests/moderation/test_audit_reports_service.py` (18 tests: file, triage, list, state machine)
+  - **Admin**: `apps/moderation/admin.py` (Django admin UI, 93% coverage)
+  - **Migration**: `apps/moderation/migrations/0001_initial.py` (3 tables, 4 indexes, 2 CHECK constraints)
+- **Key Features**:
+  - **Sanctions**: ban/suspend/mute with scope (global/tournament), time windows, idempotency keys
+  - **Audit Trail**: Append-only event log (no updates/deletes), ref_type/ref_id tracking, actor attribution
+  - **Reports**: State machine (open→triaged→resolved/rejected), priority queue (0-5), idempotency
+  - **Idempotency**: Unique key constraints on `create_sanction()`, `file_report()` (replay-safe)
+  - **Atomicity**: Row locks (`select_for_update()`) for concurrent operations
+  - **PII-Free**: IDs only in logs/audit/outputs (no usernames/emails/IPs)
+- **Service Functions** (7):
+  1. `create_sanction(subject_id, type, scope, reason_code, ...)` → Create with idempotency
+  2. `revoke_sanction(sanction_id, ...)` → Atomic revocation with audit
+  3. `is_sanctioned(subject_id, type=None, scope=None, ...)` → Query active sanctions
+  4. `effective_policies(subject_id, at=None)` → List all active sanctions for user
+  5. `file_report(reporter_id, category, ref_type, ref_id, ...)` → File abuse report with idempotency
+  6. `triage_report(report_id, new_state, actor_id, ...)` → State transition with validation
+  7. `list_audit_events(ref_type=None, actor_id=None, ...)` → Query audit trail with pagination
+- **Schema**:
+  - `moderation_sanction`: 12 fields, composite index, CHECK (ends_at > starts_at)
+  - `moderation_audit`: 7 fields, 2 indexes (ref, actor), append-only
+  - `abuse_report`: 11 fields, CHECK (priority BETWEEN 0 AND 5), state machine validation
+- **Guarantees**:
+  - ✅ Idempotency: Replay-safe creates (unique key constraint)
+  - ✅ Atomicity: Row locks prevent race conditions
+  - ✅ PII-Free: No usernames/emails in logs/audit/service outputs
+  - ✅ State Validation: Reports enforce valid transitions (no reverse)
+- **Artifacts**:
+  - Coverage HTML: `Artifacts/coverage/phase_8/index.html`
+  - Completion Doc: `Documents/ExecutionPlan/MODULE_8.1_8.2_COMPLETION_STATUS.md`
+- **Commit**: *(Pending - local only, DO NOT PUSH)*
+- **Next**: User review, then commit locally (no push per protocol)
 
 ### Module 8.3: Content Moderation
 *[To be filled when implementation starts]*
 
-### Module 8.4: Audit Logs
-*[To be filled when implementation starts]*
+### Module 8.4: Audit Logs (Additional)
+*[Completed in 8.1/8.2 as ModerationAudit]*
 
 ### Module 8.5: Admin Analytics Dashboard
 *[To be filled when implementation starts]*

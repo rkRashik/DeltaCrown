@@ -1194,13 +1194,99 @@ phase_7:
     implements: []
 
 phase_8:
-  module_8_1:
-    implements: []
-  module_8_2:
-    implements: []
+  module_8_1_8_2:
+    name: "Sanctions Service + Audit Trail + Abuse Reports"
+    status: "complete"
+    completed_date: "2025-11-12"
+    test_count: 40
+    test_passed: 40
+    test_skipped: 0
+    test_xfailed: 0
+    test_flakes: 0
+    runtime_seconds: 2.7
+    coverage_overall: 92
+    coverage_services: 100
+    coverage_models: 80
+    implements:
+      - "Sanctions Service: create_sanction with idempotency (unique key, replay-safe)"
+      - "Sanctions Service: revoke_sanction with atomicity (row lock, double-revoke safe)"
+      - "Sanctions Service: is_sanctioned query (active sanctions by type/scope/time)"
+      - "Sanctions Service: effective_policies (list all active sanctions for user)"
+      - "Audit Trail: append-only ModerationAudit (no updates/deletes, PII-free)"
+      - "Audit Service: list_audit_events with filtering (ref_type, ref_id, actor_id, time window) and pagination"
+      - "Reports Service: file_report with idempotency (unique key, replay-safe)"
+      - "Reports Service: triage_report with state machine validation (open→triaged→resolved/rejected)"
+      - "Sanction types: ban, suspend, mute"
+      - "Sanction scopes: global (platform-wide), tournament (scope_id required)"
+      - "Time windows: starts_at, ends_at (nullable = permanent), revoked_at"
+      - "State machine: open→triaged→resolved/rejected (no reverse transitions)"
+      - "Priority queue: 0-5 (default 3), CHECK constraint enforced"
+      - "JSONB metadata: PII-free, flexible extensibility"
+      - "Atomicity: select_for_update() row locks for concurrent operations"
+      - "PII guarantee: IDs only in logs/audit/service outputs (no usernames/emails/IPs)"
+      - "Test coverage: 22 sanctions tests (create/revoke/query/overlapping/idempotency)"
+      - "Test coverage: 18 audit/reports tests (file/triage/list/state machine/pagination)"
+    schema:
+      tables:
+        - moderation_sanction:
+            fields: 12
+            indexes: 1
+            constraints: 1
+            description: "ban/suspend/mute with scope, time windows, idempotency"
+        - moderation_audit:
+            fields: 7
+            indexes: 2
+            constraints: 0
+            description: "append-only event log, ref_type/ref_id tracking"
+        - abuse_report:
+            fields: 11
+            indexes: 0
+            constraints: 1
+            description: "state machine (open→triaged→resolved/rejected), priority queue"
+    services:
+      sanctions:
+        - create_sanction:
+            idempotency: true
+            atomicity: true
+            pii_free: true
+        - revoke_sanction:
+            idempotency: true
+            atomicity: true
+            pii_free: true
+        - is_sanctioned:
+            query_only: true
+            pii_free: true
+        - effective_policies:
+            query_only: true
+            pii_free: true
+      reports:
+        - file_report:
+            idempotency: true
+            state_machine: true
+            pii_free: true
+        - triage_report:
+            state_machine: true
+            atomicity: true
+            pii_free: true
+      audit:
+        - list_audit_events:
+            query_only: true
+            pagination: true
+            pii_free: true
+    files:
+      - "apps/moderation/models.py (3 models, 88 stmts, 80% coverage)"
+      - "apps/moderation/services/sanctions_service.py (61 stmts, 100% coverage)"
+      - "apps/moderation/services/reports_service.py (35 stmts, 100% coverage)"
+      - "apps/moderation/services/audit_service.py (18 stmts, 100% coverage)"
+      - "apps/moderation/admin.py (27 stmts, 93% coverage)"
+      - "apps/moderation/migrations/0001_initial.py"
+      - "tests/moderation/test_sanctions_service.py (22 tests, 5 classes)"
+      - "tests/moderation/test_audit_reports_service.py (18 tests, 3 classes)"
+      - "Documents/ExecutionPlan/MODULE_8.1_8.2_COMPLETION_STATUS.md"
+      - "Artifacts/coverage/phase_8/index.html (HTML coverage report)"
+    commits: null  # Pending - local only
+    tag: null  # Not yet created
   module_8_3:
-    implements: []
-  module_8_4:
     implements: []
   module_8_5:
     implements: []
