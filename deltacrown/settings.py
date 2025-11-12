@@ -690,3 +690,18 @@ ALLOWED_DOCUMENT_TYPES = [
     'image/jpeg',
     'image/png',
 ]
+
+# -----------------------------------------------------------------------------
+# Moderation Enforcement Feature Flags (Phase 8.3)
+# -----------------------------------------------------------------------------
+# Master switch: enables all moderation enforcement when True
+# Default: False (no behavior change until explicitly enabled)
+MODERATION_ENFORCEMENT_ENABLED = os.getenv('MODERATION_ENFORCEMENT_ENABLED', 'False').lower() == 'true'
+
+# WebSocket enforcement: blocks CONNECT for banned/suspended users
+# Requires MODERATION_ENFORCEMENT_ENABLED = True to take effect
+MODERATION_ENFORCEMENT_WS = os.getenv('MODERATION_ENFORCEMENT_WS', 'False').lower() == 'true'
+
+# Economy/Shop enforcement: blocks purchases for banned/muted users
+# Requires MODERATION_ENFORCEMENT_ENABLED = True to take effect
+MODERATION_ENFORCEMENT_PURCHASE = os.getenv('MODERATION_ENFORCEMENT_PURCHASE', 'False').lower() == 'true'

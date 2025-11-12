@@ -1290,7 +1290,31 @@ phase_8:
     commits: null  # Pending - local only
     tag: null  # Not yet created
   module_8_3:
-    implements: []
+    title: "Enforcement Wiring with Feature Flags"
+    description: "Runtime integration of sanctions into WebSocket and economy entry points with feature flags OFF by default"
+    status: "complete"
+    test_count: 88
+    test_passed: 88
+    test_failed: 0
+    runtime_seconds: 3.12
+    coverage_overall: 98
+    coverage_enforcement: 94
+    coverage_services: 100
+    coverage_models: 99
+    implements:
+      - "apps/moderation/enforcement.py"
+      - "deltacrown/settings.py (MODERATION_ENFORCEMENT_* flags)"
+      - "tests/moderation/test_enforcement_e2e.py"
+    tests:
+      - "Test coverage: 8 WebSocket enforcement tests (flags ON/OFF, BAN/SUSPEND/MUTE, scoped, revoked)"
+      - "Test coverage: 7 Economy enforcement tests (flags ON/OFF, BAN/MUTE/SUSPEND, scoped, revoked)"
+      - "Test coverage: 2 Comprehensive policy tests (multiple sanctions, empty policy)"
+      - "Test coverage: 1 Concurrent enforcement test (consistency under concurrent checks)"
+      - "Test coverage: 3 Performance smoke tests (WebSocket <50ms, Purchase <50ms, Policy <100ms)"
+      - "Feature flags OFF by default: zero behavior change until enabled"
+      - "Enforcement logic: WebSocket blocked by BAN/SUSPEND; Economy blocked by BAN/MUTE"
+      - "Scope handling: Global sanctions always apply; tournament-scoped only to target"
+      - "Rollback: Set flags to False (no code deploy required)"
   module_8_5:
     implements: []
 

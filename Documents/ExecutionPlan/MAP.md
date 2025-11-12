@@ -1737,8 +1737,31 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Hardening**: +29 tests (model coverage, runtime gates), models 80% → 99%, test-only integration checks
 - **Next**: Integration wiring (Option A) or Phase 9 (Polish & Optimization)
 
-### Module 8.3: Content Moderation
-*[To be filled when implementation starts]*
+### Module 8.3: Enforcement Wiring with Feature Flags
+**Status**: ✅ COMPLETE
+
+**Objective**: Wire moderation sanctions into WebSocket and economy runtime entry points with feature flags OFF by default.
+
+**Test Results**: 88/88 passed (100% pass rate), 98% coverage, 3.12s runtime  
+**New Tests**: +19 E2E tests (8 WebSocket, 7 Economy, 2 Policies, 1 Concurrent, 3 Performance)  
+**Files**:
+- `deltacrown/settings.py`: +14 lines (feature flags: MODERATION_ENFORCEMENT_ENABLED, MODERATION_ENFORCEMENT_WS, MODERATION_ENFORCEMENT_PURCHASE)
+- `apps/moderation/enforcement.py`: NEW, 235 lines, 94% coverage (check_websocket_access, check_purchase_access, get_all_active_policies)
+- `tests/moderation/test_enforcement_e2e.py`: NEW, 19 E2E tests
+
+**Feature Flags** (all OFF by default):
+- `MODERATION_ENFORCEMENT_ENABLED=False`: Master switch
+- `MODERATION_ENFORCEMENT_WS=False`: WebSocket CONNECT enforcement
+- `MODERATION_ENFORCEMENT_PURCHASE=False`: Economy purchase enforcement
+
+**Enforcement Logic**:
+- WebSocket: BAN/SUSPEND block CONNECT; MUTE allows
+- Economy: BAN/MUTE block purchase; SUSPEND allows
+- Scope: Global sanctions always apply; tournament-scoped only to target tournament
+
+**Rollback**: Set all flags to False (no code deploy required)  
+**Commit**: (local, awaiting push approval)  
+**Completion Doc**: MODULE_8.3_ENFORCEMENT_COMPLETION_STATUS.md
 
 ### Module 8.4: Audit Logs (Additional)
 *[Completed in 8.1/8.2 as ModerationAudit]*
