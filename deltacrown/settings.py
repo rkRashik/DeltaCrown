@@ -705,3 +705,17 @@ MODERATION_ENFORCEMENT_WS = os.getenv('MODERATION_ENFORCEMENT_WS', 'False').lowe
 # Economy/Shop enforcement: blocks purchases for banned/muted users
 # Requires MODERATION_ENFORCEMENT_ENABLED = True to take effect
 MODERATION_ENFORCEMENT_PURCHASE = os.getenv('MODERATION_ENFORCEMENT_PURCHASE', 'False').lower() == 'true'
+
+# Moderation policy cache: read-through cache for get_all_active_policies()
+# TTL: 60 seconds, invalidated on create/revoke sanction
+# Default: False (no caching, direct DB queries)
+MODERATION_POLICY_CACHE_ENABLED = os.getenv('MODERATION_POLICY_CACHE_ENABLED', 'False').lower() == 'true'
+
+# Moderation Observability (test-only, Phase 8.3 hardening)
+# -----------------------------------------------------------------------------
+# Event emission for enforcement decisions (disabled in production)
+MODERATION_OBSERVABILITY_ENABLED = os.getenv('MODERATION_OBSERVABILITY_ENABLED', 'False').lower() == 'true'
+
+# Sampling rate for observability events (0.0 = none, 1.0 = all)
+# Only applies when MODERATION_OBSERVABILITY_ENABLED = True
+MODERATION_OBSERVABILITY_SAMPLE_RATE = float(os.getenv('MODERATION_OBSERVABILITY_SAMPLE_RATE', '0.0'))

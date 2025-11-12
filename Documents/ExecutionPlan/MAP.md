@@ -1760,7 +1760,8 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - Scope: Global sanctions always apply; tournament-scoped only to target tournament
 
 **Rollback**: Set all flags to False (no code deploy required)  
-**Commit**: (local, awaiting push approval)  
+**Commit**: fc5941a (pushed to origin)  
+**Tag**: v8.3.0-enforcement (pushed to origin)  
 **Completion Doc**: MODULE_8.3_ENFORCEMENT_COMPLETION_STATUS.md
 
 ### Module 8.4: Audit Logs (Additional)
