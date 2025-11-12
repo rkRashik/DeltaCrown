@@ -136,6 +136,13 @@ class Certificate(TimestampedModel):
         help_text="Reason for revocation (e.g., 'Result disputed and changed', 'Regenerated with corrections')"
     )
     
+    # S3 Migration tracking (Module 6.5)
+    migrated_to_s3_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When certificate files were migrated to S3 (backfill tracking)"
+    )
+    
     class Meta:
         db_table = 'tournament_engine_certificate_certificate'
         verbose_name = 'Certificate'

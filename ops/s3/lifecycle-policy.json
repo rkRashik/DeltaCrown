@@ -1,0 +1,50 @@
+{
+  "Rules": [
+    {
+      "Id": "TransitionCertificatesToStandardIA",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 365,
+          "StorageClass": "GLACIER_FLEXIBLE_RETRIEVAL"
+        }
+      ],
+      "NoncurrentVersionTransitions": [
+        {
+          "NoncurrentDays": 30,
+          "StorageClass": "STANDARD_IA"
+        }
+      ],
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+      }
+    },
+    {
+      "Id": "DeleteTempUploadsAfter7Days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "_temp/"
+      },
+      "Expiration": {
+        "Days": 7
+      }
+    },
+    {
+      "Id": "DeleteOldVersionsAfter30Days",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": ""
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+      }
+    }
+  ]
+}

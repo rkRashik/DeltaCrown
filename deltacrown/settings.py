@@ -719,3 +719,25 @@ MODERATION_OBSERVABILITY_ENABLED = os.getenv('MODERATION_OBSERVABILITY_ENABLED',
 # Sampling rate for observability events (0.0 = none, 1.0 = all)
 # Only applies when MODERATION_OBSERVABILITY_ENABLED = True
 MODERATION_OBSERVABILITY_SAMPLE_RATE = float(os.getenv('MODERATION_OBSERVABILITY_SAMPLE_RATE', '0.0'))
+
+# -----------------------------------------------------------------------------
+# Certificate S3 Storage Feature Flags (Module 6.5)
+# -----------------------------------------------------------------------------
+# Dual-write mode: Write certificates to both S3 (primary) and local FS (shadow)
+# Default: False (local-only storage, no S3 uploads)
+CERT_S3_DUAL_WRITE = os.getenv('CERT_S3_DUAL_WRITE', 'False').lower() == 'true'
+
+# Read-primary mode: Prefer S3 for reads with fallback to local FS
+# Default: False (read from local FS only)
+CERT_S3_READ_PRIMARY = os.getenv('CERT_S3_READ_PRIMARY', 'False').lower() == 'true'
+
+# Backfill migration job: Enable background migration of existing certificates to S3
+# Default: False (migration disabled)
+CERT_S3_BACKFILL_ENABLED = os.getenv('CERT_S3_BACKFILL_ENABLED', 'False').lower() == 'true'
+
+# S3 Bucket Configuration (only used if CERT_S3_DUAL_WRITE or CERT_S3_READ_PRIMARY is True)
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', 'deltacrown-certificates-prod')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+MODERATION_OBSERVABILITY_SAMPLE_RATE = float(os.getenv('MODERATION_OBSERVABILITY_SAMPLE_RATE', '0.0'))
