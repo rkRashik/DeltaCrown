@@ -1,0 +1,150 @@
+name: Performance Baseline Nightly
+
+on:
+  schedule:
+    # Run nightly at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: 'Number of samples per scenario'
+        required: false
+        default: '500'
+
+jobs:
+  run-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: deltacrown_perf
+          POSTGRES_USER: deltacrown
+          POSTGRES_PASSWORD: perfpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-benchmark
+      
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql://deltacrown:perfpass@localhost:5432/deltacrown_perf
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
+        run: |
+          python manage.py migrate --no-input
+          python manage.py loaddata fixtures/perf_baseline_data.json
+      
+      - name: Run Performance Harness
+        env:
+          DATABASE_URL: postgresql://deltacrown:perfpass@localhost:5432/deltacrown_perf
+          REDIS_URL: redis://localhost:6379/0
+          PERF_SAMPLES: ${{ github.event.inputs.samples || '500' }}
+          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
+        run: |
+          mkdir -p artifacts/performance
+          python -m tests.perf.perf_harness \
+            --samples=${PERF_SAMPLES} \
+            --output=artifacts/performance/baseline_${{ github.run_id }}.json
+      
+      - name: Store Baseline Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: perf-baseline-${{ github.run_id }}
+          path: artifacts/performance/baseline_${{ github.run_id }}.json
+          retention-days: 90
+      
+      - name: Upload to S3 (Long-term Storage)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          aws s3 cp \
+            artifacts/performance/baseline_${{ github.run_id }}.json \
+            s3://deltacrown-perf-baselines/nightly/$(date +%Y-%m-%d)_baseline.json
+      
+      - name: Compare Against Previous Baseline
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          # Download yesterday's baseline
+          aws s3 cp \
+            s3://deltacrown-perf-baselines/nightly/$(date -d "yesterday" +%Y-%m-%d)_baseline.json \
+            artifacts/performance/previous_baseline.json || echo "No previous baseline"
+          
+          if [ -f artifacts/performance/previous_baseline.json ]; then
+            python scripts/compare_perf_baseline.py \
+              --current artifacts/performance/baseline_${{ github.run_id }}.json \
+              --previous artifacts/performance/previous_baseline.json \
+              --threshold 15 \
+              --report artifacts/performance/regression_report.json
+          fi
+      
+      - name: Post Regression Alert (if degradation >15%)
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: 'C0123456789'  # Replace with #performance-alerts channel ID
+          payload: |
+            {
+              "text": "🚨 Performance Regression Detected",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Performance regression detected in nightly baseline run*\n\n*Run ID:* `${{ github.run_id }}`\n*Date:* $(date +%Y-%m-%d)\n\nOne or more scenarios degraded by >15% (p95). Review artifacts:\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      
+      - name: Generate Grafana Annotation
+        env:
+          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+        run: |
+          curl -X POST "${GRAFANA_URL}/api/annotations" \
+            -H "Authorization: Bearer ${GRAFANA_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "text": "Nightly performance baseline run completed",
+              "tags": ["performance", "baseline", "automated"],
+              "time": '$(date +%s000)'
+            }'

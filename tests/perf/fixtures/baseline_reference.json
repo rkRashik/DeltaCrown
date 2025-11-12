@@ -1,0 +1,41 @@
+{
+  "timestamp": "2025-01-20T00:00:00Z",
+  "scenarios": {
+    "registration": {
+      "samples": 500,
+      "p50_ms": 45.2,
+      "p95_ms": 189.3,
+      "p99_ms": 244.7,
+      "error_rate_percent": 0.2,
+      "slo_target_ms": 215,
+      "slo_status": "PASS"
+    },
+    "result_submit": {
+      "samples": 500,
+      "p50_ms": 32.1,
+      "p95_ms": 145.6,
+      "p99_ms": 178.2,
+      "error_rate_percent": 0.1,
+      "slo_target_ms": 167,
+      "slo_status": "PASS"
+    },
+    "websocket_broadcast": {
+      "samples": 500,
+      "p50_ms": 1250.4,
+      "p95_ms": 3890.2,
+      "p99_ms": 4567.8,
+      "error_rate_percent": 0.0,
+      "slo_target_ms": 5000,
+      "slo_status": "PASS"
+    },
+    "economy_transfer": {
+      "samples": 500,
+      "p50_ms": 56.3,
+      "p95_ms": 234.1,
+      "p99_ms": 298.5,
+      "error_rate_percent": 0.3,
+      "slo_target_ms": 265,
+      "slo_status": "PASS"
+    }
+  }
+}
