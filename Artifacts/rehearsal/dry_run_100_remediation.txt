@@ -1,10 +1,11 @@
 
 ================================================================================
-S3 MIGRATION DRY-RUN REHEARSAL
+S3 MIGRATION DRY-RUN REHEARSAL — UTF-8 VERIFICATION
 ================================================================================
 Objects to simulate: 100
 Mode: DUMMY S3 (offline)
 Bucket: N/A (offline)
+UTF-8 Test Content: Curaçao / 東京 / Δ (Greek Delta)
 ================================================================================
 
 ✓ DummyS3 client initialized (offline mode)

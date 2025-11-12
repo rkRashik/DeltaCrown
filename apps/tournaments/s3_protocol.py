@@ -17,6 +17,17 @@ from io import BytesIO
 import hashlib
 import time
 
+try:
+    from botocore.exceptions import ClientError
+except ImportError:
+    # Fallback for environments without boto3
+    class ClientError(Exception):
+        """Mock ClientError for testing without boto3."""
+        def __init__(self, error_response, operation_name):
+            self.response = error_response
+            self.operation_name = operation_name
+            super().__init__(f"{operation_name}: {error_response}")
+
 
 class S3ClientProtocol(Protocol):
     """Protocol defining S3 client interface for dependency injection."""
@@ -136,11 +147,22 @@ class DummyS3Client:
     
     def get_object(self, Bucket: str, Key: str, **kwargs) -> Dict[str, Any]:
         """Download object from in-memory storage."""
+        from botocore.exceptions import ClientError
+        
         self._simulate_latency(self.download_latency_ms)
         self._check_failure(Key)
         
         if Key not in self.storage:
-            raise KeyError(f"Key not found: {Key}")
+            raise ClientError(
+                {
+                    'Error': {
+                        'Code': 'NoSuchKey',
+                        'Message': f'The specified key does not exist: {Key}'
+                    },
+                    'ResponseMetadata': {'HTTPStatusCode': 404}
+                },
+                'GetObject'
+            )
         
         content = self.storage[Key]
         meta = self.metadata[Key]
@@ -155,11 +177,22 @@ class DummyS3Client:
     
     def head_object(self, Bucket: str, Key: str, **kwargs) -> Dict[str, Any]:
         """Get object metadata from in-memory storage."""
+        from botocore.exceptions import ClientError
+        
         self._simulate_latency(self.metadata_latency_ms)
         self._check_failure(Key)
         
         if Key not in self.metadata:
-            raise KeyError(f"Key not found: {Key}")
+            raise ClientError(
+                {
+                    'Error': {
+                        'Code': 'NoSuchKey',
+                        'Message': f'The specified key does not exist: {Key}'
+                    },
+                    'ResponseMetadata': {'HTTPStatusCode': 404}
+                },
+                'HeadObject'
+            )
         
         self.head_count += 1
         return self.metadata[Key].copy()
@@ -175,18 +208,31 @@ class DummyS3Client:
             del self.metadata[Key]
         
         self.delete_count += 1
-        return {}
+        return {'DeleteMarker': True}
     
-    def list_objects_v2(self, Bucket: str, Prefix: str = '', **kwargs) -> Dict[str, Any]:
-        """List objects in in-memory storage."""
+    def list_objects_v2(self, Bucket: str, Prefix: str = '', MaxKeys: int = 1000,
+                       ContinuationToken: str = None, **kwargs) -> Dict[str, Any]:
+        """List objects in in-memory storage with pagination support."""
         self._simulate_latency(self.metadata_latency_ms)
         self.list_count += 1
         
         # Filter by prefix
-        matching_keys = [k for k in self.storage.keys() if k.startswith(Prefix)]
+        matching_keys = sorted([k for k in self.storage.keys() if k.startswith(Prefix)])
+        
+        # Handle pagination
+        start_idx = 0
+        if ContinuationToken:
+            try:
+                start_idx = int(ContinuationToken)
+            except (ValueError, TypeError):
+                start_idx = 0
+        
+        # Apply MaxKeys limit
+        end_idx = min(start_idx + MaxKeys, len(matching_keys))
+        page_keys = matching_keys[start_idx:end_idx]
         
         contents = []
-        for key in matching_keys:
+        for key in page_keys:
             meta = self.metadata[key]
             contents.append({
                 'Key': key,
@@ -195,19 +241,41 @@ class DummyS3Client:
                 'ETag': meta['ETag'],
             })
         
-        return {
+        result = {
             'Contents': contents,
             'KeyCount': len(contents),
-            'IsTruncated': False,
+            'IsTruncated': end_idx < len(matching_keys),
         }
+        
+        # Add continuation token if more results available
+        if end_idx < len(matching_keys):
+            result['NextContinuationToken'] = str(end_idx)
+        
+        return result
     
     def generate_presigned_url(self, ClientMethod: str, Params: Dict[str, str], 
                                ExpiresIn: int = 900, **kwargs) -> str:
-        """Generate mock presigned URL."""
+        """Generate mock presigned URL with error handling."""
         self._simulate_latency(self.metadata_latency_ms)
         
-        bucket = Params.get('Bucket', 'unknown')
-        key = Params.get('Key', 'unknown')
+        bucket = Params.get('Bucket', '')
+        key = Params.get('Key', '')
+        
+        # Validate method
+        if ClientMethod not in ['get_object', 'put_object']:
+            raise ClientError(
+                {'Error': {'Code': 'InvalidRequest', 'Message': f'Unsupported client method: {ClientMethod}'},
+                 'ResponseMetadata': {'HTTPStatusCode': 400}},
+                'GeneratePresignedUrl'
+            )
+        
+        # Check for authentication/authorization errors
+        if not bucket or not key:
+            raise ClientError(
+                {'Error': {'Code': 'AccessDenied', 'Message': 'Missing required parameters'},
+                 'ResponseMetadata': {'HTTPStatusCode': 403}},
+                'GeneratePresignedUrl'
+            )
         
         # Mock URL format
         return f"https://{bucket}.s3.amazonaws.com/{key}?X-Amz-Expires={ExpiresIn}&X-Amz-Signature=MOCK"

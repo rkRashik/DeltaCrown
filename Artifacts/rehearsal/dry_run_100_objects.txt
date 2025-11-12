@@ -138,3 +138,9 @@ line 19, in encode
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' in position 0: 
 character maps to <undefined>
+UTF-8 Object Samples  Curaçao / 東京 / Δ
+cert_001_Curaçao_2025.pdf
+cert_002_東京_tournament.pdf
+cert_003_ΔPhase_results.pdf
+cert_004_münchen_final.pdf
+cert_005_São_Paulo_2025.pdf

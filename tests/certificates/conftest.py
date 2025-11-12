@@ -81,24 +81,50 @@ def storage_with_s3(moto_bucket, monkeypatch, tmp_path):
     
     This fixture:
     - Uses moto-backed S3 (not DummyS3Client)
+    - Sets AWS credentials for moto
+    - Patches STORAGES_AVAILABLE to True
     - Overrides settings for S3 configuration
     - Returns storage instance that exercises S3Boto3Storage paths
     
     Returns:
         tuple: (storage, client, resource, bucket_name)
     """
-    from apps.tournaments.storage import CertificateS3Storage
+    import apps.tournaments.storage as storage_module
+    from storages.backends.s3boto3 import S3Boto3Storage
+    import os
     
     client, resource, bucket_name = moto_bucket
+    
+    # CRITICAL: Patch STORAGES_AVAILABLE and S3Boto3Storage to bypass import-time cache
+    monkeypatch.setattr(storage_module, 'STORAGES_AVAILABLE', True)
+    monkeypatch.setattr(storage_module, 'S3Boto3Storage', S3Boto3Storage)
+    
+    # Set fake AWS credentials for moto (required by boto3)
+    monkeypatch.setenv('AWS_ACCESS_KEY_ID', 'testing')
+    monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', 'testing')
+    monkeypatch.setenv('AWS_SECURITY_TOKEN', 'testing')
+    monkeypatch.setenv('AWS_SESSION_TOKEN', 'testing')
     
     # Override Django settings
     monkeypatch.setattr('django.conf.settings.AWS_STORAGE_BUCKET_NAME', bucket_name)
     monkeypatch.setattr('django.conf.settings.AWS_S3_REGION_NAME', 'us-east-1')
+    monkeypatch.setattr('django.conf.settings.AWS_ACCESS_KEY_ID', 'testing')
+    monkeypatch.setattr('django.conf.settings.AWS_SECRET_ACCESS_KEY', 'testing')
     monkeypatch.setattr('django.conf.settings.MEDIA_ROOT', str(tmp_path / 'media'))
     monkeypatch.setattr('django.conf.settings.MEDIA_URL', '/media/')
     
+    # Enable S3 features
+    monkeypatch.setattr('django.conf.settings.CERT_S3_DUAL_WRITE', True)
+    monkeypatch.setattr('django.conf.settings.CERT_S3_READ_PRIMARY', True)
+    
+    # Now import after patching
+    from apps.tournaments.storage import CertificateS3Storage
+    
     # Create storage WITHOUT s3_client injection (forces S3Boto3Storage usage)
     storage = CertificateS3Storage()
+    
+    # Ensure local media directory exists
+    os.makedirs(tmp_path / 'media', exist_ok=True)
     
     return storage, client, resource, bucket_name
 
