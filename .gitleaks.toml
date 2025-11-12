@@ -16,9 +16,16 @@ tags = ["database", "password", "workflow"]
 [[rules]]
 id = "embedded-db-credentials"
 description = "Database URL with embedded credentials"
-regex = '''postgres(ql)?://[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+@'''
+regex = '''postgres(ql)?://.*:.*@'''
 path = '''\.github/workflows/.*\.ya?ml$'''
 tags = ["database", "url", "credentials"]
+
+[[rules]]
+id = "generic-password-value"
+description = "Generic PASSWORD assignment with base64/hex-like values (16+ chars)"
+regex = '''(?i)PASSWORD\s*:\s*["']?[A-Za-z0-9+/=]{16,}["']?'''
+path = '''\.github/workflows/.*\.ya?ml$|\.env$|settings.*\.py$'''
+tags = ["password", "generic"]
 
 [[rules]]
 id = "django-secret-key"
@@ -54,6 +61,7 @@ regexes = [
   '''\$\{\{\s*secrets\.[A-Z_]+\s*\}\}''',  # Secrets references (not actual secrets)
   '''example\.com''',  # Example domains
   '''placeholder''',  # Placeholder text
+  '''postgres://postgres:postgres@postgres''',  # Service container default (ephemeral)
 ]
 
 # File-specific allowlists
