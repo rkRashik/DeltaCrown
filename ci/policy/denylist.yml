@@ -95,3 +95,26 @@ scan:
     - "**/__pycache__/**"
     - "**/*.pyc"
     - ".git/**"
+
+# Cost-Query Patterns (Phase 10)
+# Prevent expensive queries from reaching production
+cost_queries:
+  - pattern: "SELECT \\* FROM \\w+ WHERE created_at >"
+    description: "Forbidden: SELECT * without LIMIT on timestamp filter (seq scan risk)"
+    severity: warning
+    action: "Add LIMIT clause or ensure index on created_at"
+  
+  - pattern: "SELECT \\* FROM \\w+;"
+    description: "Forbidden: Unfiltered SELECT * (table scan)"
+    severity: error
+    action: "Add WHERE clause or pagination (LIMIT/OFFSET)"
+  
+  - pattern: "JOIN \\w+ ON \\w+\\.\\w+ = \\w+\\.\\w+ WHERE"
+    description: "Warning: JOIN without index hint (check EXPLAIN)"
+    severity: warning
+    action: "Verify indexes on join columns, run EXPLAIN ANALYZE"
+
+  exemptions:
+    - "tests/fixtures/**"  # Test fixtures allowed
+    - "docs/**/*.md"       # Documentation examples
+

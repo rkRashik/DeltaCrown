@@ -238,6 +238,33 @@ moderation_observability_dropped_total{reason="pii_rejected|rate_limited"}
 
 ---
 
+## PII Validation
+
+**CI Job**: `.github/workflows/pii-scan.yml` scans for PII in code (emails, IPs, usernames).
+
+**Local Run**:
+```bash
+# Scan all code for PII patterns
+python -m scripts.pii_scan --paths apps/ tests/ grafana/ synthetics/
+
+# Expected output: "No PII found" (exit code 0)
+# Forbidden patterns:
+# - Email addresses (except example.com, test.local)
+# - IP addresses (allow localhost/private ranges: 127.0.0.1, 192.168.x.x, 10.x.x.x)
+# - Usernames (except test_ prefix)
+```
+
+**Observability-Specific PII Guards**:
+- Metrics labels: Use hashed IDs (`user_hash=sha256(user.id)`), never `user.email` or `user.username`
+- Error logs: Sanitize `request.META['REMOTE_ADDR']` (hash or truncate)
+- Dashboard annotations: No usernames in alert descriptions
+
+**CI Enforcement**:
+- PR fails if PII patterns detected in observability code (`apps/observability/`, `tests/observability/`)
+- Manual review required for `example.com` or `test.local` usage in tests
+
+---
+
 ## Related Documentation
 - [Flags Configuration](../config/flags.md) - All feature flags and defaults
 - [Alert Matrix](../ops/ALERT_MATRIX.md) - Symptom → cause → action mapping

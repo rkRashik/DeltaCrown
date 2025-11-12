@@ -1,7 +1,7 @@
 # DeltaCrown Makefile
 # Quick commands for development and testing
 
-.PHONY: help test obs-tests smoke synthetics-lint clean
+.PHONY: help test obs-tests smoke ops synthetics-lint clean
 
 help:
 	@echo "DeltaCrown Development Commands"
@@ -9,6 +9,7 @@ help:
 	@echo "make test            - Run all tests"
 	@echo "make obs-tests       - Run observability tests only"
 	@echo "make smoke           - Run smoke tests only"
+	@echo "make ops             - Run ops chaos drill tests only"
 	@echo "make synthetics-lint - Validate synthetics YAML"
 	@echo "make clean           - Remove Python cache files"
 
@@ -22,6 +23,10 @@ obs-tests:
 smoke:
 	@echo "Running smoke tests (Phase 9)..."
 	pytest -v -m smoke tests/smoke/
+
+ops:
+	@echo "Running ops chaos drill tests (Phase 10)..."
+	pytest -v -m ops tests/ops/
 
 synthetics-lint:
 	@echo "Validating synthetics YAML..."

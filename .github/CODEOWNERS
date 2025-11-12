@@ -26,3 +26,8 @@
 /synthetics/**                                @rkRashik
 /MODULE_8.3_OBSERVABILITY_NOTES.md           @rkRashik
 /PHASE_9_SMOKE_AND_ALERTING.md               @rkRashik
+
+# Ops & Runbooks (Phase 10)
+/docs/ops/**                                  @rkRashik
+/RUNBOOKS/**                                  @rkRashik
+/RELEASE_CHECKLIST_V1.md                     @rkRashik

@@ -124,7 +124,24 @@ Navigate to: `/admin/settings/feature-flags/` (if Feature Flag UI implemented)
 
 ---
 
+## Drill Toggles (Phase 10)
+
+**All drill tests are test-only** (no production behavior change).
+
+Drills simulate failure scenarios in test environments:
+- Redis outage (test fallback logic)
+- DB read-only mode (test fast-fail paths)
+- S3 unavailable (test local fallback)
+- Rate limit burst (test throttling at 200 rps)
+
+**No production flags**: Drills are executed via `pytest -m ops tests/ops/` only.
+
+**Related**: See `tests/ops/test_dr_chaos_minidrill.py` for drill implementation.
+
+---
+
 ## Related Documentation
 - [MODULE_8.3_OBSERVABILITY_NOTES.md](../MODULE_8.3_OBSERVABILITY_NOTES.md) - Detailed observability guide
 - [PHASE_9_SMOKE_AND_ALERTING.md](../PHASE_9_SMOKE_AND_ALERTING.md) - Smoke tests and alerting
+- [RUNBOOKS/ONCALL_HANDOFF.md](../RUNBOOKS/ONCALL_HANDOFF.md) - On-call runbook (uses drill scenarios)
 - [Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md](../Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md) - Phase roadmap

@@ -1,5 +1,7 @@
 # DeltaCrown Uptime & Synthetic Checks
 #
+# No secrets; base URL comes from environment/CI matrix (${BASE_URL}, ${ENVIRONMENT})
+#
 # 4 critical endpoints monitored every 1 minute
 # No repository secrets required (uses public/unauthenticated endpoints)
 #
