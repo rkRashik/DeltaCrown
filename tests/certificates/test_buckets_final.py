@@ -89,7 +89,7 @@ class TestBucketCoverage:
             
             # Verify fallback to local
             assert data == b'local-fallback-content'
-            assert em.counts.get('cert.s3.open.fail', 0) >= 1
+            assert em.counts.get('cert.s3.read.fallback', 0) >= 1
     
     # ============================================================================
     # BUCKET C: delete() error handling (lines 225-240)
