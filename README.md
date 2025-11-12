@@ -6,7 +6,20 @@ DeltaCrown is a Django-based esports platform for managing tournaments, teams, p
 
 ---
 
-## � Core Infrastructure (NEW!)
+## 📊 Status Badges
+
+![Perf Smoke](https://github.com/rkRashik/DeltaCrown/actions/workflows/perf-smoke.yml/badge.svg)
+![Perf Baseline](https://github.com/rkRashik/DeltaCrown/actions/workflows/perf-baseline.yml/badge.svg)
+![Workflow Secrets Guard](https://github.com/rkRashik/DeltaCrown/actions/workflows/guard-workflow-secrets.yml/badge.svg)
+
+**Performance Status**:
+- 🚀 **PR Smoke Tests**: Fast feedback (50 samples, <2 min)
+- 🌙 **Nightly Baseline**: Full harness (150 samples, 3 AM UTC)
+- 🔒 **Secret Scanning**: Automated workflow lint
+
+---
+
+## 🏗️ Core Infrastructure (NEW!)
 
 **DeltaCrown now has professional, industry-standard infrastructure!**
 

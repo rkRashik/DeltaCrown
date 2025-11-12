@@ -1,2 +1,23 @@
-# Adjust usernames/team as needed
+# CODEOWNERS for DeltaCrown
+# Automatically request reviews from specified users/teams when PRs touch these paths
+
+# Default owner for all files
 * @rkRashik
+
+# CI/CD Workflows (security-sensitive, require explicit review)
+/.github/workflows/perf-baseline.yml          @rkRashik
+/.github/workflows/perf-smoke.yml             @rkRashik
+/.github/workflows/guard-workflow-secrets.yml @rkRashik
+
+# Security & Credential Management
+/SECURITY.md                                  @rkRashik
+/docs/ci/perf-secrets-hotfix.md              @rkRashik
+/docs/ci/BRANCH_PROTECTION_CONFIG.md         @rkRashik
+/.gitleaks.toml                               @rkRashik
+
+# Critical Configuration
+/deltacrown/settings.py                       @rkRashik
+/deltacrown/settings_test_pg.py              @rkRashik
+
+# Database Migrations (require review to prevent data loss)
+/apps/*/migrations/                           @rkRashik

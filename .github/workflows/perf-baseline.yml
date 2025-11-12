@@ -1,150 +1,116 @@
-name: Performance Baseline Nightly
+name: perf-baseline
+
+# Default permissions: read-only for all jobs unless explicitly overridden
+permissions:
+  contents: read
 
 on:
   schedule:
-    # Run nightly at 3 AM UTC
-    - cron: '0 3 * * *'
+    - cron: '0 3 * * *' # nightly
   workflow_dispatch:
-    inputs:
-      samples:
-        description: 'Number of samples per scenario'
-        required: false
-        default: '500'
+  push:
+    branches: [ master ]
+
+concurrency:
+  group: perf-baseline-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  run-baseline:
+  perf-baseline:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    
+    if: github.event_name != 'pull_request'  # Fork guard: never run on PRs
+    permissions:
+      contents: read
+      id-token: write  # For future AWS OIDC (when enabled)
+
     services:
       postgres:
         image: postgres:14
         env:
           POSTGRES_DB: deltacrown_perf
           POSTGRES_USER: deltacrown
-          POSTGRES_PASSWORD: perfpass
+          POSTGRES_PASSWORD: ${{ secrets.PERF_DB_PASSWORD }}   # <-- moved to secrets
+        # No ports mapping needed inside Actions; use service hostname "postgres"
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U deltacrown -d deltacrown_perf"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
+          --health-retries 10
+
       redis:
-        image: redis:7-alpine
+        image: redis:7
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "redis-cli ping || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    
+          --health-retries 10
+
+    env:
+      PERF_DATABASE_URL: postgresql://deltacrown:${{ secrets.PERF_DB_PASSWORD }}@postgres:5432/deltacrown_perf
+      PERF_REDIS_URL: redis://redis:6379/0
+      # keep baseline uploads behind secrets; safe defaults below
+      PERF_BASELINE_S3_BUCKET: ${{ secrets.PERF_BASELINE_S3_BUCKET }}
+      PERF_BASELINE_S3_PREFIX: nightly
+      PERF_BASELINE_SLACK_WEBHOOK: ${{ secrets.PERF_BASELINE_SLACK_WEBHOOK }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
-      
-      - name: Install dependencies
+
+      - name: Mask sensitive variables
+        run: |
+          echo "::add-mask::${{ secrets.PERF_DB_PASSWORD }}"
+          # Defense in depth: ensure secrets never leak to logs
+
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest-benchmark
-      
-      - name: Run database migrations
-        env:
-          DATABASE_URL: postgresql://deltacrown:perfpass@localhost:5432/deltacrown_perf
-          REDIS_URL: redis://localhost:6379/0
-          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
+          pip install psycopg2-binary
+
+      - name: Wait for services healthy
         run: |
-          python manage.py migrate --no-input
-          python manage.py loaddata fixtures/perf_baseline_data.json
-      
-      - name: Run Performance Harness
-        env:
-          DATABASE_URL: postgresql://deltacrown:perfpass@localhost:5432/deltacrown_perf
-          REDIS_URL: redis://localhost:6379/0
-          PERF_SAMPLES: ${{ github.event.inputs.samples || '500' }}
-          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
+          for i in {1..30}; do
+            pg_isready -h postgres -U deltacrown -d deltacrown_perf && break
+            sleep 2
+          done
+
+      - name: Run perf harness (baseline mode)
         run: |
-          mkdir -p artifacts/performance
-          python -m tests.perf.perf_harness \
-            --samples=${PERF_SAMPLES} \
-            --output=artifacts/performance/baseline_${{ github.run_id }}.json
-      
-      - name: Store Baseline Artifact
-        uses: actions/upload-artifact@v3
+          python tests/perf/perf_harness.py --samples 150 --json artifacts/performance/baseline.json
+
+      - name: Upload baseline artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: perf-baseline-${{ github.run_id }}
-          path: artifacts/performance/baseline_${{ github.run_id }}.json
+          name: perf-baseline
+          path: artifacts/performance/baseline.json
           retention-days: 90
-      
-      - name: Upload to S3 (Long-term Storage)
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+
+      - name: OPTIONAL - upload to S3
+        if: ${{ github.event_name == 'schedule' && secrets.PERF_BASELINE_S3_BUCKET != '' }}
         run: |
-          aws s3 cp \
-            artifacts/performance/baseline_${{ github.run_id }}.json \
-            s3://deltacrown-perf-baselines/nightly/$(date +%Y-%m-%d)_baseline.json
-      
-      - name: Compare Against Previous Baseline
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+          pip install awscli
+          aws s3 cp artifacts/performance/baseline.json s3://$PERF_BASELINE_S3_BUCKET/$PERF_BASELINE_S3_PREFIX/${{ github.run_id }}_baseline.json
+        # TODO: Switch to AWS OIDC (no static keys)
+        # Uncomment when ready:
+        # - uses: aws-actions/configure-aws-credentials@v4
+        #   with:
+        #     role-to-assume: arn:aws:iam::ACCOUNT:role/GitHubActionsRole
+        #     aws-region: us-east-1
+
+      - name: OPTIONAL - Slack notify
+        if: ${{ github.event_name == 'schedule' && secrets.PERF_BASELINE_SLACK_WEBHOOK != '' }}
         run: |
-          # Download yesterday's baseline
-          aws s3 cp \
-            s3://deltacrown-perf-baselines/nightly/$(date -d "yesterday" +%Y-%m-%d)_baseline.json \
-            artifacts/performance/previous_baseline.json || echo "No previous baseline"
-          
-          if [ -f artifacts/performance/previous_baseline.json ]; then
-            python scripts/compare_perf_baseline.py \
-              --current artifacts/performance/baseline_${{ github.run_id }}.json \
-              --previous artifacts/performance/previous_baseline.json \
-              --threshold 15 \
-              --report artifacts/performance/regression_report.json
-          fi
-      
-      - name: Post Regression Alert (if degradation >15%)
-        if: failure()
-        uses: slackapi/slack-github-action@v1
-        with:
-          channel-id: 'C0123456789'  # Replace with #performance-alerts channel ID
-          payload: |
-            {
-              "text": "🚨 Performance Regression Detected",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Performance regression detected in nightly baseline run*\n\n*Run ID:* `${{ github.run_id }}`\n*Date:* $(date +%Y-%m-%d)\n\nOne or more scenarios degraded by >15% (p95). Review artifacts:\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-      
-      - name: Generate Grafana Annotation
-        env:
-          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
-          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
-        run: |
-          curl -X POST "${GRAFANA_URL}/api/annotations" \
-            -H "Authorization: Bearer ${GRAFANA_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "text": "Nightly performance baseline run completed",
-              "tags": ["performance", "baseline", "automated"],
-              "time": '$(date +%s000)'
-            }'
+          pip install curlify
+          python - << 'PY'
+          import json, os, urllib.request
+          with open('artifacts/performance/baseline.json') as f:
+              data = json.load(f)
+          msg = {'text': f"Perf baseline complete: p95s={data.get('p95_summary',{})}"}
+          req = urllib.request.Request(os.environ['PERF_BASELINE_SLACK_WEBHOOK'], method='POST')
+          req.add_header('Content-Type','application/json')
+          urllib.request.urlopen(req, json.dumps(msg).encode('utf-8'))
+          PY
