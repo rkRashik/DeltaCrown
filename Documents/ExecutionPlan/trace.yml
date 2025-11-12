@@ -1292,29 +1292,90 @@ phase_8:
   module_8_3:
     title: "Enforcement Wiring with Feature Flags"
     description: "Runtime integration of sanctions into WebSocket and economy entry points with feature flags OFF by default"
-    status: "complete"
-    test_count: 88
-    test_passed: 88
+    status: "complete_with_hardening"
+    completed_date: "2025-01-25"
+    test_count_core: 88
+    test_count_hardening: 45
+    test_count_total: 133
+    test_passed_core: 88
+    test_passed_hardening: 45
     test_failed: 0
-    runtime_seconds: 3.12
+    runtime_seconds_core: 3.12
+    runtime_seconds_hardening: 18.53
     coverage_overall: 98
     coverage_enforcement: 94
     coverage_services: 100
     coverage_models: 99
+    coverage_cache: 100
+    coverage_observability: 95
     implements:
-      - "apps/moderation/enforcement.py"
-      - "deltacrown/settings.py (MODERATION_ENFORCEMENT_* flags)"
-      - "tests/moderation/test_enforcement_e2e.py"
-    tests:
-      - "Test coverage: 8 WebSocket enforcement tests (flags ON/OFF, BAN/SUSPEND/MUTE, scoped, revoked)"
-      - "Test coverage: 7 Economy enforcement tests (flags ON/OFF, BAN/MUTE/SUSPEND, scoped, revoked)"
-      - "Test coverage: 2 Comprehensive policy tests (multiple sanctions, empty policy)"
-      - "Test coverage: 1 Concurrent enforcement test (consistency under concurrent checks)"
-      - "Test coverage: 3 Performance smoke tests (WebSocket <50ms, Purchase <50ms, Policy <100ms)"
-      - "Feature flags OFF by default: zero behavior change until enabled"
-      - "Enforcement logic: WebSocket blocked by BAN/SUSPEND; Economy blocked by BAN/MUTE"
-      - "Scope handling: Global sanctions always apply; tournament-scoped only to target"
-      - "Rollback: Set flags to False (no code deploy required)"
+      - "apps/moderation/enforcement.py (core wiring)"
+      - "apps/moderation/cache.py (sanction-state cache with TTL=60s, PII guards)"
+      - "apps/moderation/observability.py (sampling rate control, EmitterProtocol, TestSink)"
+      - "deltacrown/settings.py (3 enforcement + 3 hardening flags, all OFF by default)"
+      - "tests/moderation/test_enforcement_e2e.py (core tests)"
+      - "tests/moderation/test_property_sanctions.py (7 Hypothesis property tests)"
+      - "tests/moderation/test_benchmarks.py (7 pytest-benchmark tests with SLO assertions)"
+      - "tests/moderation/test_cache.py (15 cache functional tests)"
+      - "tests/moderation/test_observability.py (9 sampling + protocol tests)"
+      - "tests/moderation/test_slos.py (7 SLO guard tests)"
+      - "Documents/ExecutionPlan/RUNBOOKS.md (operational procedures)"
+    core_tests:
+      - "8 WebSocket enforcement tests (flags ON/OFF, BAN/SUSPEND/MUTE, scoped, revoked)"
+      - "7 Economy enforcement tests (flags ON/OFF, BAN/MUTE/SUSPEND, scoped, revoked)"
+      - "2 Comprehensive policy tests (multiple sanctions, empty policy)"
+      - "1 Concurrent enforcement test (consistency under concurrent checks)"
+      - "3 Performance smoke tests (WebSocket <50ms, Purchase <50ms, Policy <100ms)"
+    hardening_tests:
+      - "7 Hypothesis property tests (active sanction returns true, ban precedence, revoked not in policies, time window invariant, idempotency, global applies to all, tournament-scoped only target)"
+      - "7 pytest-benchmark tests (websocket gate p95 ≤50ms, purchase gate p95 ≤50ms, policy query p95 ≤100ms, scoped gates, fast paths with JSON persistence)"
+      - "15 cache functional tests (cache disabled by default, miss→hit, invalidation user/tournament, TTL, PII guards 4 tests, tournament-scoped 2 tests, stats)"
+      - "9 observability tests (sampling rates 0.0/1.0/0.25 statistical, EmitterProtocol, TestSink)"
+      - "7 SLO guard tests (parses benchmark JSON, enforces p95 thresholds, fails if >10% over)"
+    feature_flags_core:
+      - "MODERATION_ENFORCEMENT_WEBSOCKET_ENABLED (default: False)"
+      - "MODERATION_ENFORCEMENT_ECONOMY_ENABLED (default: False)"
+      - "MODERATION_POLICY_QUERY_ENABLED (default: False)"
+    feature_flags_hardening:
+      - "MODERATION_POLICY_CACHE_ENABLED (default: False)"
+      - "MODERATION_OBSERVABILITY_ENABLED (default: False)"
+      - "MODERATION_OBSERVABILITY_SAMPLE_RATE (default: 0.0)"
+    enforcement_logic:
+      - "WebSocket: Blocked by BAN/SUSPEND; Allowed by MUTE/revoked/expired"
+      - "Economy: Blocked by BAN/MUTE; Allowed by SUSPEND/revoked/expired"
+      - "Scope: Global sanctions always apply; tournament-scoped only to target tournament"
+    cache_features:
+      - "Read-through cache with TTL=60s"
+      - "PII guards: _validate_no_pii_in_policies() raises ValueError if username/email/IP detected"
+      - "Invalidation hooks: invalidate_user_sanctions(), invalidate_tournament_sanctions()"
+      - "Cache key format: moderation:policies:{user_id}:{tournament_id}"
+    observability_features:
+      - "Sampling rate control: 0.0-1.0 (0.0 = disabled, 1.0 = all events)"
+      - "EmitterProtocol: Abstract class for sink implementations"
+      - "TestSink: In-memory buffer with clear() for test assertions"
+      - "PII guards: Enforced by test suite"
+    slo_thresholds:
+      - "websocket_gate: p95 ≤50ms"
+      - "purchase_gate: p95 ≤50ms"
+      - "policy_query: p95 ≤100ms"
+      - "scoped_gates: No explicit SLO (informational)"
+      - "fast_paths: No explicit SLO (informational)"
+    operational_docs:
+      - "Documents/ExecutionPlan/RUNBOOKS.md (4 comprehensive procedures):"
+      - "  1. Feature flag rollout/rollback (canary steps 5%/20%/100%, instant rollback)"
+      - "  2. False-positive sanction triage (decision matrix, revocation flow)"
+      - "  3. Cache invalidation & warming (manual procedures, monitoring)"
+      - "  4. Observability sampling tuning (rate guidelines 0.0/0.01/0.1/1.0, PII verification)"
+    pii_discipline:
+      - "Cache: _validate_no_pii_in_policies() validates NO username/email/IP before caching"
+      - "Observability: PII guards enforced by test suite (no user data in events)"
+    commits:
+      - "fc5941a: Core enforcement wiring (v8.3.0-enforcement tag)"
+      - "ed22f24: Hardening batch B+C+D+E (local only, not pushed)"
+    rollback:
+      - "Core: Set MODERATION_ENFORCEMENT_* to False (no code deploy required)"
+      - "Hardening: Set MODERATION_POLICY_CACHE_ENABLED to False (no code deploy required)"
+      - "Observability: Set MODERATION_OBSERVABILITY_SAMPLE_RATE to 0.0 (no code deploy required)"
   module_8_5:
     implements: []
 

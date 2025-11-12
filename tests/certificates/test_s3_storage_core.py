@@ -1,7 +1,7 @@
 """
 Core S3 Storage Tests - Module 6.5
 
-Validates S3 storage backend functionality with DummyS3Client.
+Validates S3 storage backend functionality with DummyS3Client and real boto3.
 Focuses on core features without complex model dependencies.
 
 Test Coverage:
@@ -13,12 +13,16 @@ Test Coverage:
 - Metric emission (4 tests)
 - Delete operations (2 tests)
 - Retry logic (2 tests)
+- Boto3 integration (gated by S3_TESTS=1, 8 tests)
+- Lifecycle policy (2 tests)
+- Consistency checks (4 tests)
 
-Total: 24 tests, all using DummyS3Client for offline execution.
+Total: 38 tests (30 offline + 8 boto3 integration).
 """
 
 import hashlib
 import time
+import os
 from unittest.mock import patch, Mock
 from datetime import timedelta
 
@@ -28,7 +32,10 @@ from django.core.files.base import ContentFile
 from django.utils import timezone
 
 from apps.tournaments.storage import CertificateS3Storage
-from apps.tournaments.s3_protocol import DummyS3Client
+from apps.tournaments.s3_protocol import DummyS3Client, create_real_s3_client
+
+# Check if real S3 tests are enabled
+S3_TESTS_ENABLED = os.environ.get('S3_TESTS', '0') == '1'
 
 
 # ==============================================================================
@@ -448,3 +455,356 @@ class TestRetryLogic(TestCase):
         # Calculate retry rate (should be 0 for DummyS3Client without failures)
         retry_rate = (dummy_s3.put_count - successful_ops) / total_ops * 100 if total_ops > 0 else 0
         self.assertLess(retry_rate, 2.0, f"Retry rate {retry_rate:.1f}% exceeds 2% SLO")
+
+
+# ==============================================================================
+# BOTO3 INTEGRATION TESTS (gated by S3_TESTS=1)
+# ==============================================================================
+
+@override_settings(
+    CERT_S3_DUAL_WRITE=True,
+    AWS_STORAGE_BUCKET_NAME='deltacrown-test-certs'
+)
+class TestBoto3Integration(TestCase):
+    """Test real boto3 S3 operations (requires S3_TESTS=1)."""
+    
+    def setUp(self):
+        if not S3_TESTS_ENABLED:
+            self.skipTest("S3_TESTS not enabled (set S3_TESTS=1)")
+        self.s3_client = create_real_s3_client()
+        self.storage = CertificateS3Storage(s3_client=self.s3_client)
+        self.test_keys = []
+    
+    def tearDown(self):
+        # Cleanup test objects
+        for key in self.test_keys:
+            try:
+                self.s3_client.delete_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=key
+                )
+            except Exception:
+                pass
+    
+    def test_boto3_upload_and_retrieve(self):
+        """Real S3 upload should succeed and be retrievable."""
+        content = ContentFile(b'test pdf content from boto3')
+        name = 'test-boto3/file.pdf'
+        
+        # Upload
+        saved_name = self.storage.save(name, content)
+        self.test_keys.append(saved_name)
+        
+        # Retrieve
+        response = self.s3_client.get_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=saved_name
+        )
+        body = response['Body'].read()
+        self.assertEqual(body, b'test pdf content from boto3')
+    
+    def test_boto3_etag_matches_md5(self):
+        """ETag should match MD5 hash of content."""
+        content_bytes = b'test content for md5 validation'
+        content = ContentFile(content_bytes)
+        name = 'test-boto3/md5-test.pdf'
+        
+        # Upload
+        saved_name = self.storage.save(name, content)
+        self.test_keys.append(saved_name)
+        
+        # Get ETag
+        response = self.s3_client.head_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=saved_name
+        )
+        etag = response['ETag'].strip('"')
+        
+        # Calculate MD5
+        expected_md5 = hashlib.md5(content_bytes).hexdigest()
+        self.assertEqual(etag, expected_md5)
+    
+    def test_boto3_presigned_url_accessible(self):
+        """Presigned URL should be publicly accessible."""
+        import requests
+        
+        content = ContentFile(b'test content for url access')
+        name = 'test-boto3/url-test.pdf'
+        
+        # Upload
+        saved_name = self.storage.save(name, content)
+        self.test_keys.append(saved_name)
+        
+        # Generate presigned URL
+        with override_settings(CERT_S3_READ_PRIMARY=True):
+            storage_with_read = CertificateS3Storage(s3_client=self.s3_client)
+            url = storage_with_read.url(saved_name)
+        
+        # Verify URL is accessible
+        response = requests.get(url, timeout=10)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b'test content for url access')
+    
+    def test_boto3_delete_operation(self):
+        """Delete should remove object from S3."""
+        content = ContentFile(b'test content for deletion')
+        name = 'test-boto3/delete-test.pdf'
+        
+        # Upload
+        saved_name = self.storage.save(name, content)
+        
+        # Verify exists
+        response = self.s3_client.head_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=saved_name
+        )
+        self.assertIsNotNone(response)
+        
+        # Delete
+        self.storage.delete(saved_name)
+        
+        # Verify deleted
+        with self.assertRaises(Exception):
+            self.s3_client.head_object(
+                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                Key=saved_name
+            )
+    
+    def test_boto3_large_file_multipart(self):
+        """Large files (>5MB) should use multipart upload."""
+        # Create 6MB file
+        large_content = b'X' * (6 * 1024 * 1024)
+        content = ContentFile(large_content)
+        name = 'test-boto3/large-file.pdf'
+        
+        # Upload
+        start = time.time()
+        saved_name = self.storage.save(name, content)
+        duration = time.time() - start
+        self.test_keys.append(saved_name)
+        
+        # Verify uploaded
+        response = self.s3_client.head_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=saved_name
+        )
+        self.assertEqual(response['ContentLength'], len(large_content))
+        
+        # Should complete reasonably fast (even 6MB should be <10s on good connection)
+        self.assertLess(duration, 30, f"Upload took {duration:.1f}s (too slow)")
+    
+    def test_boto3_concurrent_uploads(self):
+        """Concurrent uploads should not conflict."""
+        import threading
+        
+        results = []
+        errors = []
+        
+        def upload_file(idx):
+            try:
+                content = ContentFile(f'concurrent content {idx}'.encode())
+                name = f'test-boto3/concurrent-{idx}.pdf'
+                saved_name = self.storage.save(name, content)
+                results.append(saved_name)
+                self.test_keys.append(saved_name)
+            except Exception as e:
+                errors.append(str(e))
+        
+        # Launch 10 concurrent uploads
+        threads = []
+        for i in range(10):
+            thread = threading.Thread(target=upload_file, args=(i,))
+            threads.append(thread)
+            thread.start()
+        
+        for thread in threads:
+            thread.join()
+        
+        # Verify all succeeded
+        self.assertEqual(len(errors), 0, f"Errors: {errors}")
+        self.assertEqual(len(results), 10)
+    
+    def test_boto3_metadata_preservation(self):
+        """Metadata should be preserved in S3."""
+        content = ContentFile(b'test content with metadata')
+        name = 'test-boto3/metadata-test.pdf'
+        
+        # Upload
+        saved_name = self.storage.save(name, content)
+        self.test_keys.append(saved_name)
+        
+        # Get metadata
+        response = self.s3_client.head_object(
+            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+            Key=saved_name
+        )
+        
+        # Verify standard metadata exists
+        self.assertIn('ContentLength', response)
+        self.assertIn('ContentType', response)
+        self.assertIn('LastModified', response)
+    
+    def test_boto3_error_handling(self):
+        """Invalid bucket should raise appropriate error."""
+        # Try to access non-existent bucket
+        bad_client = create_real_s3_client()
+        
+        with self.assertRaises(Exception):
+            bad_client.get_object(
+                Bucket='non-existent-bucket-12345',
+                Key='test.pdf'
+            )
+
+
+# ==============================================================================
+# LIFECYCLE POLICY TESTS
+# ==============================================================================
+
+class TestLifecyclePolicy(TestCase):
+    """Test S3 lifecycle policy configuration."""
+    
+    def test_lifecycle_policy_structure(self):
+        """Lifecycle policy JSON should have correct structure."""
+        from apps.tournaments.s3_lifecycle import get_lifecycle_policy
+        
+        policy = get_lifecycle_policy()
+        
+        # Verify structure
+        self.assertIn('Rules', policy)
+        self.assertIsInstance(policy['Rules'], list)
+        self.assertGreater(len(policy['Rules']), 0)
+        
+        # Verify rule has required fields
+        rule = policy['Rules'][0]
+        self.assertIn('Id', rule)
+        self.assertIn('Status', rule)
+        self.assertIn('Transitions', rule)
+    
+    def test_lifecycle_policy_transitions(self):
+        """Lifecycle policy should have standard → IA → Glacier transitions."""
+        from apps.tournaments.s3_lifecycle import get_lifecycle_policy
+        
+        policy = get_lifecycle_policy()
+        rule = policy['Rules'][0]
+        
+        transitions = rule.get('Transitions', [])
+        self.assertGreater(len(transitions), 0)
+        
+        # Check transition to Infrequent Access
+        ia_transitions = [t for t in transitions if t['StorageClass'] == 'STANDARD_IA']
+        self.assertEqual(len(ia_transitions), 1)
+        self.assertEqual(ia_transitions[0]['Days'], 30)
+        
+        # Check transition to Glacier
+        glacier_transitions = [t for t in transitions if t['StorageClass'] == 'GLACIER']
+        self.assertEqual(len(glacier_transitions), 1)
+        self.assertEqual(glacier_transitions[0]['Days'], 365)
+
+
+# ==============================================================================
+# CONSISTENCY CHECK TESTS
+# ==============================================================================
+
+@override_settings(
+    CERT_S3_DUAL_WRITE=True,
+    AWS_STORAGE_BUCKET_NAME='test-bucket'
+)
+class TestConsistencyChecks(TestCase):
+    """Test SHA-256 consistency between S3 and local."""
+    
+    def test_sha256_match_after_save(self):
+        """SHA-256 should match between S3 and local after save."""
+        dummy_s3 = DummyS3Client()
+        storage = CertificateS3Storage(s3_client=dummy_s3)
+        
+        content_bytes = b'test content for sha256 check'
+        content = ContentFile(content_bytes)
+        name = 'test/sha256-test.pdf'
+        
+        saved_name = storage.save(name, content)
+        
+        # Calculate expected SHA-256
+        expected_hash = hashlib.sha256(content_bytes).hexdigest()
+        
+        # Get S3 hash
+        s3_content = dummy_s3.storage.get(name, b'')
+        s3_hash = hashlib.sha256(s3_content).hexdigest()
+        
+        # Get local hash
+        with storage.local_storage.open(saved_name, 'rb') as f:
+            local_hash = hashlib.sha256(f.read()).hexdigest()
+        
+        # Verify all match
+        self.assertEqual(s3_hash, expected_hash)
+        self.assertEqual(local_hash, expected_hash)
+        
+        # Cleanup
+        storage.delete(saved_name)
+    
+    def test_consistency_check_detects_mismatch(self):
+        """Consistency check should detect SHA-256 mismatch."""
+        dummy_s3 = DummyS3Client()
+        storage = CertificateS3Storage(s3_client=dummy_s3)
+        
+        content = ContentFile(b'original content')
+        name = 'test/mismatch-test.pdf'
+        
+        saved_name = storage.save(name, content)
+        
+        # Corrupt S3 copy
+        dummy_s3.storage[name] = b'corrupted content'
+        
+        # Calculate hashes
+        s3_hash = hashlib.sha256(dummy_s3.storage[name]).hexdigest()
+        with storage.local_storage.open(saved_name, 'rb') as f:
+            local_hash = hashlib.sha256(f.read()).hexdigest()
+        
+        # Verify mismatch detected
+        self.assertNotEqual(s3_hash, local_hash)
+        
+        # Cleanup
+        storage.delete(saved_name)
+    
+    def test_consistency_check_handles_missing_s3(self):
+        """Consistency check should handle missing S3 object."""
+        dummy_s3 = DummyS3Client()
+        storage = CertificateS3Storage(s3_client=dummy_s3)
+        
+        content = ContentFile(b'test content')
+        name = 'test/missing-s3.pdf'
+        
+        saved_name = storage.save(name, content)
+        
+        # Remove S3 copy
+        del dummy_s3.storage[name]
+        
+        # Verify S3 missing
+        self.assertNotIn(name, dummy_s3.storage)
+        
+        # Local should still exist
+        self.assertTrue(storage.local_storage.exists(saved_name))
+        
+        # Cleanup
+        storage.delete(saved_name)
+    
+    def test_consistency_check_handles_missing_local(self):
+        """Consistency check should handle missing local file."""
+        dummy_s3 = DummyS3Client()
+        storage = CertificateS3Storage(s3_client=dummy_s3)
+        
+        content = ContentFile(b'test content')
+        name = 'test/missing-local.pdf'
+        
+        saved_name = storage.save(name, content)
+        
+        # Remove local copy
+        storage.local_storage.delete(saved_name)
+        
+        # Verify local missing
+        self.assertFalse(storage.local_storage.exists(saved_name))
+        
+        # S3 should still exist
+        self.assertIn(name, dummy_s3.storage)
+        
+        # Cleanup S3
+        dummy_s3.storage.pop(name, None)

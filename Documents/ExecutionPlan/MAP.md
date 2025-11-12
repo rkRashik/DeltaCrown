@@ -1764,6 +1764,51 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 **Tag**: v8.3.0-enforcement (pushed to origin)  
 **Completion Doc**: MODULE_8.3_ENFORCEMENT_COMPLETION_STATUS.md
 
+#### Module 8.3 Hardening Batch (Phase 8.3.1 - Observability, Cache, SLOs)
+**Date**: 2025-01-25  
+**Status**: ✅ Implemented (Local commit ed22f24, not pushed)
+
+**Scope**: Production-hardening for Phase 8.3 enforcement:
+- Property-based tests (7 Hypothesis tests for sanction invariants)
+- Micro-benchmarks (7 pytest-benchmark tests with SLO assertions)
+- Sanction-state cache (read-through cache with TTL=60s, PII guards)
+- Observability sampling (rate control 0.0-1.0, EmitterProtocol, TestSink)
+- SLO guard tests (7 tests parsing benchmark JSON, enforcing p95 thresholds)
+- Operational runbooks (4 comprehensive procedures: flags, triage, cache, observability)
+
+**Implementation Files**:
+- `apps/moderation/cache.py` (NEW): Read-through cache with invalidation hooks
+- `apps/moderation/observability.py` (UPDATED): Sampling rate control, EmitterProtocol
+- `deltacrown/settings.py` (UPDATED): 3 new feature flags (all OFF by default)
+
+**Test Files** (45 new tests):
+- `tests/moderation/test_property_sanctions.py` (7 Hypothesis property tests)
+- `tests/moderation/test_benchmarks.py` (7 pytest-benchmark performance tests)
+- `tests/moderation/test_cache.py` (15 cache functional tests)
+- `tests/moderation/test_observability.py` (9 new sampling + protocol tests)
+- `tests/moderation/test_slos.py` (7 SLO guard tests)
+
+**Documentation**:
+- `Documents/ExecutionPlan/RUNBOOKS.md` (NEW): Operational procedures for rollout, triage, cache, observability
+
+**Feature Flags** (All OFF by default):
+- `MODERATION_POLICY_CACHE_ENABLED` (default: False)
+- `MODERATION_OBSERVABILITY_ENABLED` (default: False)
+- `MODERATION_OBSERVABILITY_SAMPLE_RATE` (default: 0.0)
+
+**PII Discipline**:
+- Cache: `_validate_no_pii_in_policies()` raises ValueError if username/email/IP detected
+- Observability: PII guards in event emission (enforced by test suite)
+
+**Test Results**:
+- Core Phase 8.3: 100/100 passing (unchanged from fc5941a)
+- New tests: 45 created (environment constraints prevent full execution)
+- Benchmark SLOs: p95 ≤50ms (websocket/purchase gates), ≤100ms (policy query)
+
+**Rollback**: Set all 3 flags to False (zero runtime behavior change)  
+**Commit**: ed22f24 (local only, not pushed)  
+**Traceability**: trace.yml module_8_3 updated with hardening details
+
 ### Module 8.4: Audit Logs (Additional)
 *[Completed in 8.1/8.2 as ModerationAudit]*
 
