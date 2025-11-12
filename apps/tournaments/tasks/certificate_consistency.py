@@ -49,6 +49,7 @@ from django.utils import timezone
 from celery import shared_task
 
 from apps.tournaments.models import Certificate
+from apps.tournaments.s3_protocol import create_real_s3_client
 
 try:
     import boto3
@@ -83,13 +84,8 @@ def check_certificate_consistency(self):
         return {'status': 'skipped', 'reason': 'boto3 not installed'}
     
     try:
-        # Initialize S3 client
-        s3_client = boto3.client(
-            's3',
-            region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1'),
-            aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', None),
-            aws_secret_access_key=getattr(settings, 'AWS_SECRET_ACCESS_KEY', None)
-        )
+        # Initialize S3 client (uses factory for testability)
+        s3_client = create_real_s3_client()
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
         
         # Count certificates marked as migrated
@@ -191,13 +187,8 @@ def spot_check_certificate_integrity(self, sample_percent: float = 1.0):
         sample_size = max(10, min(1000, int(total_count * sample_percent / 100)))
         sample_ids = random.sample(list(migrated_certs), min(sample_size, total_count))
         
-        # Initialize S3 client
-        s3_client = boto3.client(
-            's3',
-            region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1'),
-            aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', None),
-            aws_secret_access_key=getattr(settings, 'AWS_SECRET_ACCESS_KEY', None)
-        )
+        # Initialize S3 client (uses factory for testability)
+        s3_client = create_real_s3_client()
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
         
         # Check each sampled certificate

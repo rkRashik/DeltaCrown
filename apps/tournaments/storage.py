@@ -96,11 +96,12 @@ class CertificateS3Storage:
         
         # S3 storage (only if enabled and storages available, or injected for testing)
         self.s3_storage = None
-        self.s3_client = s3_client  # For direct S3 operations (testing)
+        self.s3_client = s3_client  # For direct S3 operations (testing with DummyS3Client)
+        self.bucket_name = getattr(settings, 'AWS_STORAGE_BUCKET_NAME', 'deltacrown-certificates-prod')
         
         if self.dual_write_enabled or self.read_primary_s3 or s3_client:
             if s3_client:
-                # Testing mode: use injected client directly
+                # Testing mode: use injected client directly (DummyS3Client or mocked boto3)
                 self.s3_storage = None  # Bypass S3Boto3Storage wrapper
                 self.s3_client = s3_client
             else:
@@ -113,7 +114,7 @@ class CertificateS3Storage:
                 
                 # Configure S3 storage
                 self.s3_storage = S3Boto3Storage(
-                    bucket_name=getattr(settings, 'AWS_STORAGE_BUCKET_NAME', 'deltacrown-certificates-prod'),
+                    bucket_name=self.bucket_name,
                     region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1'),
                     default_acl=None,  # Private objects
                     querystring_auth=True,  # Enable presigned URLs
@@ -194,23 +195,55 @@ class CertificateS3Storage:
         Returns:
             str: Saved filename (relative path)
         """
+        # Save to S3 first if dual-write enabled (to get clean content)
+        saved_name = name
+        if self.dual_write_enabled:
+            # Use direct S3 client if provided (testing), otherwise S3Boto3Storage
+            if self.s3_client:
+                try:
+                    # Direct S3 client (DummyS3Client for testing)
+                    # Read content before it's consumed
+                    content_bytes = content.read() if hasattr(content, 'read') else bytes(content)
+                    self.s3_client.put_object(
+                        Bucket=self.bucket_name,
+                        Key=name,
+                        Body=content_bytes
+                    )
+                    self._emit_metric('cert.s3.write.success')
+                    logger.info(f"Dual-write S3 succeeded: s3={name}")
+                    
+                    # Reset for local write
+                    from django.core.files.base import ContentFile
+                    content = ContentFile(content_bytes)
+                    saved_name = name
+                except Exception as e:
+                    self._emit_metric('cert.s3.write.fail', tags={'error': type(e).__name__})
+                    logger.warning(f"Dual-write S3 failed (direct): {e}", exc_info=True)
+                    # Reset content position if possible
+                    if hasattr(content, 'seek'):
+                        content.seek(0)
+            elif self.s3_storage:
+                # Read content first
+                content_bytes = content.read() if hasattr(content, 'read') else bytes(content)
+                
+                # Save to S3
+                from django.core.files.base import ContentFile
+                s3_content = ContentFile(content_bytes)
+                s3_name = self._safe_s3_operation('save', name, s3_content, max_length=max_length)
+                if s3_name:
+                    logger.info(f"Dual-write S3 succeeded: s3={s3_name}")
+                    saved_name = s3_name
+                else:
+                    logger.warning(f"Dual-write S3 failed")
+                
+                # Reset for local write
+                content = ContentFile(content_bytes)
+        
         # Always save to local (primary if dual_write OFF, shadow if ON)
         local_name = self.local_storage.save(name, content)
+        logger.info(f"Dual-write local succeeded: local={local_name}")
         
-        # Save to S3 if dual-write enabled
-        if self.dual_write_enabled and self.s3_storage:
-            # Reset content position for second write
-            if hasattr(content, 'seek'):
-                content.seek(0)
-            
-            s3_name = self._safe_s3_operation('save', name, content, max_length=max_length)
-            if s3_name:
-                logger.info(f"Dual-write succeeded: local={local_name}, s3={s3_name}")
-                return s3_name  # Return S3 name for consistency
-            else:
-                logger.warning(f"Dual-write S3 failed, using local: {local_name}")
-        
-        return local_name
+        return local_name if not self.dual_write_enabled else saved_name
     
     def exists(self, name: str) -> bool:
         """
@@ -249,10 +282,23 @@ class CertificateS3Storage:
         Returns:
             str: URL for file access
         """
-        if self.read_primary_s3 and self.s3_storage:
-            s3_url = self._safe_s3_operation('url', name)
-            if s3_url:
-                return s3_url
+        if self.read_primary_s3:
+            if self.s3_client:
+                try:
+                    s3_url = self.s3_client.generate_presigned_url(
+                        ClientMethod='get_object',
+                        Params={'Bucket': self.bucket_name, 'Key': name},
+                        ExpiresIn=900  # 15 minutes
+                    )
+                    self._emit_metric('cert.s3.url.success')
+                    return s3_url
+                except Exception as e:
+                    self._emit_metric('cert.s3.url.fail', tags={'error': type(e).__name__})
+                    logger.warning(f"S3 presigned URL generation failed: {e}", exc_info=True)
+            elif self.s3_storage:
+                s3_url = self._safe_s3_operation('url', name)
+                if s3_url:
+                    return s3_url
             # Fallback to local on S3 error
             self._emit_metric('cert.s3.read.fallback', tags={'operation': 'url'})
         
@@ -288,8 +334,16 @@ class CertificateS3Storage:
             name: File name to delete
         """
         # Delete from S3 if enabled
-        if (self.dual_write_enabled or self.read_primary_s3) and self.s3_storage:
-            self._safe_s3_operation('delete', name)
+        if self.dual_write_enabled or self.read_primary_s3:
+            if self.s3_client:
+                try:
+                    self.s3_client.delete_object(Bucket=self.bucket_name, Key=name)
+                    self._emit_metric('cert.s3.delete.success')
+                except Exception as e:
+                    self._emit_metric('cert.s3.delete.fail', tags={'error': type(e).__name__})
+                    logger.warning(f"S3 delete failed (direct): {e}", exc_info=True)
+            elif self.s3_storage:
+                self._safe_s3_operation('delete', name)
         
         # Always delete from local
         if self.local_storage.exists(name):

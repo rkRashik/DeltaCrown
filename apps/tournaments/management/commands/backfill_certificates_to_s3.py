@@ -53,6 +53,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from apps.tournaments.models import Certificate
+from apps.tournaments.s3_protocol import create_real_s3_client
 
 try:
     import boto3
@@ -155,13 +156,8 @@ class Command(BaseCommand):
                     "Expected format: last_id:timestamp (e.g., 1000:2025-11-12T10:30:00)"
                 )
         
-        # Initialize S3 client
-        s3_client = boto3.client(
-            's3',
-            region_name=getattr(settings, 'AWS_S3_REGION_NAME', 'us-east-1'),
-            aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', None),
-            aws_secret_access_key=getattr(settings, 'AWS_SECRET_ACCESS_KEY', None)
-        )
+        # Initialize S3 client (uses factory for testability)
+        s3_client = create_real_s3_client()
         bucket_name = settings.AWS_STORAGE_BUCKET_NAME
         
         # Build queryset
