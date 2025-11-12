@@ -67,9 +67,20 @@ jobs:
         run: |
           python tests/perf/perf_harness.py --samples 50 --json artifacts/performance/smoke.json
 
+      - name: Run smoke tests
+        run: |
+          pytest -v -m smoke tests/smoke/ --json-report --json-report-file=artifacts/smoke/smoke_run_summary.json
+
       - name: Upload smoke artifact
         uses: actions/upload-artifact@v4
         with:
           name: perf-smoke
           path: artifacts/performance/smoke.json
+          retention-days: 14
+      
+      - name: Upload smoke test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-results
+          path: artifacts/smoke/smoke_run_summary.json
           retention-days: 14

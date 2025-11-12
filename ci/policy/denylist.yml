@@ -1,0 +1,97 @@
+# CI Policy Denylist
+#
+# This file defines patterns that are DENIED in commits/PRs.
+# Used by CI jobs to reject dangerous patterns before merge.
+
+version: "1.0"
+
+denied_patterns:
+  # Hardcoded Credentials
+  - pattern: 'PASSWORD\s*[:=]\s*["\']?[a-zA-Z0-9]{6,}'
+    description: "Hardcoded PASSWORD value (use secrets or environment variables)"
+    severity: critical
+    exclude_paths:
+      - "tests/fixtures/"
+      - "docs/examples/"
+      - ".gitleaks.toml"
+  
+  - pattern: 'SECRET_KEY\s*=\s*["\'][a-zA-Z0-9@#$%^&*()-_=+]{40,}["\']'
+    description: "Hardcoded Django SECRET_KEY (use environment variable)"
+    severity: critical
+    exclude_paths:
+      - "deltacrown/settings_test_pg.py"
+      - "tests/"
+  
+  - pattern: 'postgres://[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+@'
+    description: "Database URL with embedded credentials"
+    severity: critical
+    exclude_paths:
+      - ".github/workflows/perf-smoke.yml"  # Ephemeral github.run_id
+      - "docs/ci/perf-secrets-hotfix.md"  # Evidence doc
+  
+  # Private Keys & Certificates
+  - pattern: '-----BEGIN (RSA |EC )?PRIVATE KEY-----'
+    description: "Private key detected (should never be committed)"
+    severity: critical
+    exclude_paths:
+      - "certs/*.example"
+      - "tests/fixtures/keys/*.test"
+  
+  - pattern: '\.p12$|\.pem$'
+    description: "Certificate files outside allowed directories"
+    severity: high
+    exclude_paths:
+      - "certs/"
+      - "ssl/"
+      - "tests/fixtures/certs/"
+  
+  # API Keys & Tokens
+  - pattern: 'AKIA[0-9A-Z]{16}'
+    description: "AWS Access Key ID detected"
+    severity: critical
+    exclude_paths: []
+  
+  - pattern: 'ghp_[a-zA-Z0-9]{36}'
+    description: "GitHub Personal Access Token detected"
+    severity: critical
+    exclude_paths: []
+  
+  - pattern: 'sk-[a-zA-Z0-9]{48}'
+    description: "OpenAI API Key detected"
+    severity: critical
+    exclude_paths: []
+
+# Enforcement
+enforcement:
+  on_match:
+    action: reject_commit
+    message: "Commit rejected: {description}. See ci/policy/denylist.yml"
+  
+  exemptions:
+    - reason: "Test fixture with fake credentials"
+      paths:
+        - "tests/fixtures/**"
+      requires_review: true
+    
+    - reason: "Documentation with redacted examples"
+      paths:
+        - "docs/**/*.md"
+      requires_review: true
+
+# Scanning
+scan:
+  file_patterns:
+    - "**/*.py"
+    - "**/*.yml"
+    - "**/*.yaml"
+    - "**/*.json"
+    - "**/*.env"
+    - "**/*.sh"
+  
+  exclude_patterns:
+    - "**/node_modules/**"
+    - "**/.venv/**"
+    - "**/venv/**"
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - ".git/**"

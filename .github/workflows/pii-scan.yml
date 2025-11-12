@@ -1,0 +1,75 @@
+name: pii-scan
+
+on:
+  pull_request:
+    paths:
+      - 'tests/**'
+      - 'apps/**'
+      - 'deltacrown/**'
+  push:
+    branches: [master]
+
+# Default permissions: read-only
+permissions:
+  contents: read
+
+jobs:
+  scan-pii:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Scan for PII in code
+        run: |
+          echo "🔍 Scanning for PII patterns (emails, IPs, usernames)..."
+          
+          # Email pattern (reject real emails, allow example.com)
+          if grep -rE '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' tests/ apps/ deltacrown/ | \
+             grep -v 'example\.com' | \
+             grep -v 'example\.org' | \
+             grep -v 'test\.local' | \
+             grep -v '@faker' | \
+             grep -v 'tests/fixtures/' | \
+             grep -v '# PII: safe'; then
+            echo "❌ Real email addresses found in code"
+            echo "Use example.com/test.local or hashed user IDs instead"
+            exit 1
+          fi
+          
+          # IP address pattern (allow localhost/private ranges in tests)
+          if grep -rE '\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b' tests/ apps/ deltacrown/ | \
+             grep -v '127\.0\.0\.1' | \
+             grep -v '0\.0\.0\.0' | \
+             grep -v '192\.168\.' | \
+             grep -v '10\.' | \
+             grep -v 'tests/fixtures/' | \
+             grep -v '# IP: safe'; then
+            echo "⚠️  IP addresses found (review if these are test IPs)"
+          fi
+          
+          # Username patterns (reject user_* patterns, allow in fixtures)
+          if grep -rE '\buser_[a-zA-Z0-9_]{5,}\b' tests/ apps/ | \
+             grep -v 'tests/fixtures/' | \
+             grep -v '# Username: safe' | \
+             grep -v 'smoketest_user' | \
+             grep -v 'test_user'; then
+            echo "⚠️  Suspicious username patterns found (review if these are test users)"
+          fi
+          
+          echo "✅ PII scan complete"
+      
+      - name: Check observability code for PII
+        run: |
+          echo "🔍 Checking observability/metrics code for PII..."
+          
+          # Observability modules should never log/emit PII
+          if grep -rE 'user\.email|user\.username|request\.META\["REMOTE_ADDR"\]' \
+             apps/observability/ apps/moderation/ 2>/dev/null | \
+             grep -v '# PII: hashed' | \
+             grep -v '# PII: safe'; then
+            echo "❌ PII found in observability code"
+            echo "Use hashed user IDs or anonymized data instead"
+            exit 1
+          fi
+          
+          echo "✅ Observability code is PII-safe"

@@ -5,15 +5,14 @@
 * @rkRashik
 
 # CI/CD Workflows (security-sensitive, require explicit review)
-/.github/workflows/perf-baseline.yml          @rkRashik
-/.github/workflows/perf-smoke.yml             @rkRashik
-/.github/workflows/guard-workflow-secrets.yml @rkRashik
+/.github/workflows/**                         @rkRashik
 
 # Security & Credential Management
 /SECURITY.md                                  @rkRashik
 /docs/ci/perf-secrets-hotfix.md              @rkRashik
 /docs/ci/BRANCH_PROTECTION_CONFIG.md         @rkRashik
 /.gitleaks.toml                               @rkRashik
+/ci/policy/**                                 @rkRashik
 
 # Critical Configuration
 /deltacrown/settings.py                       @rkRashik
@@ -21,3 +20,9 @@
 
 # Database Migrations (require review to prevent data loss)
 /apps/*/migrations/                           @rkRashik
+
+# Observability & Monitoring
+/grafana/**                                   @rkRashik
+/synthetics/**                                @rkRashik
+/MODULE_8.3_OBSERVABILITY_NOTES.md           @rkRashik
+/PHASE_9_SMOKE_AND_ALERTING.md               @rkRashik

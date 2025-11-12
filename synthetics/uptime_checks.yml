@@ -1,0 +1,124 @@
+# DeltaCrown Uptime & Synthetic Checks
+#
+# 4 critical endpoints monitored every 1 minute
+# No repository secrets required (uses public/unauthenticated endpoints)
+#
+# Usage:
+#   - CI: .github/workflows/synthetics-lint.yml validates this file
+#   - Production: Deploy to monitoring service (Datadog, New Relic, custom)
+#
+# Variables:
+#   - BASE_URL: Target environment (staging/production)
+#   - ALERT_THRESHOLD: Consecutive failures before alert (default: 3)
+
+version: "1.0"
+checks:
+  - name: health_endpoint
+    type: http
+    method: GET
+    url: "${BASE_URL}/health"
+    interval: 60s
+    timeout: 5s
+    success_criteria:
+      - status_code: 200
+      - response_time_ms: <800
+      - body_contains: "status"
+      - body_contains: "ok"
+    failure_threshold: 3  # Alert after 3 consecutive failures
+    labels:
+      environment: "${ENVIRONMENT}"
+      service: deltacrown
+      criticality: high
+    description: "Health check endpoint must return 200 with 'ok' status"
+
+  - name: transactions_api
+    type: http
+    method: GET
+    url: "${BASE_URL}/api/transactions?page=1&page_size=10"
+    interval: 60s
+    timeout: 10s
+    success_criteria:
+      - status_code: [200, 401]  # 200 if public, 401 if auth required (both OK)
+      - response_time_ms: <800
+      - headers_contain:
+          Content-Type: "application/json"
+    failure_threshold: 3
+    labels:
+      environment: "${ENVIRONMENT}"
+      service: deltacrown
+      criticality: medium
+      api_type: transactions
+    description: "Transactions API should respond (may require auth)"
+
+  - name: shop_items_api
+    type: http
+    method: GET
+    url: "${BASE_URL}/api/shop/items"
+    interval: 60s
+    timeout: 10s
+    success_criteria:
+      - status_code: [200, 401]
+      - response_time_ms: <800
+      - headers_contain:
+          Content-Type: "application/json"
+    failure_threshold: 3
+    labels:
+      environment: "${ENVIRONMENT}"
+      service: deltacrown
+      criticality: medium
+      api_type: shop
+    description: "Shop items API availability check"
+
+  - name: moderation_enforcement_ping
+    type: http
+    method: GET
+    url: "${BASE_URL}/api/moderation/enforcement/ping"
+    interval: 60s
+    timeout: 5s
+    success_criteria:
+      - status_code: 200
+      - response_time_ms: <800
+      - body_contains: "allow"
+      - body_json_equals:
+          allow: true
+    failure_threshold: 3
+    labels:
+      environment: "${ENVIRONMENT}"
+      service: deltacrown
+      criticality: low
+      feature_flags: "enforcement_off"
+    description: "Moderation enforcement ping (should return allow:true when flags OFF)"
+    notes: "This endpoint tests enforcement layer health. With flags OFF (default), always returns allow:true."
+
+# Alert configuration
+alerting:
+  channels:
+    - type: slack
+      webhook_url: "${ALERT_SLACK_WEBHOOK}"  # Optional, gated in CI
+      enabled: false  # Disabled by default (no secrets required)
+    
+    - type: pagerduty
+      integration_key: "${PAGERDUTY_KEY}"  # Optional
+      enabled: false
+
+  rules:
+    - name: consecutive_failures
+      condition: "check.consecutive_failures >= 3"
+      severity: warning
+      message: "Synthetic check ${check.name} failed 3 times consecutively"
+    
+    - name: weekly_availability
+      condition: "check.availability_7d < 0.985"  # <98.5%
+      severity: critical
+      message: "Weekly availability for ${check.name} below 98.5%: ${check.availability_7d}"
+
+# Environment-specific overrides
+environments:
+  staging:
+    base_url: "https://staging.deltacrown.example.com"
+    interval_override: 120s  # Check every 2 min in staging
+  
+  production:
+    base_url: "https://deltacrown.example.com"
+    interval_override: 60s  # Check every 1 min in production
+    failure_threshold_override: 2  # Faster alerts in prod (2 failures)

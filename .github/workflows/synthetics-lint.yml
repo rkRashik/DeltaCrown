@@ -1,0 +1,70 @@
+name: synthetics-lint
+
+on:
+  pull_request:
+    paths:
+      - 'synthetics/**'
+  push:
+    branches: [master]
+    paths:
+      - 'synthetics/**'
+
+# Default permissions: read-only
+permissions:
+  contents: read
+
+jobs:
+  lint-synthetics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install yamllint
+        run: pip install yamllint
+      
+      - name: Lint synthetics YAML
+        run: yamllint synthetics/uptime_checks.yml
+      
+      - name: Validate synthetics schema
+        run: |
+          python - << 'PY'
+          import yaml
+          import sys
+          
+          with open('synthetics/uptime_checks.yml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          # Validate required top-level keys
+          required_keys = ['version', 'checks']
+          for key in required_keys:
+              if key not in data:
+                  print(f"❌ Missing required key: {key}")
+                  sys.exit(1)
+          
+          # Validate each check
+          for check in data['checks']:
+              if 'name' not in check:
+                  print(f"❌ Check missing 'name' field")
+                  sys.exit(1)
+              if 'url' not in check:
+                  print(f"❌ Check '{check['name']}' missing 'url' field")
+                  sys.exit(1)
+              if 'success_criteria' not in check:
+                  print(f"❌ Check '{check['name']}' missing 'success_criteria'")
+                  sys.exit(1)
+          
+          print(f"✅ Validated {len(data['checks'])} synthetic checks")
+          PY
+      
+      - name: Check for secrets in YAML
+        run: |
+          if grep -E '(password|secret|key):\s*[^$]' synthetics/uptime_checks.yml | grep -v '\${'; then
+            echo "❌ Hardcoded secrets found in synthetics YAML"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets found"
