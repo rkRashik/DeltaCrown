@@ -159,3 +159,64 @@ def apply_lifecycle_policy(s3_client, bucket_name):
     except Exception as e:
         print(f"Error applying lifecycle policy: {str(e)}")
         return False
+
+
+def validate_policy_structure(policy_dict):
+    """
+    Validate lifecycle policy dictionary structure (for tests).
+    
+    Args:
+        policy_dict: Policy dictionary to validate
+    
+    Returns:
+        dict: {'valid': bool, 'errors': list, 'warnings': list}
+    
+    Example:
+        >>> result = validate_policy_structure({'Rules': [...]})
+        >>> print(result['valid'])
+    """
+    result = {'valid': True, 'errors': [], 'warnings': []}
+    
+    # Check Rules key exists
+    if 'Rules' not in policy_dict:
+        result['valid'] = False
+        result['errors'].append("Missing 'Rules' key in policy")
+        return result
+    
+    rules = policy_dict.get('Rules', [])
+    
+    # Check Rules is not empty
+    if not rules or len(rules) == 0:
+        result['valid'] = False
+        result['errors'].append("Policy must have at least one rule")
+        return result
+    
+    # Validate each rule
+    for i, rule in enumerate(rules):
+        # Required fields
+        if 'ID' not in rule and 'Id' not in rule:
+            result['errors'].append(f"Rule {i}: Missing 'ID' field")
+        
+        if 'Status' not in rule:
+            result['errors'].append(f"Rule {i}: Missing 'Status' field")
+        
+        # Validate expiration if present
+        if 'Expiration' in rule:
+            expiration = rule['Expiration']
+            if 'Days' in expiration:
+                days = expiration['Days']
+                
+                if days < 1:
+                    result['errors'].append(f"Rule {i}: Expiration days must be >= 1")
+                elif days > 3650:  # 10 years max
+                    result['errors'].append(f"Rule {i}: Expiration days must be <= 3650")
+                elif days < 365:
+                    result['warnings'].append(
+                        f"Rule {i}: Short retention ({days} days < 1 year). "
+                        "Consider longer retention for certificates."
+                    )
+    
+    if result['errors']:
+        result['valid'] = False
+    
+    return result

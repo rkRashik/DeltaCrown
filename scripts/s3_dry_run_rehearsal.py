@@ -68,11 +68,20 @@ class DryRunStats:
         self.errors.append(error_msg)
     
     def get_percentile(self, values, p):
+        """Calculate percentile using linear interpolation (NumPy method)."""
+        import math
         if not values:
-            return 0
+            return 0.0
         sorted_values = sorted(values)
-        idx = int(len(sorted_values) * p)
-        return sorted_values[min(idx, len(sorted_values) - 1)]
+        # Use percentile as 0-100 scale (p95 = 0.95 → 95.0)
+        percentile = p * 100 if p <= 1.0 else p
+        k = (len(sorted_values) - 1) * (percentile / 100.0)
+        f = math.floor(k)
+        c = math.ceil(k)
+        if f == c:
+            return float(sorted_values[int(k)])
+        # Linear interpolation
+        return float(sorted_values[f] + (sorted_values[c] - sorted_values[f]) * (k - f))
     
     def get_summary(self):
         return {
@@ -344,11 +353,20 @@ def run_dry_run(count=500, use_real_s3=False, bucket_name='deltacrown-test-certs
     return stats
 
 
+def save_artifact_utf8(output_text, filepath):
+    """Save rehearsal artifact with UTF-8 encoding (blocker #0.1 fix)."""
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with open(filepath, 'w', encoding='utf-8', newline='') as f:
+        f.write(output_text)
+    print(f"Artifact saved: {filepath}")
+
+
 def main():
     parser = argparse.ArgumentParser(description='S3 migration dry-run rehearsal')
     parser.add_argument('--count', type=int, default=500, help='Number of objects to simulate')
     parser.add_argument('--real-s3', action='store_true', help='Use real S3 (requires S3_TESTS=1)')
     parser.add_argument('--bucket', type=str, default='deltacrown-test-certs', help='S3 bucket name')
+    parser.add_argument('--save-artifact', type=str, help='Save output to file (UTF-8)')
     
     args = parser.parse_args()
     
@@ -356,7 +374,20 @@ def main():
         print("ERROR: Real S3 tests require S3_TESTS=1 environment variable")
         sys.exit(1)
     
+    # Capture output if artifact requested
+    if args.save_artifact:
+        import io
+        old_stdout = sys.stdout
+        sys.stdout = buffer = io.StringIO()
+    
     stats = run_dry_run(count=args.count, use_real_s3=args.real_s3, bucket_name=args.bucket)
+    
+    # Save artifact if requested
+    if args.save_artifact:
+        output = buffer.getvalue()
+        sys.stdout = old_stdout
+        print(output)  # Print to console too
+        save_artifact_utf8(output, args.save_artifact)
     
     # Exit with appropriate code
     summary = stats.get_summary()

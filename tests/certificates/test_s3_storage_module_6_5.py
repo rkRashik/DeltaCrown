@@ -92,7 +92,7 @@ class S3TestMixin:
         registration = Registration.objects.create(
             tournament=tournament,
             user=user,
-            status='CONFIRMED'
+            status='confirmed'  # Lowercase status per constraint
         )
         
         cert = Certificate.objects.create(
@@ -630,15 +630,16 @@ class TestShadowIntegrity(TestCase, S3TestMixin):
         dummy_s3 = DummyS3Client(fail_on_keys={'test/file.pdf'})
         storage = CertificateS3Storage(s3_client=dummy_s3)
         
-        content = ContentFile(b'important data')
-        name = storage.save('test/file.pdf', content)
+        content_data = b'important data'
+        content = ContentFile(content_data)
+        saved_name = storage.save('test/file.pdf', content)
         
-        # Local copy MUST exist
-        self.assertTrue(storage.local_storage.exists(name))
+        # Local copy MUST exist (returned name might differ from requested)
+        self.assertTrue(storage.local_storage.exists(saved_name))
         
         # Verify we can read from local
-        with storage.local_storage.open(name) as f:
-            self.assertEqual(f.read(), b'important data')
+        with storage.local_storage.open(saved_name) as f:
+            self.assertEqual(f.read(), content_data)
     
     def test_read_path_serves_from_local_on_s3_error(self):
         """Read path must serve from local if S3 fails."""
