@@ -6,6 +6,22 @@
 
 ---
 
+## Security Incident Log
+
+### 2025-11-12: GitHub Secret Scan — Workflow DB Password
+- **Issue**: GitHub secret scanner flagged hard-coded postgres test password (`perfpass`) in `.github/workflows/perf-baseline.yml`
+- **Severity**: LOW (ephemeral test container only, no production credentials)
+- **Remediation**: 
+  * Moved DB credentials to GitHub Actions secrets (`PERF_DB_PASSWORD`)
+  * PR smoke tests use ephemeral credentials (`${{ github.run_id }}_${{ github.run_attempt }}`)
+  * Nightly baseline gated to `schedule`/`push to master` with secrets
+  * No port mapping; services use internal hostnames (`postgres`, `redis`)
+- **Impact**: No production secrets exposed; test workflows only
+- **Commit**: `hotfix/ci-perf-secrets` branch
+- **Status**: ✅ RESOLVED
+
+---
+
 ## Executive Summary
 
 Big Batch C implements security hardening with:

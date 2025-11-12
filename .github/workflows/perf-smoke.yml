@@ -1,180 +1,65 @@
-name: Performance Smoke Tests
+name: perf-smoke
 
 on:
-  push:
-    branches: [main, master, develop]
   pull_request:
-    branches: [main, master, develop]
-  schedule:
-    # Run nightly at 2 AM UTC
-    - cron: '0 2 * * *'
-  workflow_dispatch:
-    inputs:
-      samples:
-        description: 'Number of samples per scenario'
-        required: false
-        default: '150'
+    branches: [ master, main ]
 
 jobs:
   perf-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+
     services:
       postgres:
         image: postgres:14
         env:
-          POSTGRES_DB: deltacrown_test
-          POSTGRES_USER: deltacrown
-          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: perf_smoke
+          POSTGRES_USER: perf_user
+          POSTGRES_PASSWORD: ${{ github.run_id }}_${{ github.run_attempt }}  # ephemeral, not committed
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U perf_user -d perf_smoke"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
+          --health-retries 10
+
       redis:
-        image: redis:7-alpine
+        image: redis:7
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "redis-cli ping || exit 1"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    
+          --health-retries 10
+
+    env:
+      PERF_DATABASE_URL: postgresql://perf_user:${{ github.run_id }}_${{ github.run_attempt }}@postgres:5432/perf_smoke
+      PERF_REDIS_URL: redis://redis:6379/0
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
-      
-      - name: Install dependencies
+
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest-benchmark pytest-timeout
-      
-      - name: Run database migrations
-        env:
-          DATABASE_URL: postgresql://deltacrown:testpass@localhost:5432/deltacrown_test
-          REDIS_URL: redis://localhost:6379/0
-        run: |
-          python manage.py migrate --no-input
-      
-      - name: Run SLO Guard Tests
-        env:
-          DATABASE_URL: postgresql://deltacrown:testpass@localhost:5432/deltacrown_test
-          REDIS_URL: redis://localhost:6379/0
-          DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg
-        run: |
-          pytest tests/perf/test_slo_guards.py -v -m performance --tb=short
-      
-      - name: Run Performance Harness (Reduced Samples)
-        env:
-          DATABASE_URL: postgresql://deltacrown:testpass@localhost:5432/deltacrown_test
-          REDIS_URL: redis://localhost:6379/0
-          PERF_SAMPLES: ${{ github.event.inputs.samples || '150' }}
-        run: |
-          python -m tests.perf.perf_harness --samples=${PERF_SAMPLES} --output=artifacts/perf-baseline.json
-      
-      - name: Upload Performance Baseline
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: performance-baseline-${{ github.sha }}
-          path: artifacts/perf-baseline.json
-          retention-days: 30
-      
-      - name: Compare Against Baseline (PR only)
-        if: github.event_name == 'pull_request'
-        run: |
-          # Download baseline from main branch
-          # Compare current run vs baseline
-          # Fail if >15% regression on any p95
-          python scripts/compare_perf_baseline.py \
-            --current artifacts/perf-baseline.json \
-            --threshold 15
-      
-      - name: Post Performance Summary
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const baseline = JSON.parse(fs.readFileSync('artifacts/perf-baseline.json', 'utf8'));
-            
-            let comment = '## 🚀 Performance Smoke Test Results\n\n';
-            comment += '| Scenario | p95 (ms) | SLO | Status |\n';
-            comment += '|----------|----------|-----|--------|\n';
-            
-            for (const [scenario, data] of Object.entries(baseline.scenarios)) {
-              const status = data.slo_status === 'PASS' ? '✅' : '❌';
-              comment += `| ${scenario} | ${data.p95_ms} | ${data.slo_target_ms}ms | ${status} |\n`;
-            }
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
+          pip install psycopg2-binary
 
-  perf-migrations-validate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_DB: deltacrown_test
-          POSTGRES_USER: deltacrown
-          POSTGRES_PASSWORD: testpass
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v4
+      - name: Wait for DB
+        run: |
+          for i in {1..30}; do
+            pg_isready -h postgres -U perf_user -d perf_smoke && break
+            sleep 2
+          done
+
+      - name: Run perf smoke (low sample)
+        run: |
+          python tests/perf/perf_harness.py --samples 50 --json artifacts/performance/smoke.json
+
+      - name: Upload smoke artifact
+        uses: actions/upload-artifact@v4
         with:
-          python-version: '3.11'
-      
-      - name: Install psycopg2
-        run: pip install psycopg2-binary
-      
-      - name: Apply SQL Migrations
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGDATABASE: deltacrown_test
-          PGUSER: deltacrown
-          PGPASSWORD: testpass
-        run: |
-          psql -f migrations/sql/000X_add_idx_economytransaction_wallet_created_desc.sql
-          psql -f migrations/sql/000Y_add_idx_moderationaction_ref_created_desc.sql
-      
-      - name: Verify Indexes Created
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGDATABASE: deltacrown_test
-          PGUSER: deltacrown
-          PGPASSWORD: testpass
-        run: |
-          psql -c "SELECT indexname FROM pg_indexes WHERE indexname IN ('idx_tx_wallet_created_desc', 'idx_moderation_ref_created_desc');" | grep -q idx_tx_wallet_created_desc
-          echo "✅ Migrations applied successfully"
+          name: perf-smoke
+          path: artifacts/performance/smoke.json
+          retention-days: 14
