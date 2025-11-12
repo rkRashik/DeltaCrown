@@ -7,9 +7,16 @@ on:
   push:
     branches: [ master ]
 
+concurrency:
+  group: perf-baseline-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   perf-baseline:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # For future AWS OIDC (when enabled)
 
     services:
       postgres:
@@ -39,7 +46,7 @@ jobs:
       # keep baseline uploads behind secrets; safe defaults below
       PERF_BASELINE_S3_BUCKET: ${{ secrets.PERF_BASELINE_S3_BUCKET }}
       PERF_BASELINE_S3_PREFIX: nightly
-      PERF_BASELINE_SLACK_WEBHOOK: ${{ secrets.PERF_SLACK_WEBHOOK }}
+      PERF_BASELINE_SLACK_WEBHOOK: ${{ secrets.PERF_BASELINE_SLACK_WEBHOOK }}
 
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +54,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Mask sensitive variables
+        run: |
+          echo "::add-mask::${{ secrets.PERF_DB_PASSWORD }}"
+          # Defense in depth: ensure secrets never leak to logs
 
       - name: Install deps
         run: |
@@ -77,6 +89,12 @@ jobs:
         run: |
           pip install awscli
           aws s3 cp artifacts/performance/baseline.json s3://$PERF_BASELINE_S3_BUCKET/$PERF_BASELINE_S3_PREFIX/${{ github.run_id }}_baseline.json
+        # TODO: Switch to AWS OIDC (no static keys)
+        # Uncomment when ready:
+        # - uses: aws-actions/configure-aws-credentials@v4
+        #   with:
+        #     role-to-assume: arn:aws:iam::ACCOUNT:role/GitHubActionsRole
+        #     aws-region: us-east-1
 
       - name: OPTIONAL - Slack notify
         if: ${{ github.event_name == 'schedule' && secrets.PERF_BASELINE_SLACK_WEBHOOK != '' }}

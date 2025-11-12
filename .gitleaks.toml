@@ -1,0 +1,66 @@
+# GitLeaks Configuration for DeltaCrown
+
+title = "DeltaCrown Secret Detection"
+
+[extend]
+useDefault = true
+
+# Custom rules for DeltaCrown-specific patterns
+[[rules]]
+id = "hardcoded-db-password"
+description = "Hardcoded database password in workflow files"
+regex = '''(?i)(POSTGRES_PASSWORD|DATABASE_PASSWORD|DB_PASSWORD):\s*['"]?(?!.*\$\{\{)([a-zA-Z0-9]{6,})['"]?'''
+path = '''\.github/workflows/.*\.ya?ml$'''
+tags = ["database", "password", "workflow"]
+
+[[rules]]
+id = "embedded-db-credentials"
+description = "Database URL with embedded credentials"
+regex = '''postgres(ql)?://[a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+@'''
+path = '''\.github/workflows/.*\.ya?ml$'''
+tags = ["database", "url", "credentials"]
+
+[[rules]]
+id = "django-secret-key"
+description = "Django SECRET_KEY in plaintext"
+regex = '''SECRET_KEY\s*=\s*['"][a-zA-Z0-9@#$%^&*()-_=+]{40,}['"]'''
+path = '''settings\.py$|\.env$'''
+tags = ["django", "secret-key"]
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key ID"
+regex = '''AKIA[0-9A-Z]{16}'''
+tags = ["aws", "access-key"]
+
+[[rules]]
+id = "slack-webhook"
+description = "Slack webhook URL"
+regex = '''https://hooks\.slack\.com/services/[A-Z0-9]{9,12}/[A-Z0-9]{9,12}/[a-zA-Z0-9]{24}'''
+tags = ["slack", "webhook"]
+
+# Allowlist for test/example patterns
+[allowlist]
+description = "Allowlisted patterns (test fixtures, examples)"
+paths = [
+  '''tests/fixtures/.*''',
+  '''docs/examples/.*''',
+  '''^\.gitleaks\.toml$''',
+]
+
+regexes = [
+  '''github\.run_id''',  # Ephemeral GitHub Actions variables
+  '''github\.run_attempt''',
+  '''\$\{\{\s*secrets\.[A-Z_]+\s*\}\}''',  # Secrets references (not actual secrets)
+  '''example\.com''',  # Example domains
+  '''placeholder''',  # Placeholder text
+]
+
+# File-specific allowlists
+[[allowlist.paths]]
+regex = '''\.github/workflows/guard-workflow-secrets\.yml$'''
+description = "Lint workflow contains regex patterns (not real secrets)"
+
+[[allowlist.paths]]
+regex = '''docs/ci/perf-secrets-hotfix\.md$'''
+description = "Evidence doc contains redacted examples"

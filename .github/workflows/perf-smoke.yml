@@ -4,9 +4,15 @@ on:
   pull_request:
     branches: [ master, main ]
 
+concurrency:
+  group: perf-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   perf-smoke:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     services:
       postgres:
