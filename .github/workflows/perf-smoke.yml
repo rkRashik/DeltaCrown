@@ -1,5 +1,9 @@
 name: perf-smoke
 
+# Default permissions: read-only for all jobs unless explicitly overridden
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [ master, main ]

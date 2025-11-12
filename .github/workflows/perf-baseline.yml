@@ -1,5 +1,9 @@
 name: perf-baseline
 
+# Default permissions: read-only for all jobs unless explicitly overridden
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: '0 3 * * *' # nightly
@@ -14,6 +18,7 @@ concurrency:
 jobs:
   perf-baseline:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'  # Fork guard: never run on PRs
     permissions:
       contents: read
       id-token: write  # For future AWS OIDC (when enabled)
