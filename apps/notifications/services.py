@@ -86,7 +86,9 @@ def notify(
     body: str = "",
     url: str = "",
     tournament=None,
+    tournament_id=None,
     match=None,
+    match_id=None,
     dedupe: bool = True,
     fingerprint: Optional[str] = None,
     email_subject: Optional[str] = None,
@@ -98,6 +100,12 @@ def notify(
     RETURNS a dict: {"created": X, "skipped": Y, "email_sent": Z}
     """
     event_str = event or ntype or "generic"
+    
+    # Extract IDs from objects if provided
+    if tournament is not None and tournament_id is None:
+        tournament_id = getattr(tournament, 'id', None)
+    if match is not None and match_id is None:
+        match_id = getattr(match, 'id', None)
 
     # Map to enum when possible; else fall back to "generic"
     enum_values = set(getattr(Notification, "Type").values) if hasattr(Notification, "Type") else set()
@@ -138,8 +146,8 @@ def notify(
                             recipient=user,
                             type=type_str,
                             event=event_str,
-                            tournament=tournament,
-                            match=match,
+                            tournament_id=tournament_id,
+                            match_id=match_id,
                         ).exists()
                         if exists:
                             skipped += 1
@@ -151,8 +159,8 @@ def notify(
                                 title=title or "",
                                 body=body or "",
                                 url=url or "",
-                                tournament=tournament,
-                                match=match,
+                                tournament_id=tournament_id,
+                                match_id=match_id,
                             )
                             created += 1
                     else:
@@ -163,8 +171,8 @@ def notify(
                             title=title or "",
                             body=body or "",
                             url=url or "",
-                            tournament=tournament,
-                            match=match,
+                            tournament_id=tournament_id,
+                            match_id=match_id,
                         )
                         created += 1
 
@@ -172,8 +180,48 @@ def notify(
         if email_subject and email_template:
             if _send_templated_email(_resolve_email(target), email_subject, email_template, email_ctx or {}):
                 sent += 1
+    
+    # MILESTONE F: Optional webhook delivery
+    webhook_sent = 0
+    if getattr(settings, 'NOTIFICATIONS_WEBHOOK_ENABLED', False):
+        try:
+            from apps.notifications.services.webhook_service import deliver_webhook
+            
+            # Prepare webhook data
+            webhook_data = {
+                'event': event_str,
+                'title': title,
+                'body': body,
+                'url': url,
+                'recipient_count': len(list(recipients)) if recipients else 0,
+                'tournament_id': tournament_id,
+                'match_id': match_id,
+            }
+            
+            # Prepare metadata
+            webhook_metadata = {
+                'created': created,
+                'skipped': skipped,
+                'email_sent': sent,
+            }
+            
+            # Deliver webhook
+            success, _ = deliver_webhook(
+                event=event_str,
+                data=webhook_data,
+                metadata=webhook_metadata,
+            )
+            
+            if success:
+                webhook_sent = 1
+        
+        except Exception as e:
+            # Log but don't fail notification delivery
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Webhook delivery failed: {e}")
 
-    return {"created": created, "skipped": skipped, "email_sent": sent}
+    return {"created": created, "skipped": skipped, "email_sent": sent, "webhook_sent": webhook_sent}
 
 
 def emit(

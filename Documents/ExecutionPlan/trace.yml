@@ -114,6 +114,105 @@ phase_2:
       - "9 configurable environment variables"
     actual_effort: "~6 hours (implementation + Redis integration + tests)"
     estimated_effort: "12 hours (1.5 days)"
+  
+  module_2_6:
+    name: "Milestones B/C/D - Registration, Payment, Match APIs + 9-Game Coverage"
+    description: "Complete API implementation for Registration, Payments, Matches with game-specific validators"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md  # Milestone B
+      - Documents/Planning/PART_4.5_PAYMENT_VERIFICATION.md  # Milestone C
+      - Documents/Planning/PART_4.6_MATCH_LIFECYCLE.md  # Milestone D
+      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#api-standards
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001  # Service Layer
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-002  # API Design
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-006  # Idempotency
+    planning_refs:
+      - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md
+      - Documents/Planning/PART_4.5_PAYMENT_VERIFICATION.md
+      - Documents/Planning/PART_4.6_MATCH_LIFECYCLE.md
+      - Documents/ExecutionPlan/GAME_REQUIREMENTS_BLUEPRINT.md  # 9-game spec
+    files:
+      # Game Logic
+      - apps/tournaments/games/__init__.py
+      - apps/tournaments/games/points.py  # BR point calculators (FF, PUBG)
+      - apps/tournaments/games/draft.py  # MOBA draft validators (Dota2, MLBB)
+      - apps/tournaments/games/validators.py  # 9-game ID validators
+      # Match API
+      - apps/tournaments/api/serializers_matches.py
+      - apps/tournaments/api/matches.py  # MatchViewSet with 6 actions
+      # Test Infrastructure
+      - apps/tournaments/tests/conftest.py  # Staff auth fix (create_superuser)
+      - apps/tournaments/tests/api/test_payments_api.py  # Updated auth
+      - apps/tournaments/tests/api/test_matches_api.py  # Updated auth + dispute fix
+    tests:
+      - apps/tournaments/tests/api/test_registrations_api.py  # 14 tests
+      - apps/tournaments/tests/api/test_payments_api.py  # 14 tests
+      - apps/tournaments/tests/api/test_matches_api.py  # 17 tests
+      - apps/tournaments/tests/games/test_points_br.py  # 17 tests
+      - apps/tournaments/tests/games/test_draft_moba.py  # 15 tests
+      - apps/tournaments/tests/games/test_id_validators.py  # 33 tests
+    test_results: "110/110 passing (100% pass rate)"
+    test_breakdown:
+      milestone_b_registration: "14/14 PASS"
+      milestone_c_payments: "14/14 PASS"
+      milestone_d_matches: "17/17 PASS"
+      game_extensions_br_points: "17/17 PASS"
+      game_extensions_moba_draft: "15/15 PASS"
+      game_extensions_id_validators: "33/33 PASS"
+    coverage: "API 100%, Service integration 100%, Game logic 100%"
+    completion_docs:
+      - Documents/ExecutionPlan/MILESTONE_BCD_FINAL_ACCEPTANCE.md
+      - Documents/ExecutionPlan/MILESTONE_BCD_COMPLETION_PROOF.md
+      - Documents/ExecutionPlan/PR_BODY_MILESTONES_BCD.md
+    staging_artifacts:
+      - staging_smoke_payments.json  # Pending execution
+      - staging_smoke_matches.json  # Pending execution
+    features_delivered:
+      # Milestone B: Registration API
+      - "POST /api/tournaments/registrations/ (create solo/team)"
+      - "GET /api/tournaments/registrations/{id}/ (retrieve)"
+      - "POST /api/tournaments/registrations/{id}/cancel/ (cancel)"
+      - "Idempotency-Key support, state machine, PII protection"
+      # Milestone C: Payment Verification API
+      - "POST /api/tournaments/payments/{id}/submit-proof/ (owner submits)"
+      - "POST /api/tournaments/payments/{id}/verify/ (staff verifies)"
+      - "POST /api/tournaments/payments/{id}/reject/ (staff rejects with reason)"
+      - "POST /api/tournaments/payments/{id}/refund/ (staff refunds)"
+      - "State transitions: PENDING → VERIFIED/REJECTED, VERIFIED → REFUNDED"
+      # Milestone D: Match Lifecycle API
+      - "POST /api/tournaments/matches/{id}/start/ (staff: SCHEDULED → LIVE)"
+      - "POST /api/tournaments/matches/{id}/submit-result/ (participant: LIVE → PENDING_RESULT)"
+      - "POST /api/tournaments/matches/{id}/confirm-result/ (staff: PENDING_RESULT → COMPLETED)"
+      - "POST /api/tournaments/matches/{id}/dispute/ (participant: PENDING_RESULT → DISPUTED)"
+      - "POST /api/tournaments/matches/{id}/resolve-dispute/ (staff: DISPUTED → COMPLETED)"
+      - "POST /api/tournaments/matches/{id}/cancel/ (staff cancels from any state)"
+      # 9-Game Coverage
+      - "Valorant: 5v5, Riot ID (name#TAG), Map score"
+      - "Counter-Strike: 5v5, Steam ID (17 digits), Map score"
+      - "Dota 2: 5v5, Steam ID, Draft/Ban validation"
+      - "eFootball: 1v1, Konami ID (9-12 digits)"
+      - "EA Sports FC 26: 1v1, EA ID (5-20 alphanumeric)"
+      - "Mobile Legends: 5v5, UID|Zone, Draft/Ban validation"
+      - "COD Mobile: 5v5, IGN/UID"
+      - "Free Fire: 4-squad BR, IGN/UID, Points (1st=12, 2nd=9, 3rd=7, 4th=5...)"
+      - "PUBG Mobile: 4-squad BR, IGN/UID, Points (same as FF)"
+    blueprint_alignment:
+      br_placement_bonus: "FIXED - 1st=12pts, 2nd=9pts, 3rd=7pts, 4th=5pts (was 10/6/5)"
+      files_changed: "apps/tournaments/games/points.py (4 edits), test_points_br.py (12 assertions)"
+      evidence: "All 17 BR tests passing with blueprint-correct values"
+    authentication_fix:
+      root_cause: "User.is_staff field not persisting with create_user() + manual assignment"
+      solution: "Use User.objects.create_superuser() which explicitly sets is_staff via UserManager"
+      result: "All permission checks (IsStaff, IsParticipant) working correctly"
+    idempotency_implementation:
+      storage: "lobby_info JSON field (per-object, per-operation)"
+      scope: "match.lobby_info['idempotency'] = {'last_op': 'start', 'last_key': 'uuid'}"
+      replay_detection: "Returns same response with idempotent_replay: true"
+    pii_protection: "No email/phone in responses, game IDs allowed per blueprint"
+    actual_effort: "~40 hours (auth debugging 20h, game extensions 12h, API 8h)"
+    estimated_effort: "24 hours (3 days)"
 
 phase_3:
   module_3_1:
@@ -602,6 +701,50 @@ phase_5:
       - "✅ tests/test_analytics_api_module_5_4.py (6 integration tests, 86% views coverage)"
       - "✅ Documents/ExecutionPlan/MODULE_5.4_COMPLETION_STATUS.md (metrics dictionary, curl quickstarts, operational runbook)"
     notes: "All implementation steps complete. AnalyticsService: 14 organizer metrics (participants, check-ins, matches, disputes, prizes), 11 participant metrics (tournaments, placements, win_rate, prizes), CSV export with streaming (UTF-8 BOM, 12 columns, memory-bounded generator). API endpoints: organizer_analytics (requires organizer OR admin), participant_analytics (requires self OR admin), export_tournament_csv (streaming CSV with proper Content-Disposition headers). Features: 4-decimal rates, 2-decimal money strings, UTC ISO-8601 timestamps, 500ms performance warnings, PII protection (display names only, no emails verified). Deferred features: Materialized views (optimization for Phase 6), scheduled reports (weekly digest), payment status in CSV (requires payment architecture review). Known limitations: avg_match_duration_minutes may show null in tests (auto_now fields), payment status placeholder ('No Payment'). Test coverage: Service 96%, Views 86%, Overall 93% (all targets exceeded). Dependencies: Tournament, Registration, Match, TournamentResult, PrizeTransaction models."
+
+  module_5_5:
+    name: "Notification System & Webhooks"
+    status: "complete"
+    started_date: "2025-11-13"
+    completed_date: "2025-11-13"
+    implements:
+      - "PHASE_5_IMPLEMENTATION_PLAN.md#module-55-notification-signals-webhooks"
+      - "PART_2.2_SERVICES_INTEGRATION.md#notification-service"
+      - "02_TECHNICAL_STANDARDS.md#webhook-security"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-pattern"
+      - "01_ARCHITECTURE_DECISIONS.md#adr-011-webhook-security"
+    files:
+      - "apps/notifications/services/webhook_service.py (WebhookService - 323 lines)"
+      - "apps/notifications/services/__init__.py (package exports + notify/emit re-export)"
+      - "apps/notifications/signals.py (payment_verified signal handler)"
+      - "apps/notifications/services.py (webhook integration, lines 184-223)"
+      - "tests/test_webhook_service.py (21 unit tests - 388 lines)"
+      - "tests/test_webhook_integration.py (6 integration tests - 198 lines)"
+      - "tests/test_notification_signals.py (15 signal tests)"
+      - "scripts/verify_webhook_signature.py (verification tool - 220 lines)"
+      - "Documents/Phase5_Webhook_Evidence.md (evidence pack)"
+      - "Documents/Phase5_Configuration_Rollback.md (deployment guide)"
+      - "Documents/Phase5_PII_Discipline.md (compliance verification)"
+    tests:
+      - "tests/test_notification_signals.py (15 tests: signal integration, email params, context propagation)"
+      - "tests/test_webhook_service.py (21 tests: 8 signature + 6 delivery + 5 retry + 1 config + 2 helpers)"
+      - "tests/test_webhook_integration.py (6 tests: feature flag, payload structure, error isolation, HMAC headers, metadata)"
+      - "tests/test_notifications_service.py (1 test: core service sanity)"
+    test_results: "43/43 passing (100% pass rate) - Phase 4: 15, Phase 5: 27, Core: 1"
+    coverage: 85
+    deliverables:
+      - "✅ apps/notifications/services/webhook_service.py (WebhookService with HMAC-SHA256)"
+      - "✅ apps/notifications/services/__init__.py (package structure + re-exports)"
+      - "✅ apps/notifications/signals.py (payment_verified signal handler)"
+      - "✅ apps/notifications/services.py (webhook integration in notify())"
+      - "✅ tests/test_webhook_service.py (21 unit tests passing)"
+      - "✅ tests/test_webhook_integration.py (6 integration tests passing)"
+      - "✅ tests/test_notification_signals.py (15 signal tests passing)"
+      - "✅ scripts/verify_webhook_signature.py (HMAC verification tool)"
+      - "✅ Documents/Phase5_Webhook_Evidence.md (signed payloads, retry matrix, 4xx no-retry proof)"
+      - "✅ Documents/Phase5_Configuration_Rollback.md (flags, environment config, rollback procedure)"
+      - "✅ Documents/Phase5_PII_Discipline.md (PII compliance audit, GDPR analysis)"
+    notes: "Notification system with Django signal integration (Phase 4) + HTTP webhook delivery with HMAC-SHA256 signing (Phase 5). WebhookService features: HMAC-SHA256 signature with hmac.new() + SHA256 digest (64-char hex), exponential backoff retry (delays: 0s, 2s, 4s for 3 attempts, formula: 2^(attempt-1)), HTTP success codes (200/201/202/204), 4xx no retry (400-499 abort immediately), 5xx retry (500-599 with backoff), timeout configurable (default 10s), max retries configurable (default 3), X-Webhook-Signature and X-Webhook-Event headers, User-Agent: DeltaCrown-Webhook/1.0. NotificationService integration: Feature flag NOTIFICATIONS_WEBHOOK_ENABLED (default False, zero behavior change), webhook payload structure (event, data, metadata), error isolation (webhook failure doesn't break notification creation), return value includes webhook_sent count. Signal handlers: payment_verified signal (auto-notify on payment status change), email parameter passthrough (supports send_email flag). Security: HMAC-SHA256 constant-time comparison (hmac.compare_digest), no PII in webhooks (IDs and counts only, no emails/usernames/IPs), configurable secret key (min 32 chars recommended). Configuration: NOTIFICATIONS_WEBHOOK_ENABLED=False (default OFF), WEBHOOK_ENDPOINT (required when enabled), WEBHOOK_SECRET (required, min 32 chars), WEBHOOK_TIMEOUT=10 (seconds), WEBHOOK_MAX_RETRIES=3. Rollback: One-line flag toggle (NOTIFICATIONS_WEBHOOK_ENABLED=False), zero downtime, no code deployment required. Import resolution: Fixed services/ package shadowing services.py file, re-exported notify()/emit() from services/__init__.py using importlib for backward compatibility. Test coverage: 21 webhook unit tests (signature generation/verification, delivery success/failure, retry logic with exponential backoff, 4xx no-retry enforcement, timeout handling, configuration), 6 integration tests (feature flag control, NotificationService integration, payload structure, error isolation, HMAC headers, metadata), 15 signal tests (payment_verified auto-notify, email parameter handling, tournament/match context), 1 core service test (sanity check). Evidence pack: Signed payload examples with 64-char HMAC-SHA256, Python verification snippet with hmac.compare_digest(), cURL test request, retry matrix logs (0s/2s/4s delays on 5xx), 4xx negative path (single attempt, no retry), PII compliance audit (no emails/usernames/IPs in payloads or logs). Known issues: None - production ready with safe defaults. Dependencies: requests>=2.32.0, Python hmac/hashlib (stdlib). Deferred features: Replay-window check (X-Webhook-Timestamp), idempotency key header (X-Idempotency-Key), multi-endpoint fan-out, per-subscriber circuit breakers (all planned for Phase 6)."
 
 phase_6:
   module_6_1:

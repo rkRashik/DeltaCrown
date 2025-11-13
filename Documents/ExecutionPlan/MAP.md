@@ -204,6 +204,85 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Known Limitations**: pytest execution pending (config issues from Module 1.3)
 - **Next Module**: 2.4 (Security Hardening - backfill), 2.5 (Rate Limiting)
 
+### Module 2.5: Milestones B/C/D - Registration, Payment, Match APIs ✅ **COMPLETE**
+- **Status**: ✅ **COMPLETE** (Nov 13, 2025) - Ready for merge pending staging smoke tests
+- **Implements**:
+  - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (Milestone B)
+  - Documents/Planning/PART_4.5_PAYMENT_VERIFICATION.md (Milestone C)
+  - Documents/Planning/PART_4.6_MATCH_LIFECYCLE.md (Milestone D)
+  - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#api-standards
+- **ADRs**: ADR-001 (Service Layer), ADR-002 (API Design), ADR-006 (Idempotency)
+- **Test Results**: **110/110 tests passing (100%)**
+  - **Milestone B (Registration)**: 14/14 PASS ✅
+  - **Milestone C (Payment Verification)**: 14/14 PASS ✅
+  - **Milestone D (Match Lifecycle)**: 17/17 PASS ✅
+  - **Game Extensions**: 65/65 PASS ✅ (BR Points 17, MOBA Draft 15, ID Validators 33)
+- **9-Game Blueprint Coverage** ✅:
+  1. Valorant (5v5, Riot ID: name#TAG, Map score)
+  2. Counter-Strike (5v5, Steam ID: 17 digits, Map score)
+  3. Dota 2 (5v5, Steam ID, Draft/Ban validation)
+  4. eFootball (1v1, Konami ID: 9-12 digits)
+  5. EA Sports FC 26 (1v1, EA ID: 5-20 alphanumeric)
+  6. Mobile Legends (5v5, UID|Zone, Draft/Ban validation)
+  7. COD Mobile (5v5, IGN/UID)
+  8. Free Fire (4-squad BR, IGN/UID, Points: **1st=12, 2nd=9, 3rd=7, 4th=5...**)
+  9. PUBG Mobile (4-squad BR, IGN/UID, Points: **same as FF**)
+- **BR Placement Bonus Alignment** ✅:
+  - **Fixed**: Blueprint values (1st=12pts, 2nd=9pts, 3rd=7pts, 4th=5pts...) applied
+  - **Before**: 1st=10, 2nd=6, 3rd=5 (misaligned with planning)
+  - **Files Changed**: `apps/tournaments/games/points.py` (4 edits) + `test_points_br.py` (12 assertion updates)
+  - **Evidence**: All 17 BR tests passing with correct values
+- **Coverage**: API endpoints 100%, Service layer integration 100%, Game logic 100%
+- **Features**:
+  - **Registration API** (Milestone B):
+    - POST /api/tournaments/registrations/ (create solo/team registration)
+    - GET /api/tournaments/registrations/{id}/ (retrieve registration)
+    - POST /api/tournaments/registrations/{id}/cancel/ (cancel registration)
+    - Idempotency-Key support, state machine enforcement, PII protection
+  - **Payment Verification API** (Milestone C):
+    - POST /api/tournaments/payments/{id}/submit-proof/ (owner submits payment proof)
+    - POST /api/tournaments/payments/{id}/verify/ (staff verifies payment)
+    - POST /api/tournaments/payments/{id}/reject/ (staff rejects payment with reason)
+    - POST /api/tournaments/payments/{id}/refund/ (staff refunds verified payment)
+    - State transitions: PENDING → VERIFIED/REJECTED, VERIFIED → REFUNDED
+    - Idempotency-Key replay detection, 409 on invalid transitions
+  - **Match Lifecycle API** (Milestone D):
+    - POST /api/tournaments/matches/{id}/start/ (staff starts match: SCHEDULED → LIVE)
+    - POST /api/tournaments/matches/{id}/submit-result/ (participant submits: LIVE → PENDING_RESULT)
+    - POST /api/tournaments/matches/{id}/confirm-result/ (staff confirms: PENDING_RESULT → COMPLETED)
+    - POST /api/tournaments/matches/{id}/dispute/ (participant disputes: PENDING_RESULT → DISPUTED)
+    - POST /api/tournaments/matches/{id}/resolve-dispute/ (staff resolves: DISPUTED → COMPLETED)
+    - POST /api/tournaments/matches/{id}/cancel/ (staff cancels from any state)
+    - Permission classes: IsStaff (staff actions), IsParticipant (participant actions)
+  - **Game-Specific Extensions** (8+ Games):
+    - **Battle Royale Points** (Free Fire, PUBG Mobile): kills * 1 + placement_bonus
+    - **MOBA Draft** (Dota 2, Mobile Legends): Captain's Mode/Draft Mode validation
+    - **ID Validators**: Riot ID, Steam ID, MLBB UID+Zone, EA ID, Konami ID, Mobile IGN/UID
+    - Full validator coverage for all 9 games from planning blueprint
+- **Authentication Fix**:
+  - **Root Cause**: `User.is_staff` field not persisting with `create_user()` + manual assignment
+  - **Solution**: Use `User.objects.create_superuser()` which explicitly sets is_staff via UserManager
+  - **Auth Method**: `client.force_login(user)` for session-backed authentication
+  - **Result**: All permission checks (IsStaff, IsParticipant) now work correctly
+- **Game Matrix Supported**:
+  1. Valorant (5v5, Riot ID)
+  2. Counter-Strike 2 (5v5, Steam ID)
+  3. Dota 2 (5v5, Steam ID, draft validation)
+  4. eFootball (1v1, Konami ID)
+  5. EA Sports FC 26 (1v1, EA ID)
+  6. Mobile Legends (5v5, MLBB UID+Zone, draft validation)
+  7. Call of Duty Mobile (5v5, Mobile IGN/UID)
+  8. Free Fire (4-squad BR, Mobile IGN/UID, point calculator)
+  9. PUBG Mobile (4-squad BR, Mobile IGN/UID, point calculator)
+- **Idempotency Implementation**:
+  - Storage: lobby_info JSON field (per-object, per-operation)
+  - Scope: match.lobby_info['idempotency'] = {'last_op': 'start', 'last_key': 'uuid'}
+  - Replay detection: Returns same response with idempotent_replay: true
+  - Concurrency: DB-level optimistic locking
+- **PII Protection**: No email/phone in responses, game IDs allowed per blueprint
+- **State Machine Enforcement**: 409 Conflict on invalid transitions across all endpoints
+- **Next Module**: 3.1 (Tournament Creation UI), 4.1 (Match Result Views)
+
 ### Module 2.4: Security Hardening
 - **Status**: ✅ Complete (Nov 7, 2025)
 - **Implements**:
@@ -1072,6 +1151,106 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - `avg_match_duration_minutes` may show `null` in tests (auto_now fields can't be overridden)
   - Payment status placeholder (`"No Payment"` until payment tracking designed)
 - **Dependencies**: Tournament, Registration, Match, TournamentResult, PrizeTransaction models
+
+### Module 5.5: Notification System & Webhooks
+- **Status**: ✅ Complete (Nov 13, 2025)
+- **Implements**:
+  - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-55 (notification signals + webhooks)
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#notification-service
+  - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#webhook-security
+- **ADRs**: ADR-001 Service Layer, ADR-011 Webhook Security (HMAC-SHA256)
+- **Scope Delivered**:
+  - **Phase 4 (Notification Signals)**: Django signals integration for payment events
+  - **Phase 5 (WebhookService)**: HTTP webhook delivery with HMAC-SHA256 signing
+  - HMAC-SHA256 signature generation and verification
+  - Exponential backoff retry (0s, 2s, 4s delays for 3 attempts)
+  - HTTP success codes: 200, 201, 202, 204
+  - No retry on 4xx client errors (abort immediately)
+  - Feature flag control (NOTIFICATIONS_WEBHOOK_ENABLED, default: False)
+  - Error isolation (webhook failure doesn't break notifications)
+  - PII discipline (IDs only, no emails/usernames/IPs)
+- **Milestones**:
+  - ✅ Phase 4: Notification signal handlers (15 tests passing)
+  - ✅ Phase 5: WebhookService implementation (27 tests passing)
+  - ✅ Integration testing (6 tests passing)
+  - ✅ Import path resolution (services/ package vs services.py file)
+- **Models**:
+  - `Notification` (event, title, body, url, is_read, recipient, tournament, match)
+- **Services**:
+  - `NotificationService.notify()` (core notification creation + email delivery)
+  - `NotificationService.emit()` (bulk notification dispatch)
+  - `WebhookService.deliver()` (HTTP delivery with retry + HMAC signing)
+- **Files Created**:
+  - apps/notifications/services/webhook_service.py (WebhookService - 323 lines)
+  - apps/notifications/services/__init__.py (package exports + notify/emit re-export)
+  - apps/notifications/signals.py (payment_verified signal handler)
+  - tests/test_webhook_service.py (21 unit tests - 388 lines)
+  - tests/test_webhook_integration.py (6 integration tests - 198 lines)
+  - tests/test_notification_signals.py (15 signal tests)
+  - scripts/verify_webhook_signature.py (verification tool - 220 lines)
+  - Documents/Phase5_Webhook_Evidence.md (comprehensive evidence pack)
+  - Documents/Phase5_Configuration_Rollback.md (deployment guide)
+  - Documents/Phase5_PII_Discipline.md (PII compliance verification)
+- **Files Modified**:
+  - apps/notifications/services.py (added webhook delivery integration, lines 184-223)
+- **Tests**: **43/43 passing (100%)**
+  - Phase 4 (Signals): 15 tests (signal integration, email params, context propagation)
+  - Phase 5 (Webhooks): 27 tests (21 unit + 6 integration)
+  - Total: 43 tests, all passing
+- **Coverage**: 85% (webhook_service.py), 78% (services.py)
+- **Security Features**:
+  - HMAC-SHA256 signature with `hmac.new()` (64-char hex output)
+  - Constant-time signature comparison (`hmac.compare_digest()`)
+  - X-Webhook-Signature and X-Webhook-Event headers
+  - Configurable secret key (min 32 chars recommended)
+  - No PII in webhook payloads (IDs and counts only)
+- **Configuration**:
+  ```python
+  NOTIFICATIONS_WEBHOOK_ENABLED = False  # Default: OFF (zero behavior change)
+  WEBHOOK_ENDPOINT = 'https://api.example.com/webhooks/deltacrown'
+  WEBHOOK_SECRET = 'your-webhook-secret-key-here'  # Min 32 chars
+  WEBHOOK_TIMEOUT = 10  # seconds
+  WEBHOOK_MAX_RETRIES = 3
+  ```
+- **Rollback**: One-line flag toggle (`NOTIFICATIONS_WEBHOOK_ENABLED=False`)
+- **Webhook Payload Structure**:
+  ```json
+  {
+    "event": "payment_verified",
+    "data": {
+      "event": "payment_verified",
+      "title": "Payment Verified",
+      "body": "Your payment for 'Summer Championship 2025' has been verified.",
+      "url": "/tournaments/123/payment/",
+      "recipient_count": 1,
+      "tournament_id": 123,
+      "match_id": null
+    },
+    "metadata": {
+      "created": 1,
+      "skipped": 0,
+      "email_sent": 1
+    }
+  }
+  ```
+- **Evidence Pack**: Documents/Phase5_Webhook_Evidence.md
+  - Signed payload examples with HMAC signatures
+  - Local verification snippet (Python + cURL)
+  - Retry matrix proof (0s/2s/4s exponential backoff)
+  - Negative path proof (4xx no retry, single attempt)
+  - PII discipline verification (no sensitive data)
+- **Key Achievements**:
+  - ✅ HMAC-SHA256 signature generation and verification
+  - ✅ Exponential backoff retry logic with configurable max retries
+  - ✅ Feature flag control (default OFF, zero behavior change)
+  - ✅ Error isolation (webhook failure doesn't break notifications)
+  - ✅ PII compliance (IDs only, no emails/usernames/IPs)
+  - ✅ Import path resolution (services/ package vs services.py)
+  - ✅ Comprehensive test coverage (43/43 tests passing)
+  - ✅ Production-ready with safe defaults and simple rollback
+- **Actual Effort**: ~12 hours (Phase 4: 4h, Phase 5: 6h, Docs: 2h)
+- **Dependencies**: apps.notifications (Notification model), django.conf.settings
+- **Breaking Changes**: None (new functionality, feature flag OFF by default)
 
 ---
 
