@@ -13,26 +13,44 @@ Source Documents:
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from apps.tournaments.api import views
+from apps.tournaments.api.tournament_views import TournamentViewSet  # Module 2.1
+from apps.tournaments.api.registrations import RegistrationViewSet  # Milestone B
+from apps.tournaments.api.payments import PaymentVerificationViewSet  # Milestone C
+from apps.tournaments.api.matches import MatchViewSet  # Milestone D (replaces match_views)
 from apps.tournaments.api.bracket_views import BracketViewSet
-from apps.tournaments.api.match_views import MatchViewSet
 from apps.tournaments.api.result_views import ResultViewSet  # Module 4.4
+from apps.tournaments.api.leaderboard_views import LeaderboardViewSet  # Milestone E
 from apps.tournaments.api import payout_views  # Module 5.2
 from apps.tournaments.api import certificate_views  # Module 5.3
 from apps.tournaments.api import analytics_views  # Module 5.4
 
+# Phase E: Read-only leaderboard endpoints
+from apps.tournaments.api.leaderboard_views import (
+    tournament_leaderboard,
+    player_leaderboard_history,
+    scoped_leaderboard,
+)
+
 # Router for DRF viewsets
 router = DefaultRouter()
-router.register(r'registrations', views.RegistrationViewSet, basename='registration')
-router.register(r'payments', views.PaymentViewSet, basename='payment')
+router.register(r'tournaments', TournamentViewSet, basename='tournament')  # Module 2.1
+router.register(r'registrations', RegistrationViewSet, basename='registration')  # Use Milestone B version
+router.register(r'payments', PaymentVerificationViewSet, basename='payment')  # Milestone C
 router.register(r'brackets', BracketViewSet, basename='bracket')
 router.register(r'matches', MatchViewSet, basename='match')  # Module 4.3
 router.register(r'results', ResultViewSet, basename='result')  # Module 4.4
+router.register(r'leaderboards', LeaderboardViewSet, basename='leaderboard')  # Milestone E
 
 app_name = 'tournaments_api'
 
 urlpatterns = [
     path('', include(router.urls)),
     path('checkin/', include('apps.tournaments.api.checkin.urls', namespace='checkin')),
+    
+    # Phase E: Read-Only Leaderboard Endpoints (PII-Free)
+    path('leaderboards/tournament/<int:tournament_id>/', tournament_leaderboard, name='tournament-leaderboard'),
+    path('leaderboards/player/<int:player_id>/history/', player_leaderboard_history, name='player-history'),
+    path('leaderboards/<str:scope>/', scoped_leaderboard, name='scoped-leaderboard'),
     
     # Module 5.2: Prize Payouts & Refunds
     path('<int:tournament_id>/payouts/', payout_views.process_payouts, name='process-payouts'),

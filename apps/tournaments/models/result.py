@@ -107,6 +107,80 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
         help_text="User who triggered determination (or verified manually)"
     )
     
+    # ===========================
+    # Milestone E: Leaderboard Support (BR & Series)
+    # ===========================
+    
+    # Staff Override Support
+    is_override = models.BooleanField(
+        default=False,
+        help_text='Whether this placement was manually overridden by staff'
+    )
+    
+    override_reason = models.TextField(
+        blank=True,
+        help_text='Reason for manual override (required if is_override=True)'
+    )
+    
+    override_actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tournament_result_overrides',
+        help_text='Staff member who performed the override'
+    )
+    
+    override_timestamp = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='When the override was applied'
+    )
+    
+    # BR-specific metadata (Free Fire, PUBG Mobile)
+    total_kills = models.IntegerField(
+        default=0,
+        help_text='Total kills across all matches (BR games)'
+    )
+    
+    best_placement = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text='Best placement achieved (BR games, 1=1st place)'
+    )
+    
+    avg_placement = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text='Average placement (BR games)'
+    )
+    
+    matches_played = models.IntegerField(
+        default=0,
+        help_text='Number of matches played'
+    )
+    
+    # Series metadata (Valorant, CS2, Dota2, MLBB, CODM)
+    series_score = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=(
+            'Series score breakdown. '
+            'Example: {"team-123": 2, "team-456": 1} for Best-of-3'
+        )
+    )
+    
+    game_results = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Individual game results in series. '
+            'Example: [{"match_id": 1, "winner_id": "team-123", "score": {...}}, ...]'
+        )
+    )
+    
     class Meta:
         db_table = 'tournament_engine_result_tournamentresult'
         verbose_name = 'Tournament Result'

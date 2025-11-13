@@ -19,6 +19,9 @@ from .registration import (
     Registration,  # Full implementation (Module 1.3)
     Payment,       # Full implementation (Module 1.3)
 )
+from .payment_verification import (
+    PaymentVerification,  # Payment proof submission (Module 3.x)
+)
 from .bracket import (
     Bracket,       # Full implementation (Module 1.5)
     BracketNode,   # Full implementation (Module 1.5)
@@ -47,6 +50,7 @@ __all__ = [
     'TournamentVersion',
     'Registration',
     'Payment',
+    'PaymentVerification',
     'Bracket',
     'BracketNode',
     'Match',

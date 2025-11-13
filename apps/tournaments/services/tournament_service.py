@@ -204,6 +204,16 @@ class TournamentService:
             is_official=data.get('is_official', False),
         )
         
+        # Generate unique slug from name
+        from django.utils.text import slugify
+        base_slug = slugify(tournament.name)
+        slug = base_slug
+        counter = 1
+        while Tournament.objects.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        tournament.slug = slug
+        
         # Full model validation
         tournament.full_clean()
         tournament.save()
@@ -265,6 +275,118 @@ class TournamentService:
             changed_by=user,
             change_summary=f"Tournament published (status: {tournament.status})"
         )
+        
+        return tournament
+    
+    @staticmethod
+    @transaction.atomic
+    def update_tournament(tournament_id: int, user, data: Dict[str, Any]) -> Tournament:
+        """
+        Update tournament configuration (DRAFT status only).
+        
+        Args:
+            tournament_id: ID of tournament to update
+            user: User performing the update (must be organizer)
+            data: Dictionary of fields to update (partial updates allowed)
+        
+        Returns:
+            Tournament: Updated tournament instance
+        
+        Raises:
+            Tournament.DoesNotExist: If tournament not found
+            ValidationError: If update validation fails or tournament not in DRAFT
+            PermissionError: If user is not the organizer
+        
+        Example:
+            >>> tournament = TournamentService.update_tournament(
+            ...     tournament_id=42,
+            ...     user=request.user,
+            ...     data={'max_participants': 32, 'description': 'Updated description'}
+            ... )
+        
+        Note:
+            Only tournaments in DRAFT status can be updated.
+            Once published, use specific methods for status transitions.
+        """
+        tournament = Tournament.objects.get(id=tournament_id)
+        
+        # Verify permission
+        if tournament.organizer != user and not user.is_staff:
+            raise PermissionError("Only the organizer or staff can update this tournament")
+        
+        # Validate status
+        if tournament.status != Tournament.DRAFT:
+            raise ValidationError(
+                f"Cannot update tournament with status '{tournament.status}'. "
+                "Only DRAFT tournaments can be edited."
+            )
+        
+        # Track changes for audit
+        changes = []
+        
+        # Update fields if provided
+        updatable_fields = [
+            'name', 'description', 'format', 'participation_type',
+            'max_participants', 'min_participants',
+            'registration_start', 'registration_end', 'tournament_start', 'tournament_end',
+            'prize_pool', 'prize_currency', 'prize_deltacoin', 'prize_distribution',
+            'has_entry_fee', 'entry_fee_amount', 'entry_fee_currency', 
+            'entry_fee_deltacoin', 'payment_methods',
+            'enable_fee_waiver', 'fee_waiver_top_n_teams',
+            'banner_image', 'thumbnail_image', 'rules_pdf',
+            'promo_video_url', 'stream_youtube_url', 'stream_twitch_url',
+            'enable_check_in', 'check_in_minutes_before',
+            'enable_dynamic_seeding', 'enable_live_updates',
+            'enable_certificates', 'enable_challenges', 'enable_fan_voting',
+            'rules_text', 'meta_description', 'meta_keywords',
+        ]
+        
+        for field in updatable_fields:
+            if field in data:
+                old_value = getattr(tournament, field)
+                new_value = data[field]
+                if old_value != new_value:
+                    setattr(tournament, field, new_value)
+                    changes.append(f"{field}: {old_value} → {new_value}")
+        
+        # Special handling for game change
+        if 'game_id' in data:
+            try:
+                new_game = Game.objects.get(id=data['game_id'], is_active=True)
+                if tournament.game != new_game:
+                    changes.append(f"game: {tournament.game.name} → {new_game.name}")
+                    tournament.game = new_game
+            except Game.DoesNotExist:
+                raise ValidationError(f"Game with ID {data['game_id']} not found or is inactive")
+        
+        # Re-validate dates if any were changed
+        if any(field in data for field in ['registration_start', 'registration_end', 'tournament_start']):
+            if tournament.registration_start >= tournament.registration_end:
+                raise ValidationError("Registration start must be before registration end")
+            if tournament.registration_end >= tournament.tournament_start:
+                raise ValidationError("Registration must end before tournament starts")
+        
+        # Re-validate participants if changed
+        if 'min_participants' in data or 'max_participants' in data:
+            if tournament.min_participants > tournament.max_participants:
+                raise ValidationError("Minimum participants cannot exceed maximum participants")
+            if tournament.min_participants < 2:
+                raise ValidationError("Minimum participants must be at least 2")
+        
+        # Full model validation
+        tournament.full_clean()
+        tournament.save()
+        
+        # Create version if changes were made
+        if changes:
+            change_summary = f"Tournament updated: {'; '.join(changes[:5])}"
+            if len(changes) > 5:
+                change_summary += f" (and {len(changes) - 5} more)"
+            TournamentService._create_version(
+                tournament=tournament,
+                changed_by=user,
+                change_summary=change_summary
+            )
         
         return tournament
     

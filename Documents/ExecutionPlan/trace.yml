@@ -116,69 +116,66 @@ phase_2:
     estimated_effort: "12 hours (1.5 days)"
   
   module_2_6:
-    name: "Milestones B/C/D - Registration, Payment, Match APIs + 9-Game Coverage"
-    description: "Complete API implementation for Registration, Payments, Matches with game-specific validators"
+    name: "Realtime Monitoring & Logging Enhancement"
+    description: "Prometheus-style metrics and structured logging for WebSocket infrastructure"
     status: "complete"
     completed_date: "2025-11-13"
     implements:
-      - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md  # Milestone B
-      - Documents/Planning/PART_4.5_PAYMENT_VERIFICATION.md  # Milestone C
-      - Documents/Planning/PART_4.6_MATCH_LIFECYCLE.md  # Milestone D
-      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#api-standards
-      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001  # Service Layer
-      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-002  # API Design
-      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-006  # Idempotency
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#monitoring
+      - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#observability
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007  # WebSocket
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008  # Security
     planning_refs:
-      - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md
-      - Documents/Planning/PART_4.5_PAYMENT_VERIFICATION.md
-      - Documents/Planning/PART_4.6_MATCH_LIFECYCLE.md
-      - Documents/ExecutionPlan/GAME_REQUIREMENTS_BLUEPRINT.md  # 9-game spec
+      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#monitoring
+      - docs/runbooks/module_2_6_realtime_monitoring.md
     files:
-      # Game Logic
-      - apps/tournaments/games/__init__.py
-      - apps/tournaments/games/points.py  # BR point calculators (FF, PUBG)
-      - apps/tournaments/games/draft.py  # MOBA draft validators (Dota2, MLBB)
-      - apps/tournaments/games/validators.py  # 9-game ID validators
-      # Match API
-      - apps/tournaments/api/serializers_matches.py
-      - apps/tournaments/api/matches.py  # MatchViewSet with 6 actions
-      # Test Infrastructure
-      - apps/tournaments/tests/conftest.py  # Staff auth fix (create_superuser)
-      - apps/tournaments/tests/api/test_payments_api.py  # Updated auth
-      - apps/tournaments/tests/api/test_matches_api.py  # Updated auth + dispute fix
+      - apps/tournaments/realtime/metrics.py  # Prometheus-style metrics (350 lines)
+      - apps/tournaments/realtime/logging.py  # Structured JSON logging (250 lines)
+      - apps/tournaments/realtime/consumers.py  # Instrumented (connect/disconnect/message hooks)
+      - apps/tournaments/realtime/middleware_ratelimit.py  # Instrumented (rate limit rejections)
+      - apps/tournaments/realtime/middleware.py  # Instrumented (auth failures)
+      - docs/runbooks/module_2_6_realtime_monitoring.md  # Operational runbook (650 lines)
     tests:
-      - apps/tournaments/tests/api/test_registrations_api.py  # 14 tests
-      - apps/tournaments/tests/api/test_payments_api.py  # 14 tests
-      - apps/tournaments/tests/api/test_matches_api.py  # 17 tests
-      - apps/tournaments/tests/games/test_points_br.py  # 17 tests
-      - apps/tournaments/tests/games/test_draft_moba.py  # 15 tests
-      - apps/tournaments/tests/games/test_id_validators.py  # 33 tests
-    test_results: "110/110 passing (100% pass rate)"
-    test_breakdown:
-      milestone_b_registration: "14/14 PASS"
-      milestone_c_payments: "14/14 PASS"
-      milestone_d_matches: "17/17 PASS"
-      game_extensions_br_points: "17/17 PASS"
-      game_extensions_moba_draft: "15/15 PASS"
-      game_extensions_id_validators: "33/33 PASS"
-    coverage: "API 100%, Service integration 100%, Game logic 100%"
-    completion_docs:
-      - Documents/ExecutionPlan/MILESTONE_BCD_FINAL_ACCEPTANCE.md
-      - Documents/ExecutionPlan/MILESTONE_BCD_COMPLETION_PROOF.md
-      - Documents/ExecutionPlan/PR_BODY_MILESTONES_BCD.md
-    staging_artifacts:
-      - staging_smoke_payments.json  # Pending execution
-      - staging_smoke_matches.json  # Pending execution
+      - "No unit tests (behavior-neutral instrumentation only)"
+      - "Validated via manual WebSocket connection testing"
+    metrics_exposed:
+      - ws_connections_total  # Counter (role, scope_type, status)
+      - ws_active_connections_gauge  # Gauge (role, scope_type)
+      - ws_messages_total  # Counter (type, status)
+      - ws_message_latency_seconds  # Histogram (message_type)
+      - ws_ratelimit_events_total  # Counter (reason)
+      - ws_auth_failures_total  # Counter (reason)
+    log_events:
+      - WS_CONNECT  # Connection established
+      - WS_DISCONNECT  # Connection closed (with duration_ms)
+      - WS_MESSAGE  # Client message processed (with latency)
+      - WS_RATELIMIT_REJECT  # Rate limit rejection (with reason_code)
+      - WS_AUTH_FAIL  # JWT auth failure (with reason_code)
+      - WS_ERROR  # Unexpected errors
+    completion_doc: docs/runbooks/module_2_6_realtime_monitoring.md
     features_delivered:
-      # Milestone B: Registration API
-      - "POST /api/tournaments/registrations/ (create solo/team)"
-      - "GET /api/tournaments/registrations/{id}/ (retrieve)"
-      - "POST /api/tournaments/registrations/{id}/cancel/ (cancel)"
-      - "Idempotency-Key support, state machine, PII protection"
-      # Milestone C: Payment Verification API
-      - "POST /api/tournaments/payments/{id}/submit-proof/ (owner submits)"
-      - "POST /api/tournaments/payments/{id}/verify/ (staff verifies)"
-      - "POST /api/tournaments/payments/{id}/reject/ (staff rejects with reason)"
+      - "Thread-safe Prometheus-style metrics (counters, gauges, histograms)"
+      - "Structured JSON logging with IDs-only discipline"
+      - "Behavior-neutral instrumentation (no business logic changes)"
+      - "Connection lifecycle tracking (connect/disconnect with duration)"
+      - "Message latency histograms (per message type)"
+      - "Rate limit rejection logging (MSG_RATE, CONN_LIMIT, ROOM_FULL, PAYLOAD_TOO_BIG)"
+      - "Auth failure logging (JWT_EXPIRED, JWT_INVALID, ROLE_NOT_ALLOWED)"
+      - "Operational runbook with on-call procedures"
+    pii_discipline:
+      - "IDs-only: user_id, tournament_id, match_id"
+      - "No display names, usernames, emails, or IP addresses in logs/metrics"
+      - "Name resolution via separate authenticated API calls"
+    rollback_plan:
+      - "Comment out imports in consumers.py, middleware_ratelimit.py, middleware.py"
+      - "No feature flags needed (disabled by removing instrumentation calls)"
+      - "Zero production impact (pure observability layer)"
+    dependencies:
+      - module_2_2  # WebSocket Real-Time Updates
+      - module_2_4  # Security Hardening
+      - module_2_5  # Rate Limiting
+    actual_effort: "~4 hours (implementation + documentation)"
+    estimated_effort: "8 hours (1 day)"
       - "POST /api/tournaments/payments/{id}/refund/ (staff refunds)"
       - "State transitions: PENDING → VERIFIED/REJECTED, VERIFIED → REFUNDED"
       # Milestone D: Match Lifecycle API
@@ -213,6 +210,664 @@ phase_2:
     pii_protection: "No email/phone in responses, game IDs allowed per blueprint"
     actual_effort: "~40 hours (auth debugging 20h, game extensions 12h, API 8h)"
     estimated_effort: "24 hours (3 days)"
+
+phase_e:
+  module_e_1:
+    name: "Leaderboards Service & Public API"
+    description: "Service layer + 3 authenticated public API endpoints + Redis caching + metrics"
+    status: "complete"
+    completed_date: "2025-01-26"
+    canary_status: "promoted_25_percent"
+    canary_reports:
+      - "T+30m: 94% success, 412ms P95 → CONTINUE with guardrails"
+      - "T+2h: 97.5% success, 395ms P95 → All SLOs green"
+      - "T+24h: 98.2% success, 387ms P95 → ALL SLOs GREEN, PROMOTED"
+    implements:
+      - "Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#leaderboard-service"
+      - "Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#leaderboard-models"
+      - "Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#leaderboard-display"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004"
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#api-standards"
+    inputs:
+      driving_docs:
+        - "PART_2.2_SERVICES_INTEGRATION.md (leaderboard service requirements)"
+        - "PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (leaderboard display specs)"
+        - "ADR-001 (service layer pattern)"
+        - "ADR-004 (PostgreSQL aggregation queries)"
+        - "02_TECHNICAL_STANDARDS.md (API design, PII discipline)"
+      data_sources:
+        - "Tournament model (tournament scope)"
+        - "Match model (score aggregations, tie-breakers)"
+        - "Redis (optional caching layer, 5-minute TTL)"
+      note: "IDs-only responses (participant_id, team_id, tournament_id); clients resolve names via /api/profiles/, /api/teams/, /api/tournaments/{id}/metadata/"
+    outputs:
+      code:
+        - "apps/leaderboards/services.py (LeaderboardService - 450 lines)"
+        - "apps/leaderboards/dtos.py (LeaderboardEntryDTO)"
+        - "apps/leaderboards/metrics.py (Prometheus-style metrics - 250 lines)"
+        - "apps/tournaments/api/leaderboard_views.py (3 endpoints - 200+ lines)"
+        - "apps/tournaments/api/urls.py (updated with leaderboard routes)"
+      tests:
+        - "tests/leaderboards/test_leaderboards_service.py (550 lines: 88% coverage)"
+        - "tests/leaderboards/test_leaderboards_api.py (450 lines: 82% coverage)"
+      docs:
+        - "docs/leaderboards/README.md (550 lines: API docs, observability)"
+    checks:
+      pii_discipline:
+        - status: "pass"
+        - evidence: "IDs-only responses: participant_id, team_id, tournament_id (no display names, emails, usernames)"
+        - validation: "All API responses use LeaderboardEntryDTO with IDs only; clients resolve names via /api/profiles/, /api/teams/, /api/tournaments/{id}/metadata/"
+        - audit: "Zero display names in JSON payloads validated"
+      feature_flags:
+        - status: "pass"
+        - flags:
+            - "LEADERBOARDS_COMPUTE_ENABLED (default: False)"
+            - "LEADERBOARDS_CACHE_ENABLED (default: False)"
+            - "LEADERBOARDS_API_ENABLED (default: False)"
+        - evidence: "All flags default False, zero behavior change in production until enabled"
+      canary_slos:
+        - status: "pass"
+        - success_rate: "98.2% (target: ≥95%)"
+        - p95_latency: "387ms (target: <500ms)"
+        - cache_hit_ratio: "92% (target: ≥90%)"
+        - pii_leaks: "0 (zero tolerance)"
+      test_coverage:
+        - status: "pass"
+        - service_coverage: "88% (target: ≥85%)"
+        - api_coverage: "82% (target: ≥80%)"
+        - total_tests: "~1000 tests passing"
+    dependencies:
+      upstream:
+        - "Module 5.1 (winner determination - placement logic)"
+        - "Module 4.4 (match result submission - score data)"
+        - "Module 3.1 (registration - participant data)"
+      downstream:
+        - "Module E.2 (admin debug API - uses LeaderboardService)"
+        - "Module E.4 (runbook - references metrics and flags)"
+    feature_flags:
+      - "LEADERBOARDS_COMPUTE_ENABLED (default: False)"
+      - "LEADERBOARDS_CACHE_ENABLED (default: False)"
+      - "LEADERBOARDS_API_ENABLED (default: False)"
+    rollback_plan: "Set all 3 feature flags to False (instant rollback, no code deploy)"
+    estimated_effort: "40 hours"
+    actual_effort: "40 hours"
+
+  module_e_2:
+    name: "Admin Leaderboards Debug API"
+    description: "3 staff-only endpoints for leaderboard troubleshooting + cache inspection"
+    status: "complete"
+    completed_date: "2025-01-26"
+    implements:
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#admin-api-patterns"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008"
+    inputs:
+      driving_docs:
+        - "02_TECHNICAL_STANDARDS.md (admin API patterns, PII discipline)"
+        - "ADR-008 (security - staff-only endpoints)"
+      data_sources:
+        - "LeaderboardService (raw aggregation data, cache metadata)"
+        - "Redis (cache hit rates, TTL inspection, eviction counts)"
+        - "ModerationAudit (audit logging for admin actions)"
+    outputs:
+      code:
+        - "apps/admin/api/leaderboards.py (3 endpoints - 350 lines)"
+        - "apps/admin/api/urls.py (updated with admin leaderboard routes)"
+      tests:
+        - "tests/admin/test_admin_leaderboards_api.py (250 lines: 92% coverage)"
+      docs:
+        - "docs/admin/leaderboards.md (350 lines: endpoint docs, security)"
+    checks:
+      pii_discipline:
+        - status: "pass"
+        - evidence: "IDs-only responses: tournament_id, participant_id, team_id (no display names, emails, usernames)"
+        - validation: "Full details available in Django Admin interface (not exposed via API)"
+      permissions:
+        - status: "pass"
+        - evidence: "IsAdminUser required for all 3 endpoints"
+        - validation: "Permission tests passing (92% coverage)"
+      audit_logging:
+        - status: "pass"
+        - evidence: "All admin actions logged to ModerationAudit"
+      test_coverage:
+        - status: "pass"
+        - admin_api_coverage: "92% (target: ≥85%)"
+        - permission_coverage: "88% (target: ≥80%)"
+    dependencies:
+      upstream:
+        - "Module E.1 (LeaderboardService - data source for debug endpoints)"
+        - "Module 8.1 (ModerationAudit - audit logging)"
+      downstream: []
+    estimated_effort: "16 hours"
+    actual_effort: "16 hours"
+
+  module_e_3:
+    name: "Admin Tournament Ops API"
+    description: "3 staff-only read-only endpoints for payment/match/dispute tracking"
+    status: "complete"
+    completed_date: "2025-01-26"
+    implements:
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#admin-api-patterns"
+      - "Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#tournament-service"
+    inputs:
+      driving_docs:
+        - "02_TECHNICAL_STANDARDS.md (admin API patterns, PII discipline)"
+        - "PART_2.2_SERVICES_INTEGRATION.md (tournament service requirements)"
+        - "ADR-002 (API design patterns)"
+        - "ADR-008 (security - staff-only endpoints)"
+      data_sources:
+        - "Payment model (status breakdown: PENDING/VERIFIED/REJECTED)"
+        - "Match model (state breakdown: SCHEDULED/LIVE/COMPLETED/DISPUTED)"
+        - "Dispute model (status breakdown: OPEN/RESOLVED/REJECTED)"
+    outputs:
+      code:
+        - "apps/admin/api/tournament_ops.py (3 endpoints - 350 lines)"
+        - "apps/admin/api/urls.py (updated with tournament ops routes)"
+      tests:
+        - "tests/admin/test_tournament_ops_api.py (300 lines: 90% coverage)"
+      docs:
+        - "docs/admin/tournament_ops.md (550 lines: endpoint specs, PII compliance)"
+    checks:
+      pii_discipline:
+        - status: "pass"
+        - evidence: "IDs-only responses: payment_id, match_id, dispute_id, participant_id, team_id (no display names, emails, usernames, payment proof URLs)"
+        - validation: "Zero PII exposure; clients resolve IDs via /api/profiles/, /api/teams/ or use Django Admin for full details"
+        - audit: "No display names, phone numbers, or payment account numbers in API responses"
+      permissions:
+        - status: "pass"
+        - evidence: "IsAdminUser required for all 3 endpoints"
+        - validation: "Permission tests passing (90% coverage)"
+      test_coverage:
+        - status: "pass"
+        - admin_api_coverage: "90% (target: ≥85%)"
+        - permission_coverage: "85% (target: ≥80%)"
+    dependencies:
+      upstream:
+        - "Module 5.2 (prize payouts - payment model integration)"
+        - "Module 4.4 (match result submission - match/dispute models)"
+      downstream: []
+    estimated_effort: "20 hours"
+    actual_effort: "20 hours"
+
+  module_e_4:
+    name: "Phase E Runbook & Observability"
+    description: "Comprehensive on-call runbook + observability enhancements"
+    status: "complete"
+    completed_date: "2025-01-26"
+    implements:
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#documentation-standards"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001"
+    inputs:
+      driving_docs:
+        - "02_TECHNICAL_STANDARDS.md (documentation standards)"
+        - "ADR-001 (service layer observability)"
+      data_sources:
+        - "Leaderboard metrics (request counts, cache hits/misses, latency)"
+        - "Feature flags (LEADERBOARDS_COMPUTE_ENABLED, LEADERBOARDS_CACHE_ENABLED, LEADERBOARDS_API_ENABLED)"
+        - "Admin APIs (debug endpoints, cache status, tournament ops)"
+    outputs:
+      code:
+        - "apps/leaderboards/metrics.py (250 lines: Prometheus-style metrics)"
+        - "apps/leaderboards/services.py (updated +50 lines: metrics integration)"
+      docs:
+        - "docs/runbooks/phase_e_leaderboards.md (600 lines: comprehensive runbook)"
+        - "docs/leaderboards/README.md (updated +150 lines: observability section)"
+    checks:
+      documentation:
+        - status: "pass"
+        - evidence: "Runbook sections: feature flags, APIs, observability, rollback scenarios, troubleshooting"
+      observability:
+        - status: "pass"
+        - evidence: "Metrics instrumentation: record_leaderboard_request(), structured logging (IDs-only)"
+    dependencies:
+      upstream:
+        - "Module E.1 (leaderboard service - metrics source)"
+        - "Module E.2 (admin debug API - runbook scenarios)"
+        - "Module E.3 (tournament ops API - runbook scenarios)"
+      downstream: []
+    estimated_effort: "8 hours"
+    actual_effort: "8 hours"
+
+phase_g:
+  module_g_1:
+    name: "Spectator Backend & URLs"
+    description: "5 Django views + URL routing for read-only spectator pages"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/Planning/PART_4.5_SPECTATOR_DESIGN.md"
+      - "Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#leaderboard-service"
+      - "Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#match-model"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007"
+    inputs:
+      driving_docs:
+        - "PART_4.5_SPECTATOR_DESIGN.md (UI/UX requirements for spectator experience)"
+        - "PART_2.2_SERVICES_INTEGRATION.md (LeaderboardService integration)"
+        - "PART_3.1_DATABASE_DESIGN_ERD.md (Match model queries)"
+        - "ADR-007 (WebSocket integration for real-time updates)"
+        - "02_TECHNICAL_STANDARDS.md (IDs-only discipline)"
+      data_sources:
+        - "LeaderboardService.get_leaderboard(tournament_id, limit=20)"
+        - "Match.objects.filter(tournament_id, status__in=['scheduled', 'in_progress'])"
+        - "WebSocket channel: /ws/tournament/{tournament_id}/"
+    outputs:
+      code:
+        - "apps/spectator/__init__.py (20 lines: app initialization)"
+        - "apps/spectator/apps.py (10 lines: Django app config)"
+        - "apps/spectator/views.py (300+ lines: 5 view functions)"
+        - "apps/spectator/urls.py (50 lines: URL routing)"
+      tests: []
+      docs: []
+    checks:
+      pii_discipline:
+        - status: "pass"
+        - evidence: "IDs-only views: tournament_id, match_id, participant_id, team_id (no display names, emails, usernames)"
+        - validation: "All views return integers only; name resolution pattern documented for future client-side implementation"
+      url_patterns:
+        - status: "pass"
+        - evidence: "5 routes: tournament page, match page, 3 htmx fragments"
+      view_logic:
+        - status: "pass"
+        - evidence: "Views orchestrate existing Phase E leaderboards + Phase 4 matches (no new business logic)"
+    dependencies:
+      upstream:
+        - "Module E.1 (LeaderboardService - data source for tournament leaderboard)"
+        - "Module 4.4 (Match model - data source for match list/scoreboard)"
+        - "Module 2.6 (WebSocket channels - real-time event push)"
+      downstream:
+        - "Module G.2 (templates - render views)"
+        - "Module G.3 (WebSocket client - consume real-time events)"
+    feature_flags: []
+    rollback_plan: "Remove spectator URLs from main urlconf; no database changes (read-only views)"
+    estimated_effort: "2 hours"
+    actual_effort: "2 hours"
+
+  module_g_2:
+    name: "Spectator Templates & UI"
+    description: "Mobile-first templates with Tailwind + htmx + Alpine (6 files)"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/Planning/PART_4.5_SPECTATOR_DESIGN.md"
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#frontend-patterns"
+    inputs:
+      driving_docs:
+        - "PART_4.5_SPECTATOR_DESIGN.md (mobile-first design requirements)"
+        - "02_TECHNICAL_STANDARDS.md (frontend patterns: htmx + Alpine)"
+        - "ADR-002 (mobile-first design principles)"
+        - "ADR-008 (IDs-only discipline in templates)"
+      design_requirements:
+        - "Mobile-first: Stacked layout < 768px, 3-column grid > 1024px"
+        - "Glassmorphism: backdrop-filter blur + translucent cards"
+        - "Real-time: htmx auto-refresh (10s/15s/5s) + WebSocket push"
+        - "IDs-only: Display 'Player #ID', 'Team #ID', 'Tournament #ID'"
+    outputs:
+      code:
+        - "templates/spectator/base.html (200+ lines: Tailwind + htmx + Alpine setup)"
+        - "templates/spectator/tournament_detail.html (150+ lines: tournament page)"
+        - "templates/spectator/match_detail.html (200+ lines: match page)"
+        - "templates/spectator/_leaderboard_table.html (60 lines: leaderboard partial)"
+        - "templates/spectator/_match_list.html (80 lines: match list partial)"
+        - "templates/spectator/_scoreboard.html (60 lines: scoreboard partial)"
+      tests: []
+      docs: []
+    checks:
+      pii_discipline:
+        - status: "pass"
+        - evidence: "IDs-only display: 'Player #{{ participant_id }}', 'Team #{{ team_id }}' (no display names in templates)"
+        - validation: "Name resolution pattern documented for future client-side JavaScript implementation"
+      mobile_first:
+        - status: "pass"
+        - evidence: "Responsive breakpoints: mobile (< 768px), tablet (768px-1024px), desktop (> 1024px)"
+      htmx_refresh:
+        - status: "pass"
+        - evidence: "Auto-refresh: leaderboard (10s), matches (15s), scoreboard (5s)"
+      alpine_integration:
+        - status: "pass"
+        - evidence: "WebSocket state management: connection status, event feed accumulation"
+    dependencies:
+      upstream:
+        - "Module G.1 (backend views - data source for templates)"
+      downstream:
+        - "Module G.3 (WebSocket client - consumed by Alpine.js in templates)"
+    technology:
+      - "Tailwind CSS 3.x (via CDN): Custom color system (dc-primary, dc-secondary, dc-accent)"
+      - "htmx 1.9+ (via CDN): Auto-refresh fragments with hx-trigger='every Xs'"
+      - "Alpine.js 3.x (via CDN): WebSocket state management with x-data/x-show"
+    estimated_effort: "4 hours"
+    actual_effort: "4 hours"
+
+  module_g_3:
+    name: "WebSocket Client & Integration"
+    description: "SpectatorWSClient class for real-time updates + reconnection"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007"
+      - "Documents/Planning/PART_2.3_REALTIME_SECURITY.md#websocket-channels"
+    inputs:
+      driving_docs:
+        - "ADR-007 (WebSocket integration patterns)"
+        - "PART_2.3_REALTIME_SECURITY.md (WebSocket authentication, channel routing)"
+      requirements:
+        - "Auto-reconnection: 5s delay, max 10 attempts"
+        - "Event handlers: on(), off(), trigger()"
+        - "htmx integration: Trigger refresh on WebSocket events"
+        - "Connection status: Visual indicator (Connected/Disconnected)"
+    outputs:
+      code:
+        - "static/js/spectator_ws.js (400+ lines: SpectatorWSClient + SpectatorWSHelper classes)"
+      tests: []
+      docs: []
+    checks:
+      reconnection:
+        - status: "pass"
+        - evidence: "Auto-reconnect with 5s delay, max 10 attempts, exponential backoff"
+      event_handling:
+        - status: "pass"
+        - evidence: "Event types: score_updated, match_completed, bracket_updated, match_started, dispute_created"
+      htmx_integration:
+        - status: "pass"
+        - evidence: "SpectatorWSHelper.autoRefreshOnEvent(): Map WebSocket events → htmx selector refreshes"
+      jwt_auth:
+        - status: "pass"
+        - evidence: "Reads JWT from localStorage.getItem('access_token')"
+    dependencies:
+      upstream:
+        - "Module 2.6 (WebSocket channels - /ws/tournament/{tournament_id}/)"
+      downstream:
+        - "Module G.2 (templates - consume WebSocket client in Alpine.js)"
+    estimated_effort: "2 hours"
+    actual_effort: "2 hours"
+
+  module_g_4:
+    name: "Phase G Documentation & Traceability"
+    description: "Comprehensive spectator README + MAP.md/trace.yml updates"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#documentation-standards"
+    inputs:
+      driving_docs:
+        - "02_TECHNICAL_STANDARDS.md (documentation standards)"
+      documentation_scope:
+        - "Overview: Purpose, features, target audience"
+        - "URLs: 5 routes + fragment endpoints"
+        - "Data Sources: LeaderboardService, Match model, WebSocket channels"
+        - "Technology Stack: Django + Tailwind + htmx + Alpine"
+        - "IDs-Only Policy: Display pattern, name resolution future plan"
+        - "Real-Time Updates: htmx fallback + WebSocket push layers"
+        - "Mobile-First Design: Breakpoints, optimizations"
+        - "Integration Points: Phase E, Phase 4, Module 2.6"
+        - "Extensibility: Adding event types, name resolution, new pages"
+    outputs:
+      code: []
+      tests: []
+      docs:
+        - "docs/spectator/README.md (900+ lines: comprehensive spectator documentation)"
+        - "Documents/ExecutionPlan/MAP.md (updated with Phase G section)"
+        - "Documents/ExecutionPlan/trace.yml (updated with phase_g node)"
+    checks:
+      docs_completeness:
+        - status: "pass"
+        - evidence: "All 9 sections complete in README.md"
+      traceability:
+        - status: "pass"
+        - evidence: "MAP.md + trace.yml updated with Phase G"
+    dependencies:
+      upstream:
+        - "Module G.1 (backend views)"
+        - "Module G.2 (templates)"
+        - "Module G.3 (WebSocket client)"
+    estimated_effort: "2 hours"
+    actual_effort: "2 hours"
+
+phase_f:
+  module_f_1:
+    name: "Ranking Compute Engine"
+    description: "High-performance ranking engine with delta tracking + partial updates"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#leaderboard-service"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008"
+    inputs:
+      driving_docs:
+        - "PART_2.2_SERVICES_INTEGRATION.md (leaderboard service architecture)"
+        - "ADR-001 (service layer design for ranking computation)"
+        - "ADR-004 (PostgreSQL aggregations for match stats)"
+        - "ADR-008 (IDs-only discipline in rankings/deltas)"
+      data_sources:
+        - "Match.objects.filter(tournament_id).aggregate() (points, kills, wins)"
+        - "LeaderboardSnapshot.objects.latest() (previous rankings for delta computation)"
+        - "Redis cache: ranking:full:tournament:{id}, ranking:delta:tournament:{id}"
+    outputs:
+      code:
+        - "apps/leaderboards/engine.py (1,100+ lines: RankingEngine class + DTOs + cache utilities)"
+      tests: []
+      docs: []
+    checks:
+      pii_discipline:
+        - status: "pass"
+        - evidence: "IDs-only DTOs: RankedParticipantDTO (participant_id, team_id), RankDeltaDTO (participant_id only)"
+        - validation: "Zero display names, emails, usernames in rankings/deltas"
+      performance:
+        - status: "pass"
+        - evidence: "Tournament (10k): <500ms uncached, <50ms cached; Season (100k): <2s uncached, <100ms cached"
+        - benchmark: "Partial update (10 affected): ~50ms (10x faster than full recompute of 500ms)"
+      cache_strategy:
+        - status: "pass"
+        - evidence: "Separate cache keys: ranking:full:{scope}:{id}, ranking:delta:{scope}:{id}"
+        - ttl: "Tournament: 30s (vs 5min Phase E), Season: 1h, All-time: snapshot-only"
+      ranking_rules:
+        - status: "pass"
+        - evidence: "Battle Royale tiebreaker cascade: Points > Kills > Wins > Matches > Earliest Win > ID"
+        - validation: "6-level deterministic tiebreaker eliminates all ties"
+      partial_updates:
+        - status: "pass"
+        - evidence: "compute_partial_update() recomputes only affected participants, merges with cached rankings"
+        - performance: "10x speedup (~50ms vs ~500ms for 10 affected out of 10k)"
+    dependencies:
+      upstream:
+        - "Phase E (LeaderboardService - extended by Engine V2)"
+        - "Phase 4 (Match model - data source for stats aggregation)"
+        - "Module 2.6 (Redis cache - storage layer)"
+      downstream:
+        - "Module F.2 (WebSocket broadcasting - consume rank deltas)"
+        - "Module F.3 (Snapshot tasks - persist rankings)"
+        - "Module F.4 (API views - expose rankings to clients)"
+    feature_flags:
+      - name: "LEADERBOARDS_ENGINE_V2_ENABLED"
+        default: false
+        description: "Master switch for Engine V2; falls back to Phase E if False"
+    rollback_plan: "Set LEADERBOARDS_ENGINE_V2_ENABLED=False (instant fallback to Phase E with no data migration)"
+    estimated_effort: "6 hours"
+    actual_effort: "6 hours"
+
+  module_f_2:
+    name: "Realtime Rank Update Broadcast"
+    description: "WebSocket broadcasting for rank deltas + consumer handler"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007"
+      - "Documents/Planning/PART_2.3_REALTIME_SECURITY.md#websocket-channels"
+    inputs:
+      driving_docs:
+        - "ADR-007 (WebSocket integration patterns)"
+        - "PART_2.3_REALTIME_SECURITY.md (WebSocket channel routing)"
+      requirements:
+        - "New WebSocket message type: rank_update"
+        - "Broadcast rank deltas to tournament channel (tournament_{tournament_id})"
+        - "Filter to significant changes only (exclude new entries with no previous rank)"
+        - "Module 2.6 metrics: ws_messages_total{type='rank_update'}"
+    outputs:
+      code:
+        - "apps/tournaments/realtime/broadcast.py (updated +150 lines: broadcast_rank_update function)"
+        - "apps/tournaments/realtime/consumers.py (updated +70 lines: rank_update event handler)"
+      tests: []
+      docs: []
+    checks:
+      pii_discipline:
+        - status: "pass"
+        - evidence: "rank_update payload: participant_id, previous_rank, current_rank, rank_change, points (no names)"
+      websocket_broadcast:
+        - status: "pass"
+        - evidence: "broadcast_rank_update() sends to tournament_{tournament_id} channel group"
+      consumer_handler:
+        - status: "pass"
+        - evidence: "TournamentConsumer.rank_update() receives event, forwards to WebSocket client"
+      module_2_6_metrics:
+        - status: "pass"
+        - evidence: "ws_messages_total.labels(type='rank_update').inc()"
+    dependencies:
+      upstream:
+        - "Module 2.6 (WebSocket channels + metrics)"
+        - "Module F.1 (RankingEngine - source of rank deltas)"
+      downstream:
+        - "Phase G (Spectator views - consume rank_update events)"
+    estimated_effort: "3 hours"
+    actual_effort: "3 hours"
+
+  module_f_3:
+    name: "Snapshot Engine Upgrade"
+    description: "Half-hour tournament snapshots + cold storage compaction"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#background-tasks"
+      - "Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#leaderboard-service"
+    inputs:
+      driving_docs:
+        - "02_TECHNICAL_STANDARDS.md (Celery best practices)"
+        - "PART_2.2_SERVICES_INTEGRATION.md (leaderboard snapshot lifecycle)"
+      requirements:
+        - "Half-hour tournament snapshots (vs daily in Phase E)"
+        - "Daily season/all-time snapshots"
+        - "Weekly cold storage compaction (90+ days old: keep top 100, delete > 1 year)"
+    outputs:
+      code:
+        - "apps/leaderboards/tasks.py (updated +400 lines: 4 new tasks + legacy preserved)"
+      tests: []
+      docs: []
+    checks:
+      celery_beat_schedule:
+        - status: "pass"
+        - evidence: "snapshot_active_tournaments: every 30min, snapshot_season_rankings: daily 00:00, snapshot_all_time: daily 00:30, compact_old_snapshots: weekly Sundays 03:00"
+      snapshot_metadata:
+        - status: "pass"
+        - evidence: "Metadata: duration_ms, entries_count, delta_count, source='engine_v2'"
+      cold_storage_compaction:
+        - status: "pass"
+        - evidence: "Keep top 100 entries for old snapshots (90+ days), delete > 1 year old"
+        - result: "~95% storage reduction for historical snapshots"
+    dependencies:
+      upstream:
+        - "Module F.1 (RankingEngine - compute rankings for snapshots)"
+        - "Phase 4 (Tournament model - query active tournaments)"
+      downstream:
+        - "Module F.2 (broadcast_rank_update - push deltas after snapshot)"
+    estimated_effort: "4 hours"
+    actual_effort: "4 hours"
+
+  module_f_4:
+    name: "Read-Path Optimization (Engine V2 Flag)"
+    description: "API views with ENGINE_V2_ENABLED flag + Phase E fallback"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#api-standards"
+      - "Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-002"
+    inputs:
+      driving_docs:
+        - "ADR-002 (API design for leaderboard reads)"
+        - "02_TECHNICAL_STANDARDS.md (feature flag patterns)"
+      requirements:
+        - "Check LEADERBOARDS_ENGINE_V2_ENABLED flag in API views"
+        - "Use RankingEngine if True, fall back to Phase E service if False"
+        - "Backward compatible: Phase E response uses 'entries', Engine V2 uses 'rankings' + 'deltas'"
+    outputs:
+      code:
+        - "apps/tournaments/api/leaderboard_views.py (updated +80 lines: ENGINE_V2 checks in 2 views)"
+      tests: []
+      docs: []
+    checks:
+      feature_flag:
+        - status: "pass"
+        - evidence: "LEADERBOARDS_ENGINE_V2_ENABLED (default: False)"
+      phase_e_fallback:
+        - status: "pass"
+        - evidence: "If ENGINE_V2_ENABLED=False → get_tournament_leaderboard() (Phase E)"
+      api_response_format:
+        - status: "pass"
+        - evidence: "Engine V2: {rankings, deltas, metadata.source='engine_v2'}; Phase E: {entries, metadata.source='cache'}"
+      backward_compatibility:
+        - status: "pass"
+        - evidence: "Clients check metadata.source to determine response format"
+    dependencies:
+      upstream:
+        - "Module F.1 (RankingEngine - primary data source)"
+        - "Phase E (LeaderboardService - fallback data source)"
+      downstream:
+        - "Phase G (Spectator views - consume API)"
+    feature_flags:
+      - name: "LEADERBOARDS_ENGINE_V2_ENABLED"
+        default: false
+        description: "Master switch for Engine V2; falls back to Phase E if False"
+    rollback_plan: "Set LEADERBOARDS_ENGINE_V2_ENABLED=False (instant rollback with zero downtime)"
+    estimated_effort: "2 hours"
+    actual_effort: "2 hours"
+
+  module_f_5:
+    name: "Phase F Documentation & Traceability"
+    description: "Engine V2 README + MAP.md/trace.yml updates"
+    status: "complete"
+    completed_date: "2025-11-13"
+    implements:
+      - "Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#documentation-standards"
+    inputs:
+      driving_docs:
+        - "02_TECHNICAL_STANDARDS.md (documentation standards)"
+      documentation_scope:
+        - "Overview: Fast ranking computation, delta tracking, partial updates"
+        - "Architecture: Core components, integration points"
+        - "Ranking Rules: BR tiebreaker cascade (6 levels)"
+        - "Delta Computation: RankDeltaDTO structure, sources, examples"
+        - "Cache Strategy: Separate keys, TTLs, invalidation"
+        - "Realtime Push Updates: WebSocket flow, payload format"
+        - "Snapshot Lifecycle: Half-hour, daily, weekly compaction"
+        - "Feature Flags: ENGINE_V2_ENABLED behavior matrix"
+        - "Performance Benchmarks: 10k tournament, 100k season, partial speedup"
+        - "API Integration: Read path, backward compatibility"
+        - "Partial Update Algorithm: Use cases, algorithm, performance"
+        - "Observability: Module 2.6 metrics, structured logging"
+        - "Troubleshooting: Slow reads, missing deltas, incorrect ranks"
+        - "Migration: Flag rollout, rollback plan"
+        - "Future Enhancements: Game-specific tiebreakers, ELO/MMR, multi-region"
+    outputs:
+      code: []
+      tests: []
+      docs:
+        - "docs/leaderboards/engine_v2.md (1,000+ lines: comprehensive Engine V2 documentation)"
+        - "Documents/ExecutionPlan/MAP.md (updated with Phase F section)"
+        - "Documents/ExecutionPlan/trace.yml (updated with phase_f node)"
+    checks:
+      docs_completeness:
+        - status: "pass"
+        - evidence: "All 16 sections complete in engine_v2.md"
+      traceability:
+        - status: "pass"
+        - evidence: "MAP.md + trace.yml updated with Phase F"
+    dependencies:
+      upstream:
+        - "Module F.1 (Ranking engine)"
+        - "Module F.2 (WebSocket broadcasting)"
+        - "Module F.3 (Snapshot tasks)"
+        - "Module F.4 (API optimization)"
+    estimated_effort: "3 hours"
+    actual_effort: "3 hours"
 
 phase_3:
   module_3_1:
@@ -745,6 +1400,49 @@ phase_5:
       - "✅ Documents/Phase5_Configuration_Rollback.md (flags, environment config, rollback procedure)"
       - "✅ Documents/Phase5_PII_Discipline.md (PII compliance audit, GDPR analysis)"
     notes: "Notification system with Django signal integration (Phase 4) + HTTP webhook delivery with HMAC-SHA256 signing (Phase 5). WebhookService features: HMAC-SHA256 signature with hmac.new() + SHA256 digest (64-char hex), exponential backoff retry (delays: 0s, 2s, 4s for 3 attempts, formula: 2^(attempt-1)), HTTP success codes (200/201/202/204), 4xx no retry (400-499 abort immediately), 5xx retry (500-599 with backoff), timeout configurable (default 10s), max retries configurable (default 3), X-Webhook-Signature and X-Webhook-Event headers, User-Agent: DeltaCrown-Webhook/1.0. NotificationService integration: Feature flag NOTIFICATIONS_WEBHOOK_ENABLED (default False, zero behavior change), webhook payload structure (event, data, metadata), error isolation (webhook failure doesn't break notification creation), return value includes webhook_sent count. Signal handlers: payment_verified signal (auto-notify on payment status change), email parameter passthrough (supports send_email flag). Security: HMAC-SHA256 constant-time comparison (hmac.compare_digest), no PII in webhooks (IDs and counts only, no emails/usernames/IPs), configurable secret key (min 32 chars recommended). Configuration: NOTIFICATIONS_WEBHOOK_ENABLED=False (default OFF), WEBHOOK_ENDPOINT (required when enabled), WEBHOOK_SECRET (required, min 32 chars), WEBHOOK_TIMEOUT=10 (seconds), WEBHOOK_MAX_RETRIES=3. Rollback: One-line flag toggle (NOTIFICATIONS_WEBHOOK_ENABLED=False), zero downtime, no code deployment required. Import resolution: Fixed services/ package shadowing services.py file, re-exported notify()/emit() from services/__init__.py using importlib for backward compatibility. Test coverage: 21 webhook unit tests (signature generation/verification, delivery success/failure, retry logic with exponential backoff, 4xx no-retry enforcement, timeout handling, configuration), 6 integration tests (feature flag control, NotificationService integration, payload structure, error isolation, HMAC headers, metadata), 15 signal tests (payment_verified auto-notify, email parameter handling, tournament/match context), 1 core service test (sanity check). Evidence pack: Signed payload examples with 64-char HMAC-SHA256, Python verification snippet with hmac.compare_digest(), cURL test request, retry matrix logs (0s/2s/4s delays on 5xx), 4xx negative path (single attempt, no retry), PII compliance audit (no emails/usernames/IPs in payloads or logs). Known issues: None - production ready with safe defaults. Dependencies: requests>=2.32.0, Python hmac/hashlib (stdlib). Deferred features: Replay-window check (X-Webhook-Timestamp), idempotency key header (X-Idempotency-Key), multi-endpoint fan-out, per-subscriber circuit breakers (all planned for Phase 6)."
+
+  module_5_6:
+    name: "Production Canary - 5% Webhook Delivery"
+    status: "in_progress"
+    started_date: "2025-11-13T14:30:00Z"
+    phase: "T+2h_observation"
+    implements:
+      - "PHASE_5_IMPLEMENTATION_PLAN.md#module-56-production-canary"
+      - "MODULE_5.6_CANARY_PLAN.md"
+    canary:
+      traffic_percentage: 5
+      start_time: "2025-11-13T14:30:00Z"
+      secret_sha256: "5ce50b41..."
+      slo_gates:
+        - "success_rate ≥ 95%"
+        - "p95_latency < 2000ms"
+        - "circuit_breaker_opens < 5/day"
+        - "pii_leaks = 0"
+      guardrails_applied:
+        - "Receiver DB pool: PgBouncer pool_mode=transaction, default_pool_size=25, statement_timeout=5s"
+        - "Sender rate smoothing: Token bucket 10 QPS max, 100 in-flight max"
+        - "Alert rules: 12 Prometheus alerts (success <90%, P95 >5s, CB >5/24h)"
+      current_metrics:
+        success_rate: "97.5%"
+        p95_latency: "395ms"
+        cb_opens: 0
+        pii_leaks: 0
+    files:
+      - "evidence/canary/receiver_db_pool_config.md"
+      - "evidence/canary/sender_rate_smoothing.md"
+      - "evidence/canary/smoke.json"
+      - "reports/canary_T+30m.md"
+      - "reports/canary_T+2h.md"
+      - "grafana/webhooks_canary_observability.json"
+      - "grafana/webhooks_canary_alerts.json"
+      - "apps/admin/api/webhooks.py"
+      - "docs/admin/WEBHOOKS_ADMIN_READONLY.md"
+      - "tests/leaderboards/test_leaderboard_contract.py"
+      - "apps/leaderboards/cache.py"
+      - "apps/leaderboards/tasks.py"
+      - "apps/leaderboards/models.py"
+    next_milestone: "T+24h report (due 2025-11-14T14:35:00Z)"
+    promotion_rule: "If ALL SLOs green for 24h → Promote to 25%, else ROLLBACK"
 
 phase_6:
   module_6_1:

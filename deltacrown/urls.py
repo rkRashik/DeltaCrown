@@ -62,8 +62,11 @@ urlpatterns = [
     
     # Module 3.3: Team Management API
     path("api/teams/", include("apps.teams.api.urls")),
+    
+    # Phase G: Spectator Live Views (public read-only tournament/match pages)
+    path("spectator/", include(("apps.spectator.urls", "spectator"), namespace="spectator")),
 
-    # User profile â€" include ONCE with namespace & prefix invariant
+    # User profile — include ONCE with namespace & prefix invariant
     path("user/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
 
     # Optional extras mounted if present

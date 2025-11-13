@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Spectator View{% endblock %} | DeltaCrown</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- htmx -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dc-dark': '#0a0e27',
+                        'dc-primary': '#00d9ff',
+                        'dc-secondary': '#ff006e',
+                        'dc-accent': '#ffbe0b',
+                        'dc-success': '#06ffa5',
+                        'dc-warning': '#ff9500',
+                        'dc-error': '#ff006e',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Custom gradient backgrounds */
+        .bg-gradient-dark {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+        }
+        
+        .bg-gradient-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        }
+        
+        /* Live pulse animation */
+        @keyframes pulse-live {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .live-pulse {
+            animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Glassmorphism effect */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gradient-dark text-white min-h-screen">
+    <!-- Top Navigation -->
+    <nav class="glass border-b border-gray-800 sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!-- Logo / Back -->
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-dc-primary hover:text-dc-accent transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <h1 class="text-xl font-bold">
+                        <span class="text-dc-primary">Delta</span><span class="text-white">Crown</span>
+                    </h1>
+                </div>
+                
+                <!-- Live Indicator -->
+                {% block live_indicator %}{% endblock %}
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="mt-12 py-6 border-t border-gray-800">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <p>DeltaCrown Spectator View • Phase G: Live Views • IDs-Only Discipline</p>
+        </div>
+    </footer>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

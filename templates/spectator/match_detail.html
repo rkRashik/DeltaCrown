@@ -1,0 +1,230 @@
+{% extends "spectator/base.html" %}
+
+{% block title %}Match #{{ match_id }} - Spectator View{% endblock %}
+
+{% block live_indicator %}
+{% if status == 'in_progress' %}
+<div class="flex items-center space-x-2">
+    <span class="relative flex h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-error opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-dc-error"></span>
+    </span>
+    <span class="text-dc-error font-semibold text-sm uppercase tracking-wide">Live</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div x-data="matchSpectator()" class="space-y-6">
+    
+    <!-- Match Header -->
+    <div class="glass rounded-lg p-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <a href="{% url 'spectator:tournament_detail' tournament_id %}" class="text-dc-primary hover:text-dc-accent transition-colors text-sm">
+                        ← Tournament #{{ tournament_id }}
+                    </a>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-700/50 text-gray-300 border border-gray-600">
+                        Round {{ round }}
+                    </span>
+                    {% if status == 'in_progress' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-dc-error/20 text-dc-error border border-dc-error/30">
+                        LIVE
+                    </span>
+                    {% elif status == 'completed' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-dc-success/20 text-dc-success border border-dc-success/30">
+                        COMPLETED
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-700/50 text-gray-300 border border-gray-600">
+                        {{ status|upper }}
+                    </span>
+                    {% endif %}
+                </div>
+                <h1 class="text-3xl font-bold">Match #{{ match_id }}</h1>
+                {% if scheduled_time %}
+                <p class="text-gray-400 mt-1">
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {{ scheduled_time|date:"M d, Y H:i" }}
+                </p>
+                {% endif %}
+            </div>
+            
+            <!-- WebSocket Status -->
+            <div class="flex items-center space-x-2 text-sm">
+                <div :class="wsConnected ? 'bg-dc-success' : 'bg-gray-600'" class="w-2 h-2 rounded-full"></div>
+                <span :class="wsConnected ? 'text-dc-success' : 'text-gray-400'" x-text="wsConnected ? 'Connected' : 'Connecting...'"></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Scoreboard -->
+        <div class="lg:col-span-2">
+            
+            <!-- Scoreboard -->
+            <div class="glass rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-dc-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    Live Scoreboard
+                </h2>
+                
+                <!-- htmx auto-refresh container -->
+                <div 
+                    hx-get="{% url 'spectator:match_scoreboard_fragment' match_id %}"
+                    hx-trigger="load, every 5s"
+                    hx-swap="outerHTML"
+                >
+                    <!-- Initial load from server -->
+                    {% include 'spectator/_scoreboard.html' %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: Live Events Feed -->
+        <div>
+            
+            <!-- Live Events -->
+            <div class="glass rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-dc-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Live Events
+                </h2>
+                
+                <!-- Event Feed -->
+                <div class="space-y-2 max-h-96 overflow-y-auto">
+                    <template x-for="event in events" :key="event.id">
+                        <div class="bg-gradient-card rounded p-3 border border-gray-700 text-sm">
+                            <div class="flex items-start justify-between mb-1">
+                                <span class="font-semibold text-dc-primary" x-text="event.type"></span>
+                                <span class="text-xs text-gray-500" x-text="event.time"></span>
+                            </div>
+                            <p class="text-gray-300 text-xs" x-text="event.message"></p>
+                        </div>
+                    </template>
+                    
+                    <!-- Empty State -->
+                    <div x-show="events.length === 0" class="text-center py-8 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <p>Waiting for events...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Info Card -->
+            <div class="glass rounded-lg p-4 mt-4 text-sm text-gray-400">
+                <p class="mb-2">
+                    <strong class="text-white">Real-time Updates:</strong> Events appear instantly via WebSocket.
+                </p>
+                <p>
+                    <strong class="text-white">Fallback:</strong> Scores refresh every 5s via htmx if WebSocket disconnects.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function matchSpectator() {
+        return {
+            wsConnected: false,
+            ws: null,
+            events: [],
+            eventIdCounter: 0,
+            
+            init() {
+                this.connectWebSocket();
+            },
+            
+            connectWebSocket() {
+                const wsUrl = '{{ ws_match_url|safe }}';
+                
+                // Get JWT token from localStorage (if available)
+                const token = localStorage.getItem('access_token') || '';
+                const wsUrlWithToken = token ? `${wsUrl}?token=${token}` : wsUrl;
+                
+                console.log('Connecting to WebSocket:', wsUrl);
+                
+                try {
+                    this.ws = new WebSocket(wsUrlWithToken);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.wsConnected = true;
+                        this.addEvent('CONNECTED', 'WebSocket connection established');
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        console.log('WebSocket message:', data);
+                        
+                        // Handle different event types
+                        if (data.type === 'score_updated') {
+                            this.addEvent('SCORE UPDATE', `Match #${data.data?.match_id || '{{ match_id }}'} - Scores updated`);
+                            // Trigger htmx refresh for scoreboard
+                            htmx.trigger(document.querySelector('[hx-get*="scoreboard/fragment"]'), 'refresh');
+                        } else if (data.type === 'match_started') {
+                            this.addEvent('MATCH START', 'Match has begun!');
+                        } else if (data.type === 'match_completed') {
+                            this.addEvent('MATCH END', `Winner: Participant #${data.data?.winner_id || 'TBD'}`);
+                        } else if (data.type === 'dispute_created') {
+                            this.addEvent('DISPUTE', 'Match dispute reported');
+                        } else {
+                            this.addEvent(data.type?.toUpperCase() || 'EVENT', JSON.stringify(data.data || data));
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.wsConnected = false;
+                        this.addEvent('ERROR', 'WebSocket connection error');
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('WebSocket closed');
+                        this.wsConnected = false;
+                        this.addEvent('DISCONNECTED', 'WebSocket connection closed');
+                        
+                        // Reconnect after 5 seconds
+                        setTimeout(() => {
+                            console.log('Attempting to reconnect...');
+                            this.connectWebSocket();
+                        }, 5000);
+                    };
+                } catch (error) {
+                    console.error('Failed to create WebSocket:', error);
+                    this.wsConnected = false;
+                    this.addEvent('ERROR', 'Failed to establish WebSocket connection');
+                }
+            },
+            
+            addEvent(type, message) {
+                this.events.unshift({
+                    id: this.eventIdCounter++,
+                    type: type,
+                    message: message,
+                    time: new Date().toLocaleTimeString()
+                });
+                
+                // Keep only last 20 events
+                if (this.events.length > 20) {
+                    this.events = this.events.slice(0, 20);
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

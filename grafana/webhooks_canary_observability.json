@@ -1,0 +1,279 @@
+{
+  "dashboard": {
+    "title": "Webhooks Canary Observability",
+    "tags": ["webhooks", "canary", "phase-5.6"],
+    "timezone": "utc",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "30s"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Success Rate (%)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(webhook_delivery_success_total[5m])) / (sum(rate(webhook_delivery_success_total[5m])) + sum(rate(webhook_delivery_failure_total[5m]))) * 100",
+          "legendFormat": "Success %"
+        }
+      ],
+      "thresholds": {
+        "steps": [
+          { "value": 0, "color": "red" },
+          { "value": 90, "color": "yellow" },
+          { "value": 95, "color": "green" }
+        ]
+      },
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 10,
+      "title": "Retry Distribution (Histogram)",
+      "type": "bargauge",
+      "targets": [
+        {
+          "expr": "sum(increase(webhook_retry_attempts_total{attempt=\"1\"}[1h]))",
+          "legendFormat": "1 Retry"
+        },
+        {
+          "expr": "sum(increase(webhook_retry_attempts_total{attempt=\"2\"}[1h]))",
+          "legendFormat": "2 Retries"
+        },
+        {
+          "expr": "sum(increase(webhook_retry_attempts_total{attempt=\"3\"}[1h]))",
+          "legendFormat": "3 Retries"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "value": 0, "color": "green" },
+              { "value": 10, "color": "yellow" },
+              { "value": 50, "color": "red" }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true
+      },
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 4 }
+    },
+    {
+      "id": 11,
+      "title": "CB State Sparkline (Last 24h)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "webhook_cb_state{endpoint=~\"$endpoint\"}",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "CLOSED", "color": "green" } } },
+            { "options": { "1": { "text": "HALF_OPEN", "color": "yellow" } } },
+            { "options": { "2": { "text": "OPEN", "color": "red" } } }
+          ],
+          "thresholds": {
+            "steps": [
+              { "value": 0, "color": "green" },
+              { "value": 1, "color": "yellow" },
+              { "value": 2, "color": "red" }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "spanNulls": false,
+            "showPoints": "always",
+            "pointSize": 5
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "gridPos": { "x": 6, "y": 4, "w": 18, "h": 4 }
+    },
+    {
+      "id": 2,
+      "title": "P95 Latency (ms)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(webhook_delivery_latency_seconds_bucket[5m])) * 1000",
+          "legendFormat": "P95 ms"
+        }
+      ],
+      "thresholds": {
+        "steps": [
+          { "value": 0, "color": "green" },
+          { "value": 2000, "color": "yellow" },
+          { "value": 5000, "color": "red" }
+        ]
+      },
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 3,
+      "title": "Circuit Breaker Opens (24h)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "increase(webhook_cb_open_total[24h])",
+          "legendFormat": "CB Opens"
+        }
+      ],
+      "thresholds": {
+        "steps": [
+          { "value": 0, "color": "green" },
+          { "value": 5, "color": "yellow" },
+          { "value": 20, "color": "red" }
+        ]
+      },
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 4,
+      "title": "Circuit Breaker State",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "webhook_cb_state",
+          "legendFormat": "CB State"
+        }
+      ],
+      "mappings": [
+        { "value": 0, "text": "CLOSED", "color": "green" },
+        { "value": 1, "text": "HALF_OPEN", "color": "yellow" },
+        { "value": 2, "text": "OPEN", "color": "red" }
+      ],
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 }
+    },
+    {
+      "id": 5,
+      "title": "Success vs Failure Rate (5m)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(webhook_delivery_success_total[5m])) by (event)",
+          "legendFormat": "Success - {{event}}"
+        },
+        {
+          "expr": "sum(rate(webhook_delivery_failure_total[5m])) by (event)",
+          "legendFormat": "Failure - {{event}}"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 }
+    },
+    {
+      "id": 6,
+      "title": "Latency Percentiles (5m)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(webhook_delivery_latency_seconds_bucket[5m])) * 1000",
+          "legendFormat": "P50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(webhook_delivery_latency_seconds_bucket[5m])) * 1000",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(webhook_delivery_latency_seconds_bucket[5m])) * 1000",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 }
+    },
+    {
+      "id": 7,
+      "title": "Retry Attempts Distribution",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(webhook_retry_attempts_total[5m])) by (attempt)",
+          "legendFormat": "Attempt {{attempt}}"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 }
+    },
+    {
+      "id": 8,
+      "title": "4xx vs 5xx Errors (5m)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(webhook_delivery_failure_total{code=~\"4..\"}[5m]))",
+          "legendFormat": "4xx Client Errors"
+        },
+        {
+          "expr": "sum(rate(webhook_delivery_failure_total{code=~\"5..\"}[5m]))",
+          "legendFormat": "5xx Server Errors"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 }
+    },
+    {
+      "id": 9,
+      "title": "Events Per Second by Type",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(webhook_delivery_success_total[1m])) by (event)",
+          "legendFormat": "{{event}}"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 8 }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "event",
+        "type": "query",
+        "query": "label_values(webhook_delivery_success_total, event)",
+        "multi": true,
+        "includeAll": true
+      },
+      {
+        "name": "endpoint",
+        "type": "query",
+        "query": "label_values(webhook_delivery_success_total, endpoint)",
+        "multi": false
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "Prometheus",
+        "expr": "changes(webhook_cb_state[1m]) > 0",
+        "step": "1m",
+        "titleFormat": "Circuit Breaker State Change",
+        "textFormat": "CB state changed",
+        "iconColor": "orange"
+      }
+    ]
+  }
+}

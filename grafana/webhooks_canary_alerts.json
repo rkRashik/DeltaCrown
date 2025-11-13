@@ -1,0 +1,176 @@
+{
+  "groups": [
+    {
+      "name": "webhooks_canary_slo_alerts",
+      "interval": "30s",
+      "rules": [
+        {
+          "alert": "WebhookSuccessRateBelowThreshold",
+          "expr": "sum(rate(webhook_delivery_success_total[10m])) / (sum(rate(webhook_delivery_success_total[10m])) + sum(rate(webhook_delivery_failure_total[10m]))) * 100 < 95",
+          "for": "10m",
+          "labels": {
+            "severity": "warning",
+            "component": "webhooks",
+            "slo": "success_rate"
+          },
+          "annotations": {
+            "summary": "Webhook success rate below 95% SLO",
+            "description": "Success rate {{ $value | humanizePercentage }} is below 95% threshold for 10 minutes. Investigate webhook failures."
+          }
+        },
+        {
+          "alert": "WebhookSuccessRateCritical",
+          "expr": "sum(rate(webhook_delivery_success_total[5m])) / (sum(rate(webhook_delivery_success_total[5m])) + sum(rate(webhook_delivery_failure_total[5m]))) * 100 < 90",
+          "for": "5m",
+          "labels": {
+            "severity": "critical",
+            "component": "webhooks",
+            "slo": "success_rate",
+            "action": "rollback"
+          },
+          "annotations": {
+            "summary": "ROLLBACK: Webhook success rate below 90%",
+            "description": "Success rate {{ $value | humanizePercentage }} is critically low (<90%) for 5 minutes. IMMEDIATE ROLLBACK REQUIRED: NOTIFICATIONS_WEBHOOK_ENABLED=false"
+          }
+        },
+        {
+          "alert": "WebhookP95LatencyHigh",
+          "expr": "histogram_quantile(0.95, rate(webhook_delivery_latency_seconds_bucket[15m])) > 2",
+          "for": "15m",
+          "labels": {
+            "severity": "warning",
+            "component": "webhooks",
+            "slo": "p95_latency"
+          },
+          "annotations": {
+            "summary": "Webhook P95 latency above 2s SLO",
+            "description": "P95 latency {{ $value | humanizeDuration }} exceeds 2s threshold for 15 minutes. Check receiver performance."
+          }
+        },
+        {
+          "alert": "WebhookP95LatencyCritical",
+          "expr": "histogram_quantile(0.95, rate(webhook_delivery_latency_seconds_bucket[10m])) > 5",
+          "for": "10m",
+          "labels": {
+            "severity": "critical",
+            "component": "webhooks",
+            "slo": "p95_latency",
+            "action": "investigate"
+          },
+          "annotations": {
+            "summary": "Webhook P95 latency critically high (>5s)",
+            "description": "P95 latency {{ $value | humanizeDuration }} is critically high. Investigate receiver bottleneck or network issues."
+          }
+        },
+        {
+          "alert": "WebhookCircuitBreakerOpening",
+          "expr": "increase(webhook_cb_open_total[1h]) >= 1",
+          "for": "1m",
+          "labels": {
+            "severity": "warning",
+            "component": "webhooks",
+            "slo": "circuit_breaker"
+          },
+          "annotations": {
+            "summary": "Circuit breaker opened for webhook endpoint",
+            "description": "Circuit breaker opened {{ $value }} time(s) in the last hour for endpoint {{ $labels.endpoint }}. Receiver may be unstable."
+          }
+        },
+        {
+          "alert": "WebhookCircuitBreakerExcessiveOpens",
+          "expr": "increase(webhook_cb_open_total[24h]) > 5",
+          "for": "5m",
+          "labels": {
+            "severity": "critical",
+            "component": "webhooks",
+            "slo": "circuit_breaker",
+            "action": "investigate"
+          },
+          "annotations": {
+            "summary": "CRITICAL: Circuit breaker opened >5 times in 24h",
+            "description": "Circuit breaker opened {{ $value }} times in 24h (threshold: 5). Receiver instability or misconfiguration. Consider rollback."
+          }
+        },
+        {
+          "alert": "WebhookCircuitBreakerStuckOpen",
+          "expr": "webhook_cb_state == 2",
+          "for": "5m",
+          "labels": {
+            "severity": "critical",
+            "component": "webhooks",
+            "slo": "circuit_breaker"
+          },
+          "annotations": {
+            "summary": "Circuit breaker stuck in OPEN state",
+            "description": "Circuit breaker for {{ $labels.endpoint }} has been OPEN for >5 minutes. All webhooks blocked. Investigate receiver."
+          }
+        },
+        {
+          "alert": "WebhookHighRetryRate",
+          "expr": "sum(rate(webhook_retry_attempts_total{attempt=\"2\"}[10m])) / sum(rate(webhook_retry_attempts_total{attempt=\"1\"}[10m])) > 0.2",
+          "for": "10m",
+          "labels": {
+            "severity": "warning",
+            "component": "webhooks"
+          },
+          "annotations": {
+            "summary": "High webhook retry rate (>20%)",
+            "description": "{{ $value | humanizePercentage }} of webhooks require retries. Receiver may be flaky or overloaded."
+          }
+        },
+        {
+          "alert": "WebhookExcessiveRetries",
+          "expr": "sum(rate(webhook_retry_attempts_total{attempt=\"3\"}[10m])) / sum(rate(webhook_retry_attempts_total{attempt=\"1\"}[10m])) > 0.1",
+          "for": "10m",
+          "labels": {
+            "severity": "warning",
+            "component": "webhooks"
+          },
+          "annotations": {
+            "summary": "Excessive webhook retries reaching 3rd attempt",
+            "description": "{{ $value | humanizePercentage }} of webhooks require 3 attempts. Investigate receiver stability."
+          }
+        },
+        {
+          "alert": "Webhook4xxErrorsHigh",
+          "expr": "sum(rate(webhook_delivery_failure_total{code=~\"4..\"}[10m])) > 10",
+          "for": "10m",
+          "labels": {
+            "severity": "warning",
+            "component": "webhooks"
+          },
+          "annotations": {
+            "summary": "High rate of 4xx client errors",
+            "description": "{{ $value }} 4xx errors/sec for 10 minutes. Possible signature mismatch or receiver config issue."
+          }
+        },
+        {
+          "alert": "Webhook5xxErrorsHigh",
+          "expr": "sum(rate(webhook_delivery_failure_total{code=~\"5..\"}[10m])) > 10",
+          "for": "10m",
+          "labels": {
+            "severity": "critical",
+            "component": "webhooks"
+          },
+          "annotations": {
+            "summary": "High rate of 5xx server errors",
+            "description": "{{ $value }} 5xx errors/sec for 10 minutes. Receiver backend issues. Coordinate with receiver team."
+          }
+        },
+        {
+          "alert": "WebhookNoDeliveriesDetected",
+          "expr": "absent(webhook_delivery_success_total) or sum(rate(webhook_delivery_success_total[10m])) == 0",
+          "for": "15m",
+          "labels": {
+            "severity": "warning",
+            "component": "webhooks"
+          },
+          "annotations": {
+            "summary": "No webhook deliveries detected",
+            "description": "Zero webhook deliveries for 15 minutes. Feature flag may be OFF or no events triggered."
+          }
+        }
+      ]
+    }
+  ]
+}

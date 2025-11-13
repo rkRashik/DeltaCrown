@@ -79,6 +79,105 @@ export MODERATION_SAMPLING_RATE=0.10
 
 ---
 
+## Leaderboards (Phase E)
+
+### LEADERBOARDS_COMPUTE_ENABLED
+- **Default**: `false` (OFF)
+- **Type**: Boolean
+- **Purpose**: Enable leaderboard computation (Celery tasks, service layer)
+- **Impact**: When OFF (default), all queries return empty DTOs with metadata. When ON, Celery tasks compute leaderboards.
+- **Rollback**: Set to `false` to disable computation and return empty results
+
+**Usage**:
+```bash
+# Enable computation
+export LEADERBOARDS_COMPUTE_ENABLED=true
+
+# Rollback (disable computation)
+export LEADERBOARDS_COMPUTE_ENABLED=false
+sudo systemctl restart deltacrown
+```
+
+**Effects**:
+- OFF: `get_tournament_leaderboard()` returns empty list with `"computation_enabled": false`
+- ON: Celery tasks populate `LeaderboardEntry` table, queries return data
+
+---
+
+### LEADERBOARDS_CACHE_ENABLED
+- **Default**: `false` (OFF)
+- **Type**: Boolean
+- **Purpose**: Enable Redis caching for leaderboard reads
+- **Impact**: When OFF, all queries hit DB. When ON, Redis cache with TTL (5min/1h/24h).
+- **Rollback**: Set to `false` if cache issues occur (invalidation storms, stale data)
+
+**Usage**:
+```bash
+# Enable caching
+export LEADERBOARDS_CACHE_ENABLED=true
+
+# Rollback (disable caching)
+export LEADERBOARDS_CACHE_ENABLED=false
+sudo systemctl restart deltacrown
+```
+
+**TTL Strategy**:
+- Tournament: 5 minutes (real-time updates)
+- Season: 1 hour (stable rankings)
+- All-time: 24 hours (infrequent changes)
+
+**Cache Invalidation**:
+```python
+from apps.leaderboards.services import invalidate_tournament_cache
+invalidate_tournament_cache(tournament_id=501)  # Clear cache after match completion
+```
+
+---
+
+### LEADERBOARDS_API_ENABLED
+- **Default**: `false` (OFF)
+- **Type**: Boolean
+- **Purpose**: Enable public API endpoints (`/api/tournaments/leaderboards/...`)
+- **Impact**: When OFF, API returns 404 (feature disabled). When ON, endpoints are accessible.
+- **Rollback**: Set to `false` to immediately disable API access
+
+**Usage**:
+```bash
+# Enable API
+export LEADERBOARDS_API_ENABLED=true
+
+# Rollback (disable API)
+export LEADERBOARDS_API_ENABLED=false
+sudo systemctl restart deltacrown
+```
+
+**Endpoints**:
+- `GET /api/tournaments/leaderboards/tournament/{id}/` (tournament leaderboard)
+- `GET /api/tournaments/leaderboards/player/{id}/history/` (player history)
+- `GET /api/tournaments/leaderboards/{scope}/` (season/all-time)
+
+**Requires**: `LEADERBOARDS_COMPUTE_ENABLED=true` for non-empty responses
+
+**Rollout Example**:
+```bash
+# Step 1: Enable computation only (API disabled, Celery populates data)
+export LEADERBOARDS_COMPUTE_ENABLED=true
+export LEADERBOARDS_API_ENABLED=false
+
+# Step 2: Enable caching (after data populated)
+export LEADERBOARDS_CACHE_ENABLED=true
+
+# Step 3: Enable API (after cache warmed)
+export LEADERBOARDS_API_ENABLED=true
+```
+
+**One-Line Rollback** (emergency):
+```bash
+export LEADERBOARDS_API_ENABLED=false LEADERBOARDS_CACHE_ENABLED=false LEADERBOARDS_COMPUTE_ENABLED=false; sudo systemctl restart deltacrown
+```
+
+---
+
 ## General Rollback Procedure
 
 For any flag causing issues:

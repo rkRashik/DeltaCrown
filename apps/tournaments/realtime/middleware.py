@@ -7,6 +7,7 @@ Extracts JWT token from query parameters and validates against user model.
 Phase 2: Real-Time Features & Security
 Module 2.2: WebSocket Real-Time Updates
 Module 2.4: Security Hardening (JWT expiry handling)
+Module 2.6: Realtime Monitoring & Logging Enhancement
 
 Features:
     - JWT token validation from query parameters
@@ -39,6 +40,10 @@ from django.conf import settings
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 import jwt
+
+# Module 2.6: Realtime Monitoring & Logging Enhancement
+from . import logging as ws_logging
+from . import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -88,15 +93,54 @@ def get_user_from_token(token_key: str):
                 user_id = decoded.get('user_id')
             except jwt.ExpiredSignatureError:
                 logger.warning("JWT token expired (beyond leeway)")
+                
+                # Module 2.6: Log auth failure (no user_id available)
+                ws_logging.log_auth_failure(
+                    reason_code=ws_logging.ReasonCode.JWT_EXPIRED,
+                    user_id=None
+                )
+                
+                # Module 2.6: Record auth failure metric
+                metrics.record_auth_failure(
+                    reason=metrics.ReasonCode.JWT_EXPIRED,
+                    user_id=None
+                )
+                
                 return (AnonymousUser(), 4002, "JWT token expired. Please refresh your token.")
             except jwt.InvalidTokenError as e:
                 logger.warning(f"JWT token invalid: {str(e)}")
+                
+                # Module 2.6: Log auth failure
+                ws_logging.log_auth_failure(
+                    reason_code=ws_logging.ReasonCode.JWT_INVALID,
+                    user_id=None
+                )
+                
+                # Module 2.6: Record auth failure metric
+                metrics.record_auth_failure(
+                    reason=metrics.ReasonCode.JWT_INVALID,
+                    user_id=None
+                )
+                
                 return (AnonymousUser(), 4003, f"Invalid JWT token: {str(e)}")
         else:
             user_id = access_token.get('user_id')
         
         if not user_id:
             logger.warning("JWT token missing user_id claim")
+            
+            # Module 2.6: Log auth failure
+            ws_logging.log_auth_failure(
+                reason_code=ws_logging.ReasonCode.JWT_INVALID,
+                user_id=None
+            )
+            
+            # Module 2.6: Record auth failure metric
+            metrics.record_auth_failure(
+                reason=metrics.ReasonCode.JWT_INVALID,
+                user_id=None
+            )
+            
             return (AnonymousUser(), 4003, "JWT token missing user_id claim")
         
         # Import here to avoid circular dependency
@@ -108,19 +152,83 @@ def get_user_from_token(token_key: str):
             return (user, None, None)
         except User.DoesNotExist:
             logger.warning(f"User ID {user_id} from JWT not found in database")
+            
+            # Module 2.6: Log auth failure
+            ws_logging.log_auth_failure(
+                reason_code=ws_logging.ReasonCode.JWT_INVALID,
+                user_id=user_id
+            )
+            
+            # Module 2.6: Record auth failure metric
+            metrics.record_auth_failure(
+                reason=metrics.ReasonCode.JWT_INVALID,
+                user_id=user_id
+            )
+            
             return (AnonymousUser(), 4003, f"User ID {user_id} not found")
             
     except InvalidToken:
         logger.warning("Invalid JWT token provided for WebSocket connection")
+        
+        # Module 2.6: Log auth failure
+        ws_logging.log_auth_failure(
+            reason_code=ws_logging.ReasonCode.JWT_INVALID,
+            user_id=None
+        )
+        
+        # Module 2.6: Record auth failure metric
+        metrics.record_auth_failure(
+            reason=metrics.ReasonCode.JWT_INVALID,
+            user_id=None
+        )
+        
         return (AnonymousUser(), 4003, "Invalid JWT token")
     except TokenError as e:
         logger.warning(f"JWT token error: {str(e)}")
         # Check if it's an expiration error
         if 'exp' in str(e).lower() or 'expired' in str(e).lower():
+            # Module 2.6: Log auth failure (expired)
+            ws_logging.log_auth_failure(
+                reason_code=ws_logging.ReasonCode.JWT_EXPIRED,
+                user_id=None
+            )
+            
+            # Module 2.6: Record auth failure metric
+            metrics.record_auth_failure(
+                reason=metrics.ReasonCode.JWT_EXPIRED,
+                user_id=None
+            )
+            
             return (AnonymousUser(), 4002, f"JWT token expired: {str(e)}")
+        
+        # Module 2.6: Log auth failure (invalid)
+        ws_logging.log_auth_failure(
+            reason_code=ws_logging.ReasonCode.JWT_INVALID,
+            user_id=None
+        )
+        
+        # Module 2.6: Record auth failure metric
+        metrics.record_auth_failure(
+            reason=metrics.ReasonCode.JWT_INVALID,
+            user_id=None
+        )
+        
         return (AnonymousUser(), 4003, f"JWT token error: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error validating WebSocket JWT: {str(e)}", exc_info=True)
+        
+        # Module 2.6: Log auth failure (generic)
+        ws_logging.log_auth_failure(
+            reason_code=ws_logging.ReasonCode.JWT_INVALID,
+            user_id=None
+        )
+        
+        # Module 2.6: Record auth failure metric
+        metrics.record_auth_failure(
+            reason=metrics.ReasonCode.JWT_INVALID,
+            user_id=None
+        )
+        
         return (AnonymousUser(), 4003, "Authentication failed")
 
 

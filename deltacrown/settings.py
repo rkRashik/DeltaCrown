@@ -130,6 +130,8 @@ INSTALLED_APPS = [
     "apps.siteui",
     "apps.accounts",
     "apps.moderation",  # Phase 8: Admin & Moderation (sanctions, audit, reports)
+    "apps.leaderboards",  # Phase E/F: Leaderboards Service + Engine V2
+    "apps.spectator",  # Phase G: Spectator Live Views
     "channels",
 
 ]
@@ -741,3 +743,20 @@ AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
 MODERATION_OBSERVABILITY_SAMPLE_RATE = float(os.getenv('MODERATION_OBSERVABILITY_SAMPLE_RATE', '0.0'))
+
+# -----------------------------------------------------------------------------
+# Leaderboards Feature Flags (Phase E)
+# -----------------------------------------------------------------------------
+# Enable leaderboard computation (Celery tasks, service layer)
+# Default: False (computation disabled, all queries return empty)
+LEADERBOARDS_COMPUTE_ENABLED = os.getenv('LEADERBOARDS_COMPUTE_ENABLED', 'False').lower() == 'true'
+
+# Enable Redis caching for leaderboard reads
+# Default: False (no caching, direct DB queries)
+# TTL Strategy: 5min (tournament), 1h (season), 24h (all-time)
+LEADERBOARDS_CACHE_ENABLED = os.getenv('LEADERBOARDS_CACHE_ENABLED', 'False').lower() == 'true'
+
+# Enable public API endpoints (/api/tournaments/leaderboards/...)
+# Default: False (API returns 404)
+# Requires COMPUTE_ENABLED=True for non-empty responses
+LEADERBOARDS_API_ENABLED = os.getenv('LEADERBOARDS_API_ENABLED', 'False').lower() == 'true'

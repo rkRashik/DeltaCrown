@@ -4,7 +4,7 @@ from django.core import mail
 from django.core.exceptions import ValidationError
 from django.test import RequestFactory
 
-from apps.tournaments.models import Tournament, PaymentVerification
+from apps.tournaments.models import Tournament, Payment
 
 
 @pytest.fixture

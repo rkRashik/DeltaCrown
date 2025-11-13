@@ -52,6 +52,10 @@ from apps.tournaments.security import (
     check_websocket_action_permission,
 )
 
+# Module 2.6: Realtime Monitoring & Logging Enhancement
+from . import metrics
+from . import logging as ws_logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -211,6 +215,37 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         # Accept WebSocket connection
         await self.accept()
         
+        # =====================================================================
+        # Module 2.6: Connection established metrics + logging
+        # =====================================================================
+        
+        # Determine scope type for metrics
+        scope_type = 'tournament' if self.tournament_id else 'unknown'
+        
+        # Record connection in metrics
+        metrics.record_connection(
+            user_id=self.user.id,
+            role=self.user_role.value,
+            scope_type=scope_type,
+            status=metrics.ConnectionStatus.CONNECTED
+        )
+        
+        # Increment active connections gauge
+        metrics.increment_active_connections(
+            role=self.user_role.value,
+            scope_type=scope_type
+        )
+        
+        # Log structured connection event
+        ws_logging.log_connect(
+            user_id=self.user.id,
+            tournament_id=self.tournament_id,
+            role=self.user_role.value
+        )
+        
+        # Store connection start time for duration tracking
+        self.connection_start_time = asyncio.get_event_loop().time()
+        
         logger.info(
             f"WebSocket connected: user={self.user.username} (ID: {self.user.id}), "
             f"role={self.user_role.value}, tournament={self.tournament_id}, "
@@ -248,11 +283,13 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             1. Cancel heartbeat task (Module 4.5)
             2. Leave tournament room group
             3. Log disconnection
+            4. Record metrics (Module 2.6)
             
         Side Effects:
             - Cancels asyncio heartbeat task
             - Removes connection from channel layer group
             - Logs disconnection with close code
+            - Records disconnection metrics
         """
         # Module 4.5: Cancel heartbeat task
         if hasattr(self, 'heartbeat_task'):
@@ -273,6 +310,41 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 f"WebSocket disconnected: user={getattr(self, 'user', 'unknown')}, "
                 f"tournament={getattr(self, 'tournament_id', 'unknown')}, "
                 f"close_code={close_code}"
+            )
+        
+        # =================================================================
+        # Module 2.6: Disconnection metrics + logging
+        # =================================================================
+        
+        # Calculate connection duration
+        duration_ms = 0
+        if hasattr(self, 'connection_start_time'):
+            current_time = asyncio.get_event_loop().time()
+            duration_ms = int((current_time - self.connection_start_time) * 1000)
+        
+        # Record disconnection in metrics
+        if hasattr(self, 'user') and hasattr(self, 'user_role'):
+            scope_type = 'tournament' if getattr(self, 'tournament_id', None) else 'unknown'
+            
+            metrics.record_connection(
+                user_id=self.user.id,
+                role=self.user_role.value,
+                scope_type=scope_type,
+                status=metrics.ConnectionStatus.DISCONNECTED
+            )
+            
+            # Decrement active connections gauge
+            metrics.decrement_active_connections(
+                role=self.user_role.value,
+                scope_type=scope_type
+            )
+            
+            # Log structured disconnection event
+            ws_logging.log_disconnect(
+                user_id=self.user.id,
+                tournament_id=getattr(self, 'tournament_id', None),
+                role=self.user_role.value,
+                duration_ms=duration_ms
             )
     
     # -------------------------------------------------------------------------
@@ -466,6 +538,60 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             f"Sent dispute_created event to user {self.user.username}: "
             f"match_id={event['data'].get('match_id')}, "
             f"dispute_id={event['data'].get('dispute_id')}"
+        )
+    
+    async def rank_update(self, event: Dict[str, Any]):
+        """
+        Handle rank_update event from channel layer (Phase F).
+        
+        Phase F: Leaderboard Ranking Engine Optimization.
+        
+        Broadcasts leaderboard rank changes to spectators in real-time.
+        Triggered after match completion or dispute resolution.
+        
+        Args:
+            event: Event dict from broadcast_rank_update()
+                {
+                    'type': 'tournament_event',
+                    'event_type': 'rank_update',
+                    'tournament_id': int,
+                    'changes': [
+                        {
+                            'participant_id': int or None,
+                            'team_id': int or None,
+                            'previous_rank': int or None,
+                            'current_rank': int,
+                            'rank_change': int (negative = moved up),
+                            'points': int,
+                        },
+                        ...
+                    ]
+                }
+                
+        Broadcasts to client:
+            JSON message with type='rank_update' and rank change array (IDs-only)
+            
+        Usage by spectator clients:
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'rank_update') {
+                    data.changes.forEach(change => {
+                        updateLeaderboardRow(change.participant_id, change.current_rank);
+                        showRankChangeAnimation(change.rank_change);
+                    });
+                }
+            };
+        """
+        await self.send_json({
+            'type': 'rank_update',
+            'tournament_id': event.get('tournament_id'),
+            'changes': event.get('changes', [])
+        })
+        
+        logger.info(
+            f"Sent rank_update event to user {self.user.username}: "
+            f"tournament_id={event.get('tournament_id')}, "
+            f"{len(event.get('changes', []))} rank changes"
         )
     
     async def tournament_completed(self, event: Dict[str, Any]):
@@ -855,6 +981,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
         
         Module 2.4: Validates user permissions for privileged actions.
         Module 2.5: Validates message schema and payload size.
+        Module 2.6: Records message metrics and logs.
         
         Currently broadcast-only - client messages logged but not processed.
         Future enhancement: Allow clients to request specific data or subscribe
@@ -869,6 +996,12 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
             - Payload size checked by middleware (max 16 KB)
             - Action permissions checked against user role
         """
+        # =====================================================================
+        # MODULE 2.6: Message latency tracking (start timer)
+        # =====================================================================
+        
+        message_start_time = asyncio.get_event_loop().time()
+        
         # =====================================================================
         # MODULE 2.5: Schema Validation
         # =====================================================================
@@ -925,6 +1058,9 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 f"Heartbeat pong received from user {self.user.username}, "
                 f"tournament={self.tournament_id}"
             )
+            
+            # Module 2.6: Record heartbeat message
+            self._record_message_metrics(message_start_time, metrics.MessageType.HEARTBEAT)
             return
         
         # =====================================================================
@@ -937,6 +1073,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'pong',
                 'timestamp': content.get('timestamp'),
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.HEARTBEAT)
         
         elif message_type == 'subscribe':
             # Subscribe to tournament updates (allowed for all roles)
@@ -947,6 +1084,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                     'message': 'Successfully subscribed to tournament updates',
                 }
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.SUBSCRIBE)
         
         # ---------------------------------------------------------------------
         # Player Actions (requires PLAYER role or higher)
@@ -961,6 +1099,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'ready_acknowledged',
                 'message': 'Ready status recorded',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.PLAYER_ACTION)
         
         elif message_type == 'report_score':
             # Player reports match score
@@ -971,6 +1110,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'score_report_received',
                 'message': 'Score report submitted for verification',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.PLAYER_ACTION)
         
         elif message_type == 'submit_proof':
             # Player submits match proof
@@ -981,6 +1121,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'proof_received',
                 'message': 'Proof submitted for review',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.PLAYER_ACTION)
         
         # ---------------------------------------------------------------------
         # Organizer Actions (requires ORGANIZER role or higher)
@@ -996,6 +1137,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'score_updated_confirmed',
                 'message': 'Score update processed',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.ORGANIZER_ACTION)
         
         elif message_type == 'verify_payment':
             # Organizer verifies payment
@@ -1007,6 +1149,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'payment_verified',
                 'message': 'Payment verified',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.ORGANIZER_ACTION)
         
         elif message_type == 'start_match':
             # Organizer starts match
@@ -1017,6 +1160,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'match_started_confirmed',
                 'message': 'Match started',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.ORGANIZER_ACTION)
         
         # ---------------------------------------------------------------------
         # Admin Actions (requires ADMIN role)
@@ -1032,6 +1176,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'bracket_regeneration_started',
                 'message': 'Bracket regeneration initiated',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.ADMIN_ACTION)
         
         elif message_type == 'force_refund':
             # Admin forces refund
@@ -1042,6 +1187,7 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'type': 'refund_processed',
                 'message': 'Refund processed',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.ADMIN_ACTION)
         
         # ---------------------------------------------------------------------
         # Unknown Action
@@ -1054,10 +1200,47 @@ class TournamentConsumer(AsyncJsonWebsocketConsumer):
                 'code': 'unsupported_message_type',
                 'message': f'Message type "{message_type}" not supported',
             })
+            self._record_message_metrics(message_start_time, metrics.MessageType.UNKNOWN)
     
     # =========================================================================
     # Helper Methods (Module 2.5)
     # =========================================================================
+    
+    def _record_message_metrics(self, start_time: float, message_type: str):
+        """
+        Record message processing metrics.
+        
+        Module 2.6: Realtime Monitoring & Logging Enhancement
+        
+        Args:
+            start_time: Message start time from asyncio.get_event_loop().time()
+            message_type: Message type constant from metrics.MessageType
+        """
+        # Calculate latency
+        current_time = asyncio.get_event_loop().time()
+        duration_ms = int((current_time - start_time) * 1000)
+        
+        # Record message count
+        metrics.record_message(
+            user_id=self.user.id,
+            message_type=message_type,
+            status='success'
+        )
+        
+        # Record latency histogram
+        metrics.record_message_latency(
+            user_id=self.user.id,
+            message_type=message_type,
+            duration_seconds=(current_time - start_time)
+        )
+        
+        # Log structured message event
+        ws_logging.log_message(
+            user_id=self.user.id,
+            tournament_id=self.tournament_id,
+            message_type=message_type,
+            duration_ms=duration_ms
+        )
     
     def _get_origin(self) -> Optional[str]:
         """

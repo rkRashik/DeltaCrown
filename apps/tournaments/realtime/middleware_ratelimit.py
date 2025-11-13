@@ -6,6 +6,7 @@ legitimate traffic bursts. Applied transparently to TournamentConsumer.
 
 Phase 2: Real-Time Features & Security
 Module 2.5: Rate Limiting & Abuse Protection
+Module 2.6: Realtime Monitoring & Logging Enhancement
 
 Limits Enforced:
 - Per-user concurrent connections (default: 3)
@@ -41,6 +42,10 @@ from .ratelimit import (
     get_user_connections,
     get_ip_connections,
 )
+
+# Module 2.6: Realtime Monitoring & Logging Enhancement
+from . import logging as ws_logging
+from . import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +144,22 @@ class RateLimitMiddleware(BaseMiddleware):
                         f"User {user_id} exceeded connection limit: "
                         f"{current_conns}/{config['conn_per_user']}"
                     )
+                    
+                    # Module 2.6: Log rate limit rejection
+                    ws_logging.log_ratelimit_reject(
+                        user_id=user_id,
+                        tournament_id=tournament_id,
+                        reason_code=ws_logging.ReasonCode.CONN_LIMIT,
+                        retry_after_ms=5000
+                    )
+                    
+                    # Module 2.6: Record rate limit event in metrics
+                    metrics.record_ratelimit_event(
+                        user_id=user_id,
+                        reason=metrics.ReasonCode.CONN_LIMIT,
+                        retry_after_ms=5000
+                    )
+                    
                     await self._send_rate_limit_error(
                         send,
                         code="connection_limit_exceeded",
@@ -162,6 +183,21 @@ class RateLimitMiddleware(BaseMiddleware):
                     # Decrement user connections if we incremented
                     if user_id:
                         decrement_user_connections(user_id)
+                    
+                    # Module 2.6: Log rate limit rejection (no IP in logs per IDs-only discipline)
+                    ws_logging.log_ratelimit_reject(
+                        user_id=user_id,
+                        tournament_id=tournament_id,
+                        reason_code=ws_logging.ReasonCode.CONN_LIMIT,
+                        retry_after_ms=10000
+                    )
+                    
+                    # Module 2.6: Record rate limit event in metrics
+                    metrics.record_ratelimit_event(
+                        user_id=user_id,
+                        reason=metrics.ReasonCode.CONN_LIMIT,
+                        retry_after_ms=10000
+                    )
                     
                     await self._send_rate_limit_error(
                         send,
@@ -196,6 +232,21 @@ class RateLimitMiddleware(BaseMiddleware):
                     if client_ip:
                         decrement_ip_connections(client_ip)
                     
+                    # Module 2.6: Log rate limit rejection
+                    ws_logging.log_ratelimit_reject(
+                        user_id=user_id,
+                        tournament_id=tournament_id,
+                        reason_code=ws_logging.ReasonCode.ROOM_FULL,
+                        retry_after_ms=30000
+                    )
+                    
+                    # Module 2.6: Record rate limit event in metrics
+                    metrics.record_ratelimit_event(
+                        user_id=user_id,
+                        reason=metrics.ReasonCode.ROOM_FULL,
+                        retry_after_ms=30000
+                    )
+                    
                     await self._send_rate_limit_error(
                         send,
                         code="room_full",
@@ -227,6 +278,21 @@ class RateLimitMiddleware(BaseMiddleware):
                             f"{payload_size}/{config['max_payload_bytes']} bytes"
                         )
                         
+                        # Module 2.6: Log rate limit rejection
+                        ws_logging.log_ratelimit_reject(
+                            user_id=user_id,
+                            tournament_id=tournament_id,
+                            reason_code=ws_logging.ReasonCode.PAYLOAD_TOO_BIG,
+                            retry_after_ms=0
+                        )
+                        
+                        # Module 2.6: Record rate limit event in metrics
+                        metrics.record_ratelimit_event(
+                            user_id=user_id,
+                            reason=metrics.ReasonCode.PAYLOAD_TOO_BIG,
+                            retry_after_ms=0
+                        )
+                        
                         # Send error and close connection
                         await self._send_rate_limit_error(
                             send,
@@ -250,6 +316,21 @@ class RateLimitMiddleware(BaseMiddleware):
                             logger.warning(
                                 f"User {user_id} rate limited (message): "
                                 f"retry after {retry_after_ms}ms"
+                            )
+                            
+                            # Module 2.6: Log rate limit rejection
+                            ws_logging.log_ratelimit_reject(
+                                user_id=user_id,
+                                tournament_id=tournament_id,
+                                reason_code=ws_logging.ReasonCode.MSG_RATE,
+                                retry_after_ms=retry_after_ms
+                            )
+                            
+                            # Module 2.6: Record rate limit event in metrics
+                            metrics.record_ratelimit_event(
+                                user_id=user_id,
+                                reason=metrics.ReasonCode.MSG_RATE,
+                                retry_after_ms=retry_after_ms
                             )
                             
                             await self._send_rate_limit_error(
@@ -277,6 +358,21 @@ class RateLimitMiddleware(BaseMiddleware):
                             logger.warning(
                                 f"IP {client_ip} rate limited (message): "
                                 f"retry after {retry_after_ms}ms"
+                            )
+                            
+                            # Module 2.6: Log rate limit rejection (no IP in logs per IDs-only discipline)
+                            ws_logging.log_ratelimit_reject(
+                                user_id=user_id,
+                                tournament_id=tournament_id,
+                                reason_code=ws_logging.ReasonCode.MSG_RATE,
+                                retry_after_ms=retry_after_ms
+                            )
+                            
+                            # Module 2.6: Record rate limit event in metrics
+                            metrics.record_ratelimit_event(
+                                user_id=user_id,
+                                reason=metrics.ReasonCode.MSG_RATE,
+                                retry_after_ms=retry_after_ms
                             )
                             
                             await self._send_rate_limit_error(

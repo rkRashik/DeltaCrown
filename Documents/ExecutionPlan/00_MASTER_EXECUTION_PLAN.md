@@ -262,26 +262,43 @@ Each module must meet these criteria before marking complete:
 
 ## 📈 Progress Tracking
 
-### Overall Progress
-- **Total Modules:** 50
-- **Completed:** 0
-- **In Progress:** 0
-- **Pending:** 50
-- **Completion:** 0%
+**Last Updated**: January 13, 2026
 
-### Phase-by-Phase Progress
-| Phase | Modules | Completed | Progress |
-|-------|---------|-----------|----------|
-| Phase 0 | 4 | 0 | 0% |
-| Phase 1 | 5 | 0 | 0% |
-| Phase 2 | 5 | 0 | 0% |
-| Phase 3 | 5 | 0 | 0% |
-| Phase 4 | 6 | 0 | 0% |
-| Phase 5 | 4 | 0 | 0% |
-| Phase 6 | 5 | 0 | 0% |
-| Phase 7 | 5 | 0 | 0% |
-| Phase 8 | 5 | 0 | 0% |
-| Phase 9 | 6 | 0 | 0% |
+### Overall Progress (Including New Phases)
+- **Total Modules (Original Plan):** 50
+- **Total Modules (Actual):** ~67 (includes new Phase 2, E, F, G)
+- **Completed:** ~42 modules
+- **In Progress:** 0
+- **Pending:** ~25 modules (Phase 7-9)
+- **Completion:** ~70%
+
+### Phase-by-Phase Progress (Original Plan)
+| Phase | Modules | Completed | Progress | Status | Notes |
+|-------|---------|-----------|----------|--------|-------|
+| Phase 0 | 4 | 1 | 25% | ⚠️ Partial | 0.2-0.4 done implicitly |
+| Phase 1 | 5 | 5 | 100% | ✅ Complete | All modules complete |
+| Phase 2 | 5 | 0 | 0% | 📋 Pending | Not started (renamed Phase 3 in MAP) |
+| Phase 3 | 5 | 4 | 80% | ✅ Complete | Waitlist deferred |
+| Phase 4 | 6 | 6 | 100% | ✅ Complete | All modules complete |
+| Phase 5 | 4 | 6 | 150% | ✅ Complete | Extra modules added |
+| Phase 6 | 5 | 14 | 280% | ✅ Complete | Split into E+F+G |
+| Phase 7 | 5 | 0 | 0% | 📋 Pending | Not started |
+| Phase 8 | 5 | 0 | 0% | 📋 Pending | Not started |
+| Phase 9 | 6 | 0 | 0% | 📋 Pending | Not started |
+
+### New Phases Added (Not in Original Plan)
+| Phase | Modules | Completed | Progress | Status | Justification |
+|-------|---------|-----------|----------|--------|---------------|
+| Phase 2 (NEW) | 6 | 6 | 100% | ✅ Complete | Real-Time Features & Security |
+| Phase E (NEW) | 4 | 4 | 100% | ✅ Complete | Leaderboards Service Layer |
+| Phase F (NEW) | 6 | 6 | 100% | ✅ Complete | Leaderboard Ranking Engine |
+| Phase G (NEW) | 4 | 4 | 100% | ✅ Complete | Spectator Live Views |
+
+**Notes**:
+- **Phase 2 (NEW)**: Real-time features consolidated (WebSocket, security, rate limiting) - justification: foundational for spectator experience
+- **Phase E-G**: Leaderboard functionality split into 3 phases for better clarity and incremental delivery
+- **Phase 2 (Original)**: Renamed to Phase 3 in MAP.md to accommodate new Phase 2
+- See [WORKFLOW_AUDIT_REPORT.md](./WORKFLOW_AUDIT_REPORT.md) for complete phase mapping
 
 ---
 

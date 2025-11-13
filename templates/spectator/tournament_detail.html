@@ -1,0 +1,191 @@
+{% extends "spectator/base.html" %}
+
+{% block title %}Tournament #{{ tournament_id }} - Spectator View{% endblock %}
+
+{% block live_indicator %}
+{% if status == 'ongoing' %}
+<div class="flex items-center space-x-2">
+    <span class="relative flex h-3 w-3">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-error opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-dc-error"></span>
+    </span>
+    <span class="text-dc-error font-semibold text-sm uppercase tracking-wide">Live</span>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div x-data="{ wsConnected: false, lastUpdate: null }" class="space-y-6">
+    
+    <!-- Tournament Header -->
+    <div class="glass rounded-lg p-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-dc-primary/20 text-dc-primary border border-dc-primary/30">
+                        {{ game_code|upper }}
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-700/50 text-gray-300 border border-gray-600">
+                        {{ stage|upper }}
+                    </span>
+                </div>
+                <h1 class="text-3xl font-bold">Tournament #{{ tournament_id }}</h1>
+                <p class="text-gray-400 mt-1">
+                    {% if start_time %}
+                    Started {{ start_time|date:"M d, Y H:i" }}
+                    {% endif %}
+                </p>
+            </div>
+            
+            <!-- WebSocket Status -->
+            <div class="flex items-center space-x-2 text-sm">
+                <div :class="wsConnected ? 'bg-dc-success' : 'bg-gray-600'" class="w-2 h-2 rounded-full"></div>
+                <span :class="wsConnected ? 'text-dc-success' : 'text-gray-400'" x-text="wsConnected ? 'Connected' : 'Connecting...'"></span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Matches -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Live / Upcoming Matches -->
+            <div class="glass rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-dc-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Live Matches
+                    </h2>
+                    <span class="text-xs text-gray-500">Auto-refresh 15s</span>
+                </div>
+                
+                <!-- htmx auto-refresh container -->
+                <div 
+                    hx-get="{% url 'spectator:tournament_matches_fragment' tournament_id %}"
+                    hx-trigger="load, every 15s"
+                    hx-swap="innerHTML"
+                    class="space-y-3"
+                >
+                    <!-- Initial load from server -->
+                    {% include 'spectator/_match_list.html' %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column: Leaderboard -->
+        <div class="space-y-6">
+            
+            <!-- Leaderboard -->
+            <div class="glass rounded-lg p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-dc-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                        </svg>
+                        Leaderboard
+                    </h2>
+                    <span class="text-xs text-gray-500">Auto-refresh 10s</span>
+                </div>
+                
+                <!-- htmx auto-refresh container -->
+                <div 
+                    hx-get="{% url 'spectator:tournament_leaderboard_fragment' tournament_id %}"
+                    hx-trigger="load, every 10s"
+                    hx-swap="outerHTML"
+                >
+                    <!-- Initial load from server -->
+                    {% include 'spectator/_leaderboard_table.html' %}
+                </div>
+            </div>
+            
+            <!-- Info Card -->
+            <div class="glass rounded-lg p-4 text-sm text-gray-400">
+                <p class="mb-2">
+                    <strong class="text-white">IDs-Only Policy:</strong> This view shows participant IDs only. 
+                    Use profile APIs to resolve names.
+                </p>
+                <p>
+                    <strong class="text-white">Real-time:</strong> Updates via WebSocket + htmx fallback.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // WebSocket connection for real-time updates
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('tournamentSpectator', () => ({
+            wsConnected: false,
+            ws: null,
+            
+            init() {
+                this.connectWebSocket();
+            },
+            
+            connectWebSocket() {
+                const wsUrl = '{{ ws_tournament_url|safe }}';
+                
+                // Get JWT token from localStorage (if available)
+                const token = localStorage.getItem('access_token') || '';
+                const wsUrlWithToken = token ? `${wsUrl}?token=${token}` : wsUrl;
+                
+                console.log('Connecting to WebSocket:', wsUrl);
+                
+                try {
+                    this.ws = new WebSocket(wsUrlWithToken);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.wsConnected = true;
+                        this.lastUpdate = new Date().toLocaleTimeString();
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        console.log('WebSocket message:', data);
+                        
+                        this.lastUpdate = new Date().toLocaleTimeString();
+                        
+                        // Handle different event types
+                        if (data.type === 'score_updated' || data.type === 'match_completed') {
+                            // Trigger htmx refresh for matches
+                            htmx.trigger(document.querySelector('[hx-get*="matches/fragment"]'), 'refresh');
+                        }
+                        
+                        if (data.type === 'bracket_updated') {
+                            // Trigger htmx refresh for leaderboard
+                            htmx.trigger(document.querySelector('[hx-get*="leaderboard/fragment"]'), 'refresh');
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.wsConnected = false;
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('WebSocket closed');
+                        this.wsConnected = false;
+                        
+                        // Reconnect after 5 seconds
+                        setTimeout(() => {
+                            console.log('Attempting to reconnect...');
+                            this.connectWebSocket();
+                        }, 5000);
+                    };
+                } catch (error) {
+                    console.error('Failed to create WebSocket:', error);
+                    this.wsConnected = false;
+                }
+            }
+        }));
+    });
+</script>
+{% endblock %}

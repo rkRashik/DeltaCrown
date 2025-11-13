@@ -1,0 +1,126 @@
+{% extends "spectator/base.html" %}
+
+{% block title %}Active Tournaments - DeltaCrown Spectator{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-4xl font-bold text-white mb-2">🎮 Active Tournaments</h1>
+        <p class="text-dc-text-secondary">Select a tournament to watch live matches and leaderboards</p>
+    </div>
+
+    <!-- Tournament Grid -->
+    {% if tournament_data %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for item in tournament_data %}
+        <a href="{% url 'spectator:tournament_detail' item.tournament.id %}" 
+           class="group block bg-dc-card/30 backdrop-blur-md rounded-xl p-6 border border-dc-border hover:border-dc-accent transition-all duration-300 hover:transform hover:scale-105">
+            
+            <!-- Game Badge -->
+            <div class="flex items-center justify-between mb-4">
+                <span class="px-3 py-1 bg-dc-primary/20 text-dc-primary text-sm font-medium rounded-full">
+                    {{ item.tournament.game.name }}
+                </span>
+                {% if item.tournament.stage == 'ONGOING' or item.tournament.stage == 'IN_PROGRESS' %}
+                <span class="flex items-center text-red-500 text-sm">
+                    <span class="h-2 w-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                    LIVE
+                </span>
+                {% elif item.tournament.stage == 'REGISTRATION' %}
+                <span class="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-medium rounded">
+                    Registration Open
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Tournament Info -->
+            <h3 class="text-xl font-bold text-white mb-2 group-hover:text-dc-accent transition-colors">
+                Tournament #{{ item.tournament.id }}
+            </h3>
+            
+            <div class="space-y-2 text-sm text-dc-text-secondary mb-4">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    {{ item.participant_count }} Participants
+                </div>
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    {% if item.tournament.start_time %}
+                        {{ item.tournament.start_time|date:"M d, Y g:i A" }}
+                    {% else %}
+                        TBD
+                    {% endif %}
+                </div>
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    {{ item.tournament.get_format_display }}
+                </div>
+            </div>
+
+            <!-- View Button -->
+            <div class="flex items-center text-dc-accent font-medium group-hover:translate-x-2 transition-transform">
+                Watch Tournament
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-16">
+        <div class="bg-dc-card/30 backdrop-blur-md rounded-xl p-12 border border-dc-border">
+            <svg class="w-16 h-16 mx-auto text-dc-text-secondary mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+            </svg>
+            <h3 class="text-xl font-bold text-white mb-2">No Active Tournaments</h3>
+            <p class="text-dc-text-secondary">Check back soon for upcoming tournaments!</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Info Box -->
+    <div class="mt-8 bg-dc-primary/10 backdrop-blur-md rounded-xl p-6 border border-dc-primary/30">
+        <h3 class="text-lg font-bold text-dc-primary mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            About Spectator Mode
+        </h3>
+        <ul class="space-y-2 text-sm text-dc-text-secondary">
+            <li class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 text-dc-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Watch live matches and real-time leaderboards</span>
+            </li>
+            <li class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 text-dc-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Auto-refresh every 10-15 seconds for latest updates</span>
+            </li>
+            <li class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 text-dc-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>WebSocket real-time push updates (instant notifications)</span>
+            </li>
+            <li class="flex items-start">
+                <svg class="w-4 h-4 mr-2 mt-0.5 text-dc-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Mobile-optimized design for on-the-go viewing</span>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

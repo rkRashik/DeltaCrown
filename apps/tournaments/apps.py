@@ -17,12 +17,12 @@ class TournamentsConfig(AppConfig):
             import logging
             logging.error(f"Failed to register tournament event handlers: {e}")
         
-        # LEGACY: Wire signals (best-effort) - keep during migration
+        # MILESTONE F: Import notification signals (auto-registered via @receiver)
         try:
-            from . import signals as _signals  # noqa
-            _signals.register_signals()
-        except Exception:
-            pass
+            from . import signals as _signals  # noqa: F401
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to import notification signals: {e}")
         
         # Apply runtime monkeypatches to guarantee tests' expectations
         try:
