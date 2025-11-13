@@ -18,6 +18,7 @@ python-decouple>=3.8     # Environment variable management
 # -----------------------------------------------------------------------------
 djangorestframework>=3.15.2
 djangorestframework-simplejwt>=5.3.0  # JWT authentication (Phase 2)
+drf-nested-routers>=0.94.1             # Nested routing for DRF (Module 2.2)
 django-filter>=24.3                    # API filtering
 django-cors-headers>=4.3.1             # CORS headers for frontend integration
 

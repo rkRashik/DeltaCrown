@@ -38,6 +38,7 @@ class GameAdmin(admin.ModelAdmin):
     """
     Admin interface for Game model.
     
+    Module 2.2: Enhanced with game_config JSONB editor.
     Provides management of supported games with filtering by active status.
     """
     list_display = ['name', 'slug', 'default_team_size', 'default_result_type', 'is_active', 'created_at']
@@ -52,6 +53,17 @@ class GameAdmin(admin.ModelAdmin):
         }),
         ('Game Configuration', {
             'fields': ('default_team_size', 'profile_id_field', 'default_result_type')
+        }),
+        ('Game Config (JSON)', {
+            'fields': ('game_config',),
+            'classes': ('collapse',),
+            'description': (
+                'Advanced configuration in JSON format. Defines allowed tournament formats, '
+                'team size constraints, custom field schemas, and match settings. '
+                'Edit with caution - invalid JSON will cause errors. '
+                'Example: {"schema_version": "1.0", "allowed_formats": ["single_elimination"], '
+                '"team_size_range": [1, 5]}'
+            )
         }),
         ('Status', {
             'fields': ('is_active', 'created_at')
@@ -186,22 +198,49 @@ class CustomFieldAdmin(admin.ModelAdmin):
     """
     Admin interface for CustomField model (standalone view).
     
+    Module 2.2: Enhanced with field_config/field_value JSONB editors.
     Provides direct management of custom fields if needed outside of Tournament inline.
     """
-    list_display = ['field_name', 'tournament', 'field_type', 'order', 'is_required']
-    list_filter = ['field_type', 'is_required', 'tournament__status']
-    search_fields = ['field_name', 'field_key', 'tournament__name']
-    readonly_fields = []
-    prepopulated_fields = {'field_key': ('field_name',)}
+    list_display = ['field_name', 'tournament', 'field_type', 'order', 'is_required', 'tournament_status']
+    list_filter = ['field_type', 'is_required', 'tournament__status', 'tournament__game']
+    search_fields = ['field_name', 'field_key', 'tournament__name', 'tournament__slug']
+    readonly_fields = ['field_key', 'created_at']
+    prepopulated_fields = {}  # field_key auto-generated in save()
+    ordering = ['tournament', 'order', 'field_name']
     
     fieldsets = (
         ('Field Definition', {
             'fields': ('tournament', 'field_name', 'field_key', 'field_type')
         }),
-        ('Configuration', {
-            'fields': ('field_config', 'field_value', 'order', 'is_required', 'help_text')
+        ('Configuration (JSON)', {
+            'fields': ('field_config',),
+            'classes': ('collapse',),
+            'description': (
+                'Field-specific configuration in JSON format. Examples:\n'
+                '- text: {"min_length": 3, "max_length": 100, "pattern": "^[a-zA-Z]+$"}\n'
+                '- number: {"min_value": 0, "max_value": 100}\n'
+                '- dropdown: {"options": ["Option 1", "Option 2", "Option 3"]}\n'
+                '- url: {"pattern": "^https://discord\\\\.gg/[a-zA-Z0-9]+$"}'
+            )
+        }),
+        ('Field Value (JSON)', {
+            'fields': ('field_value',),
+            'classes': ('collapse',),
+            'description': 'Actual value storage in JSON format. Usually populated by tournament participants.'
+        }),
+        ('Display & Validation', {
+            'fields': ('order', 'is_required', 'help_text')
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
         }),
     )
+    
+    def tournament_status(self, obj):
+        """Display tournament status for quick reference."""
+        return obj.tournament.status
+    tournament_status.short_description = 'Tournament Status'
 
 
 @admin.register(TournamentVersion)
