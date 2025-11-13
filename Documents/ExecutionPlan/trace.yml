@@ -48,16 +48,52 @@ phase_1:
 
 phase_2:
   module_2_1:
+    name: "Tournament CRUD Services"
+    status: "complete"
+    completed_date: "2025-01-XX"
     implements:
-      - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md#section-7
-      - Documents/Planning/PROPOSAL_PART_5_IMPLEMENTATION_ROADMAP.md#jwt-authentication
-      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
-      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008
+      - Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md#module-21
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#tournament-models
+      - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#tournament-service
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004
+    files:
+      - apps/tournaments/services/tournament_service.py
+      - apps/tournaments/api/tournament_serializers.py
+      - apps/tournaments/api/tournament_views.py
+      - apps/tournaments/admin.py
+    tests:
+      - tests/test_tournament_service.py
+      - tests/test_tournament_api.py
+    completion_doc: Documents/ExecutionPlan/MODULE_2.1_COMPLETION_STATUS.md
+  
   module_2_2:
+    name: "Game Configurations & Custom Fields"
+    status: "complete"
+    completed_date: "2025-01-XX"
     implements:
-      - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md#section-7.2
-      - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#websocket-auth
-      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
+      - Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md#module-22
+      - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#game-customfield-models
+      - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#game-config-service
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+      - Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004
+    files:
+      - apps/tournaments/services/game_config_service.py
+      - apps/tournaments/services/custom_field_service.py
+      - apps/tournaments/api/game_config_serializers.py
+      - apps/tournaments/api/game_config_views.py
+      - apps/tournaments/api/custom_field_serializers.py
+      - apps/tournaments/api/custom_field_views.py
+      - apps/tournaments/api/urls.py (modified)
+      - apps/tournaments/admin.py (modified)
+      - requirements.txt (modified)
+    tests:
+      - tests/test_game_config_service.py (25 tests)
+      - tests/test_custom_field_service.py (18 tests)
+      - tests/test_game_config_custom_field_api.py (20 tests)
+    test_results: "48/48 passing (100%)"
+    coverage: 85
+    completion_doc: Documents/ExecutionPlan/MODULE_2.2_COMPLETION_STATUS.md
   module_2_3:
     implements:
       - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md#section-7.3

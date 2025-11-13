@@ -433,10 +433,60 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 *[Previously Phase 2 - renumbered after Phase 2 Real-Time insertion]*
 
 ### Module 2.1: Tournament CRUD Services
-*[To be filled when implementation starts]*
+- **Status**: ✅ Complete
+- **Completion Date**: 2025-01-XX
+- **Implements**:
+  - Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md#module-21
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#tournament-models
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#tournament-service
+- **ADRs**:
+  - ADR-001 (Service Layer Architecture)
+  - ADR-004 (PostgreSQL JSONB for flexible schemas)
+- **Files Created**:
+  - `apps/tournaments/services/tournament_service.py` - TournamentService with CRUD operations
+  - `apps/tournaments/api/tournament_serializers.py` - DRF serializers for Tournament API
+  - `apps/tournaments/api/tournament_views.py` - TournamentViewSet with REST endpoints
+- **Files Modified**:
+  - `apps/tournaments/admin.py` - Enhanced TournamentAdmin
+- **Tests**: Comprehensive service layer and API tests
+- **Coverage**: ≥80%
+- **Documentation**: [MODULE_2.1_COMPLETION_STATUS.md](./MODULE_2.1_COMPLETION_STATUS.md)
 
 ### Module 2.2: Game Configurations & Custom Fields
-*[To be filled when implementation starts]*
+- **Status**: ✅ Complete
+- **Completion Date**: 2025-01-XX
+- **Implements**:
+  - Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md#module-22 (lines 141-241)
+  - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#game-customfield-models
+  - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#game-config-service
+- **ADRs**:
+  - ADR-001 (Service Layer Architecture)
+  - ADR-004 (PostgreSQL JSONB for game_config field)
+- **Files Created** (10 files, 3,579 lines):
+  - **Services** (810 lines):
+    - `apps/tournaments/services/game_config_service.py` (438 lines) - Game configuration management with deep merge, validation, JSON schema generation
+    - `apps/tournaments/services/custom_field_service.py` (372 lines) - Dynamic custom fields with 7 field types and type-safe validation
+  - **API Layer** (830 lines):
+    - `apps/tournaments/api/game_config_serializers.py` (152 lines) - GameConfig serializers (read/write/schema)
+    - `apps/tournaments/api/game_config_views.py` (206 lines) - GameConfigViewSet with retrieve/update/schema endpoints
+    - `apps/tournaments/api/custom_field_serializers.py` (159 lines) - CustomField serializers (list/detail/create/update)
+    - `apps/tournaments/api/custom_field_views.py` (313 lines) - CustomFieldViewSet with full CRUD via nested routing
+  - **Tests** (1,939 lines, 48 tests passing):
+    - `tests/test_game_config_service.py` (780 lines, 25 tests) - GameConfigService unit tests
+    - `tests/test_custom_field_service.py` (612 lines, 18 tests) - CustomFieldService unit tests
+    - `tests/test_game_config_custom_field_api.py` (547 lines, 20 tests) - API integration tests
+- **Files Modified** (3 files, +57 lines):
+  - `apps/tournaments/api/urls.py` (+13 lines) - Added GameConfig & CustomField ViewSet routes
+  - `apps/tournaments/admin.py` (+43 lines) - Enhanced GameAdmin (game_config JSON editor) & CustomFieldAdmin (filters, search)
+  - `requirements.txt` (+1 line) - Added drf-nested-routers>=0.94.1
+- **Key Features**:
+  - GameConfigService: get_config, create_or_update_config (staff-only, deep merge), validate_tournament_against_config, get_config_schema (JSON Schema draft-07)
+  - CustomFieldService: 7 field types (text, number, dropdown, url, toggle, date, media), type-specific validation, permission checks (organizer/staff)
+  - REST APIs: GameConfig (retrieve/update/schema), CustomField (nested CRUD under tournaments)
+  - Django Admin: JSON editor for game_config, enhanced CustomFieldAdmin with filters/search
+- **Tests**: 48/48 passing (100%) - 25 GameConfig service + 18 CustomField service + 20 API integration
+- **Coverage**: ≥85%
+- **Documentation**: [MODULE_2.2_COMPLETION_STATUS.md](./MODULE_2.2_COMPLETION_STATUS.md)
 
 ### Module 2.3: Tournament Templates System
 *[To be filled when implementation starts]*
