@@ -71,18 +71,20 @@ class TestWebhookSignature(TestCase):
         payload = '{"event":"test"}'
         signature = service.generate_signature(payload)
         
-        is_valid = service.verify_signature(payload, signature)
+        is_valid, error = service.verify_signature(payload, signature)
         
         assert is_valid is True
+        assert error is None
     
     def test_verify_signature_invalid(self):
         """Test signature verification with invalid signature."""
         service = WebhookService(secret='test-secret')
         payload = '{"event":"test"}'
         
-        is_valid = service.verify_signature(payload, 'invalid-signature')
+        is_valid, error = service.verify_signature(payload, 'invalid-signature')
         
         assert is_valid is False
+        assert error == "Invalid signature"
     
     def test_verify_signature_different_secret(self):
         """Test signature fails when verified with different secret."""
@@ -92,9 +94,10 @@ class TestWebhookSignature(TestCase):
         payload = '{"event":"test"}'
         signature = service1.generate_signature(payload)
         
-        is_valid = service2.verify_signature(payload, signature)
+        is_valid, error = service2.verify_signature(payload, signature)
         
         assert is_valid is False
+        assert error == "Invalid signature"
 
 
 @pytest.mark.django_db
