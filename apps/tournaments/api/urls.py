@@ -27,6 +27,7 @@ from apps.tournaments.api.leaderboard_views import LeaderboardViewSet  # Milesto
 from apps.tournaments.api import payout_views  # Module 5.2
 from apps.tournaments.api import certificate_views  # Module 5.3
 from apps.tournaments.api import analytics_views  # Module 5.4
+from apps.tournaments.api import organizer_views  # Module 2.5
 
 # Phase E: Read-only leaderboard endpoints
 from apps.tournaments.api.leaderboard_views import (
@@ -79,4 +80,9 @@ urlpatterns = [
     path('analytics/organizer/<int:tournament_id>/', analytics_views.organizer_analytics, name='analytics-organizer'),
     path('analytics/participant/<int:user_id>/', analytics_views.participant_analytics, name='analytics-participant'),
     path('analytics/export/<int:tournament_id>/', analytics_views.export_tournament_csv, name='analytics-export-csv'),
+    
+    # Module 2.5: Organizer Dashboard (Backend Only)
+    path('organizer/dashboard/stats/', organizer_views.organizer_stats, name='organizer-dashboard-stats'),
+    path('organizer/tournaments/<int:tournament_id>/health/', organizer_views.tournament_health, name='organizer-tournament-health'),
+    path('organizer/tournaments/<int:tournament_id>/participants/', organizer_views.participant_breakdown, name='organizer-tournament-participants'),
 ]

@@ -3,6 +3,7 @@ Core App Configuration
 """
 import logging
 from django.apps import AppConfig
+from django.db import ProgrammingError, OperationalError
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,8 @@ class CoreConfig(AppConfig):
         plugin_registry.discover_plugins()
         
         # Register providers (Phase 3)
+        # Guard: Skip provider registration if DB tables don't exist yet (e.g., during test setup)
+        # This is safe because providers use lazy loading via @property decorators
         try:
             from .providers import tournament_provider_v1, game_config_provider_v1
             
@@ -43,6 +46,10 @@ class CoreConfig(AppConfig):
             )
             
             logger.info("✅ Registered tournament and game config providers")
+        except (ProgrammingError, OperationalError) as e:
+            # DB tables don't exist yet (e.g., during test database setup)
+            # This is expected and safe - providers will work once tables are created
+            logger.debug(f"Skipping provider registration - DB tables not ready: {e}")
         except Exception as e:
             logger.error(f"❌ Failed to register providers: {e}", exc_info=True)
         
