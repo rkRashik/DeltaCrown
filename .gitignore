@@ -23,7 +23,9 @@ staticfiles/
 .pytest_cache/
 .coverage
 htmlcov/
+htmlcov_*/
 *.cover
+.benchmarks/
 
 # OS
 .DS_Store
