@@ -29,7 +29,8 @@ jobs:
         env:
           POSTGRES_DB: deltacrown_perf
           POSTGRES_USER: deltacrown
-          POSTGRES_PASSWORD: ${{ secrets.PERF_DB_PASSWORD }}   # <-- moved to secrets
+          # Use default password if secret not configured
+          POSTGRES_PASSWORD: ${{ secrets.PERF_DB_PASSWORD || 'perf_test_password' }}
         # No ports mapping needed inside Actions; use service hostname "postgres"
         options: >-
           --health-cmd "pg_isready -U deltacrown -d deltacrown_perf"
@@ -46,12 +47,12 @@ jobs:
           --health-retries 10
 
     env:
-      PERF_DATABASE_URL: postgresql://deltacrown:${{ secrets.PERF_DB_PASSWORD }}@postgres:5432/deltacrown_perf
+      PERF_DATABASE_URL: postgresql://deltacrown:${{ secrets.PERF_DB_PASSWORD || 'perf_test_password' }}@postgres:5432/deltacrown_perf
       PERF_REDIS_URL: redis://redis:6379/0
-      # keep baseline uploads behind secrets; safe defaults below
-      PERF_BASELINE_S3_BUCKET: ${{ secrets.PERF_BASELINE_S3_BUCKET }}
+      # Optional: baseline uploads (S3, Slack) - workflow will skip if not configured
+      PERF_BASELINE_S3_BUCKET: ${{ secrets.PERF_BASELINE_S3_BUCKET || '' }}
       PERF_BASELINE_S3_PREFIX: nightly
-      PERF_BASELINE_SLACK_WEBHOOK: ${{ secrets.PERF_BASELINE_SLACK_WEBHOOK }}
+      PERF_BASELINE_SLACK_WEBHOOK: ${{ secrets.PERF_BASELINE_SLACK_WEBHOOK || '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -61,9 +62,18 @@ jobs:
           python-version: '3.11'
 
       - name: Mask sensitive variables
+        if: ${{ secrets.PERF_DB_PASSWORD != '' }}
         run: |
           echo "::add-mask::${{ secrets.PERF_DB_PASSWORD }}"
           # Defense in depth: ensure secrets never leak to logs
+      
+      - name: Check configuration
+        run: |
+          echo "ℹ️  Performance baseline workflow configuration:"
+          echo "   - Event: ${{ github.event_name }}"
+          echo "   - Database: deltacrown_perf (via service container)"
+          echo "   - S3 upload: ${{ secrets.PERF_BASELINE_S3_BUCKET != '' && 'enabled' || 'disabled (no secret)' }}"
+          echo "   - Slack notify: ${{ secrets.PERF_BASELINE_SLACK_WEBHOOK != '' && 'enabled' || 'disabled (no secret)' }}"
 
       - name: Install deps
         run: |

@@ -1,241 +1,70 @@
-# DeltaCrown CI/CD Pipelinename: CIname: CI
-
+# DeltaCrown CI/CD Pipeline
 #
-
-# Implements:on: [push, pull_request]
-
+# Implements:
 #     - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#ci-cd-pipeline
+#     - Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#ci-cd-standards
+#
+# Runs: On every push to master and every pull request targeting master
+name: CI
 
-#     - Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#ci-cd-standardson:
-
-
-
-name: CI/CD Pipelinejobs:  push:
-
-
-
-on:  test:  pull_request:
-
+on:
   push:
-
-    branches: [ main, master, develop ]    runs-on: ubuntu-latest
-
+    branches: [ master, main ]
   pull_request:
+    branches: [ master, main ]
 
-    branches: [ main, master, develop ]    jobs:
-
-
-
-env:    services:  test:
-
+env:
   PYTHON_VERSION: '3.11'
+  POSTGRES_VERSION: '16'
 
-  POSTGRES_VERSION: '15'      postgres:    runs-on: ubuntu-latest
-
-
-
-jobs:        image: postgres:15    services:
-
+jobs:
   # =============================================================================
-
-  # Build Stage        env:      postgres:
-
+  # Test Stage
   # =============================================================================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: deltatest
+        ports: 
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
 
-  build:          POSTGRES_USER: postgres        image: postgres:16
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-    name: Build Docker Image
-
-    runs-on: ubuntu-latest          POSTGRES_PASSWORD: postgres        env:
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deltatest
+      REDIS_URL: redis://localhost:6379/0
+      DeltaCrownEmail: deltacrownhq@gmail.com
+      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
+      DJANGO_SETTINGS_MODULE: deltacrown.settings
 
     steps:
-
-      - name: Checkout code          POSTGRES_DB: deltacrown_test          POSTGRES_USER: postgres
-
+      - name: Checkout code
         uses: actions/checkout@v4
 
-        ports:          POSTGRES_PASSWORD: postgres
-
-      - name: Set up Docker Buildx
-
-        uses: docker/setup-buildx-action@v3          - 5432:5432          POSTGRES_DB: deltatest
-
-
-
-      - name: Build Docker image        options: >-        ports: ["5432:5432"]
-
-        uses: docker/build-push-action@v5
-
-        with:          --health-cmd pg_isready        options: >-
-
-          context: .
-
-          target: production          --health-interval 10s          --health-cmd "pg_isready -U postgres"
-
-          tags: deltacrown:${{ github.sha }}
-
-          cache-from: type=gha          --health-timeout 5s          --health-interval 5s
-
-          cache-to: type=gha,mode=max
-
-          push: false          --health-retries 5          --health-timeout 5s
-
-
-
-  # =============================================================================                --health-retries 20
-
-  # Lint Stage
-
-  # =============================================================================      redis:
-
-  lint:
-
-    name: Lint & Format Check        image: redis:7    env:
-
-    runs-on: ubuntu-latest
-
-    steps:        ports:      # point Django at the CI DB (adapt if your settings read DATABASE_URL)
-
-      - name: Checkout code
-
-        uses: actions/checkout@v4          - 6379:6379      DATABASE_URL: postgres://postgres:postgres@localhost:5432/deltatest
-
-
-
-      - name: Set up Python        options: >-      # emails
-
+      - name: Set up Python
         uses: actions/setup-python@v5
-
-        with:          --health-cmd "redis-cli ping"      DeltaCrownEmail: deltacrownhq@gmail.com
-
+        with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-          cache: 'pip'          --health-interval 10s      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend
-
-
-
-      - name: Install linting tools          --health-timeout 5s      DJANGO_SETTINGS_MODULE: deltacrown.settings  # adjust if different
-
-        run: |
-
-          pip install ruff black isort          --health-retries 5
-
-
-
-      - name: Run ruff        steps:
-
-        run: ruff check . || true
-
-    env:      - uses: actions/checkout@v4
-
-      - name: Check code formatting (black)
-
-        run: black --check . || true      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deltacrown_test      - uses: actions/setup-python@v5
-
-
-
-      - name: Check import sorting (isort)      REDIS_URL: redis://localhost:6379/0        with:
-
-        run: isort --check-only . || true
-
-      DeltaCrownEmail: deltacrownhq@gmail.com          python-version: "3.11"
-
-  # =============================================================================
-
-  # Test Stage      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend          cache: "pip"
-
-  # =============================================================================
-
-  test:      DJANGO_SETTINGS_MODULE: deltacrown.settings_test_pg      - name: Install deps
-
-    name: Run Tests
-
-    runs-on: ubuntu-latest            run: |
-
-    
-
-    services:    steps:          python -m pip install --upgrade pip
-
-      postgres:
-
-        image: postgres:15      - name: Checkout code          pip install -r requirements.txt
-
-        env:
-
-          POSTGRES_DB: test_deltacrown        uses: actions/checkout@v4          pip install pytest pytest-django
-
-          POSTGRES_USER: postgres
-
-          POSTGRES_PASSWORD: postgres            - name: Run migrations\r\n        run: python manage.py migrate --noinput\r\n      - name: Run tests\r\n        run: pytest --maxfail=1 --disable-warnings -q
-
-        ports:
-
-          - 5432:5432      - name: Set up Python
-
-        options: >-
-
-          --health-cmd pg_isready        uses: actions/setup-python@v5
-
-          --health-interval 10s        with:
-
-          --health-timeout 5s          python-version: '3.11'
-
-          --health-retries 5          cache: 'pip'
-
-            
-
-      redis:      - name: Install dependencies
-
-        image: redis:7-alpine        run: |
-
-        ports:          pip install --upgrade pip
-
-          - 6379:6379          pip install -r requirements.txt
-
-        options: >-          pip install black isort flake8 mypy pytest pytest-django pytest-cov pyyaml
-
-          --health-cmd "redis-cli ping"      
-
-          --health-interval 10s      - name: Run Black (code formatting)
-
-          --health-timeout 5s        run: black --check .
-
-          --health-retries 5      
-
-      - name: Run isort (import sorting)
-
-    env:        run: isort --check-only .
-
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_deltacrown      
-
-      REDIS_URL: redis://localhost:6379/0      - name: Run flake8 (linting)
-
-      SECRET_KEY: test-secret-key-for-ci        run: flake8 .
-
-      DEBUG: 'False'      
-
-      DeltaCrownEmail: deltacrownhq@gmail.com      - name: Run mypy (type checking)
-
-      EMAIL_BACKEND: django.core.mail.backends.locmem.EmailBackend        run: mypy apps || true
-
-      
-
-    steps:      - name: Run migrations
-
-      - name: Checkout code        run: python manage.py migrate --noinput
-
-        uses: actions/checkout@v4      
-
-      - name: Run tests
-
-      - name: Set up Python        run: pytest -q --maxfail=1 --disable-warnings --cov=apps --cov-report=term-missing
-
-        uses: actions/setup-python@v5      
-
-        with:      - name: Verify traceability
-
-          python-version: ${{ env.PYTHON_VERSION }}        run: python scripts/verify_trace.py
-
           cache: 'pip'
 
       - name: Install system dependencies
