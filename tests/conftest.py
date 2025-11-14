@@ -29,6 +29,148 @@ def unique_username():
 
 
 @pytest.fixture
+def user(db):
+    """Create regular authenticated user."""
+    return User.objects.create_user(
+        username="testuser",
+        email="testuser@example.com",
+        password="testpass123"
+    )
+
+
+@pytest.fixture
+def staff_user(db):
+    """Create staff user (superuser so signal sets is_staff=True)."""
+    user = User.objects.create(
+        username="staffuser",
+        email="staff@example.com",
+        is_superuser=True,  # Signal will automatically set is_staff=True for superusers
+        is_staff=True
+    )
+    user.set_password("testpass123")
+    user.save()
+    return user
+
+
+@pytest.fixture
+def other_user(db):
+    """Create another regular user (for permission tests)."""
+    return User.objects.create_user(
+        username="otheruser",
+        email="other@example.com",
+        password="testpass123"
+    )
+
+
+@pytest.fixture
+def game_valorant(db):
+    """Create Valorant game for testing."""
+    from apps.tournaments.models import Game
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    
+    fake_icon = SimpleUploadedFile(
+        name='valorant.png',
+        content=b'fake-image-content',
+        content_type='image/png'
+    )
+    
+    return Game.objects.create(
+        name='Valorant',
+        slug='valorant',
+        icon=fake_icon,
+        default_team_size=Game.TEAM_SIZE_5V5,
+        profile_id_field='riot_id',
+        default_result_type=Game.BEST_OF,
+    )
+
+
+@pytest.fixture
+def template_private(db, user, game_valorant):
+    """Create a private tournament template."""
+    from apps.tournaments.models import TournamentTemplate
+    
+    return TournamentTemplate.objects.create(
+        name="Private Template",
+        slug="private-template",
+        game=game_valorant,
+        created_by=user,
+        visibility=TournamentTemplate.PRIVATE,
+        is_active=True,
+        template_config={
+            "format": "single_elimination",
+            "max_participants": 16,
+        }
+    )
+
+
+@pytest.fixture
+def template_global(db, staff_user, game_valorant):
+    """Create a global tournament template."""
+    from apps.tournaments.models import TournamentTemplate
+    
+    return TournamentTemplate.objects.create(
+        name="Global Template",
+        slug="global-template",
+        game=game_valorant,
+        created_by=staff_user,
+        visibility=TournamentTemplate.GLOBAL,
+        is_active=True,
+        template_config={
+            "format": "round_robin",
+            "max_participants": 8,
+        }
+    )
+
+
+@pytest.fixture
+def template_inactive(db, user, game_valorant):
+    """Create an inactive tournament template."""
+    from apps.tournaments.models import TournamentTemplate
+    
+    return TournamentTemplate.objects.create(
+        name="Inactive Template",
+        slug="inactive-template",
+        game=game_valorant,
+        created_by=user,
+        visibility=TournamentTemplate.PRIVATE,
+        is_active=False,
+        template_config={
+            "format": "single_elimination",
+            "max_participants": 32,
+        }
+    )
+
+
+@pytest.fixture
+def template_with_config(db, user, game_valorant):
+    """Create a template with detailed config for apply tests."""
+    from apps.tournaments.models import TournamentTemplate
+    
+    return TournamentTemplate.objects.create(
+        name="Config Template",
+        slug="config-template",
+        game=game_valorant,
+        created_by=user,
+        visibility=TournamentTemplate.PRIVATE,
+        is_active=True,
+        template_config={
+            "format": "single_elimination",
+            "max_participants": 16,
+            "has_entry_fee": True,
+            "entry_fee_amount": "500.00",
+            "rules": "Standard rules apply",
+        }
+    )
+
+
+@pytest.fixture
+def client():
+    """DRF API test client."""
+    from rest_framework.test import APIClient
+    return APIClient()
+
+
+@pytest.fixture
 def user_factory(db):
     """
     Factory for creating unique users in tests.

@@ -58,6 +58,38 @@ Manages tournament-specific custom fields with dynamic typing and validation.
 
 **Dependencies**: Module 2.2
 
+### TemplateService (`template_service.py`)
+Manages tournament template creation, storage, and application (deep merge pattern).
+
+**Key Methods**:
+- `create_template(user, name, description, template_config, game_id, visibility)` - Create template with permission checks
+- `update_template(template_id, user, update_data)` - Update template (owner/staff only)
+- `get_template(template_id, user)` - Retrieve template with visibility checks
+- `list_templates(user, game_id, visibility, is_active, created_by_id, organization_id)` - List templates with filtering and permission rules
+- `apply_template(template_id, user, tournament_payload)` - Deep merge template config + tournament payload
+
+**Visibility Levels**:
+- `PRIVATE` - Only creator can view/use
+- `ORG` - Organization members can view/use (simplified to creator-only)
+- `GLOBAL` - Everyone can view/use (staff-only creation)
+
+**Storage**: Uses `TournamentTemplate.template_config` JSONB field
+
+**Permissions**: 
+- Create: Authenticated (GLOBAL requires staff)
+- Update/Delete: Owner or staff
+- Apply: Authenticated + visibility rules
+
+**Deep Merge Behavior**: 
+- `apply_template()` returns merged config only (does NOT create tournament)
+- Template config provides defaults, tournament_payload overrides
+- Nested dictionaries merged recursively
+- Updates usage tracking (usage_count, last_used_at)
+
+**Dependencies**: Module 2.3 (Optional Backend Feature)
+
+**Note**: This is an optional backend feature designed for future tournament config presets. No UI required.
+
 ## Design Patterns
 
 ### Service Layer Pattern (ADR-001)
@@ -84,8 +116,10 @@ All services have comprehensive unit tests:
 - `tests/test_tournament_service.py` - TournamentService tests
 - `tests/test_game_config_service.py` - 25 tests (get, create/update, validation, schema)
 - `tests/test_custom_field_service.py` - 18 tests (CRUD, validation for 7 types, permissions)
+- `tests/test_template_service.py` - 38 tests (create, update, get, list, apply deep merge)
+- `tests/test_template_api.py` - 20 tests (API integration tests for template endpoints)
 
-**Coverage**: ≥80% across all services
+**Coverage**: ≥85% across all services
 
 ## Usage Examples
 
@@ -147,10 +181,71 @@ CustomFieldService.update_field(
 )
 ```
 
+### TemplateService
+
+```python
+from apps.tournaments.services.template_service import TemplateService
+
+# Create template (authenticated user, GLOBAL requires staff)
+template = TemplateService.create_template(
+    user=request.user,
+    name="5v5 Valorant Tournament",
+    description="Standard format for 5v5 Valorant tournaments",
+    template_config={
+        "format": "single_elimination",
+        "max_participants": 16,
+        "team_size": 5,
+        "entry_fee_amount": "500.00"
+    },
+    game_id=1,  # Optional - if specified, validates game exists
+    visibility=TournamentTemplate.PRIVATE  # or ORG, GLOBAL (staff only)
+)
+# Auto-generates slug, validates permissions
+
+# List templates with filtering
+templates = TemplateService.list_templates(
+    user=request.user,  # Optional - enforces visibility rules if provided
+    game_id=1,  # Filter by game
+    visibility=TournamentTemplate.GLOBAL,  # Filter by visibility
+    is_active=True  # Only active templates
+)
+# Returns: List[TournamentTemplate]
+
+# Apply template (deep merge pattern)
+merged_config = TemplateService.apply_template(
+    template_id=template.id,
+    user=request.user,
+    tournament_payload={
+        "name": "Summer Championship 2025",
+        "entry_fee_amount": "1000.00"  # Override template value
+    }
+)
+# Returns: {"format": "single_elimination", "max_participants": 16, "team_size": 5, 
+#           "entry_fee_amount": "1000.00", "name": "Summer Championship 2025"}
+# Note: Does NOT create tournament - just returns merged config
+# Usage tracking: Increments template.usage_count, updates template.last_used_at
+
+# Update template (owner or staff only)
+updated_template = TemplateService.update_template(
+    template_id=template.id,
+    user=request.user,
+    update_data={"max_participants": 32}  # Partial update
+)
+# Merges update_data with existing template_config
+
+# Get template (with visibility checks)
+template = TemplateService.get_template(
+    template_id=1,
+    user=request.user  # Enforces visibility rules
+)
+# Raises ValidationError if not found or PermissionDenied if visibility check fails
+```
+
 ## Related Documentation
 
 - [Module 2.1 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.1_COMPLETION_STATUS.md)
 - [Module 2.2 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.2_COMPLETION_STATUS.md)
+- [Module 2.3 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.3_COMPLETION_STATUS.md) - Tournament Templates (Optional Feature)
 - [ADR-001: Service Layer Architecture](../../../Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001)
 - [ADR-004: PostgreSQL JSONB](../../../Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004)
 - [BACKEND_ONLY_BACKLOG.md](../../../Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md)

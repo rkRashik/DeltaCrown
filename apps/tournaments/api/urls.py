@@ -16,6 +16,7 @@ from apps.tournaments.api import views
 from apps.tournaments.api.tournament_views import TournamentViewSet  # Module 2.1
 from apps.tournaments.api.game_config_views import GameConfigViewSet  # Module 2.2
 from apps.tournaments.api.custom_field_views import CustomFieldViewSet  # Module 2.2
+from apps.tournaments.api.template_views import TournamentTemplateViewSet  # Module 2.3
 from apps.tournaments.api.registrations import RegistrationViewSet  # Milestone B
 from apps.tournaments.api.payments import PaymentVerificationViewSet  # Milestone C
 from apps.tournaments.api.matches import MatchViewSet  # Milestone D (replaces match_views)
@@ -37,6 +38,7 @@ from apps.tournaments.api.leaderboard_views import (
 router = DefaultRouter()
 router.register(r'tournaments', TournamentViewSet, basename='tournament')  # Module 2.1
 router.register(r'games', GameConfigViewSet, basename='game-config')  # Module 2.2
+router.register(r'tournament-templates', TournamentTemplateViewSet, basename='tournament-template')  # Module 2.3
 router.register(r'registrations', RegistrationViewSet, basename='registration')  # Use Milestone B version
 router.register(r'payments', PaymentVerificationViewSet, basename='payment')  # Milestone C
 router.register(r'brackets', BracketViewSet, basename='bracket')
@@ -45,15 +47,16 @@ router.register(r'results', ResultViewSet, basename='result')  # Module 4.4
 router.register(r'leaderboards', LeaderboardViewSet, basename='leaderboard')  # Milestone E
 
 # Module 2.2: Nested router for custom fields under tournaments
-from rest_framework_nested import routers as nested_routers
-tournaments_router = nested_routers.NestedDefaultRouter(router, r'tournaments', lookup='tournament')
-tournaments_router.register(r'custom-fields', CustomFieldViewSet, basename='tournament-custom-fields')
+# TODO: Install drf-nested-routers package to enable nested custom fields endpoint
+# from rest_framework_nested import routers as nested_routers
+# tournaments_router = nested_routers.NestedDefaultRouter(router, r'tournaments', lookup='tournament')
+# tournaments_router.register(r'custom-fields', CustomFieldViewSet, basename='tournament-custom-fields')
 
 app_name = 'tournaments_api'
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('', include(tournaments_router.urls)),  # Module 2.2: Custom fields
+    # path('', include(tournaments_router.urls)),  # Module 2.2: Custom fields (requires drf-nested-routers)
     path('checkin/', include('apps.tournaments.api.checkin.urls', namespace='checkin')),
     
     # Phase E: Read-Only Leaderboard Endpoints (PII-Free)

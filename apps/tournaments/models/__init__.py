@@ -15,6 +15,9 @@ from .tournament import (
     CustomField,
     TournamentVersion,
 )
+from .template import (
+    TournamentTemplate,  # Full implementation (Module 2.3)
+)
 from .registration import (
     Registration,  # Full implementation (Module 1.3)
     Payment,       # Full implementation (Module 1.3)
@@ -48,6 +51,7 @@ __all__ = [
     'Tournament',
     'CustomField',
     'TournamentVersion',
+    'TournamentTemplate',
     'Registration',
     'Payment',
     'PaymentVerification',

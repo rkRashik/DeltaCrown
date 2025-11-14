@@ -22,6 +22,7 @@ Architecture Decisions:
 from django.contrib import admin
 from django.utils.html import format_html
 from .models.tournament import Game, Tournament, CustomField, TournamentVersion
+from .models.template import TournamentTemplate  # Module 2.3
 
 # Import Registration and Payment admin classes
 from .admin_registration import RegistrationAdmin, PaymentAdmin
@@ -204,8 +205,8 @@ class CustomFieldAdmin(admin.ModelAdmin):
     list_display = ['field_name', 'tournament', 'field_type', 'order', 'is_required', 'tournament_status']
     list_filter = ['field_type', 'is_required', 'tournament__status', 'tournament__game']
     search_fields = ['field_name', 'field_key', 'tournament__name', 'tournament__slug']
-    readonly_fields = ['field_key', 'created_at']
-    prepopulated_fields = {}  # field_key auto-generated in save()
+    readonly_fields = ['field_key']  # field_key auto-generated in save()
+    prepopulated_fields = {}
     ordering = ['tournament', 'order', 'field_name']
     
     fieldsets = (
@@ -230,10 +231,6 @@ class CustomFieldAdmin(admin.ModelAdmin):
         }),
         ('Display & Validation', {
             'fields': ('order', 'is_required', 'help_text')
-        }),
-        ('Metadata', {
-            'fields': ('created_at',),
-            'classes': ('collapse',)
         }),
     )
     
@@ -281,3 +278,85 @@ class TournamentVersionAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Versions should not be deleted for audit trail."""
         return False
+
+
+@admin.register(TournamentTemplate)
+class TournamentTemplateAdmin(admin.ModelAdmin):
+    """
+    Admin interface for TournamentTemplate model.
+    
+    Module 2.3: Template management for tournament organizers.
+    Provides template CRUD, activation/deactivation, and usage tracking.
+    """
+    list_display = [
+        'id',
+        'name',
+        'game',
+        'visibility',
+        'is_active',
+        'usage_count',
+        'last_used_at',
+        'created_by',
+        'created_at',
+    ]
+    list_filter = [
+        'visibility',
+        'is_active',
+        'game',
+        'created_at',
+    ]
+    search_fields = ['name', 'slug', 'description', 'created_by__username']
+    readonly_fields = [
+        'slug',
+        'usage_count',
+        'last_used_at',
+        'created_at',
+        'updated_at',
+        'deleted_at',
+    ]
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description', 'game')
+        }),
+        ('Visibility & Access', {
+            'fields': ('visibility', 'organization_id', 'created_by')
+        }),
+        ('Template Configuration (JSON)', {
+            'fields': ('template_config',),
+            'description': (
+                'Tournament configuration template in JSON format. Example structure:\n'
+                '{\n'
+                '  "format": "single_elimination",\n'
+                '  "participation_type": "team",\n'
+                '  "max_participants": 16,\n'
+                '  "has_entry_fee": true,\n'
+                '  "entry_fee_amount": "500.00",\n'
+                '  "prize_pool": "10000.00",\n'
+                '  "custom_fields": [...]\n'
+                '}'
+            )
+        }),
+        ('Status & Usage', {
+            'fields': ('is_active', 'usage_count', 'last_used_at')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at', 'deleted_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['activate_templates', 'deactivate_templates']
+    
+    def activate_templates(self, request, queryset):
+        """Activate selected templates."""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"{updated} template(s) activated.")
+    activate_templates.short_description = "Activate selected templates"
+    
+    def deactivate_templates(self, request, queryset):
+        """Deactivate selected templates."""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"{updated} template(s) deactivated.")
+    deactivate_templates.short_description = "Deactivate selected templates"
