@@ -789,10 +789,20 @@ class RankingEngine:
             - last_updated
         """
         # Query all completed matches
+        # Module 9.1: Optimized with select_related for tournament, teams, participants
+        # Planning ref: PART_5.2 Section 4.4 (Query Optimization)
         matches = Match.objects.filter(
             tournament_id=tournament_id,
             status="completed"
-        ).select_related("winner_participant", "winner_team")
+        ).select_related(
+            "tournament",
+            "winner_participant",
+            "winner_team",
+            "participant1",
+            "participant2",
+            "team1",
+            "team2"
+        )
         
         stats = {}
         

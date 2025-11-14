@@ -364,9 +364,15 @@ class LeaderboardViewSet(viewsets.GenericViewSet):
     - br_leaderboard: Authenticated (public read)
     - series_summary: Authenticated (public read)
     - override_placement: IsStaffOrAdmin (staff-only write)
+    
+    Optimization (Module 9.1): Added select_related to reduce N+1 queries.
+    Planning ref: PART_5.2 Section 4.4 (Query Optimization)
     """
     
-    queryset = Tournament.objects.filter(is_deleted=False)
+    queryset = Tournament.objects.filter(is_deleted=False).select_related(
+        'game',
+        'organizer'
+    )
     permission_classes = [IsAuthenticated]
     
     @action(

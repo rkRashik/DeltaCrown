@@ -175,9 +175,11 @@ def snapshot_active_tournaments() -> dict:
     start_time = time.time()
     
     # Query active tournaments
+    # Module 9.1: Optimized query for active tournaments
+    # Planning ref: PART_5.2 Section 4.4 (Query Optimization)
     active_tournaments = Tournament.objects.filter(
         status__in=['registration_open', 'ongoing', 'in_progress']
-    ).values_list('id', flat=True)
+    ).select_related('game', 'organizer').values_list('id', flat=True)
     
     if not active_tournaments:
         logger.info("No active tournaments to snapshot")

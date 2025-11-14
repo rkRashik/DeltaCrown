@@ -195,8 +195,16 @@ class RegistrationViewSet(viewsets.GenericViewSet):
     - POST /api/tournaments/registrations/solo/ - Create solo registration
     - POST /api/tournaments/registrations/team/ - Create team registration
     - DELETE /api/tournaments/registrations/{id}/ - Cancel registration
+    
+    Optimization (Module 9.1): Added select_related to reduce N+1 queries.
+    Planning ref: PART_5.2 Section 4.4 (Query Optimization)
     """
-    queryset = Registration.objects.all()
+    queryset = Registration.objects.select_related(
+        'tournament',
+        'user',
+        'team',
+        'payment_verification'
+    ).all()
     serializer_class = RegistrationSerializer
     permission_classes = [IsAuthenticated]
     

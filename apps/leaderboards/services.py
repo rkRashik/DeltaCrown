@@ -659,14 +659,16 @@ class LeaderboardService:
         Returns:
             List of LeaderboardEntry objects (not saved, just computed)
         """
-        tournament = Tournament.objects.get(id=tournament_id)
+        tournament = Tournament.objects.select_related('game', 'organizer').get(id=tournament_id)
         
         # Get all team registrations for this tournament
+        # Module 9.1: Optimized with select_related for tournament, team
+        # Planning ref: PART_5.2 Section 4.4 (Query Optimization)
         registrations = Registration.objects.filter(
             tournament=tournament,
             team_id__isnull=False,
             status='confirmed'
-        ).select_related('tournament')
+        ).select_related('tournament', 'team', 'user')
         
         entries = []
         for reg in registrations:
