@@ -140,6 +140,8 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusBeforeMiddleware",  # Prometheus timing (FIRST)
+    "deltacrown.middleware.logging.RequestLoggingMiddleware",  # Module 9.5: Request logging
+    "deltacrown.metrics.MetricsMiddleware",  # Module 9.5: Metrics collection
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",  # CORS (must be before CommonMiddleware)
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -276,6 +278,8 @@ REST_FRAMEWORK = {
     },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    # Module 9.5: Custom exception handler for consistent error responses
+    "EXCEPTION_HANDLER": "deltacrown.exception_handlers.custom_exception_handler",
 }
 
 # -----------------------------------------------------------------------------
