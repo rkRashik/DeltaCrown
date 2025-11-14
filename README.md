@@ -520,13 +520,38 @@ Open http://127.0.0.1:8000/ and /admin
 
 ---
 
+## 📚 Documentation
+
+**Backend V1 is now fully documented!**
+
+### For Developers
+- **Setup Guide**: [`docs/development/setup_guide.md`](docs/development/setup_guide.md) - Complete onboarding from clone to first contribution
+- **Architecture**: [`docs/architecture/system_architecture.md`](docs/architecture/system_architecture.md) - System design, data flows, state machines
+- **Planning Docs**: [`Documents/Planning/`](Documents/Planning/) - Original specifications (PART 2-5)
+- **Execution Tracking**: [`Documents/ExecutionPlan/MAP.md`](Documents/ExecutionPlan/MAP.md) - Implementation progress
+
+### For API Integration
+- **API Catalog**: [`docs/api/endpoint_catalog.md`](docs/api/endpoint_catalog.md) - All REST & WebSocket endpoints with examples
+- **Error Handling**: Consistent JSON error format (Module 9.5)
+- **Health Checks**: `/healthz` (liveness), `/readyz` (readiness)
+
+### For Operations
+- **Deployment**: [`docs/runbooks/deployment.md`](docs/runbooks/deployment.md) - Step-by-step deployment procedures
+- **Monitoring**: [`docs/runbooks/monitoring_setup.md`](Documents/Runbooks/monitoring_setup.md) - Observability setup
+- **Runbooks**: [`Documents/Runbooks/`](Documents/Runbooks/) - Operational procedures
+
+### Historical Documents
+- **Archive**: [`Documents/Archive/`](Documents/Archive/) - Historical implementation docs (Phases 2-E)
+
+---
+
 ## Testing
 
 We use `pytest`:
 ```bash
 pytest -q
 ```
-Recommended: smoke tests that import each app’s `admin`, `views`, and `urls` to protect the modular structure.
+Recommended: smoke tests that import each app's `admin`, `views`, and `urls` to protect the modular structure.
 
 ---
 

@@ -2,6 +2,8 @@
 
 This file maps each Phase/Module to the exact Planning doc sections used.
 
+**Last Updated**: November 14, 2025 (Project cleanup - historical documents archived to `Documents/Archive/`)
+
 ## Example Format
 - Phase 4 → Module 4.2 Match Management & Scheduling
   - Implements:
@@ -786,7 +788,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 **Duration**: 3 weeks (120 hours)  
 **Total Tests**: 143/153 passing (93% pass rate)  
 **Coverage**: 31-89% across modules (avg 70%)  
-**Documentation**: [PHASE_4_COMPLETION_SUMMARY.md](./PHASE_4_COMPLETION_SUMMARY.md) | [BACKLOG_PHASE_4_DEFERRED.md](./BACKLOG_PHASE_4_DEFERRED.md)
+**Documentation**: [PHASE_4_COMPLETION_SUMMARY.md](./PHASE_4_COMPLETION_SUMMARY.md) | [BACKLOG_PHASE_4_DEFERRED.md](../Archive/Phase4/BACKLOG_PHASE_4_DEFERRED.md) (archived)
 
 | Module | Status | Tests | Coverage | Completion Date | Documentation |
 |--------|--------|-------|----------|-----------------|---------------|
@@ -805,7 +807,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - 🔔 **WebSocket Enhancements**: Match-specific channels, heartbeat mechanism, score batching, channel isolation
 - 📚 **API Polish**: Consistency audit (ZERO production changes), error catalog, quickstarts, comprehensive documentation
 
-**Deferred Items**: 9 items tracked in [BACKLOG_PHASE_4_DEFERRED.md](./BACKLOG_PHASE_4_DEFERRED.md) (total ~54 hours effort)
+**Deferred Items**: 9 items tracked in [BACKLOG_PHASE_4_DEFERRED.md](../Archive/Phase4/BACKLOG_PHASE_4_DEFERRED.md) (archived) (total ~54 hours effort)
 
 **Prerequisites**:
 - ✅ Phase 3 complete (registration, payment, check-in)
@@ -1026,7 +1028,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 **Status**: ✅ **COMPLETE** (Nov 10, 2025)  
 **Actual Duration**: 2 weeks  
 **Goal**: Winner determination, prize payouts, certificates, analytics  
-**Planning Doc**: [PHASE_5_IMPLEMENTATION_PLAN.md](./PHASE_5_IMPLEMENTATION_PLAN.md)  
+**Planning Doc**: [PHASE_5_IMPLEMENTATION_PLAN.md](../Archive/Phase5/PHASE_5_IMPLEMENTATION_PLAN.md) (archived)  
 **Summary Doc**: [PHASE_5_COMPLETION_SUMMARY.md](./PHASE_5_COMPLETION_SUMMARY.md)
 
 ### Phase 5 Summary
@@ -1035,7 +1037,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 |--------|--------|-------|-----------|----------|----------------|
 | **5.1** Winner Determination | ✅ Complete | 14 | 100% | 81% | [MODULE_5.1_COMPLETION_STATUS.md](./MODULE_5.1_COMPLETION_STATUS.md) |
 | **5.2** Prize Payouts | ✅ Complete | 36 | 100% | 85% | [MODULE_5.2_COMPLETION_STATUS.md](./MODULE_5.2_COMPLETION_STATUS.md) |
-| **5.3** Certificates | ✅ Complete | 35 | 100% | 85% | [../Development/MODULE_5.3_COMPLETION_STATUS.md](../Development/MODULE_5.3_COMPLETION_STATUS.md) |
+| **5.3** Certificates | ✅ Complete | 35 | 100% | 85% | [MODULE_5.3_COMPLETION_STATUS.md](./MODULE_5.3_COMPLETION_STATUS.md) |
 | **5.4** Analytics & Reports | ✅ Complete | 37 | 100% | 93% | [MODULE_5.4_COMPLETION_STATUS.md](./MODULE_5.4_COMPLETION_STATUS.md) |
 | **TOTAL** | ✅ **Complete** | **122** | **100%** | **87% avg** | [PHASE_5_COMPLETION_SUMMARY.md](./PHASE_5_COMPLETION_SUMMARY.md) |
 
@@ -1244,7 +1246,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - tests/test_certificate_model_module_5_3.py (120 lines) - 3 model tests
   - tests/test_certificate_service_module_5_3.py (971 lines) - 20 service tests
   - tests/test_certificate_api_module_5_3.py (520+ lines) - 12 API tests
-  - Documents/Development/MODULE_5.3_COMPLETION_STATUS.md (519 lines) - Operational runbook
+  - Documents/ExecutionPlan/MODULE_5.3_COMPLETION_STATUS.md (519 lines) - Operational runbook
 - **Files Modified**:
   - apps/tournaments/api/urls.py (added 2 certificate routes)
   - apps/tournaments/services/__init__.py (export CertificateService)
@@ -1262,7 +1264,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Actual Effort**: ~24 hours (Milestone 1: 4h, Milestone 2: 12h, Milestone 3: 8h)
 - **Dependencies**: Module 5.1 (winner determination), reportlab, qrcode[pil], Pillow
 - **Commits**: 1c269a7 (M1), fb4d0a4 (M2), 3a8cee3 (M3), a138795 (docs)
-- **Completion Doc**: Documents/Development/MODULE_5.3_COMPLETION_STATUS.md (quickstarts, error catalog, test matrix, PII policy, future enhancements)
+- **Completion Doc**: Documents/ExecutionPlan/MODULE_5.3_COMPLETION_STATUS.md (quickstarts, error catalog, test matrix, PII policy, future enhancements)
 
 ### Module 5.4: Analytics & Reports
 - **Status**: ✅ Complete (Nov 10, 2025)
