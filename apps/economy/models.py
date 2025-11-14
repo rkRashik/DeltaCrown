@@ -1,5 +1,5 @@
 # apps/economy/models.py
-# Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md - Step 2 (Ledger Invariants)
+# Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md - Step 2 (Ledger Invariants)
 from __future__ import annotations
 
 from django.conf import settings

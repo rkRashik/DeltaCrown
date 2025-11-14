@@ -5,7 +5,7 @@ Team Management Service Layer (Module 3.3)
 Implements team lifecycle operations following ADR-001 (Service Layer Architecture).
 Integrates Module 2.4 audit logging for all privileged actions.
 
-Planning Reference: Documents/ExecutionPlan/MODULE_3.3_IMPLEMENTATION_PLAN.md
+Planning Reference: Documents/ExecutionPlan/Modules/MODULE_3.3_IMPLEMENTATION_PLAN.md
 
 Traceability:
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-creation
@@ -13,7 +13,7 @@ Traceability:
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#invitations
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#captain-transfer
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-dissolution
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-001
 """
 from __future__ import annotations
 

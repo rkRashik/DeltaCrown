@@ -3,7 +3,7 @@ Django admin interfaces for Tournament models.
 
 Source Documents:
 - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md (Section 3: App Breakdown)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Django admin customization)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Django admin customization)
 
 Provides admin customization for:
 - Tournament: Full CRUD with filters, search, and inline custom fields

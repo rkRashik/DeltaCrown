@@ -4,9 +4,9 @@ Unit tests for common app base models and managers.
 Tests SoftDeleteModel, TimestampedModel, and SoftDeleteManager without requiring database.
 
 Source Documents:
-- Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md#phase-1-module-1.1
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#section-4-testing-standards
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#ADR-003
+- Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md#phase-1-module-1.1
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#section-4-testing-standards
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#ADR-003
 
 Test Coverage Requirements:
 - Soft delete functionality (delete, restore)

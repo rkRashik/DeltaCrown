@@ -732,8 +732,8 @@ engine.compute_regional_rankings(region="NA", season_id="2025_S1")
 - **Phase E Leaderboards**: `docs/leaderboards/README.md`
 - **Phase G Spectator**: `docs/spectator/README.md`
 - **Module 2.6 Realtime**: `docs/runbooks/module_2_6_realtime_monitoring.md`
-- **MAP.md Phase F**: `Documents/ExecutionPlan/MAP.md#phase-f`
-- **trace.yml module_f**: `Documents/ExecutionPlan/trace.yml#module_f`
+- **MAP.md Phase F**: `Documents/ExecutionPlan/Core/MAP.md#phase-f`
+- **trace.yml module_f**: `Documents/ExecutionPlan/Core/trace.yml#module_f`
 
 ---
 

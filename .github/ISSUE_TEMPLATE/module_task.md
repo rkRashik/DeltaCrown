@@ -8,7 +8,7 @@ labels: phase, module
 Phase X → Module Y
 
 ## Source of Truth
-- Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md#phase-x
+- Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md#phase-x
 - [anchors from Planning docs]
 - ADRs: [as needed]
 

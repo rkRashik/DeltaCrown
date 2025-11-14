@@ -6,7 +6,7 @@ Custom DRF permissions for team operations.
 Follows ADR-008 (Security Architecture) and Module 3.2 patterns.
 
 Traceability:
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-008
 """
 from rest_framework import permissions
 

@@ -4,7 +4,7 @@ Custom Field Service
 Module: 2.2 - Game Configurations & Custom Fields (Backend Only)
 Source Documents:
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (CustomField Model)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Service Layer Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Service Layer Standards)
 
 Architecture Decisions:
 - ADR-001: Service Layer Pattern - All business logic in services

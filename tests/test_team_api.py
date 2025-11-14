@@ -5,11 +5,11 @@ Team Management API Tests (Module 3.3)
 Comprehensive test suite for team API endpoints.
 Target: ≥80% coverage for team service + API.
 
-Planning Reference: Documents/ExecutionPlan/MODULE_3.3_IMPLEMENTATION_PLAN.md
+Planning Reference: Documents/ExecutionPlan/Modules/MODULE_3.3_IMPLEMENTATION_PLAN.md
 
 Traceability:
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md (all sections)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#testing-standards
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#testing-standards
 """
 import pytest
 from datetime import timedelta

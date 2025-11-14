@@ -5,8 +5,8 @@ Source Documents:
 - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md (Section 4.1: Core Models)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 3: Core Tournament Models)
 - Documents/Planning/PART_3.2_DATABASE_CONSTRAINTS_MIGRATION.md (Indexes + Constraints)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer, ADR-004: PostgreSQL)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Django models & testing sections)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer, ADR-004: PostgreSQL)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Django models & testing sections)
 
 Architecture Decisions:
 - ADR-001: Service Layer Pattern - Business logic in services, not models

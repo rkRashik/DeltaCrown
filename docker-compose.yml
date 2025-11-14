@@ -2,7 +2,7 @@
 #
 # Implements:
 #     - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#local-development
-#     - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#development-environment
+#     - Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#development-environment
 
 version: '3.8'
 

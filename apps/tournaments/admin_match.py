@@ -4,7 +4,7 @@ Django Admin interfaces for Match and Dispute models (Module 1.4)
 Source Documents:
 - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (Admin UI requirements)
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Admin integration patterns)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service layer)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service layer)
 
 Admin Features:
 - MatchAdmin: List filters, search, state transitions, bulk actions

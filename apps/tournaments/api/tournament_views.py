@@ -6,7 +6,7 @@ DRF ViewSet implementing full CRUD operations for tournaments.
 Module: 2.1 - Tournament Creation & Management (Backend Only)
 Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Tournament Service)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (API Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (API Standards)
 
 Endpoints:
 - GET    /api/tournaments/              List tournaments (public, filterable)

@@ -4,7 +4,7 @@ Integration tests for RegistrationService.
 Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Section 5: RegistrationService)
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (End-to-end flows)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Testing standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Testing standards)
 
 Tests end-to-end registration workflows including:
 - Registration creation with eligibility checks

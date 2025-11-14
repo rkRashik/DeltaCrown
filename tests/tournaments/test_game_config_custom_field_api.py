@@ -3,7 +3,7 @@ Tests for Game Config and Custom Field APIs
 
 Module: 2.2 - Game Configurations & Custom Fields (Backend Only)
 Source Documents:
-- Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md (Module 2.2)
+- Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md (Module 2.2)
 - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md (Testing Standards)
 
 Description:

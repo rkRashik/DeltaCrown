@@ -4,7 +4,7 @@ Tournament models package.
 Source Documents:
 - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md (Section 4.1)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 3, 4)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-003, ADR-004)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-003, ADR-004)
 
 Exports all tournament-related models for easy importing.
 """

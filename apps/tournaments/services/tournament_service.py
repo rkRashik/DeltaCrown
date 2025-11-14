@@ -4,7 +4,7 @@ Tournament Service - Business logic for tournament operations.
 Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Section 2: Service Layer Architecture)
 - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md (Section 3.1: Core App)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern)
 
 Architecture Decisions:
 - ADR-001: Service Layer Pattern - All business logic in services, not views or models

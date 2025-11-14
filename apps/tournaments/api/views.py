@@ -11,7 +11,7 @@ Source Documents:
 - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md (API Views)
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (Registration API)
 - Documents/Planning/PART_2.3_REALTIME_SECURITY.md (Security & Permissions)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (API Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (API Standards)
 """
 
 # Import registration viewset from registrations.py

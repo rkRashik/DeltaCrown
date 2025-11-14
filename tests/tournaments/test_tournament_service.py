@@ -16,7 +16,7 @@ Architecture Decisions:
 
 Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Service Layer Design)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Testing Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Testing Standards)
 """
 
 import pytest

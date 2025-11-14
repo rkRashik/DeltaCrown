@@ -757,8 +757,8 @@ sum by (tournament_id) (duration_ms) from {level="INFO"} |= "WS_DISCONNECT" | js
 
 ## 9. Related Documentation
 
-- **Phase 2 MAP**: `Documents/ExecutionPlan/MAP.md` (Module 2.6 section)
-- **Trace YAML**: `Documents/ExecutionPlan/trace.yml` (module_2_6 node)
+- **Phase 2 MAP**: `Documents/ExecutionPlan/Core/MAP.md` (Module 2.6 section)
+- **Trace YAML**: `Documents/ExecutionPlan/Core/trace.yml` (module_2_6 node)
 - **Module 2.2**: WebSocket Real-Time Updates (baseline architecture)
 - **Module 2.4**: Security Hardening (role-based access control)
 - **Module 2.5**: Rate Limiting & Abuse Protection (enforcement logic)

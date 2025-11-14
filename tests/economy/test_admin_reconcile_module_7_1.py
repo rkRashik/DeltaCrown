@@ -6,7 +6,7 @@ Coverage Target: ≥75%
 
 Tests recalc_all_wallets management command for balance drift detection and correction.
 """
-# Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md
+# Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md
 
 import pytest
 from decimal import Decimal

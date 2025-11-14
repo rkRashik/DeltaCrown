@@ -6,7 +6,7 @@ Coverage Target: 100% (critical financial logic)
 
 Tests conservation law, non-negative balances, immutability, and monotonic ordering.
 """
-# Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md
+# Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md
 
 import pytest
 from decimal import Decimal

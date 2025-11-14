@@ -243,9 +243,9 @@ template = TemplateService.get_template(
 
 ## Related Documentation
 
-- [Module 2.1 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.1_COMPLETION_STATUS.md)
-- [Module 2.2 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.2_COMPLETION_STATUS.md)
-- [Module 2.3 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.3_COMPLETION_STATUS.md) - Tournament Templates (Optional Feature)
-- [ADR-001: Service Layer Architecture](../../../Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001)
-- [ADR-004: PostgreSQL JSONB](../../../Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-004)
-- [BACKEND_ONLY_BACKLOG.md](../../../Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md)
+- [Module 2.1 Completion Status](../../../Documents/ExecutionPlan/Modules/MODULE_2.1_COMPLETION_STATUS.md)
+- [Module 2.2 Completion Status](../../../Documents/ExecutionPlan/Modules/MODULE_2.2_COMPLETION_STATUS.md)
+- [Module 2.3 Completion Status](../../../Documents/ExecutionPlan/Modules/MODULE_2.3_COMPLETION_STATUS.md) - Tournament Templates (Optional Feature)
+- [ADR-001: Service Layer Architecture](../../../Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-001)
+- [ADR-004: PostgreSQL JSONB](../../../Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-004)
+- [BACKEND_ONLY_BACKLOG.md](../../../Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md)

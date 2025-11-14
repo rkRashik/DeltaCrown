@@ -6,7 +6,7 @@ API endpoints for certificate download and verification.
 Related Planning:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-53
 - Documents/Planning/PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md#sprint-6
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
 
 Module: apps.tournaments.api.certificate_views
 Implements: phase_5:module_5_3:milestone_3

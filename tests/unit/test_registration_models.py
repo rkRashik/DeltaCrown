@@ -5,8 +5,8 @@ Source Documents:
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 4: Registration & Payment Models)
 - Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md (Constraints + Indexes)
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (UI behavior + flow)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-003 Soft Delete, ADR-004 PostgreSQL)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Testing standards)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-003 Soft Delete, ADR-004 PostgreSQL)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Testing standards)
 
 Tests the Registration and Payment models including:
 - Field validation

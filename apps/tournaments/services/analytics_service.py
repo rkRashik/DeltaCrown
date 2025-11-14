@@ -14,7 +14,7 @@ Implements:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-54-analytics--reports
 - Documents/ExecutionPlan/PHASE_6_IMPLEMENTATION_PLAN.md#module-62-materialized-views-for-analytics
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#analyticsservice
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-architecture
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer-architecture
 
 Source Documents:
 - PHASE_5_IMPLEMENTATION_PLAN.md (Module 5.4 scope, metrics definitions)

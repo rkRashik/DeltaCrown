@@ -1,8 +1,8 @@
 # Implements: Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md#section-3.4-match-app
 # Implements: Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-4.4-match-models
-# Implements: Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001
-# Implements: Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-003
-# Implements: Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
+# Implements: Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-001
+# Implements: Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-003
+# Implements: Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-007
 
 """
 Tournament API - Match Serializers
@@ -16,7 +16,7 @@ Source Documents:
 - Documents/Planning/PART_2.1_ARCHITECTURE_FOUNDATIONS.md (Match App Architecture)
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Match Models)
 - Documents/ExecutionPlan/PHASE_4_IMPLEMENTATION_PLAN.md (Module 4.3 Scope)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001, ADR-003, ADR-007)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001, ADR-003, ADR-007)
 
 Architecture Decisions:
 - ADR-001: Service layer pattern - Validation delegates to MatchService

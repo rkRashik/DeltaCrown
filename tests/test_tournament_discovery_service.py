@@ -2,7 +2,7 @@
 Tests for Tournament Discovery Service (Module 2.4).
 
 Source Documents:
-- Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md (Module 2.4, Lines 214-241)
+- Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md (Module 2.4, Lines 214-241)
 - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (Section 5.1)
 
 Test Coverage:

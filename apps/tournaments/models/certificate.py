@@ -4,7 +4,7 @@ Certificate model for tournament achievement proofs.
 Source Documents:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md (Module 5.3)
 - Documents/Planning/PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md (Sprint 6)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001 Service Layer)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001 Service Layer)
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Service patterns)
 
 This module defines:

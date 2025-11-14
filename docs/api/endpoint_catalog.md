@@ -732,7 +732,7 @@ curl http://localhost:8000/api/tournaments/ \
 - **Setup Guide**: `docs/development/setup_guide.md`
 - **Architecture**: `docs/architecture/system_architecture.md`
 - **WebSocket Docs**: See Channels documentation
-- **Module Status**: `Documents/ExecutionPlan/MAP.md`
+- **Module Status**: `Documents/ExecutionPlan/Core/MAP.md`
 
 ---
 

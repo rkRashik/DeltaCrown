@@ -6,7 +6,7 @@ Comprehensive tests for payment proof submission, verification, rejection, and r
 Source Documents:
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (Payment Flow)
 - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md (Testing Strategy)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Testing Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Testing Standards)
 """
 
 import io

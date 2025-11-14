@@ -3,7 +3,7 @@ Integration tests for TournamentService.
 
 Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Section 2: Service Layer)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Testing standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Testing standards)
 
 Tests the full create, publish, and cancel workflow for tournaments.
 

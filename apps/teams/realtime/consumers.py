@@ -5,11 +5,11 @@ Team WebSocket Consumer (Module 3.3)
 Handles real-time team events via Django Channels.
 Follows Module 2.2/Module 3.2 WebSocket patterns.
 
-Planning Reference: Documents/ExecutionPlan/MODULE_3.3_IMPLEMENTATION_PLAN.md
+Planning Reference: Documents/ExecutionPlan/Modules/MODULE_3.3_IMPLEMENTATION_PLAN.md
 
 Traceability:
 - Documents/Planning/PART_2.3_REALTIME_SECURITY.md#team-channels
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-007
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-007
 """
 import logging
 from typing import Dict, Any

@@ -8,8 +8,8 @@ This module provides:
 
 Source Documents:
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-4.0-base-mixins
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#ADR-003
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#section-1
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#ADR-003
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#section-1
 
 Architecture Decision Records:
 - ADR-003: Soft Delete Strategy (Flag-based with audit trail)

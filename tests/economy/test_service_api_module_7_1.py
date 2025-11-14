@@ -6,7 +6,7 @@ Coverage Target: ≥90%
 
 Tests credit(), debit(), transfer(), get_balance(), get_transaction_history() API.
 """
-# Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md
+# Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md
 
 import pytest
 from decimal import Decimal

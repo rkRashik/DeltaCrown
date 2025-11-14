@@ -7,7 +7,7 @@ Coverage Target: ≥85%
 Property-based tests using bounded random sequences to validate invariants at scale.
 Requires: pip install hypothesis (or use pytest-randomly for simpler approach)
 """
-# Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md
+# Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md
 
 import pytest
 from decimal import Decimal

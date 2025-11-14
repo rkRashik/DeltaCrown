@@ -10,7 +10,7 @@
 ## Source of Truth
 
 ### Planning Documents
-- **Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md#phase-3** (Module 3.1)
+- **Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md#phase-3** (Module 3.1)
 - **Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md** (Registration flow, validation rules)
 - **Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md** (RegistrationService specifications)
 - **Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md** (API endpoints, security, serializers)
@@ -43,9 +43,9 @@
 - [x] Lint/type checks pass (verified with `get_errors` tool)
 
 ### Traceability ✅
-- [x] Updated `Documents/ExecutionPlan/MAP.md` (Module 3.1 status, files, coverage)
-- [x] Updated `Documents/ExecutionPlan/trace.yml` (module_3_1 implements list)
-- [x] Created `Documents/ExecutionPlan/MODULE_3.1_COMPLETION_STATUS.md` (comprehensive docs)
+- [x] Updated `Documents/ExecutionPlan/Core/MAP.md` (Module 3.1 status, files, coverage)
+- [x] Updated `Documents/ExecutionPlan/Core/trace.yml` (module_3_1 implements list)
+- [x] Created `Documents/ExecutionPlan/Modules/MODULE_3.1_COMPLETION_STATUS.md` (comprehensive docs)
 
 ### Testing ⚠️
 - [ ] ~~Tests: happy path + edge cases~~ **DEFERRED** (test DB creation blocked)
@@ -106,11 +106,11 @@
 ### Traceability (Updated)
 
 **Modified 2 documentation files:**
-- `Documents/ExecutionPlan/trace.yml`: Added module_3_1 implements list (7 planning docs, 7 files)
-- `Documents/ExecutionPlan/MAP.md`: Updated Module 3.1 status to ✅ Complete with traceability table
+- `Documents/ExecutionPlan/Core/trace.yml`: Added module_3_1 implements list (7 planning docs, 7 files)
+- `Documents/ExecutionPlan/Core/MAP.md`: Updated Module 3.1 status to ✅ Complete with traceability table
 
 **Created 1 completion doc:**
-- `Documents/ExecutionPlan/MODULE_3.1_COMPLETION_STATUS.md` (comprehensive status, tests, known issues)
+- `Documents/ExecutionPlan/Modules/MODULE_3.1_COMPLETION_STATUS.md` (comprehensive status, tests, known issues)
 
 ---
 
@@ -191,11 +191,11 @@ curl -X POST http://localhost:8000/api/tournaments/registrations/1/cancel/ \
 ### Modified (4 files)
 - `deltacrown/urls.py` (1 line uncommented - API route activation)
 - `apps/tournaments/realtime/consumers.py` (~70 lines added - event handlers)
-- `Documents/ExecutionPlan/trace.yml` (module_3_1 implements list added)
-- `Documents/ExecutionPlan/MAP.md` (Module 3.1 status updated)
+- `Documents/ExecutionPlan/Core/trace.yml` (module_3_1 implements list added)
+- `Documents/ExecutionPlan/Core/MAP.md` (Module 3.1 status updated)
 
 ### Documentation (1 file created)
-- `Documents/ExecutionPlan/MODULE_3.1_COMPLETION_STATUS.md` (comprehensive status doc)
+- `Documents/ExecutionPlan/Modules/MODULE_3.1_COMPLETION_STATUS.md` (comprehensive status doc)
 
 **Total Impact**: ~730 lines added, 5 lines modified, 5 files created, 4 files modified
 
@@ -270,7 +270,7 @@ curl -X POST http://localhost:8000/api/tournaments/registrations/1/cancel/ \
 
 ## Link to Completion Document
 
-See **[MODULE_3.1_COMPLETION_STATUS.md](../Documents/ExecutionPlan/MODULE_3.1_COMPLETION_STATUS.md)** for:
+See **[MODULE_3.1_COMPLETION_STATUS.md](../Documents/ExecutionPlan/Modules/MODULE_3.1_COMPLETION_STATUS.md)** for:
 - Detailed traceability table (requirements → implementation → tests → ADRs)
 - Known limitations and workarounds
 - Test database issue analysis and fix options

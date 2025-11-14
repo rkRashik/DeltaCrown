@@ -4,7 +4,7 @@ Tournament Result Admin
 Admin interface for viewing tournament results and winner determination audit trails.
 
 Related Planning:
-- Documents/ExecutionPlan/MODULE_5.1_EXECUTION_CHECKLIST.md#section-6-admin-integration
+- Documents/ExecutionPlan/Modules/MODULE_5.1_EXECUTION_CHECKLIST.md#section-6-admin-integration
 
 Module: apps.tournaments.admin_result
 Implements: phase_5:module_5_1

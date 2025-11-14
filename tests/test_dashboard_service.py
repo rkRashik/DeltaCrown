@@ -1,7 +1,7 @@
 """
 Tests for Organizer Dashboard Service (Module 2.5)
 
-Source: Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md (Module 2.5, lines 250-279)
+Source: Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md (Module 2.5, lines 250-279)
 Target: ≥15 service tests, ≥80% coverage
 
 Test Coverage:

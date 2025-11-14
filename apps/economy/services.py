@@ -90,7 +90,7 @@ def _mk_idem_key(kind: str, **parts) -> str:
 # Replacement: Use core API (credit/debit/transfer/get_balance/get_transaction_history) for new code
 #
 # These functions depend on deprecated tournament models and will be removed in Phase 8.
-# See Documents/ExecutionPlan/MODULE_7.1_COMPLETION_STATUS.md for deprecation timeline.
+# See Documents/ExecutionPlan/Modules/MODULE_7.1_COMPLETION_STATUS.md for deprecation timeline.
 # ==============================================================================
 
 @transaction.atomic

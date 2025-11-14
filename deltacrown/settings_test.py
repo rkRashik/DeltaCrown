@@ -3,7 +3,7 @@ Django settings for test environment.
 
 Implements:
     - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#test-environment
-    - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#testing-standards
+    - Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#testing-standards
 
 Optimizes test execution by:
 - Using in-memory channel layer (no Redis)

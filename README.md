@@ -528,7 +528,7 @@ Open http://127.0.0.1:8000/ and /admin
 - **Setup Guide**: [`docs/development/setup_guide.md`](docs/development/setup_guide.md) - Complete onboarding from clone to first contribution
 - **Architecture**: [`docs/architecture/system_architecture.md`](docs/architecture/system_architecture.md) - System design, data flows, state machines
 - **Planning Docs**: [`Documents/Planning/`](Documents/Planning/) - Original specifications (PART 2-5)
-- **Execution Tracking**: [`Documents/ExecutionPlan/MAP.md`](Documents/ExecutionPlan/MAP.md) - Implementation progress
+- **Execution Tracking**: [`Documents/ExecutionPlan/Core/MAP.md`](Documents/ExecutionPlan/Core/MAP.md) - Implementation progress
 
 ### For API Integration
 - **API Catalog**: [`docs/api/endpoint_catalog.md`](docs/api/endpoint_catalog.md) - All REST & WebSocket endpoints with examples

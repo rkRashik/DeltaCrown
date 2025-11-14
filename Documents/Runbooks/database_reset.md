@@ -459,7 +459,7 @@ The system is now on a solid foundation with:
 ## 📚 References
 
 **Related Files:**
-- `Documents/ExecutionPlan/MAP.md` - Updated with DB reset completion
+- `Documents/ExecutionPlan/Core/MAP.md` - Updated with DB reset completion
 - `trace.yml` - Updated with checkpoint
 - `apps/economy/models.py` - IntegerField pattern
 - `apps/teams/models/tournament_integration.py` - IntegerField pattern

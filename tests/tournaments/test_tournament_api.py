@@ -18,7 +18,7 @@ Architecture Decisions:
 
 Source Documents:
 - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md (API Testing)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (API Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (API Standards)
 """
 
 import pytest

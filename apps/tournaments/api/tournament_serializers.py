@@ -7,7 +7,7 @@ Module: 2.1 - Tournament Creation & Management (Backend Only)
 Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Tournament Service)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Tournament Models)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (API Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (API Standards)
 
 Architecture Decisions:
 - ADR-001: Service Layer Pattern - Validation in serializers, business logic in services

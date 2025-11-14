@@ -8,7 +8,7 @@ Test Coverage:
 
 Related Planning:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-51
-- Documents/ExecutionPlan/MODULE_5.1_EXECUTION_CHECKLIST.md
+- Documents/ExecutionPlan/Modules/MODULE_5.1_EXECUTION_CHECKLIST.md
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6-bracket-service
 """
 

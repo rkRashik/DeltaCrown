@@ -2,7 +2,7 @@
 #
 # Implements:
 #     - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md#staging-deployment
-#     - Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#staging-environment
+#     - Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#staging-environment
 
 version: '3.8'
 

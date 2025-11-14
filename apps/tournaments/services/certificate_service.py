@@ -4,7 +4,7 @@ CertificateService - Business logic for tournament certificate generation (Modul
 Source Documents:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md (Module 5.3: Certificates & Achievement Proofs)
 - Documents/Planning/PART_5.1_IMPLEMENTATION_ROADMAP_SPRINT_PLANNING.md (Sprint 6: Certificate generation)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Certificate model schema)
 
 Architecture Decisions:

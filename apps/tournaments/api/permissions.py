@@ -9,7 +9,7 @@ Custom permission classes for tournament API endpoints.
 Source Documents:
 - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md (API Security)
 - Documents/Planning/PART_2.3_REALTIME_SECURITY.md (Role-based Access Control)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-005: Security Model)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-005: Security Model)
 """
 
 from rest_framework import permissions

@@ -3,7 +3,7 @@ Custom Field API ViewSet
 
 Module: 2.2 - Game Configurations & Custom Fields (Backend Only)
 Source Documents:
-- Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md (Module 2.2)
+- Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md (Module 2.2)
 
 Description:
 REST API endpoints for tournament custom fields management.

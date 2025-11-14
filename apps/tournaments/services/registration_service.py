@@ -5,7 +5,7 @@ Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Section 5: Service Layer - RegistrationService, PaymentService)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 4: Registration & Payment Models)
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (UI Flow and Payment Verification)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern, ADR-003: Soft Delete)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern, ADR-003: Soft Delete)
 
 Architecture Decisions:
 - ADR-001: Service Layer Pattern - All business logic in services, not views or models

@@ -5,7 +5,7 @@ Source Documents:
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 4: Registration Models)
 - Documents/Planning/PART_3.2_CONSTRAINTS_INDEXES_TRIGGERS.md (Constraints + Indexes)
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (UI behavior + flow)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-003 Soft Delete, ADR-004 PostgreSQL)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-003 Soft Delete, ADR-004 PostgreSQL)
 
 This module defines:
 - Registration: Participant registration tracking with JSONB data storage

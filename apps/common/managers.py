@@ -5,8 +5,8 @@ Provides QuerySet managers for soft-deleted models.
 
 Source Documents:
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md#section-4.0
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#ADR-003
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#section-2
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#ADR-003
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#section-2
 
 Architecture Decision Records:
 - ADR-003: Soft Delete Strategy

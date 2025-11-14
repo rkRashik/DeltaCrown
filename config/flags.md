@@ -243,4 +243,4 @@ Drills simulate failure scenarios in test environments:
 - [MODULE_8.3_OBSERVABILITY_NOTES.md](../MODULE_8.3_OBSERVABILITY_NOTES.md) - Detailed observability guide
 - [PHASE_9_SMOKE_AND_ALERTING.md](../PHASE_9_SMOKE_AND_ALERTING.md) - Smoke tests and alerting
 - [RUNBOOKS/ONCALL_HANDOFF.md](../RUNBOOKS/ONCALL_HANDOFF.md) - On-call runbook (uses drill scenarios)
-- [Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md](../Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md) - Phase roadmap
+- [Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md](../Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md) - Phase roadmap

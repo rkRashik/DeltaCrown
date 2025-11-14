@@ -6,7 +6,7 @@ Coverage Target: 100% (critical financial logic)
 
 Tests duplicate request handling, deterministic key generation, collision detection.
 """
-# Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md
+# Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md
 
 import pytest
 from decimal import Decimal

@@ -4,7 +4,7 @@ Organizer Dashboard Service - Module 2.5
 Provides backend aggregation and analytics for tournament organizers.
 
 Source Documents:
-- Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md (Module 2.5, lines 250-279)
+- Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md (Module 2.5, lines 250-279)
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Service Layer Pattern, Section 5.1)
 - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (Dashboard requirements, lines 160-211)
 

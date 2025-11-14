@@ -7,7 +7,7 @@ REST API routes for tournament registration and management.
 
 Source Documents:
 - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md (API Routing)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (URL Conventions)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (URL Conventions)
 """
 
 from django.urls import path, include

@@ -5,7 +5,7 @@ Team API URL Configuration (Module 3.3)
 REST API routing for team management endpoints.
 
 Traceability:
-- Documents/ExecutionPlan/MODULE_3.3_IMPLEMENTATION_PLAN.md#proposed-endpoints
+- Documents/ExecutionPlan/Modules/MODULE_3.3_IMPLEMENTATION_PLAN.md#proposed-endpoints
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter

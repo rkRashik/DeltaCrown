@@ -654,7 +654,7 @@ transactions
 
 - **API Docs**: `docs/api/endpoint_catalog.md`
 - **Setup Guide**: `docs/development/setup_guide.md`
-- **Module Status**: `Documents/ExecutionPlan/MAP.md`
+- **Module Status**: `Documents/ExecutionPlan/Core/MAP.md`
 - **Planning Docs**: `Documents/Planning/`
 
 ---

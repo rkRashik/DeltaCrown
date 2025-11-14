@@ -708,7 +708,7 @@ curl https://deltacrown.com/healthz/
 - **Setup Guide**: `docs/development/setup_guide.md`
 - **API Documentation**: `docs/api/endpoint_catalog.md`
 - **Architecture**: `docs/architecture/system_architecture.md`
-- **Module Status**: `Documents/ExecutionPlan/MAP.md`
+- **Module Status**: `Documents/ExecutionPlan/Core/MAP.md`
 
 ---
 

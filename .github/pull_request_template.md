@@ -2,7 +2,7 @@
 Implements: Phase X → Module Y (from 00_MASTER_EXECUTION_PLAN.md)
 
 ## Source of Truth
-- Documents/ExecutionPlan/00_MASTER_EXECUTION_PLAN.md#phase-x
+- Documents/ExecutionPlan/Core/00_MASTER_EXECUTION_PLAN.md#phase-x
 - [list Planning anchors used]
 - ADRs: [ADR-### as needed]
 
@@ -12,8 +12,8 @@ Implements: Phase X → Module Y (from 00_MASTER_EXECUTION_PLAN.md)
 - [ ] Lint/type checks pass
 - [ ] No N+1; show select_related/prefetch usage if applicable
 - [ ] Added/updated headers with plan citations
-- [ ] Updated Documents/ExecutionPlan/MAP.md
-- [ ] Updated Documents/ExecutionPlan/trace.yml
+- [ ] Updated Documents/ExecutionPlan/Core/MAP.md
+- [ ] Updated Documents/ExecutionPlan/Core/trace.yml
 
 ## Changes Made
 <!-- Brief description of implementation -->

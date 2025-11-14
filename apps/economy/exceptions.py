@@ -1,7 +1,7 @@
 """
 Economy App Exceptions
 
-Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md - Step 2
+Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md - Step 2
 Custom exceptions for coin system operations.
 """
 

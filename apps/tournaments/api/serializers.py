@@ -11,7 +11,7 @@ Source Documents:
 - Documents/Planning/PART_5.2_BACKEND_INTEGRATION_TESTING_DEPLOYMENT.md (API Structure)
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (Registration Validation)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Registration Model)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (API Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (API Standards)
 """
 
 from rest_framework import serializers

@@ -5,7 +5,7 @@ Team Management API Views (Module 3.3)
 REST API endpoints following DRF best practices and Module 3.2 patterns.
 Integrates TeamService, permissions, and WebSocket broadcasts.
 
-Planning Reference: Documents/ExecutionPlan/MODULE_3.3_IMPLEMENTATION_PLAN.md
+Planning Reference: Documents/ExecutionPlan/Modules/MODULE_3.3_IMPLEMENTATION_PLAN.md
 
 Traceability:
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-creation
@@ -13,7 +13,7 @@ Traceability:
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#invitations
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#captain-transfer
 - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-dissolution
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-008
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-008
 """
 import logging
 

@@ -4,7 +4,7 @@ Tournament Discovery API - Endpoints for searching and filtering tournaments.
 Module: 2.4 - Tournament Discovery & Filtering (Backend Only)
 
 Source Documents:
-- Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md (Module 2.4, Lines 214-241)
+- Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md (Module 2.4, Lines 214-241)
 - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (Section 5.1, Lines 455-555)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Tournament fields)
 - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md (API patterns, ordering)

@@ -3,10 +3,10 @@ WinnerDeterminationService - Business logic for tournament winner determination 
 
 Source Documents:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md (Module 5.1: Winner Determination)
-- Documents/ExecutionPlan/MODULE_5.1_EXECUTION_CHECKLIST.md (14-section implementation guide)
+- Documents/ExecutionPlan/Modules/MODULE_5.1_EXECUTION_CHECKLIST.md (14-section implementation guide)
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Section 6: BracketService winner progression)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 3: Tournament status COMPLETED → CONCLUDED)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern, ADR-007: WebSocket)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer Pattern, ADR-007: WebSocket)
 
 Architecture Decisions:
 - ADR-001: Service layer pattern - All business logic in services

@@ -358,9 +358,9 @@ API integration tests:
 
 ## Related Documentation
 
-- [Module 2.1 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.1_COMPLETION_STATUS.md)
-- [Module 2.2 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.2_COMPLETION_STATUS.md)
-- [Module 2.3 Completion Status](../../../Documents/ExecutionPlan/MODULE_2.3_COMPLETION_STATUS.md) - Tournament Templates (Optional Feature)
+- [Module 2.1 Completion Status](../../../Documents/ExecutionPlan/Modules/MODULE_2.1_COMPLETION_STATUS.md)
+- [Module 2.2 Completion Status](../../../Documents/ExecutionPlan/Modules/MODULE_2.2_COMPLETION_STATUS.md)
+- [Module 2.3 Completion Status](../../../Documents/ExecutionPlan/Modules/MODULE_2.3_COMPLETION_STATUS.md) - Tournament Templates (Optional Feature)
 - [Service Layer README](../services/README.md)
-- [ADR-002: API Design Patterns](../../../Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-002)
-- [BACKEND_ONLY_BACKLOG.md](../../../Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md)
+- [ADR-002: API Design Patterns](../../../Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-002)
+- [BACKEND_ONLY_BACKLOG.md](../../../Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md)

@@ -6,7 +6,7 @@ Organizer/Admin endpoints for processing payouts and refunds.
 Related Planning:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-52
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#section-6
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md#adr-001-service-layer
 
 Module: apps.tournaments.api.payout_views
 Implements: phase_5:module_5_2:milestone_3

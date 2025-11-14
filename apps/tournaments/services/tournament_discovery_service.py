@@ -2,7 +2,7 @@
 Tournament Discovery Service - Search and filter operations for tournaments.
 
 Source Documents:
-- Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md (Module 2.4, Lines 214-241)
+- Documents/ExecutionPlan/Core/BACKEND_ONLY_BACKLOG.md (Module 2.4, Lines 214-241)
 - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (Section 5.1, Lines 455-555)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Tournament model fields)
 - Documents/Planning/PART_3.2_DATABASE_CONSTRAINTS_MIGRATION.md (Query patterns & indexes)

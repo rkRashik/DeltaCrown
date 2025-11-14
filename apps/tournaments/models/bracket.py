@@ -6,7 +6,7 @@ Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Section 6: BracketService)
 - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (Bracket visualization)
 - Documents/Planning/PART_3.2_DATABASE_CONSTRAINTS_MIGRATION.md (Constraints & indexes)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001, ADR-003, ADR-004)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001, ADR-003, ADR-004)
 
 Architecture Decisions:
 - ADR-001: Service layer pattern - Business logic in BracketService

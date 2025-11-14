@@ -5,10 +5,10 @@ Team Management API Serializers (Module 3.3)
 Serializers for team CRUD, invitations, and roster management.
 Follows DRF conventions and Module 3.2 patterns.
 
-Planning Reference: Documents/ExecutionPlan/MODULE_3.3_IMPLEMENTATION_PLAN.md
+Planning Reference: Documents/ExecutionPlan/Modules/MODULE_3.3_IMPLEMENTATION_PLAN.md
 
 Traceability:
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md#api-design
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md#api-design
 """
 from rest_framework import serializers
 from django.contrib.auth import get_user_model

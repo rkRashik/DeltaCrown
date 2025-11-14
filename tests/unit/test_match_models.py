@@ -5,7 +5,7 @@ Source Documents:
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 6: Match Lifecycle Models)
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Match/Dispute models)
 - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md (Dispute Model section 4.5)
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001, ADR-003, ADR-007)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001, ADR-003, ADR-007)
 
 Architecture Decisions:
 - ADR-001: Service layer pattern

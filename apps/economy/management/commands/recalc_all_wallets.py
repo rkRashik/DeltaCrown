@@ -15,7 +15,7 @@ Exit Codes:
 
 PII Discipline: Output contains wallet IDs only (no usernames, emails, or PII).
 """
-# Implements: Documents/ExecutionPlan/MODULE_7.1_KICKOFF.md
+# Implements: Documents/ExecutionPlan/Modules/MODULE_7.1_KICKOFF.md
 
 import sys
 from django.core.management.base import BaseCommand

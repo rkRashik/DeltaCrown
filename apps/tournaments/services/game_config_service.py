@@ -5,7 +5,7 @@ Module: 2.2 - Game Configurations & Custom Fields (Backend Only)
 Source Documents:
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Service Layer Design)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Game Model with game_config JSONB)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Service Layer Standards)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Service Layer Standards)
 
 Architecture Decisions:
 - ADR-001: Service Layer Pattern - All business logic in services

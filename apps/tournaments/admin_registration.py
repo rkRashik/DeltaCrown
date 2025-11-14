@@ -4,7 +4,7 @@ Django admin interfaces for Tournament Registration and Payment models.
 Source Documents:
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (Admin UI for payment verification)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 4: Registration & Payment Models)
-- Documents/ExecutionPlan/02_TECHNICAL_STANDARDS.md (Django admin customization)
+- Documents/ExecutionPlan/Core/02_TECHNICAL_STANDARDS.md (Django admin customization)
 
 Provides admin customization for:
 - Registration: Participant registration management with status filtering

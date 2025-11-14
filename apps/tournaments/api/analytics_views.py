@@ -7,7 +7,7 @@ Module: 5.4 - Analytics & Reports
 Source Documents:
 - Documents/ExecutionPlan/PHASE_5_IMPLEMENTATION_PLAN.md#module-54
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md#AnalyticsService
-- Documents/ExecutionPlan/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer)
+- Documents/ExecutionPlan/Core/01_ARCHITECTURE_DECISIONS.md (ADR-001: Service Layer)
 
 Implements:
 - Organizer analytics (tournament metrics)
