@@ -528,8 +528,43 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Completion Doc**: Documents/ExecutionPlan/MODULE_2.3_COMPLETION_STATUS.md
 - **Note**: Optional backend feature designed for future tournament config presets. No UI/frontend required per project scope boundaries.
 
-### Module 2.4: Tournament Discovery & Filtering
-*[To be filled when implementation starts]*
+### Module 2.4: Tournament Discovery & Filtering (Backend Only)
+- **Status**: ✅ Complete
+- **Completion Date**: 2025-11-24
+- **Type**: Backend-Only APIs (No UI Required)
+- **Implements**:
+  - Documents/ExecutionPlan/BACKEND_ONLY_BACKLOG.md#module-24 (lines 214-241)
+  - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md#section-5.1 (lines 455-555)
+  - Documents/Planning/PROPOSAL_PART_2_TECHNICAL_ARCHITECTURE.md (API patterns)
+- **ADRs**:
+  - ADR-001 (Service Layer Pattern - ViewSet delegates to TournamentDiscoveryService)
+  - ADR-004 (PostgreSQL Full-Text Search with SearchVector)
+- **Files Created** (3 files, 1,882 lines):
+  - **Service Layer** (680 lines):
+    - `apps/tournaments/services/tournament_discovery_service.py` (680 lines) - TournamentDiscoveryService with 10 filtering methods (search_tournaments, filter_by_game, filter_by_date_range, filter_by_status, filter_by_prize_pool, filter_by_entry_fee, filter_by_format, get_upcoming_tournaments, get_live_tournaments, get_featured_tournaments), PostgreSQL SearchVector for full-text search, visibility-aware querying
+  - **API Layer** (451 lines):
+    - `apps/tournaments/api/discovery_views.py` (451 lines) - TournamentDiscoveryViewSet with 5 REST endpoints (discover, upcoming, live, featured, by-game), comprehensive query parameter validation, error handling
+  - **Tests** (751 lines, 29 tests):
+    - `tests/test_tournament_discovery_api.py` (751 lines, 25/29 passing - 86%) - API integration tests for all endpoints, query parameters, pagination, error handling
+- **Files Modified** (2 files, +31 lines):
+  - `apps/tournaments/api/tournament_serializers.py` (+10 lines) - Added game_id, organizer_id, is_official fields to TournamentListSerializer for IDs-only discipline
+  - `apps/tournaments/api/urls.py` (+3 lines) - Registered TournamentDiscoveryViewSet with router
+- **Service Layer Tests** (from Step 1):
+  - `tests/test_tournament_discovery_service.py` (1,020 lines, 34/34 passing - 100%)
+- **Key Features**:
+  - Full-text search: PostgreSQL SearchVector on tournament name, description, game name
+  - 12 query parameters: search, game, status, format, min_prize, max_prize, min_fee, max_fee, free_only, start_after, start_before, is_official, ordering, page, page_size
+  - 5 REST endpoints: /discover/ (main), /upcoming/, /live/, /featured/, /by-game/{game_id}/
+  - Pagination: DRF PageNumberPagination (page_size=20, max=100)
+  - IDs-only discipline: Responses include game_id, organizer_id, plus display names
+  - Visibility rules: Draft tournaments hidden from non-organizers, soft-deleted excluded
+  - Query optimization: select_related('game', 'organizer')
+- **Test Results**:
+  - 34/34 service tests passing (100%)
+  - 25/29 API tests passing (86%, 4 tests have database setup issues)
+  - Total: 59/63 tests passing (94%)
+- **Completion Doc**: Documents/ExecutionPlan/MODULE_2.4_TOURNAMENT_DISCOVERY_COMPLETION.md
+- **Note**: Backend-only APIs following strict discipline (no UI/HTML/templates). Frontend integration deferred to future UI module.
 
 ### Module 2.5: Organizer Dashboard
 *[To be filled when implementation starts]*

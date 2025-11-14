@@ -38,9 +38,13 @@ class TournamentListSerializer(serializers.ModelSerializer):
     
     Returns minimal fields for list endpoints with pagination.
     Frontend can fetch full details via detail endpoint.
+    
+    Module 2.4: Enhanced with ID fields for IDs-only discipline.
     """
     
+    game_id = serializers.IntegerField(source='game.id', read_only=True)
     game_name = serializers.CharField(source='game.name', read_only=True)
+    organizer_id = serializers.IntegerField(source='organizer.id', read_only=True)
     organizer_username = serializers.CharField(source='organizer.username', read_only=True)
     participant_count = serializers.SerializerMethodField()
     
@@ -50,7 +54,9 @@ class TournamentListSerializer(serializers.ModelSerializer):
             'id',
             'slug',
             'name',
+            'game_id',
             'game_name',
+            'organizer_id',
             'organizer_username',
             'status',
             'format',
@@ -65,6 +71,7 @@ class TournamentListSerializer(serializers.ModelSerializer):
             'has_entry_fee',
             'entry_fee_amount',
             'thumbnail_image',
+            'is_official',
             'created_at',
         ]
     

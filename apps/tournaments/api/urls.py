@@ -17,6 +17,7 @@ from apps.tournaments.api.tournament_views import TournamentViewSet  # Module 2.
 from apps.tournaments.api.game_config_views import GameConfigViewSet  # Module 2.2
 from apps.tournaments.api.custom_field_views import CustomFieldViewSet  # Module 2.2
 from apps.tournaments.api.template_views import TournamentTemplateViewSet  # Module 2.3
+from apps.tournaments.api.discovery_views import TournamentDiscoveryViewSet  # Module 2.4
 from apps.tournaments.api.registrations import RegistrationViewSet  # Milestone B
 from apps.tournaments.api.payments import PaymentVerificationViewSet  # Milestone C
 from apps.tournaments.api.matches import MatchViewSet  # Milestone D (replaces match_views)
@@ -37,6 +38,7 @@ from apps.tournaments.api.leaderboard_views import (
 # Router for DRF viewsets
 router = DefaultRouter()
 router.register(r'tournaments', TournamentViewSet, basename='tournament')  # Module 2.1
+router.register(r'tournament-discovery', TournamentDiscoveryViewSet, basename='tournament-discovery')  # Module 2.4
 router.register(r'games', GameConfigViewSet, basename='game-config')  # Module 2.2
 router.register(r'tournament-templates', TournamentTemplateViewSet, basename='tournament-template')  # Module 2.3
 router.register(r'registrations', RegistrationViewSet, basename='registration')  # Use Milestone B version
