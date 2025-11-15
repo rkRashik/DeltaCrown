@@ -141,9 +141,10 @@ class RegistrationService:
         merged_data = {**auto_filled_data, **registration_data}
         
         # Create registration
+        # Note: For team registrations, user must be None (XOR constraint)
         registration = Registration(
             tournament=tournament,
-            user=user,
+            user=None if team_id else user,
             team_id=team_id,
             registration_data=merged_data,
             status=Registration.PENDING
@@ -219,6 +220,10 @@ class RegistrationService:
         if tournament.participation_type == Tournament.SOLO and team_id is not None:
             raise ValidationError("This tournament is for solo participants only")
         
+        # For team registrations, validate user has permission to register the team
+        if team_id is not None:
+            RegistrationService._validate_team_registration_permission(team_id, user)
+        
         # Check for duplicate registration
         existing_registration = Registration.objects.filter(
             tournament=tournament,
@@ -243,6 +248,57 @@ class RegistrationService:
             
             if team_registered:
                 raise ValidationError("This team is already registered for this tournament")
+    
+    @staticmethod
+    def _validate_team_registration_permission(team_id: int, user) -> None:
+        """
+        Validate that the user has permission to register the team for tournaments.
+        
+        Args:
+            team_id: ID of the team to validate
+            user: User attempting to register the team
+        
+        Raises:
+            ValidationError: If user lacks permission to register this team
+        
+        Permission Rules:
+            - Team Owner (role=OWNER): Always allowed
+            - Team Manager (role=MANAGER): Always allowed  
+            - Other roles with can_register_tournaments=True: Allowed (explicit permission)
+            - All other roles: Not allowed
+        
+        Note:
+            Uses TeamMembership.can_register_tournaments cached permission field.
+            This field is automatically updated when membership role changes.
+        """
+        from apps.teams.models import TeamMembership, Team
+        
+        # Get team
+        try:
+            team = Team.objects.get(id=team_id)
+        except Team.DoesNotExist:
+            raise ValidationError(f"Team with ID {team_id} not found")
+        
+        # Get user's membership
+        try:
+            membership = TeamMembership.objects.get(
+                team=team,
+                profile=user.profile,
+                status=TeamMembership.Status.ACTIVE
+            )
+        except TeamMembership.DoesNotExist:
+            raise ValidationError(
+                f"You are not an active member of {team.name}. "
+                "Only team members can register their team."
+            )
+        
+        # Check permission
+        if not membership.can_register_tournaments:
+            raise ValidationError(
+                f"You do not have permission to register {team.name} for tournaments. "
+                "Only team owners, managers, or members with explicit registration "
+                "permission can register teams."
+            )
     
     @staticmethod
     def _auto_fill_registration_data(user, tournament: Tournament) -> Dict[str, Any]:
