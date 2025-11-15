@@ -1,0 +1,128 @@
+<!-- Match Participants Component -->
+<div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
+        <h2 class="text-lg font-bold text-gray-900">Participants</h2>
+    </div>
+    
+    <div class="p-6">
+        <div class="space-y-4">
+            
+            <!-- Participant 1 -->
+            <div class="flex items-center justify-between p-4 rounded-lg
+                {% if match.winner_id == match.participant1_id %}
+                    bg-green-50 border-2 border-green-500
+                {% elif match.state == 'completed' %}
+                    bg-gray-50 border border-gray-200
+                {% else %}
+                    bg-gray-50 border border-gray-200
+                {% endif %}">
+                <div class="flex items-center space-x-4">
+                    <!-- Avatar Placeholder -->
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        {% if participant1 %}
+                            {{ participant1.username|slice:":1"|upper }}
+                        {% else %}
+                            ?
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Name and Winner Badge -->
+                    <div>
+                        <p class="font-bold text-gray-900 text-lg">
+                            {% if participant1 %}
+                                {{ participant1.username }}
+                            {% else %}
+                                TBD
+                            {% endif %}
+                        </p>
+                        {% if match.winner_id == match.participant1_id %}
+                        <span class="inline-flex items-center text-sm font-semibold text-green-700">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Winner
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Score -->
+                {% if match.participant1_score is not None %}
+                <div class="text-3xl font-bold
+                    {% if match.winner_id == match.participant1_id %}
+                        text-green-700
+                    {% else %}
+                        text-gray-600
+                    {% endif %}">
+                    {{ match.participant1_score }}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- VS Divider -->
+            <div class="text-center relative">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center">
+                    <span class="px-4 bg-white text-sm font-bold text-gray-500">VS</span>
+                </div>
+            </div>
+
+            <!-- Participant 2 -->
+            <div class="flex items-center justify-between p-4 rounded-lg
+                {% if match.winner_id == match.participant2_id %}
+                    bg-green-50 border-2 border-green-500
+                {% elif match.state == 'completed' %}
+                    bg-gray-50 border border-gray-200
+                {% else %}
+                    bg-gray-50 border border-gray-200
+                {% endif %}">
+                <div class="flex items-center space-x-4">
+                    <!-- Avatar Placeholder -->
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        {% if participant2 %}
+                            {{ participant2.username|slice:":1"|upper }}
+                        {% else %}
+                            ?
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Name and Winner Badge -->
+                    <div>
+                        <p class="font-bold text-gray-900 text-lg">
+                            {% if participant2 %}
+                                {{ participant2.username }}
+                            {% elif not match.participant2_id %}
+                                <span class="text-gray-400">Bye / TBD</span>
+                            {% else %}
+                                TBD
+                            {% endif %}
+                        </p>
+                        {% if match.winner_id == match.participant2_id %}
+                        <span class="inline-flex items-center text-sm font-semibold text-green-700">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Winner
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Score -->
+                {% if match.participant2_score is not None %}
+                <div class="text-3xl font-bold
+                    {% if match.winner_id == match.participant2_id %}
+                        text-green-700
+                    {% else %}
+                        text-gray-600
+                    {% endif %}">
+                    {{ match.participant2_score }}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>

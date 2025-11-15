@@ -128,39 +128,51 @@
     </article>
   </div>
 
-  <!-- Second Row: Registrations & Payouts -->
+  <!-- Second Row: Tournaments & Payouts -->
   <div class="grid lg:grid-cols-2 gap-6 mt-6">
-    <!-- Tournament Registrations -->
+    <!-- My Tournaments (Sprint 2: Player Dashboard) -->
     <article class="glass p-6 rounded-2xl">
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-semibold flex items-center">
           <i class="fas fa-trophy mr-2 text-primary"></i>
-          My Registrations
+          My Tournaments
         </h3>
-        {# Tournament system moved to legacy - link disabled #}
-        {# <a href="{% url 'tournaments:hub' %}" class="text-sm text-primary hover:underline">Browse Tournaments</a> #}
+        <a href="{% url 'tournaments:my_tournaments' %}" class="text-sm text-primary hover:underline">View All</a>
       </div>
-      {% if registrations %}
-        <ul class="grid gap-2 text-sm">
-          {% for r in registrations %}
-            <li class="flex items-center justify-between p-2 rounded hover:bg-white/5">
-              <span class="flex-1 truncate">Registration</span>
-              <span class="text-xs px-2 py-1 rounded-full 
-                {% if r.status == 'confirmed' %}bg-green-600/20 text-green-400
-                {% elif r.status == 'pending' %}bg-yellow-600/20 text-yellow-400
-                {% else %}bg-gray-600/20 text-gray-400{% endif %}">
-                {{ r.status|title|default:"—" }}
-              </span>
+      {% if user_tournaments %}
+        <ul class="grid gap-3">
+          {% for registration in user_tournaments %}
+            <li class="p-3 rounded-lg hover:bg-white/5 transition">
+              <div class="flex items-center justify-between mb-2">
+                <a href="{% url 'tournaments:detail' registration.tournament.slug %}" class="link-nav font-medium truncate flex-1">
+                  {{ registration.tournament.name }}
+                </a>
+                <span class="text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0
+                  {% if registration.status == 'confirmed' %}bg-green-600/20 text-green-400
+                  {% elif registration.status == 'payment_submitted' %}bg-yellow-600/20 text-yellow-400
+                  {% elif registration.status == 'pending' %}bg-blue-600/20 text-blue-400
+                  {% else %}bg-gray-600/20 text-gray-400{% endif %}">
+                  {{ registration.get_status_display }}
+                </span>
+              </div>
+              <div class="flex items-center gap-3 text-xs text-muted">
+                {% if registration.tournament.game %}
+                  <span class="px-2 py-0.5 rounded bg-primary/10 text-primary">{{ registration.tournament.game.name }}</span>
+                {% endif %}
+                {% if registration.tournament.tournament_start %}
+                  <span><i class="fas fa-calendar mr-1"></i>{{ registration.tournament.tournament_start|date:"M d" }}</span>
+                {% endif %}
+              </div>
             </li>
           {% endfor %}
         </ul>
       {% else %}
         <div class="text-center py-6">
-          <i class="fas fa-clipboard-list text-4xl text-muted/30 mb-3"></i>
-          <p class="text-muted text-sm mb-3">Tournament system moved to legacy.</p>
-          {# <a href="{% url 'tournaments:hub' %}" class="btn-sm btn-primary">
-            <i class="fas fa-trophy mr-1"></i>Browse Tournaments
-          </a> #}
+          <i class="fas fa-trophy text-4xl text-muted/30 mb-3"></i>
+          <p class="text-muted text-sm mb-3">You haven't registered for any tournaments yet.</p>
+          <a href="{% url 'tournaments:list' %}" class="btn-sm btn-primary">
+            <i class="fas fa-search mr-1"></i>Browse Tournaments
+          </a>
         </div>
       {% endif %}
     </article>

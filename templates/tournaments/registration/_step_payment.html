@@ -1,0 +1,75 @@
+<!-- Step 4: Payment Information -->
+<div class="payment-info">
+  <div class="bg-primary/10 border border-primary rounded-lg p-6 mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm text-body-secondary mb-1">Entry Fee</p>
+        <p class="text-3xl font-bold text-primary">৳{{ tournament.entry_fee_amount|floatformat:0 }}</p>
+      </div>
+      <i class="fas fa-coins text-primary text-4xl opacity-20"></i>
+    </div>
+  </div>
+
+  <div class="mb-6">
+    <h3 class="font-semibold mb-4">Select Payment Method</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {% for method in payment_methods %}
+        <label class="payment-method-card cursor-pointer {% if method.value == selected_payment_method %}selected{% endif %}">
+          <div class="border-2 border-line rounded-lg p-4 hover:border-primary transition-all">
+            <input 
+              type="radio" 
+              name="payment_method" 
+              value="{{ method.value }}"
+              {% if method.value == selected_payment_method %}checked{% endif %}
+              class="sr-only"
+              required
+            >
+            
+            <div class="flex flex-col items-center gap-3">
+              <div class="w-16 h-16 bg-surface rounded-lg flex items-center justify-center">
+                {% if method.logo %}
+                  <img src="{% static method.logo %}" alt="{{ method.label }}" class="w-12 h-12 object-contain">
+                {% else %}
+                  <i class="fas fa-wallet text-primary text-2xl"></i>
+                {% endif %}
+              </div>
+              <span class="font-semibold text-center">{{ method.label }}</span>
+            </div>
+          </div>
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Payment Instructions -->
+  <div class="bg-surface-hover border border-line rounded-lg p-4">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-info-circle text-primary mt-1"></i>
+      <div class="text-sm space-y-2">
+        <p class="font-semibold">Payment Process</p>
+        <ul class="list-disc list-inside text-body-secondary space-y-1">
+          <li>After clicking "Complete Registration", you'll be redirected to the secure payment gateway</li>
+          <li>Complete the payment using your selected method</li>
+          <li>You'll be automatically returned to DeltaCrown after payment</li>
+          <li>Your registration will be confirmed once payment is verified</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Refund Policy -->
+  <div class="mt-4 text-sm text-body-secondary">
+    <p>
+      <i class="fas fa-exclamation-circle mr-1"></i>
+      <strong>Refund Policy:</strong> Entry fees are non-refundable unless the tournament is cancelled by the organizer.
+    </p>
+  </div>
+</div>
+
+<style>
+.payment-method-card.selected > div {
+  border-color: var(--color-primary);
+  background: var(--color-primary-hover);
+}
+</style>

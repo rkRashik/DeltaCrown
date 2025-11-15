@@ -1,0 +1,46 @@
+{% load static %}
+
+{% comment %}
+FE-T-001: Empty State Component
+Purpose: Display when no tournaments match filters
+{% endcomment %}
+
+<div class="empty-state text-center py-16">
+  <div class="max-w-md mx-auto">
+    <!-- Empty State Icon -->
+    <div class="mb-6">
+      <i class="fas fa-trophy text-6xl text-body-secondary/30"></i>
+    </div>
+
+    <!-- Empty State Message -->
+    <h3 class="text-2xl font-bold text-primary mb-2">No Tournaments Found</h3>
+    <p class="text-body-secondary mb-6">
+      {% if current_search %}
+        No tournaments match your search for "{{ current_search }}".
+      {% elif current_game or current_status %}
+        No tournaments match your filters. Try adjusting your search criteria.
+      {% else %}
+        There are currently no active tournaments. Check back soon!
+      {% endif %}
+    </p>
+
+    <!-- Actions -->
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      {% if current_search or current_game or current_status %}
+        <a 
+          href="{% url 'tournaments:list' %}" 
+          class="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover transition-colors"
+        >
+          Clear Filters
+        </a>
+      {% endif %}
+      
+      <a 
+        href="/" 
+        class="px-6 py-3 bg-surface border border-line text-body-secondary rounded-lg font-medium hover:bg-surface-elevated transition-colors"
+      >
+        Back to Home
+      </a>
+    </div>
+  </div>
+</div>

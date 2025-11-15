@@ -1,0 +1,199 @@
+/**
+ * FE-T-002: Tournament Detail Page Styles
+ * Purpose: Styles for comprehensive tournament information page
+ * Source: Documents/ExecutionPlan/FrontEnd/Backlog/FRONTEND_TOURNAMENT_BACKLOG.md
+ */
+
+/* Tournament Detail Container */
+.tournament-detail-container {
+  min-height: calc(100vh - 80px);
+}
+
+/* Hero Section */
+.tournament-hero {
+  position: relative;
+  min-height: 400px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.tournament-hero-bg {
+  z-index: 0;
+}
+
+.tournament-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Key Info Bar */
+.tournament-key-info {
+  animation: slideUpFade 0.5s ease-out;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tabs */
+.tournament-tabs {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.tab-headers {
+  scrollbar-width: none; /* Firefox */
+}
+
+.tab-headers::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+.tab-header {
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.tab-header.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.tab-pane {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* CTA Card */
+.cta-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.cta-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Info Panel & Participants */
+.info-item {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.participants-avatars {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.participants-avatars::-webkit-scrollbar {
+  display: none;
+}
+
+/* Prose Styles (for rich text content) */
+.prose {
+  color: var(--color-body-secondary);
+}
+
+.prose h2 {
+  color: var(--color-primary);
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.prose h3 {
+  color: var(--color-primary);
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose p {
+  margin-bottom: 1rem;
+}
+
+.prose ul,
+.prose ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.prose li {
+  margin-bottom: 0.5rem;
+}
+
+.prose a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.prose a:hover {
+  color: var(--color-primary-hover);
+}
+
+/* Responsive: Mobile */
+@media (max-width: 1024px) {
+  .tournament-hero {
+    min-height: 300px;
+  }
+
+  .tournament-hero-content {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .cta-card {
+    position: static;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .tournament-hero {
+    min-height: 250px;
+  }
+
+  .tournament-key-info {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+}
+
+/* Accessibility: Focus States */
+.tab-header:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Loading States (for future HTMX integration) */
+.tournament-detail-container.htmx-swapping {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Sticky Sidebar */
+@media (min-width: 1024px) {
+  .cta-card {
+    position: sticky;
+    top: 1rem;
+  }
+}

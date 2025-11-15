@@ -65,7 +65,7 @@ class RequestLoggingMiddleware(MiddlewareMixin):
             'method': request.method,
             'path': request.path,
             'exception': exception.__class__.__name__,
-            'message': str(exception),
+            'exception_message': str(exception),  # Renamed from 'message' to avoid LogRecord collision
             'user_id': request.user.id if request.user.is_authenticated else None,
         }
         

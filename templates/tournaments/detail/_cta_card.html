@@ -1,0 +1,130 @@
+{% comment %}
+FE-T-003: Registration CTA Card
+Purpose: Dynamic registration button with state-based rendering including all eligibility cases
+Source: Documents/ExecutionPlan/FrontEnd/Backlog/FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.3)
+Props: tournament, cta_state, cta_label, cta_disabled, cta_reason, is_registered
+States: login_required, open, closed, full, registered, upcoming, not_eligible, no_team_permission
+{% endcomment %}
+
+<div class="cta-card bg-surface-elevated border border-line rounded-xl p-6 sticky top-4">
+  <!-- CTA Header -->
+  <div class="cta-header mb-4">
+    <h3 class="text-xl font-semibold text-primary mb-2">
+      {% if cta_state == 'registered' %}
+        You're Registered!
+      {% elif cta_state == 'open' %}
+        Ready to Compete?
+      {% elif cta_state == 'full' %}
+        Tournament Full
+      {% elif cta_state == 'upcoming' %}
+        Registration Coming Soon
+      {% elif cta_state == 'no_team_permission' %}
+        Permission Required
+      {% elif cta_state == 'not_eligible' %}
+        Not Eligible
+      {% elif cta_state == 'login_required' %}
+        Login Required
+      {% else %}
+        Registration Closed
+      {% endif %}
+    </h3>
+    <p class="text-sm text-body-secondary">
+      {{ cta_reason }}
+    </p>
+  </div>
+
+  <!-- Entry Fee (if applicable) -->
+  {% if tournament.has_entry_fee and tournament.entry_fee_amount > 0 %}
+    <div class="entry-fee bg-surface border border-line rounded-lg p-4 mb-4">
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-body-secondary">Entry Fee</span>
+        <span class="text-2xl font-bold text-primary">৳{{ tournament.entry_fee_amount|floatformat:0 }}</span>
+      </div>
+    </div>
+  {% else %}
+    <div class="entry-fee bg-success/10 border border-success/30 rounded-lg p-4 mb-4">
+      <div class="flex items-center justify-center gap-2">
+        <i class="fas fa-gift text-success"></i>
+        <span class="font-semibold text-success">Free Entry</span>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Slots Progress -->
+  <div class="slots-info mb-4">
+    <div class="flex items-center justify-between text-sm text-body-secondary mb-2">
+      <span>Participants</span>
+      <span class="font-semibold">{{ slots_filled }}/{{ slots_total }}</span>
+    </div>
+    <div class="w-full bg-surface rounded-full h-3 overflow-hidden">
+      <div 
+        class="h-full rounded-full transition-all duration-300
+          {% if slots_percentage >= 90 %}bg-danger{% elif slots_percentage >= 70 %}bg-warning{% else %}bg-primary{% endif %}
+        "
+        style="width: {{ slots_percentage|floatformat:0 }}%"
+      ></div>
+    </div>
+  </div>
+
+  <!-- CTA Button -->
+  {% if cta_state == 'login_required' %}
+    <a 
+      href="{% url 'account:login' %}?next={{ request.path }}"
+      class="w-full px-6 py-4 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+    >
+      <i class="fas fa-sign-in-alt"></i>
+      Login to Register
+    </a>
+  {% elif cta_state == 'registered' %}
+    <a 
+      href="#" 
+      class="w-full px-6 py-4 bg-success text-white rounded-lg font-semibold text-center flex items-center justify-center gap-2 mb-3"
+    >
+      <i class="fas fa-check-circle"></i>
+      Registered
+    </a>
+    <a 
+      href="#" 
+      class="w-full px-6 py-3 bg-surface border border-line text-body-secondary rounded-lg font-medium text-center hover:bg-surface-elevated transition-colors"
+    >
+      View My Registration
+    </a>
+  {% elif cta_state == 'open' and can_register %}
+    <a 
+      href="{% url 'tournaments:register' slug=tournament.slug %}" 
+      class="w-full px-6 py-4 bg-primary text-white rounded-lg font-semibold text-center hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
+    >
+      <i class="fas fa-user-plus"></i>
+      Register Now
+    </a>
+  {% else %}
+    <button 
+      disabled
+      class="w-full px-6 py-4 bg-surface-elevated text-body-secondary rounded-lg font-semibold text-center cursor-not-allowed opacity-60"
+    >
+      {{ cta_label }}
+    </button>
+  {% endif %}
+
+  <!-- Additional Info / Help Text -->
+  {% if cta_state == 'no_team_permission' %}
+    <div class="mt-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
+      <p class="text-sm text-body">
+        <i class="fas fa-info-circle text-warning mr-1"></i>
+        <strong>Need Permission:</strong> Only team owners, managers, or members with explicit registration permission can register teams. Contact your team owner to grant you permission.
+      </p>
+    </div>
+  {% elif cta_state == 'not_eligible' and 'team' in cta_reason|lower %}
+    <div class="mt-4 p-3 bg-info/10 border border-info/30 rounded-lg">
+      <p class="text-sm text-body">
+        <i class="fas fa-users text-info mr-1"></i>
+        <strong>Team Required:</strong> This tournament requires a team. <a href="{% url 'teams:create' %}" class="text-primary hover:underline">Create or join a team</a> to participate.
+      </p>
+    </div>
+  {% elif cta_state == 'open' and tournament.registration_deadline %}
+    <div class="mt-4 text-center text-sm text-body-secondary">
+      <i class="fas fa-clock mr-1"></i>
+      Registration closes: {{ tournament.registration_deadline|date:"M d, Y H:i" }}
+    </div>
+  {% endif %}
+</div>

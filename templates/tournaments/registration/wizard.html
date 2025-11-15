@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Register - {{ tournament.name }} | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Wizard Stepper Styles */
+  .wizard-stepper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+  }
+  
+  .wizard-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+  
+  .wizard-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 1.5rem;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--color-line);
+    z-index: -1;
+  }
+  
+  .wizard-step.completed:not(:last-child)::after {
+    background: var(--color-primary);
+  }
+  
+  .wizard-step-circle {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 2px solid var(--color-line);
+    background: var(--color-surface);
+    display: inline-flex;
+    align-items: center;
+    justify-center;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+  
+  .wizard-step.completed .wizard-step-circle {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: white;
+  }
+  
+  .wizard-step.active .wizard-step-circle {
+    border-color: var(--color-primary);
+    border-width: 3px;
+    color: var(--color-primary);
+  }
+  
+  .wizard-step-label {
+    font-size: 0.875rem;
+    color: var(--color-body-secondary);
+  }
+  
+  .wizard-step.active .wizard-step-label {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+  
+  /* Form Styles */
+  .wizard-content {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 12px;
+    padding: 2rem;
+    min-height: 400px;
+  }
+  
+  .team-selector {
+    display: grid;
+    gap: 1rem;
+  }
+  
+  .team-card {
+    border: 2px solid var(--color-line);
+    border-radius: 8px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .team-card:hover {
+    border-color: var(--color-primary);
+    background: var(--color-surface-hover);
+  }
+  
+  .team-card.selected {
+    border-color: var(--color-primary);
+    background: var(--color-primary-hover);
+  }
+  
+  .team-card input[type="radio"] {
+    margin-right: 1rem;
+  }
+  
+  @media (max-width: 640px) {
+    .wizard-stepper {
+      padding: 0 0.5rem;
+    }
+    
+    .wizard-step-label {
+      display: none;
+    }
+    
+    .wizard-step.active .wizard-step-label {
+      display: block;
+      font-size: 0.75rem;
+    }
+    
+    .wizard-content {
+      padding: 1.5rem 1rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <!-- Tournament Header -->
+  <div class="mb-8">
+    <div class="flex items-center gap-4 mb-4">
+      <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="text-body-secondary hover:text-primary">
+        <i class="fas fa-arrow-left"></i> Back to Tournament
+      </a>
+    </div>
+    <h1 class="text-3xl font-bold mb-2">Register for Tournament</h1>
+    <div class="flex items-center gap-4 text-body-secondary">
+      <span class="flex items-center gap-2">
+        <i class="fas fa-gamepad"></i>
+        {{ tournament.game.name }}
+      </span>
+      <span class="flex items-center gap-2">
+        <i class="fas fa-trophy"></i>
+        {{ tournament.name }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Wizard Stepper -->
+  <div class="wizard-stepper">
+    {% for step_num in "x"|rjust:total_steps %}
+      {% with step_index=forloop.counter %}
+        <div class="wizard-step {% if step_index == current_step %}active{% elif step_index < current_step %}completed{% endif %}">
+          <div class="wizard-step-circle">
+            {% if step_index < current_step %}
+              <i class="fas fa-check"></i>
+            {% else %}
+              {{ step_index }}
+            {% endif %}
+          </div>
+          <div class="wizard-step-label">
+            {% if step_index == 1 %}Eligibility
+            {% elif step_index == 2 and tournament.participation_type == 'team' %}Team
+            {% elif tournament.participation_type == 'team' and step_index == 3 %}Details
+            {% elif tournament.participation_type == 'solo' and step_index == 2 %}Details
+            {% elif tournament.has_entry_fee and step_index == total_steps|add:"-1" %}Payment
+            {% elif step_index == total_steps %}Confirm
+            {% else %}Step {{ step_index }}
+            {% endif %}
+          </div>
+        </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+
+  <!-- Wizard Content -->
+  <div class="wizard-content">
+    <form method="post" id="wizardForm">
+      {% csrf_token %}
+      <input type="hidden" name="current_step" value="{{ current_step }}">
+      <input type="hidden" name="action" value="next" id="actionInput">
+
+      <!-- Step Title & Description -->
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold mb-2">{{ step_title }}</h2>
+        <p class="text-body-secondary">{{ step_description }}</p>
+      </div>
+
+      <!-- Display Errors -->
+      {% if errors %}
+        <div class="bg-danger/10 border border-danger rounded-lg p-4 mb-6">
+          <div class="flex items-start gap-3">
+            <i class="fas fa-exclamation-circle text-danger mt-1"></i>
+            <div>
+              <h3 class="font-semibold text-danger mb-2">Please fix the following errors:</h3>
+              <ul class="list-disc list-inside space-y-1">
+                {% for field, error in errors.items %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Step-Specific Content -->
+      <div class="step-content mb-8">
+        {% if current_step == 1 %}
+          {% include "tournaments/registration/_step_eligibility.html" %}
+        {% elif current_step == 2 and tournament.participation_type == 'team' %}
+          {% include "tournaments/registration/_step_team_selection.html" %}
+        {% elif current_step == 3 or current_step == 2 and tournament.participation_type == 'solo' %}
+          {% include "tournaments/registration/_step_custom_fields.html" %}
+        {% elif tournament.has_entry_fee and current_step == total_steps|add:"-1" %}
+          {% include "tournaments/registration/_step_payment.html" %}
+        {% elif current_step == total_steps %}
+          {% include "tournaments/registration/_step_confirm.html" %}
+        {% endif %}
+      </div>
+
+      <!-- Wizard Actions -->
+      <div class="flex justify-between items-center pt-6 border-t border-line">
+        <div>
+          {% if current_step > 1 %}
+            <button type="submit" name="action" value="back" class="px-6 py-3 bg-surface-hover text-body border border-line rounded-lg hover:bg-surface-active transition-colors">
+              <i class="fas fa-arrow-left mr-2"></i>
+              Back
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="flex gap-3">
+          <button type="button" onclick="confirmCancel()" class="px-4 py-3 text-body-secondary hover:text-danger transition-colors">
+            Cancel
+          </button>
+          
+          {% if current_step == total_steps %}
+            <button type="submit" name="action" value="submit" class="px-8 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors">
+              Complete Registration
+              <i class="fas fa-check ml-2"></i>
+            </button>
+          {% else %}
+            <button type="submit" name="action" value="next" class="px-8 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors">
+              Next Step
+              <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function confirmCancel() {
+  if (confirm('Are you sure you want to cancel registration? Your progress will be lost.')) {
+    document.getElementById('actionInput').value = 'cancel';
+    document.getElementById('wizardForm').submit();
+  }
+}
+
+// Team card selection
+document.querySelectorAll('.team-card').forEach(card => {
+  card.addEventListener('click', function() {
+    const radio = this.querySelector('input[type="radio"]');
+    if (radio) {
+      radio.checked = true;
+      document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+    }
+  });
+});
+
+// Payment method selection
+document.querySelectorAll('.payment-method-card').forEach(card => {
+  card.addEventListener('click', function() {
+    const radio = this.querySelector('input[type="radio"]');
+    if (radio) {
+      radio.checked = true;
+      document.querySelectorAll('.payment-method-card').forEach(c => c.classList.remove('selected'));
+      this.classList.add('selected');
+    }
+  });
+});
+</script>
+{% endblock %}

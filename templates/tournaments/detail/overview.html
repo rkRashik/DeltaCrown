@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% comment %}
+FE-T-002: Tournament Detail Page
+Purpose: Comprehensive tournament information page (state-based rendering)
+Source: Documents/ExecutionPlan/FrontEnd/Backlog/FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.2)
+URL: /tournaments/<slug>/
+{% endcomment %}
+
+{% block title %}{{ tournament.name }} - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tournaments/css/tournament-detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tournament-detail-container">
+  <!-- Hero Section -->
+  {% include "tournaments/detail/_hero.html" with tournament=tournament %}
+
+  <!-- Main Content Area -->
+  <div class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- Main Content (Left Column - 2/3 width) -->
+      <div class="lg:col-span-2">
+        <!-- Tab Navigation -->
+        {% include "tournaments/detail/_tabs.html" with tournament=tournament %}
+      </div>
+
+      <!-- Sidebar (Right Column - 1/3 width) -->
+      <div class="lg:col-span-1">
+        <!-- Registration CTA Card (FE-T-003) -->
+        {% include "tournaments/detail/_cta_card.html" with tournament=tournament cta_state=cta_state cta_label=cta_label cta_disabled=cta_disabled is_registered=is_registered %}
+
+        <!-- Info Panel -->
+        {% include "tournaments/detail/_info_panel.html" with tournament=tournament %}
+
+        <!-- Participants Preview (if registration open/closed) -->
+        {% if tournament.status != 'draft' %}
+          {% include "tournaments/detail/_participants_list.html" with tournament=tournament %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tournaments/js/tournament-detail.js' %}"></script>
+{% endblock %}

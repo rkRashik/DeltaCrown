@@ -277,14 +277,21 @@ from django.contrib.auth.decorators import login_required
 @login_required
 def dashboard_index(request: HttpRequest) -> HttpResponse:
     """Enhanced dashboard with teams, registrations, matches, and invites."""
-    # NOTE: Tournament system moved to legacy - no longer displaying tournament data
     Team = _get_model("teams.Team")
     TeamInvite = _get_model("teams.TeamInvite")
 
-    # Get registrations - DISABLED (tournament app removed)
-    regs = []
+    # Get user's tournament registrations (Sprint 2: Player Dashboard)
+    user_tournaments = []
+    try:
+        from apps.tournaments.views.player import get_user_tournaments_for_dashboard
+        user_tournaments = get_user_tournaments_for_dashboard(request.user, limit=5)
+    except Exception:
+        user_tournaments = []
 
-    # Get matches - DISABLED (tournament app removed)
+    # Get registrations - Keep for backward compatibility
+    regs = user_tournaments
+
+    # Get matches - DISABLED (dashboard uses simple display, full matches page available)
     matches = []
 
     # Get user's teams
@@ -315,6 +322,7 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
 
     context = {
         "registrations": regs,
+        "user_tournaments": user_tournaments,  # Sprint 2: New context variable
         "matches": matches,
         "payouts": [],
         "my_teams": my_teams,

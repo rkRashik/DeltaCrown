@@ -1,0 +1,15 @@
+{% comment %}
+FE-T-002: Schedule Preview Component
+Purpose: Show tournament schedule (basic for now)
+{% endcomment %}
+
+<div class="schedule-preview space-y-4">
+  {% if tournament.schedule_data %}
+    {{ tournament.schedule_data|safe }}
+  {% else %}
+    <div class="bg-surface-elevated border border-line rounded-xl p-6 text-center">
+      <i class="fas fa-calendar-times text-3xl text-body-secondary/30 mb-3"></i>
+      <p class="text-body-secondary">Schedule will be announced closer to the tournament date.</p>
+    </div>
+  {% endif %}
+</div>

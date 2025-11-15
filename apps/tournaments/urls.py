@@ -1,48 +1,103 @@
 """
 Tournament URL configuration.
 
-Note: Frontend views moved to legacy_backup/ (November 2, 2025)
-This file maintains URL namespace for admin panel and future API endpoints.
+Sprint 1 Frontend Implementation (November 15, 2025):
+- FE-T-001: Tournament List Page (/tournaments/)
+- FE-T-002: Tournament Detail Page (/tournaments/<slug>/)
+- FE-T-003: Registration CTA States (part of detail page)
+- FE-T-004: Registration Wizard (/tournaments/<slug>/register/)
 
-Current active routes:
+Sprint 2 Frontend Implementation (November 15, 2025):
+- FE-T-005: My Tournaments Dashboard (/tournaments/my/)
+- My Matches View (/tournaments/my/matches/)
+
+Sprint 3 Frontend Implementation (November 15, 2025):
+- FE-T-008: Live Bracket View (/tournaments/<slug>/bracket/)
+- FE-T-009: Match Detail Page (/tournaments/<slug>/matches/<id>/)
+- FE-T-018: Tournament Results Page (/tournaments/<slug>/results/)
+
+Sprint 4 Frontend Implementation (November 16, 2025):
+- FE-T-010: Tournament Leaderboard Page (/tournaments/<slug>/leaderboard/)
+
+Sprint 5 Frontend Implementation (November 16, 2025):
+- FE-T-007: Tournament Lobby/Participant Hub (/tournaments/<slug>/lobby/)
+- Check-In Action (/tournaments/<slug>/check-in/)
+- Check-In Status Polling (/tournaments/<slug>/check-in-status/)
+- Roster View (/tournaments/<slug>/roster/)
+
+Backend APIs:
 - Admin panel: /admin/tournaments/ (Django admin)
 - API endpoints: /api/tournaments/ (Module 3.1)
 
-Legacy frontend routes (disabled):
-- /tournaments/hub/ - Tournament listing (moved to legacy)
-- /tournaments/<slug>/ - Tournament detail (moved to legacy)
-- /tournaments/<slug>/register/ - Registration form (moved to legacy)
+Source Documents:
+- Documents/ExecutionPlan/FrontEnd/Backlog/FRONTEND_TOURNAMENT_BACKLOG.md
+- Documents/ExecutionPlan/FrontEnd/Screens/FRONTEND_TOURNAMENT_SITEMAP.md
+- Documents/ExecutionPlan/FrontEnd/SPRINT_4_LEADERBOARDS_PLAN.md
+- Documents/ExecutionPlan/FrontEnd/SPRINT_5_CHECK_IN_PLAN.md
 """
 
 from django.urls import path
 from django.views.generic import RedirectView
+from apps.tournaments import views
+from apps.tournaments.views import (
+    TournamentRegistrationView,
+    TournamentRegistrationSuccessView,
+)
+from apps.tournaments.views.player import (
+    TournamentPlayerDashboardView,
+    TournamentPlayerMatchesView,
+)
+from apps.tournaments.views.live import (
+    TournamentBracketView,
+    MatchDetailView,
+    TournamentResultsView,
+)
+from apps.tournaments.views.leaderboard import (
+    TournamentLeaderboardView,
+)
+from apps.tournaments.views import checkin
 
 app_name = 'tournaments'
 
 urlpatterns = [
-    # Redirect legacy frontend URLs to home page with info message
-    # Users should use admin panel or API for tournament management
-    path('', RedirectView.as_view(url='/', permanent=False), name='hub'),
-    path('<slug:slug>/', RedirectView.as_view(url='/', permanent=False), name='detail'),
-    path('<slug:slug>/register/', RedirectView.as_view(url='/', permanent=False), name='register'),
+    # FE-T-001: Tournament List/Discovery Page
+    path('', views.TournamentListView.as_view(), name='list'),
     
-    # Keep these URL names for reverse() calls even though they redirect
-    # This prevents NoReverseMatch errors in templates and admin
-    path('<slug:slug>/unified-register/', RedirectView.as_view(url='/', permanent=False), name='unified_register'),
-    path('<slug:slug>/enhanced-register/', RedirectView.as_view(url='/', permanent=False), name='enhanced_register'),
-    path('<slug:slug>/valorant-register/', RedirectView.as_view(url='/', permanent=False), name='valorant_register'),
-    path('<slug:slug>/efootball-register/', RedirectView.as_view(url='/', permanent=False), name='efootball_register'),
-    path('<slug:slug>/modern-register/', RedirectView.as_view(url='/', permanent=False), name='modern_register'),
+    # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
+    path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
+    path('my/matches/', TournamentPlayerMatchesView.as_view(), name='my_matches'),
     
-    # API state endpoint (if needed by admin panel)
-    path('api/<slug:slug>/state/', RedirectView.as_view(url='/api/tournaments/', permanent=False), name='state_api'),
+    # FE-T-002: Tournament Detail Page (includes FE-T-003: CTA states)
+    path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
     
-    # Archive routes
-    path('archives/', RedirectView.as_view(url='/', permanent=False), name='archive_list'),
-    path('archives/<slug:slug>/', RedirectView.as_view(url='/', permanent=False), name='archive_detail'),
+    # FE-T-004: Registration Wizard
+    path('<slug:slug>/register/', TournamentRegistrationView.as_view(), name='register'),
+    path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success'),
+    
+    # Sprint 3: Public Live Tournament Experience
+    # FE-T-008: Live Bracket View
+    path('<slug:slug>/bracket/', TournamentBracketView.as_view(), name='bracket'),
+    # FE-T-009: Match Watch / Match Detail Page
+    path('<slug:slug>/matches/<int:match_id>/', MatchDetailView.as_view(), name='match_detail'),
+    # FE-T-018: Tournament Results Page
+    path('<slug:slug>/results/', TournamentResultsView.as_view(), name='results'),
+    
+    # Sprint 4: Leaderboard & Standings
+    # FE-T-010: Tournament Leaderboard Page
+    path('<slug:slug>/leaderboard/', TournamentLeaderboardView.as_view(), name='leaderboard'),
+    
+    # Sprint 5: Check-In & Tournament Lobby (FE-T-007)
+    path('<slug:slug>/lobby/', checkin.TournamentLobbyView.as_view(), name='lobby'),
+    path('<slug:slug>/check-in/', checkin.CheckInActionView.as_view(), name='check_in'),
+    path('<slug:slug>/check-in-status/', checkin.CheckInStatusView.as_view(), name='check_in_status'),
+    path('<slug:slug>/roster/', checkin.RosterView.as_view(), name='roster'),
+    
+    # Legacy URL compatibility
+    path('hub/', RedirectView.as_view(pattern_name='tournaments:list', permanent=True), name='hub'),
 ]
 
 # Note: Actual tournament management is done through:
 # 1. Django Admin: /admin/tournaments/
 # 2. REST API: /api/tournaments/ (Module 3.1)
 # 3. Future frontend will be rebuilt from scratch
+

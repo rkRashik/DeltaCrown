@@ -2,8 +2,8 @@
 
 **Date**: November 15, 2025  
 **Scope**: Tournament-focused frontend features only  
-**Status**: Planning phase - no implementation yet  
-**Last Updated**: Enhanced with team permissions, lobby hub, group stages, match reporting, and guidance sections
+**Status**: Sprint 1 (FE-T-001–003) COMPLETE ✅ | FE-T-004 IN PROGRESS  
+**Last Updated**: Sprint 1 acceptance + FE-T-004 kickoff (Nov 15, 2025)
 
 ---
 
@@ -34,7 +34,8 @@ This backlog focuses exclusively on **Tournament lifecycle** screens and their d
 
 **Item**: Tournament List Page  
 **ID**: FE-T-001  
-**Priority**: P0
+**Priority**: P0  
+**Status**: ✅ DONE (Sprint 1 - Nov 15, 2025)
 
 **Description**:  
 Public-facing tournament list/discovery page with filters, search, and cards displaying upcoming/open tournaments.
@@ -73,7 +74,8 @@ Public-facing tournament list/discovery page with filters, search, and cards dis
 
 **Item**: Tournament Detail Page (Public)  
 **ID**: FE-T-002  
-**Priority**: P0
+**Priority**: P0  
+**Status**: ✅ DONE (Sprint 1 - Nov 15, 2025)
 
 **Description**:  
 Comprehensive tournament detail page showing all info a player needs before deciding to register.
@@ -127,6 +129,7 @@ Comprehensive tournament detail page showing all info a player needs before deci
 **Item**: Registration Entry Point & States  
 **ID**: FE-T-003  
 **Priority**: P0  
+**Status**: ✅ DONE (Sprint 1 - Nov 15, 2025)  
 **BACKEND_IMPACT**: ✓ Complete (registration_service.py with team permission validation)
 
 **Description**:  

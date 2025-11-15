@@ -1,0 +1,72 @@
+{% comment %}
+Pagination Component
+Purpose: Display pagination controls for list views
+Props: page_obj (Django Paginator page object)
+{% endcomment %}
+
+{% if page_obj.paginator.num_pages > 1 %}
+<nav aria-label="Pagination" class="flex items-center gap-2">
+  <!-- Previous Button -->
+  {% if page_obj.has_previous %}
+    <a 
+      href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+      class="px-4 py-2 bg-surface border border-line rounded-lg text-body-secondary hover:bg-surface-elevated transition-colors"
+      aria-label="Previous page"
+    >
+      <i class="fas fa-chevron-left"></i>
+    </a>
+  {% else %}
+    <span class="px-4 py-2 bg-surface-elevated border border-line rounded-lg text-body-secondary/50 cursor-not-allowed">
+      <i class="fas fa-chevron-left"></i>
+    </span>
+  {% endif %}
+
+  <!-- Page Numbers -->
+  <div class="flex items-center gap-1">
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <span class="px-4 py-2 bg-primary text-white rounded-lg font-medium">
+          {{ num }}
+        </span>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a 
+          href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+          class="px-4 py-2 bg-surface border border-line rounded-lg text-body-secondary hover:bg-surface-elevated transition-colors"
+        >
+          {{ num }}
+        </a>
+      {% elif num == 1 or num == page_obj.paginator.num_pages %}
+        <a 
+          href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+          class="px-4 py-2 bg-surface border border-line rounded-lg text-body-secondary hover:bg-surface-elevated transition-colors"
+        >
+          {{ num }}
+        </a>
+      {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+        <span class="px-2 text-body-secondary">...</span>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Next Button -->
+  {% if page_obj.has_next %}
+    <a 
+      href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+      class="px-4 py-2 bg-surface border border-line rounded-lg text-body-secondary hover:bg-surface-elevated transition-colors"
+      aria-label="Next page"
+    >
+      <i class="fas fa-chevron-right"></i>
+    </a>
+  {% else %}
+    <span class="px-4 py-2 bg-surface-elevated border border-line rounded-lg text-body-secondary/50 cursor-not-allowed">
+      <i class="fas fa-chevron-right"></i>
+    </span>
+  {% endif %}
+</nav>
+
+<!-- Page Info -->
+<p class="text-sm text-body-secondary mt-2 text-center">
+  Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+  ({{ page_obj.paginator.count }} total results)
+</p>
+{% endif %}

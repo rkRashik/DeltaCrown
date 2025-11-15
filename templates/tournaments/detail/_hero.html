@@ -1,0 +1,105 @@
+{% load static %}
+
+{% comment %}
+FE-T-002: Tournament Detail Hero Section
+Purpose: Banner, name, game badge, status display
+{% endcomment %}
+
+<div class="tournament-hero relative overflow-hidden">
+  <!-- Background Banner -->
+  <div class="tournament-hero-bg absolute inset-0">
+    {% if tournament.banner_url %}
+      <img 
+        src="{{ tournament.banner_url }}" 
+        alt="{{ tournament.name }}" 
+        class="w-full h-full object-cover"
+      >
+      <div class="absolute inset-0 bg-gradient-to-t from-body via-body/50 to-transparent"></div>
+    {% else %}
+      <div class="w-full h-full bg-gradient-to-br from-primary/30 to-accent/30"></div>
+    {% endif %}
+  </div>
+
+  <!-- Hero Content -->
+  <div class="tournament-hero-content relative container mx-auto px-4 py-16">
+    <div class="max-w-4xl">
+      <!-- Breadcrumbs -->
+      <nav class="mb-4" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm text-body-secondary">
+          <li><a href="/" class="hover:text-primary transition-colors">Home</a></li>
+          <li><i class="fas fa-chevron-right text-xs"></i></li>
+          <li><a href="{% url 'tournaments:list' %}" class="hover:text-primary transition-colors">Tournaments</a></li>
+          <li><i class="fas fa-chevron-right text-xs"></i></li>
+          <li class="text-primary">{{ tournament.name|truncatewords:5 }}</li>
+        </ol>
+      </nav>
+
+      <!-- Game Badge & Status -->
+      <div class="flex flex-wrap items-center gap-3 mb-4">
+        {% if tournament.game %}
+          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-surface/90 backdrop-blur">
+            <i class="fas fa-gamepad mr-2 text-primary"></i>
+            {{ tournament.game.name }}
+          </span>
+        {% endif %}
+        
+        {% include "tournaments/browse/_status_pill.html" with status=tournament.status %}
+
+        {% if tournament.is_official %}
+          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-warning/20 text-warning border border-warning/30">
+            <i class="fas fa-certificate mr-2"></i>
+            Official
+          </span>
+        {% endif %}
+      </div>
+
+      <!-- Tournament Name -->
+      <h1 class="text-5xl font-bold text-primary mb-4">
+        {{ tournament.name }}
+      </h1>
+
+      <!-- Key Info Bar -->
+      <div class="tournament-key-info grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-surface/90 backdrop-blur rounded-xl border border-line">
+        <!-- Format -->
+        <div class="text-center">
+          <div class="text-sm text-body-secondary mb-1">Format</div>
+          <div class="font-semibold text-primary">
+            <i class="fas fa-sitemap text-accent mr-1"></i>
+            {{ tournament.get_format_display|default:"Tournament" }}
+          </div>
+        </div>
+
+        <!-- Date -->
+        <div class="text-center">
+          <div class="text-sm text-body-secondary mb-1">Start Date</div>
+          <div class="font-semibold text-primary">
+            <i class="fas fa-calendar text-accent mr-1"></i>
+            {{ tournament.tournament_start|date:"M d, Y" }}
+          </div>
+        </div>
+
+        <!-- Prize Pool -->
+        <div class="text-center">
+          <div class="text-sm text-body-secondary mb-1">Prize Pool</div>
+          <div class="font-semibold text-primary">
+            <i class="fas fa-trophy text-accent mr-1"></i>
+            {% if tournament.prize_pool %}
+              ৳{{ tournament.prize_pool|floatformat:0 }}
+            {% else %}
+              Free
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Slots -->
+        <div class="text-center">
+          <div class="text-sm text-body-secondary mb-1">Participants</div>
+          <div class="font-semibold text-primary">
+            <i class="fas fa-users text-accent mr-1"></i>
+            {{ slots_filled }}/{{ slots_total }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
