@@ -3,7 +3,7 @@
 **Module ID**: Module-Registration-Team-Permission  
 **Start Date**: November 15, 2025  
 **Completion Date**: November 15, 2025  
-**Status**: ✅ **COMPLETE** - Backend implementation ready, tests require fixture updates  
+**Status**: ✅ **COMPLETE** - Backend implementation, tests passing, frontend backlog aligned  
 **Estimated Effort**: 2-3 hours | **Actual Effort**: 2 hours
 
 ---
@@ -14,6 +14,8 @@ Implemented backend validation for team tournament registration permissions. Onl
 
 **Key Achievement**: ✅ Backend now validates team registration permissions **before** checking duplicates or capacity  
 **Impact**: 🔒 Prevents unauthorized team registrations, ensures only authorized members act on behalf of teams
+
+**Frontend Alignment**: ✅ `FRONTEND_TOURNAMENT_BACKLOG.md` updated (November 15, 2025) - FE-T-003 and FE-T-004 now include team permission selector requirements, error handling for unauthorized registrations, and `BACKEND_IMPACT: ✓ Complete` markers
 
 ---
 

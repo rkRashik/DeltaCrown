@@ -1,0 +1,478 @@
+# Frontend Tournament Module Traceability
+
+# This file maps each FE-T item to:
+# - Templates (HTML files)
+# - Static files (CSS, JS)
+# - Backend APIs
+# - Backend modules
+# - Tests (future E2E)
+# - Documentation
+
+fe_t_001:
+  title: Tournament List Page
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/browse/list.html
+    - templates/tournaments/browse/_filters.html
+    - templates/tournaments/browse/_tournament_card.html
+    - templates/tournaments/browse/_empty_state.html
+  static:
+    - static/tournaments/css/tournament-list.css
+    - static/tournaments/js/filters.js (or reuse static/js/filter-orb.js)
+  apis:
+    - GET /api/tournaments/discovery/
+  backend_modules:
+    - module_2_4_discovery
+    - module_9_1_performance
+  tests:
+    - frontend_e2e_fe_t_001 (future)
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.1, lines 30-117)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 1.1, lines 46-104)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (browse/ folder)
+
+fe_t_002:
+  title: Tournament Detail Page
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/detail/overview.html
+    - templates/tournaments/detail/_hero.html
+    - templates/tournaments/detail/_tabs.html
+    - templates/tournaments/detail/_info_panel.html
+    - templates/tournaments/detail/_participants_list.html
+    - templates/tournaments/detail/_schedule_preview.html
+    - templates/tournaments/detail/_cta_card.html
+  static:
+    - static/tournaments/css/tournament-detail.css
+  apis:
+    - GET /api/tournaments/<slug>/
+    - GET /api/tournaments/<slug>/registration-status/
+  backend_modules:
+    - module_9_1_performance
+    - module_4_1_registration
+  tests:
+    - frontend_e2e_fe_t_002
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.2, lines 120-281)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 1.2, lines 106-344)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (detail/ folder)
+
+fe_t_003:
+  title: Registration Entry Point
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/detail/_cta_card.html (dynamic CTA button)
+  static:
+    - static/tournaments/css/tournament-detail.css
+  apis:
+    - GET /api/tournaments/<slug>/registration-status/
+  backend_modules:
+    - module_4_1_registration
+  tests:
+    - frontend_e2e_fe_t_003
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.3, lines 284-358)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 1.2 CTA section)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (detail/_cta_card.html)
+
+fe_t_004:
+  title: Registration Wizard
+  priority: P0
+  status: planned
+  backend_impact: complete
+  templates:
+    - templates/tournaments/registration/wizard.html
+    - templates/tournaments/registration/step_team.html
+    - templates/tournaments/registration/step_fields.html
+    - templates/tournaments/registration/step_payment.html
+    - templates/tournaments/registration/step_confirm.html
+    - templates/tournaments/registration/success.html
+    - templates/tournaments/registration/error.html
+    - templates/tournaments/registration/_progress_bar.html
+  static:
+    - static/tournaments/css/registration.css
+    - static/tournaments/js/registration-wizard.js
+  apis:
+    - GET /api/tournaments/<slug>/registration/form/
+    - POST /api/tournaments/<slug>/register/
+    - GET /api/teams/user/<user_id>/authorized/ (NEW - team permission filter)
+  backend_modules:
+    - module_4_1_registration (team permission validation)
+  tests:
+    - frontend_e2e_fe_t_004
+    - test_registration_team_permissions.py (backend tests, complete)
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.4, lines 361-557)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 1.3, lines 346-560)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (registration/ folder)
+    - MODULE_TOURNAMENT_REGISTRATION_ALIGNMENT_COMPLETION.md
+
+fe_t_005:
+  title: My Tournaments Widget
+  priority: P1
+  status: planned
+  templates:
+    - templates/dashboard/index.html (modify existing, add tournament card)
+    - templates/dashboard/_tournaments_widget.html (new partial)
+  static:
+    - static/css/dashboard.css (modify existing)
+  apis:
+    - GET /api/tournaments/user/<user_id>/active/
+  backend_modules:
+    - module_9_1_performance
+  tests:
+    - frontend_e2e_fe_t_005
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.5, lines 560-640)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 4, lines 1067-1107)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (dashboard integration)
+
+fe_t_007:
+  title: Tournament Lobby / Participant Hub
+  priority: P0
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/lobby/index.html
+    - templates/tournaments/lobby/_checkin.html
+    - templates/tournaments/lobby/_roster.html
+    - templates/tournaments/lobby/_schedule.html
+    - templates/tournaments/lobby/_announcements.html
+    - templates/tournaments/lobby/_communication.html (P2)
+  static:
+    - static/tournaments/css/lobby.css
+    - static/js/countdown-timer.js (existing)
+    - static/tournaments/js/live-updates.js
+  apis:
+    - GET /api/tournaments/<slug>/lobby/ (NEW - pending backend)
+    - POST /api/tournaments/<slug>/check-in/ (NEW - pending backend)
+    - GET /api/tournaments/<slug>/lobby/roster/ (NEW - pending backend)
+    - GET /api/tournaments/<slug>/lobby/announcements/ (NEW - pending backend)
+  backend_modules:
+    - lobby_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_007
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.6, lines 643-738)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 2.4, lines ~420-500)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (lobby/ folder)
+
+fe_t_008:
+  title: Live Bracket View
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/brackets/bracket.html
+    - templates/tournaments/brackets/_tree.html
+    - templates/tournaments/brackets/_schedule_list.html
+    - templates/tournaments/brackets/_match_card.html
+  static:
+    - static/tournaments/css/bracket.css
+    - static/tournaments/js/bracket-renderer.js
+  apis:
+    - GET /api/tournaments/<slug>/bracket/
+  backend_modules:
+    - module_5_1_bracket_generation
+  tests:
+    - frontend_e2e_fe_t_008
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.1, lines 741-842)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 3.1, lines ~572-684)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (brackets/ folder)
+
+fe_t_009:
+  title: Match Detail / Lobby Page
+  priority: P0
+  status: planned
+  backend_impact: pending (score reporting)
+  templates:
+    - templates/tournaments/matches/detail.html
+    - templates/tournaments/matches/_match_header.html
+    - templates/tournaments/matches/_timeline.html
+    - templates/tournaments/matches/_score_report_modal.html
+    - templates/tournaments/matches/_dispute_modal.html
+    - templates/tournaments/matches/_lobby_chat.html (P2)
+  static:
+    - static/tournaments/css/match-detail.css
+    - static/tournaments/js/match-timeline.js
+    - static/tournaments/js/score-submission.js
+  apis:
+    - GET /api/tournaments/<slug>/matches/<id>/
+    - POST /api/tournaments/<slug>/matches/<id>/report-score/ (NEW - pending)
+    - POST /api/tournaments/<slug>/matches/<id>/dispute/ (NEW - pending)
+  backend_modules:
+    - module_6_1_match_scheduling
+    - match_result_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_009
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.2, lines 845-968)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 3.2, lines ~686-851)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (matches/ folder)
+
+fe_t_010:
+  title: Tournament Leaderboard
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/leaderboard/index.html
+    - templates/tournaments/leaderboard/_leaderboard_table.html
+    - templates/tournaments/leaderboard/_live_badge.html
+  static:
+    - static/tournaments/css/leaderboard.css
+  apis:
+    - GET /api/tournaments/<slug>/leaderboard/
+  backend_modules:
+    - module_6_3_leaderboard
+  tests:
+    - frontend_e2e_fe_t_010
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.3, lines 971-1063)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 3.3, lines ~853-918)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (leaderboard/ folder)
+
+fe_t_011:
+  title: Group Stage Configuration
+  priority: P0
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/organizer/groups/config.html
+    - templates/tournaments/organizer/groups/_config_form.html
+    - templates/tournaments/organizer/groups/_group_preview.html
+  static:
+    - static/tournaments/css/organizer.css
+  apis:
+    - POST /api/organizer/tournaments/<slug>/groups/configure/ (NEW - pending)
+    - POST /api/organizer/tournaments/<slug>/groups/generate/ (NEW - pending)
+  backend_modules:
+    - group_stage_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_011
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.5, lines 1066-1177)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 6.4, lines ~1200-1260)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (organizer/groups/ folder)
+
+fe_t_012:
+  title: Live Group Draw Interface
+  priority: P1
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/organizer/groups/draw.html
+    - templates/tournaments/organizer/groups/_draw_controls.html
+  static:
+    - static/tournaments/css/organizer.css
+    - static/tournaments/js/group-draw.js
+  apis:
+    - GET /api/organizer/tournaments/<slug>/groups/draw/ (NEW - pending)
+    - POST /api/organizer/tournaments/<slug>/groups/draw/next/ (NEW - pending)
+    - POST /api/organizer/tournaments/<slug>/groups/draw/finalize/ (NEW - pending)
+  backend_modules:
+    - group_stage_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_012
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.5, lines 1180-1295)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 6.5, lines ~1262-1335)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (organizer/groups/ folder)
+
+fe_t_013:
+  title: Group Standings Page
+  priority: P0
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/groups/standings.html
+    - templates/tournaments/groups/_group_tabs.html
+    - templates/tournaments/groups/_standings_table.html
+    - templates/tournaments/groups/_group_matches.html
+  static:
+    - static/tournaments/css/groups.css
+  apis:
+    - GET /api/tournaments/<slug>/groups/standings/ (NEW - pending)
+    - GET /api/tournaments/<slug>/groups/<group_id>/matches/ (NEW - pending)
+  backend_modules:
+    - group_stage_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_013
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.5, lines 1298-1416)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 6.6, lines ~1337-1410)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (groups/ folder)
+
+fe_t_014:
+  title: Match Result Submission Flow
+  priority: P0
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/matches/_score_report_modal.html
+  static:
+    - static/tournaments/css/match-detail.css
+    - static/tournaments/js/score-submission.js
+  apis:
+    - POST /api/tournaments/<slug>/matches/<id>/report-score/ (NEW - pending)
+  backend_modules:
+    - match_result_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_014
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.6, lines 1419-1514)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 3.2, match detail modal)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (matches/_score_report_modal.html)
+
+fe_t_015:
+  title: Organizer Match Approval
+  priority: P0
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/organizer/manage_tournament.html (modify)
+    - templates/tournaments/organizer/_match_controls.html
+  static:
+    - static/tournaments/css/organizer.css
+  apis:
+    - POST /api/organizer/matches/<match_id>/approve/ (NEW - pending)
+    - POST /api/organizer/matches/<match_id>/override-score/ (existing in Module 8.1)
+  backend_modules:
+    - match_result_service (TBD)
+    - module_8_1_admin_tournament_controls
+  tests:
+    - frontend_e2e_fe_t_015
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.6, lines 1517-1590)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 6.2, manage tournament)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (organizer/_match_controls.html)
+
+fe_t_016:
+  title: Dispute Submission Flow
+  priority: P1
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/matches/_dispute_modal.html
+  static:
+    - static/tournaments/css/match-detail.css
+    - static/tournaments/js/dispute-form.js
+  apis:
+    - POST /api/tournaments/<slug>/matches/<id>/dispute/ (NEW - pending)
+  backend_modules:
+    - dispute_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_016
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.6, lines 1593-1667)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 3.2, match detail modal)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (matches/_dispute_modal.html)
+
+fe_t_017:
+  title: Organizer Dispute Resolution
+  priority: P1
+  status: planned
+  backend_impact: pending
+  templates:
+    - templates/tournaments/organizer/disputes/detail.html
+    - templates/tournaments/organizer/disputes/_evidence_viewer.html
+    - templates/tournaments/organizer/disputes/_resolution_form.html
+  static:
+    - static/tournaments/css/organizer.css
+  apis:
+    - GET /api/organizer/tournaments/<slug>/disputes/ (NEW - pending)
+    - GET /api/organizer/tournaments/<slug>/disputes/<id>/ (NEW - pending)
+    - POST /api/organizer/tournaments/<slug>/disputes/<id>/resolve/ (NEW - pending)
+  backend_modules:
+    - dispute_service (TBD)
+  tests:
+    - frontend_e2e_fe_t_017
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.6, lines 1670-1729)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 6.3, lines ~1109-1198)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (organizer/disputes/ folder)
+
+fe_t_018:
+  title: Final Results Page
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/results/final.html
+    - templates/tournaments/results/_podium.html
+    - templates/tournaments/results/_certificate_cta.html
+    - templates/tournaments/results/_tournament_summary.html
+  static:
+    - static/tournaments/css/shared.css (podium styles)
+    - static/tournaments/img/podium-gold.svg
+    - static/tournaments/img/podium-silver.svg
+    - static/tournaments/img/podium-bronze.svg
+  apis:
+    - GET /api/tournaments/<slug>/results/
+  backend_modules:
+    - module_6_5_results
+  tests:
+    - frontend_e2e_fe_t_018
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 2.4, lines ~880-980 range estimate)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 3.4, lines ~920-991)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (results/ folder)
+
+fe_t_020:
+  title: Organizer Dashboard
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/organizer/dashboard.html
+    - templates/tournaments/organizer/_tournament_status_card.html
+  static:
+    - static/tournaments/css/organizer.css
+  apis:
+    - GET /api/organizer/tournaments/
+  backend_modules:
+    - module_9_3_organizer_dashboard
+  tests:
+    - frontend_e2e_fe_t_020
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 3.1, estimate lines 1732+)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 5.1, lines ~1007-1044)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (organizer/ folder)
+
+fe_t_021:
+  title: Manage Tournament Page
+  priority: P0
+  status: planned
+  templates:
+    - templates/tournaments/organizer/manage_tournament.html
+    - templates/tournaments/organizer/_participants_table.html
+    - templates/tournaments/organizer/_payments_table.html
+    - templates/tournaments/organizer/_match_controls.html
+  static:
+    - static/tournaments/css/organizer.css
+  apis:
+    - GET /api/organizer/tournaments/<slug>/
+    - POST /api/organizer/tournaments/<slug>/start/
+    - POST /api/organizer/tournaments/<slug>/pause/
+    - POST /api/organizer/tournaments/<slug>/cancel/
+    - GET /api/organizer/tournaments/<slug>/participants/
+    - POST /api/organizer/tournaments/<slug>/participants/<id>/remove/
+    - GET /api/organizer/tournaments/<slug>/payments/
+    - PATCH /api/organizer/matches/<match_id>/reschedule/
+  backend_modules:
+    - module_8_1_admin_tournament_controls
+    - module_4_2_participant_management
+    - module_3_1_payment_tracking
+  tests:
+    - frontend_e2e_fe_t_021
+  docs:
+    - FRONTEND_TOURNAMENT_BACKLOG.md (Section 3.2, estimate lines 1800+)
+    - FRONTEND_TOURNAMENT_SITEMAP.md (Section 5.2, lines ~1046-1107)
+    - FRONTEND_TOURNAMENT_FILE_STRUCTURE.md (organizer/ folder)
+
+# Additional notes:
+# - All P0 items should be implemented first
+# - P1 items can be deferred if backend dependencies block
+# - P2 items are future enhancements (certificate, full dashboard page)
+# - Backend modules prefixed with "module_" are existing, others are TBD
+# - All frontend_e2e tests are placeholders for future Playwright/Cypress tests

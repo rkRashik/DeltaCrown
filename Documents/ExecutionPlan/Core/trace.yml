@@ -2346,3 +2346,99 @@ phase_9:
     implements: []
   module_9_6:
     implements: []
+
+# Frontend Tournament Module
+frontend_tournament:
+  title: "Frontend Tournament Module"
+  status: "planning_complete"
+  completed_date: "2025-11-15"
+  phases:
+    - fe_t1_discovery_registration
+    - fe_t2_lobby
+    - fe_t3_live_views
+    - fe_t4_organizer_tools
+    - fe_t5_group_stages
+    - fe_t6_polish
+  trace_file: ../FrontEnd/Core/FRONTEND_TOURNAMENT_TRACE.yml
+  docs:
+    - ../FrontEnd/Backlog/FRONTEND_TOURNAMENT_BACKLOG.md
+    - ../FrontEnd/Screens/FRONTEND_TOURNAMENT_SITEMAP.md
+    - ../FrontEnd/Core/FRONTEND_TOURNAMENT_FILE_STRUCTURE.md
+    - ../FrontEnd/Core/FRONTEND_TOURNAMENT_CHECKLIST.md
+    - ../FrontEnd/Core/FRONTEND_TOURNAMENT_TESTING_STRATEGY.md
+  backend_dependencies:
+    module_4_1_registration:
+      status: complete
+      completion_doc: MODULE_TOURNAMENT_REGISTRATION_ALIGNMENT_COMPLETION.md
+      tests: test_registration_team_permissions.py (11/11 passing)
+      commit: 6778694
+    lobby_api:
+      status: pending
+      description: "GET /api/tournaments/<slug>/lobby/, POST check-in/, GET roster/, GET announcements/"
+      blocks: FE-T-007
+    group_stages:
+      status: pending
+      description: "Group models, configuration/draw/standings APIs"
+      blocks: FE-T-011, FE-T-012, FE-T-013
+    match_reporting:
+      status: pending
+      description: "POST report-score/, POST approve/, dispute models & APIs"
+      blocks: FE-T-009, FE-T-014, FE-T-015, FE-T-016, FE-T-017
+  scope:
+    total_items: 19
+    p0_items: 10
+    p1_items: 4
+    p2_items: 5
+  sprints:
+    sprint_1:
+      name: "Discovery & Registration"
+      status: ready_to_start
+      items: [FE-T-001, FE-T-002, FE-T-003, FE-T-004]
+      duration_weeks: 2
+    sprint_2:
+      name: "Lobby & Dashboard"
+      status: blocked
+      items: [FE-T-005, FE-T-007]
+      duration_weeks: 1
+      blocker: lobby_api
+    sprint_3:
+      name: "Live Tournament Views"
+      status: partially_ready
+      items: [FE-T-008, FE-T-009, FE-T-010, FE-T-014, FE-T-016, FE-T-018]
+      duration_weeks: 2
+      blocker: match_reporting (FE-T-009, 014, 016 blocked)
+    sprint_4:
+      name: "Group Stages"
+      status: blocked
+      items: [FE-T-011, FE-T-012, FE-T-013]
+      duration_weeks: 1
+      blocker: group_stages
+    sprint_5:
+      name: "Organizer Tools"
+      status: partially_ready
+      items: [FE-T-015, FE-T-017, FE-T-020, FE-T-021]
+      duration_weeks: 1
+      blocker: match_reporting (FE-T-015, 017 blocked)
+  multi_game_support:
+    - eFootball
+    - FC_Mobile
+    - Valorant
+    - PUBG_Mobile
+    - Free_Fire
+    - CS2
+    - FIFA
+    - Mobile_Legends
+    - Call_of_Duty_Mobile
+  key_features:
+    - "Tournament discovery with filters (game, status, search)"
+    - "Registration wizard with team permission selector"
+    - "Tournament lobby / participant hub (check-in, roster, schedule, announcements)"
+    - "Live bracket view with WebSocket updates"
+    - "Match detail with score reporting and dispute submission"
+    - "Group stages (configuration, live draw, standings) for all 9 games"
+    - "Organizer dashboard and tournament management"
+    - "Dispute resolution interface"
+  total_effort_estimate:
+    weeks: 7
+    days: 35
+    description: "Full implementation across 5 sprints"

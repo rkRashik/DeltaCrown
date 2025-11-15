@@ -573,7 +573,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ---
 
-## Phase 3: Tournament Registration & Check-in � ? COMPLETE
+## Phase 3: Tournament Registration & Check-in � ? COMPLETE
 
 **Status**: ? All 4 modules complete (100% tests passing)  
 **Completion Date**: January 2025  
@@ -781,7 +781,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ---
 
-## Phase 4: Tournament Live Operations � ? COMPLETE
+## Phase 4: Tournament Live Operations � ? COMPLETE
 
 **Status**: ? All 6 modules complete (93% pass rate)  
 **Completion Date**: November 9, 2025  
@@ -1023,7 +1023,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 
 ---
 
-## Phase 5: Tournament Post-Game � ? COMPLETE
+## Phase 5: Tournament Post-Game � ? COMPLETE
 
 **Status**: ? **COMPLETE** (Nov 10, 2025)  
 **Actual Duration**: 2 weeks  
@@ -1510,7 +1510,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Files Modified**:
   - apps/tournaments/services/analytics_service.py (MV-first routing, cache metadata)
 - **Tests**: 13/13 passing (100%)
-- **Performance**: 70.5� speedup (5.26ms ? 0.07ms average, some queries <0.01ms)
+- **Performance**: 70.5� speedup (5.26ms ? 0.07ms average, some queries <0.01ms)
 - **Key Features**:
   - PostgreSQL materialized view with 15 analytics columns
   - 3 optimized indexes (unique tournament_id, freshness DESC, status composite)
@@ -1873,8 +1873,8 @@ This file maps each Phase/Module to the exact Planning doc sections used.
   - **Runtime**: 22.8s (well under 30s threshold)
 
 - **Redis E2E Evidence**:
-  - **Connection TTL**: 3597s (expected 3600s �10s) ?
-  - **Room TTL**: 86382s (expected 86400s �30s) ?
+  - **Connection TTL**: 3597s (expected 3600s �10s) ?
+  - **Room TTL**: 86382s (expected 86400s �30s) ?
   - **Atomic INCR**: 10 concurrent tasks ? unique values [1..10], final count = 10 ?
   - **Graceful Failover**: Redis outage ? fallback to in-memory, connection allowed ?
   - **Key Pattern**: `ws:{type}:{id}` (conn, ip, room) validated ?
@@ -2016,7 +2016,7 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - **Next**: Module 7.5 - Promotional System (optional) or conclude Phase 7
 
 ### Module 7.4: Revenue Analytics
-- **Status**: ? **COMPLETE** (November 12, 2025) � **Coverage Uplift Accepted**
+- **Status**: ? **COMPLETE** (November 12, 2025) � **Coverage Uplift Accepted**
 - **Implements**: Revenue analytics and business intelligence for DeltaCrown economy
 - **Test Results**: **42/42 passed (100%)**, runtime 3.19s
 - **Coverage**: 51% overall (78% models, 49% services legacy), **Module 7.4 Services: 97.5%** (542/556 covered)
@@ -2908,6 +2908,89 @@ This file maps each Phase/Module to the exact Planning doc sections used.
 - Canary deployment T+24h complete (98.2% success, all SLOs green)
 
 **Production Status**: ? Promoted to 25% traffic after T+24h canary success
+
+---
+
+---
+
+## Phase FE-T: Frontend Tournament Module
+
+### Overview
+**Status**: Planning Complete, Implementation Pending  
+**Phases**: FE-T1 (Discovery/Registration) → FE-T2 (Lobby) → FE-T3 (Live Views) → FE-T4 (Organizer) → FE-T5 (Group Stages) → FE-T6 (Polish)
+
+**Planning Documents**:
+- [Tournament Backlog](../FrontEnd/Backlog/FRONTEND_TOURNAMENT_BACKLOG.md) - Feature specifications (1729 lines)
+- [Tournament Sitemap](../FrontEnd/Screens/FRONTEND_TOURNAMENT_SITEMAP.md) - URL structure (~1500 lines)
+- [File Structure](../FrontEnd/Core/FRONTEND_TOURNAMENT_FILE_STRUCTURE.md) - Template organization (150 lines)
+- [Traceability](../FrontEnd/Core/FRONTEND_TOURNAMENT_TRACE.yml) - Module mapping (300 lines)
+- [Checklist](../FrontEnd/Core/FRONTEND_TOURNAMENT_CHECKLIST.md) - Task tracking (80 lines)
+- [Testing Strategy](../FrontEnd/Core/FRONTEND_TOURNAMENT_TESTING_STRATEGY.md) - QA approach (150 lines)
+
+**Scope**: 19 FE-T items (10 P0, 4 P1, 5 P2 excluded)
+
+**Backend Dependencies**:
+- ✅ **Complete**: Team registration permissions (Module 4.1)
+  - Registration service validates `TeamMembership.can_register_tournaments`
+  - Tests: 11/11 passing (test_registration_team_permissions.py)
+  - Commit: 6778694
+- ⏸️ **Pending**: Tournament lobby API (FE-T-007)
+- ⏸️ **Pending**: Group stage models & services (FE-T-011, 012, 013)
+- ⏸️ **Pending**: Match result reporting & disputes (FE-T-014, 015, 016, 017)
+
+**Key Features**:
+- **Tournament Discovery** (FE-T-001): Browse, filter, search tournaments
+- **Registration Wizard** (FE-T-003/004): Team permission selector, custom fields, payment
+- **Tournament Lobby** (FE-T-007): Participant hub with check-in, roster, schedule, announcements
+- **Live Bracket** (FE-T-008): Real-time bracket view with WebSocket updates
+- **Match Detail** (FE-T-009): Score reporting, dispute submission
+- **Group Stages** (FE-T-011/012/013): Configuration, live draw, standings (all 9 games)
+- **Organizer Tools** (FE-T-020/021): Dashboard, manage tournaments, resolve disputes
+
+**Multi-Game Support**: All 9 active games (eFootball, FC Mobile, Valorant, PUBG Mobile, Free Fire, CS2, FIFA, Mobile Legends, Call of Duty Mobile)
+
+### Sprint Breakdown
+
+#### Sprint 1: Discovery & Registration (Weeks 1-2)
+**Status**: ✅ Ready to Start  
+**Tasks**: FE-T-001, 002, 003, 004  
+**Deliverables**: `/tournaments/`, `/tournaments/<slug>/`, `/tournaments/<slug>/register/`
+
+#### Sprint 2: Lobby & Dashboard (Week 3)
+**Status**: ⏸️ Blocked (lobby API)  
+**Tasks**: FE-T-005, 007  
+**Deliverables**: Dashboard tournament card, `/tournaments/<slug>/lobby/`
+
+#### Sprint 3: Live Tournament Views (Weeks 4-5)
+**Status**: ⚠️ Partially Ready  
+**Tasks**: FE-T-008, 009, 010, 014, 016, 018  
+**Deliverables**: Bracket, match detail, leaderboard, results pages
+
+#### Sprint 4: Group Stages (Week 6)
+**Status**: ⏸️ Blocked (backend)  
+**Tasks**: FE-T-011, 012, 013  
+**Deliverables**: Group config, live draw, standings
+
+#### Sprint 5: Organizer Tools (Week 7)
+**Status**: ⚠️ Partially Ready  
+**Tasks**: FE-T-015, 017, 020, 021  
+**Deliverables**: Organizer dashboard, manage tournament, disputes
+
+**Total Effort Estimate**: ~7 weeks (35 days) for full implementation
+
+**Testing Approach**:
+- Manual testing for P0 flows
+- Regression testing for existing pages
+- E2E tests (future: Playwright/Cypress)
+- Performance testing (bracket rendering, real-time updates)
+- Accessibility testing (keyboard nav, screen readers, WCAG)
+
+**Feature Flags**: TBD (to be defined during Sprint 1)
+
+**Artifacts**:
+- Planning docs (6 files, ~4,000 lines total)
+- Templates folder structure (to be created)
+- Static assets (CSS, JS, images)
 
 ---
 
