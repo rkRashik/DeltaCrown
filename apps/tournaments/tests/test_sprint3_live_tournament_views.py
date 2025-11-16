@@ -115,7 +115,7 @@ class TournamentBracketViewTests(TestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'tournaments/live/bracket.html')
+        self.assertTemplateUsed(response, 'tournaments/public/live/bracket.html')
         self.assertEqual(response.context['tournament'], self.tournament)
         self.assertTrue(response.context['bracket_available'])
         self.assertIn('matches_by_round', response.context)
@@ -260,7 +260,7 @@ class MatchDetailViewTests(TestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'tournaments/live/match_detail.html')
+        self.assertTemplateUsed(response, 'tournaments/public/live/match_detail.html')
         self.assertEqual(response.context['match'], self.match)
         self.assertEqual(response.context['tournament'], self.tournament)
 
@@ -466,7 +466,7 @@ class TournamentResultsViewTests(TestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'tournaments/live/results.html')
+        self.assertTemplateUsed(response, 'tournaments/public/live/results.html')
         self.assertEqual(response.context['tournament'], self.tournament)
         self.assertTrue(response.context['has_results'])
 

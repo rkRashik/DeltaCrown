@@ -56,12 +56,20 @@ from apps.tournaments.views.leaderboard import (
     TournamentLeaderboardView,
 )
 from apps.tournaments.views import checkin
+from apps.tournaments.views.organizer import (
+    OrganizerDashboardView,
+    OrganizerTournamentDetailView,
+)
 
 app_name = 'tournaments'
 
 urlpatterns = [
     # FE-T-001: Tournament List/Discovery Page
     path('', views.TournamentListView.as_view(), name='list'),
+    
+    # Organizer Console URLs (must be before <slug> pattern)
+    path('organizer/', OrganizerDashboardView.as_view(), name='organizer_dashboard'),
+    path('organizer/<slug:slug>/', OrganizerTournamentDetailView.as_view(), name='organizer_tournament_detail'),
     
     # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),

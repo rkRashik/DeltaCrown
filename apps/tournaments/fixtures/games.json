@@ -1,0 +1,248 @@
+[
+  {
+    "model": "tournaments.game",
+    "pk": 1,
+    "fields": {
+      "name": "Valorant",
+      "slug": "valorant",
+      "icon": "games/icons/valorant.png",
+      "description": "Valorant is a free-to-play tactical first-person shooter developed by Riot Games. Featuring 5v5 team-based competitive matches with unique agent abilities.",
+      "default_team_size": 5,
+      "profile_id_field": "riot_id",
+      "default_result_type": "best_of",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["single_elimination", "double_elimination", "swiss"],
+        "team_size_range": [5, 5],
+        "match_format": "best_of_3",
+        "scoring_rules": {
+          "rounds_to_win": 13,
+          "overtime_threshold": 12
+        },
+        "platform_requirements": ["PC"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 2,
+    "fields": {
+      "name": "Counter-Strike 2",
+      "slug": "cs2",
+      "icon": "games/icons/cs2.png",
+      "description": "Counter-Strike 2 is the latest iteration of the legendary tactical FPS. Compete in 5v5 bomb defusal and hostage rescue scenarios.",
+      "default_team_size": 5,
+      "profile_id_field": "steam_id",
+      "default_result_type": "best_of",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["single_elimination", "double_elimination", "swiss", "round_robin"],
+        "team_size_range": [5, 5],
+        "match_format": "best_of_3",
+        "scoring_rules": {
+          "rounds_to_win": 16,
+          "overtime": "MR12"
+        },
+        "platform_requirements": ["PC"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 3,
+    "fields": {
+      "name": "Mobile Legends: Bang Bang",
+      "slug": "mlbb",
+      "icon": "games/icons/mlbb.png",
+      "description": "Mobile Legends: Bang Bang is a mobile MOBA game featuring 5v5 competitive matches on mobile devices.",
+      "default_team_size": 5,
+      "profile_id_field": "mlbb_id",
+      "default_result_type": "best_of",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["single_elimination", "double_elimination"],
+        "team_size_range": [5, 5],
+        "match_format": "best_of_3",
+        "scoring_rules": {
+          "victory_conditions": ["destroy_base", "surrender"]
+        },
+        "platform_requirements": ["Android", "iOS"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 4,
+    "fields": {
+      "name": "PUBG Mobile",
+      "slug": "pubg",
+      "icon": "games/icons/pubg.png",
+      "description": "PUBG Mobile is a battle royale game where up to 100 players fight to be the last one standing on mobile devices.",
+      "default_team_size": 4,
+      "profile_id_field": "pubg_id",
+      "default_result_type": "point_based",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["round_robin"],
+        "team_size_range": [1, 4],
+        "match_format": "battle_royale",
+        "scoring_rules": {
+          "placement_points": {
+            "1": 10,
+            "2": 6,
+            "3": 5,
+            "4": 4,
+            "5": 3,
+            "6-10": 2,
+            "11-15": 1
+          },
+          "kill_points": 1
+        },
+        "platform_requirements": ["Android", "iOS"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 5,
+    "fields": {
+      "name": "Free Fire",
+      "slug": "free-fire",
+      "icon": "games/icons/free-fire.png",
+      "description": "Free Fire is a mobile battle royale game featuring fast-paced 50-player matches with unique character abilities.",
+      "default_team_size": 4,
+      "profile_id_field": "free_fire_id",
+      "default_result_type": "point_based",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["round_robin"],
+        "team_size_range": [1, 4],
+        "match_format": "battle_royale",
+        "scoring_rules": {
+          "placement_points": {
+            "1": 12,
+            "2": 8,
+            "3": 6,
+            "4": 4,
+            "5": 2,
+            "6-12": 1
+          },
+          "kill_points": 1
+        },
+        "platform_requirements": ["Android", "iOS"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 6,
+    "fields": {
+      "name": "EA Sports FC 26",
+      "slug": "fc26",
+      "icon": "games/icons/fc26.png",
+      "description": "EA Sports FC 26 is the latest football simulation game featuring realistic gameplay and authentic teams.",
+      "default_team_size": 1,
+      "profile_id_field": "ea_id",
+      "default_result_type": "map_score",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["single_elimination", "round_robin"],
+        "team_size_range": [1, 2],
+        "match_format": "single_match",
+        "scoring_rules": {
+          "overtime": "extra_time",
+          "penalty_shootout": true
+        },
+        "platform_requirements": ["PC", "PlayStation", "Xbox"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 7,
+    "fields": {
+      "name": "eFootball",
+      "slug": "efootball",
+      "icon": "games/icons/efootball.png",
+      "description": "eFootball is Konami's free-to-play football simulation game with cross-platform competitive play.",
+      "default_team_size": 1,
+      "profile_id_field": "konami_id",
+      "default_result_type": "map_score",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["single_elimination", "round_robin"],
+        "team_size_range": [1, 1],
+        "match_format": "single_match",
+        "scoring_rules": {
+          "overtime": "extra_time",
+          "penalty_shootout": true
+        },
+        "platform_requirements": ["PC", "Mobile", "Console"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 8,
+    "fields": {
+      "name": "Dota 2",
+      "slug": "dota2",
+      "icon": "games/icons/dota2.png",
+      "description": "Dota 2 is a multiplayer online battle arena (MOBA) game developed by Valve. Compete in strategic 5v5 matches.",
+      "default_team_size": 5,
+      "profile_id_field": "steam_id",
+      "default_result_type": "best_of",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["single_elimination", "double_elimination", "swiss"],
+        "team_size_range": [5, 5],
+        "match_format": "best_of_3",
+        "scoring_rules": {
+          "victory_conditions": ["destroy_ancient", "surrender"]
+        },
+        "platform_requirements": ["PC"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "tournaments.game",
+    "pk": 9,
+    "fields": {
+      "name": "Call of Duty: Mobile",
+      "slug": "codm",
+      "icon": "games/icons/codm.png",
+      "description": "Call of Duty: Mobile brings the iconic FPS franchise to mobile devices with various multiplayer modes.",
+      "default_team_size": 5,
+      "profile_id_field": "codm_id",
+      "default_result_type": "best_of",
+      "game_config": {
+        "schema_version": "1.0",
+        "allowed_formats": ["single_elimination", "double_elimination"],
+        "team_size_range": [4, 5],
+        "match_format": "best_of_3",
+        "scoring_rules": {
+          "modes": ["Team Deathmatch", "Search and Destroy", "Domination"]
+        },
+        "platform_requirements": ["Android", "iOS"]
+      },
+      "is_active": true,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  }
+]

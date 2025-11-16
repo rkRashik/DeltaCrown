@@ -1,0 +1,48 @@
+{% load static %}
+
+<!-- Leaderboard Table with HTMX Polling -->
+<div class="leaderboard-container">
+  <div class="table-scroll-wrapper" 
+       tabindex="0" 
+       role="region" 
+       aria-label="Scrollable tournament leaderboard table">
+    <table class="leaderboard-table" 
+           role="table" 
+           aria-label="Tournament standings"
+           hx-get="{% url 'tournaments:leaderboard' tournament.slug %}" 
+           hx-trigger="every 10s"
+           hx-target=".leaderboard-container"
+           hx-swap="outerHTML">
+      <caption class="visually-hidden">{{ tournament.name }} Leaderboard</caption>
+      <thead>
+        <tr role="row">
+          <th scope="col" class="text-center" role="columnheader">Rank</th>
+          <th scope="col" role="columnheader">Player/Team</th>
+          <th scope="col" class="text-center" role="columnheader">Played</th>
+          <th scope="col" class="text-center" role="columnheader">Wins</th>
+          <th scope="col" class="text-center" role="columnheader">Losses</th>
+          <th scope="col" class="text-center" role="columnheader">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for standing in standings %}
+          {% include "tournaments/public/leaderboard/_leaderboard_row.html" with standing=standing %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  {% if user_standing %}
+  <div style="padding: 1rem; background-color: #fef3c7; border-top: 1px solid #fbbf24; text-align: center;">
+    <strong>Your Rank:</strong> 
+    {% if user_standing.rank == 1 %}🥇 1st Place
+    {% elif user_standing.rank == 2 %}🥈 2nd Place
+    {% elif user_standing.rank == 3 %}🥉 3rd Place
+    {% else %}#{{ user_standing.rank }}
+    {% endif %}
+    | 
+    <strong>{{ user_standing.points }}</strong> points
+    ({{ user_standing.wins }}W - {{ user_standing.losses }}L)
+  </div>
+  {% endif %}
+</div>

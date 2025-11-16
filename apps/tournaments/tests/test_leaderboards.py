@@ -199,7 +199,7 @@ class TournamentLeaderboardViewTests(TestCase):
         response = self.client.get(url)
         
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'tournaments/leaderboard/index.html')
+        self.assertTemplateUsed(response, 'tournaments/public/leaderboard/index.html')
         self.assertContains(response, self.tournament.name)
         self.assertContains(response, 'Leaderboard')
     

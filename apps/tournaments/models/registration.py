@@ -165,6 +165,12 @@ class Registration(SoftDeleteModel, TimestampedModel):
                 condition=models.Q(slot_number__isnull=False, is_deleted=False),
                 name='unique_slot_per_tournament'
             ),
+            # Team can only register once per tournament (if team-based)
+            models.UniqueConstraint(
+                fields=['tournament', 'team_id'],
+                condition=models.Q(team_id__isnull=False, is_deleted=False),
+                name='unique_team_per_tournament'
+            ),
             # Status must be valid
             models.CheckConstraint(
                 check=models.Q(

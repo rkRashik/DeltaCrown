@@ -93,7 +93,7 @@ class TournamentPlayerDashboardTests(TestCase):
         
         # Assert
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'tournaments/player/my_tournaments.html')
+        self.assertTemplateUsed(response, 'tournaments/public/player/my_tournaments.html')
         self.assertIn('my_tournaments', response.context)
         self.assertEqual(len(response.context['my_tournaments']), 1)
         self.assertEqual(response.context['my_tournaments'][0].tournament, tournament)
@@ -394,7 +394,7 @@ class TournamentPlayerMatchesTests(TestCase):
         
         # Assert
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'tournaments/player/my_matches.html')
+        self.assertTemplateUsed(response, 'tournaments/public/player/my_matches.html')
         self.assertIn('my_matches', response.context)
         self.assertEqual(len(response.context['my_matches']), 1)
         self.assertEqual(response.context['my_matches'][0].id, match.id)

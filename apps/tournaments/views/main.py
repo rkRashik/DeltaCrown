@@ -42,7 +42,7 @@ class TournamentListView(ListView):
     
     Backend API: GET /api/tournaments/tournament-discovery/ (discovery_views.py)
     """
-    template_name = 'tournaments/browse/list.html'
+    template_name = 'tournaments/public/browse/list.html'
     context_object_name = 'tournament_list'
     paginate_by = 20
     
@@ -149,7 +149,7 @@ class TournamentDetailView(DetailView):
     - GET /api/tournaments/registrations/status/ (registrations.py)
     """
     model = Tournament
-    template_name = 'tournaments/detail/overview.html'
+    template_name = 'tournaments/public/detail/overview.html'
     context_object_name = 'tournament'
     slug_field = 'slug'
     slug_url_kwarg = 'slug'
@@ -308,7 +308,7 @@ class TournamentDetailView(DetailView):
         from apps.tournaments.services.check_in_service import CheckInService
         
         try:
-            registration = Registration.objects.select_related('team').get(
+            registration = Registration.objects.get(
                 tournament=tournament,
                 user=user,
                 is_deleted=False

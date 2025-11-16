@@ -1,0 +1,190 @@
+{% comment %}
+FE-T-002: Tournament Detail Tabs
+Purpose: Tab navigation for Overview, Rules, Prizes, FAQ
+{% endcomment %}
+
+<div class="tournament-tabs">
+  <!-- Tab Headers -->
+  <div class="tab-headers flex gap-2 mb-6 border-b border-line overflow-x-auto">
+    <button 
+      class="tab-header active px-6 py-3 font-semibold border-b-2 border-primary text-primary hover:bg-surface-elevated transition-colors"
+      data-tab="overview"
+    >
+      Overview
+    </button>
+    <button 
+      class="tab-header px-6 py-3 font-semibold border-b-2 border-transparent text-body-secondary hover:bg-surface-elevated hover:text-primary transition-colors"
+      data-tab="rules"
+    >
+      Rules
+    </button>
+    <button 
+      class="tab-header px-6 py-3 font-semibold border-b-2 border-transparent text-body-secondary hover:bg-surface-elevated hover:text-primary transition-colors"
+      data-tab="prizes"
+    >
+      Prizes
+    </button>
+    {% if tournament.schedule_data %}
+    <button 
+      class="tab-header px-6 py-3 font-semibold border-b-2 border-transparent text-body-secondary hover:bg-surface-elevated hover:text-primary transition-colors"
+      data-tab="schedule"
+    >
+      Schedule
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+    <!-- Overview Tab -->
+    <div class="tab-pane active" data-tab-pane="overview">
+      <div class="prose prose-invert max-w-none">
+        <h2 class="text-2xl font-bold text-primary mb-4">About This Tournament</h2>
+        
+        {% if tournament.description %}
+          <div class="text-body-secondary mb-6">
+            {{ tournament.description|safe }}
+          </div>
+        {% else %}
+          <p class="text-body-secondary mb-6">
+            Join this exciting {{ tournament.game.name }} tournament! Compete against players from around the region and prove your skills.
+          </p>
+        {% endif %}
+
+        <!-- Eligibility Requirements -->
+        {% if tournament.min_rank or tournament.max_rank or tournament.region_restriction %}
+        <div class="bg-surface-elevated border border-line rounded-xl p-6 mb-6">
+          <h3 class="text-xl font-semibold text-primary mb-4">
+            <i class="fas fa-shield-alt text-accent mr-2"></i>
+            Eligibility Requirements
+          </h3>
+          <ul class="space-y-2 text-body-secondary">
+            {% if tournament.min_rank %}
+              <li class="flex items-start gap-2">
+                <i class="fas fa-check text-success mt-1"></i>
+                <span>Minimum Rank: {{ tournament.min_rank }}</span>
+              </li>
+            {% endif %}
+            {% if tournament.max_rank %}
+              <li class="flex items-start gap-2">
+                <i class="fas fa-check text-success mt-1"></i>
+                <span>Maximum Rank: {{ tournament.max_rank }}</span>
+              </li>
+            {% endif %}
+            {% if tournament.region_restriction %}
+              <li class="flex items-start gap-2">
+                <i class="fas fa-check text-success mt-1"></i>
+                <span>Region: {{ tournament.region_restriction }}</span>
+              </li>
+            {% endif %}
+            <li class="flex items-start gap-2">
+              <i class="fas fa-check text-success mt-1"></i>
+              <span>
+                {% if tournament.is_team_based %}Team-based ({{ tournament.team_size }} players per team){% else %}Solo players{% endif %}
+              </span>
+            </li>
+          </ul>
+        </div>
+        {% endif %}
+
+        <!-- Organizer Info -->
+        <div class="bg-surface-elevated border border-line rounded-xl p-6">
+          <h3 class="text-xl font-semibold text-primary mb-4">
+            <i class="fas fa-user-shield text-accent mr-2"></i>
+            Organized By
+          </h3>
+          <div class="flex items-center gap-4">
+            {% if tournament.organizer.profile.avatar %}
+              <img 
+                src="{{ tournament.organizer.profile.avatar.url }}" 
+                alt="{{ tournament.organizer.username }}"
+                class="w-16 h-16 rounded-full border-2 border-primary"
+              >
+            {% else %}
+              <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-2xl">
+                {{ tournament.organizer.username|first|upper }}
+              </div>
+            {% endif %}
+            <div>
+              <div class="font-semibold text-primary">{{ tournament.organizer.username }}</div>
+              <div class="text-sm text-body-secondary">Tournament Organizer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rules Tab -->
+    <div class="tab-pane hidden" data-tab-pane="rules">
+      <h2 class="text-2xl font-bold text-primary mb-4">Tournament Rules</h2>
+      {% if tournament.rules %}
+        <div class="prose prose-invert max-w-none text-body-secondary">
+          {{ tournament.rules|safe }}
+        </div>
+      {% else %}
+        <p class="text-body-secondary">Standard tournament rules apply. Fair play is expected from all participants.</p>
+      {% endif %}
+    </div>
+
+    <!-- Prizes Tab -->
+    <div class="tab-pane hidden" data-tab-pane="prizes">
+      <h2 class="text-2xl font-bold text-primary mb-4">Prize Distribution</h2>
+      {% if tournament.prize_pool %}
+        <div class="space-y-4">
+          <!-- Prize breakdown would go here -->
+          <div class="bg-surface-elevated border border-line rounded-xl p-6">
+            <div class="text-center">
+              <div class="text-4xl font-bold text-primary mb-2">৳{{ tournament.prize_pool|floatformat:0 }}</div>
+              <div class="text-body-secondary">Total Prize Pool</div>
+            </div>
+          </div>
+          <p class="text-body-secondary text-center">Prize distribution details will be announced closer to the tournament date.</p>
+        </div>
+      {% else %}
+        <p class="text-body-secondary">This is a free tournament with no cash prizes. Play for glory and bragging rights!</p>
+      {% endif %}
+    </div>
+
+    <!-- Schedule Tab -->
+    {% if tournament.schedule_data %}
+    <div class="tab-pane hidden" data-tab-pane="schedule">
+      <h2 class="text-2xl font-bold text-primary mb-4">Tournament Schedule</h2>
+      {% include "tournaments/public/detail/_schedule_preview.html" with tournament=tournament %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+// Tab switching logic
+document.addEventListener('DOMContentLoaded', function() {
+  const tabHeaders = document.querySelectorAll('.tab-header');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+
+  tabHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      const targetTab = this.dataset.tab;
+
+      // Remove active class from all headers and panes
+      tabHeaders.forEach(h => {
+        h.classList.remove('active', 'border-primary', 'text-primary');
+        h.classList.add('border-transparent', 'text-body-secondary');
+      });
+      tabPanes.forEach(p => {
+        p.classList.add('hidden');
+        p.classList.remove('active');
+      });
+
+      // Add active class to clicked header and corresponding pane
+      this.classList.add('active', 'border-primary', 'text-primary');
+      this.classList.remove('border-transparent', 'text-body-secondary');
+      
+      const targetPane = document.querySelector(`[data-tab-pane="${targetTab}"]`);
+      if (targetPane) {
+        targetPane.classList.remove('hidden');
+        targetPane.classList.add('active');
+      }
+    });
+  });
+});
+</script>

@@ -46,14 +46,14 @@ def get_featured() -> Optional[Dict[str, Any]]:
         try:
             from django.utils import timezone
             now = timezone.now()
-            obj = qs.filter(settings__start_at__lte=now, settings__end_at__gte=now).order_by("settings__start_at").first()
+            obj = qs.filter(tournament_start__lte=now, tournament_end__gte=now).order_by("tournament_start").first()
         except Exception:
             pass
         if not obj:
             try:
                 from django.utils import timezone
                 now = timezone.now()
-                obj = qs.filter(settings__start_at__gt=now).order_by("settings__start_at").first()
+                obj = qs.filter(tournament_start__gt=now).order_by("tournament_start").first()
             except Exception:
                 pass
         if not obj:
@@ -83,7 +83,8 @@ def get_featured() -> Optional[Dict[str, Any]]:
 
         # start time (ISO for countdown)
         start_dt = (
-            getattr(obj, "start_at", None)
+            getattr(obj, "tournament_start", None)
+            or getattr(obj, "start_at", None)
             or getattr(getattr(obj, "settings", None) or object(), "start_at", None)
             or getattr(obj, "starts_at", None)
             or getattr(obj, "start_time", None)
@@ -95,11 +96,13 @@ def get_featured() -> Optional[Dict[str, Any]]:
 
         # registration window
         reg_open = (
-            getattr(getattr(obj, "settings", None) or object(), "reg_open_at", None)
+            getattr(obj, "registration_start", None)
+            or getattr(getattr(obj, "settings", None) or object(), "reg_open_at", None)
             or getattr(obj, "reg_open_at", None)
         )
         reg_close = (
-            getattr(getattr(obj, "settings", None) or object(), "reg_close_at", None)
+            getattr(obj, "registration_end", None)
+            or getattr(getattr(obj, "settings", None) or object(), "reg_close_at", None)
             or getattr(obj, "reg_close_at", None)
         )
         registration_open = False
@@ -113,11 +116,13 @@ def get_featured() -> Optional[Dict[str, Any]]:
 
         # live window
         start = (
-            getattr(obj, "start_at", None)
+            getattr(obj, "tournament_start", None)
+            or getattr(obj, "start_at", None)
             or getattr(getattr(obj, "settings", None) or object(), "start_at", None)
         )
         end = (
-            getattr(obj, "end_at", None)
+            getattr(obj, "tournament_end", None)
+            or getattr(obj, "end_at", None)
             or getattr(getattr(obj, "settings", None) or object(), "end_at", None)
         )
         is_live = False

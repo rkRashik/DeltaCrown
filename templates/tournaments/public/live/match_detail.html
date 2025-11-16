@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Match #{{ match.match_number }} - {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <!-- Breadcrumb Navigation -->
+    <nav class="mb-6 text-sm" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2 text-gray-600">
+            <li><a href="{% url 'tournaments:list' %}" class="hover:text-blue-600">Tournaments</a></li>
+            <li><span class="mx-2">/</span></li>
+            <li><a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="hover:text-blue-600">{{ tournament.name }}</a></li>
+            <li><span class="mx-2">/</span></li>
+            <li><a href="{% url 'tournaments:bracket' slug=tournament.slug %}" class="hover:text-blue-600">Bracket</a></li>
+            <li><span class="mx-2">/</span></li>
+            <li class="text-gray-900 font-medium" aria-current="page">Match #{{ match.match_number }}</li>
+        </ol>
+    </nav>
+
+    <!-- Match Header -->
+    {% include 'tournaments/public/live/_partials/_match_header.html' with match=match tournament=tournament %}
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+        
+        <!-- Left Column: Match Details -->
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Participants -->
+            {% include 'tournaments/public/live/_partials/_match_participants.html' with match=match participant1=participant1 participant2=participant2 %}
+
+            <!-- Match Timeline -->
+            {% if timeline %}
+                {% include 'tournaments/public/live/_partials/_match_timeline.html' with timeline=timeline %}
+            {% endif %}
+
+            <!-- Lobby Information (Participants Only) -->
+            {% if show_lobby_info %}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="text-lg font-bold text-blue-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                    </svg>
+                    Lobby Information
+                </h3>
+                <div class="bg-white rounded-lg p-4">
+                    <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ match.lobby_info }}</p>
+                </div>
+                <p class="text-xs text-blue-700 mt-3">
+                    <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    This information is only visible to match participants.
+                </p>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Right Column: Match Info Sidebar -->
+        <div class="space-y-6">
+            
+            <!-- Match Status Card -->
+            <div class="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">Match Status</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-xs text-gray-500 block mb-1">Current State</span>
+                        <span class="inline-block px-3 py-1 rounded-full text-sm font-semibold
+                            {% if match.state == 'completed' %}
+                                bg-green-100 text-green-800
+                            {% elif match.state == 'live' %}
+                                bg-red-100 text-red-800
+                            {% elif match.state == 'scheduled' %}
+                                bg-gray-100 text-gray-600
+                            {% elif match.state == 'forfeit' %}
+                                bg-orange-100 text-orange-800
+                            {% else %}
+                                bg-blue-100 text-blue-800
+                            {% endif %}">
+                            {{ match.get_state_display }}
+                        </span>
+                    </div>
+                    
+                    <div>
+                        <span class="text-xs text-gray-500 block mb-1">Round</span>
+                        <span class="font-semibold text-gray-900">Round {{ match.round_number }}</span>
+                    </div>
+
+                    <div>
+                        <span class="text-xs text-gray-500 block mb-1">Match Number</span>
+                        <span class="font-semibold text-gray-900">#{{ match.match_number }}</span>
+                    </div>
+
+                    {% if match.scheduled_time %}
+                    <div>
+                        <span class="text-xs text-gray-500 block mb-1">Scheduled Time</span>
+                        <span class="text-sm text-gray-700">{{ match.scheduled_time|date:"M d, Y" }}</span>
+                        <span class="text-sm text-gray-700 block">{{ match.scheduled_time|date:"h:i A" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tournament Info Card -->
+            <div class="bg-white border border-gray-200 rounded-lg p-5">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">Tournament</h3>
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-900">{{ tournament.name }}</p>
+                    <p class="text-sm text-gray-600">{{ tournament.game.name }}</p>
+                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" 
+                       class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium">
+                        View Tournament →
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Actions (For Future Sprint) -->
+            {% if is_participant and match.state == 'completed' %}
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-5">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">Actions</h3>
+                <p class="text-sm text-gray-600 mb-3">Participant actions coming in Sprint 4</p>
+                <button disabled class="w-full px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed">
+                    Report Score
+                </button>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Back to Bracket Link -->
+    <div class="mt-8 pt-6 border-t border-gray-200">
+        <a href="{% url 'tournaments:bracket' slug=tournament.slug %}" 
+           class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Bracket
+        </a>
+    </div>
+</div>
+{% endblock %}

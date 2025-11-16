@@ -1,0 +1,83 @@
+/*
+ * Organizer Console Styles
+ * 
+ * Styling for tournament organizer management interface.
+ * This file provides base styles for the organizer dashboard and detail views.
+ * 
+ * Note: Currently using Tailwind CSS classes in templates. This file provides
+ * additional custom styling and will be expanded as organizer features grow.
+ */
+
+/* Organizer Console Specific Overrides */
+.organizer-console {
+    /* Base container styles */
+}
+
+.organizer-header {
+    /* Header styling for organizer pages */
+}
+
+.organizer-stats-card {
+    /* Stats card styling */
+}
+
+.organizer-tournament-table {
+    /* Tournament table styling */
+}
+
+/* Action Buttons */
+.organizer-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.organizer-action-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Status Badges */
+.organizer-status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.organizer-status-badge.draft {
+    background-color: #6b7280;
+    color: white;
+}
+
+.organizer-status-badge.published {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.organizer-status-badge.registration-open {
+    background-color: #10b981;
+    color: white;
+}
+
+.organizer-status-badge.live {
+    background-color: #ef4444;
+    color: white;
+}
+
+.organizer-status-badge.completed {
+    background-color: #6366f1;
+    color: white;
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+    .organizer-tournament-table {
+        font-size: 0.875rem;
+    }
+}

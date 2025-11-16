@@ -29,7 +29,7 @@ class TournamentBracketView(DetailView):
     Template: tournaments/live/bracket.html
     """
     model = Tournament
-    template_name = 'tournaments/live/bracket.html'
+    template_name = 'tournaments/public/live/bracket.html'
     context_object_name = 'tournament'
     
     def get_queryset(self):
@@ -159,7 +159,7 @@ class MatchDetailView(DetailView):
     Template: tournaments/live/match_detail.html
     """
     model = Match
-    template_name = 'tournaments/live/match_detail.html'
+    template_name = 'tournaments/public/live/match_detail.html'
     context_object_name = 'match'
     pk_url_kwarg = 'match_id'
     
@@ -289,7 +289,7 @@ class TournamentResultsView(DetailView):
     Template: tournaments/live/results.html
     """
     model = Tournament
-    template_name = 'tournaments/live/results.html'
+    template_name = 'tournaments/public/live/results.html'
     context_object_name = 'tournament'
     
     def get_queryset(self):

@@ -45,6 +45,14 @@ from .prize import (
 from .certificate import (
     Certificate,  # Module 5.3: Certificates & Achievement Proofs
 )
+from .payment_config import (
+    TournamentPaymentMethod,  # Detailed payment method configuration
+)
+from .staff import (
+    TournamentStaffRole,  # Staff role definitions with permissions
+    TournamentStaff,  # Staff assignments to tournaments
+    StaffPermissionChecker,  # Utility for permission checking
+)
 
 __all__ = [
     'Game',
@@ -63,4 +71,8 @@ __all__ = [
     'TournamentResult',
     'PrizeTransaction',
     'Certificate',
+    'TournamentPaymentMethod',
+    'TournamentStaffRole',
+    'TournamentStaff',
+    'StaffPermissionChecker',
 ]

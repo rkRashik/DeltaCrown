@@ -170,7 +170,7 @@ class Bracket(TimestampedModel):
         ]
     
     def __str__(self) -> str:
-        return f"{self.tournament.title} - {self.get_format_display()}"
+        return f"{self.tournament.name} - {self.get_format_display()}"
     
     def get_round_name(self, round_number: int) -> str:
         """
@@ -406,9 +406,9 @@ class BracketNode(models.Model):
     
     def __str__(self) -> str:
         return (
-            f"{self.bracket.tournament.title} - "
-            f"R{self.round_number} / M{self.match_number_in_round} "
-            f"({self.get_bracket_type_display()})"
+            f"{self.bracket.tournament.name} - "
+            f"R{self.round_number} M{self.match_number_in_round} "
+            f"(Pos {self.position})"
         )
     
     @property

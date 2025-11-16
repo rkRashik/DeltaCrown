@@ -74,7 +74,9 @@ class BracketNodeInline(admin.TabularInline):
     def get_queryset(self, request):
         """Limit to first round nodes only"""
         qs = super().get_queryset(request)
-        return qs.filter(round_number=1).order_by('position')[:8]
+        # Don't slice queryset - causes "Cannot filter after slice" error
+        # Django admin may apply additional filters after this
+        return qs.filter(round_number=1).order_by('position')
 
 
 @admin.register(Bracket)
@@ -473,16 +475,27 @@ class BracketNodeAdmin(admin.ModelAdmin):
     
     def bracket_type_badge(self, obj):
         """Display bracket type with color"""
+        if not obj.bracket_type:
+            return format_html(
+                '<span style="background-color: #757575; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">—</span>'
+            )
+        
         type_colors = {
             'main': '#4CAF50',
             'losers': '#FF9800',
             'third-place': '#2196F3'
         }
-        color = type_colors.get(obj.bracket_type, '#757575')
+        
+        bracket_type = obj.bracket_type
+        color = type_colors.get(bracket_type, '#757575')
+        
+        # bracket_type is CharField with BRACKET_TYPE_CHOICES - no get_X_display method
+        # Format manually from value
+        display_name = bracket_type.replace('-', ' ').replace('_', ' ').title()
+        
         return format_html(
             '<span style="background-color: {}; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px;">{}</span>',
-            color,
-            obj.get_bracket_type_display()
+            color, display_name
         )
     bracket_type_badge.short_description = "Type"
     bracket_type_badge.admin_order_field = 'bracket_type'

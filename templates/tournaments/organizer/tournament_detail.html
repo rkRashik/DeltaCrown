@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ tournament.name }} - Organizer Console - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tournaments/organizer/css/organizer.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white">
+    <!-- Header -->
+    <div class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-4 py-6">
+            <nav class="text-sm mb-4">
+                <a href="{% url 'tournaments:organizer_dashboard' %}" class="text-orange-400 hover:text-orange-300">← Back to Dashboard</a>
+            </nav>
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold text-white">{{ tournament.name }}</h1>
+                    <div class="flex items-center space-x-4 mt-2">
+                        <span class="text-gray-400">{{ tournament.game.name }}</span>
+                        <span class="text-gray-600">•</span>
+                        {% if tournament.status == 'draft' %}
+                        <span class="px-3 py-1 text-sm rounded bg-gray-700 text-gray-300">Draft</span>
+                        {% elif tournament.status == 'registration_open' %}
+                        <span class="px-3 py-1 text-sm rounded bg-green-900 text-green-300">Registration Open</span>
+                        {% elif tournament.status == 'live' %}
+                        <span class="px-3 py-1 text-sm rounded bg-red-900 text-red-300">Live</span>
+                        {% elif tournament.status == 'completed' %}
+                        <span class="px-3 py-1 text-sm rounded bg-blue-900 text-blue-300">Completed</span>
+                        {% else %}
+                        <span class="px-3 py-1 text-sm rounded bg-gray-700 text-gray-300">{{ tournament.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex space-x-3">
+                    <a href="/admin/tournaments/tournament/{{ tournament.id }}/change/" 
+                       class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium">
+                        Edit in Admin
+                    </a>
+                    <a href="{% url 'tournaments:detail' tournament.slug %}" 
+                       class="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-sm font-medium">
+                        View Public Page
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="text-gray-400 text-sm uppercase tracking-wide">Registrations</div>
+                <div class="text-3xl font-bold text-white mt-2">
+                    {{ registration_stats.total }}
+                    <span class="text-lg text-gray-400">/ {{ tournament.max_participants }}</span>
+                </div>
+                <div class="mt-2 text-sm">
+                    <span class="text-green-400">{{ registration_stats.confirmed }} confirmed</span>
+                    <span class="text-gray-600 mx-1">•</span>
+                    <span class="text-yellow-400">{{ registration_stats.pending }} pending</span>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="text-gray-400 text-sm uppercase tracking-wide">Matches</div>
+                <div class="text-3xl font-bold text-white mt-2">{{ match_stats.total }}</div>
+                <div class="mt-2 text-sm">
+                    <span class="text-blue-400">{{ match_stats.completed }} completed</span>
+                    <span class="text-gray-600 mx-1">•</span>
+                    <span class="text-red-400">{{ match_stats.live }} live</span>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="text-gray-400 text-sm uppercase tracking-wide">Disputes</div>
+                <div class="text-3xl font-bold text-white mt-2">{{ dispute_stats.total }}</div>
+                <div class="mt-2 text-sm">
+                    <span class="text-yellow-400">{{ dispute_stats.open }} open</span>
+                    <span class="text-gray-600 mx-1">•</span>
+                    <span class="text-green-400">{{ dispute_stats.resolved }} resolved</span>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <div class="text-gray-400 text-sm uppercase tracking-wide">Days Until Start</div>
+                <div class="text-3xl font-bold text-white mt-2">
+                    {% if time_status.days_until_start > 0 %}
+                    {{ time_status.days_until_start }}
+                    {% else %}
+                    <span class="text-orange-400">Started</span>
+                    {% endif %}
+                </div>
+                <div class="mt-2 text-sm text-gray-400">
+                    {{ tournament.tournament_start|date:"M d, Y H:i" }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-8">
+            <div class="border-b border-gray-700">
+                <nav class="flex space-x-8" role="tablist">
+                    <button class="tab-btn py-4 px-1 border-b-2 border-orange-400 text-orange-400 font-medium text-sm" data-tab="participants">
+                        📋 Participants ({{ registration_stats.total }})
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-400 hover:text-gray-300 font-medium text-sm" data-tab="payments">
+                        💰 Payments ({{ payment_stats.total }})
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-400 hover:text-gray-300 font-medium text-sm" data-tab="matches">
+                        ⚔️ Matches ({{ match_stats.total }})
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent text-gray-400 hover:text-gray-300 font-medium text-sm" data-tab="disputes">
+                        🚨 Disputes ({{ dispute_stats.total }})
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Participants Tab -->
+        <div id="participants-tab" class="tab-pane">
+            <div class="bg-gray-800 rounded-lg border border-gray-700">
+                <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-white">Tournament Participants</h3>
+                    <a href="/admin/tournaments/registration/?tournament__id__exact={{ tournament.id }}" target="_blank" class="text-sm text-orange-400 hover:text-orange-300">
+                        Open in Admin →
+                    </a>
+                </div>
+                
+                {% if registrations %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-750">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Player/Team</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Payment</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Check-in</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Registered</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for reg in registrations %}
+                            <tr class="hover:bg-gray-750">
+                                <td class="px-6 py-4">
+                                    <div class="font-medium text-white">{{ reg.user.username }}</div>
+                                    <div class="text-sm text-gray-400">{{ reg.user.email }}</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if reg.status == 'confirmed' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-green-900 text-green-300">Confirmed</span>
+                                    {% elif reg.status == 'pending' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-yellow-900 text-yellow-300">Pending</span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs rounded bg-red-900 text-red-300">{{ reg.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if tournament.has_entry_fee %}
+                                      {% if reg.payment_status == 'verified' %}
+                                        <span class="text-green-400">✓ Paid</span>
+                                      {% elif reg.payment_status == 'submitted' %}
+                                        <span class="text-yellow-400">⏳ Pending</span>
+                                      {% else %}
+                                        <span class="text-gray-400">— Unpaid</span>
+                                      {% endif %}
+                                    {% else %}
+                                      <span class="text-gray-500">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if reg.checked_in %}
+                                    <span class="text-green-400">✓ Checked In</span>
+                                    {% else %}
+                                    <span class="text-gray-400">— Not Yet</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-gray-400 text-sm">{{ reg.created_at|date:"M d, H:i" }}</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <a href="/admin/tournaments/registration/{{ reg.id }}/change/" target="_blank"
+                                       class="text-orange-400 hover:text-orange-300 text-sm">View →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-gray-400">No registrations yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div id="payments-tab" class="tab-pane hidden">
+            <div class="bg-gray-800 rounded-lg border border-gray-700">
+                <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-white">Payment Submissions</h3>
+                    <a href="/admin/tournaments/payment/?registration__tournament__id__exact={{ tournament.id }}" target="_blank" class="text-sm text-orange-400 hover:text-orange-300">
+                        Open in Admin →
+                    </a>
+                </div>
+                
+                {% if payments %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-750">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Player</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Method</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Submitted</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for payment in payments %}
+                            <tr class="hover:bg-gray-750">
+                                <td class="px-6 py-4 font-medium text-white">{{ payment.registration.user.username }}</td>
+                                <td class="px-6 py-4 font-semibold">{{ payment.amount }} {{ payment.currency }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-300">{{ payment.get_payment_method_display }}</td>
+                                <td class="px-6 py-4">
+                                    {% if payment.status == 'verified' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-green-900 text-green-300">Verified</span>
+                                    {% elif payment.status == 'submitted' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-yellow-900 text-yellow-300">Pending Review</span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs rounded bg-red-900 text-red-300">{{ payment.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-400">{{ payment.created_at|date:"M d, H:i" }}</td>
+                                <td class="px-6 py-4">
+                                    <a href="/admin/tournaments/payment/{{ payment.id }}/change/" target="_blank"
+                                       class="text-orange-400 hover:text-orange-300 text-sm">Review →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-gray-400">No payment submissions yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Matches Tab -->
+        <div id="matches-tab" class="tab-pane hidden">
+            <div class="bg-gray-800 rounded-lg border border-gray-700">
+                <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-white">Tournament Matches</h3>
+                    <a href="/admin/tournaments/match/?tournament__id__exact={{ tournament.id }}" target="_blank" class="text-sm text-orange-400 hover:text-orange-300">
+                        Open in Admin →
+                    </a>
+                </div>
+                
+                {% if matches %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-750">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Match</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Participants</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">State</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Scheduled</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for match in matches %}
+                            <tr class="hover:bg-gray-750">
+                                <td class="px-6 py-4 font-medium text-white">Match #{{ match.id }}</td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm text-white">
+                                        <div>{{ match.participant1_name|default:"TBD" }}</div>
+                                        <div class="text-gray-500">vs</div>
+                                        <div>{{ match.participant2_name|default:"TBD" }}</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    {% if match.state == 'completed' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-blue-900 text-blue-300">Completed</span>
+                                    {% elif match.state == 'live' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-red-900 text-red-300">Live</span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs rounded bg-gray-700 text-gray-300">{{ match.get_state_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-400">
+                                    {% if match.scheduled_time %}
+                                      {{ match.scheduled_time|date:"M d, H:i" }}
+                                    {% else %}
+                                      TBD
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <a href="/admin/tournaments/match/{{ match.id }}/change/" target="_blank"
+                                       class="text-orange-400 hover:text-orange-300 text-sm">Manage →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-gray-400">No matches yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Disputes Tab -->
+        <div id="disputes-tab" class="tab-pane hidden">
+            <div class="bg-gray-800 rounded-lg border border-gray-700">
+                <div class="p-6 border-b border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-bold text-white">Active Disputes</h3>
+                    <a href="/admin/tournaments/dispute/?match__tournament__id__exact={{ tournament.id }}" target="_blank" class="text-sm text-orange-400 hover:text-orange-300">
+                        Open in Admin →
+                    </a>
+                </div>
+                
+                {% if disputes %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-750">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Match</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Raised By</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Reason</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Created</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for dispute in disputes %}
+                            <tr class="hover:bg-gray-750">
+                                <td class="px-6 py-4 text-white text-sm">Match #{{ dispute.match.id }}</td>
+                                <td class="px-6 py-4 text-gray-300">User #{{ dispute.initiated_by_id }}</td>
+                                <td class="px-6 py-4 text-gray-300 text-sm">{{ dispute.description|truncatewords:10 }}</td>
+                                <td class="px-6 py-4">
+                                    {% if dispute.status == 'open' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-yellow-900 text-yellow-300">Open</span>
+                                    {% elif dispute.status == 'under_review' %}
+                                    <span class="px-2 py-1 text-xs rounded bg-blue-900 text-blue-300">Under Review</span>
+                                    {% else %}
+                                    <span class="px-2 py-1 text-xs rounded bg-green-900 text-green-300">{{ dispute.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-400">{{ dispute.created_at|date:"M d, H:i" }}</td>
+                                <td class="px-6 py-4">
+                                    <a href="/admin/tournaments/dispute/{{ dispute.id }}/change/" target="_blank"
+                                       class="text-orange-400 hover:text-orange-300 text-sm">Resolve →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-gray-400">No disputes</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Simple tab switching without Alpine.js
+document.addEventListener('DOMContentLoaded', function() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+  
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetTab = this.getAttribute('data-tab');
+      
+      // Update button styles
+      tabBtns.forEach(b => {
+        b.classList.remove('border-orange-400', 'text-orange-400');
+        b.classList.add('border-transparent', 'text-gray-400');
+      });
+      this.classList.remove('border-transparent', 'text-gray-400');
+      this.classList.add('border-orange-400', 'text-orange-400');
+      
+      // Show target pane
+      tabPanes.forEach(pane => {
+        pane.classList.add('hidden');
+      });
+      document.getElementById(targetTab + '-tab').classList.remove('hidden');
+    });
+  });
+});
+</script>
+{% endblock %}

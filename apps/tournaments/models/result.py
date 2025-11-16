@@ -211,7 +211,7 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
         ]
     
     def __str__(self):
-        return f"Result: {self.tournament.title} - Winner: {self.winner}"
+        return f"Result: {self.tournament.name} - Winner: {self.winner}"
     
     def clean(self):
         """Validation logic for TournamentResult."""

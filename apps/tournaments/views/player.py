@@ -44,7 +44,7 @@ class TournamentPlayerDashboardView(LoginRequiredMixin, ListView):
     """
     
     model = Registration
-    template_name = 'tournaments/player/my_tournaments.html'
+    template_name = 'tournaments/public/player/my_tournaments.html'
     context_object_name = 'my_tournaments'
     paginate_by = 20
     
@@ -171,7 +171,7 @@ class TournamentPlayerMatchesView(LoginRequiredMixin, ListView):
     """
     
     model = Match
-    template_name = 'tournaments/player/my_matches.html'
+    template_name = 'tournaments/public/player/my_matches.html'
     context_object_name = 'my_matches'
     paginate_by = 20
     

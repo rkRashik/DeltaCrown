@@ -19,14 +19,10 @@ def nav_context(request) -> Dict[str, Any]:
     # Live: any tournament with stream url and currently within start/end window
     try:
         T = apps.get_model("tournaments", "Tournament")
-        qs = T.objects.select_related("settings")
-        # Prefer settings window; fall back to model fields
-        live_qs = qs.filter(
-            settings__start_at__lte=now, settings__end_at__gte=now
-        ) | qs.filter(start_at__lte=now, end_at__gte=now)
+        qs = T.objects.all()
+        live_qs = qs.filter(tournament_start__lte=now, tournament_end__gte=now)
         for t in live_qs[:3]:  # bound tiny
-            settings = getattr(t, "settings", None)
-            if settings and (settings.stream_youtube_url or settings.stream_facebook_url):
+            if getattr(t, "stream_youtube_url", "") or getattr(t, "stream_twitch_url", ""):
                 nav_live = True
                 break
     except Exception:

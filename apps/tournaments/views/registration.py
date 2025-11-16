@@ -39,7 +39,7 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
     Session-based wizard state management.
     """
     
-    template_name = 'tournaments/registration/wizard.html'
+    template_name = 'tournaments/public/registration/wizard.html'
     
     def get(self, request, slug):
         """Render registration wizard with current step."""
@@ -415,7 +415,7 @@ class TournamentRegistrationSuccessView(LoginRequiredMixin, View):
     Shown after successful registration.
     """
     
-    template_name = 'tournaments/registration/success.html'
+    template_name = 'tournaments/public/registration/success.html'
     
     def get(self, request, slug):
         """Render success confirmation."""

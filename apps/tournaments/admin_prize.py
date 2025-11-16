@@ -57,7 +57,7 @@ class PrizeTransactionAdmin(admin.ModelAdmin):
     
     # Search
     search_fields = [
-        'tournament__title',
+        'tournament__name',
         'tournament__slug',
         'participant__user__username',
         'participant__team_name',
@@ -137,7 +137,7 @@ class PrizeTransactionAdmin(admin.ModelAdmin):
         """Link to tournament admin page."""
         if obj.tournament:
             url = f'/admin/tournaments/tournament/{obj.tournament.id}/change/'
-            return format_html('<a href="{}">{}</a>', url, obj.tournament.title)
+            return format_html('<a href="{}">{}</a>', url, obj.tournament.name)
         return '-'
     tournament_link.short_description = 'Tournament'
     

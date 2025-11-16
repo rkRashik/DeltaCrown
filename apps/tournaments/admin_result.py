@@ -46,7 +46,7 @@ class TournamentResultAdmin(admin.ModelAdmin):
     ]
     
     search_fields = [
-        'tournament__title',
+        'tournament__name',
         'winner__user__username',
         'winner__team__name',
         'runner_up__user__username',
@@ -123,7 +123,7 @@ class TournamentResultAdmin(admin.ModelAdmin):
         return format_html(
             '<a href="{}">{}</a>',
             url,
-            obj.tournament.title
+            obj.tournament.name
         )
     tournament_link.short_description = 'Tournament'
     

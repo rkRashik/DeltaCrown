@@ -248,8 +248,8 @@ def get_featured_tournament():
         
         # Try to get next upcoming tournament
         tournament = Tournament.objects.filter(
-            settings__start_at__gte=now
-        ).order_by('settings__start_at').first()
+            tournament_start__gte=now
+        ).order_by('tournament_start').first()
         
         # Fallback to latest tournament
         if not tournament:
@@ -258,10 +258,10 @@ def get_featured_tournament():
         if tournament:
             return {
                 'name': tournament.name,
-                'game': getattr(tournament, 'game', 'Unknown').title(),
+                'game': getattr(getattr(tournament, 'game', None), 'name', 'Unknown'),
                 'prize': f"৳{tournament.prize_pool or 0:,}",
-                'date': getattr(tournament.settings, 'start_at', None),
-                'slots': getattr(tournament, 'max_teams', 0) or getattr(tournament, 'max_participants', 0),
+                'date': getattr(tournament, 'tournament_start', None),
+                'slots': getattr(tournament, 'max_participants', 0),
                 'url': f'/tournaments/{tournament.slug}/' if tournament.slug else '/tournaments/',
                 'is_live': is_tournament_live(tournament),
             }
@@ -297,7 +297,7 @@ def get_game_tournament_count(game_slug):
     """Get active tournament count for a game"""
     try:
         Tournament = apps.get_model('tournaments', 'Tournament')
-        count = Tournament.objects.filter(game__iexact=game_slug).count()
+        count = Tournament.objects.filter(game__slug__iexact=game_slug).count()
         return count
     except Exception:
         return 0
@@ -308,7 +308,7 @@ def get_game_player_count(game_slug):
     try:
         Registration = apps.get_model('tournaments', 'Registration')
         count = Registration.objects.filter(
-            tournament__game__iexact=game_slug
+            tournament__game__slug__iexact=game_slug
         ).values('user').distinct().count()
         return count
     except Exception:
@@ -322,14 +322,14 @@ def get_live_tournaments():
         now = timezone.now()
         
         tournaments = Tournament.objects.filter(
-            settings__start_at__lte=now,
-            settings__end_at__gte=now
-        ).select_related('settings')[:3]
+            tournament_start__lte=now,
+            tournament_end__gte=now
+        )[:3]
         
         return [{
             'name': t.name,
-            'game': getattr(t, 'game', 'Unknown').title(),
-            'players': getattr(t, 'max_teams', 0) or getattr(t, 'max_participants', 0),
+            'game': getattr(getattr(t, 'game', None), 'name', 'Unknown'),
+            'players': getattr(t, 'max_participants', 0),
             'url': f'/tournaments/{t.slug}/' if t.slug else '/tournaments/',
         } for t in tournaments]
     except Exception:
@@ -344,14 +344,14 @@ def get_upcoming_events():
         next_week = now + timedelta(days=7)
         
         tournaments = Tournament.objects.filter(
-            settings__start_at__gte=now,
-            settings__start_at__lte=next_week
-        ).order_by('settings__start_at').select_related('settings')[:4]
+            tournament_start__gte=now,
+            tournament_start__lte=next_week
+        ).order_by('tournament_start')[:4]
         
         return [{
             'name': t.name,
-            'game': getattr(t, 'game', 'Unknown').title(),
-            'date': getattr(t.settings, 'start_at', None),
+            'game': getattr(getattr(t, 'game', None), 'name', 'Unknown'),
+            'date': getattr(t, 'tournament_start', None),
             'prize': f"৳{t.prize_pool or 0:,}",
             'url': f'/tournaments/{t.slug}/' if t.slug else '/tournaments/',
         } for t in tournaments]
@@ -363,8 +363,8 @@ def is_tournament_live(tournament):
     """Check if tournament is currently live"""
     try:
         now = timezone.now()
-        start = getattr(tournament.settings, 'start_at', None)
-        end = getattr(tournament.settings, 'end_at', None)
+        start = getattr(tournament, 'tournament_start', None)
+        end = getattr(tournament, 'tournament_end', None)
         if start and end:
             return start <= now <= end
     except Exception:

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% comment %}
+FE-T-001: Tournament List Page
+Purpose: Public-facing tournament discovery page with filters, search, and pagination
+Source: Documents/ExecutionPlan/FrontEnd/Backlog/FRONTEND_TOURNAMENT_BACKLOG.md (Section 1.1)
+URL: /tournaments/
+{% endcomment %}
+
+{% block title %}Browse Tournaments - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tournaments/public/css/tournament-list.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tournament-list-container">
+  <!-- Page Header -->
+  <div class="tournament-list-header">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-4xl font-bold text-primary mb-2">Tournaments</h1>
+      <p class="text-lg text-body-secondary">Discover and join esports tournaments</p>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="tournament-filters-section bg-surface-elevated border-b border-line">
+    <div class="container mx-auto px-4 py-4">
+      {% include "tournaments/public/browse/_filters.html" %}
+    </div>
+  </div>
+
+  <!-- Tournament Grid -->
+  <div class="container mx-auto px-4 py-8">
+    {% if tournament_list %}
+      <div class="tournament-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for tournament in tournament_list %}
+          {% include "tournaments/public/browse/_tournament_card.html" with tournament=tournament %}
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if is_paginated %}
+        <div class="pagination-container mt-8 flex justify-center">
+          {% include "components/pagination.html" with page_obj=page_obj %}
+        </div>
+      {% endif %}
+
+    {% else %}
+      <!-- Empty State -->
+      {% include "tournaments/public/browse/_empty_state.html" %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tournaments/public/js/filters.js' %}"></script>
+{% endblock %}

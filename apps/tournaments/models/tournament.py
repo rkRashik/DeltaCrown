@@ -96,6 +96,13 @@ class Game(models.Model):
         help_text='How match results are recorded'
     )
     
+    # Game-specific configuration (JSONB)
+    game_config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Game configuration schema and settings (JSONB)'
+    )
+    
     is_active = models.BooleanField(
         default=True,
         db_index=True,
@@ -366,6 +373,10 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         default=15,
         help_text='Check-in window duration in minutes'
     )
+    check_in_closes_minutes_before = models.PositiveIntegerField(
+        default=10,
+        help_text='Check-in closes this many minutes before tournament start'
+    )
     enable_dynamic_seeding = models.BooleanField(
         default=False,
         help_text='Use team rankings for seeding instead of registration order'
@@ -391,6 +402,22 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     rules_text = models.TextField(
         blank=True,
         help_text='Tournament rules in text format'
+    )
+    
+    # Terms & Conditions (NEW - from improvement plan)
+    terms_and_conditions = models.TextField(
+        blank=True,
+        help_text='Terms and conditions that all participants must agree to'
+    )
+    terms_pdf = models.FileField(
+        upload_to='tournaments/terms/',
+        null=True,
+        blank=True,
+        help_text='Terms & Conditions PDF document (optional)'
+    )
+    require_terms_acceptance = models.BooleanField(
+        default=True,
+        help_text='Require participants to explicitly accept terms during registration'
     )
     
     # Status
@@ -435,6 +462,13 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='SEO keywords'
     )
     
+    # Advanced per-tournament configuration (JSONB)
+    config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Advanced tournament configuration and feature flags (JSONB)'
+    )
+    
     # Managers
     objects = SoftDeleteManager()
     all_objects = models.Manager()
@@ -465,7 +499,10 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         return f"{self.name} ({self.game.name})"
     
     def save(self, *args, **kwargs):
-        """Auto-generate slug from name if not provided."""
+        """
+        Auto-generate slug from name if not provided.
+        Auto-assign official organizer for official tournaments.
+        """
         if not self.slug:
             base_slug = slugify(self.name)
             unique_slug = base_slug
@@ -477,6 +514,24 @@ class Tournament(SoftDeleteModel, TimestampedModel):
                 counter += 1
             
             self.slug = unique_slug
+        
+        # Auto-assign organizer for official tournaments
+        if self.is_official and not self.organizer_id:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            
+            # Get or create the official DeltaCrown account
+            official_user, created = User.objects.get_or_create(
+                username='deltacrown_official',
+                defaults={
+                    'email': 'official@deltacrown.gg',
+                    'first_name': 'DeltaCrown',
+                    'last_name': 'Official',
+                    'is_staff': True,
+                }
+            )
+            
+            self.organizer = official_user
         
         super().save(*args, **kwargs)
     

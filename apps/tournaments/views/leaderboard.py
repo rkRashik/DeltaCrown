@@ -32,7 +32,7 @@ class TournamentLeaderboardView(DetailView):
         - user_rank: Current user's rank (if participant)
     """
     model = Tournament
-    template_name = 'tournaments/leaderboard/index.html'
+    template_name = 'tournaments/public/leaderboard/index.html'
     context_object_name = 'tournament'
     
     def get_queryset(self):

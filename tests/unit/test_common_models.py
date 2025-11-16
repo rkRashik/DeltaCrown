@@ -30,8 +30,8 @@ User = get_user_model()
 
 
 # Test models for testing abstract base classes
-# Note: Using underscore prefix to prevent pytest from collecting these as test classes
-class __TestSoftDeleteModel(SoftDeleteModel):
+# Note: Using single underscore prefix to prevent pytest from collecting these as test classes
+class _TestSoftDeleteModel(SoftDeleteModel):
     """Concrete model for testing SoftDeleteModel."""
     
     name = models.CharField(max_length=100)
@@ -43,7 +43,7 @@ class __TestSoftDeleteModel(SoftDeleteModel):
         app_label = 'common'
 
 
-class __TestTimestampedModel(TimestampedModel):
+class _TestTimestampedModel(TimestampedModel):
     """Concrete model for testing TimestampedModel."""
     
     name = models.CharField(max_length=100)
@@ -52,7 +52,7 @@ class __TestTimestampedModel(TimestampedModel):
         app_label = 'common'
 
 
-class __TestCombinedModel(SoftDeleteModel, TimestampedModel):
+class _TestCombinedModel(SoftDeleteModel, TimestampedModel):
     """Concrete model for testing combined mixins."""
     
     name = models.CharField(max_length=100)
@@ -80,7 +80,7 @@ class _TestSoftDeleteModelFeatures:
     
     def test_soft_delete_model_has_required_fields(self):
         """Test that SoftDeleteModel has is_deleted, deleted_at, deleted_by fields."""
-        model = __TestSoftDeleteModel(name='Test')
+        model = _TestSoftDeleteModel(name='Test')
         
         assert hasattr(model, 'is_deleted')
         assert hasattr(model, 'deleted_at')

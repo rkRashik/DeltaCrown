@@ -1,0 +1,15 @@
+<!-- Bracket Round Section -->
+<div class="bracket-round mb-8">
+    <!-- Round Header -->
+    <div class="mb-4 pb-2 border-b-2 border-gray-300">
+        <h2 class="text-xl font-bold text-gray-900">{{ round.round_name }}</h2>
+        <p class="text-sm text-gray-600">Round {{ round.round_number }} - {{ round.matches|length }} match{{ round.matches|length|pluralize:"es" }}</p>
+    </div>
+
+    <!-- Round Matches -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for match in round.matches %}
+            {% include 'tournaments/public/live/_partials/_bracket_match_card.html' with match=match %}
+        {% endfor %}
+    </div>
+</div>

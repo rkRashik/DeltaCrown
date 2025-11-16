@@ -64,7 +64,7 @@ class MatchAdmin(admin.ModelAdmin):
     search_fields = [
         'participant1_name',
         'participant2_name',
-        'tournament__title',
+        'tournament__name',
     ]
     
     readonly_fields = [
@@ -148,11 +148,11 @@ class MatchAdmin(admin.ModelAdmin):
     # Custom Display Methods
     # ===========================
     
-    @admin.display(description='Tournament', ordering='tournament__title')
+    @admin.display(description='Tournament', ordering='tournament__name')
     def tournament_link(self, obj):
         """Display tournament with admin link"""
         url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.id])
-        return format_html('<a href="{}">{}</a>', url, obj.tournament.title)
+        return format_html('<a href="{}">{}</a>', url, obj.tournament.name)
     
     @admin.display(description='Round / Match')
     def round_match_display(self, obj):
@@ -283,7 +283,7 @@ class MatchAdmin(admin.ModelAdmin):
         for match in queryset:
             writer.writerow([
                 match.id,
-                match.tournament.title,
+                match.tournament.name,
                 match.round_number,
                 match.match_number,
                 match.participant1_name or match.participant1_id,
@@ -332,7 +332,7 @@ class DisputeAdmin(admin.ModelAdmin):
     ]
     
     search_fields = [
-        'match__tournament__title',
+        'match__tournament__name',
         'match__participant1_name',
         'match__participant2_name',
         'description',
@@ -392,11 +392,11 @@ class DisputeAdmin(admin.ModelAdmin):
     # Custom Display Methods
     # ===========================
     
-    @admin.display(description='Match', ordering='match__tournament__title')
+    @admin.display(description='Match', ordering='match__tournament__name')
     def match_link(self, obj):
         """Display match with admin link"""
         url = reverse('admin:tournaments_match_change', args=[obj.match.id])
-        match_desc = f"{obj.match.tournament.title} - R{obj.match.round_number}M{obj.match.match_number}"
+        match_desc = f"{obj.match.tournament.name} - R{obj.match.round_number}M{obj.match.match_number}"
         return format_html('<a href="{}">{}</a>', url, match_desc)
     
     @admin.display(description='Reason')
@@ -512,7 +512,7 @@ class DisputeAdmin(admin.ModelAdmin):
         for dispute in queryset:
             writer.writerow([
                 dispute.id,
-                f"{dispute.match.tournament.title} - R{dispute.match.round_number}M{dispute.match.match_number}",
+                f"{dispute.match.tournament.name} - R{dispute.match.round_number}M{dispute.match.match_number}",
                 dispute.get_reason_display(),
                 dispute.get_status_display(),
                 dispute.initiated_by_id,

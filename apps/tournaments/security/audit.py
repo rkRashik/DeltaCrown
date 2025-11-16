@@ -208,7 +208,9 @@ def get_user_audit_trail(user, limit: int = 100) -> QuerySet:
         for entry in audit_trail:
             print(f"{entry.timestamp}: {entry.action} - {entry.metadata}")
     """
-    return AuditLog.objects.filter(user=user).order_by('-timestamp')[:limit]
+    # Don't slice - allows further filtering. Apply limit when materializing results.
+    qs = AuditLog.objects.filter(user=user).order_by('-timestamp')
+    return qs[:limit] if limit else qs
 
 
 def get_tournament_audit_trail(tournament_id: int, limit: int = 100) -> QuerySet:
@@ -228,9 +230,11 @@ def get_tournament_audit_trail(tournament_id: int, limit: int = 100) -> QuerySet
             action__startswith='payment_'
         )
     """
-    return AuditLog.objects.filter(
+    # Don't slice - allows further filtering as shown in docstring example
+    qs = AuditLog.objects.filter(
         metadata__tournament_id=tournament_id
-    ).order_by('-timestamp')[:limit]
+    ).order_by('-timestamp')
+    return qs[:limit] if limit else qs
 
 
 def get_action_audit_trail(action: AuditAction, limit: int = 100) -> QuerySet:
@@ -254,7 +258,9 @@ def get_action_audit_trail(action: AuditAction, limit: int = 100) -> QuerySet:
         )
     """
     action_value = action.value if isinstance(action, AuditAction) else action
-    return AuditLog.objects.filter(action=action_value).order_by('-timestamp')[:limit]
+    # Don't slice - allows further filtering as shown in docstring example
+    qs = AuditLog.objects.filter(action=action_value).order_by('-timestamp')
+    return qs[:limit] if limit else qs
 
 
 def get_audit_summary(start_date=None, end_date=None) -> Dict[str, int]:
