@@ -269,11 +269,44 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             context['step_title'] = 'Payment Information'
             context['step_description'] = f'Entry fee: ৳{tournament.entry_fee_amount}'
             
-            context['payment_methods'] = [
-                {'value': 'bkash', 'label': 'bKash', 'logo': 'img/payment/bkash.png'},
-                {'value': 'nagad', 'label': 'Nagad', 'logo': 'img/payment/nagad.png'},
-                {'value': 'rocket', 'label': 'Rocket', 'logo': 'img/payment/rocket.png'},
-            ]
+            # Load configured payment methods from tournament
+            from apps.tournaments.models import TournamentPaymentMethod
+            configured_methods = TournamentPaymentMethod.objects.filter(
+                tournament=tournament,
+                is_active=True
+            ).order_by('display_order')
+            
+            payment_methods = []
+            for method in configured_methods:
+                method_info = {
+                    'value': method.method_type,
+                    'label': method.get_method_type_display(),
+                    'logo': None,  # Logo paths can be added to model later
+                }
+                
+                # Add account details and instructions
+                if method.method_type == 'bkash':
+                    method_info['account'] = method.bkash_account_number
+                    method_info['instructions'] = method.bkash_instructions or 'Send Money to the number above'
+                elif method.method_type == 'nagad':
+                    method_info['account'] = method.nagad_account_number
+                    method_info['instructions'] = method.nagad_instructions or 'Send Money to the number above'
+                elif method.method_type == 'rocket':
+                    method_info['account'] = method.rocket_account_number
+                    method_info['instructions'] = method.rocket_instructions or 'Send Money to the number above'
+                elif method.method_type == 'bank_transfer':
+                    method_info['account'] = f"{method.bank_name} - {method.bank_account_number}"
+                    method_info['instructions'] = method.bank_instructions or 'Transfer to the account above'
+                
+                payment_methods.append(method_info)
+            
+            # Fallback if no methods configured
+            if not payment_methods:
+                payment_methods = [
+                    {'value': 'bkash', 'label': 'bKash', 'logo': 'img/payment/bkash.png', 'account': 'Contact organizer', 'instructions': 'Please contact tournament organizer for payment details'},
+                ]
+            
+            context['payment_methods'] = payment_methods
             context['selected_payment_method'] = wizard_data.get('payment_method')
         
         # Final step: Review & Confirm

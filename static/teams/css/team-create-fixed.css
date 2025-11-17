@@ -1,7 +1,7 @@
 /**
  * TEAM CREATE - ENHANCED ESPORTS PREMIUM DESIGN
  * Professional, modern, responsive design with esports vibe
- * Version: 2.0 - October 2025
+ * Version: 2.2 - Error States & Form Validation
  */
 
 :root {
@@ -443,7 +443,8 @@ select.form-control {
     }
 }
 
-#game-id-section.visible {
+#game-id-section.visible,
+#game-id-section.show {
     display: block;
 }
 
@@ -1272,6 +1273,146 @@ select.form-control {
 .mb-3 { margin-bottom: var(--space-md); }
 .mb-4 { margin-bottom: var(--space-lg); }
 .mb-5 { margin-bottom: var(--space-xl); }
+
+/* ========== ERROR STATES & VALIDATION ========== */
+/* Error Summary Alert */
+.error-summary {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05));
+    border: 2px solid var(--error);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+    animation: slideDown 0.3s ease-out;
+}
+
+.error-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.error-header i {
+    font-size: 1.5rem;
+    color: var(--error);
+}
+
+.error-header h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--error);
+}
+
+.error-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.error-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.1);
+    color: var(--text-primary);
+}
+
+.error-list li:last-child {
+    border-bottom: none;
+}
+
+.error-list li strong {
+    color: var(--error);
+    font-weight: 600;
+}
+
+/* Invalid Feedback - Per Field Errors */
+.invalid-feedback {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--error);
+    font-weight: 500;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.invalid-feedback::before {
+    content: "⚠ ";
+    margin-right: 0.25rem;
+}
+
+/* Invalid Input State */
+.form-control.is-invalid,
+.modern-select.is-invalid {
+    border-color: var(--error) !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1), 
+                0 4px 12px rgba(239, 68, 68, 0.15) !important;
+    animation: shake 0.3s ease-in-out;
+}
+
+.form-control.is-invalid:focus,
+.modern-select.is-invalid:focus {
+    border-color: var(--error) !important;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2), 
+                0 4px 16px rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Error Animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Success State */
+.form-control.is-valid,
+.modern-select.is-valid {
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.valid-feedback {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--success);
+    font-weight: 500;
+}
+
+.valid-feedback::before {
+    content: "✓ ";
+    margin-right: 0.25rem;
+}
+
+/* Required Field Indicator Enhancement */
+.required {
+    color: var(--error);
+    font-weight: 700;
+    margin-left: 0.25rem;
+}
+
+/* Form Label with Error */
+.form-label.error-label {
+    color: var(--error);
+}
+
 
 /* ========== ACCESSIBILITY ========== */
 .sr-only {

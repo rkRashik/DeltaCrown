@@ -6,6 +6,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'css/team-dashboard/modern-dashboard.css' %}">
 <link rel="stylesheet" href="{% static 'css/team-detail/player-stats-modal.css' %}">
+<link rel="stylesheet" href="{% static 'teams/css/team-completion-modern.css' %}?v=1.0">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 {% endblock %}
 
@@ -128,6 +129,15 @@
       </div>
     </div>
   </section>
+
+  <!-- Team Completion Progress Widget -->
+  {% if completion_data %}
+  <section class="completion-section">
+    <div class="container">
+      <div id="team-completion-widget"></div>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- Main Dashboard Content -->
   <section class="dashboard-main">
@@ -460,6 +470,13 @@
     }
   });
 </script>
+
+<!-- Team Completion Widget -->
+<script>
+  window.teamCompletionData = {{ completion_data_json|safe }};
+</script>
+<script src="{% static 'teams/js/team-completion-modern.js' %}?v=1.0"></script>
+
 <script src="{% static 'js/team-dashboard/dashboard-manager.js' %}"></script>
 <script src="{% static 'js/team-detail/player-stats-modal.js' %}"></script>
 <script src="{% static 'js/team-dashboard/ranking-history.js' %}"></script>

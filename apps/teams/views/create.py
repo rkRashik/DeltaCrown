@@ -78,6 +78,14 @@ def team_create_view(request):
                         url='/teams/invitations/'
                     )
                 
+                # Return JSON for AJAX requests
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'message': f"Team '{team.name}' created successfully!",
+                        'redirect_url': f'/teams/{team.slug}/'
+                    })
+                
                 messages.success(
                     request,
                     f"🎉 Team '{team.name}' created successfully! Welcome to your new team."
@@ -85,8 +93,24 @@ def team_create_view(request):
                 return redirect("teams:dashboard", slug=team.slug)
             
             except Exception as e:
+                # Return JSON error for AJAX requests
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'error': str(e)
+                    }, status=400)
                 messages.error(request, f"Error creating team: {str(e)}")
         else:
+            # Return JSON validation errors for AJAX requests
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                errors = {}
+                for field, error_list in form.errors.items():
+                    errors[field] = [str(e) for e in error_list]
+                return JsonResponse({
+                    'success': False,
+                    'errors': errors,
+                    'error': 'Please correct the form errors.'
+                }, status=400)
             messages.error(request, "Please correct the errors below.")
     else:
         # Pre-fill game from query string

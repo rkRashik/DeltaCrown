@@ -34,19 +34,26 @@ from django.templatetags.static import static
 
 # Game Assets Configuration
 # Update paths here to change logos/cards across the entire application
+# Synced with Documents/Games/Game_Spec.md
 GAMES = {
     'VALORANT': {
         'name': 'Valorant',
         'display_name': 'Valorant',
         'slug': 'valorant',
-        'logo': 'img/game_logos/Valorant_logo.jpg',  # exists
-        'card': 'img/game_cards/Valorant.jpg',  # exists
-        'icon': 'logos/valorant.svg',  # use existing svg
+        'logo': 'img/game_logos/Valorant_logo.jpg',
+        'card': 'img/game_cards/Valorant.jpg',
+        'icon': 'logos/valorant.svg',
         'banner': 'img/game_banners/valorant_banner.jpg',
         'color_primary': '#FF4655',
         'color_secondary': '#0F1419',
         'category': 'FPS',
-        'platform': ['PC', 'Mobile'],
+        'type': 'Team vs Team',
+        'platform': ['PC'],
+        'team_size': '5v5',
+        'roster_size': '5-7',
+        'player_id_label': 'Riot ID',
+        'player_id_format': 'PlayerName#TAG',
+        'player_id_placeholder': 'Example: Player#1234',
     },
     
     'CS2': {
@@ -54,116 +61,25 @@ GAMES = {
         'display_name': 'Counter-Strike 2',
         'slug': 'cs2',
         'logo': 'img/game_logos/CS2_logo.jpeg',
-        'card': 'img/game_cards/CS2.jpg',  # exists
+        'card': 'img/game_cards/CS2.jpg',
         'icon': 'img/game_icons/cs2_icon.png',
         'banner': 'img/game_banners/cs2_banner.jpg',
         'color_primary': '#F79100',
         'color_secondary': '#1B1B1B',
         'category': 'FPS',
+        'type': 'Team vs Team',
         'platform': ['PC'],
+        'team_size': '5v5',
+        'roster_size': '5-7',
+        'player_id_label': 'Steam ID',
+        'player_id_format': 'steamID64',
+        'player_id_placeholder': 'Example: 76561198123456789',
     },
     
-    'EFOOTBALL': {
-        'name': 'eFootball',
-        'display_name': 'eFootball PES',
-        'slug': 'efootball',
-        'logo': 'img/game_logos/efootball_logo.jpeg',  # exists
-        'card': 'img/game_cards/efootball.jpeg',  # exists
-        'icon': 'logos/efootball.svg',  # use existing svg
-        'banner': 'img/game_banners/efootball_banner.jpg',
-        'color_primary': '#00A0E4',
-        'color_secondary': '#003366',
-        'category': 'Sports',
-        'platform': ['PC', 'Mobile', 'Console'],
-    },
-    
-    'MLBB': {
-        'name': 'Mobile Legends',
-        'display_name': 'Mobile Legends: Bang Bang',
-        'slug': 'mlbb',
-        'logo': 'img/game_logos/mobile_legend_logo.jpeg',  # exists
-        'card': 'img/game_cards/MobileLegend.jpg',  # exists
-        'icon': 'logos/mlbb.svg',  # use existing svg
-        'banner': 'img/game_banners/mlbb_banner.jpg',
-        'color_primary': '#4A90E2',
-        'color_secondary': '#1E3A8A',
-        'category': 'MOBA',
-        'platform': ['Mobile'],
-    },
-    
-    'FREEFIRE': {
-        'name': 'Free Fire',
-        'display_name': 'Free Fire',
-        'slug': 'freefire',
-        'logo': 'img/game_logos/FreeFire_logo.jpg',  # exists
-        'card': 'img/game_cards/FreeFire.jpeg',  # exists
-        'icon': 'img/game_logos/FreeFire_logo.jpg',  # use existing png
-        'banner': 'img/game_banners/freefire_banner.jpg',
-        'color_primary': '#FF6B35',
-        'color_secondary': '#2C1810',
-        'category': 'Battle Royale',
-        'platform': ['Mobile'],
-    },
-    
-    'PUBG': {
-        'name': 'PUBG',
-        'display_name': 'PlayerUnknown\'s Battlegrounds',
-        'slug': 'pubg',
-        'logo': 'img/game_logos/pubg_logo.png',
-        'card': 'img/game_cards/PUBG.jpeg',  # exists
-        'icon': 'img/game_logos/pubg_logo.png',
-        'banner': 'img/game_banners/pubg_banner.jpg',
-        'color_primary': '#F4A623',
-        'color_secondary': '#1C1C1E',
-        'category': 'Battle Royale',
-        'platform': ['PC', 'Mobile', 'Console'],
-    },
-    
-    'FC26': {
-        'name': 'FC26',
-        'display_name': 'EA Sports FC 26',
-        'slug': 'fc26',
-        'logo': 'img/game_logos/fc26_logo.jpg',  # exists
-        'card': 'img/game_cards/FC26.jpg',  # exists
-        'icon': 'logos/fc26.svg',  # use existing svg
-        'banner': 'img/game_banners/fc26_banner.jpg',
-        'color_primary': '#00D4FF',
-        'color_secondary': '#003366',
-        'category': 'Sports',
-        'platform': ['PC', 'Console'],
-    },
-    
-    # CODM, LOL, and DOTA2 temporarily removed from active games list
-    # Can be re-enabled by uncommenting below:
-    'CODM': {
-        'name': 'Call of Duty Mobile',
-        'display_name': 'Call of Duty: Mobile',
-        'logo': 'img/game_logos/CallOfDutyMobile_logo.jpg',
-        'card': 'img/game_cards/CallOfDutyMobile.jpg',
-        'icon': 'img/game_logos/CallOfDutyMobile_logo.jpg',
-        'banner': 'img/game_cards/CallOfDutyMobile.jpg',
-        'color_primary': '#FF6900',
-        'color_secondary': '#000000',
-        'category': 'FPS',
-        'platform': ['Mobile'],
-    },
-
-    # 'LOL': {
-    #     'name': 'League of Legends',
-    #     'display_name': 'League of Legends',
-    #     'logo': 'img/game_logos/lol_logo.jpg',
-    #     'card': 'img/game_cards/lol_card.jpg',
-    #     'icon': 'img/game_icons/lol_icon.png',
-    #     'banner': 'img/game_banners/lol_banner.jpg',
-    #     'color_primary': '#C89B3C',
-    #     'color_secondary': '#0F2027',
-    #     'category': 'MOBA',
-    #     'platform': ['PC'],
-    # },
-
     'DOTA2': {
         'name': 'Dota 2',
         'display_name': 'Dota 2',
+        'slug': 'dota2',
         'logo': 'img/game_logos/Dota2_logo.jpg',
         'card': 'img/game_cards/Dota2.jpg',
         'icon': 'img/game_logos/Dota2_logo.jpg',
@@ -171,7 +87,133 @@ GAMES = {
         'color_primary': '#E62E04',
         'color_secondary': '#000000',
         'category': 'MOBA',
+        'type': 'Team vs Team',
         'platform': ['PC'],
+        'team_size': '5v5',
+        'roster_size': '5-7',
+        'player_id_label': 'Steam ID',
+        'player_id_format': 'steamID64',
+        'player_id_placeholder': 'Example: 76561198123456789',
+    },
+    
+    'EFOOTBALL': {
+        'name': 'eFootball',
+        'display_name': 'eFootball PES',
+        'slug': 'efootball',
+        'logo': 'img/game_logos/efootball_logo.jpeg',
+        'card': 'img/game_cards/efootball.jpeg',
+        'icon': 'logos/efootball.svg',
+        'banner': 'img/game_banners/efootball_banner.jpg',
+        'color_primary': '#00A0E4',
+        'color_secondary': '#003366',
+        'category': 'Sports',
+        'type': '1v1 (Solo)',
+        'platform': ['PC', 'Mobile', 'Console'],
+        'team_size': '1v1',
+        'roster_size': '1-2',
+        'player_id_label': 'Konami ID',
+        'player_id_format': 'Username',
+        'player_id_placeholder': 'Example: PlayerName',
+    },
+    
+    'FC26': {
+        'name': 'FC26',
+        'display_name': 'EA Sports FC 26',
+        'slug': 'fc26',
+        'logo': 'img/game_logos/fc26_logo.jpg',
+        'card': 'img/game_cards/FC26.jpg',
+        'icon': 'logos/fc26.svg',
+        'banner': 'img/game_banners/fc26_banner.jpg',
+        'color_primary': '#00D4FF',
+        'color_secondary': '#003366',
+        'category': 'Sports',
+        'type': '1v1 (Solo)',
+        'platform': ['PC', 'Console', 'Mobile'],
+        'team_size': '1v1',
+        'roster_size': '1',
+        'player_id_label': 'EA ID',
+        'player_id_format': 'Username, PSN, or Xbox',
+        'player_id_placeholder': 'Example: PlayerName',
+    },
+    
+    'MLBB': {
+        'name': 'Mobile Legends',
+        'display_name': 'Mobile Legends: Bang Bang',
+        'slug': 'mlbb',
+        'logo': 'img/game_logos/mobile_legend_logo.jpeg',
+        'card': 'img/game_cards/MobileLegend.jpg',
+        'icon': 'logos/mlbb.svg',
+        'banner': 'img/game_banners/mlbb_banner.jpg',
+        'color_primary': '#4A90E2',
+        'color_secondary': '#1E3A8A',
+        'category': 'MOBA',
+        'type': 'Team vs Team',
+        'platform': ['Mobile'],
+        'team_size': '5v5',
+        'roster_size': '5-6',
+        'player_id_label': 'User ID + Zone ID',
+        'player_id_format': 'User ID (Zone ID)',
+        'player_id_placeholder': 'Example: 123456 (7890)',
+    },
+    
+    'CODM': {
+        'name': 'Call of Duty Mobile',
+        'display_name': 'Call of Duty: Mobile',
+        'slug': 'codm',
+        'logo': 'img/game_logos/CallOfDutyMobile_logo.jpg',
+        'card': 'img/game_cards/CallOfDutyMobile.jpg',
+        'icon': 'img/game_logos/CallOfDutyMobile_logo.jpg',
+        'banner': 'img/game_cards/CallOfDutyMobile.jpg',
+        'color_primary': '#FF6900',
+        'color_secondary': '#000000',
+        'category': 'FPS',
+        'type': 'Team vs Team',
+        'platform': ['Mobile'],
+        'team_size': '5v5',
+        'roster_size': '5-6',
+        'player_id_label': 'IGN / UID',
+        'player_id_format': 'In-Game Name or UID',
+        'player_id_placeholder': 'Example: PlayerName or 1234567890',
+    },
+    
+    'FREEFIRE': {
+        'name': 'Free Fire',
+        'display_name': 'Free Fire',
+        'slug': 'freefire',
+        'logo': 'img/game_logos/FreeFire_logo.jpg',
+        'card': 'img/game_cards/FreeFire.jpeg',
+        'icon': 'img/game_logos/FreeFire_logo.jpg',
+        'banner': 'img/game_banners/freefire_banner.jpg',
+        'color_primary': '#FF6B35',
+        'color_secondary': '#2C1810',
+        'category': 'Battle Royale',
+        'type': 'Battle Royale',
+        'platform': ['Mobile'],
+        'team_size': '4-Player Squads',
+        'roster_size': '4',
+        'player_id_label': 'IGN / UID',
+        'player_id_format': 'In-Game Name or UID',
+        'player_id_placeholder': 'Example: PlayerName or 1234567890',
+    },
+    
+    'PUBG': {
+        'name': 'PUBG',
+        'display_name': 'PlayerUnknown\'s Battlegrounds',
+        'slug': 'pubg',
+        'logo': 'img/game_logos/pubg_logo.png',
+        'card': 'img/game_cards/PUBG.jpeg',
+        'icon': 'img/game_logos/pubg_logo.png',
+        'banner': 'img/game_banners/pubg_banner.jpg',
+        'color_primary': '#F4A623',
+        'color_secondary': '#1C1C1E',
+        'category': 'Battle Royale',
+        'type': 'Battle Royale',
+        'platform': ['PC', 'Mobile', 'Console'],
+        'team_size': '4-Player Squads',
+        'roster_size': '4',
+        'player_id_label': 'IGN / UID',
+        'player_id_format': 'In-Game Name or UID',
+        'player_id_placeholder': 'Example: PlayerName or 1234567890',
     },
 }
 

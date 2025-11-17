@@ -369,12 +369,65 @@ GAME_CHOICES = tuple(
 # UTILITY FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════
 
+# Game code normalization map - handles legacy/alternate names
+GAME_CODE_ALIASES = {
+    'pubg-mobile': 'pubg',
+    'pubgm': 'pubg',
+    'pubg_mobile': 'pubg',
+    'free-fire': 'freefire',
+    'free_fire': 'freefire',
+    'cs-2': 'cs2',
+    'cs_2': 'cs2',
+    'counter-strike-2': 'cs2',
+    'mlbb': 'mlbb',
+    'mobile-legends': 'mlbb',
+    'dota-2': 'dota2',
+    'dota_2': 'dota2',
+    'call-of-duty-mobile': 'codm',
+    'cod-mobile': 'codm',
+    'cod_mobile': 'codm',
+    'efootball': 'efootball',
+    'e-football': 'efootball',
+    'fc-26': 'fc26',
+    'fc_26': 'fc26',
+    'counter-strike-go': 'csgo',
+    'cs-go': 'csgo',
+    'cs_go': 'csgo',
+}
+
+
+def normalize_game_code(game_code: str) -> str:
+    """
+    Normalize game code to standard format.
+    
+    Handles legacy game codes and alternate naming conventions.
+    For example: 'pubg-mobile' → 'pubg', 'free-fire' → 'freefire'
+    
+    Args:
+        game_code: Raw game identifier from database or user input
+        
+    Returns:
+        Normalized game code that matches GAME_CONFIGS keys
+    """
+    if not game_code:
+        return game_code
+    
+    # Lowercase and strip whitespace
+    normalized = game_code.lower().strip()
+    
+    # Check if it needs aliasing
+    if normalized in GAME_CODE_ALIASES:
+        return GAME_CODE_ALIASES[normalized]
+    
+    return normalized
+
+
 def get_game_config(game_code: str) -> GameRosterConfig:
     """
     Get configuration for a specific game.
     
     Args:
-        game_code: Game identifier (e.g., 'valorant', 'cs2')
+        game_code: Game identifier (e.g., 'valorant', 'cs2', 'pubg-mobile')
         
     Returns:
         GameRosterConfig for the game
@@ -382,9 +435,15 @@ def get_game_config(game_code: str) -> GameRosterConfig:
     Raises:
         KeyError: If game code is not supported
     """
-    if game_code not in GAME_CONFIGS:
-        raise KeyError(f"Unsupported game: {game_code}. Available: {list(GAME_CONFIGS.keys())}")
-    return GAME_CONFIGS[game_code]
+    # Normalize the game code first
+    normalized_code = normalize_game_code(game_code)
+    
+    if normalized_code not in GAME_CONFIGS:
+        raise KeyError(
+            f"Unsupported game: {game_code} (normalized: {normalized_code}). "
+            f"Available: {list(GAME_CONFIGS.keys())}"
+        )
+    return GAME_CONFIGS[normalized_code]
 
 
 def get_max_roster_size(game_code: str) -> int:

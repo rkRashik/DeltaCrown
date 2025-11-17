@@ -37,6 +37,36 @@ URL: /tournaments/<slug>/
         <!-- Info Panel -->
         {% include "tournaments/public/detail/_info_panel.html" with tournament=tournament %}
 
+        <!-- Announcements Section -->
+        {% if announcements %}
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h3 class="text-xl font-bold mb-4 flex items-center">
+            <i class="fas fa-bullhorn mr-2 text-blue-600"></i> Announcements
+          </h3>
+          <div class="space-y-3">
+            {% for announcement in announcements %}
+            <div class="border-l-4 {% if announcement.is_important %}border-red-500 bg-red-50{% elif announcement.is_pinned %}border-yellow-500 bg-yellow-50{% else %}border-gray-300 bg-gray-50{% endif %} p-3 rounded-r">
+              <div class="flex items-start justify-between mb-1">
+                <h4 class="font-semibold text-sm">{{ announcement.title }}</h4>
+                <div class="flex space-x-1">
+                  {% if announcement.is_pinned %}
+                  <span class="text-yellow-600 text-xs">📌</span>
+                  {% endif %}
+                  {% if announcement.is_important %}
+                  <span class="text-red-600 text-xs">⚠️</span>
+                  {% endif %}
+                </div>
+              </div>
+              <p class="text-gray-700 text-sm mb-2 line-clamp-3">{{ announcement.message }}</p>
+              <div class="text-xs text-gray-500">
+                {{ announcement.created_at|date:"M d, g:i A" }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         <!-- Participants Preview (if registration open/closed) -->
         {% if tournament.status != 'draft' %}
           {% include "tournaments/public/detail/_participants_list.html" with tournament=tournament %}

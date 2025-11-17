@@ -3,6 +3,12 @@ from django.urls import path
 from .views import MyProfileUpdateView, profile_view, my_tournaments_view
 from .views_public import public_profile, profile_api
 from .api_views import get_game_id, update_game_id
+from .api.game_id_api import (
+    check_game_id_api,
+    save_game_id_api,
+    get_all_game_ids_api,
+    delete_game_id_api
+)
 
 app_name = "user_profile"
 
@@ -17,6 +23,13 @@ urlpatterns = [
     # API endpoints - specific paths BEFORE catch-all patterns
     path("api/profile/get-game-id/", get_game_id, name="get_game_id"),
     path("api/profile/update-game-id/", update_game_id, name="update_game_id"),
+    
+    # Modern Game ID API endpoints
+    path("api/profile/check-game-id/<str:game_code>/", check_game_id_api, name="check_game_id_api"),
+    path("api/profile/save-game-id/<str:game_code>/", save_game_id_api, name="save_game_id_api"),
+    path("api/profile/game-ids/", get_all_game_ids_api, name="get_all_game_ids_api"),
+    path("api/profile/delete-game-id/<str:game_code>/", delete_game_id_api, name="delete_game_id_api"),
+    
     path("api/profile/<str:profile_id>/", profile_api, name="profile_api"),
 
     # Modern profile page (primary)

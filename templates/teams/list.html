@@ -5,8 +5,9 @@
 {% block title %}Teams Hub — DeltaCrown Esports{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'teams/css/team-list-premium-complete.css' %}?v=5.0">
+<link rel="stylesheet" href="{% static 'teams/css/team-list-premium-complete.css' %}?v=7.0">
 <link rel="stylesheet" href="{% static 'teams/css/team-list-modern-redesign.css' %}?v=1.0">
+<link rel="stylesheet" href="{% static 'teams/css/team-join-modern.css' %}?v=1.0">
 {% endblock %}
 
 {% block content %}
@@ -347,7 +348,10 @@
                     {% for team in object_list %}
                     <article class="team-card-premium {% if team.rank_position <= 3 %}podium-team{% endif %}" 
                              data-team-id="{{ team.id }}"
-                             data-rank="{{ team.rank_position }}">
+                             data-team-slug="{{ team.slug }}"
+                             data-rank="{{ team.rank_position }}"
+                             style="cursor: pointer;"
+                             onclick="window.location.href='{{ team.get_absolute_url }}';">
                         
                         <!-- Rank Badge (Top 3 get special treatment) -->
                         {% if team.rank_position <= 3 %}
@@ -499,7 +503,11 @@
                                     <span>View Team</span>
                                 </a>
                                 {% if team.show_join_button %}
-                                    <button class="btn-action secondary-action" onclick="quickJoin('{{ team.slug }}'); event.stopPropagation();">
+                                    <button class="btn-action secondary-action join-team-btn" 
+                                            data-team-slug="{{ team.slug }}"
+                                            data-team-name="{{ team.name }}"
+                                            data-team-game="{{ team.game }}"
+                                            onclick="event.stopPropagation();">
                                         <i class="fas fa-user-plus"></i>
                                         <span>Join</span>
                                     </button>
@@ -579,25 +587,10 @@
         <p>Loading teams...</p>
     </div>
 </div>
-
-<!-- Quick Join Modal -->
-<div class="modal-overlay" id="quick-join-modal" style="display: none;">
-    <div class="modal-content">
-        <button class="modal-close" onclick="closeQuickJoin()">
-            <i class="fas fa-times"></i>
-        </button>
-        <div class="modal-header">
-            <i class="fas fa-user-plus"></i>
-            <h3>Join Team</h3>
-        </div>
-        <div class="modal-body" id="quick-join-body">
-            <!-- Populated dynamically -->
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
-    <script src="{% static 'teams/js/team-list-premium.js' %}?v=5.3"></script>
+    <script src="{% static 'teams/js/team-join-modern.js' %}?v=1.0"></script>
+    <script src="{% static 'teams/js/team-list-premium.js' %}?v=7.1"></script>
     <script src="{% static 'teams/js/team-list-vlr-style.js' %}?v=1.0"></script>
 {% endblock %}

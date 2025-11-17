@@ -239,6 +239,11 @@ def team_dashboard_view(request, slug: str):
                 chart_data['losses'].append(1)
     except:
         pass
+    
+    # 16. Calculate team completion
+    from apps.teams.completion import get_team_completion
+    import json
+    completion_data = get_team_completion(team, profile)
 
     context = {
         'team': team,
@@ -291,6 +296,10 @@ def team_dashboard_view(request, slug: str):
         
         # Team members for display
         'team_members': roster[:5],  # First 5 for quick view
+        
+        # Completion data
+        'completion_data': completion_data,
+        'completion_data_json': json.dumps(completion_data),
     }
     
     return render(request, "teams/dashboard_modern.html", context)
@@ -317,14 +326,21 @@ def team_profile_view(request, slug: str):
     is_member = False
     is_captain = False
     is_following = False
+    user_membership = None
     
     if profile:
-        is_member = TeamMembership.objects.filter(
-            team=team, 
-            profile=profile, 
-            status="ACTIVE"
-        ).exists()
-        is_captain = (team.captain_id == getattr(profile, "id", None))
+        # Get membership object if exists
+        try:
+            user_membership = TeamMembership.objects.get(
+                team=team,
+                profile=profile,
+                status="ACTIVE"
+            )
+            is_member = True
+            is_captain = (team.captain_id == getattr(profile, "id", None))
+        except TeamMembership.DoesNotExist:
+            pass
+        
         is_following = TeamFollower.objects.filter(
             team=team,
             follower=profile
@@ -535,6 +551,7 @@ def team_profile_view(request, slug: str):
         'is_member': is_member,
         'is_captain': is_captain,
         'is_following': is_following,
+        'user_membership': user_membership,
         'can_request_join': can_request_join,
         'already_in_team_for_game': already_in_team_for_game,
         

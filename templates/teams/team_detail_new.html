@@ -334,6 +334,10 @@
             <span>Posts</span>
           </button>
           {% if is_member %}
+            <button class="tab-button" data-tab="team-hub" role="tab">
+              <i class="fa-solid fa-tachometer-alt"></i>
+              <span>Team Hub</span>
+            </button>
             <button class="tab-button" data-tab="discussions" role="tab">
               <i class="fa-solid fa-comments"></i>
               <span>Discussions</span>
@@ -397,6 +401,13 @@
             <p>Loading posts...</p>
           </div>
         </section>
+        
+        <!-- Team Hub Tab (Members Only) -->
+        {% if is_member %}
+          <section id="tab-team-hub" class="tab-content" role="tabpanel">
+            {% include "teams/_team_hub.html" with team=team is_member=is_member is_captain=is_captain user_membership=user_membership roster=roster %}
+          </section>
+        {% endif %}
         
         <!-- Discussions Tab (Members Only) -->
         {% if is_member %}
@@ -517,6 +528,8 @@
 <script src="{% static 'js/team-detail/dashboard-actions.js' %}" defer></script>
 <script src="{% static 'js/team-detail/tab-manager.js' %}" defer></script>
 <script src="{% static 'js/team-detail/main.js' %}" defer></script>
+<!-- Team Hub Member Actions -->
+<script src="{% static 'teams/js/team-leave-modern.js' %}?v=1.0" defer></script>
 {% endblock %}
 
 {% block footer %}

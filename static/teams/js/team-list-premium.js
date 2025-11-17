@@ -695,7 +695,7 @@
     // ========================================
     // QUICK JOIN MODAL
     // ========================================
-    function showQuickJoinModal(teamId) {
+    function showQuickJoinModal(teamSlug) {
         const modalHtml = `
             <div class="modal-overlay active" id="quickJoinModal">
                 <div class="modal-content">
@@ -713,7 +713,7 @@
                             border: 2px solid var(--dark-border); border-radius: var(--radius-lg); color: white; 
                             font-family: inherit; resize: vertical; margin-bottom: 1.5rem;"></textarea>
                         <div style="display: flex; gap: 1rem;">
-                            <button class="btn-action primary-action" onclick="submitJoinRequest(${teamId})" style="flex: 1;">
+                            <button class="btn-action primary-action" onclick="submitJoinRequest('${teamSlug}')" style="flex: 1;">
                                 <i class="fas fa-paper-plane"></i> Send Request
                             </button>
                             <button class="btn-action secondary-action modal-close-btn" style="flex: 1;">Cancel</button>
@@ -734,29 +734,85 @@
         });
     }
 
-    window.submitJoinRequest = function(teamId) {
-        const message = document.getElementById('joinMessage')?.value || '';
+    // Make quickJoin available globally
+    window.quickJoin = showQuickJoinModal;
+    window.closeQuickJoin = function() {
+        const modal = document.getElementById('quick-join-modal');
+        if (modal) modal.style.display = 'none';
+        const quickModal = document.getElementById('quickJoinModal');
+        if (quickModal) quickModal.remove();
+    };
+
+    window.submitJoinRequest = function(teamSlug) {
+        const messageInput = document.getElementById('joinMessage');
+        const message = messageInput ? messageInput.value : '';
+        const submitBtn = document.querySelector('#quickJoinModal .modal-submit-btn');
         
-        fetch(`/teams/${teamId}/join/`, {
+        // Show loading state
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        }
+        
+        fetch(`/teams/${teamSlug}/join/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({ message })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
-            document.getElementById('quickJoinModal')?.remove();
+            // Close modal
+            const quickModal = document.getElementById('quickJoinModal');
+            if (quickModal) quickModal.remove();
+            const modal = document.getElementById('quick-join-modal');
+            if (modal) modal.style.display = 'none';
+            
+            // Show feedback
             if (data.success) {
-                showToast('Join request sent successfully!', 'success');
+                showToast(data.message || 'Successfully joined the team!', 'success');
+                
+                // Update button state on the team card
+                const teamCard = document.querySelector(`[data-team-slug="${teamSlug}"]`);
+                if (teamCard) {
+                    const joinBtn = teamCard.querySelector('.secondary-action');
+                    if (joinBtn) {
+                        joinBtn.innerHTML = '<i class="fas fa-check-circle"></i><span>Member</span>';
+                        joinBtn.classList.remove('secondary-action');
+                        joinBtn.classList.add('member-badge');
+                        joinBtn.disabled = true;
+                    }
+                }
             } else {
-                showToast(data.error || 'Failed to send request', 'error');
+                // Check if game ID is needed
+                if (data.needs_game_id) {
+                    showToast('Please set up your game ID first', 'info');
+                    // Redirect to team detail page where they can set up game ID
+                    setTimeout(() => {
+                        window.location.href = `/teams/${teamSlug}/`;
+                    }, 1500);
+                } else {
+                    showToast(data.error || 'Failed to join team', 'error');
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showToast('An error occurred', 'error');
+            showToast('Connection error. Please try again.', 'error');
+            
+            // Re-enable button
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Request';
+            }
         });
     };
 
@@ -879,12 +935,52 @@
     }
 
     // ========================================
+    // MODERN JOIN INTEGRATION
+    // ========================================
+    function initModernJoinButtons() {
+        // Wait for ModernTeamJoin to be available
+        if (typeof ModernTeamJoin === 'undefined') {
+            console.warn('ModernTeamJoin not loaded yet, retrying...');
+            setTimeout(initModernJoinButtons, 100);
+            return;
+        }
+
+        const joinButtons = document.querySelectorAll('.join-team-btn');
+        joinButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const teamSlug = this.dataset.teamSlug;
+                const teamName = this.dataset.teamName;
+                const teamGame = this.dataset.teamGame;
+
+                if (!teamSlug) {
+                    console.error('No team slug found');
+                    return;
+                }
+
+                // Initialize and trigger modern join flow
+                const modernJoin = new ModernTeamJoin();
+                modernJoin.initJoin(teamSlug, teamName, teamGame, teamGame ? teamGame.charAt(0).toUpperCase() + teamGame.slice(1) : 'Game');
+            });
+        });
+
+        console.log(`✅ Modern join initialized for ${joinButtons.length} buttons`);
+    }
+
+    // ========================================
     // INITIALIZE ON DOM READY
     // ========================================
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            // Initialize modern join after main init
+            setTimeout(initModernJoinButtons, 200);
+        });
     } else {
         init();
+        setTimeout(initModernJoinButtons, 200);
     }
 
 })();

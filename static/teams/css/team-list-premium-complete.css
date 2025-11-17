@@ -2101,6 +2101,32 @@
     color: var(--accent-green);
 }
 
+.btn-action.pending-state {
+    background: rgba(234, 179, 8, 0.1);
+    border: 2px solid var(--accent-yellow);
+    color: var(--accent-yellow);
+    cursor: default;
+    pointer-events: none;
+}
+
+.btn-action.pending-state i {
+    color: var(--accent-yellow);
+}
+
+.btn-action:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-action .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* ========================================
    POWER RANK INDICATOR
    ======================================== */
@@ -2657,99 +2683,175 @@
 /* ========================================
    NOTIFICATIONS/TOASTS
    ======================================== */
+/* ========================================
+   TOAST NOTIFICATIONS (Modern Redesign)
+   ======================================== */
 .toast-container {
     position: fixed;
-    top: var(--space-xl);
-    right: var(--space-xl);
-    z-index: var(--z-toast);
+    top: 24px;
+    right: 24px;
+    z-index: 10000;
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    max-width: 400px;
+    gap: 12px;
+    max-width: 420px;
+    pointer-events: none;
 }
 
 .toast {
     display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    padding: var(--space-lg) var(--space-xl);
-    background: var(--dark-card);
-    border: 2px solid var(--dark-border);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl);
-    animation: toastSlideIn 0.3s ease-out;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.98));
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    animation: toastSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+    min-width: 350px;
+}
+
+.toast::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: currentColor;
 }
 
 @keyframes toastSlideIn {
     from {
         opacity: 0;
-        transform: translateX(100%);
+        transform: translateX(400px) scale(0.8);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateX(0) scale(1);
     }
 }
 
 .toast.success {
-    border-color: var(--accent-green);
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    border-left: 4px solid #22c55e;
+    color: #22c55e;
+}
+
+.toast.success::before {
+    background: linear-gradient(180deg, #22c55e, #16a34a);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
 }
 
 .toast.error {
-    border-color: var(--primary-pink);
-    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+    border-left: 4px solid #ef4444;
+    color: #ef4444;
+}
+
+.toast.error::before {
+    background: linear-gradient(180deg, #ef4444, #dc2626);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
 }
 
 .toast.info {
-    border-color: var(--primary-cyan);
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+    border-left: 4px solid #3b82f6;
+    color: #3b82f6;
+}
+
+.toast.info::before {
+    background: linear-gradient(180deg, #3b82f6, #2563eb);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
 }
 
 .toast-icon {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-md);
-    font-size: 1.125rem;
+    border-radius: 12px;
+    font-size: 1.5rem;
     flex-shrink: 0;
+    position: relative;
 }
 
 .toast.success .toast-icon {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--accent-green);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+    color: #22c55e;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3), inset 0 0 20px rgba(34, 197, 94, 0.1);
 }
 
 .toast.error .toast-icon {
-    background: rgba(236, 72, 153, 0.15);
-    color: var(--primary-pink);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
+    color: #ef4444;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3), inset 0 0 20px rgba(239, 68, 68, 0.1);
 }
 
 .toast.info .toast-icon {
-    background: rgba(0, 240, 255, 0.15);
-    color: var(--primary-cyan);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+    color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), inset 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+.toast-icon i {
+    animation: toastIconPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes toastIconPop {
+    0% {
+        transform: scale(0) rotate(-180deg);
+    }
+    50% {
+        transform: scale(1.2) rotate(10deg);
+    }
+    100% {
+        transform: scale(1) rotate(0);
+    }
 }
 
 .toast-content {
     flex: 1;
+    padding-top: 4px;
 }
 
 .toast-title {
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-weight: 700;
     margin-bottom: 4px;
+    color: #ffffff;
+    letter-spacing: -0.01em;
 }
 
 .toast-message {
-    font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9375rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.5;
 }
 
 .toast-close {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    font-size: 0.875rem;
+}
+
+.toast-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    transform: scale(1.1);
+}
     display: flex;
     align-items: center;
     justify-content: center;

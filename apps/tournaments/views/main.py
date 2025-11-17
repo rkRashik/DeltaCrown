@@ -20,7 +20,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.db.models import Q
 from django.utils import timezone
-from apps.tournaments.models import Tournament
+from apps.tournaments.models import Tournament, TournamentAnnouncement
 from apps.tournaments.services.registration_service import RegistrationService
 from django.core.exceptions import ValidationError
 import requests
@@ -291,6 +291,12 @@ class TournamentDetailView(DetailView):
                 context['cta_reason'] = 'Unable to check registration status'
                 context['can_register'] = False
         
+        # Add announcements for this tournament
+        announcements = TournamentAnnouncement.objects.filter(
+            tournament=tournament
+        ).select_related('created_by').order_by('-is_pinned', '-created_at')[:10]
+        context['announcements'] = announcements
+        
         return context
     
     def _get_registration_status(self, tournament, user):
@@ -382,3 +388,68 @@ class TournamentDetailView(DetailView):
             'reason': 'Registration confirmed',
         }
 
+
+# ============================================================================
+# Participant Check-in
+# ============================================================================
+
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.shortcuts import get_object_or_404
+
+@login_required
+@require_POST
+def participant_checkin(request, slug):
+    """
+    Allow participant to check themselves in during check-in window
+    """
+    tournament = get_object_or_404(Tournament, slug=slug)
+    
+    # Get user's registration
+    from apps.tournaments.models import Registration
+    try:
+        registration = Registration.objects.get(
+            tournament=tournament,
+            user=request.user,
+            is_deleted=False
+        )
+    except Registration.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Registration not found'}, status=404)
+    
+    # Check if registration is confirmed
+    if registration.status != 'confirmed':
+        return JsonResponse({'success': False, 'error': 'Registration must be confirmed before check-in'}, status=400)
+    
+    # Check if already checked in
+    if registration.checked_in:
+        return JsonResponse({'success': False, 'error': 'Already checked in'}, status=400)
+    
+    # Check if check-in window is open
+    if tournament.enable_check_in:
+        now = timezone.now()
+        check_in_opens = tournament.tournament_start - timezone.timedelta(minutes=tournament.check_in_minutes_before or 60)
+        check_in_closes = tournament.tournament_start - timezone.timedelta(minutes=tournament.check_in_closes_minutes_before or 0)
+        
+        if now < check_in_opens:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Check-in opens at {check_in_opens.strftime("%b %d, %H:%M")}'
+            }, status=400)
+        
+        if now > check_in_closes:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Check-in window has closed'
+            }, status=400)
+    
+    # Perform check-in
+    registration.checked_in = True
+    registration.checked_in_at = timezone.now()
+    registration.checked_in_by = request.user  # Self check-in
+    registration.save()
+    
+    return JsonResponse({
+        'success': True, 
+        'message': 'Successfully checked in!',
+        'checked_in_at': registration.checked_in_at.isoformat()
+    })

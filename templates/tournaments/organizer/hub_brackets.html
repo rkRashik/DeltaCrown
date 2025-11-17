@@ -1,0 +1,176 @@
+{% extends "tournaments/organizer/hub_overview.html" %}
+
+{% block hub_content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h2 class="text-2xl font-bold mb-6">Bracket & Match Management</h2>
+
+    {% if bracket %}
+        <!-- Bracket Info -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold">Bracket: {{ bracket.get_format_display }}</h3>
+                    <p class="text-sm text-gray-600">Seeding: {{ bracket.get_seeding_method_display }}</p>
+                    <p class="text-sm text-gray-600">Rounds: {{ bracket.total_rounds }} | Matches: {{ bracket.total_matches }}</p>
+                </div>
+                {% if can_manage %}
+                <div class="flex gap-2">
+                    {% if not bracket.is_finalized %}
+                    <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Regenerate Bracket
+                    </button>
+                    <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Finalize Bracket
+                    </button>
+                    {% else %}
+                    <span class="text-green-600 font-medium">🔒 Finalized</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Match List -->
+        <h3 class="text-xl font-bold mb-4">Matches</h3>
+        <div class="space-y-4">
+            {% for match in matches %}
+            <div class="border rounded-lg p-4 hover:shadow-md transition">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="text-sm text-gray-600 mb-2">
+                            Round {{ match.round_number }} - Match {{ match.match_number }}
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="text-lg font-semibold">
+                                {{ match.participant1_name|default:"TBD" }}
+                            </div>
+                            <div class="text-gray-500">vs</div>
+                            <div class="text-lg font-semibold">
+                                {{ match.participant2_name|default:"TBD" }}
+                            </div>
+                        </div>
+                        {% if match.score1 is not None %}
+                        <div class="text-sm text-gray-600 mt-2">
+                            Score: {{ match.score1 }} - {{ match.score2 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="text-right">
+                        <span class="px-3 py-1 rounded-full text-sm {% if match.state == 'completed' %}bg-green-100 text-green-800{% elif match.state == 'live' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ match.get_state_display }}
+                        </span>
+                        {% if match.scheduled_time %}
+                        <div class="text-sm text-gray-600 mt-2">
+                            {{ match.scheduled_time|date:"M d, H:i" }}
+                        </div>
+                        {% endif %}
+                        {% if can_manage and match.state != 'completed' and match.participant1_id and match.participant2_id %}
+                        <button onclick="openScoreModal({{ match.id }}, '{{ match.participant1_name }}', '{{ match.participant2_name }}')" 
+                                class="mt-2 px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                            Enter Score
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- No Bracket -->
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">🏆</div>
+            <h3 class="text-xl font-bold mb-2">No Bracket Generated</h3>
+            <p class="text-gray-600 mb-6">Generate a bracket to start organizing matches</p>
+            {% if can_manage %}
+            <button class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Generate Bracket
+            </button>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<!-- Score Entry Modal -->
+<div id="scoreModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">Enter Match Score</h3>
+        <form id="scoreForm">
+            <input type="hidden" id="matchId">
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-2" id="participant1Label">Participant 1</label>
+                <input type="number" id="score1" min="0" 
+                       class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Score">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-2" id="participant2Label">Participant 2</label>
+                <input type="number" id="score2" min="0" 
+                       class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Score">
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeScoreModal()" 
+                        class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Submit Score
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let currentMatchId = null;
+
+function openScoreModal(matchId, participant1, participant2) {
+    currentMatchId = matchId;
+    document.getElementById('matchId').value = matchId;
+    document.getElementById('participant1Label').textContent = participant1;
+    document.getElementById('participant2Label').textContent = participant2;
+    document.getElementById('score1').value = '';
+    document.getElementById('score2').value = '';
+    document.getElementById('scoreModal').classList.remove('hidden');
+}
+
+function closeScoreModal() {
+    currentMatchId = null;
+    document.getElementById('scoreModal').classList.add('hidden');
+}
+
+document.getElementById('scoreForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const score1 = document.getElementById('score1').value;
+    const score2 = document.getElementById('score2').value;
+    
+    if (!score1 || !score2) {
+        alert('Please enter both scores');
+        return;
+    }
+    
+    if (score1 === score2) {
+        alert('Scores cannot be tied');
+        return;
+    }
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/submit-score/${currentMatchId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ score1: score1, score2: score2 })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+});
+</script>
+{% endblock %}

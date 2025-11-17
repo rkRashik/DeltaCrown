@@ -27,7 +27,7 @@ from apps.tournaments.models import (
     Game, Tournament, CustomField, TournamentVersion, TournamentTemplate,
     Registration, Payment, Match, Dispute, Bracket, Certificate,
     TournamentResult, PrizeTransaction, TournamentPaymentMethod,
-    TournamentStaffRole, TournamentStaff
+    TournamentStaffRole, TournamentStaff, TournamentAnnouncement
 )
 
 # Import specialized admin classes from separate modules
@@ -195,9 +195,9 @@ class TournamentAdmin(admin.ModelAdmin):
     """Comprehensive tournament management - similar to Teams admin quality"""
     
     list_display = [
-        'name', 'game_badge', 'organizer_link', 'status_badge', 
+        'name', 'game_badge', 'official_badge', 'organizer_link', 'status_badge', 
         'format', 'registration_count', 'tournament_start', 
-        'is_official', 'organizer_console_link'
+        'organizer_console_link'
     ]
     list_filter = [
         'status', 'format', 'participation_type', 'is_official', 'game',
@@ -215,72 +215,68 @@ class TournamentAdmin(admin.ModelAdmin):
     date_hierarchy = 'tournament_start'
     
     fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'slug', 'game', 'organizer', 'is_official', 'organizer_console_button')
+        ('🎮 Basic Information', {
+            'fields': ('name', 'slug', 'game', 'description', 'organizer', 'is_official', 'organizer_console_button'),
+            'description': 'Core tournament identity and description'
         }),
-        ('Description & Rules', {
-            'fields': ('description', 'rules_text')
-        }),
-        ('Tournament Configuration', {
-            'fields': (
-                'format', 'participation_type', 'max_participants', 'min_participants'
-            )
-        }),
-        ('Schedule', {
+        ('📅 Schedule & Timeline', {
             'fields': (
                 'registration_start', 'registration_end', 
-                'tournament_start', 'tournament_end'
-            )
-        }),
-        ('Prize Pool', {
-            'fields': (
-                'prize_pool', 'prize_currency', 'prize_deltacoin', 'prize_distribution'
+                'tournament_start', 'tournament_end',
+                'enable_check_in', 'check_in_minutes_before', 'check_in_closes_minutes_before'
             ),
-            'classes': ('collapse',)
+            'description': 'Registration windows, tournament dates, and check-in settings'
         }),
-        ('Entry Fee & Payment', {
+        ('💰 Entry Fee & Payments', {
             'fields': (
                 'has_entry_fee', 'entry_fee_amount', 'entry_fee_currency', 
                 'entry_fee_deltacoin', 'payment_methods',
-                'enable_fee_waiver', 'fee_waiver_top_n_teams'
+                'enable_fee_waiver', 'fee_waiver_top_n_teams',
+                'prize_pool', 'prize_currency', 'prize_deltacoin', 'prize_distribution'
             ),
-            'classes': ('collapse',)
+            'description': 'Entry fees, payment methods, and prize distribution (payment methods configured in inlines below)'
         }),
-        ('Media & Streaming', {
+        ('📜 Rules & Terms', {
             'fields': (
-                'banner_image', 'thumbnail_image', 'rules_pdf',
+                'rules_text', 'rules_pdf',
+                'terms_and_conditions', 'terms_pdf', 'require_terms_acceptance'
+            ),
+            'description': 'Tournament rules, terms & conditions, and legal requirements'
+        }),
+        ('👥 Staff & Permissions', {
+            'description': 'Tournament staff roles and permissions (configured in inline below)',
+            'fields': ()
+        }),
+        ('⚙️ Advanced Configuration', {
+            'fields': (
+                'format', 'participation_type', 'max_participants', 'min_participants',
+                'enable_dynamic_seeding', 'enable_live_updates', 
+                'enable_certificates', 'enable_challenges', 'enable_fan_voting',
+                'status', 'published_at'
+            ),
+            'classes': ('collapse',),
+            'description': 'Tournament format, participant limits, and feature toggles'
+        }),
+        ('🎬 Media & Streaming', {
+            'fields': (
+                'banner_image', 'thumbnail_image',
                 'promo_video_url', 'stream_youtube_url', 'stream_twitch_url'
             ),
-            'classes': ('collapse',)
+            'classes': ('collapse',),
+            'description': 'Visual assets and streaming links'
         }),
-        ('Features & Settings', {
+        ('📊 Status & Statistics', {
             'fields': (
-                'enable_check_in', 'check_in_minutes_before', 'check_in_closes_minutes_before',
-                'enable_dynamic_seeding', 'enable_live_updates', 
-                'enable_certificates', 'enable_challenges', 'enable_fan_voting'
+                'registration_count_display', 'match_count', 'created_at', 'updated_at'
             ),
             'classes': ('collapse',)
         }),
-        ('Status & Statistics', {
-            'fields': (
-                'status', 'published_at', 'registration_count_display', 'match_count'
-            )
-        }),
-        ('SEO', {
+        ('🔍 SEO & Metadata', {
             'fields': ('meta_description', 'meta_keywords'),
             'classes': ('collapse',)
         }),
-        ('Advanced Configuration (JSON)', {
-            'fields': ('config',),
-            'classes': ('collapse',),
-            'description': 'Advanced tournament configuration and feature flags (JSONB)'
-        }),
-        ('Soft Delete (Read Only)', {
+        ('🗑️ Soft Delete', {
             'fields': ('is_deleted', 'deleted_at', 'deleted_by'),
-            'classes': ('collapse',)
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
@@ -307,6 +303,17 @@ class TournamentAdmin(admin.ModelAdmin):
             obj.game.name
         )
     game_badge.short_description = 'Game'
+    
+    def official_badge(self, obj):
+        """Display official tournament badge"""
+        if obj.is_official:
+            return format_html(
+                '<span style="background: #FFD700; color: #000; padding: 3px 8px; '
+                'border-radius: 3px; font-size: 11px; font-weight: bold;">⭐ OFFICIAL</span>'
+            )
+        return format_html('<span style="color: #ccc;">—</span>')
+    official_badge.short_description = 'Type'
+    official_badge.admin_order_field = 'is_official'
     
     def organizer_link(self, obj):
         """Link to organizer's user profile"""
@@ -385,8 +392,20 @@ class TournamentAdmin(admin.ModelAdmin):
     organizer_console_button.short_description = 'Organizer Tools'
     
     def save_model(self, request, obj, form, change):
-        """Set organizer to current user if creating new tournament"""
-        if not change and not obj.organizer_id:
+        """Set organizer to current user if creating new tournament, handle official tournaments"""
+        # Handle official tournaments - auto-assign to official account
+        if obj.is_official:
+            # Try to get official organizer account (ID=1 or username='deltacrown')
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                official_user = User.objects.filter(Q(id=1) | Q(username='deltacrown') | Q(is_superuser=True)).first()
+                if official_user:
+                    obj.organizer = official_user
+            except User.DoesNotExist:
+                pass
+        elif not change and not obj.organizer_id:
+            # Set organizer to current user if creating new non-official tournament
             obj.organizer = request.user
         super().save_model(request, obj, form, change)
     
@@ -600,5 +619,92 @@ class TournamentTemplateAdmin(admin.ModelAdmin):
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
+
+
 # Note: Registration, Payment, Match, Dispute, Bracket, Certificate, TournamentResult, 
 # and PrizeTransaction admins are registered in their respective admin_*.py files
+
+
+# ============================================================================
+# ANNOUNCEMENT ADMIN
+# ============================================================================
+
+@admin.register(TournamentAnnouncement)
+class TournamentAnnouncementAdmin(admin.ModelAdmin):
+    """
+    Admin interface for tournament announcements.
+    Allows organizers to create and manage announcements for participants.
+    """
+    list_display = ['title', 'tournament_link', 'created_by', 'created_at', 'is_pinned_badge', 'is_important_badge']
+    list_filter = ['is_pinned', 'is_important', 'created_at', 'tournament']
+    search_fields = ['title', 'message', 'tournament__name', 'created_by__username']
+    readonly_fields = ['created_at', 'updated_at', 'created_by']
+    ordering = ['-is_pinned', '-created_at']
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('tournament', 'title', 'message')
+        }),
+        ('Display Options', {
+            'fields': ('is_pinned', 'is_important'),
+            'description': 'Pinned announcements appear at the top. Important announcements are highlighted.'
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def tournament_link(self, obj):
+        """Link to tournament detail page"""
+        url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.pk])
+        return format_html('<a href="{}">{}</a>', url, obj.tournament.name)
+    tournament_link.short_description = 'Tournament'
+    
+    def is_pinned_badge(self, obj):
+        """Display badge for pinned status"""
+        if obj.is_pinned:
+            return format_html('<span style="background:#ffc107;color:#000;padding:2px 8px;border-radius:3px;font-weight:bold;">📌 PINNED</span>')
+        return '—'
+    is_pinned_badge.short_description = 'Pinned'
+    
+    def is_important_badge(self, obj):
+        """Display badge for important status"""
+        if obj.is_important:
+            return format_html('<span style="background:#dc3545;color:#fff;padding:2px 8px;border-radius:3px;font-weight:bold;">⚠️ IMPORTANT</span>')
+        return '—'
+    is_important_badge.short_description = 'Important'
+    
+    def save_model(self, request, obj, form, change):
+        """Automatically set created_by to current user if creating"""
+        if not change:  # Creating new announcement
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
+    actions = ['make_pinned', 'make_unpinned', 'make_important', 'make_normal']
+    
+    @admin.action(description="📌 Pin selected announcements")
+    def make_pinned(self, request, queryset):
+        """Pin selected announcements"""
+        updated = queryset.update(is_pinned=True)
+        self.message_user(request, f"{updated} announcement(s) pinned.", messages.SUCCESS)
+    
+    @admin.action(description="📍 Unpin selected announcements")
+    def make_unpinned(self, request, queryset):
+        """Unpin selected announcements"""
+        updated = queryset.update(is_pinned=False)
+        self.message_user(request, f"{updated} announcement(s) unpinned.", messages.INFO)
+    
+    @admin.action(description="⚠️ Mark as important")
+    def make_important(self, request, queryset):
+        """Mark announcements as important"""
+        updated = queryset.update(is_important=True)
+        self.message_user(request, f"{updated} announcement(s) marked as important.", messages.SUCCESS)
+    
+    @admin.action(description="✓ Mark as normal")
+    def make_normal(self, request, queryset):
+        """Remove important flag from announcements"""
+        updated = queryset.update(is_important=False)
+        self.message_user(request, f"{updated} announcement(s) marked as normal.", messages.INFO)
+

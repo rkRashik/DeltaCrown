@@ -189,6 +189,27 @@ class TeamCreationForm(forms.ModelForm):
             if not logo.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
                 raise ValidationError("Logo must be a valid image file (PNG, JPG, JPEG, GIF, or WebP).")
         return logo
+    
+    def clean_game(self):
+        """Validate that user doesn't already have a team for this game"""
+        game = self.cleaned_data.get('game')
+        if game and self.user:
+            # Get user's profile
+            profile = getattr(self.user, 'profile', None) or getattr(self.user, 'userprofile', None)
+            if profile:
+                # Check if user is already in a team for this game
+                existing_teams = TeamMembership.objects.filter(
+                    profile=profile,
+                    status='ACTIVE'
+                ).select_related('team').filter(team__game=game)
+                
+                if existing_teams.exists():
+                    team_name = existing_teams.first().team.name
+                    raise ValidationError(
+                        f"You are already a member of '{team_name}' for {dict(GAME_CHOICES).get(game, game)}. "
+                        "You can only be in one team per game."
+                    )
+        return game
 
     def clean_banner_image(self):
         banner = self.cleaned_data.get('banner_image')

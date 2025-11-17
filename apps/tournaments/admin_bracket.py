@@ -489,8 +489,7 @@ class BracketNodeAdmin(admin.ModelAdmin):
         bracket_type = obj.bracket_type
         color = type_colors.get(bracket_type, '#757575')
         
-        # bracket_type is CharField with BRACKET_TYPE_CHOICES - no get_X_display method
-        # Format manually from value
+        # bracket_type is CharField - format display name from value
         display_name = bracket_type.replace('-', ' ').replace('_', ' ').title()
         
         return format_html(

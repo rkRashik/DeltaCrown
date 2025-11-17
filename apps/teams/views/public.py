@@ -1270,9 +1270,15 @@ def leave_team_view(request, slug: str):
 def join_team_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
+    
+    # Check if AJAX request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+              request.content_type == 'application/json'
 
     # Guard: already member
     if TeamMembership.objects.filter(team=team, profile=profile, status='ACTIVE').exists():
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': 'You are already a member of this team.'})
         messages.info(request, "You are already a member of this team.")
         return redirect("teams:detail", slug=team.slug)
 
@@ -1286,18 +1292,25 @@ def join_team_view(request, slug: str):
         ).first()
         
         if existing_membership:
-            messages.error(
-                request,
-                f"You are already a member of '{existing_membership.team.name}' ({game_code.upper()}). "
-                f"You can only be in one team per game."
-            )
+            error_msg = f"You are already in '{existing_membership.team.name}' ({game_code.upper()}). One team per game only."
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
             return redirect("teams:detail", slug=team.slug)
 
     # Check if user has game ID for this team's game
     if game_code:
         game_id = profile.get_game_id(game_code)
         if not game_id:
-            # Store pending join request
+            error_msg = f"Please set up your {game_code.upper()} game ID to join this team."
+            if is_ajax:
+                return JsonResponse({
+                    'success': False, 
+                    'error': error_msg, 
+                    'needs_game_id': True,
+                    'game_code': game_code
+                })
+            # Store pending join request for non-AJAX
             request.session['pending_join_team'] = team.slug
             game_name = dict(Team._meta.get_field('game').choices).get(game_code, game_code.upper())
             messages.info(request, f"Before joining this team, please provide your game ID for {game_name}.")
@@ -1305,7 +1318,10 @@ def join_team_view(request, slug: str):
 
     # Optional: only allow if team is open (if such a field exists)
     if hasattr(team, "is_open") and not getattr(team, "is_open"):
-        messages.error(request, "This team is not open to join directly. Ask for an invite.")
+        error_msg = "This team is not open to join directly. Ask for an invite."
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': error_msg})
+        messages.error(request, error_msg)
         return redirect("teams:detail", slug=team.slug)
 
     TeamMembership.objects.get_or_create(
@@ -1318,7 +1334,16 @@ def join_team_view(request, slug: str):
     if 'pending_join_team' in request.session:
         del request.session['pending_join_team']
     
-    messages.success(request, f"You joined {getattr(team, 'tag', team.name)}.")
+    success_msg = f"Successfully joined {team.name}!"
+    if is_ajax:
+        return JsonResponse({
+            'success': True, 
+            'message': success_msg,
+            'team_name': team.name,
+            'team_url': reverse("teams:detail", kwargs={"slug": team.slug})
+        })
+    
+    messages.success(request, success_msg)
     return redirect("teams:detail", slug=team.slug)
 
 

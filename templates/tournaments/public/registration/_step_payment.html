@@ -13,9 +13,9 @@
   <div class="mb-6">
     <h3 class="font-semibold mb-4">Select Payment Method</h3>
     
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="space-y-4">
       {% for method in payment_methods %}
-        <label class="payment-method-card cursor-pointer {% if method.value == selected_payment_method %}selected{% endif %}">
+        <label class="payment-method-card cursor-pointer block {% if method.value == selected_payment_method %}selected{% endif %}">
           <div class="border-2 border-line rounded-lg p-4 hover:border-primary transition-all">
             <input 
               type="radio" 
@@ -26,15 +26,33 @@
               required
             >
             
-            <div class="flex flex-col items-center gap-3">
-              <div class="w-16 h-16 bg-surface rounded-lg flex items-center justify-center">
+            <div class="flex items-start gap-4">
+              <div class="w-16 h-16 bg-surface rounded-lg flex items-center justify-center flex-shrink-0">
                 {% if method.logo %}
                   <img src="{% static method.logo %}" alt="{{ method.label }}" class="w-12 h-12 object-contain">
                 {% else %}
                   <i class="fas fa-wallet text-primary text-2xl"></i>
                 {% endif %}
               </div>
-              <span class="font-semibold text-center">{{ method.label }}</span>
+              
+              <div class="flex-1">
+                <span class="font-semibold text-lg block mb-2">{{ method.label }}</span>
+                
+                {% if method.account %}
+                <div class="bg-surface-hover rounded px-3 py-2 mb-2">
+                  <p class="text-xs text-body-secondary mb-1">Account Details</p>
+                  <p class="font-mono font-semibold">{{ method.account }}</p>
+                </div>
+                {% endif %}
+                
+                {% if method.instructions %}
+                <p class="text-sm text-body-secondary">{{ method.instructions }}</p>
+                {% endif %}
+              </div>
+              
+              <div class="check-mark hidden">
+                <i class="fas fa-check-circle text-primary text-2xl"></i>
+              </div>
             </div>
           </div>
         </label>
@@ -71,5 +89,9 @@
 .payment-method-card.selected > div {
   border-color: var(--color-primary);
   background: var(--color-primary-hover);
+}
+
+.payment-method-card.selected .check-mark {
+  display: block;
 }
 </style>

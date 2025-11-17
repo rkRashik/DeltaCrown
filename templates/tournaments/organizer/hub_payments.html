@@ -1,0 +1,146 @@
+{% extends "tournaments/organizer/hub_overview.html" %}
+
+{% block hub_content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Payment Management</h2>
+        
+        <!-- Stats Summary -->
+        <div class="flex gap-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">৳{{ payment_stats.total_amount|floatformat:0 }}</div>
+                <div class="text-sm text-gray-600">Total Collected</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ payment_stats.pending_verification }}</div>
+                <div class="text-sm text-gray-600">Pending Verification</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex gap-4 mb-6">
+        <select onchange="window.location.search='?status='+this.value" class="px-4 py-2 border rounded">
+            <option value="">All Statuses</option>
+            <option value="submitted" {% if request.GET.status == 'submitted' %}selected{% endif %}>Submitted</option>
+            <option value="verified" {% if request.GET.status == 'verified' %}selected{% endif %}>Verified</option>
+            <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50 border-b">
+                    <th class="px-4 py-3 text-left">Participant</th>
+                    <th class="px-4 py-3 text-left">Method</th>
+                    <th class="px-4 py-3 text-left">Amount</th>
+                    <th class="px-4 py-3 text-left">Transaction ID</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-left">Submitted</th>
+                    {% if can_approve %}
+                    <th class="px-4 py-3 text-left">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <strong>{{ payment.registration.user.username }}</strong>
+                    </td>
+                    <td class="px-4 py-3">
+                        {{ payment.payment_method|upper }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <strong>৳{{ payment.amount|floatformat:0 }}</strong>
+                    </td>
+                    <td class="px-4 py-3 font-mono text-sm">
+                        {{ payment.transaction_id }}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="px-3 py-1 rounded-full text-sm {% if payment.status == 'verified' %}bg-green-100 text-green-800{% elif payment.status == 'submitted' %}bg-yellow-100 text-yellow-800{% elif payment.status == 'rejected' %}bg-red-100 text-red-800{% endif %}">
+                            {{ payment.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        {{ payment.submitted_at|date:"M d, Y H:i" }}
+                    </td>
+                    {% if can_approve %}
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2">
+                            {% if payment.status == 'submitted' %}
+                            <button onclick="verifyPayment({{ payment.id }})" 
+                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                Verify
+                            </button>
+                            <button onclick="rejectPayment({{ payment.id }})" 
+                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+                                Reject
+                            </button>
+                            {% endif %}
+                            {% if payment.proof_image %}
+                            <a href="{{ payment.proof_image.url }}" target="_blank" 
+                               class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                View Proof
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                        No payments found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function verifyPayment(id) {
+    if (!confirm('Verify this payment?')) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/verify-payment/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function rejectPayment(id) {
+    if (!confirm('Reject this payment?')) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/reject-payment/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

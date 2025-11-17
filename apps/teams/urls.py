@@ -1,5 +1,6 @@
 # apps/teams/urls.py
 from django.urls import path, include
+from django.shortcuts import render
 from rest_framework.routers import DefaultRouter
 from . import api_views  # Import API views for REST endpoints
 
@@ -185,6 +186,7 @@ urlpatterns = [
     path("list/", team_list, name="list"),
     path("rankings/", team_ranking_view, name="rankings"),  # Updated to use ranking view
     
+    path("test/", lambda request: render(request, "teams/test_page.html"), name="test"),  # TEST PAGE
     path("create/", team_create_view, name="create"),
     path("create/resume/", create_team_resume_view, name="create_team_resume"),
     path("collect-game-id/<str:game_code>/", collect_game_id_view, name="collect_game_id"),

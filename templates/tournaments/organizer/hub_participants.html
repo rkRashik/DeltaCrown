@@ -1,0 +1,175 @@
+{% extends "tournaments/organizer/hub_overview.html" %}
+
+{% block hub_content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Participants Management</h2>
+        
+        <!-- Filters -->
+        <div class="flex gap-4">
+            <select onchange="window.location.search='?status='+this.value" class="px-4 py-2 border rounded">
+                <option value="">All Statuses</option>
+                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+            </select>
+
+            <input type="search" placeholder="Search participants..." 
+                   value="{{ request.GET.search }}"
+                   onchange="window.location.search='?search='+this.value"
+                   class="px-4 py-2 border rounded">
+        </div>
+    </div>
+
+    <!-- Participants Table -->
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-50 border-b">
+                    <th class="px-4 py-3 text-left">Participant</th>
+                    <th class="px-4 py-3 text-left">Team</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-left">Payment</th>
+                    <th class="px-4 py-3 text-left">Check-in</th>
+                    <th class="px-4 py-3 text-left">Registered</th>
+                    {% if can_manage %}
+                    <th class="px-4 py-3 text-left">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for registration in registrations %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div>
+                            <strong>{{ registration.user.username }}</strong>
+                            <div class="text-sm text-gray-600">{{ registration.user.email }}</div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if registration.team %}
+                            {{ registration.team.name }}
+                        {% else %}
+                            <span class="text-gray-400">Solo</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="px-3 py-1 rounded-full text-sm {% if registration.status == 'confirmed' %}bg-green-100 text-green-800{% elif registration.status == 'pending' %}bg-yellow-100 text-yellow-800{% elif registration.status == 'rejected' %}bg-red-100 text-red-800{% endif %}">
+                            {{ registration.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if registration.has_paid %}
+                            <span class="text-green-600"><i class="fas fa-check-circle"></i> Paid</span>
+                        {% else %}
+                            <span class="text-gray-400">Not Paid</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if registration.checked_in %}
+                            <span class="text-green-600"><i class="fas fa-check-circle"></i> Checked In</span>
+                            <div class="text-xs text-gray-500">{{ registration.checked_in_at|date:"M d, h:i A" }}</div>
+                        {% else %}
+                            <span class="text-gray-400">Not Checked In</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-600">
+                        {{ registration.created_at|date:"M d, Y" }}
+                    </td>
+                    {% if can_manage %}
+                    <td class="px-4 py-3">
+                        <div class="flex gap-2">
+                            {% if registration.status == 'pending' %}
+                            <button onclick="approveRegistration({{ registration.id }})" 
+                                    class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                                Approve
+                            </button>
+                            <button onclick="rejectRegistration({{ registration.id }})" 
+                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">
+                                Reject
+                            </button>
+                            {% endif %}
+                            
+                            <!-- Check-in toggle -->
+                            {% if registration.status == 'confirmed' %}
+                            <button onclick="toggleCheckin({{ registration.id }})" 
+                                    class="px-3 py-1 {% if registration.checked_in %}bg-gray-500{% else %}bg-blue-500{% endif %} text-white rounded hover:opacity-80">
+                                {% if registration.checked_in %}Undo{% else %}Check In{% endif %}
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                        No registrations found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function approveRegistration(id) {
+    if (!confirm('Approve this registration?')) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/approve-registration/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function rejectRegistration(id) {
+    if (!confirm('Reject this registration?')) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/reject-registration/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+function toggleCheckin(id) {
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/toggle-checkin/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+</script>
+{% endblock %}

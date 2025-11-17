@@ -53,6 +53,9 @@ from .staff import (
     TournamentStaff,  # Staff assignments to tournaments
     StaffPermissionChecker,  # Utility for permission checking
 )
+from .announcement import (
+    TournamentAnnouncement,  # Tournament announcements for participants
+)
 
 __all__ = [
     'Game',
@@ -75,4 +78,5 @@ __all__ = [
     'TournamentStaffRole',
     'TournamentStaff',
     'StaffPermissionChecker',
+    'TournamentAnnouncement',
 ]

@@ -329,6 +329,16 @@ const TeamCreateApp = {
         this.dom.existingTeamWarning.classList.remove('show');
         this.state.hasExistingTeam = false;
         this.state.gameIdData = {};
+        
+        // Clear and remove required from all existing game ID fields
+        if (this.dom.gameIdFields) {
+            const existingInputs = this.dom.gameIdFields.querySelectorAll('input');
+            existingInputs.forEach(input => {
+                input.required = false;
+                input.value = '';
+            });
+            this.dom.gameIdFields.innerHTML = '';
+        }
 
         if (!gameCode) {
             this.state.currentGame = null;
@@ -379,6 +389,8 @@ const TeamCreateApp = {
         
         if (!config) {
             console.log('[TeamCreateEnhanced] No game ID config for:', gameCode);
+            // Hide section if no config
+            this.dom.gameIdSection.classList.remove('show');
             return;
         }
 
@@ -407,7 +419,9 @@ const TeamCreateApp = {
                     input.name = `game_id_${field.name}`;
                     input.id = `game_id_${field.name}`;
                     input.placeholder = field.placeholder;
+                    // Only set required if the section will be visible
                     input.required = field.required;
+                    input.dataset.fieldRequired = field.required; // Store original requirement
 
                     // Auto-fill if user has it saved
                     if (data.has_game_id && data.game_ids && data.game_ids[field.name]) {
@@ -446,68 +460,91 @@ const TeamCreateApp = {
             }
         } catch (error) {
             console.error('[TeamCreateEnhanced] Error loading game ID:', error);
+            // Hide section on error
+            this.dom.gameIdSection.classList.remove('show');
         }
     },
 
     // ========== FORM SUBMISSION ==========
     async handleSubmit(event) {
-        event.preventDefault();
+        // IMPORTANT: Don't prevent default yet - we need to manually handle validation first
         console.log('[TeamCreateEnhanced] Form submission started');
 
         // Check if user has existing team
         if (this.state.hasExistingTeam) {
+            event.preventDefault();
             alert('You already have a team for this game. You can only have one team per game.');
             return;
         }
 
-        // Validate game ID fields if shown
-        if (this.dom.gameIdSection.classList.contains('show')) {
-            const config = GAME_ID_CONFIGS[this.state.currentGame];
-            let allValid = true;
-
-            config.fields.forEach(field => {
-                const input = document.getElementById(`game_id_${field.name}`);
-                if (field.required && !input.value.trim()) {
-                    input.classList.add('is-invalid');
-                    allValid = false;
-                }
-            });
-
-            if (!allValid) {
-                alert('Please fill in all required game ID fields');
-                return;
+        // Remove required from ALL game ID fields if section is not visible
+        const allGameIdInputs = this.dom.gameIdFields.querySelectorAll('input[name^="game_id_"]');
+        allGameIdInputs.forEach(input => {
+            if (!this.dom.gameIdSection.classList.contains('show')) {
+                input.removeAttribute('required');
+                input.value = ''; // Clear value too
             }
+        });
 
-            // Save game IDs to profile
-            try {
-                console.log('[TeamCreateEnhanced] Saving game IDs:', this.state.gameIdData);
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                
-                const response = await fetch('/user/api/profile/update-game-id/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        game: this.state.currentGame,
-                        game_ids: this.state.gameIdData
-                    })
+        // Validate game ID fields ONLY if section is visible
+        if (this.dom.gameIdSection && this.dom.gameIdSection.classList.contains('show')) {
+            const config = GAME_ID_CONFIGS[this.state.currentGame];
+            if (config) {
+                let allValid = true;
+
+                config.fields.forEach(field => {
+                    const input = document.getElementById(`game_id_${field.name}`);
+                    if (input && field.required && !input.value.trim()) {
+                        input.classList.add('is-invalid');
+                        allValid = false;
+                    }
                 });
 
-                const data = await response.json();
-                console.log('[TeamCreateEnhanced] Game ID save response:', data);
-
-
-                if (!data.success) {
-                    alert('Error saving game ID: ' + (data.message || 'Unknown error'));
+                if (!allValid) {
+                    event.preventDefault();
+                    alert('Please fill in all required game ID fields');
                     return;
                 }
-            } catch (error) {
-                console.error('[TeamCreateEnhanced] Error saving game ID:', error);
-                alert('Error saving game ID. Please try again.');
-                return;
+
+                // Save game IDs to profile
+                event.preventDefault(); // Prevent default here since we're doing async work
+                
+                try {
+                    console.log('[TeamCreateEnhanced] Saving game IDs:', this.state.gameIdData);
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    
+                    const response = await fetch('/user/api/profile/update-game-id/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            game: this.state.currentGame,
+                            game_ids: this.state.gameIdData
+                        })
+                    });
+
+                    const data = await response.json();
+                    console.log('[TeamCreateEnhanced] Game ID save response:', data);
+
+
+                    if (!data.success) {
+                        alert('Error saving game ID: ' + (data.message || 'Unknown error'));
+                        return;
+                    }
+                } catch (error) {
+                    console.error('[TeamCreateEnhanced] Error saving game ID:', error);
+                    alert('Error saving game ID. Please try again.');
+                    return;
+                }
+            } else {
+                // No game IDs to save, just prevent default since we're not doing async
+                event.preventDefault();
             }
+        } else {
+            // Section not visible, prevent default
+            event.preventDefault();
         }
 
         // Collect and save invite data

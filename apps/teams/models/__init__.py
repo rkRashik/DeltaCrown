@@ -1,11 +1,12 @@
 # apps/teams/models/__init__.py
 """
 Teams models package — public API surface remains:
-from apps.teams.models import Team, TeamMembership, TeamInvite, team_logo_path
+from apps.teams.models import Team, TeamMembership, TeamInvite, TeamJoinRequest, team_logo_path
 """
 from .team import Team, team_logo_path            # noqa: F401
 from .membership import TeamMembership            # noqa: F401
 from .invite import TeamInvite                    # noqa: F401
+from .join_request import TeamJoinRequest          # noqa: F401
 
 # Optional constants exposed if present
 try:
@@ -73,7 +74,7 @@ from .game_specific import (  # noqa: F401
 
 __all__ = [name for name in (
     # Legacy models
-    "Team", "TeamMembership", "TeamInvite", "team_logo_path",
+    "Team", "TeamMembership", "TeamInvite", "TeamJoinRequest", "team_logo_path",
     "TEAM_MAX_ROSTER", "EfootballTeamPreset", "ValorantTeamPreset", "ValorantPlayerPreset",
     "TeamAchievement", "LegacyTeamStats", "TeamRankingSettings",
     "RankingCriteria", "TeamRankingHistory", "TeamRankingBreakdown",

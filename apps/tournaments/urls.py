@@ -59,6 +59,16 @@ from apps.tournaments.views import checkin
 from apps.tournaments.views.organizer import (
     OrganizerDashboardView,
     OrganizerTournamentDetailView,
+    OrganizerHubView,
+    approve_registration,
+    reject_registration,
+    verify_payment,
+    reject_payment,
+    toggle_checkin,
+    update_dispute_status,
+    resolve_dispute,
+    submit_match_score,
+    create_tournament,
 )
 
 app_name = 'tournaments'
@@ -69,7 +79,19 @@ urlpatterns = [
     
     # Organizer Console URLs (must be before <slug> pattern)
     path('organizer/', OrganizerDashboardView.as_view(), name='organizer_dashboard'),
-    path('organizer/<slug:slug>/', OrganizerTournamentDetailView.as_view(), name='organizer_tournament_detail'),
+    path('organizer/create/', create_tournament, name='create_tournament'),
+    path('organizer/<slug:slug>/', OrganizerHubView.as_view(), {'tab': 'overview'}, name='organizer_tournament_detail'),
+    path('organizer/<slug:slug>/<str:tab>/', OrganizerHubView.as_view(), name='organizer_hub'),
+    
+    # Organizer Hub Actions
+    path('organizer/<slug:slug>/approve-registration/<int:registration_id>/', approve_registration, name='approve_registration'),
+    path('organizer/<slug:slug>/reject-registration/<int:registration_id>/', reject_registration, name='reject_registration'),
+    path('organizer/<slug:slug>/verify-payment/<int:payment_id>/', verify_payment, name='verify_payment'),
+    path('organizer/<slug:slug>/reject-payment/<int:payment_id>/', reject_payment, name='reject_payment'),
+    path('organizer/<slug:slug>/toggle-checkin/<int:registration_id>/', toggle_checkin, name='toggle_checkin'),
+    path('organizer/<slug:slug>/update-dispute/<int:dispute_id>/', update_dispute_status, name='update_dispute'),
+    path('organizer/<slug:slug>/resolve-dispute/<int:dispute_id>/', resolve_dispute, name='resolve_dispute'),
+    path('organizer/<slug:slug>/submit-score/<int:match_id>/', submit_match_score, name='submit_match_score'),
     
     # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
@@ -77,6 +99,9 @@ urlpatterns = [
     
     # FE-T-002: Tournament Detail Page (includes FE-T-003: CTA states)
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
+    
+    # Participant check-in
+    path('<slug:slug>/checkin/', views.participant_checkin, name='participant_checkin'),
     
     # FE-T-004: Registration Wizard
     path('<slug:slug>/register/', TournamentRegistrationView.as_view(), name='register'),
