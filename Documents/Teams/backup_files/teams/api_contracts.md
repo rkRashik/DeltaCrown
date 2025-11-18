@@ -437,13 +437,14 @@ fetch("/teams/<slug>/leave/", {
 
 **Copilot must update view to:**
 
-* Parse JSON body
+* Detect AJAX via `request.headers.get('X-Requested-With') == 'XMLHttpRequest'`
+* Parse JSON body (reason field is optional)
 * On success return:
 
 ```json
 {
   "success": true,
-  "message": "You have left the team.",
+  "message": "You have successfully left the team.",
   "redirect_url": "/teams/"
 }
 ```
@@ -453,8 +454,16 @@ fetch("/teams/<slug>/leave/", {
 ```json
 {
   "success": false,
-  "error": "As the team owner, you must transfer ownership before leaving.",
-  "code": "CANNOT_LEAVE_OWNER"
+  "error": "Team captain cannot leave without transferring captaincy first.",
+  "code": "CAPTAIN_CANNOT_LEAVE"
+}
+```
+
+```json
+{
+  "success": false,
+  "error": "Cannot leave team while roster is locked for active tournament.",
+  "code": "ROSTER_LOCKED"
 }
 ```
 
@@ -469,8 +478,9 @@ fetch("/teams/<slug>/leave/", {
 ```
 
 > **Important:**
-> There are two `leave_team_view` functions in the code.
-> Copilot must keep **only one**, aligned with this API contract.
+> The view at `apps/teams/views/public.py` line 1389+ handles both HTML and AJAX requests.
+> Duplicate leave_team_view has been removed (Phase 1 fix).
+> This endpoint now properly returns JSON for AJAX requests as specified here.
 
 ---
 

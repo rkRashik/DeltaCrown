@@ -438,11 +438,36 @@ class ModernTeamJoin {
                     window.location.reload();
                 }, 1500);
             } else {
+                // Handle specific error codes
+                if (result.code === 'ALREADY_IN_TEAM_FOR_GAME') {
+                    // Show detailed error with link to existing team
+                    const errorHTML = `
+                        <div class="error-detail">
+                            <p>${result.error}</p>
+                            ${result.existing_team_slug ? `
+                                <a href="/teams/${result.existing_team_slug}/" class="error-link">
+                                    View ${result.existing_team} →
+                                </a>
+                            ` : ''}
+                        </div>
+                    `;
+                    this.showToast(errorHTML, 'error', 5000);
+                } else {
+                    this.showToast(result.error || 'Failed to join team', 'error');
+                }
                 throw new Error(result.error || 'Failed to join team');
             }
         } catch (error) {
             console.error('Error:', error);
-            this.showToast(error.message || 'Failed to join team', 'error');
+            // Error toast already shown above for structured errors
+            if (!error.message.includes('already a member')) {
+                // Only show generic error if not already handled
+                if (error.message === 'Failed to join team') {
+                    // Already shown above
+                } else {
+                    this.showToast(error.message || 'Failed to join team', 'error');
+                }
+            }
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalHTML;
         }
@@ -478,7 +503,7 @@ class ModernTeamJoin {
     /**
      * Show toast notification
      */
-    showToast(message, type = 'info') {
+    showToast(message, type = 'info', duration = 3000) {
         // Use existing toast system if available
         if (typeof showToast === 'function') {
             showToast(message, type);
@@ -494,6 +519,14 @@ class ModernTeamJoin {
             </div>
             <div class="toast-message">${message}</div>
         `;
+
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
         
         document.body.appendChild(toast);
         

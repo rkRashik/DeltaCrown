@@ -33,11 +33,8 @@ from .query_optimizer import TeamQueryOptimizer
 from .cache import (
     cached_query,
     invalidate_team_cache,
-    invalidate_all_team_caches,
     warm_cache_for_team,
-    get_cache_stats,
     CacheTTL,
-    CacheKey,
     CacheStats,
 )
 
@@ -48,7 +45,6 @@ from .security import (
     FileUploadValidator,
     RateLimiter,
     require_rate_limit,
-    sanitize_team_input,
 )
 
 __all__ = [
@@ -58,11 +54,8 @@ __all__ = [
     # Caching
     'cached_query',
     'invalidate_team_cache',
-    'invalidate_all_team_caches',
     'warm_cache_for_team',
-    'get_cache_stats',
     'CacheTTL',
-    'CacheKey',
     'CacheStats',
     
     # Security
@@ -71,5 +64,4 @@ __all__ = [
     'FileUploadValidator',
     'RateLimiter',
     'require_rate_limit',
-    'sanitize_team_input',
 ]

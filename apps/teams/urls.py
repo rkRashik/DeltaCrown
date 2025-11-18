@@ -24,6 +24,19 @@ from .views.role_management import (
     change_member_organizational_role_view,
 )
 
+# Role-based dashboard views
+from .views.role_dashboards import (
+    manager_tools_view,
+    coach_tools_view,
+    team_safety_view,
+)
+
+# OTP-based leave team flow
+from .views.otp_leave import (
+    request_leave_otp,
+    confirm_leave_with_otp,
+)
+
 # Dashboard API
 from .views.dashboard_api import (
     get_pending_items,
@@ -258,6 +271,15 @@ urlpatterns = [
     # New Quick Actions endpoints
     path("<slug:slug>/export-data/", export_team_data_view, name="export_team_data"),
     path("<slug:slug>/tournament-history/", tournament_history_view, name="tournament_history"),
+    
+    # Role-based dashboard views
+    path("<slug:slug>/manager-tools/", manager_tools_view, name="manager_tools"),
+    path("<slug:slug>/coach-tools/", coach_tools_view, name="coach_tools"),
+    path("<slug:slug>/team-safety/", team_safety_view, name="team_safety"),
+    
+    # OTP-protected leave team flow
+    path("<slug:slug>/leave/request-otp/", request_leave_otp, name="leave_request_otp"),
+    path("<slug:slug>/leave/confirm-otp/", confirm_leave_with_otp, name="leave_confirm_otp"),
     
     # Tournament Integration (Task 5)
     path("<slug:slug>/tournaments/", team_tournaments_view, name="team_tournaments"),

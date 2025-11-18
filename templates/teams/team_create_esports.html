@@ -217,8 +217,27 @@
                                             required>
                                         <label for="game-{{ value }}">
                                             <div class="game-icon">
-                                                <img src="{% static 'images/games/' %}{{ value }}.png" alt="{{ label }}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                                <i class="fas fa-gamepad" style="display: none;"></i>
+                                                {% if value == 'VALORANT' %}
+                                                    <img src="{% static 'img/game_cards/Valorant.jpg' %}" alt="{{ label }}">
+                                                {% elif value == 'CS2' %}
+                                                    <img src="{% static 'img/game_cards/CS2.jpg' %}" alt="{{ label }}">
+                                                {% elif value == 'DOTA2' %}
+                                                    <img src="{% static 'img/game_cards/Dota2.jpg' %}" alt="{{ label }}">
+                                                {% elif value == 'MLBB' %}
+                                                    <img src="{% static 'img/game_cards/MobileLegend.jpg' %}" alt="{{ label }}">
+                                                {% elif value == 'PUBG' %}
+                                                    <img src="{% static 'img/game_cards/PUBG.jpeg' %}" alt="{{ label }}">
+                                                {% elif value == 'FREEFIRE' %}
+                                                    <img src="{% static 'img/game_cards/FreeFire.jpeg' %}" alt="{{ label }}">
+                                                {% elif value == 'EFOOTBALL' %}
+                                                    <img src="{% static 'img/game_cards/efootball.jpeg' %}" alt="{{ label }}">
+                                                {% elif value == 'FC26' %}
+                                                    <img src="{% static 'img/game_cards/FC26.jpg' %}" alt="{{ label }}">
+                                                {% elif value == 'CODM' %}
+                                                    <img src="{% static 'img/game_cards/CallOfDutyMobile.jpg' %}" alt="{{ label }}">
+                                                {% else %}
+                                                    <i class="fas fa-gamepad"></i>
+                                                {% endif %}
                                             </div>
                                             <span class="game-name">{{ label }}</span>
                                             <div class="game-check">
@@ -405,6 +424,25 @@
 
                         <!-- Hidden data -->
                         <input type="hidden" name="roster_data" id="roster_data" value="[]">
+                        
+                        <!-- Terms & Conditions -->
+                        <div class="form-field terms-field" style="margin-top: 2rem;">
+                            <div class="terms-checkbox">
+                                <input 
+                                    type="checkbox" 
+                                    name="accept_terms" 
+                                    id="id_accept_terms" 
+                                    required>
+                                <label for="id_accept_terms">
+                                    I have read and accept the 
+                                    <a href="{% url 'core:terms' %}" target="_blank" class="terms-link">Terms & Conditions</a> 
+                                    and 
+                                    <a href="{% url 'core:privacy' %}" target="_blank" class="terms-link">Privacy Policy</a>
+                                    <span class="required">*</span>
+                                </label>
+                            </div>
+                            <div class="field-error" id="terms-error"></div>
+                        </div>
                     </div>
 
                     <div class="card-footer">

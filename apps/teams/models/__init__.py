@@ -57,6 +57,9 @@ from .sponsorship import (  # noqa: F401
     TeamPromotion,
 )
 
+# OTP system for team operations
+from .otp import TeamOTP  # noqa: F401
+
 # Game-specific models (new roster management system)
 from .base import BaseTeam, BasePlayerMembership  # noqa: F401
 from .game_specific import (  # noqa: F401
@@ -99,4 +102,6 @@ __all__ = [name for name in (
     # Utilities
     "GAME_TEAM_MODELS", "GAME_MEMBERSHIP_MODELS",
     "get_team_model_for_game", "get_membership_model_for_game",
+    # OTP system
+    "TeamOTP",
 ) if name in globals()]

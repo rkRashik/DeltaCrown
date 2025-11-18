@@ -6,6 +6,7 @@ This module defines the rules, constraints, and roles for each supported game.
 Makes it easy to add new games without changing core model logic.
 """
 from typing import Dict, List, NamedTuple
+from apps.teams.utils.game_mapping import normalize_game_code, LEGACY_GAME_CODES
 
 
 class GameRosterConfig(NamedTuple):
@@ -430,18 +431,23 @@ def get_game_config(game_code: str) -> GameRosterConfig:
         game_code: Game identifier (e.g., 'valorant', 'cs2', 'pubg-mobile')
         
     Returns:
-        GameRosterConfig for the game
-        
-    Raises:
-        KeyError: If game code is not supported
+        GameRosterConfig for the game (returns default for unknown games)
     """
     # Normalize the game code first
     normalized_code = normalize_game_code(game_code)
     
     if normalized_code not in GAME_CONFIGS:
-        raise KeyError(
-            f"Unsupported game: {game_code} (normalized: {normalized_code}). "
-            f"Available: {list(GAME_CONFIGS.keys())}"
+        # Return a default config instead of crashing
+        return GameRosterConfig(
+            name=game_code.upper() if game_code else "Unknown",
+            code=game_code.lower() if game_code else "unknown",
+            min_starters=5,
+            max_starters=5,
+            max_substitutes=2,
+            roles=["Player", "Sub"],
+            role_descriptions={"Player": "Team player", "Sub": "Substitute player"},
+            regions=[("GLOBAL", "Global")],
+            allows_multi_role=True,
         )
     return GAME_CONFIGS[normalized_code]
 

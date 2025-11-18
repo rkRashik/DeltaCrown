@@ -67,23 +67,118 @@ This is the **most complex file** in the documentation set — it fully explains
 
 **View:** `apps.teams.views.dashboard.team_profile_view`
 **Template:** `teams/team_detail_new.html`
+**Includes:** `templates/teams/_team_hub.html` (role-based dashboard)
 
 ### Provides:
 
 * Hero banner
 * Tabs (Roster, Stats, Achievements, Social, Activity)
-* Team Hub (role-aware)
+* **Role-Based Team Hub** (fully implemented with 4 distinct sections)
 * Leave button modal integration
 
 ### Injected Context:
 
-* `team`
-* `membership`
-* `is_captain`
-* `is_owner`
-* `roster`
-* `roster_count`
-* `permissions` (TeamPermissions)
+* `team` - Team model instance
+* `membership` - User's TeamMembership instance (if member)
+* `is_member` - Boolean: user is active member
+* `roster` - QuerySet of all active team members
+* `roster_count` - Count of active members
+* `permissions` - TeamPermissions instance for user
+
+#### **Role Context Flags:**
+
+* `is_owner` - Boolean: user is team owner (Role.OWNER)
+* `is_captain` - Boolean: user is team captain
+* `is_manager` - Boolean: user is team manager (Role.MANAGER)
+* `is_coach` - Boolean: user is team coach (Role.COACH)
+* `is_player` - Boolean: user is regular player (Role.PLAYER)
+
+#### **Permission Context Flags:**
+
+* `can_manage_roster` - Boolean: can invite/kick members
+* `can_edit_team_profile` - Boolean: can edit team info
+* `can_register_tournaments` - Boolean: can register team for tournaments
+* `can_leave_team` - Boolean: can leave team (owners cannot)
+* `can_view_team_settings` - Boolean: can view team settings page
+
+### Role-Based Dashboard Sections:
+
+The Team Hub (`_team_hub.html`) displays different tools based on user role:
+
+#### **1. Captain Controls** (Owners/Captains Only)
+* Full Dashboard access
+* Team Settings
+* Invite Members
+* Manage Roster
+* Register for Tournaments
+* Team Analytics
+
+#### **2. Manager Tools** (Managers Only, not shown to owners)
+* Manage Roster
+* Invite Members
+* Edit Team Profile
+* Register for Tournaments
+* View Analytics
+* View Settings (read-only)
+
+#### **3. Coach Tools** (Coaches Only)
+* Strategy Planner (coming soon)
+* Schedule Practice (coming soon)
+* Performance Analytics
+* Training Materials (coming soon)
+
+#### **4. Member/Player Tools** (All Members)
+* Update Game ID
+* View Personal Stats
+* Notifications
+* Team Calendar
+* Practice Schedule
+* Leave Team (not available to owners)
+
+#### **5. Common Sections** (All Members)
+* Communication (Team Chat, Announcements, Voice Channel)
+* Quick Links (Tournaments, Leaderboards, Shop)
+* Team Information
+* Achievements
+* Upcoming Events
+* Resources
+
+### Template Usage Example:
+
+```django
+{% if is_owner or is_captain %}
+    <!-- Captain Controls Section -->
+    <div class="dashboard-section captain-controls">
+        <a href="{% url 'teams:settings' team.slug %}">Team Settings</a>
+        <a href="{% url 'teams:invite_member' team.slug %}">Invite Members</a>
+    </div>
+{% elif is_manager %}
+    <!-- Manager Tools Section -->
+    <div class="dashboard-section manager-tools">
+        <a href="{% url 'teams:manage' team.slug %}">Manage Roster</a>
+    </div>
+{% elif is_coach %}
+    <!-- Coach Tools Section -->
+    <div class="dashboard-section coach-tools">
+        <span class="badge coming-soon">Strategy Planner (Coming Soon)</span>
+    </div>
+{% endif %}
+
+<!-- All members see these tools -->
+{% if is_member %}
+    <div class="dashboard-section member-tools">
+        <a href="{% url 'user_profile:update_game_id' %}">Update Game ID</a>
+        {% if can_leave_team %}
+            <button class="leave-team-btn">Leave Team</button>
+        {% endif %}
+    </div>
+{% endif %}
+```
+
+### Side Effects:
+
+* None (read-only view)
+* All mutations happen through dedicated management views
 
 ---
 

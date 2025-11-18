@@ -22,6 +22,14 @@ REGION_CHOICES = [
 ]
 
 class TeamCreationForm(forms.ModelForm):
+    accept_terms = forms.BooleanField(
+        required=True,
+        label="I accept the Terms & Conditions",
+        error_messages={
+            'required': 'You must accept the terms and conditions to create a team.'
+        }
+    )
+    
     class Meta:
         model = Team
         fields = ['name', 'tag', 'tagline', 'description', 'logo', 'game', 'region', 'banner_image', 
@@ -97,14 +105,6 @@ class TeamCreationForm(forms.ModelForm):
         # Set choices for region field
         self.fields['region'].choices = REGION_CHOICES
         self.fields['region'].required = True  # Make region required
-
-    def clean_logo(self):
-        """Validate logo file size (max 10MB)"""
-        logo = self.cleaned_data.get('logo')
-        if logo:
-            if logo.size > 10 * 1024 * 1024:  # 10MB in bytes
-                raise ValidationError('Logo file size must be under 10MB.')
-        return logo
 
     def clean_banner_image(self):
         """Validate banner image file size (max 10MB)"""
@@ -205,9 +205,10 @@ class TeamCreationForm(forms.ModelForm):
                 
                 if existing_teams.exists():
                     team_name = existing_teams.first().team.name
+                    game_display = dict(GAME_CHOICES).get(game, game)
                     raise ValidationError(
-                        f"You are already a member of '{team_name}' for {dict(GAME_CHOICES).get(game, game)}. "
-                        "You can only be in one team per game."
+                        f"You are already a member of '{team_name}' for {game_display}. "
+                        f"You can only be in one team per game. Please leave '{team_name}' before creating or joining another {game_display} team."
                     )
         return game
 

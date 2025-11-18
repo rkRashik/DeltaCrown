@@ -1245,24 +1245,6 @@ def decline_invite_view(request, token: str):
 
 
 # -------------------------
-# Leave team (non-captain)
-# -------------------------
-@login_required
-@require_http_methods(["GET", "POST"])
-def leave_team_view(request, slug: str):
-    team = get_object_or_404(Team, slug=slug)
-    profile = _ensure_profile(request.user)
-
-    if _is_captain(profile, team):
-        messages.error(request, "Captain must transfer captaincy before leaving the team.")
-        return redirect(reverse("teams:detail", kwargs={"slug": team.slug}))
-
-    TeamMembership.objects.filter(team=team, profile=profile).delete()
-    messages.success(request, "You left the team.")
-    return redirect(reverse("teams:detail", kwargs={"slug": team.slug}))
-
-
-# -------------------------
 # Join team (public, auth, guard one-team-per-game)
 # -------------------------
 @login_required
@@ -1292,9 +1274,21 @@ def join_team_view(request, slug: str):
         ).first()
         
         if existing_membership:
-            error_msg = f"You are already in '{existing_membership.team.name}' ({game_code.upper()}). One team per game only."
+            game_display = dict(Team._meta.get_field('game').choices).get(game_code, game_code.upper())
+            error_msg = (
+                f"You are already a member of '{existing_membership.team.name}' for {game_display}. "
+                f"You can only be in one team per game. Please leave '{existing_membership.team.name}' "
+                f"before joining another {game_display} team."
+            )
             if is_ajax:
-                return JsonResponse({'success': False, 'error': error_msg})
+                return JsonResponse({
+                    'success': False, 
+                    'error': error_msg,
+                    'code': 'ALREADY_IN_TEAM_FOR_GAME',
+                    'existing_team': existing_membership.team.name,
+                    'existing_team_slug': existing_membership.team.slug,
+                    'game': game_code
+                })
             messages.error(request, error_msg)
             return redirect("teams:detail", slug=team.slug)
 
@@ -1387,29 +1381,53 @@ def kick_member_view(request, slug: str, profile_id: int):
 @login_required
 @require_http_methods(["POST"])
 def leave_team_view(request, slug: str):
-    """Allow a member to leave the team."""
+    """Allow a member to leave the team. Supports both AJAX (JSON) and form submissions."""
     team = get_object_or_404(Team, slug=slug)
     profile = _ensure_profile(request.user)
     
+    # Check if AJAX request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or \
+              request.content_type == 'application/json'
+    
     # Get membership
     try:
-        membership = TeamMembership.objects.get(team=team, profile=profile, status='ACTIVE')
-        
-        # OWNER cannot leave (must transfer ownership first)
-        if membership.role == TeamMembership.Role.OWNER:
-            messages.error(request, "As team owner, you must transfer ownership before leaving the team.")
-            return redirect("teams:manage", slug=team.slug)
-        
-        # Check if member can leave
-        if not TeamPermissions.can_leave_team(membership):
-            messages.error(request, "You cannot leave the team at this time.")
-            return redirect("teams:manage", slug=team.slug)
+        membership = TeamMembership.objects.get(team=team, profile=profile, status=TeamMembership.Status.ACTIVE)
     except TeamMembership.DoesNotExist:
-        messages.error(request, "You are not a member of this team.")
+        error_msg = "You are not a member of this team."
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': error_msg, 'code': 'NOT_A_MEMBER'}, status=400)
+        messages.error(request, error_msg)
         return redirect("teams:detail", slug=team.slug)
     
+    # OWNER cannot leave (must transfer ownership first)
+    if membership.role == TeamMembership.Role.OWNER:
+        error_msg = "As team owner, you must transfer ownership before leaving the team."
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': error_msg, 'code': 'CANNOT_LEAVE_OWNER'}, status=403)
+        messages.error(request, error_msg)
+        return redirect("teams:manage", slug=team.slug)
+    
+    # Check if member can leave (roster lock, etc.)
+    if not TeamPermissions.can_leave_team(membership):
+        error_msg = "You cannot leave the team at this time. Roster may be locked for an active tournament."
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': error_msg, 'code': 'ROSTER_LOCKED'}, status=403)
+        messages.error(request, error_msg)
+        return redirect("teams:manage", slug=team.slug)
+    
+    # Delete membership
+    team_name = team.name
     membership.delete()
-    messages.success(request, f"You have left team {team.name}.")
+    
+    # Return JSON for AJAX or redirect for regular form submission
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'message': f'You have left team {team_name}.',
+            'redirect_url': reverse('teams:list')
+        })
+    
+    messages.success(request, f"You have left team {team_name}.")
     return redirect("teams:list")
 
 
@@ -1439,12 +1457,12 @@ def transfer_captaincy_view(request, slug: str, profile_id: int):
         )
         
         # Update team captain
-        team.captain = new_captain_membership.user
+        team.captain = new_captain_membership.profile
         team.save()
         
         messages.success(
             request, 
-            f"Team captaincy transferred to {new_captain_membership.user.user.username}."
+            f"Team captaincy transferred to {new_captain_membership.profile.user.username}."
         )
     except TeamMembership.DoesNotExist:
         messages.error(request, "Selected user is not an active member of this team.")

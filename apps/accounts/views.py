@@ -62,6 +62,11 @@ class DCLoginView(LoginView):
 
 class DCLogoutView(LogoutView):
     next_page = reverse_lazy("siteui:homepage")
+    http_method_names = ["get", "post", "options"]
+    
+    def get(self, request, *args, **kwargs):
+        """Allow GET requests for logout - show confirmation or logout directly."""
+        return self.post(request, *args, **kwargs)
 
 
 class SignUpView(FormView):

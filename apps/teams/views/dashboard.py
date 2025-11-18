@@ -328,16 +328,43 @@ def team_profile_view(request, slug: str):
     is_following = False
     user_membership = None
     
+    # Role-based permission flags
+    is_owner = False
+    is_manager = False
+    is_coach = False
+    is_player = False
+    can_manage_roster = False
+    can_edit_team_profile = False
+    can_register_tournaments = False
+    can_leave_team = False
+    can_view_team_settings = False
+    
     if profile:
         # Get membership object if exists
         try:
             user_membership = TeamMembership.objects.get(
                 team=team,
                 profile=profile,
-                status="ACTIVE"
+                status=TeamMembership.Status.ACTIVE
             )
             is_member = True
             is_captain = (team.captain_id == getattr(profile, "id", None))
+            
+            # Set role flags using TeamMembership.Role enum
+            from apps.teams.permissions import TeamPermissions
+            
+            is_owner = user_membership.role == TeamMembership.Role.OWNER
+            is_manager = user_membership.role == TeamMembership.Role.MANAGER
+            is_coach = user_membership.role == TeamMembership.Role.COACH
+            is_player = user_membership.role == TeamMembership.Role.PLAYER
+            
+            # Get permission flags from TeamPermissions
+            can_manage_roster = TeamPermissions.can_manage_roster(user_membership)
+            can_edit_team_profile = TeamPermissions.can_edit_team_profile(user_membership)
+            can_register_tournaments = TeamPermissions.can_register_tournaments(user_membership)
+            can_leave_team = TeamPermissions.can_leave_team(user_membership)
+            can_view_team_settings = TeamPermissions.can_view_team_settings(user_membership)
+            
         except TeamMembership.DoesNotExist:
             pass
         
@@ -554,6 +581,19 @@ def team_profile_view(request, slug: str):
         'user_membership': user_membership,
         'can_request_join': can_request_join,
         'already_in_team_for_game': already_in_team_for_game,
+        
+        # Role flags for template
+        'is_owner': is_owner,
+        'is_manager': is_manager,
+        'is_coach': is_coach,
+        'is_player': is_player,
+        
+        # Permission flags for template
+        'can_manage_roster': can_manage_roster,
+        'can_edit_team_profile': can_edit_team_profile,
+        'can_register_tournaments': can_register_tournaments,
+        'can_leave_team': can_leave_team,
+        'can_view_team_settings': can_view_team_settings,
         
         # Roster
         'roster': roster,
