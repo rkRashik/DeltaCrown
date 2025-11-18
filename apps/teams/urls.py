@@ -37,6 +37,13 @@ from .views.otp_leave import (
     confirm_leave_with_otp,
 )
 
+# Player-specific views (new three-entry hub system)
+from .views.player_views import (
+    player_dashboard_view,
+    player_settings_view,
+    team_room_view,
+)
+
 # Dashboard API
 from .views.dashboard_api import (
     get_pending_items,
@@ -280,6 +287,11 @@ urlpatterns = [
     # OTP-protected leave team flow
     path("<slug:slug>/leave/request-otp/", request_leave_otp, name="leave_request_otp"),
     path("<slug:slug>/leave/confirm-otp/", confirm_leave_with_otp, name="leave_confirm_otp"),
+    
+    # Player-specific views (new three-entry hub system)
+    path("<slug:slug>/me/dashboard/", player_dashboard_view, name="player_dashboard"),
+    path("<slug:slug>/me/settings/", player_settings_view, name="player_settings"),
+    path("<slug:slug>/room/", team_room_view, name="team_room"),
     
     # Tournament Integration (Task 5)
     path("<slug:slug>/tournaments/", team_tournaments_view, name="team_tournaments"),

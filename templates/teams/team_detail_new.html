@@ -255,31 +255,25 @@
         </div>
         {% endif %}
         
-        <!-- MEMBER TOOLS (All Members See This) -->
+        <!-- THREE-ENTRY HUB SYSTEM (All Members See This) -->
         <div class="sidebar-card">
           <h3 class="sidebar-card-title">
-            <i class="fa-solid fa-user"></i>
-            Member Tools
+            <i class="fa-solid fa-compass"></i>
+            My Team Hub
           </h3>
           <div class="dashboard-quick-actions">
-            <a href="{% url 'teams:collect_game_id' team.game %}" class="dashboard-action-btn">
-              <i class="fa-solid fa-gamepad"></i>
-              <span>Update Game ID</span>
+            <a href="{% url 'teams:player_dashboard' team.slug %}" class="dashboard-action-btn">
+              <i class="fa-solid fa-tachometer-alt"></i>
+              <span>Personal Hub</span>
             </a>
-            <a href="{% url 'teams:player_analytics' user_membership.profile.id %}" class="dashboard-action-btn">
-              <i class="fa-solid fa-chart-bar"></i>
-              <span>View My Stats</span>
+            <a href="{% url 'teams:player_settings' team.slug %}" class="dashboard-action-btn">
+              <i class="fa-solid fa-cog"></i>
+              <span>Player Settings</span>
             </a>
-            <a href="{% url 'notifications:list' %}" class="dashboard-action-btn">
-              <i class="fa-solid fa-bell"></i>
-              <span>Notifications</span>
+            <a href="{% url 'teams:team_room' team.slug %}" class="dashboard-action-btn">
+              <i class="fa-solid fa-door-open"></i>
+              <span>Team Room</span>
             </a>
-            {% if can_leave_team %}
-            <button class="dashboard-action-btn leave-team-btn" data-team-slug="{{ team.slug }}" style="color: #ef4444;">
-              <i class="fa-solid fa-sign-out-alt"></i>
-              <span>Leave Team</span>
-            </button>
-            {% endif %}
           </div>
         </div>
         
