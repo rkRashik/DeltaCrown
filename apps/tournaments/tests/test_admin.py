@@ -36,6 +36,7 @@ class TournamentAdminStabilityTest(TestCase):
         
         self.organizer = User.objects.create_user(
             username="organizer",
+            email="organizer@test.com",
             password="pass123"
         )
         
@@ -89,13 +90,14 @@ class BracketAdminStabilityTest(TestCase):
         # Create superuser
         self.admin = User.objects.create_superuser(
             username="admin",
+            email="admin@test.com",
             password="admin123"
         )
         self.client.login(username="admin", password="admin123")
         
         # Create test data
         self.game = Game.objects.create(name="Test Game", slug="test-game", is_active=True)
-        self.organizer = User.objects.create_user(username="org", password="pass")
+        self.organizer = User.objects.create_user(username="org", email="org@test.com", password="pass")
         
         self.tournament = Tournament.objects.create(
             name="Test Tournament",
@@ -165,12 +167,14 @@ class TeamAdminStabilityTest(TestCase):
         
         self.admin = User.objects.create_superuser(
             username="admin",
+            email="admin@test.com",
             password="admin123"
         )
         self.client.login(username="admin", password="admin123")
         
         self.captain = User.objects.create_user(
             username="captain",
+            email="captain@test.com",
             password="pass123"
         )
         
@@ -180,7 +184,7 @@ class TeamAdminStabilityTest(TestCase):
             slug="test-team",
             game="pubg",
             region="bd_dhaka",
-            captain=self.captain,
+            captain=self.captain.profile,
             is_active=True
         )
     

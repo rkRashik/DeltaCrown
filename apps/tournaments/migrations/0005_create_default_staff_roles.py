@@ -121,7 +121,7 @@ def create_default_staff_roles(apps, schema_editor):
             created_count += 1
     
     if created_count > 0:
-        print(f"✅ Created {created_count} default staff roles")
+        print(f"[OK] Created {created_count} default staff roles")
 
 
 def remove_default_staff_roles(apps, schema_editor):
@@ -141,7 +141,7 @@ def remove_default_staff_roles(apps, schema_editor):
     
     deleted_count = TournamentStaffRole.objects.filter(slug__in=default_slugs, is_system_role=True).delete()[0]
     if deleted_count > 0:
-        print(f"🗑️ Removed {deleted_count} default staff roles")
+        print(f"[DELETED] Removed {deleted_count} default staff roles")
 
 
 class Migration(migrations.Migration):

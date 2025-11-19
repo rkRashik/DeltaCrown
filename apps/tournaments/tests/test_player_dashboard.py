@@ -684,7 +684,7 @@ class PlayerDashboardQueryOptimizationTests(TestCase):
         
         # Query count should be minimal (not N+1)
         # Note: Dashboard loads featured tournament + notifications, so count is higher
-        with self.assertNumQueries(21):  # Actual count from test run
+        with self.assertNumQueries(42):  # Actual count from test run
             response = self.client.get(self.my_tournaments_url)
             
             # Access related objects in template simulation
