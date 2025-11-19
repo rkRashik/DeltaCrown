@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Team Setup - {{ team.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teams/css/team-setup.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="team-setup-container">
+    <!-- Success Header -->
+    <div class="success-header">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <h1>🎉 Team Created Successfully!</h1>
+        <p>Welcome to <strong>{{ team.name }}</strong> - Your journey begins now</p>
+    </div>
+
+    <!-- Team Info Card -->
+    <div class="team-info-card">
+        <div class="team-banner" style="background-image: url('{% if team.banner_image %}{{ team.banner_image.url }}{% else %}/static/img/default-banner.jpg{% endif %}');">
+            <div class="team-logo">
+                {% if team.logo %}
+                    <img src="{{ team.logo.url }}" alt="{{ team.name }} Logo">
+                {% else %}
+                    <i class="fas fa-shield-alt"></i>
+                {% endif %}
+            </div>
+        </div>
+        <div class="team-info-body">
+            <h2>
+                <span class="team-tag">[{{ team.tag }}]</span>
+                {{ team.name }}
+            </h2>
+            <div class="team-meta">
+                <span><i class="fas fa-gamepad"></i> {{ team.get_game_display }}</span>
+                <span><i class="fas fa-globe"></i> {{ team.get_region_display }}</span>
+                <span><i class="fas fa-users"></i> 1 Member</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Grid -->
+    <div class="setup-grid">
+        
+        <!-- Invite Members -->
+        <div class="setup-card">
+            <div class="card-icon primary">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h3>Invite Team Members</h3>
+            <p>Build your roster by inviting players to join your team</p>
+            
+            <div class="invite-section">
+                <label>Share Invitation Link</label>
+                <div class="copy-link-box">
+                    <input 
+                        type="text" 
+                        readonly 
+                        value="{{ request.scheme }}://{{ request.get_host }}{% url 'teams:join' team.slug %}"
+                        id="inviteLink"
+                        class="link-input"
+                    >
+                    <button type="button" class="btn-copy" onclick="copyInviteLink()">
+                        <i class="fas fa-copy"></i>
+                        Copy
+                    </button>
+                </div>
+                <p class="help-text">Share this link with players you want to invite to your team</p>
+            </div>
+
+            <div class="email-invite-section">
+                <label>Or invite by email</label>
+                <form method="POST" action="{% url 'teams:invite_member' team.slug %}" class="email-invite-form">
+                    {% csrf_token %}
+                    <input 
+                        type="email" 
+                        name="email"
+                        placeholder="teammate@example.com"
+                        required
+                        class="email-input"
+                    >
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-envelope"></i>
+                        Send Invite
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Essential Settings -->
+        <div class="setup-card">
+            <div class="card-icon secondary">
+                <i class="fas fa-cog"></i>
+            </div>
+            <h3>Essential Settings</h3>
+            <p>Configure critical privacy and security settings</p>
+            
+            <form method="POST" action="{% url 'teams:update_settings' team.slug %}" class="settings-form">
+                {% csrf_token %}
+                
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <strong>Team Visibility</strong>
+                        <p>Control who can discover your team</p>
+                    </div>
+                    <select name="visibility" class="setting-select">
+                        <option value="PUBLIC" {% if team.is_public %}selected{% endif %}>Public</option>
+                        <option value="PRIVATE" {% if not team.is_public %}selected{% endif %}>Private</option>
+                    </select>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <strong>Join Requests</strong>
+                        <p>Allow players to request to join</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="allow_join_requests" {% if team.allow_join_requests %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <strong>Recruitment Status</strong>
+                        <p>Show recruitment badge on profile</p>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="is_recruiting" {% if team.is_recruiting %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save"></i>
+                    Save Settings
+                </button>
+            </form>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="setup-card">
+            <div class="card-icon accent">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h3>Next Steps</h3>
+            <p>Complete your team setup and start competing</p>
+            
+            <div class="quick-links">
+                <a href="{% url 'teams:dashboard' team.slug %}" class="quick-link">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <div>
+                        <strong>Team Dashboard</strong>
+                        <span>Manage your team operations</span>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+
+                <a href="{% url 'teams:manage' team.slug %}" class="quick-link">
+                    <i class="fas fa-edit"></i>
+                    <div>
+                        <strong>Edit Team Details</strong>
+                        <span>Update description and branding</span>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+
+                <a href="/tournaments/" class="quick-link">
+                    <i class="fas fa-trophy"></i>
+                    <div>
+                        <strong>Browse Tournaments</strong>
+                        <span>Find competitions to join</span>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+
+                <a href="{% url 'teams:detail' team.slug %}" class="quick-link">
+                    <i class="fas fa-eye"></i>
+                    <div>
+                        <strong>View Public Profile</strong>
+                        <span>See how others see your team</span>
+                    </div>
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'teams:dashboard' team.slug %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-tachometer-alt"></i>
+            Go to Team Dashboard
+        </a>
+        <a href="/teams/" class="btn btn-secondary btn-lg">
+            <i class="fas fa-list"></i>
+            Browse All Teams
+        </a>
+    </div>
+</div>
+
+<script>
+function copyInviteLink() {
+    const linkInput = document.getElementById('inviteLink');
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999); // For mobile devices
+    
+    navigator.clipboard.writeText(linkInput.value).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.add('copied');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('copied');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy link. Please copy manually.');
+    });
+}
+</script>
+{% endblock %}

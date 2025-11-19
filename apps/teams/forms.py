@@ -26,7 +26,7 @@ class TeamCreationForm(forms.ModelForm):
         required=True,
         label="I accept the Terms & Conditions",
         error_messages={
-            'required': 'You must accept the terms and conditions to create a team.'
+            'required': 'Please read and accept the Team Creation Terms & Responsibilities to continue.'
         }
     )
     
@@ -111,7 +111,7 @@ class TeamCreationForm(forms.ModelForm):
         banner = self.cleaned_data.get('banner_image')
         if banner:
             if banner.size > 10 * 1024 * 1024:  # 10MB in bytes
-                raise ValidationError('Banner image file size must be under 10MB.')
+                raise ValidationError('Team banner file size must not exceed 10MB. Please compress or resize your image.')
         return banner
 
     def clean_region(self):
@@ -151,13 +151,15 @@ class TeamCreationForm(forms.ModelForm):
         if name:
             name = name.strip()
             if len(name) < 3:
-                raise ValidationError("Team name must be at least 3 characters long.")
+                raise ValidationError("Team names need at least 3 characters to be unique and memorable.")
             if len(name) > 50:
-                raise ValidationError("Team name cannot exceed 50 characters.")
+                raise ValidationError("Team name is too long. Please keep it under 50 characters.")
             
             # Check for uniqueness
             if Team.objects.filter(name__iexact=name).exclude(pk=self.instance.pk if self.instance else None).exists():
-                raise ValidationError("A team with this name already exists.")
+                raise ValidationError(
+                    "This team name is already taken. Try adding your region or a variation to make it unique!"
+                )
         return name
 
     def clean_tag(self):
@@ -165,29 +167,31 @@ class TeamCreationForm(forms.ModelForm):
         if tag:
             tag = tag.strip().upper()
             if len(tag) < 2:
-                raise ValidationError("Team tag must be at least 2 characters long.")
+                raise ValidationError("Team tags need at least 2 characters.")
             if len(tag) > 10:
-                raise ValidationError("Team tag cannot exceed 10 characters.")
+                raise ValidationError("Team tag is too long. Keep it short and memorable (max 10 characters).")
             
             # Only allow alphanumeric characters
             if not re.match(r'^[A-Z0-9]+$', tag):
-                raise ValidationError("Team tag can only contain letters and numbers.")
+                raise ValidationError("Team tags can only contain letters and numbers (no spaces or special characters).")
             
             # Check for uniqueness
             if Team.objects.filter(tag__iexact=tag).exclude(pk=self.instance.pk if self.instance else None).exists():
-                raise ValidationError("A team with this tag already exists.")
+                raise ValidationError(
+                    "This tag is already in use by another team. Try a different combination!"
+                )
         return tag
 
     def clean_logo(self):
         logo = self.cleaned_data.get('logo')
         if logo:
-            # Check file size (max 2MB)
-            if logo.size > 2 * 1024 * 1024:
-                raise ValidationError("Logo file size cannot exceed 2MB.")
+            # Check file size (max 5MB)
+            if logo.size > 5 * 1024 * 1024:
+                raise ValidationError("Team logo file size must not exceed 5MB. Please compress or resize your image.")
             
             # Check file format
             if not logo.name.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
-                raise ValidationError("Logo must be a valid image file (PNG, JPG, JPEG, GIF, or WebP).")
+                raise ValidationError("Please upload a valid image file (PNG, JPG, JPEG, GIF, or WebP format).")
         return logo
     
     def clean_game(self):
@@ -204,12 +208,44 @@ class TeamCreationForm(forms.ModelForm):
                 ).select_related('team').filter(team__game=game)
                 
                 if existing_teams.exists():
-                    team_name = existing_teams.first().team.name
+                    team = existing_teams.first().team
+                    team_name = team.name
+                    team_tag = team.tag
                     game_display = dict(GAME_CHOICES).get(game, game)
+                    # Friendly, supportive message explaining the one-team-per-game rule
                     raise ValidationError(
-                        f"You are already a member of '{team_name}' for {game_display}. "
-                        f"You can only be in one team per game. Please leave '{team_name}' before creating or joining another {game_display} team."
+                        f"You already belong to {team_name} [{team_tag}] for {game_display}. "
+                        f"To maintain competitive integrity, each player can only represent one active team per game. "
+                        f"You can view your current team from your profile, leave it if needed, and then create a new one."
                     )
+                
+                # Check if game requires game ID (for VALORANT, CS2, DOTA2, MLBB)
+                games_requiring_id = ['VALORANT', 'CS2', 'DOTA2', 'MLBB']
+                if game in games_requiring_id:
+                    # Check if user has the required game ID configured
+                    game_id_field_map = {
+                        'VALORANT': 'riot_id',
+                        'CS2': 'steam_id',
+                        'DOTA2': 'steam_id',
+                        'MLBB': 'mlbb_id'
+                    }
+                    game_id_label_map = {
+                        'VALORANT': 'Riot ID',
+                        'CS2': 'Steam ID',
+                        'DOTA2': 'Steam ID',
+                        'MLBB': 'Mobile Legends ID'
+                    }
+                    field_name = game_id_field_map.get(game)
+                    if field_name and not getattr(profile, field_name, None):
+                        # Store game code in session for redirect (handled by view)
+                        game_display = dict(GAME_CHOICES).get(game, game)
+                        game_id_label = game_id_label_map.get(game, 'game ID')
+                        # Friendly message explaining why game ID is needed
+                        raise ValidationError(
+                            f"To create a {game_display} team, you need to verify your {game_id_label} first. "
+                            f"This helps us ensure fair competition and match your team to your in-game profile. "
+                            f"You'll be guided to add it in the next step."
+                        )
         return game
 
     def clean_banner_image(self):

@@ -1,0 +1,717 @@
+﻿/**
+ * DeltaCrown Team Create - Modern JavaScript Controller
+ * Version: 2.0
+ * Features: Step navigation, Real-time validation, Game selection, Region loading
+ */
+
+class TeamCreateModern {
+    constructor() {
+        this.currentStep = 1;
+        this.totalSteps = 4;
+        this.formData = {
+            name: '',
+            tag: '',
+            tagline: '',
+            game: '',
+            gameName: '',
+            region: '',
+            regionName: '',
+            logo: null,
+            banner: null,
+            termsAccepted: false
+        };
+        this.config = window.TEAM_CREATE_CONFIG || {};
+        this.validationTimers = {};
+        this.init();
+    }
+
+    init() {
+        this.setupStepNavigation();
+        this.setupValidation();
+        this.setupGameCards();
+        this.setupFileUploads();
+        this.setupLivePreview();
+        this.setupTermsCheckbox();
+        this.setupFormSubmission();
+    }
+
+    // ==================== STEP NAVIGATION ====================
+    setupStepNavigation() {
+        const prevButtons = document.querySelectorAll('.btn-prev');
+        const nextButtons = document.querySelectorAll('.btn-next');
+
+        prevButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prevStep = parseInt(btn.dataset.prev);
+                this.goToStep(prevStep);
+            });
+        });
+
+        nextButtons.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const nextStep = parseInt(btn.dataset.next);
+                const isValid = await this.validateCurrentStep();
+                if (isValid) {
+                    this.goToStep(nextStep);
+                }
+            });
+        });
+    }
+
+    goToStep(stepNumber) {
+        // Update progress bar
+        document.querySelectorAll('.progress-step').forEach(step => {
+            const num = parseInt(step.dataset.step);
+            step.classList.remove('active', 'completed');
+            if (num < stepNumber) {
+                step.classList.add('completed');
+            } else if (num === stepNumber) {
+                step.classList.add('active');
+            }
+        });
+
+        // Show current step
+        document.querySelectorAll('.form-step').forEach(step => {
+            step.classList.remove('active');
+        });
+        const currentFormStep = document.querySelector(`.form-step[data-step="${stepNumber}"]`);
+        if (currentFormStep) {
+            currentFormStep.classList.add('active');
+        }
+
+        this.currentStep = stepNumber;
+
+        // Special actions per step
+        if (stepNumber === 4) {
+            this.populateSummary();
+            this.updateFinalPreview();
+        }
+
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async validateCurrentStep() {
+        switch (this.currentStep) {
+            case 1:
+                return await this.validateStep1();
+            case 2:
+                return await this.validateStep2();
+            case 3:
+                return true; // Step 3 is optional
+            case 4:
+                return this.validateStep4();
+            default:
+                return true;
+        }
+    }
+
+    // ===== REAL-TIME VALIDATION =====
+    setupRealTimeValidation() {
+        const nameInput = document.getElementById('id_name');
+        const tagInput = document.getElementById('id_tag');
+        const descInput = document.getElementById('id_description');
+
+        if (nameInput) {
+            nameInput.addEventListener('input', (e) => {
+                this.updatePreviewField('name', e.target.value);
+                this.debounce('name', () => this.validateTeamName(e.target.value), 500);
+            });
+        }
+
+        if (tagInput) {
+            tagInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.toUpperCase();
+                this.updatePreviewField('tag', e.target.value);
+                this.debounce('tag', () => this.validateTeamTag(e.target.value), 500);
+            });
+        }
+
+        if (descInput) {
+            descInput.addEventListener('input', (e) => {
+                const count = e.target.value.length;
+                const counter = document.getElementById('desc-count');
+                if (counter) {
+                    counter.textContent = count;
+                    counter.parentElement.classList.toggle('warning', count > 400);
+                    counter.parentElement.classList.toggle('danger', count > 500);
+                }
+            });
+        }
+
+        // Tagline
+        const taglineInput = document.getElementById('id_tagline');
+        if (taglineInput) {
+            taglineInput.addEventListener('input', (e) => {
+                this.updatePreviewField('tagline', e.target.value);
+            });
+        }
+    }
+
+    debounce(key, callback, delay) {
+        clearTimeout(this.debounceTimers[key]);
+        this.debounceTimers[key] = setTimeout(callback, delay);
+    }
+
+    async validateTeamName(name) {
+        const input = document.getElementById('id_name');
+        const status = document.getElementById('name-status');
+        const feedback = document.getElementById('name-feedback');
+
+        if (!name || name.length < 3) {
+            this.setFieldState(input, status, feedback, 'invalid', 'Name must be at least 3 characters');
+            return false;
+        }
+
+        this.setFieldState(input, status, feedback, 'checking', 'Checking availability...');
+
+        try {
+            const response = await fetch('/teams/api/validate-name/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCsrfToken()
+                },
+                body: JSON.stringify({ name })
+            });
+
+            const data = await response.json();
+
+            if (data.valid) {
+                this.setFieldState(input, status, feedback, 'valid', 'Team name is available!');
+                this.formData.name = name;
+                return true;
+            } else {
+                this.setFieldState(input, status, feedback, 'invalid', data.message || 'This name is already taken');
+                return false;
+            }
+        } catch (error) {
+            console.error('Name validation error:', error);
+            this.setFieldState(input, status, feedback, 'valid', '');
+            this.formData.name = name;
+            return true;
+        }
+    }
+
+    async validateTeamTag(tag) {
+        const input = document.getElementById('id_tag');
+        const status = document.getElementById('tag-status');
+        const feedback = document.getElementById('tag-feedback');
+
+        if (!tag || tag.length < 2 || tag.length > 6) {
+            this.setFieldState(input, status, feedback, 'invalid', 'Tag must be 2-6 characters');
+            return false;
+        }
+
+        this.setFieldState(input, status, feedback, 'checking', 'Checking availability...');
+
+        try {
+            const response = await fetch('/teams/api/validate-tag/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCsrfToken()
+                },
+                body: JSON.stringify({ tag })
+            });
+
+            const data = await response.json();
+
+            if (data.valid) {
+                this.setFieldState(input, status, feedback, 'valid', 'Tag is available!');
+                this.formData.tag = tag;
+                return true;
+            } else {
+                this.setFieldState(input, status, feedback, 'invalid', data.message || 'This tag is already taken');
+                return false;
+            }
+        } catch (error) {
+            console.error('Tag validation error:', error);
+            this.setFieldState(input, status, feedback, 'valid', '');
+            this.formData.tag = tag;
+            return true;
+        }
+    }
+
+    setFieldState(input, status, feedback, state, message) {
+        if (!input || !status || !feedback) return;
+
+        // Remove all states
+        input.classList.remove('valid', 'invalid');
+        status.classList.remove('show', 'checking', 'valid', 'invalid');
+        feedback.classList.remove('show', 'success', 'error');
+
+        // Set icons
+        const icons = {
+            checking: '<i class="fas fa-circle-notch fa-spin"></i>',
+            valid: '<i class="fas fa-check-circle"></i>',
+            invalid: '<i class="fas fa-times-circle"></i>'
+        };
+
+        status.innerHTML = icons[state] || '';
+        status.classList.add('show', state);
+
+        if (state === 'valid' || state === 'invalid') {
+            input.classList.add(state);
+        }
+
+        if (message) {
+            feedback.textContent = message;
+            feedback.classList.add('show', state === 'valid' ? 'success' : 'error');
+        }
+    }
+
+    async validateStep1() {
+        const name = document.getElementById('id_name').value.trim();
+        const tag = document.getElementById('id_tag').value.trim();
+
+        if (!name || name.length < 3) {
+            this.showToast('Team name must be at least 3 characters', 'error');
+            return false;
+        }
+
+        if (!tag || tag.length < 2) {
+            this.showToast('Team tag must be at least 2 characters', 'error');
+            return false;
+        }
+
+        const nameValid = await this.validateTeamName(name);
+        const tagValid = await this.validateTeamTag(tag);
+
+        if (!nameValid || !tagValid) {
+            this.showToast('Please fix validation errors before continuing', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    // ===== GAME SELECTION =====
+    setupGameSelection() {
+        const gameInputs = document.querySelectorAll('input[name="game"]');
+        
+        gameInputs.forEach(input => {
+            input.addEventListener('change', async (e) => {
+                const gameCode = e.target.value;
+                const gameLabel = e.target.closest('.game-card-wrapper')?.querySelector('.game-title')?.textContent;
+                
+                this.formData.game = gameCode;
+                this.formData.gameName = gameLabel || gameCode;
+                
+                this.updatePreviewField('game', gameLabel || gameCode);
+                
+                // Load regions for selected game
+                await this.loadGameRegions(gameCode);
+                
+                // Show region section
+                const regionSection = document.getElementById('region-section');
+                if (regionSection) {
+                    regionSection.style.display = 'block';
+                    regionSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
+        });
+    }
+
+    async loadGameRegions(gameCode) {
+        const regionGrid = document.getElementById('region-grid');
+        if (!regionGrid) return;
+
+        try {
+            regionGrid.innerHTML = '<div class="loading-regions"><i class="fas fa-spinner fa-pulse"></i><span>Loading regions...</span></div>';
+
+            const response = await fetch(`/teams/api/game-regions/${gameCode}/`);
+            const data = await response.json();
+
+            if (data.success && data.regions) {
+                this.renderRegions(data.regions);
+            } else {
+                throw new Error('Failed to load regions');
+            }
+        } catch (error) {
+            console.error('Error loading regions:', error);
+            regionGrid.innerHTML = '<div class="loading-regions" style="color: var(--danger);"><i class="fas fa-exclamation-triangle"></i><span>Failed to load regions</span></div>';
+            this.showToast('Failed to load regions. Please try again.', 'error');
+        }
+    }
+
+    renderRegions(regions) {
+        const regionGrid = document.getElementById('region-grid');
+        if (!regionGrid) return;
+
+        regionGrid.innerHTML = '';
+
+        regions.forEach(([code, name]) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'region-card-wrapper';
+            wrapper.innerHTML = `
+                <input type="radio" name="region" value="${code}" id="region-${code}">
+                <label for="region-${code}" class="region-card">
+                    <div class="region-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <span class="region-name">${name}</span>
+                    <div class="region-check">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </label>
+            `;
+            regionGrid.appendChild(wrapper);
+        });
+
+        // Setup region selection listeners
+        const regionInputs = document.querySelectorAll('input[name="region"]');
+        regionInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                const regionCode = e.target.value;
+                const regionLabel = e.target.closest('.region-card-wrapper')?.querySelector('.region-name')?.textContent;
+                
+                this.formData.region = regionCode;
+                this.formData.regionName = regionLabel || regionCode;
+                
+                this.updatePreviewField('region', regionLabel || regionCode);
+            });
+        });
+    }
+
+    validateStep2() {
+        const game = document.querySelector('input[name="game"]:checked');
+        const region = document.querySelector('input[name="region"]:checked');
+
+        if (!game) {
+            this.showToast('Please select a game', 'error');
+            return false;
+        }
+
+        if (!region) {
+            this.showToast('Please select a region', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    // ===== FILE UPLOADS =====
+    setupFileUploads() {
+        this.setupFileUpload('logo', 'id_logo', 'logo-upload-box', 'logo-placeholder', 'logo-preview', 'logo-change', 'logo-remove');
+        this.setupFileUpload('banner', 'id_banner_image', 'banner-upload-box', 'banner-placeholder', 'banner-preview', 'banner-change', 'banner-remove');
+    }
+
+    setupFileUpload(type, inputId, boxId, placeholderId, previewId, changeId, removeId) {
+        const input = document.getElementById(inputId);
+        const box = document.getElementById(boxId);
+        const placeholder = document.getElementById(placeholderId);
+        const preview = document.getElementById(previewId);
+        const changeBtn = document.getElementById(changeId);
+        const removeBtn = document.getElementById(removeId);
+
+        if (!input || !box || !placeholder || !preview) return;
+
+        // Click to upload
+        box.addEventListener('click', (e) => {
+            if (!e.target.closest('.btn-preview-action')) {
+                input.click();
+            }
+        });
+
+        // Drag & Drop
+        box.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            box.style.borderColor = 'var(--primary)';
+        });
+
+        box.addEventListener('dragleave', () => {
+            box.style.borderColor = '';
+        });
+
+        box.addEventListener('drop', (e) => {
+            e.preventDefault();
+            box.style.borderColor = '';
+            
+            if (e.dataTransfer.files.length > 0) {
+                input.files = e.dataTransfer.files;
+                this.handleFileSelect(input, placeholder, preview, type);
+            }
+        });
+
+        // File input change
+        input.addEventListener('change', () => {
+            this.handleFileSelect(input, placeholder, preview, type);
+        });
+
+        // Change button
+        if (changeBtn) {
+            changeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                input.click();
+            });
+        }
+
+        // Remove button
+        if (removeBtn) {
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                input.value = '';
+                placeholder.style.display = 'flex';
+                preview.style.display = 'none';
+                this.formData[type] = null;
+                this.updatePreviewField(type, null);
+            });
+        }
+    }
+
+    handleFileSelect(input, placeholder, preview, type) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = preview.querySelector('img');
+                if (img) {
+                    img.src = e.target.result;
+                    placeholder.style.display = 'none';
+                    preview.style.display = 'block';
+                    this.formData[type] = e.target.result;
+                    this.updatePreviewField(type, e.target.result);
+                }
+            };
+
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // ===== ROSTER MANAGEMENT =====
+    setupRoster() {
+        const addBtn = document.getElementById('btn-add-member');
+        const container = document.getElementById('roster-container');
+        const template = document.getElementById('roster-member-template');
+
+        if (!addBtn || !container || !template) return;
+
+        addBtn.addEventListener('click', () => {
+            const memberCount = container.querySelectorAll('.roster-member-card').length + 1;
+            const clone = template.content.cloneNode(true);
+            
+            clone.querySelector('.number').textContent = memberCount;
+            
+            const removeBtn = clone.querySelector('.btn-remove-member');
+            removeBtn.addEventListener('click', function() {
+                this.closest('.roster-member-card').remove();
+                // Renumber remaining members
+                container.querySelectorAll('.roster-member-card').forEach((card, index) => {
+                    card.querySelector('.number').textContent = index + 1;
+                });
+                // Update preview
+                this.updatePreviewField('roster', container.querySelectorAll('.roster-member-card').length);
+            }.bind(this));
+            
+            container.appendChild(clone);
+            
+            // Update preview
+            this.updatePreviewField('roster', memberCount);
+        });
+    }
+
+    // ===== TERMS ACCORDION =====
+    setupTermsAccordion() {
+        const headers = document.querySelectorAll('.terms-header');
+        
+        headers.forEach(header => {
+            header.addEventListener('click', () => {
+                const target = header.dataset.target;
+                const content = document.getElementById(target);
+                const isActive = header.classList.contains('active');
+
+                // Close all
+                headers.forEach(h => h.classList.remove('active'));
+                document.querySelectorAll('.terms-content').forEach(c => c.classList.remove('show'));
+
+                // Open clicked if not active
+                if (!isActive) {
+                    header.classList.add('active');
+                    content.classList.add('show');
+                }
+            });
+        });
+    }
+
+    validateStep5() {
+        const termsCheckbox = document.getElementById('accept_terms');
+        
+        if (!termsCheckbox || !termsCheckbox.checked) {
+            this.showToast('You must accept all Terms & Conditions', 'error');
+            
+            const acceptance = document.querySelector('.terms-acceptance');
+            if (acceptance) {
+                acceptance.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                acceptance.style.animation = 'none';
+                setTimeout(() => {
+                    acceptance.style.animation = 'shake 0.5s ease';
+                }, 10);
+            }
+            
+            return false;
+        }
+
+        return true;
+    }
+
+    // ===== LIVE PREVIEW =====
+    setupLivePreview() {
+        // Already handled in real-time validation and other sections
+    }
+
+    updatePreviewField(field, value) {
+        const elements = {
+            name: document.getElementById('preview-name'),
+            tag: document.getElementById('preview-tag'),
+            tagline: document.getElementById('preview-tagline'),
+            game: document.getElementById('preview-game'),
+            region: document.getElementById('preview-region'),
+            logo: document.getElementById('preview-logo'),
+            banner: document.getElementById('preview-banner'),
+            roster: document.getElementById('preview-roster-count')
+        };
+
+        const element = elements[field];
+        if (!element) return;
+
+        switch (field) {
+            case 'name':
+                element.textContent = value || 'Team Name';
+                break;
+            case 'tag':
+                element.textContent = value ? `[${value}]` : '[TAG]';
+                break;
+            case 'tagline':
+                element.textContent = value || 'Team tagline will appear here';
+                break;
+            case 'game':
+                element.textContent = value || 'Select a game';
+                break;
+            case 'region':
+                element.textContent = value || 'Select a region';
+                break;
+            case 'roster':
+                element.textContent = `${value} member${value !== 1 ? 's' : ''}`;
+                break;
+            case 'logo':
+                if (value) {
+                    element.style.backgroundImage = `url(${value})`;
+                    element.innerHTML = '';
+                } else {
+                    element.style.backgroundImage = '';
+                    element.innerHTML = '<i class="fas fa-shield-halved"></i>';
+                }
+                break;
+            case 'banner':
+                if (value) {
+                    document.getElementById('preview-banner').style.backgroundImage = `url(${value})`;
+                }
+                break;
+        }
+    }
+
+    updateFinalPreview() {
+        // Update all preview fields with current form data
+        this.updatePreviewField('name', this.formData.name || document.getElementById('id_name')?.value);
+        this.updatePreviewField('tag', this.formData.tag || document.getElementById('id_tag')?.value);
+        this.updatePreviewField('tagline', this.formData.tagline || document.getElementById('id_tagline')?.value);
+        this.updatePreviewField('game', this.formData.gameName);
+        this.updatePreviewField('region', this.formData.regionName);
+        this.updatePreviewField('logo', this.formData.logo);
+        this.updatePreviewField('banner', this.formData.banner);
+        
+        const rosterCount = document.querySelectorAll('.roster-member-card').length;
+        this.updatePreviewField('roster', rosterCount);
+    }
+
+    // ===== FORM SUBMISSION =====
+    setupFormSubmission() {
+        const form = document.getElementById('modern-team-form');
+        if (!form) return;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!await this.validateCurrentStep()) {
+                return;
+            }
+
+            this.showLoading();
+
+            // Submit form
+            setTimeout(() => {
+                form.submit();
+            }, 1000);
+        });
+    }
+
+    setupErrorHandling() {
+        const errorBanner = document.querySelector('.error-notification');
+        if (errorBanner) {
+            const closeBtn = errorBanner.querySelector('.error-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    errorBanner.remove();
+                });
+            }
+
+            // Auto-scroll to error
+            setTimeout(() => {
+                errorBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        }
+    }
+
+    // ===== UTILITIES =====
+    getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    }
+
+    showLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.classList.add('active');
+        }
+    }
+
+    hideLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+        }
+    }
+
+    showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-times-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+
+        toast.innerHTML = `
+            <i class="fas ${icons[type]}"></i>
+            <span>${message}</span>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideInRight 0.3s ease reverse';
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    }
+}
+
+// Initialize when DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    new ModernTeamCreate();
+});

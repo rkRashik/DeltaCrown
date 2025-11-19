@@ -680,7 +680,428 @@ Copilot must:
 
 ---
 
-# **14. Appendices**
+# **14. Modern Team Create Flow (4-Step Wizard)**
+
+## **14.1 Overview**
+
+The team creation experience has been completely rebuilt as a modern 4-step wizard with:
+- Premium glassmorphism design with dark esports theme
+- Real-time AJAX validation
+- Visual game selection with card grid
+- Dynamic region loading based on game
+- Live preview sidebar
+- Terms & conditions acceptance
+- Responsive mobile design
+
+## **14.2 Template Structure**
+
+**File:** `templates/teams/team_create_modern.html`
+
+### **Step 1: Basic Info**
+- **Purpose:** Capture team identity (name, tag, tagline)
+- **Fields:**
+  - Team Name (3-50 chars, unique)
+  - Team Tag (2-10 chars, uppercase alphanumeric, unique)
+  - Tagline (optional, 200 chars max)
+- **Validation:**
+  - Real-time AJAX checks for name/tag uniqueness (500ms debounce)
+  - Visual feedback: checking (spinner) → valid (green check) → invalid (red X)
+  - Inline error messages with friendly suggestions
+- **Next Button:** Disabled until both name and tag pass validation
+
+### **Step 2: Game & Region**
+- **Purpose:** Select competitive game and regional zone
+- **Game Selection:**
+  - Visual card grid with game artwork
+  - 9 supported games: VALORANT, CS2, DOTA2, MLBB, PUBG, FREEFIRE, CODM, EFOOTBALL, FC26
+  - Card displays: game image, name, platform, team size
+  - Hover effect: scale + glow
+  - Selected state: cyan border + checkmark overlay
+- **One-Team-Per-Game Check:**
+  - AJAX check when game selected: `/teams/api/check-existing-team/?game={code}`
+  - If user already in team for game:
+    - Red alert appears: "You're already a member of [TEAM_NAME] ([TAG]) for [GAME]. You can only have one active team per game..."
+    - "Go to My Team" button shown
+    - Next button disabled
+    - Region selector hidden
+- **Game ID Notice:**
+  - For VALORANT, CS2, DOTA2, MLBB: shows blue info alert if user missing game ID
+  - Non-blocking notification about requirement
+- **Region Selection:**
+  - Appears after valid game selection (slide-down animation)
+  - Card-based selector with globe icon
+  - Dynamically loaded via AJAX: `/teams/api/game-regions/{game_code}/`
+  - Selected state: cyan border + checkmark
+- **Next Button:** Enabled after both game and region selected
+
+### **Step 3: Team Profile** (Optional)
+- **Purpose:** Upload branding assets and add details
+- **Two-Column Layout:** Form left, live preview right
+- **Fields:**
+  - Logo Upload (drag-drop or click, JPG/PNG, max 2MB)
+  - Banner Upload (drag-drop or click, JPG/PNG, max 2MB)
+  - Description (textarea, 500 chars max)
+  - Social Links: Twitter, Instagram, Discord, YouTube, Twitch (all optional)
+- **Live Preview Card (Sidebar):**
+  - Banner: full-width background image
+  - Logo: circular overlay on banner
+  - Name + Tag: \"[TAG] Team Name\"
+  - Tagline: below name
+  - Metadata: Game • Region
+  - Updates in real-time as user types/uploads
+- **Next Button:** Always enabled (all fields optional)
+
+### **Step 4: Terms & Confirm**
+- **Purpose:** Review summary, accept terms, submit
+- **Two-Column Layout:** Summary/Terms left, final preview right
+- **Summary Card:**
+  - Grid display of all entered data:
+    - Team Name, Tag, Game, Region
+  - Quick-change links to go back to earlier steps
+- **Terms & Guidelines Box:**
+  - Header: \"DeltaCrown Team Terms & Guidelines\"
+  - Scrollable content area (300px height, custom scrollbar)
+  - Full legal text covering:
+    - Fair Play: No cheating, hacking, exploits
+    - Respect: No toxicity, harassment, hate speech
+    - Content: No inappropriate names/logos
+    - Eligibility: Age requirements, compliance
+    - Conduct: Match etiquette, team representation
+    - Rosters: Accuracy, no account sharing
+    - Tournaments: Rules adherence, scheduling
+    - Privacy: Data handling, GDPR compliance
+    - Moderation: DeltaCrown's enforcement rights
+    - Updates: Terms may change, continued use = acceptance
+  - Custom checkbox: large cyan checkmark when checked
+  - Required field validation
+- **Terms Error Alert:**
+  - If submission attempted without checkbox: red alert with shake animation
+  - Message: \"You must agree to the DeltaCrown Team Terms & Guidelines before creating a team\"
+  - Scrolls into view
+- **Final Live Preview:** Same as Step 3 with all fields populated
+- **Create Team Button:**
+  - Green success button
+  - Triggers loading overlay (spinner + \"Creating your team...\")
+  - Submits form via AJAX
+  - On success: toast notification + redirect to team dashboard
+  - On error: returns to appropriate step with error message
+
+## **14.3 Styling**
+
+**File:** `static/teams/css/team-create-modern.css` (1,400+ lines)
+
+### **Design System:**
+- **Theme:** Dark esports glassmorphism
+- **Colors:**
+  - Background: `#0a0e1a` (very dark blue)
+  - Card BG: `rgba(15, 20, 35, 0.85)` with `backdrop-filter: blur(20px)`
+  - Primary Cyan: `#00d9ff`
+  - Purple: `#8b5cf6`
+  - Pink: `#ff006e`
+  - Gold: `#ffbe0b`
+  - Error: `#ef4444`
+  - Success: `#10b981`
+  - Border: `rgba(255, 255, 255, 0.1)`
+
+### **Key Components:**
+- **Progress Bar:**
+  - 4 steps with circles, labels, connecting lines
+  - Active step: cyan glow + pulse animation
+  - Completed: green checkmark + checkPop animation
+  - Inactive: gray
+- **Game Cards:**
+  - 3-column grid (2 on tablet, 1 on mobile)
+  - Hover: scale(1.02) + cyan border glow
+  - Selected: cyan border + checkmark overlay (top-right)
+- **Region Cards:**
+  - Similar to game cards but smaller
+  - Globe icon + region name
+  - Selected state: cyan border + check
+- **File Upload Zones:**
+  - Dashed border with drag-drop styling
+  - Drag-over: cyan border
+  - Preview: displays uploaded image
+- **Live Preview Card:**
+  - Sticky positioning (follows scroll)
+  - Banner header with team logo overlay
+  - Card body with name, tag, tagline, metadata
+  - Glassmorphism effects
+- **Terms Box:**
+  - Scrollable container with custom cyan scrollbar
+  - Custom checkbox with smooth check animation
+- **Validation Feedback:**
+  - Icons: spinner (checking), green check (valid), red X (invalid)
+  - Messages: appear below field with color-coded text
+- **Alerts:**
+  - Error (red), Info (blue) with icons
+  - Slide-in animation
+  - Dismissible with X button
+- **Buttons:**
+  - Primary (cyan), Secondary (gray), Success (green)
+  - Hover: brighten + scale
+  - Disabled: opacity 50%
+- **Loading Overlay:**
+  - Full-screen semi-transparent backdrop
+  - Centered spinner + message
+  - Prevents interaction during submission
+
+### **Responsive Design:**
+- **Desktop (>768px):** Two-column layout, 3-col game grid
+- **Mobile (≤768px):** Single-column stack, 2-col game grid, progress text hides
+
+### **Animations:**
+- `pulse`: 2s infinite glow (active step)
+- `checkPop`: 0.3s bounce (completed step)
+- `fadeSlideIn`: 0.4s opacity + translate
+- `slideDown`: 0.3s max-height expansion
+- `spin`: 1s infinite rotation (loading)
+
+## **14.4 JavaScript Logic**
+
+**File:** `static/teams/js/team-create-modern.js` (~900 lines)
+
+### **TeamCreateModern Class:**
+
+**Constructor:**
+- Initializes state: `currentStep`, `totalSteps`, `formData`
+- Loads config from `window.TEAM_CREATE_CONFIG`
+- Sets up validation timers for debouncing
+
+**Core Methods:**
+
+1. **setupStepNavigation()**
+   - Binds prev/next buttons
+   - Validates current step before proceeding
+   - Updates progress bar states
+
+2. **goToStep(stepNumber)**
+   - Updates progress circles (active/completed/inactive)
+   - Shows/hides form steps
+   - Special actions for step 4 (populate summary)
+   - Smooth scroll to top
+
+3. **validateCurrentStep()**
+   - Step 1: Name & tag must pass AJAX validation
+   - Step 2: Game & region must be selected, no existing team
+   - Step 3: Always valid (optional fields)
+   - Step 4: Terms checkbox must be checked
+
+4. **setupValidation()**
+   - Real-time listeners on name/tag/tagline inputs
+   - 500ms debounce on AJAX calls
+   - Updates preview immediately (no debounce)
+
+5. **validateTeamName(name)**
+   - Client-side: min 3, max 50 chars
+   - AJAX: `GET /teams/api/validate-name/?name={name}`
+   - Sets validation state: checking → valid/invalid
+   - Friendly error: \"Already in use. Try a variation or add your region.\"
+
+6. **validateTeamTag(tag)**
+   - Client-side: min 2, max 10, uppercase alphanumeric
+   - Auto-uppercase on input
+   - AJAX: `GET /teams/api/validate-tag/?tag={tag}`
+   - Friendly error: \"That tag is already taken. Try another 2-5 letter tag.\"
+
+7. **setupGameCards()**
+   - Generates game cards from config
+   - Binds click handlers
+   - Shows game card images from `static/img/game_cards/{CODE}.jpg`
+
+8. **selectGame(gameCode)**
+   - Updates selection state (CSS classes)
+   - Sets hidden input value
+   - Checks existing team: `checkExistingTeam()`
+   - Loads regions: `loadGameRegions()`
+   - Shows game ID notice if needed
+
+9. **checkExistingTeam(gameCode)**
+   - AJAX: `GET /teams/api/check-existing-team/?game={gameCode}`
+   - If has_team: show alert, disable next, hide regions
+   - If no team: hide alert, enable progression
+
+10. **loadGameRegions(gameCode)**
+    - AJAX: `GET /teams/api/game-regions/{gameCode}/`
+    - Renders region cards dynamically
+    - Binds click handlers
+
+11. **setupFileUploads()**
+    - Drag-drop and click-to-upload for logo/banner
+    - Preview with FileReader
+    - Updates live preview immediately
+
+12. **updatePreview(field, value)**
+    - Updates all preview elements (Steps 3 and 4 have duplicate previews)
+    - Handles text fields, images, metadata
+
+13. **populateSummary()**
+    - Fills summary card in Step 4
+    - Name, tag, game, region
+
+14. **validateStep4()**
+    - Checks terms checkbox
+    - If unchecked: show error alert, shake animation, scroll into view
+
+15. **setupFormSubmission()**
+    - Intercepts form submit
+    - Shows loading overlay
+    - AJAX POST with FormData
+    - On success: toast + redirect
+    - On error: hide loading, show errors, go to error step
+
+16. **showToast(message, type)**
+    - Creates toast notification (top-right)
+    - Auto-dismiss after 5s
+    - Types: success, error, info
+
+## **14.5 Backend Integration**
+
+### **Form Validation (apps/teams/forms.py):**
+
+**Enhanced `clean_game()` method:**
+```python
+def clean_game(self):
+    game = self.cleaned_data.get('game')
+    if game and self.user:
+        profile = getattr(self.user, 'profile', None)
+        if profile:
+            # Check existing team membership
+            existing_teams = TeamMembership.objects.filter(
+                profile=profile,
+                status='ACTIVE',
+                team__game=game
+            )
+            if existing_teams.exists():
+                team = existing_teams.first().team
+                raise ValidationError(
+                    f\"You already belong to {team.name} ({team.tag}). \"
+                    f\"You can only have one active team per game. \"
+                    f\"Please leave your current team first.\"
+                )
+            
+            # Check game ID requirement
+            games_requiring_id = ['VALORANT', 'CS2', 'DOTA2', 'MLBB']
+            if game in games_requiring_id:
+                field_map = {
+                    'VALORANT': 'riot_id',
+                    'CS2': 'steam_id',
+                    'DOTA2': 'steam_id',
+                    'MLBB': 'mlbb_id'
+                }
+                field = field_map.get(game)
+                if not getattr(profile, field, None):
+                    raise ValidationError(
+                        f\"To create a {game} team, you need to add your {game} ID to your profile.\"
+                    )
+    return game
+```
+
+### **View Updates (apps/teams/views/create.py):**
+
+**Context passed to template:**
+```python
+context = {
+    'form': form,
+    'game_configs': json.dumps(game_configs_json),  # All 9 games with metadata
+    'available_games': list(GAME_CONFIGS.keys()),
+    'profile': profile,
+    'STATIC_URL': settings.STATIC_URL,
+}
+```
+
+**AJAX Response Handling:**
+- If `X-Requested-With: XMLHttpRequest`:
+  - Success: `{'success': True, 'redirect_url': team_url}`
+  - Error: `{'success': False, 'errors': {...}, 'error': message}`
+- Form errors mapped to step numbers for navigation
+
+### **AJAX Endpoints:**
+
+1. **`/teams/api/validate-name/?name={name}`**
+   - Returns: `{'valid': bool, 'message': str}`
+   - Checks Team.objects.filter(name__iexact=name)
+
+2. **`/teams/api/validate-tag/?tag={tag}`**
+   - Returns: `{'valid': bool, 'message': str}`
+   - Checks Team.objects.filter(tag__iexact=tag)
+   - Format validation: `^[A-Z0-9]+$`
+
+3. **`/teams/api/check-existing-team/?game={code}`**
+   - Returns: `{'has_team': bool, 'team': {...}, 'can_create': bool}`
+   - Queries TeamMembership for user + game
+
+4. **`/teams/api/game-regions/{game_code}/`**
+   - Returns: `{'success': True, 'regions': [[code, name], ...]}`
+   - Calls `apps.common.region_config.get_regions_for_game(game_code)`
+
+## **14.6 Business Rules Enforcement**
+
+### **One-Team-Per-Game Rule:**
+- **Frontend:** AJAX check in Step 2, disables progression
+- **Backend:** `clean_game()` raises ValidationError
+- **User Message:** \"You already belong to [TEAM] ([TAG]) for [GAME]. You can only have one active team per game. Please leave your current team first, then return here to create a new [GAME] team.\"
+
+### **Game ID Requirements:**
+- **Frontend:** Blue info notice in Step 2 (non-blocking)
+- **Backend:** `clean_game()` checks profile for required field
+- **User Message:** \"To create a [GAME] team, you need to add your [GAME] ID to your profile. You'll be redirected to add it.\"
+- **Games Requiring ID:** VALORANT, CS2, DOTA2, MLBB
+
+### **Terms Acceptance:**
+- **Frontend:** Checkbox validation in Step 4, submission blocked
+- **Backend:** `accept_terms` field on form (required=True)
+- **User Message:** \"You must agree to the DeltaCrown Team Terms & Guidelines before creating a team\"
+
+### **Name/Tag Uniqueness:**
+- **Frontend:** Real-time AJAX validation with visual feedback
+- **Backend:** `clean_name()` and `clean_tag()` methods
+- **User Messages:**
+  - Name: \"This team name is already in use on DeltaCrown. Try a variation or add your region (e.g., 'Dhaka Dragons BD').\"
+  - Tag: \"That tag is already taken. Try another 2-5 letter tag that represents your team.\"
+
+## **14.7 Error Handling Matrix**
+
+| Business Rule | Detection | Error Message | UX Treatment |
+|---|---|---|---|
+| Name Already Exists | Step 1 AJAX | \"This team name is already in use on DeltaCrown. Try a variation or add your region.\" | Red X icon, inline feedback, Next disabled |
+| Tag Already Exists | Step 1 AJAX | \"That tag is already taken. Try another 2-5 letter tag.\" | Red X icon, inline feedback, Next disabled |
+| One Team Per Game | Step 2 AJAX | \"You're already a member of [TEAM] ([TAG]) for [GAME]. You can only have one active team per game.\" | Red alert, \"Go to My Team\" button, Next disabled, regions hidden |
+| Game ID Missing | Step 2 Notice | \"For [GAME] teams, we require your [ID_TYPE]. You'll be asked to add it if it's missing.\" | Blue info alert, non-blocking, user can proceed |
+| Terms Not Accepted | Step 4 Submit | \"You must agree to the DeltaCrown Team Terms & Guidelines before creating a team\" | Red alert, shake animation, scroll into view, submit blocked |
+
+## **14.8 File References**
+
+### **Created Files:**
+- `templates/teams/team_create_modern.html` (~600 lines)
+- `static/teams/css/team-create-modern.css` (1,400+ lines)
+- `static/teams/js/team-create-modern.js` (~900 lines)
+
+### **Modified Files:**
+- `apps/teams/forms.py` (enhanced `clean_game()`)
+- `apps/teams/views/create.py` (updated context, AJAX handling)
+
+### **Backup Files:**
+- `templates/teams/team_create.html.backup`
+- `static/teams/css/team-create-esports.css.backup`
+- `static/teams/js/team-create-esports.js.backup`
+
+### **Game Assets (Verified Exist):**
+- `static/img/game_cards/Valorant.jpg`
+- `static/img/game_cards/CS2.jpg`
+- `static/img/game_cards/Dota2.jpg`
+- `static/img/game_cards/MobileLegend.jpg`
+- `static/img/game_cards/PUBG.jpeg`
+- `static/img/game_cards/FreeFire.jpeg`
+- `static/img/game_cards/CallOfDutyMobile.jpg`
+- `static/img/game_cards/efootball.jpeg`
+- `static/img/game_cards/FC26.jpg`
+
+### **URL Routing:**
+- `path("create/", team_create_view, name="create")` ✓ Verified in `apps/teams/urls.py`
+
+---
+
+# **15. Appendices**
 
 Appendix A: Full game list
 Appendix B: Region mapping
@@ -697,3 +1118,604 @@ Appendix E: Roster lock rules
 **This is the canonical source of truth.**
 
 ---
+
+# **16. Modern Team Create Experience - Complete Specification v2.0**
+
+**Status:**  Complete Redesign (December 2024)  
+**Philosophy:** Team creation should be an **exciting journey**, not a boring form  
+**Target:** Zero friction, maximum engagement, professional quality
+
+---
+
+## **16.1 Core UX Principles**
+
+### **Engagement Over Efficiency**
+- Team creation is a **memorable moment** - make it special
+- Use animations, celebrations, and micro-interactions
+- Show progress and achievement (gamification)
+- Create anticipation for the final reveal
+
+### **Guidance Over Documentation**
+- Inline contextual help (tooltips, hints, examples)
+- Progressive disclosure (show what's needed when it's needed)
+- Visual cues and affordances
+- Smart defaults and suggestions
+
+### **Recovery Over Prevention**
+- Auto-save drafts every 5 seconds
+- Never lose user data
+- Clear error recovery paths
+- Allow easy back/forward navigation
+
+### **Mobile-First**
+- Touch-optimized (48px minimum targets)
+- Swipe gestures for navigation
+- Vertical scrolling (avoid horizontal)
+- Fast load times (<2s)
+
+---
+
+## **16.2 Six-Step Wizard Flow**
+
+### **Step 1: Welcome & Identity** 
+**Purpose:** Capture team name and tag with real-time validation
+
+**Layout:**
+- Hero section with animated esports graphics
+- Large, friendly input fields
+- Real-time validation with visual feedback
+- Inspirational tagline generator (optional feature)
+
+**Fields:**
+- Team Name (3-50 chars, unique check via AJAX)
+- Team Tag (2-10 chars, uppercase, alphanumeric, unique check)
+- Tagline (optional, 200 chars, inspiring examples shown)
+
+**Validation UX:**
+- **Checking:** Animated cyan spinner icon
+- **Valid:** Green checkmark with bounce animation
+- **Invalid:** Red X with shake, friendly error message
+- **Suggestions:** If taken, show variations ("Try adding your city/region")
+
+**Help System:**
+- Tooltip: "Your team name appears everywhere - make it memorable!"
+- Examples carousel: "Sentinels, Team Liquid, FaZe Clan"
+- Character counter with color gradients
+
+**Next Button:** Disabled until BOTH name and tag pass validation
+
+---
+
+### **Step 2: Game Selection** 
+**Purpose:** Choose competitive game with one-team-per-game enforcement
+
+**Layout:**
+- Visual game card grid (3 cols desktop, 2 mobile)
+- Large game artwork with hover effects
+- Real-time "existing team" check
+
+**Game Cards Include:**
+- Game artwork/logo
+- Game name and platform (PC/Mobile)
+- Team size (5v5, 1v1, etc.)
+- Player count requirement
+- Hover: Scale + cyan glow
+- Selected: Checkmark overlay + border pulse
+
+**One-Team-Per-Game Violation:**
+- AJAX check: GET /teams/api/check-existing-team/?game={code}
+- If user already in team:
+  `
+   You're Already on a Team
+  
+  You're currently a member of [TEAM NAME] ([TAG]) for [GAME].
+  
+  DeltaCrown allows only ONE active team per game to ensure fair play and prevent roster conflicts.
+  
+  [View My Team ]  [Leave Team]
+  `
+- Red alert panel with icon
+- Next button disabled
+- Region selector hidden
+- Provides direct links to team page or leave flow
+
+**Game ID Missing Notice:**
+- Blue info panel (non-blocking)
+- "For [GAME] teams, you'll need to add your [ID TYPE] before competing"
+- Games requiring ID: VALORANT, CS2, DOTA2, MLBB
+- [Add Game ID ] link to profile settings
+
+**Next Button:** Enabled only after valid game selected + no existing team
+
+---
+
+### **Step 3: Regional Zone** 
+**Purpose:** Select competition region with dynamic loading
+
+**Layout:**
+- Animated slide-down after game selection
+- Visual region cards with globe icons
+- Loading state during AJAX fetch
+
+**Region Loading:**
+- AJAX: GET /teams/api/game-regions/{game_code}/
+- Loading: Spinner with "Loading regions for [GAME]..."
+- Error: Red alert with retry button
+- Success: Smooth fade-in of region cards
+
+**Region Cards:**
+- Globe icon + region name
+- Hover: Translate right + border glow
+- Selected: Checkmark + cyan border
+- Single-select only
+
+**Help System:**
+- Tooltip: "Choose the region where you'll compete most"
+- Info: "You can change this later in team settings"
+
+**Next Button:** Enabled after region selection
+
+---
+
+### **Step 4: Team Profile** 
+**Purpose:** Upload branding and add social links (all optional)
+
+**Layout:**
+- Two-column: Form (left) + Live Preview (right/sticky)
+- Drag-drop upload zones
+- Live preview updates instantly
+
+**Upload Zones:**
+- **Logo:** Square preview, 2MB max, JPG/PNG/WebP
+- **Banner:** Widescreen preview, 2MB max
+- Drag-drop or click to browse
+- Preview shows immediately
+- Clear button to remove
+
+**Social Links:**
+- Twitter, Instagram, Discord, YouTube, Twitch
+- URL validation (must start with https://)
+- Icon prefix for each platform
+- Placeholder text with examples
+
+**Live Preview Panel (Sticky Sidebar):**
+- Full team card mockup
+- Banner at top with team logo overlay
+- Team name + tag: "[TAG] Team Name"
+- Tagline below
+- Game  Region metadata
+- Social icons (if provided)
+- Updates in real-time as user types/uploads
+
+**Skip Option:**
+- "Skip for now" link
+- All fields optional
+- Can complete later in team settings
+
+**Next Button:** Always enabled (all optional)
+
+---
+
+### **Step 5: Roster Planning** 
+**Purpose:** Preview roster structure and optionally add members
+
+**Layout:**
+- Roster visualization (empty slots)
+- Team size based on game (5v5, 4v4, 1v1)
+- "Add Member" button
+- All optional (can invite later)
+
+**Roster Slots:**
+- Visual cards for each position
+- Shows: Role (Owner, Player, Sub)
+- Empty state: "Invite players after creation"
+- Drag-drop to reorder (future feature)
+
+**Add Member Interface:**
+- Modal or inline form
+- Email or username search
+- Role dropdown
+- "Send Invite" button
+- Shows pending invites
+
+**Help System:**
+- "You can invite members now or after creating the team"
+- "Players will receive email invitations"
+- Link to recruitment tools
+
+**Next Button:** Always enabled
+
+---
+
+### **Step 6: Terms & Confirm** 
+**Purpose:** Review summary, accept terms, submit
+
+**Layout:**
+- Two-column: Summary/Terms (left) + Final Preview (right)
+- Scrollable terms box
+- Required checkbox
+- Large "Create Team" button
+
+**Summary Card:**
+- Name, Tag, Game, Region
+- Logo/Banner thumbnails
+- Social links count
+- Quick edit links to previous steps
+
+**Terms & Guidelines:**
+- Scrollable container (400px height)
+- Custom scrollbar design
+- Sections:
+  1. **Fair Play** - No cheating, hacking, exploits
+  2. **Respect** - No toxicity, harassment
+  3. **Content** - Appropriate names/logos
+  4. **Eligibility** - Age requirements, compliance
+  5. **Conduct** - Match etiquette, representation
+  6. **Rosters** - Accuracy, no account sharing
+  7. **Tournaments** - Rules adherence
+  8. **Privacy** - GDPR, data handling
+  9. **Moderation** - DeltaCrown's rights
+  10. **Updates** - Terms may change
+
+**Terms Checkbox:**
+- Large custom checkbox with animation
+- Label: "I accept the DeltaCrown Team Terms & Guidelines"
+- Required field validation
+
+**Validation:**
+- If unchecked on submit:
+  `
+   Terms Acceptance Required
+  
+  You must agree to the DeltaCrown Team Terms & Guidelines before creating your team.
+  `
+- Red alert with shake animation
+- Scrolls checkbox into view
+- Submit blocked
+
+**Create Team Button:**
+- Large green button
+- Loading state: Spinner + "Creating your team..."
+- Success: Confetti animation + redirect
+- Error: Show error, return to relevant step
+
+---
+
+## **16.3 Live Preview System**
+
+**Persistent Preview (Steps 4-6):**
+- Sticky sidebar on desktop
+- Collapsible panel on mobile
+- Real-time updates (no debounce on preview)
+- Shows complete team card mockup
+
+**Preview Elements:**
+- Banner image (uploaded or gradient)
+- Team logo (uploaded or default icon)
+- Team name + tag formatted
+- Tagline
+- Game name + icon
+- Region name + globe icon
+- Social media icons (if added)
+
+**Empty States:**
+- Default gradient banner
+- Default shield icon for logo
+- Placeholder text for missing fields
+
+---
+
+## **16.4 Draft Auto-Save System**
+
+**Auto-Save Behavior:**
+- Saves to backend every 5 seconds
+- Only saves if changes detected
+- API: POST /teams/api/save-draft/
+- Stores: name, tag, tagline, game, region, social links
+- Files stored separately (logo/banner)
+
+**Draft Restore:**
+- On page load, check for existing draft
+- API: GET /teams/api/load-draft/
+- If draft exists:
+  `
+   Continue Where You Left Off?
+  
+  You have an unfinished team creation from [TIME AGO].
+  
+  Team Name: [NAME]
+  Game: [GAME]
+  
+  [Continue Draft]  [Start Fresh]
+  `
+- Blue modal with options
+- Clicking "Continue" populates all fields
+- Clicking "Start Fresh" deletes draft
+
+**Draft Expiry:**
+- Drafts expire after 7 days
+- Expired drafts auto-deleted
+- User notified if expired
+
+---
+
+## **16.5 Real-Time Validation**
+
+**Name Validation:**
+- Client-side: 3-50 chars, alphanumeric + spaces
+- Server-side: Uniqueness check via AJAX
+- Debounce: 500ms
+- API: GET /teams/api/validate-name/?name={name}
+- Response: {valid: bool, message: str, suggestions: []}
+
+**Friendly Error Messages:**
+-  "This team name is already taken"
+-  "Try: '{name} Gaming', '{name} Esports', '{name} {region}'"
+-  "Perfect! This name is available"
+
+**Tag Validation:**
+- Client-side: 2-10 chars, uppercase, alphanumeric only
+- Auto-uppercase on input
+- Server-side: Uniqueness check
+- Debounce: 500ms
+- API: GET /teams/api/validate-tag/?tag={tag}
+
+**Friendly Error Messages:**
+-  "That tag is already in use"
+-  "Try variations: '{tag}E', '{tag}GG', '{tag}PH'"
+-  "Nice! This tag is available"
+
+---
+
+## **16.6 Error Handling & Recovery**
+
+**Network Errors:**
+- Show retry button
+- Cache failed requests
+- Don't lose user data
+- Friendly message: "Connection lost. Retrying..."
+
+**Validation Errors:**
+- Inline under fields (don't use Django forms as-is)
+- Color-coded (red = error, green = success)
+- Icon-based (X, check, spinner)
+- Smooth animations (shake on error, bounce on success)
+
+**Form Submission Errors:**
+- Parse Django form errors
+- Map to appropriate step
+- Navigate user to error step
+- Highlight error fields
+- Show clear instructions
+
+**One-Team-Per-Game Error:**
+- Detected in Step 2 (AJAX check)
+- Red alert panel
+- Clear explanation
+- Action buttons:
+  - "View My Team" (goes to team detail)
+  - "Leave Team" (starts leave flow)
+- Next button disabled until resolved
+
+---
+
+## **16.7 User Guidance System**
+
+**Contextual Help:**
+- Question mark icons next to field labels
+- Hover/click for tooltip
+- Brief, friendly explanations
+- Examples when helpful
+
+**Progress Indicators:**
+- Step numbers (1/6, 2/6, etc.)
+- Visual progress bar
+- Completed steps: Green checkmark
+- Current step: Cyan pulse animation
+- Future steps: Gray
+
+**Inline Tips:**
+- Blue info boxes with light bulb icon
+- Non-intrusive
+- Provide value (not just instructions)
+- Examples:
+  - "Pro tip: Short tags are easier to remember!"
+  - "Teams with logos get 3x more views"
+
+**Empty States:**
+- Friendly illustrations
+- Encouraging messages
+- Clear call-to-action
+- Example: "No roster yet? Invite your squad!"
+
+---
+
+## **16.8 Mobile Optimization**
+
+**Touch Targets:**
+- Minimum 48px tap areas
+- Larger buttons on mobile
+- Spacing between interactive elements
+
+**Input Handling:**
+- font-size: 16px (prevents iOS zoom)
+- Large, clear input fields
+- Visible focus states
+- Native mobile keyboards
+
+**Navigation:**
+- Swipe left/right for steps (optional)
+- Bottom fixed navigation buttons
+- Easy thumb reach zones
+- No horizontal scrolling
+
+**Performance:**
+- Lazy load images
+- Minimal JavaScript
+- Fast AJAX responses (<500ms)
+- Skeleton loading states
+
+**Responsive Breakpoints:**
+- 320px: Extra small phones
+- 640px: Mobile phones
+- 768px: Tablets
+- 1024px: Small desktops
+- 1280px+: Large desktops
+
+---
+
+## **16.9 Accessibility Features**
+
+**Keyboard Navigation:**
+- Tab order logical
+- Enter to proceed
+- Escape to cancel/close modals
+- Arrow keys for selections
+
+**Screen Reader Support:**
+- ARIA labels on all interactive elements
+- Live regions for validation messages
+- Descriptive alt text on images
+- Semantic HTML5 structure
+
+**Visual Accessibility:**
+- High contrast (WCAG AA compliant)
+- Focus indicators visible
+- Color not sole indicator
+- Large, readable fonts (minimum 16px)
+
+**Reduced Motion:**
+- Media query: prefers-reduced-motion
+- Disable animations for sensitive users
+- Maintain functionality without animations
+
+---
+
+## **16.10 Design System**
+
+**Colors:**
+- Background: #0a0e1a (dark blue-black)
+- Card BG: gba(15, 20, 35, 0.85) (glassmorphism)
+- Primary: #00d9ff (cyan)
+- Secondary: #8b5cf6 (purple)
+- Accent: #ff006e (pink)
+- Success: #10b981 (green)
+- Error: #ef4444 (red)
+- Warning: #f59e0b (yellow)
+
+**Typography:**
+- Headings: 'Inter', sans-serif (700 weight)
+- Body: 'Inter', sans-serif (400 weight)
+- Code/Tags: 'Fira Code', monospace
+
+**Spacing:**
+- Base unit: 4px
+- Scale: 4, 8, 12, 16, 24, 32, 48, 64, 96, 128px
+
+**Border Radius:**
+- Small: 8px
+- Medium: 12px
+- Large: 16px
+- XL: 24px
+- Full: 9999px (circles)
+
+**Shadows:**
+- Small:   2px 4px rgba(0,0,0,0.1)
+- Medium:   4px 12px rgba(0,0,0,0.2)
+- Large:   12px 32px rgba(0,0,0,0.3)
+- Glow:   0 20px rgba(0, 217, 255, 0.4)
+
+**Animations:**
+- Duration: 200ms (fast), 300ms (normal), 500ms (slow)
+- Easing: cubic-bezier(0.4, 0, 0.2, 1)
+- Hover: Scale 1.02-1.05
+- Focus: Glow shadow
+- Loading: Spin (1s infinite)
+
+---
+
+## **16.11 Technical Requirements**
+
+**Backend:**
+- Django 5.2+ views
+- AJAX endpoints (JSON responses)
+- CSRF protection
+- Rate limiting (10 req/min per user)
+- File upload handling (ImageField)
+- Draft storage (database or cache)
+
+**Frontend:**
+- Vanilla JavaScript ES6+ (no jQuery)
+- Fetch API for AJAX
+- FormData for file uploads
+- LocalStorage for client-side caching
+- Debouncing utility (500ms)
+- Smooth scroll behavior
+
+**Security:**
+- CSRF tokens on all POST requests
+- File type validation (client + server)
+- File size limits (2MB logo, 5MB banner)
+- XSS prevention (escape user input)
+- SQL injection prevention (parameterized queries)
+- Rate limiting on validation endpoints
+
+**Performance:**
+- Lazy load images
+- Debounce validation (500ms)
+- Throttle autosave (5s)
+- Minimal DOM manipulation
+- CSS animations (GPU accelerated)
+- Gzip compression enabled
+
+---
+
+## **16.12 Success Metrics**
+
+**Completion Rate:**
+- Target: 80%+ of users who start finish
+- Track drop-off at each step
+- Optimize highest drop-off steps
+
+**Time to Complete:**
+- Target: < 3 minutes average
+- Track median and 90th percentile
+- Identify slow steps
+
+**Error Rate:**
+- Target: < 5% validation errors
+- Track types of errors
+- Improve messaging
+
+**Mobile Usage:**
+- Target: 60%+ mobile completion rate
+- Track mobile vs desktop
+- Optimize mobile UX
+
+**Draft Usage:**
+- Target: 30%+ users restore drafts
+- Track draft save frequency
+- Measure draft expiry rate
+
+---
+
+## **16.13 Future Enhancements**
+
+**Phase 2:**
+- AI-powered name suggestions
+- Team logo generator (AI)
+- Smart roster recommendations
+- Social media verification
+- Team matching system
+
+**Phase 3:**
+- Video intro upload
+- Voice chat setup
+- Calendar integration
+- Sponsor onboarding
+- Merchandise setup
+
+---
+
+# **End of Modern Team Create Specification**
+

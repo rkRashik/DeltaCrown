@@ -7,7 +7,7 @@
 class EsportsTeamCreate {
     constructor() {
         this.currentStep = 1;
-        this.totalSteps = 4;
+        this.totalSteps = 5; // Updated to 5 steps
         this.formData = {
             name: '',
             tag: '',
@@ -32,6 +32,9 @@ class EsportsTeamCreate {
         this.setupRoster();
         this.setupFormSubmission();
         this.setupErrorHandling();
+        this.setupLivePreview(); // New: Live preview updates
+        this.setupTermsAccordion(); // New: Terms accordion
+        this.setupStep5Navigation(); // New: Step 5 special handling
         // Step 1 is already active in HTML, don't call showStep
     }
 
@@ -144,6 +147,8 @@ class EsportsTeamCreate {
                 return true; // Branding is optional
             case 4:
                 return true; // Roster is optional
+            case 5:
+                return this.validateStep5(); // Validate terms acceptance
             default:
                 return true;
         }
@@ -332,10 +337,59 @@ class EsportsTeamCreate {
         const gameRadios = document.querySelectorAll('input[name="game"]');
         
         gameRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
+            radio.addEventListener('change', async (e) => {
                 this.formData.game = e.target.value;
+                await this.loadGameRegions(e.target.value);
             });
         });
+    }
+
+    async loadGameRegions(gameCode) {
+        // Fetch game-specific regions dynamically
+        const regionGrid = document.querySelector('.region-grid-modern');
+        if (!regionGrid) return;
+
+        try {
+            // Show loading state
+            regionGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-hint);"><i class="fas fa-spinner fa-spin"></i> Loading regions...</div>';
+
+            const response = await fetch(`/teams/api/game-regions/${gameCode}/`);
+            const data = await response.json();
+
+            if (data.success && data.regions) {
+                this.renderRegions(data.regions, regionGrid);
+            } else {
+                throw new Error('Failed to load regions');
+            }
+        } catch (error) {
+            console.error('Error loading regions:', error);
+            regionGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--error);"><i class="fas fa-exclamation-triangle"></i> Failed to load regions. Please try again.</div>';
+        }
+    }
+
+    renderRegions(regions, container) {
+        container.innerHTML = '';
+
+        regions.forEach(([code, name]) => {
+            const regionHtml = `
+                <div class="region-card-modern">
+                    <input type="radio" id="region-${code}" name="region" value="${code}">
+                    <label for="region-${code}">
+                        <div class="region-icon-wrapper">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <span class="region-name-modern">${name}</span>
+                        <div class="region-check-modern">
+                            <i class="fas fa-check"></i>
+                        </div>
+                    </label>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', regionHtml);
+        });
+
+        // Re-setup region selection listeners
+        this.setupRegionSelection();
     }
 
     setupRegionSelection() {
@@ -837,6 +891,220 @@ class EsportsTeamCreate {
             toast.style.animation = 'toastSlideIn 0.3s ease reverse';
             setTimeout(() => toast.remove(), 300);
         }, 5000);
+    }
+
+    // ==================== STEP 5: LIVE PREVIEW ====================
+    setupLivePreview() {
+        // Listen to all form inputs for live preview updates
+        const nameInput = document.getElementById('id_name');
+        const tagInput = document.getElementById('id_tag');
+        const taglineInput = document.getElementById('id_tagline');
+        const gameRadios = document.querySelectorAll('input[name="game"]');
+        const regionRadios = document.querySelectorAll('input[name="region"]');
+
+        if (nameInput) {
+            nameInput.addEventListener('input', (e) => this.updatePreview('name', e.target.value));
+        }
+
+        if (tagInput) {
+            tagInput.addEventListener('input', (e) => this.updatePreview('tag', e.target.value));
+        }
+
+        if (taglineInput) {
+            taglineInput.addEventListener('input', (e) => this.updatePreview('tagline', e.target.value));
+        }
+
+        gameRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const gameLabel = e.target.closest('.game-card-modern')?.querySelector('.game-name-modern')?.textContent;
+                this.updatePreview('game', gameLabel || e.target.value);
+            });
+        });
+
+        // Region listeners are set up dynamically after regions load
+        document.addEventListener('change', (e) => {
+            if (e.target.name === 'region') {
+                const regionLabel = e.target.closest('.region-card-modern')?.querySelector('.region-name-modern')?.textContent;
+                this.updatePreview('region', regionLabel || e.target.value);
+            }
+        });
+
+        // Logo and banner preview updates
+        const logoInput = document.getElementById('id_logo');
+        const bannerInput = document.getElementById('id_banner_image');
+
+        if (logoInput) {
+            logoInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        this.updatePreview('logo', event.target.result);
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+        }
+
+        if (bannerInput) {
+            bannerInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        this.updatePreview('banner', event.target.result);
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+        }
+    }
+
+    updatePreview(field, value) {
+        const previewElements = {
+            name: document.getElementById('preview-team-name'),
+            tag: document.getElementById('preview-team-tag'),
+            tagline: document.getElementById('preview-team-tagline'),
+            game: document.getElementById('preview-team-game'),
+            region: document.getElementById('preview-team-region'),
+            logo: document.getElementById('preview-logo-img'),
+            banner: document.getElementById('preview-banner-img')
+        };
+
+        const element = previewElements[field];
+        if (!element) return;
+
+        switch (field) {
+            case 'name':
+                element.textContent = value || 'Team Name';
+                break;
+            case 'tag':
+                element.textContent = value ? `[${value}]` : '[TAG]';
+                break;
+            case 'tagline':
+                element.textContent = value || 'Your team tagline will appear here';
+                break;
+            case 'game':
+                element.textContent = value || 'Select Game';
+                break;
+            case 'region':
+                element.textContent = value || 'Select Region';
+                break;
+            case 'logo':
+                if (value) {
+                    element.style.backgroundImage = `url(${value})`;
+                    element.innerHTML = ''; // Remove icon
+                } else {
+                    element.style.backgroundImage = '';
+                    element.innerHTML = '<i class="fas fa-shield-alt"></i>';
+                }
+                break;
+            case 'banner':
+                if (value) {
+                    element.style.backgroundImage = `url(${value})`;
+                } else {
+                    element.style.backgroundImage = '';
+                }
+                break;
+        }
+    }
+
+    // ==================== STEP 5: TERMS & ACCORDION ====================
+    setupTermsAccordion() {
+        const toggleButtons = document.querySelectorAll('.terms-toggle');
+
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                const isExpanded = content.classList.contains('expanded');
+
+                // Toggle current accordion
+                if (isExpanded) {
+                    content.classList.remove('expanded');
+                    button.classList.remove('active');
+                } else {
+                    // Close all other accordions
+                    document.querySelectorAll('.terms-content').forEach(c => c.classList.remove('expanded'));
+                    document.querySelectorAll('.terms-toggle').forEach(b => b.classList.remove('active'));
+
+                    // Open this accordion
+                    content.classList.add('expanded');
+                    button.classList.add('active');
+                }
+            });
+        });
+    }
+
+    setupStep5Navigation() {
+        // When navigating to Step 5, populate summary and validate terms
+        const nextButtonStep4 = document.querySelector('[data-step="4"] .btn-next');
+        if (nextButtonStep4) {
+            nextButtonStep4.addEventListener('click', () => {
+                setTimeout(() => {
+                    if (this.currentStep === 5) {
+                        this.populateStep5Summary();
+                    }
+                }, 100);
+            });
+        }
+    }
+
+    populateStep5Summary() {
+        // Populate preview card with all collected data
+        const name = document.getElementById('id_name')?.value || 'Team Name';
+        const tag = document.getElementById('id_tag')?.value || 'TAG';
+        const tagline = document.getElementById('id_tagline')?.value || 'Your team tagline will appear here';
+        
+        const selectedGame = document.querySelector('input[name="game"]:checked');
+        const gameName = selectedGame 
+            ? selectedGame.closest('.game-card-modern')?.querySelector('.game-name-modern')?.textContent || 'Select Game'
+            : 'Select Game';
+        
+        const selectedRegion = document.querySelector('input[name="region"]:checked');
+        const regionName = selectedRegion
+            ? selectedRegion.closest('.region-card-modern')?.querySelector('.region-name-modern')?.textContent || 'Select Region'
+            : 'Select Region';
+
+        this.updatePreview('name', name);
+        this.updatePreview('tag', tag);
+        this.updatePreview('tagline', tagline);
+        this.updatePreview('game', gameName);
+        this.updatePreview('region', regionName);
+
+        // Update logo and banner if uploaded
+        const logoPreview = document.getElementById('logo-preview');
+        const bannerPreview = document.getElementById('banner-preview');
+
+        if (logoPreview && logoPreview.querySelector('img')?.src) {
+            this.updatePreview('logo', logoPreview.querySelector('img').src);
+        }
+
+        if (bannerPreview && bannerPreview.querySelector('img')?.src) {
+            this.updatePreview('banner', bannerPreview.querySelector('img').src);
+        }
+    }
+
+    validateStep5() {
+        const termsCheckbox = document.getElementById('accept_terms');
+        
+        if (!termsCheckbox || !termsCheckbox.checked) {
+            this.showToast('You must accept all Terms & Conditions to proceed', 'error');
+            
+            // Scroll to terms acceptance
+            const termsAcceptance = document.querySelector('.terms-acceptance');
+            if (termsAcceptance) {
+                termsAcceptance.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Highlight the checkbox area
+                termsAcceptance.style.animation = 'shake 0.5s ease';
+                setTimeout(() => {
+                    termsAcceptance.style.animation = '';
+                }, 500);
+            }
+            
+            return false;
+        }
+
+        return true;
     }
 }
 

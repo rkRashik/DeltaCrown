@@ -1,501 +1,622 @@
-# apps/teams/views/create.py
 """
-Team Creation Views & AJAX Endpoints
-Production-ready team creation with dynamic roster management
+DeltaCrown Team Creation Module - Modern Implementation
+========================================================
+
+This module handles the complete team creation flow with:
+- 6-step wizard with real-time validation
+- AJAX endpoints for name/tag uniqueness checking
+- One-team-per-game enforcement
+- Draft auto-save functionality
+- Game-specific region loading
+- Enhanced error handling and user guidance
+
+Version: 2.0 (December 2024)
 """
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
-from django.db.models import Q
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+
 import json
-import re
+import logging
+from datetime import timedelta
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.http import JsonResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods, require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
 
-from ..models import Team, TeamMembership, TeamInvite
-from ..forms import TeamCreationForm, TeamInviteForm
-from ..game_config import GAME_CONFIGS, get_game_config, get_available_roles
+from apps.teams.models import Team, TeamMembership
+from apps.teams.forms import TeamCreationForm
+from apps.common.game_assets import GAMES, get_all_games, get_game_data
+from apps.common.region_config import get_regions_for_game
 from apps.user_profile.models import UserProfile
-from apps.notifications.services import notify
 
+logger = logging.getLogger(__name__)
 
-def _ensure_profile(user):
-    """Helper to get or create user profile."""
-    if not user.is_authenticated:
-        return None
-    return getattr(user, 'profile', None) or getattr(user, 'userprofile', None)
-
+# ==================== MAIN TEAM CREATE VIEW ====================
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def team_create_view(request):
     """
-    Main team creation view with full formset support.
-    Renders modern responsive UI with game-specific roster management.
-    """
-    profile = _ensure_profile(request.user)
+    Modern team creation view with 6-step wizard.
     
-    if not profile:
-        messages.error(request, "Please complete your profile before creating a team.")
-        return redirect('user_profile:edit')
+    GET: Renders the team creation wizard
+    POST: Processes form submission and creates team
+    
+    Features:
+    - Real-time validation via AJAX
+    - Draft auto-save/restore
+    - One-team-per-game enforcement
+    - Live preview
+    - Mobile-optimized
+    """
+    profile = get_object_or_404(UserProfile, user=request.user)
     
     if request.method == "POST":
-        form = TeamCreationForm(request.POST, request.FILES, user=request.user)
-        
-        if form.is_valid():
-            try:
-                team = form.save()
-                
-                # Process roster data from V2 form
-                roster_data = request.POST.get('roster_data', '[]')
-                invited_users = []
-                try:
-                    invites = json.loads(roster_data)
-                    for invite_data in invites:
-                        invited_user = _process_invite(team, request.user, invite_data)
-                        if invited_user:
-                            invited_users.append(invited_user)
-                except json.JSONDecodeError:
-                    pass  # Roster is optional
-                
-                # Send notification to team creator
-                notify(
-                    recipients=[request.user],
-                    event='team_created',
-                    title='Team Created Successfully!',
-                    body=f'Your team "{team.name}" has been created. You can now invite members and participate in tournaments.',
-                    url=f'/teams/{team.slug}/'
-                )
-                
-                # Send notifications to invited users
-                if invited_users:
-                    notify(
-                        recipients=invited_users,
-                        event='team_invite',
-                        title='Team Invitation',
-                        body=f'You have been invited to join {team.name}. Check your invitations to accept or decline.',
-                        url='/teams/invitations/'
-                    )
-                
-                # Return JSON for AJAX requests
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({
-                        'success': True,
-                        'message': f"Team '{team.name}' created successfully!",
-                        'redirect_url': f'/teams/{team.slug}/'
-                    })
-                
-                messages.success(
-                    request,
-                    f"🎉 Team '{team.name}' created successfully! Welcome to your new team."
-                )
-                return redirect("teams:dashboard", slug=team.slug)
-            
-            except Exception as e:
-                # Return JSON error for AJAX requests
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({
-                        'success': False,
-                        'error': str(e)
-                    }, status=400)
-                messages.error(request, f"Error creating team: {str(e)}")
-        else:
-            # Return JSON validation errors for AJAX requests
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                errors = {}
-                for field, error_list in form.errors.items():
-                    errors[field] = [str(e) for e in error_list]
-                return JsonResponse({
-                    'success': False,
-                    'errors': errors,
-                    'error': 'Please correct the form errors.'
-                }, status=400)
-            messages.error(request, "Please correct the errors below.")
-    else:
-        # Pre-fill game from query string
-        initial = {}
-        game = request.GET.get("game", "").strip()
-        if game and game in GAME_CONFIGS:
-            initial["game"] = game
-        
-        form = TeamCreationForm(user=request.user, initial=initial)
+        return _handle_team_creation_post(request, profile)
     
-    # Prepare context with game configurations
-    game_configs_json = {}
-    for code, config in GAME_CONFIGS.items():
-        game_configs_json[code] = {
-            'name': config.name,
-            'code': config.code,
-            'display_name': config.name,
-            'team_size': config.min_starters,
-            'min_starters': config.min_starters,
-            'max_starters': config.max_starters,
-            'max_substitutes': config.max_substitutes,
-            'max_roster': config.max_starters + config.max_substitutes,
-            'roster': {
-                'min': config.min_starters,
-                'max': config.max_starters + config.max_substitutes
-            },
-            'roles': config.roles,
-            'role_descriptions': config.role_descriptions,
-            'regions': config.regions,  # Add regions
-            'requires_unique_roles': config.requires_unique_roles,
-            'allows_multi_role': config.allows_multi_role,
-            'icon': f'/static/teams/img/game-icons/{code}.svg',
-            'color': _get_game_color(code),
+    # GET request - render wizard
+    return _handle_team_creation_get(request, profile)
+
+
+def _handle_team_creation_get(request, profile):
+    """Handle GET request for team creation wizard."""
+    
+    # Check for existing draft
+    draft_data = _load_draft_from_cache(request.user.id)
+    
+    # Prepare game configurations for JavaScript
+    game_configs = {}
+    for code, data in GAMES.items():
+        game_configs[code] = {
+            'name': data['display_name'],
+            'slug': data['slug'],
+            'platform': data['platform'],
+            'team_size': data['team_size'],
+            'roster_size': data['roster_size'],
+            'player_id_label': data['player_id_label'],
+            'player_id_format': data['player_id_format'],
+            'color_primary': data['color_primary'],
+            'color_secondary': data['color_secondary'],
+            'card_image': data.get('card', f"img/game_cards/{code}.jpg"),
         }
+    
+    # Check which games user already has teams for
+    existing_teams = {}
+    active_memberships = TeamMembership.objects.filter(
+        profile=profile,
+        status='ACTIVE'
+    ).select_related('team')
+    
+    for membership in active_memberships:
+        game_code = membership.team.game
+        existing_teams[game_code] = {
+            'name': membership.team.name,
+            'tag': membership.team.tag,
+            'slug': membership.team.slug,
+        }
+    
+    # Prepare initial form
+    initial = {}
+    if draft_data:
+        initial = {
+            'name': draft_data.get('name', ''),
+            'tag': draft_data.get('tag', ''),
+            'tagline': draft_data.get('tagline', ''),
+            'description': draft_data.get('description', ''),
+            'game': draft_data.get('game', ''),
+            'region': draft_data.get('region', ''),
+            'twitter': draft_data.get('twitter', ''),
+            'instagram': draft_data.get('instagram', ''),
+            'discord': draft_data.get('discord', ''),
+            'youtube': draft_data.get('youtube', ''),
+            'twitch': draft_data.get('twitch', ''),
+        }
+    
+    form = TeamCreationForm(user=request.user, initial=initial)
+    
+    # Prepare user profile data for game ID autofill
+    user_profile_data = {
+        'riot_id': profile.riot_id or '',
+        'steam_id': profile.steam_id or '',
+        'mlbb_id': profile.mlbb_id or '',
+        'pubg_mobile_id': profile.pubg_mobile_id or '',
+        'free_fire_id': profile.free_fire_id or '',
+        'codm_uid': profile.codm_uid or '',
+        'efootball_id': profile.efootball_id or '',
+        'ea_id': profile.ea_id or '',
+    }
     
     context = {
         'form': form,
-        'game_configs': json.dumps(game_configs_json),  # Serialize for JavaScript
-        'available_games': list(GAME_CONFIGS.keys()),
+        'game_configs': json.dumps(game_configs),
+        'existing_teams': json.dumps(existing_teams),
+        'has_draft': 'true' if draft_data else 'false',
+        'draft_data': json.dumps(draft_data if draft_data else {}),
+        'user_profile': json.dumps(user_profile_data),
         'profile': profile,
+        'STATIC_URL': settings.STATIC_URL,
     }
     
-    return render(request, "teams/team_create.html", context)
+    return render(request, 'teams/team_create/index.html', context)
 
 
-def _process_invite(team, sender_user, invite_data):
-    """
-    Process a single invite from the creation form.
-    Returns the invited user if successful, None otherwise.
-    """
-    try:
-        identifier = invite_data.get('identifier', '').strip()
-        role = invite_data.get('role', 'PLAYER')
-        message = invite_data.get('message', '')
+def _handle_team_creation_post(request, profile):
+    """Handle POST request for team creation."""
+    
+    # Check if AJAX request
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    
+    form = TeamCreationForm(request.POST, request.FILES, user=request.user)
+    
+    if form.is_valid():
+        try:
+            with transaction.atomic():
+                # Create team
+                team = form.save()
+                
+                # Save game ID to user profile if provided
+                game_id = request.POST.get('game_id', '').strip()
+                if game_id:
+                    profile = request.user.profile
+                    game_code = team.game
+                    
+                    # Map game codes to profile fields
+                    game_id_fields = {
+                        'VALORANT': 'riot_id',
+                        'CS2': 'steam_id',
+                        'DOTA2': 'steam_id',
+                        'MLBB': 'mlbb_id',
+                        'PUBG': 'pubg_mobile_id',
+                        'FREEFIRE': 'free_fire_id',
+                        'CODM': 'codm_uid',
+                        'EFOOTBALL': 'efootball_id',
+                        'FC26': 'ea_id',
+                    }
+                    
+                    field_name = game_id_fields.get(game_code)
+                    if field_name and not getattr(profile, field_name):
+                        setattr(profile, field_name, game_id)
+                        profile.save(update_fields=[field_name])
+                        logger.info(f"Saved {field_name} to profile for user {request.user.id}")
+                
+                # Clear draft from cache
+                _clear_draft_from_cache(request.user.id)
+                
+                # Success message
+                messages.success(
+                    request,
+                    f"🎉 Team '{team.name}' created successfully! Welcome to the competition."
+                )
+                
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'redirect_url': f'/teams/setup/{team.slug}/',
+                        'team': {
+                            'name': team.name,
+                            'tag': team.tag,
+                            'slug': team.slug,
+                        }
+                    })
+                
+                return redirect('teams:setup', slug=team.slug)
+                
+        except Exception as e:
+            logger.error(f"Team creation error: {e}", exc_info=True)
+            error_message = "An error occurred while creating your team. Please try again."
+            
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'error': error_message
+                }, status=500)
+            
+            messages.error(request, error_message)
+    
+    else:
+        # Form has validation errors
+        if is_ajax:
+            # Map errors to steps for navigation
+            error_step = _get_error_step(form.errors)
+            
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors,
+                'error_step': error_step,
+                'error': "Please correct the errors below."
+            }, status=400)
         
-        if not identifier:
-            return None
-        
-        # Find user by username or email
-        profile = None
-        if '@' in identifier:
-            # Email lookup
-            try:
-                profile = UserProfile.objects.select_related('user').get(user__email__iexact=identifier)
-            except UserProfile.DoesNotExist:
-                return None
-        else:
-            # Username lookup
-            try:
-                profile = UserProfile.objects.select_related('user').get(user__username__iexact=identifier)
-            except UserProfile.DoesNotExist:
-                return None
-        
-        # Check if already a member
-        if TeamMembership.objects.filter(team=team, profile=profile, status='ACTIVE').exists():
-            return None
-        
-        # Check if already invited
-        if TeamInvite.objects.filter(team=team, invited_user=profile, status='PENDING').exists():
-            return None
-        
-        # Create invite
-        invite = TeamInvite.objects.create(
-            team=team,
-            invited_user=profile,
-            role=role,
-            message=message,
-            inviter=sender_user
-        )
-        
-        # Return the user for notification
-        return profile.user
-        
-    except Exception:
-        return None
-
-
-def _get_game_color(game_code):
-    """Get color code for game."""
-    colors = {
-        'valorant': '#FF4655',
-        'cs2': '#F7941D',
-        'csgo': '#F7941D',
-        'dota2': '#B01E26',
-        'mlbb': '#4169E1',
-        'pubg': '#F7B733',
-        'freefire': '#FF6B35',
-        'efootball': '#00A0DC',
-        'fc26': '#00A0DC',
-        'codm': '#000000',
+        # Non-AJAX: render form with errors
+        messages.error(request, "Please correct the errors below.")
+    
+    # Re-render form with errors
+    game_configs = {code: get_game_data(code) for code in GAMES.keys()}
+    
+    context = {
+        'form': form,
+        'game_configs': json.dumps(game_configs),
+        'profile': profile,
+        'STATIC_URL': settings.STATIC_URL,
     }
-    return colors.get(game_code, '#6366F1')
+    
+    return render(request, 'teams/team_create/index.html', context)
 
 
-# ============================================================================
-# AJAX ENDPOINTS
-# ============================================================================
+def _get_error_step(errors):
+    """Map form errors to wizard step numbers."""
+    
+    # Step 1: Name, Tag, Tagline
+    if any(field in errors for field in ['name', 'tag', 'tagline']):
+        return 1
+    
+    # Step 2-3: Game, Region
+    if any(field in errors for field in ['game', 'region']):
+        return 2
+    
+    # Step 4: Branding, Description, Social
+    if any(field in errors for field in ['logo', 'banner_image', 'description', 'twitter', 'instagram', 'discord', 'youtube', 'twitch']):
+        return 4
+    
+    # Step 6: Terms
+    if 'accept_terms' in errors:
+        return 6
+    
+    # Default to step 1
+    return 1
 
-@require_http_methods(["GET", "POST"])
+
+# ==================== AJAX VALIDATION ENDPOINTS ====================
+
+@login_required
+@require_GET
 def validate_team_name(request):
     """
-    AJAX endpoint to validate team name availability.
-    Returns: {"valid": bool, "message": str}
+    AJAX endpoint to validate team name uniqueness.
+    
+    GET params:
+        name: Team name to validate
+    
+    Returns:
+        JSON: {valid: bool, message: str, suggestions: [str]}
     """
-    try:
-        # Support both GET (V2) and POST (V1) requests
-        if request.method == "GET":
-            name = request.GET.get('name', '').strip()
-            game = request.GET.get('game', '').strip()
-        else:
-            data = json.loads(request.body)
-            name = data.get('name', '').strip()
-            game = data.get('game', '').strip()
-        
-        if not name:
-            return JsonResponse({
-                'valid': False,
-                'message': 'Team name is required'
-            })
-        
-        if len(name) < 3:
-            return JsonResponse({
-                'valid': False,
-                'message': 'Team name must be at least 3 characters'
-            })
-        
-        if len(name) > 50:
-            return JsonResponse({
-                'valid': False,
-                'message': 'Team name cannot exceed 50 characters'
-            })
-        
-        # Check uniqueness (optionally per game)
-        query = Team.objects.filter(name__iexact=name)
-        if game:
-            query = query.filter(game=game)
-        
-        exists = query.exists()
-        
+    name = request.GET.get('name', '').strip()
+    
+    if not name:
         return JsonResponse({
-            'valid': not exists,
-            'message': 'Team name already exists' if exists else 'Team name is available'
+            'valid': False,
+            'message': 'Team name is required.'
         })
     
-    except json.JSONDecodeError:
-        return JsonResponse({'valid': False, 'message': 'Invalid request'}, status=400)
-    except Exception as e:
-        return JsonResponse({'valid': False, 'message': str(e)}, status=500)
-
-
-@require_http_methods(["GET", "POST"])
-def validate_team_tag(request):
-    """
-    AJAX endpoint to validate team tag availability.
-    Returns: {"valid": bool, "message": str}
-    """
-    try:
-        # Support both GET (V2) and POST (V1) requests
-        if request.method == "GET":
-            tag = request.GET.get('tag', '').strip().upper()
-            game = request.GET.get('game', '').strip()
-        else:
-            data = json.loads(request.body)
-            tag = data.get('tag', '').strip().upper()
-            game = data.get('game', '').strip()
-        
-        if not tag:
-            return JsonResponse({
-                'valid': False,
-                'message': 'Team tag is required'
-            })
-        
-        if len(tag) < 2:
-            return JsonResponse({
-                'valid': False,
-                'message': 'Team tag must be at least 2 characters'
-            })
-        
-        if len(tag) > 10:
-            return JsonResponse({
-                'valid': False,
-                'message': 'Team tag cannot exceed 10 characters'
-            })
-        
-        # Check format (alphanumeric only)
-        if not re.match(r'^[A-Z0-9]+$', tag):
-            return JsonResponse({
-                'valid': False,
-                'message': 'Team tag can only contain letters and numbers'
-            })
-        
-        # Check uniqueness (optionally per game)
-        query = Team.objects.filter(tag__iexact=tag)
-        if game:
-            query = query.filter(game=game)
-        
-        exists = query.exists()
-        
+    if len(name) < 3:
         return JsonResponse({
-            'valid': not exists,
-            'message': 'Team tag already exists' if exists else 'Team tag is available'
+            'valid': False,
+            'message': 'Team name must be at least 3 characters.'
         })
     
-    except json.JSONDecodeError:
-        return JsonResponse({'valid': False, 'message': 'Invalid request'}, status=400)
-    except Exception as e:
-        return JsonResponse({'valid': False, 'message': str(e)}, status=500)
-
-
-@require_http_methods(["GET"])
-def get_game_config_api(request, game_code):
-    """
-    AJAX endpoint to get game-specific configuration.
-    Returns: Game config JSON with roles, roster sizes, etc.
-    """
-    try:
-        if game_code not in GAME_CONFIGS:
-            return JsonResponse({'error': f'Unsupported game: {game_code}'}, status=404)
-        
-        config = GAME_CONFIGS[game_code]
-        
+    if len(name) > 50:
         return JsonResponse({
-            'game': config.code,
-            'display_name': config.name,
-            'icon': f'/static/teams/img/game-icons/{config.code}.svg',
-            'color': _get_game_color(config.code),
-            'team_size': config.min_starters,
-            'min_starters': config.min_starters,
-            'max_starters': config.max_starters,
-            'max_substitutes': config.max_substitutes,
-            'max_roster': config.max_starters + config.max_substitutes,
-            'roles': config.roles,
-            'role_descriptions': config.role_descriptions,
-            'requires_unique_roles': config.requires_unique_roles,
-            'allows_multi_role': config.allows_multi_role,
+            'valid': False,
+            'message': 'Team name must be 50 characters or less.'
         })
     
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    # Check uniqueness (case-insensitive)
+    exists = Team.objects.filter(name__iexact=name).exists()
+    
+    if exists:
+        # Generate suggestions
+        suggestions = [
+            f"{name} Gaming",
+            f"{name} Esports",
+            f"{name} Squad",
+            f"{name} Team",
+        ]
+        
+        return JsonResponse({
+            'valid': False,
+            'message': 'This team name is already taken. Try a variation!',
+            'suggestions': suggestions
+        })
+    
+    return JsonResponse({
+        'valid': True,
+        'message': 'Perfect! This name is available.'
+    })
 
 
 @login_required
-@require_http_methods(["GET"])
-def check_existing_team(request):
+@require_GET
+def validate_team_tag(request):
     """
-    AJAX endpoint to check if user already has a team for the selected game.
-    Returns: {
-        "has_team": bool,
-        "team": {...} (if has_team=true),
-        "can_create": bool
-    }
+    AJAX endpoint to validate team tag uniqueness.
+    
+    GET params:
+        tag: Team tag to validate
+    
+    Returns:
+        JSON: {valid: bool, message: str, suggestions: [str]}
     """
-    try:
-        game = request.GET.get('game', '').strip()
-        
-        if not game:
-            return JsonResponse({
-                'error': 'Game code is required'
-            }, status=400)
-        
-        profile = _ensure_profile(request.user)
-        if not profile:
-            return JsonResponse({
-                'error': 'Profile not found'
-            }, status=404)
-        
-        # Check if user has an active team for this game
-        existing_membership = TeamMembership.objects.filter(
-            profile=profile,
-            status='ACTIVE',
-            team__game=game
-        ).select_related('team').first()
-        
-        if existing_membership:
-            team = existing_membership.team
-            return JsonResponse({
-                'has_team': True,
-                'can_create': False,
-                'team': {
-                    'id': team.id,
-                    'name': team.name,
-                    'tag': team.tag,
-                    'slug': team.slug,
-                    'game': team.game,
-                    'logo': team.logo.url if team.logo else None,
-                    'role': existing_membership.role,
-                    'is_captain': existing_membership.role == 'CAPTAIN',
-                },
-                'message': f'You are already a member of "{team.name}" ({team.tag}) for this game. You can only have one active team per game.'
-            })
-        
+    tag = request.GET.get('tag', '').strip().upper()
+    
+    if not tag:
         return JsonResponse({
-            'has_team': False,
-            'can_create': True,
-            'message': 'You can create a team for this game'
+            'valid': False,
+            'message': 'Team tag is required.'
         })
     
-    except Exception as e:
+    if len(tag) < 2:
         return JsonResponse({
-            'error': str(e)
+            'valid': False,
+            'message': 'Tag must be at least 2 characters.'
+        })
+    
+    if len(tag) > 10:
+        return JsonResponse({
+            'valid': False,
+            'message': 'Tag must be 10 characters or less.'
+        })
+    
+    # Validate format (alphanumeric only)
+    if not tag.isalnum():
+        return JsonResponse({
+            'valid': False,
+            'message': 'Tag can only contain letters and numbers.'
+        })
+    
+    # Check uniqueness (case-insensitive)
+    exists = Team.objects.filter(tag__iexact=tag).exists()
+    
+    if exists:
+        # Generate suggestions
+        suggestions = [
+            f"{tag}E",
+            f"{tag}GG",
+            f"{tag}X",
+            f"{tag}PH",
+            f"{tag}BD",
+        ]
+        
+        return JsonResponse({
+            'valid': False,
+            'message': 'That tag is already in use. Try a variation!',
+            'suggestions': suggestions
+        })
+    
+    return JsonResponse({
+        'valid': True,
+        'message': 'Nice! This tag is available.'
+    })
+
+
+@login_required
+@require_GET
+def check_existing_team(request):
+    """
+    Check if user already has a team for the selected game.
+    
+    GET params:
+        game: Game code (VALORANT, CS2, etc.)
+    
+    Returns:
+        JSON: {
+            has_team: bool,
+            team: {name, tag, slug} or null,
+            can_create: bool,
+            message: str
+        }
+    """
+    game_code = request.GET.get('game', '').strip().upper()
+    
+    if not game_code:
+        return JsonResponse({
+            'has_team': False,
+            'can_create': True
+        })
+    
+    profile = get_object_or_404(UserProfile, user=request.user)
+    
+    # Check for existing active membership
+    existing = TeamMembership.objects.filter(
+        profile=profile,
+        team__game=game_code,
+        status='ACTIVE'
+    ).select_related('team').first()
+    
+    if existing:
+        team = existing.team
+        game_name = GAMES.get(game_code, {}).get('display_name', game_code)
+        
+        return JsonResponse({
+            'has_team': True,
+            'team': {
+                'name': team.name,
+                'tag': team.tag,
+                'slug': team.slug,
+            },
+            'can_create': False,
+            'message': f"You're already a member of {team.name} ({team.tag}) for {game_name}. You can only have one active team per game."
+        })
+    
+    return JsonResponse({
+        'has_team': False,
+        'team': None,
+        'can_create': True,
+        'message': 'You can create a team for this game.'
+    })
+
+
+@login_required
+@require_GET
+def get_game_regions_api(request, game_code):
+    """
+    Get available regions for a specific game.
+    
+    URL params:
+        game_code: Game code (VALORANT, CS2, etc.)
+    
+    Returns:
+        JSON: {
+            success: bool,
+            game: str,
+            regions: [[code, name], ...]
+        }
+    """
+    game_code = game_code.upper()
+    
+    if game_code not in GAMES:
+        return JsonResponse({
+            'success': False,
+            'error': f'Invalid game code: {game_code}'
+        }, status=400)
+    
+    regions = get_regions_for_game(game_code)
+    
+    return JsonResponse({
+        'success': True,
+        'game': game_code,
+        'game_name': GAMES[game_code]['display_name'],
+        'regions': regions
+    })
+
+
+# ==================== DRAFT AUTO-SAVE SYSTEM ====================
+
+@login_required
+@require_POST
+def save_draft_api(request):
+    """
+    Save team creation draft to cache.
+    
+    POST data: JSON with form fields
+    
+    Returns:
+        JSON: {success: bool, message: str}
+    """
+    try:
+        data = json.loads(request.body)
+        
+        # Validate data
+        draft_data = {
+            'name': data.get('name', ''),
+            'tag': data.get('tag', ''),
+            'tagline': data.get('tagline', ''),
+            'description': data.get('description', ''),
+            'game': data.get('game', ''),
+            'region': data.get('region', ''),
+            'twitter': data.get('twitter', ''),
+            'instagram': data.get('instagram', ''),
+            'discord': data.get('discord', ''),
+            'youtube': data.get('youtube', ''),
+            'twitch': data.get('twitch', ''),
+            'saved_at': timezone.now().isoformat(),
+        }
+        
+        # Save to cache (7 days expiry)
+        cache_key = f'team_create_draft_{request.user.id}'
+        cache.set(cache_key, draft_data, timeout=60 * 60 * 24 * 7)  # 7 days
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Draft saved successfully.'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data.'
+        }, status=400)
+    
+    except Exception as e:
+        logger.error(f"Draft save error: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to save draft.'
         }, status=500)
 
 
 @login_required
-@require_http_methods(["GET", "POST"])
-def validate_user_identifier(request):
+@require_GET
+def load_draft_api(request):
     """
-    AJAX endpoint to validate username/email for invites.
-    Returns: {"valid": bool, "user_info": {...}, "message": str}
-    Privacy: Only returns basic info until invite is accepted
+    Load team creation draft from cache.
+    
+    Returns:
+        JSON: {
+            success: bool,
+            has_draft: bool,
+            draft: {form_fields} or null
+        }
     """
-    try:
-        # Support both GET and POST
-        if request.method == "GET":
-            identifier = request.GET.get('identifier', '').strip()
-        else:
-            data = json.loads(request.body)
-            identifier = data.get('identifier', '').strip()
+    draft_data = _load_draft_from_cache(request.user.id)
+    
+    if draft_data:
+        # Calculate time ago
+        saved_at = draft_data.get('saved_at')
+        if saved_at:
+            saved_time = timezone.datetime.fromisoformat(saved_at)
+            time_ago = _humanize_timedelta(timezone.now() - saved_time)
+            draft_data['time_ago'] = time_ago
         
-        if not identifier:
-            return JsonResponse({
-                'valid': False,
-                'message': 'Username or email is required'
-            })
-        
-        profile = None
-        
-        # Try email first
-        if '@' in identifier:
-            try:
-                profile = UserProfile.objects.select_related('user').get(user__email__iexact=identifier)
-            except UserProfile.DoesNotExist:
-                return JsonResponse({
-                    'valid': False,
-                    'message': 'No user found with this email'
-                })
-        else:
-            # Try username
-            try:
-                profile = UserProfile.objects.select_related('user').get(user__username__iexact=identifier)
-            except UserProfile.DoesNotExist:
-                return JsonResponse({
-                    'valid': False,
-                    'message': 'No user found with this username'
-                })
-        
-        # Check if trying to invite self
-        if profile.user == request.user:
-            return JsonResponse({
-                'valid': False,
-                'message': 'You cannot invite yourself'
-            })
-        
-        # Return limited info for privacy (more info revealed after acceptance)
         return JsonResponse({
-            'valid': True,
-            'user_info': {
-                'username': profile.user.username,
-                'display_name': profile.display_name or profile.user.username,
-                # Don't expose email or full profile until invitation accepted
-            },
-            'message': 'User found and can be invited'
+            'success': True,
+            'has_draft': True,
+            'draft': draft_data
         })
     
-    except json.JSONDecodeError:
-        return JsonResponse({'valid': False, 'message': 'Invalid request'}, status=400)
-    except Exception as e:
-        return JsonResponse({'valid': False, 'message': str(e)}, status=500)
+    return JsonResponse({
+        'success': True,
+        'has_draft': False,
+        'draft': None
+    })
+
+
+@login_required
+@require_POST
+def clear_draft_api(request):
+    """
+    Clear team creation draft from cache.
+    
+    Returns:
+        JSON: {success: bool}
+    """
+    _clear_draft_from_cache(request.user.id)
+    
+    return JsonResponse({
+        'success': True,
+        'message': 'Draft cleared successfully.'
+    })
+
+
+# ==================== HELPER FUNCTIONS ====================
+
+def _load_draft_from_cache(user_id):
+    """Load draft data from cache."""
+    cache_key = f'team_create_draft_{user_id}'
+    return cache.get(cache_key)
+
+
+def _clear_draft_from_cache(user_id):
+    """Clear draft data from cache."""
+    cache_key = f'team_create_draft_{user_id}'
+    cache.delete(cache_key)
+
+
+def _humanize_timedelta(delta):
+    """Convert timedelta to human-readable string."""
+    seconds = int(delta.total_seconds())
+    
+    if seconds < 60:
+        return "just now"
+    elif seconds < 3600:
+        minutes = seconds // 60
+        return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+    elif seconds < 86400:
+        hours = seconds // 3600
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+    else:
+        days = seconds // 86400
+        return f"{days} day{'s' if days != 1 else ''} ago"

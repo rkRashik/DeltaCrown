@@ -667,3 +667,58 @@ get_game_config_api
 ```
 
 ---
+
+
+---
+
+# UPDATED: Modern Team Create (4-Step Wizard)
+
+Added November 19, 2025
+
+## Modern Team Create View
+
+**File:** apps/teams/views/create.py -> team_create_view
+**Template:** teams/team_create_modern.html
+**URL:** /teams/create/
+**Method:** GET, POST
+**Auth:** @login_required
+
+### Purpose
+Modern 4-step wizard for team creation with:
+- Real-time AJAX validation
+- Visual game selection with card grid
+- Dynamic region loading
+- Live preview sidebar
+- Terms acceptance
+
+### Steps
+1. Basic Info: Name, Tag, Tagline with AJAX validation
+2. Game & Region: Visual game cards, one-team-per-game check, dynamic regions
+3. Team Profile: Logo/banner uploads, description, socials, live preview
+4. Terms & Confirm: Summary, full terms, required checkbox, submission
+
+### Context
+- form: TeamCreationForm
+- game_configs: JSON of all 9 games with metadata
+- available_games: List of game codes
+- profile: UserProfile
+- STATIC_URL: settings.STATIC_URL
+
+### AJAX Endpoints
+- /teams/api/validate-name/ - Check name uniqueness
+- /teams/api/validate-tag/ - Check tag uniqueness
+- /teams/api/check-existing-team/ - Check one-team-per-game
+- /teams/api/game-regions/{code}/ - Get regions for game
+
+### Form Validation
+Enhanced clean_game() method:
+- Checks existing team membership for game
+- Validates game ID requirements (VALORANT, CS2, DOTA2, MLBB)
+- Raises ValidationError with friendly messages
+
+### Files
+- Template: templates/teams/team_create_modern.html (~600 lines)
+- CSS: static/teams/css/team-create-modern.css (1400+ lines)
+- JS: static/teams/js/team-create-modern.js (~900 lines)
+
+See TEAM_APP_FUNCTIONAL_SPEC.md Section 14 for complete documentation.

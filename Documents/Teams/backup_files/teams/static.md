@@ -411,3 +411,93 @@ python manage.py collectstatic --clear
 7. Use minimal invasive edits unless rewriting a full component
 
 ---
+
+
+---
+
+# UPDATED: Modern Team Create Static Files
+
+Added November 19, 2025
+
+## New Static Files
+
+### team-create-modern.css
+**Path:** static/teams/css/team-create-modern.css
+**Size:** 1,400+ lines
+**Purpose:** Premium glassmorphism styling for 4-step wizard
+
+**Key Features:**
+- CSS Variables for theming (colors, backgrounds, borders)
+- Progress bar with pulse and checkPop animations
+- Game cards grid with hover/selected states
+- Region selector cards
+- File upload zones with drag-drop styling
+- Live preview card (sticky sidebar)
+- Terms box with scrollable content + custom checkbox
+- Validation feedback states (checking, valid, invalid)
+- Alert boxes (error, info)
+- Button styles (primary, secondary, success)
+- Loading overlay with spinner
+- Responsive breakpoints (@media max-width: 768px)
+
+**Design System:**
+- Dark theme: #0a0e1a background
+- Glassmorphism: backdrop-filter blur(20px)
+- Primary colors: cyan (#00d9ff), purple (#8b5cf6), pink (#ff006e), gold (#ffbe0b)
+- Card BG: rgba(15, 20, 35, 0.85)
+- Borders: rgba(255, 255, 255, 0.1)
+
+### team-create-modern.js
+**Path:** static/teams/js/team-create-modern.js
+**Size:** ~900 lines
+**Purpose:** Complete wizard logic with AJAX
+
+**Class:** TeamCreateModern
+**Methods:**
+- setupStepNavigation() - prev/next buttons
+- goToStep(n) - update progress bar, show/hide steps
+- validateCurrentStep() - per-step validation logic
+- validateTeamName(name) - AJAX uniqueness check
+- validateTeamTag(tag) - AJAX uniqueness check
+- setupGameCards() - render game grid from config
+- selectGame(code) - handle game selection
+- checkExistingTeam(code) - one-team-per-game AJAX
+- loadGameRegions(code) - dynamic region loading
+- selectRegion(code, name) - region selection
+- setupFileUploads() - drag-drop + click handlers
+- handleFileUpload(file, preview, type) - FileReader preview
+- updatePreview(field, value) - live preview updates
+- populateSummary() - fill Step 4 summary card
+- setupTermsCheckbox() - validation binding
+- validateStep4() - terms acceptance check
+- setupFormSubmission() - AJAX submit with loading
+- showToast(message, type) - notifications
+
+**AJAX Endpoints Used:**
+- GET /teams/api/validate-name/?name={name}
+- GET /teams/api/validate-tag/?tag={tag}
+- GET /teams/api/check-existing-team/?game={code}
+- GET /teams/api/game-regions/{code}/
+- POST /teams/create/ (form submission)
+
+**Config:** window.TEAM_CREATE_CONFIG passed from Django
+
+## Game Card Images
+**Path:** static/img/game_cards/
+**Files (verified exist):**
+- Valorant.jpg
+- CS2.jpg
+- Dota2.jpg
+- MobileLegend.jpg
+- PUBG.jpeg
+- FreeFire.jpeg
+- CallOfDutyMobile.jpg
+- efootball.jpeg
+- FC26.jpg
+
+## Backup Files
+- team-create-esports.css.backup (old version)
+- team-create-esports.js.backup (old version)
+- team-create-modern.js.v3backup (replaced 5-step version)
+
+See TEAM_APP_FUNCTIONAL_SPEC.md Section 14 for complete documentation.

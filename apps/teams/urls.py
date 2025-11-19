@@ -104,10 +104,14 @@ from .views.create import (
     team_create_view,
     validate_team_name,
     validate_team_tag,
-    get_game_config_api,
-    validate_user_identifier,
     check_existing_team,
+    get_game_regions_api,
+    save_draft_api,
+    load_draft_api,
+    clear_draft_api,
 )
+# Import team setup view (post-creation)
+from .views.setup import team_setup_view, update_team_settings
 # Import tournament integration views (Task 5)
 from .views.tournaments import (
     tournament_registration_view,
@@ -208,6 +212,8 @@ urlpatterns = [
     
     path("test/", lambda request: render(request, "teams/test_page.html"), name="test"),  # TEST PAGE
     path("create/", team_create_view, name="create"),
+    path("setup/<slug:slug>/", team_setup_view, name="setup"),  # Post-creation setup
+    path("<slug:slug>/update-settings/", update_team_settings, name="update_settings"),  # Settings update
     path("create/resume/", create_team_resume_view, name="create_team_resume"),
     path("collect-game-id/<str:game_code>/", collect_game_id_view, name="collect_game_id"),
 
@@ -225,10 +231,11 @@ urlpatterns = [
     # AJAX endpoints for team creation
     path("api/validate-name/", validate_team_name, name="validate_team_name"),
     path("api/validate-tag/", validate_team_tag, name="validate_team_tag"),
-    path("api/game-config/<str:game_code>/", get_game_config_api, name="game_config_api"),
-    path("api/validate-user/", validate_user_identifier, name="validate_user_identifier"),
-    path("api/validate-invite/", validate_user_identifier, name="validate_invite"),
+    path("api/game-regions/<str:game_code>/", get_game_regions_api, name="game_regions_api"),
     path("api/check-existing-team/", check_existing_team, name="check_existing_team"),
+    path("api/save-draft/", save_draft_api, name="save_draft"),
+    path("api/load-draft/", load_draft_api, name="load_draft"),
+    path("api/clear-draft/", clear_draft_api, name="clear_draft"),
 
     # Detail + captain actions (slug-based) - MUST come after specific paths
     path("<slug:slug>/", team_profile_view, name="detail"),  # New public profile

@@ -1,0 +1,1390 @@
+
+<!doctype html>
+<html lang="en" data-theme="system" class="h-full">
+  <head>
+    <!-- Preconnect for Google auth fonts/icons -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <meta name="theme-color" content="#0b1220">
+
+    <!-- Basic OG -->
+    <meta property="og:site_name" content="DeltaCrown">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="DeltaCrown">
+    <meta property="og:image" content="/static/siteui/og/default.png">
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Favicon - New Logo -->
+    <link rel="icon" href="/static/img/favicon/favicon.ico?v=new" sizes="any">
+    <link rel="icon" href="/static/img/favicon/favicon-16x16.png?v=new" sizes="16x16" type="image/png">
+    <link rel="icon" href="/static/img/favicon/favicon-32x32.png?v=new" sizes="32x32" type="image/png">
+    <link rel="icon" href="/static/img/favicon/favicon-48x48.png?v=new" sizes="48x48" type="image/png">
+    <link rel="icon" href="/static/img/favicon/favicon-64x64.png?v=new" sizes="64x64" type="image/png">
+    <link rel="apple-touch-icon" href="/static/img/favicon/favicon-180x180.png?v=new">
+    <link rel="manifest" href="/static/img/favicon/site-v2.webmanifest">
+
+
+    
+<meta name="description" content="DeltaCrown — Bangladesh's premier esports ecosystem. Tournaments, community, media, and commerce where champions rise." />
+<meta property="og:title" content="DeltaCrown — Where Champions Rise">
+<meta property="og:description" content="Fair tournaments, real payouts, vibrant community.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="/static/siteui/svg/logo-deltacrown.svg">
+<meta name="twitter:card" content="summary_large_image">
+
+<meta name="theme-color" content="#0b0e14">
+
+    <title>Create Your Team - DeltaCrown</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/static/siteui/js/tailwind-config.js"></script>
+
+    <!-- Site CSS -->
+    <link rel="preload" href="/static/siteui/css/tokens.css" as="style" />
+    <link rel="stylesheet" href="/static/siteui/css/tokens.css" />
+    <link rel="stylesheet" href="/static/siteui/css/base.css" />
+    <link rel="stylesheet" href="/static/siteui/css/components.css" />
+    <link rel="stylesheet" href="/static/siteui/css/effects.css" />
+    <link rel="stylesheet" href="/static/siteui/css/navigation-unified.css" />
+    <link rel="stylesheet" href="/static/siteui/css/footer.css" />
+    <link rel="stylesheet" href="/static/siteui/css/auth.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+
+    
+    
+<link rel="stylesheet" href="/static/teams/css/team-create.css">
+
+    
+  </head>
+  <body class="min-h-full bg-body text-body antialiased">
+    <a href="#main" class="skip-link">Skip to main content</a>
+
+    
+
+<!-- ============================================
+     UNIFIED RESPONSIVE NAVIGATION SYSTEM
+     - Desktop: Full horizontal navbar (1024px+)
+     - Mobile: Top bar + Bottom navigation (<1024px)
+     ============================================ -->
+
+<!-- DESKTOP NAVIGATION (visible on large screens) -->
+<header class="unified-nav-desktop" role="banner">
+  <nav class="unified-nav-desktop__container" aria-label="Main navigation">
+    
+    <!-- Left: Logo & Brand -->
+    <div class="unified-nav-desktop__left">
+      
+      <a href="/" class="unified-nav-desktop__brand" aria-label="DeltaCrown Home">
+        <img src="/static/img/deltaCrown_logos/logo_animated.svg" alt="DeltaCrown" class="unified-nav-desktop__logo" />
+        <img src="/static/siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg" alt="DeltaCrown" class="unified-nav-desktop__wordmark" />
+      </a>
+    </div>
+
+    <!-- Center: Main Navigation Links -->
+    <div class="unified-nav-desktop__center">
+      <ul class="unified-nav-desktop__links" role="list">
+        
+        <li>
+          <a href="/tournaments/" class="unified-nav-desktop__link">
+            Tournaments
+          </a>
+        </li>
+
+        
+        <li>
+          <a href="/teams/" class="unified-nav-desktop__link unified-nav-desktop__link--active" aria-current="page">
+            Teams
+          </a>
+        </li>
+
+        
+          
+          <li>
+            <a href="/dashboard/" class="unified-nav-desktop__link">
+              Dashboard
+            </a>
+          </li>
+        
+
+        
+        <li>
+          <a href="/community/" class="unified-nav-desktop__link">
+            Community
+          </a>
+        </li>
+
+        
+        <li>
+          <a href="/watch/" class="unified-nav-desktop__link">
+            Arena
+            
+          </a>
+        </li>
+
+        
+        <li>
+          <a href="/crownstore/" class="unified-nav-desktop__link">
+            CrownStore
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Right: Actions & Profile -->
+    <div class="unified-nav-desktop__right">
+      
+        <!-- Notifications -->
+        
+        <button class="unified-nav-desktop__notif-btn" type="button" aria-label="Notifications" data-notif-toggle>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          
+        </button>
+        
+
+        <!-- Profile Dropdown -->
+        
+        <div class="unified-nav-desktop__profile">
+          <button class="unified-nav-desktop__profile-btn" type="button" aria-label="Account menu" data-profile-toggle>
+            <img src="/static/img/user_avatar/default-avatar.png" alt="test_wizard_user" class="unified-nav-desktop__avatar" />
+          </button>
+          
+          <!-- Profile Dropdown Menu -->
+          <div class="unified-nav-desktop__profile-menu" data-profile-menu>
+            <div class="profile-menu-header">
+              <img src="/static/img/user_avatar/default-avatar.png" alt="test_wizard_user" class="profile-menu-avatar" />
+              <div class="profile-menu-name">test_wizard_user</div>
+              <div class="profile-menu-handle">@test_wizard_user</div>
+            </div>
+            
+            <div class="profile-menu-items">
+              <a href="/user/u/test_wizard_user/" class="profile-menu-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Profile</span>
+              </a>
+              
+              <a href="/dashboard/" class="profile-menu-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Dashboard</span>
+              </a>
+              
+              <a href="/notifications/" class="profile-menu-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <span>Notifications</span>
+              </a>
+              
+              <label class="profile-menu-item profile-theme-toggle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <line x1="12" y1="1" x2="12" y2="3"></line>
+                  <line x1="12" y1="21" x2="12" y2="23"></line>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                  <line x1="1" y1="12" x2="3" y2="12"></line>
+                  <line x1="21" y1="12" x2="23" y2="12"></line>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <span>Theme</span>
+                <input type="checkbox" id="profile-theme-toggle" data-theme-toggle class="theme-toggle-input" style="position: absolute; opacity: 0; pointer-events: none;" />
+                <div class="theme-toggle-track">
+                  <svg class="theme-toggle-icon theme-toggle-icon--sun" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="12" r="5"></circle>
+                  </svg>
+                  <svg class="theme-toggle-icon theme-toggle-icon--moon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                  </svg>
+                  <span class="theme-toggle-thumb"></span>
+                </div>
+              </label>
+              
+              <a href="/accounts/logout/" class="profile-menu-item profile-menu-signout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Sign Out</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      
+    </div>
+  </nav>
+</header>
+
+<!-- MOBILE NAVIGATION (visible on small screens) -->
+<div class="unified-nav-mobile">
+  
+  <!-- Top Bar: Logo + Hamburger -->
+  <header class="unified-nav-mobile__top">
+    <a href="/" class="unified-nav-mobile__logo" aria-label="DeltaCrown Home">
+      <img src="/static/img/deltaCrown_logos/logo_animated.svg" alt="DeltaCrown" width="32" height="32" />
+      <img src="/static/siteui/svg/Logos/DeltaCrown_Teal-Purple-Gold.svg" alt="DeltaCrown" class="unified-nav-mobile__wordmark" />
+    </a>
+    
+    <button class="unified-nav-mobile__hamburger" type="button" aria-label="Open menu" data-mobile-menu-toggle>
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </header>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="unified-nav-mobile__bottom" role="navigation" aria-label="Mobile navigation">
+    
+    <a href="/" class="unified-nav-mobile__item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      <span>Home</span>
+    </a>
+
+    
+    <a href="/tournaments/" class="unified-nav-mobile__item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+      </svg>
+      <span>Tournaments</span>
+    </a>
+
+    
+    <a href="/teams/" class="unified-nav-mobile__item unified-nav-mobile__item--active" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+      </svg>
+      <span>Teams</span>
+    </a>
+
+    
+    <a href="/community/" class="unified-nav-mobile__item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span>Community</span>
+    </a>
+
+    
+    <a href="/watch/" class="unified-nav-mobile__item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+      </svg>
+      <span>Arena</span>
+    </a>
+  </nav>
+
+  <!-- Mobile Menu Drawer -->
+  <aside class="unified-nav-mobile__drawer" data-mobile-drawer>
+    <div class="unified-nav-mobile__drawer-header">
+      <h2>Menu</h2>
+      <button type="button" aria-label="Close menu" data-mobile-menu-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="unified-nav-mobile__drawer-content">
+      
+        
+        <div class="unified-nav-mobile__profile">
+          <img src="/static/img/user_avatar/default-avatar.png" alt="test_wizard_user" width="48" height="48" />
+          <div>
+            <div class="unified-nav-mobile__profile-name">test_wizard_user</div>
+            <div class="unified-nav-mobile__profile-handle">@test_wizard_user</div>
+          </div>
+        </div>
+
+        <ul class="unified-nav-mobile__menu">
+          <li><a href="/dashboard/">Dashboard</a></li>
+          <li><a href="/user/u/test_wizard_user/">Profile</a></li>
+          <li><a href="/notifications/">Notifications</a></li>
+          <li><a href="/user/me/edit/">Settings</a></li>
+          <li><a href="/accounts/logout/" class="unified-nav-mobile__signout">Sign Out</a></li>
+        </ul>
+      
+    </div>
+  </aside>
+
+  <!-- Backdrop -->
+  <div class="unified-nav-mobile__backdrop" data-mobile-backdrop></div>
+</div>
+
+
+    <main id="main" tabindex="-1">
+      
+<div class="team-create-container">
+    <!-- Page Header -->
+    <header class="create-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="header-text">
+                <h1>Create Your Competitive Team</h1>
+                <p>Build your squad, represent your game, and compete in tournaments</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Progress Stepper -->
+    <div class="progress-stepper">
+        <div class="step-line"></div>
+        <div class="step-item active" data-step="1">
+            <div class="step-circle">
+                <span class="step-number">1</span>
+                <svg class="step-check" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M13.5 4L6 11.5L2.5 8" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="step-label">Identity</div>
+        </div>
+        <div class="step-item" data-step="2">
+            <div class="step-circle">
+                <span class="step-number">2</span>
+                <svg class="step-check" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M13.5 4L6 11.5L2.5 8" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="step-label">Game & Region</div>
+        </div>
+        <div class="step-item" data-step="3">
+            <div class="step-circle">
+                <span class="step-number">3</span>
+                <svg class="step-check" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M13.5 4L6 11.5L2.5 8" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="step-label">Team Profile</div>
+        </div>
+        <div class="step-item" data-step="4">
+            <div class="step-circle">
+                <span class="step-number">4</span>
+                <svg class="step-check" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M13.5 4L6 11.5L2.5 8" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+            <div class="step-label">Terms & Launch</div>
+        </div>
+    </div>
+
+    <!-- Main Form Container -->
+    <div class="form-layout">
+        <!-- Wizard Steps Panel -->
+        <div class="wizard-panel">
+            <form method="post" enctype="multipart/form-data" id="teamCreateForm" novalidate>
+                <input type="hidden" name="csrfmiddlewaretoken" value="lsxr6ECv4dUw7nRd5iRSa8M6lUVP0mdoIWzCc6KR3dDFifui7rZ5YZ5rZkZmNUpi">
+                
+                <!-- Global Form Errors -->
+                
+
+                <!-- Step 1: Identity -->
+                <div class="wizard-step active" data-step="1">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <h2>Choose Your Team Identity</h2>
+                            <p>Pick a name and tag that represents your squad across the platform</p>
+                        </div>
+
+                        <div class="step-body">
+                            <!-- Team Name -->
+                            <div class="form-group">
+                                <label for="id_name" class="form-label required">
+                                    Team Name
+                                    <span class="label-hint">This is your full team name</span>
+                                </label>
+                                <div class="input-with-validation">
+                                    <input type="text" name="name" class="form-control" placeholder="Enter team name (3-50 characters)" maxlength="100" required aria-describedby="id_name_helptext" id="id_name">
+                                    <div class="validation-status" data-field="name">
+                                        <div class="spinner"></div>
+                                        <svg class="icon-check" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                            <circle cx="12" cy="12" r="10" stroke="#00d9ff" stroke-width="2"/>
+                                            <path d="M9 12l2 2 4-4" stroke="#00d9ff" stroke-width="2"/>
+                                        </svg>
+                                        <svg class="icon-error" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                            <circle cx="12" cy="12" r="10" stroke="#ff4757" stroke-width="2"/>
+                                            <path d="M15 9l-6 6M9 9l6 6" stroke="#ff4757" stroke-width="2"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="field-error" data-field="name"></div>
+                                <div class="field-hint">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                    <span>3-50 characters. Make it memorable and unique.</span>
+                                </div>
+                            </div>
+
+                            <!-- Team Tag -->
+                            <div class="form-group">
+                                <label for="id_tag" class="form-label required">
+                                    Team Tag
+                                    <span class="label-hint">Short identifier (like a clan tag)</span>
+                                </label>
+                                <div class="input-with-validation">
+                                    <input type="text" name="tag" class="form-control" placeholder="Enter team tag (2-10 characters)" maxlength="10" style="text-transform: uppercase;" required aria-describedby="id_tag_helptext" id="id_tag">
+                                    <div class="validation-status" data-field="tag">
+                                        <div class="spinner"></div>
+                                        <svg class="icon-check" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                            <circle cx="12" cy="12" r="10" stroke="#00d9ff" stroke-width="2"/>
+                                            <path d="M9 12l2 2 4-4" stroke="#00d9ff" stroke-width="2"/>
+                                        </svg>
+                                        <svg class="icon-error" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                            <circle cx="12" cy="12" r="10" stroke="#ff4757" stroke-width="2"/>
+                                            <path d="M15 9l-6 6M9 9l6 6" stroke="#ff4757" stroke-width="2"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="field-error" data-field="tag"></div>
+                                <div class="field-hint">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                    <span>2-5 letters/numbers only. Will be shown as [TAG].</span>
+                                </div>
+                            </div>
+
+                            <!-- Team Tagline -->
+                            <div class="form-group">
+                                <label for="id_tagline" class="form-label">
+                                    Team Tagline
+                                    <span class="label-hint optional">Optional</span>
+                                </label>
+                                <input type="text" name="tagline" class="form-control" placeholder="e.g., &quot;Rise Above&quot;, &quot;Never Back Down&quot;, &quot;Victory Awaits&quot;" maxlength="200" aria-describedby="id_tagline_helptext" id="id_tagline">
+                                <div class="field-hint">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                    </svg>
+                                    <span>A short motto or slogan for your team (max 100 characters).</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-footer">
+                            <button type="button" class="btn btn-secondary" disabled>Back</button>
+                            <button type="button" class="btn btn-primary btn-next" data-step="1">
+                                Continue to Game Selection
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Game & Region -->
+                <div class="wizard-step" data-step="2">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <h2>Select Your Competitive Game</h2>
+                            <p>Choose the esports title your team will compete in</p>
+                        </div>
+
+                        <div class="step-body">
+                            <!-- One Team Per Game Notice -->
+                            <div class="info-banner">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <div class="banner-content">
+                                    <strong>One Team Per Game</strong>
+                                    <p>To maintain competitive integrity, each player can only represent one active team per game.</p>
+                                </div>
+                            </div>
+
+                            <!-- Existing Team Alert (Hidden by default, shown by JS) -->
+                            <div class="alert alert-warning" id="existingTeamAlert" style="display: none;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M12 9v4M12 17h.01" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <div class="alert-content">
+                                    <strong>You Already Have a Team for This Game</strong>
+                                    <p id="existingTeamMessage"></p>
+                                    <a href="#" id="existingTeamLink" class="btn btn-sm btn-outline">View Your Team</a>
+                                </div>
+                            </div>
+
+                            <!-- Game ID Notice (Hidden by default) -->
+                            <div class="alert alert-info" id="gameIdNotice" style="display: none;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <div class="alert-content">
+                                    <strong>Game ID Required</strong>
+                                    <p id="gameIdMessage"></p>
+                                </div>
+                            </div>
+
+                            <!-- Hidden game field -->
+                            <input type="hidden" name="game" id="id_game" value="">
+                            <div class="field-error" data-field="game"></div>
+
+                            <!-- Game Cards Grid -->
+                            <div class="game-cards-grid">
+                                
+                                <div class="game-card" data-game-code="VALORANT" data-game-name="Valorant" data-game-platform="PC" data-game-team-size="5v5" data-requires-game-id="true" data-game-id-label="Riot ID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/Valorant.jpg" alt="Valorant" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">Valorant</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    PC
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    5v5
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="CS2" data-game-name="Counter-Strike 2" data-game-platform="PC" data-game-team-size="5v5" data-requires-game-id="true" data-game-id-label="Steam ID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/CS2.jpg" alt="Counter-Strike 2" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">Counter-Strike 2</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    PC
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    5v5
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="DOTA2" data-game-name="Dota 2" data-game-platform="PC" data-game-team-size="5v5" data-requires-game-id="true" data-game-id-label="Steam ID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/Dota2.jpg" alt="Dota 2" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">Dota 2</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    PC
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    5v5
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="EFOOTBALL" data-game-name="eFootball PES" data-game-platform="PC, Mobile, Console" data-game-team-size="1v1" data-requires-game-id="true" data-game-id-label="Konami ID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/efootball.jpeg" alt="eFootball PES" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">eFootball PES</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    PC, Mobile, Console
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    1v1
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="FC26" data-game-name="EA Sports FC 26" data-game-platform="PC, Console, Mobile" data-game-team-size="1v1" data-requires-game-id="true" data-game-id-label="EA ID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/FC26.jpg" alt="EA Sports FC 26" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">EA Sports FC 26</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    PC, Console, Mobile
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    1v1
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="MLBB" data-game-name="Mobile Legends: Bang Bang" data-game-platform="Mobile" data-game-team-size="5v5" data-requires-game-id="true" data-game-id-label="User ID + Zone ID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/MobileLegend.jpg" alt="Mobile Legends: Bang Bang" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">Mobile Legends: Bang Bang</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    Mobile
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    5v5
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="CODM" data-game-name="Call of Duty: Mobile" data-game-platform="Mobile" data-game-team-size="5v5" data-requires-game-id="true" data-game-id-label="IGN / UID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/CallOfDutyMobile.jpg" alt="Call of Duty: Mobile" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">Call of Duty: Mobile</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    Mobile
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    5v5
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="FREEFIRE" data-game-name="Free Fire" data-game-platform="Mobile" data-game-team-size="4-Player Squads" data-requires-game-id="true" data-game-id-label="IGN / UID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/FreeFire.jpeg" alt="Free Fire" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">Free Fire</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    Mobile
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    4-Player Squads
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="game-card" data-game-code="PUBG" data-game-name="PlayerUnknown&#x27;s Battlegrounds" data-game-platform="PC, Mobile, Console" data-game-team-size="4-Player Squads" data-requires-game-id="true" data-game-id-label="IGN / UID">
+                                    <div class="game-card-inner">
+                                        <div class="game-card-image">
+                                            <img src="/static/img/game_cards/PUBG.jpeg" alt="PlayerUnknown&#x27;s Battlegrounds" loading="lazy">
+                                            <div class="game-card-overlay"></div>
+                                        </div>
+                                        <div class="game-card-content">
+                                            <h3 class="game-name">PlayerUnknown&#x27;s Battlegrounds</h3>
+                                            <div class="game-meta">
+                                                <span class="game-platform">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    PC, Mobile, Console
+                                                </span>
+                                                <span class="game-team-size">
+                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                    4-Player Squads
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="game-card-checkmark">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" fill="#00d9ff"/>
+                                                <path d="M9 12l2 2 4-4" stroke="#0a0e1a" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                            </div>
+
+                            <!-- Region Selection (Initially hidden) -->
+                            <div class="region-selector" id="regionSelector" style="display: none;">
+                                <h3 class="region-title">
+                                    Select Your Region
+                                    <span class="region-subtitle">Choose the server region your team will primarily compete in</span>
+                                </h3>
+                                <input type="hidden" name="region" id="id_region" value="">
+                                <div class="field-error" data-field="region"></div>
+                                <div class="region-cards-grid" id="regionCardsGrid">
+                                    <!-- Dynamically loaded by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-footer">
+                            <button type="button" class="btn btn-secondary btn-back" data-step="2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Back
+                            </button>
+                            <button type="button" class="btn btn-primary btn-next" data-step="2" disabled>
+                                Continue to Profile
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Team Profile -->
+                <div class="wizard-step" data-step="3">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <h2>Build Your Team Profile</h2>
+                            <p>Add visuals and details that make your team stand out</p>
+                        </div>
+
+                        <div class="step-body">
+                            <div class="profile-layout">
+                                <!-- Left: Form Inputs -->
+                                <div class="profile-inputs">
+                                    <!-- Logo Upload -->
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Team Logo
+                                            <span class="label-hint optional">Optional</span>
+                                        </label>
+                                        <div class="upload-zone" id="logoUpload">
+                                            <input type="file" name="logo" id="id_logo" accept="image/*" style="display: none;">
+                                            <div class="upload-placeholder">
+                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                                                    <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2"/>
+                                                </svg>
+                                                <p class="upload-text">Click or drag image here</p>
+                                                <p class="upload-hint">Recommended: 512x512px, PNG or JPG</p>
+                                            </div>
+                                            <div class="upload-preview" style="display: none;">
+                                                <img src="" alt="Logo preview">
+                                                <button type="button" class="btn-remove-upload">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="field-error" data-field="logo"></div>
+                                    </div>
+
+                                    <!-- Banner Upload -->
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Team Banner
+                                            <span class="label-hint optional">Optional</span>
+                                        </label>
+                                        <div class="upload-zone upload-zone-banner" id="bannerUpload">
+                                            <input type="file" name="banner_image" id="id_banner_image" accept="image/*" style="display: none;">
+                                            <div class="upload-placeholder">
+                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                                                    <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2"/>
+                                                </svg>
+                                                <p class="upload-text">Click or drag image here</p>
+                                                <p class="upload-hint">Recommended: 1920x400px, PNG or JPG</p>
+                                            </div>
+                                            <div class="upload-preview" style="display: none;">
+                                                <img src="" alt="Banner preview">
+                                                <button type="button" class="btn-remove-upload">
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M15 9l-6 6M9 9l6 6" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="field-error" data-field="banner"></div>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="form-group">
+                                        <label for="id_description" class="form-label">
+                                            Team Description
+                                            <span class="label-hint optional">Optional</span>
+                                        </label>
+                                        <textarea name="description" cols="40" rows="3" class="form-control" placeholder="Brief description of your team (optional)" maxlength="500" aria-describedby="id_description_helptext" id="id_description">
+</textarea>
+                                        <div class="field-hint">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                            </svg>
+                                            <span>Tell others about your team's goals, playstyle, or history.</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Social Links -->
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            Social Links
+                                            <span class="label-hint optional">Optional</span>
+                                        </label>
+                                        <div class="social-inputs">
+                                            <div class="social-input">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z" stroke="currentColor" stroke-width="2"/>
+                                                </svg>
+                                                <input type="url" name="twitter" class="form-control" placeholder="https://twitter.com/your-team" maxlength="200" id="id_twitter">
+                                            </div>
+                                            <div class="social-input">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                    <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" stroke-width="2"/>
+                                                    <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+                                                    <circle cx="18" cy="6" r="1" fill="currentColor"/>
+                                                </svg>
+                                                <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/your-team" maxlength="200" id="id_instagram">
+                                            </div>
+                                            <div class="social-input">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                                    <path d="M14.5 8.5c.825-.825 2.175-.825 3 0M9.5 15.5l-1.415 1.415a2.828 2.828 0 1 1-4-4L5.5 11.5" stroke="currentColor" stroke-width="2"/>
+                                                </svg>
+                                                <input type="url" name="discord" class="form-control" placeholder="https://discord.gg/your-server" maxlength="200" id="id_discord">
+                                            </div>
+                                            <div class="social-input">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z" stroke="currentColor" stroke-width="2"/>
+                                                    <path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z" fill="currentColor"/>
+                                                </svg>
+                                                <input type="url" name="youtube" class="form-control" placeholder="https://youtube.com/your-channel" maxlength="200" id="id_youtube">
+                                            </div>
+                                            <div class="social-input">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M21 2H3v16h5v4l4-4h4l5-5V2zM11 11V7M16 11V7" stroke="currentColor" stroke-width="2"/>
+                                                </svg>
+                                                <input type="url" name="twitch" class="form-control" placeholder="https://twitch.tv/your-channel" maxlength="200" id="id_twitch">
+                                            </div>
+                                            <div class="social-input">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2"/>
+                                                </svg>
+                                                <input type="url" name="linktree" class="form-control" placeholder="https://linktr.ee/your-team" maxlength="200" id="id_linktree">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Live Preview -->
+                                <div class="live-preview-panel">
+                                    <div class="preview-sticky">
+                                        <h3 class="preview-title">Live Preview</h3>
+                                        <div class="preview-card">
+                                            <div class="preview-banner" id="previewBanner">
+                                                <div class="preview-banner-placeholder">
+                                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                                                        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                                                        <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="preview-logo-wrapper">
+                                                <div class="preview-logo" id="previewLogo">
+                                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                                                        <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="preview-body">
+                                                <div class="preview-team-name" id="previewTeamName">Your Team Name</div>
+                                                <div class="preview-team-tag" id="previewTeamTag">[TAG]</div>
+                                                <div class="preview-team-tagline" id="previewTeamTagline">Your team tagline</div>
+                                                <div class="preview-divider"></div>
+                                                <div class="preview-meta">
+                                                    <div class="preview-meta-item">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                            <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                                                            <path d="M8 21h8M12 17v4" stroke="currentColor" stroke-width="2"/>
+                                                        </svg>
+                                                        <span id="previewGame">Select a game</span>
+                                                    </div>
+                                                    <div class="preview-meta-item">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                                            <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/>
+                                                        </svg>
+                                                        <span id="previewRegion">Select a region</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="preview-hint">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                            </svg>
+                                            <span>This is how your team card will look on the platform</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-footer">
+                            <button type="button" class="btn btn-secondary btn-back" data-step="3">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Back
+                            </button>
+                            <button type="button" class="btn btn-primary btn-next" data-step="3">
+                                Review & Launch
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Terms & Launch -->
+                <div class="wizard-step" data-step="4">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <h2>Review and Launch Your Team</h2>
+                            <p>Confirm your details and accept the team creation terms</p>
+                        </div>
+
+                        <div class="step-body">
+                            <!-- Summary Grid -->
+                            <div class="summary-grid">
+                                <div class="summary-item">
+                                    <div class="summary-label">Team Name</div>
+                                    <div class="summary-value" id="summaryName">-</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-label">Team Tag</div>
+                                    <div class="summary-value" id="summaryTag">-</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-label">Tagline</div>
+                                    <div class="summary-value" id="summaryTagline">-</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-label">Game</div>
+                                    <div class="summary-value" id="summaryGame">-</div>
+                                </div>
+                                <div class="summary-item">
+                                    <div class="summary-label">Region</div>
+                                    <div class="summary-value" id="summaryRegion">-</div>
+                                </div>
+                            </div>
+
+                            <!-- Terms & Conditions -->
+                            <div class="terms-section">
+                                <h3 class="terms-header">Team Creation Terms & Responsibilities</h3>
+                                <div class="terms-box">
+                                    <div class="terms-content">
+                                        <h4>1. Team Leadership & Ownership</h4>
+                                        <p>As the team creator, you become the <strong>Team Captain</strong> with full administrative rights. You are responsible for:</p>
+                                        <ul>
+                                            <li>Managing team membership (inviting, accepting, removing members)</li>
+                                            <li>Representing your team in disputes or administrative matters</li>
+                                            <li>Ensuring team compliance with DeltaCrown platform rules</li>
+                                            <li>Maintaining accurate team information and contact details</li>
+                                        </ul>
+
+                                        <h4>2. Team Identity & Uniqueness</h4>
+                                        <ul>
+                                            <li>Team names and tags must be <strong>unique across the platform</strong></li>
+                                            <li>You may not impersonate professional teams, organizations, or brands</li>
+                                            <li>Team identities must not contain offensive, discriminatory, or inappropriate content</li>
+                                            <li>DeltaCrown reserves the right to rename teams that violate community standards</li>
+                                        </ul>
+
+                                        <h4>3. One Team Per Game Policy</h4>
+                                        <p>To maintain competitive integrity and prevent conflicts of interest:</p>
+                                        <ul>
+                                            <li>Each player may only be an <strong>active member of one team per game</strong></li>
+                                            <li>You must leave your current team before joining another in the same game</li>
+                                            <li>Team captains cannot circumvent this by creating multiple teams</li>
+                                            <li>Violations may result in team dissolution and account restrictions</li>
+                                        </ul>
+
+                                        <h4>4. Competitive Conduct</h4>
+                                        <p>Your team agrees to:</p>
+                                        <ul>
+                                            <li>Compete fairly and respect opponents in all tournaments and matches</li>
+                                            <li>Follow game-specific rules and tournament regulations</li>
+                                            <li>Report any suspicious activity or rule violations</li>
+                                            <li>Accept match results and rulings from tournament administrators</li>
+                                        </ul>
+
+                                        <h4>5. Player Verification & Game IDs</h4>
+                                        <ul>
+                                            <li>All team members must verify their game IDs (Riot ID, Steam ID, etc.)</li>
+                                            <li>You are responsible for ensuring your roster uses legitimate, verified accounts</li>
+                                            <li>Using alternate accounts (smurfs) or banned accounts is prohibited</li>
+                                            <li>Teams may be disqualified if members use unverified or fraudulent IDs</li>
+                                        </ul>
+
+                                        <h4>6. Content & Communication</h4>
+                                        <ul>
+                                            <li>Team profiles, logos, banners, and descriptions must be appropriate</li>
+                                            <li>Harassment, hate speech, or abusive behavior is strictly prohibited</li>
+                                            <li>You are responsible for your team members' conduct on the platform</li>
+                                            <li>Serious or repeated violations may result in permanent team bans</li>
+                                        </ul>
+
+                                        <h4>7. Team Dissolution & Transfers</h4>
+                                        <ul>
+                                            <li>Team captains may dissolve teams at any time</li>
+                                            <li>Captain status can be transferred to another member</li>
+                                            <li>Dissolved teams cannot be restored; you must create a new team</li>
+                                            <li>Team history and stats are preserved but the roster is released</li>
+                                        </ul>
+
+                                        <h4>8. Prize Distribution & Payouts</h4>
+                                        <p>For teams competing in prize tournaments:</p>
+                                        <ul>
+                                            <li>The team captain is responsible for distributing prizes to members</li>
+                                            <li>DeltaCrown pays winnings to the verified team captain account</li>
+                                            <li>Internal team payment disputes are not mediated by DeltaCrown</li>
+                                            <li>Captain must provide accurate payment information to claim prizes</li>
+                                        </ul>
+
+                                        <h4>9. Data & Privacy</h4>
+                                        <ul>
+                                            <li>Team information (name, roster, match history) is public on the platform</li>
+                                            <li>We do not share personal member information without consent</li>
+                                            <li>You may request team data deletion (subject to record retention rules)</li>
+                                            <li>Match statistics and tournament results may be retained for integrity</li>
+                                        </ul>
+
+                                        <h4>10. Changes to Terms</h4>
+                                        <ul>
+                                            <li>DeltaCrown may update team policies with advance notice</li>
+                                            <li>Continued use of the team system implies acceptance of updated terms</li>
+                                            <li>Major changes will be communicated via email and platform notifications</li>
+                                        </ul>
+
+                                        <h4>11. Platform Rights & Enforcement</h4>
+                                        <p>DeltaCrown reserves the right to:</p>
+                                        <ul>
+                                            <li>Remove teams that violate terms or community standards</li>
+                                            <li>Restrict or ban team captains who abuse the system</li>
+                                            <li>Modify team information if necessary for compliance</li>
+                                            <li>Disqualify teams from tournaments for rule violations</li>
+                                        </ul>
+
+                                        <h4>12. Support & Disputes</h4>
+                                        <ul>
+                                            <li>For team-related issues, contact support@deltacrown.gg</li>
+                                            <li>Disputes between team members should be resolved internally first</li>
+                                            <li>We mediate only platform-related conflicts (e.g., account access)</li>
+                                            <li>Tournament disputes are handled per tournament-specific rules</li>
+                                        </ul>
+
+                                        <div class="terms-footer">
+                                            <p><strong>By accepting these terms, you confirm:</strong></p>
+                                            <ul>
+                                                <li>You have read and understood all team creation responsibilities</li>
+                                                <li>You agree to uphold competitive integrity and fair play</li>
+                                                <li>You accept the role of Team Captain with its associated duties</li>
+                                                <li>You will comply with all DeltaCrown platform rules and policies</li>
+                                            </ul>
+                                            <p class="terms-update">Last updated: November 2025</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Accept Terms Checkbox -->
+                                <div class="form-group checkbox-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" name="accept_terms" id="id_accept_terms" required>
+                                        <span class="checkbox-custom"></span>
+                                        <span class="checkbox-text">
+                                            I have read and accept the Team Creation Terms & Responsibilities
+                                            <span class="required-mark">*</span>
+                                        </span>
+                                    </label>
+                                    <div class="field-error" data-field="accept_terms"></div>
+                                </div>
+                            </div>
+
+                            <!-- Launch Notice -->
+                            <div class="launch-notice">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <div class="notice-content">
+                                    <strong>Ready to Launch?</strong>
+                                    <p>Once created, your team will be visible on the platform. You can start inviting members and registering for tournaments immediately.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-footer">
+                            <button type="button" class="btn btn-secondary btn-back" data-step="4">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Back
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-submit" id="btnLaunchTeam">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Launch Your Team
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Help Sidebar -->
+        <aside class="help-sidebar">
+            <div class="help-card">
+                <div class="help-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <h3>Need Help?</h3>
+                <p>Creating a team is simple, but if you have questions:</p>
+                <ul class="help-links">
+                    <li><a href="/support/teams/creation/" target="_blank">Team Creation Guide</a></li>
+                    <li><a href="/support/teams/management/" target="_blank">Managing Your Team</a></li>
+                    <li><a href="/support/teams/faq/" target="_blank">Team FAQ</a></li>
+                    <li><a href="/support/contact/" target="_blank">Contact Support</a></li>
+                </ul>
+            </div>
+
+            <div class="tip-card">
+                <div class="tip-icon">💡</div>
+                <h4>Pro Tip</h4>
+                <p>Choose a memorable team name and add a logo to make your team stand out in tournament brackets!</p>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">Creating your team...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Pass game configs to JavaScript -->
+<script id="gameConfigsData" type="application/json">
+{"VALORANT": {"code": "VALORANT", "name": "Valorant", "slug": "valorant", "card_image": "img/game_cards/Valorant.jpg", "platform": "PC", "team_size": "5v5", "category": "FPS", "player_id_label": "Riot ID", "requires_game_id": true}, "CS2": {"code": "CS2", "name": "Counter-Strike 2", "slug": "cs2", "card_image": "img/game_cards/CS2.jpg", "platform": "PC", "team_size": "5v5", "category": "FPS", "player_id_label": "Steam ID", "requires_game_id": true}, "DOTA2": {"code": "DOTA2", "name": "Dota 2", "slug": "dota2", "card_image": "img/game_cards/Dota2.jpg", "platform": "PC", "team_size": "5v5", "category": "MOBA", "player_id_label": "Steam ID", "requires_game_id": true}, "EFOOTBALL": {"code": "EFOOTBALL", "name": "eFootball PES", "slug": "efootball", "card_image": "img/game_cards/efootball.jpeg", "platform": "PC, Mobile, Console", "team_size": "1v1", "category": "Sports", "player_id_label": "Konami ID", "requires_game_id": true}, "FC26": {"code": "FC26", "name": "EA Sports FC 26", "slug": "fc26", "card_image": "img/game_cards/FC26.jpg", "platform": "PC, Console, Mobile", "team_size": "1v1", "category": "Sports", "player_id_label": "EA ID", "requires_game_id": true}, "MLBB": {"code": "MLBB", "name": "Mobile Legends: Bang Bang", "slug": "mlbb", "card_image": "img/game_cards/MobileLegend.jpg", "platform": "Mobile", "team_size": "5v5", "category": "MOBA", "player_id_label": "User ID + Zone ID", "requires_game_id": true}, "CODM": {"code": "CODM", "name": "Call of Duty: Mobile", "slug": "codm", "card_image": "img/game_cards/CallOfDutyMobile.jpg", "platform": "Mobile", "team_size": "5v5", "category": "FPS", "player_id_label": "IGN / UID", "requires_game_id": true}, "FREEFIRE": {"code": "FREEFIRE", "name": "Free Fire", "slug": "freefire", "card_image": "img/game_cards/FreeFire.jpeg", "platform": "Mobile", "team_size": "4-Player Squads", "category": "Battle Royale", "player_id_label": "IGN / UID", "requires_game_id": true}, "PUBG": {"code": "PUBG", "name": "PlayerUnknown's Battlegrounds", "slug": "pubg", "card_image": "img/game_cards/PUBG.jpeg", "platform": "PC, Mobile, Console", "team_size": "4-Player Squads", "category": "Battle Royale", "player_id_label": "IGN / UID", "requires_game_id": true}}
+</script>
+
+
+    </main>
+
+    
+    
+    
+    <div id="dc-toasts" class="fixed bottom-4 right-4 z-[60] flex flex-col gap-3"></div>
+
+
+    <!-- Site JS -->
+    <script src="/static/siteui/js/theme.js"></script>
+    <script src="/static/siteui/js/esports-theme-toggle.js"></script>
+    <script src="/static/siteui/js/notifications.js?v=2"></script>
+    <script src="/static/siteui/js/components.js"></script>
+    <script src="/static/siteui/js/motion.js"></script>
+    <script src="/static/siteui/js/tournaments.js"></script>
+    <script src="/static/siteui/js/tournaments-list.js"></script>
+    <script src="/static/siteui/js/teams.js"></script>
+    <script src="/static/siteui/js/auth.js"></script>
+    <script src="/static/siteui/js/micro.js"></script>
+    <script src="/static/siteui/js/navigation-unified.js"></script>
+    <script src="/static/siteui/js/reg_wizard.js"></script>
+
+    
+
+    
+    
+<script src="/static/teams/js/team-create.js"></script>
+
+  </body>
+</html>

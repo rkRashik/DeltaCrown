@@ -1,0 +1,156 @@
+﻿python : WARNING 2025-11-19 05:56:29,153 
+apps.tournaments.services.certificate_service certificate_service 
+22280 18460 Bengali font not found at G:\My Projects\WORK\DeltaCrown
+\staticfiles\fonts\NotoSansBengali-Regular.ttf. Bengali text will 
+fall back to standard font. See static/fonts/README.md for 
+installation instructions.
+At line:1 char:139
++ ... own.settings"; python scripts\test_team_create_wizard.py 2>&1 
+| Out-F ...
++                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (WARNING 2025-11...n in 
+   structions.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+INFO 2025-11-19 05:56:29,193 apps.core.events __init__ 22280 18460 
+\U0001f680 Initializing Event Bus
+INFO 2025-11-19 05:56:29,193 apps.core.registry __init__ 22280 
+18460 \U0001f680 Initializing Service Registry
+INFO 2025-11-19 05:56:29,193 apps.core.plugins __init__ 22280 18460 
+\U0001f50d Discovering game plugins...
+INFO 2025-11-19 05:56:29,193 apps.core.plugins __init__ 22280 18460 
+\U0001f3ae Plugin discovery complete: 0 plugins loaded
+INFO 2025-11-19 05:56:29,206 apps.core.registry __init__ 22280 
+18460 \U0001f4dd Registered service: tournament_provider v1.0 ()
+INFO 2025-11-19 05:56:29,206 apps.core.registry __init__ 22280 
+18460 \U0001f4dd Registered service: game_config_provider v1.0 ()
+INFO 2025-11-19 05:56:29,206 apps.core.apps apps 22280 18460 \u2705 
+Registered tournament and game config providers
+INFO 2025-11-19 05:56:29,206 apps.core.apps apps 22280 18460 
+DeltaCrown Core Infrastructure initialized
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: populate_team_ci_fields \u2192 team.created 
+(priority: 10)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: populate_team_ci_fields_on_update \u2192 
+team.updated (priority: 10)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: update_team_points_on_member_added \u2192 
+team.member_joined (priority: 20)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_roster_change_added \u2192 
+team.member_joined (priority: 50)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: update_team_points_on_member_removed \u2192 
+team.member_left (priority: 20)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_roster_change_removed \u2192 
+team.member_left (priority: 50)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: recalculate_all_teams_on_criteria_change 
+\u2192 team.ranking_criteria_changed (priority: 10)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: award_tournament_participation_points \u2192 
+registration.created (priority: 30)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: award_achievement_points \u2192 
+team.achievement_earned (priority: 20)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_achievement_earned \u2192 
+team.achievement_earned (priority: 50)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_team_invite_sent \u2192 
+team.invite_sent (priority: 50)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_team_invite_accepted \u2192 
+team.invite_accepted (priority: 50)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_sponsor_approved \u2192 
+team.sponsor_approved (priority: 50)
+INFO 2025-11-19 05:56:29,206 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_promotion_started \u2192 
+team.promotion_started (priority: 50)
+INFO 2025-11-19 05:56:29,206 apps.teams.events __init__ 22280 18460 
+\U0001f4e2 Registered team event handlers
+INFO 2025-11-19 05:56:29,206 apps.teams.apps apps 22280 18460 
+\u2705 Team event handlers registered
+INFO 2025-11-19 05:56:29,283 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: ensure_user_profile \u2192 user.created 
+(priority: 10)
+INFO 2025-11-19 05:56:29,283 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: ensure_user_profile_on_update \u2192 
+user.updated (priority: 10)
+INFO 2025-11-19 05:56:29,283 apps.user_profile.events events 22280 
+18460 \U0001f4e2 Registered user profile event handlers
+INFO 2025-11-19 05:56:29,283 apps.user_profile.apps apps 22280 
+18460 \u2705 User profile event handlers registered
+INFO 2025-11-19 05:56:29,285 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_registration_confirmed \u2192 
+registration.confirmed (priority: 50)
+INFO 2025-11-19 05:56:29,285 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_match_scheduled \u2192 
+match.scheduled (priority: 50)
+INFO 2025-11-19 05:56:29,285 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: notify_result_verified \u2192 
+match.result_verified (priority: 50)
+INFO 2025-11-19 05:56:29,285 apps.notifications.events __init__ 
+22280 18460 \U0001f4e2 Registered notification event handlers
+INFO 2025-11-19 05:56:29,285 apps.notifications.apps apps 22280 
+18460 \u2705 Notification event handlers registered
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: increment_like_count \u2192 post.liked 
+(priority: 20)
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: decrement_like_count \u2192 post.unliked 
+(priority: 20)
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: increment_comment_count \u2192 
+post.commented (priority: 20)
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: decrement_comment_count \u2192 
+post.comment_deleted (priority: 20)
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: increment_share_count \u2192 post.shared 
+(priority: 20)
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: decrement_share_count \u2192 post.unshared 
+(priority: 20)
+INFO 2025-11-19 05:56:29,287 apps.siteui.events events 22280 18460 
+\U0001f4e2 Registered site UI event handlers
+INFO 2025-11-19 05:56:29,287 apps.siteui.apps apps 22280 18460 
+\u2705 Site UI event handlers registered
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: sync_user_on_group_change \u2192 
+user.groups_changed (priority: 10)
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: sync_user_on_created \u2192 user.created 
+(priority: 10)
+INFO 2025-11-19 05:56:29,287 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: sync_user_on_updated \u2192 user.updated 
+(priority: 10)
+INFO 2025-11-19 05:56:29,290 apps.core.events __init__ 22280 18460 
+\U0001f4dd Subscribed: delete_auth_shadow \u2192 user.deleted 
+(priority: 10)
+INFO 2025-11-19 05:56:29,290 apps.accounts.events events 22280 
+18460 \U0001f4e2 Registered accounts event handlers
+INFO 2025-11-19 05:56:29,290 apps.accounts.apps apps 22280 18460 
+\u2705 Accounts event handlers registered
+INFO 2025-11-19 05:56:29,766 deltacrown.requests logging 22280 
+18460 Request completed: GET /teams/create/
+Traceback (most recent call last):
+  File "G:\My 
+Projects\WORK\DeltaCrown\scripts\test_team_create_wizard.py", line 
+135, in <module>
+    test_team_create_wizard()
+  File "G:\My 
+Projects\WORK\DeltaCrown\scripts\test_team_create_wizard.py", line 
+42, in test_team_create_wizard
+    print("\u2713 Test 1 passed: Login required for unauthenticated 
+users")
+  File "C:\Users\rkras\AppData\Local\Programs\Python\Python311\Lib\e
+ncodings\cp1252.py", line 19, in encode
+    return 
+codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u2713' 
+in position 0: character maps to <undefined>
