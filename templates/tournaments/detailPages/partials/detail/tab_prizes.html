@@ -1,10 +1,88 @@
-{# Prizes Tab Placeholder #}
-{# Purpose: Display prize pool breakdown #}
-{# Content: Total prize banner, podium, full breakdown table #}
+{# Prizes Tab - Prize Pool + DeltaCoin + Distribution #}
+{# Purpose: Display prize distribution with visual presentation #}
+{# Content: Total prize banner, distribution info, fee waiver #}
 
 <section class="detail-tab-panel td-tab-panel" data-tab="prizes">
-    <div class="td-card">
-        <h2 class="td-section-title">Prize Pool</h2>
-        <p class="td-empty-state">Prize information coming soon.</p>
+    <div class="td-prizes-main">
+        
+        {% if tournament.prize_pool or tournament.prize_deltacoin %}
+            
+            {# Total Prize Pool Banner #}
+            <div class="td-prize-summary">
+                <div class="td-prize-summary-icon">🏆</div>
+                <div class="td-prize-summary-content">
+                    <h2 class="td-prize-summary-title">Total Prize Pool</h2>
+                    <div class="td-prize-summary-amount">
+                        {% if tournament.prize_pool and tournament.prize_pool > 0 %}
+                        <span class="td-prize-cash" data-amount="{{ tournament.prize_pool }}">
+                            {{ tournament.prize_pool|floatformat:0 }} {{ tournament.prize_currency|default:"BDT" }}
+                        </span>
+                        {% endif %}
+                        
+                        {% if tournament.prize_deltacoin and tournament.prize_deltacoin > 0 %}
+                        {% if tournament.prize_pool and tournament.prize_pool > 0 %}
+                        <span class="td-prize-plus">+</span>
+                        {% endif %}
+                        <span class="td-prize-deltacoin" data-amount="{{ tournament.prize_deltacoin }}">
+                            {{ tournament.prize_deltacoin }} <span class="td-deltacoin-symbol">Δ</span>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {# Fee Waiver Banner (if enabled) #}
+            {% if tournament.enable_fee_waiver and tournament.fee_waiver_top_n_teams %}
+            <div class="td-fee-waiver-banner">
+                <svg class="td-waiver-icon" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+                <div class="td-waiver-text">
+                    <strong>Fee Waiver Available:</strong> 
+                    Top {{ tournament.fee_waiver_top_n_teams }} ranked teams can enter this tournament for free.
+                </div>
+            </div>
+            {% endif %}
+            
+            {# Prize Distribution Info #}
+            {% if tournament.prize_distribution %}
+            <div class="td-prize-distribution-section">
+                <h3 class="td-subsection-title">📊 Prize Distribution</h3>
+                <div class="td-prize-info-card">
+                    <p class="td-prize-info-text">
+                        Prizes will be distributed based on final tournament rankings. 
+                        Detailed breakdown: {{ tournament.prize_distribution }}
+                    </p>
+                </div>
+            </div>
+            {% else %}
+            {# Prize pool exists but no distribution #}
+            <div class="td-prize-distribution-pending">
+                <div class="td-pending-icon">⏳</div>
+                <h3 class="td-pending-title">Distribution Details Coming Soon</h3>
+                <p class="td-pending-message">The detailed prize breakdown will be announced before the tournament begins.</p>
+            </div>
+            {% endif %}
+            
+            {# DeltaCoin Info Note #}
+            {% if tournament.prize_deltacoin %}
+            <div class="td-deltacoin-info">
+                <div class="td-info-icon">💎</div>
+                <div class="td-info-content">
+                    <strong>About DeltaCoins (Δ):</strong> DeltaCoins are the official currency of DeltaCrown platform. 
+                    They can be used for tournament entries, shop items, and exclusive features.
+                </div>
+            </div>
+            {% endif %}
+            
+        {% else %}
+            {# No prize pool configured #}
+            <div class="td-prizes-empty">
+                <div class="td-empty-icon">🏆</div>
+                <h3 class="td-empty-title">Prize Pool Not Yet Announced</h3>
+                <p class="td-empty-message">Prize information will be published soon. Check back later or follow tournament updates for announcements.</p>
+            </div>
+        {% endif %}
+        
     </div>
 </section>

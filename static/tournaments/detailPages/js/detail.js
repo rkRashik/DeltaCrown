@@ -172,8 +172,75 @@ function initializeCountdowns() {
  * Animates prize pool and other numeric displays
  */
 function initializeCounters() {
-    // Number counter animation logic will be added here when prize pool is implemented
-    console.log('[Detail] Counter animation initialization placeholder');
+    // Animate prize amounts on Prizes tab
+    const prizeElements = document.querySelectorAll('[data-amount]');
+    
+    if (prizeElements.length === 0) {
+        console.log('[Detail] No counter elements found');
+        return;
+    }
+    
+    // Check if Prizes tab is visible
+    const prizesTab = document.querySelector('[data-tab="prizes"]');
+    if (!prizesTab || !prizesTab.classList.contains('is-active')) {
+        // Set up observer to animate when tab becomes active
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.target.classList.contains('is-active')) {
+                    animatePrizeCounters();
+                    observer.disconnect();
+                }
+            });
+        });
+        
+        if (prizesTab) {
+            observer.observe(prizesTab, { attributes: true, attributeFilter: ['class'] });
+        }
+        return;
+    }
+    
+    // Tab is already active, animate immediately
+    animatePrizeCounters();
+}
+
+/**
+ * Animate prize counter numbers
+ */
+function animatePrizeCounters() {
+    const prizeElements = document.querySelectorAll('[data-amount]');
+    
+    prizeElements.forEach(element => {
+        const targetAmount = parseFloat(element.getAttribute('data-amount'));
+        if (isNaN(targetAmount)) return;
+        
+        const duration = 1500; // 1.5 seconds
+        const startTime = performance.now();
+        
+        function updateCounter(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing function (ease-out cubic)
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const currentValue = Math.floor(targetAmount * eased);
+            
+            // Update the text content (preserve the rest of the HTML)
+            const currentText = element.textContent;
+            const numberMatch = currentText.match(/[\d,]+/);
+            if (numberMatch) {
+                const formattedValue = currentValue.toLocaleString();
+                element.textContent = currentText.replace(/[\d,]+/, formattedValue);
+            }
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            }
+        }
+        
+        requestAnimationFrame(updateCounter);
+    });
+    
+    console.log(`[Detail] Animated ${prizeElements.length} prize counter(s)`);
 }
 
 /**
