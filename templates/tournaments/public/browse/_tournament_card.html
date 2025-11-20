@@ -6,22 +6,29 @@ Purpose: Display tournament info in a card format
 Props: tournament (Tournament model instance)
 {% endcomment %}
 
-<article class="tournament-card bg-surface border border-line rounded-xl overflow-hidden hover:border-primary transition-all duration-300 hover:shadow-lg">
-  <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="block">
+<article class="tournament-card bg-surface border border-line rounded-xl overflow-hidden hover:border-primary transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group">
+  <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="block h-full flex flex-col">
     <!-- Tournament Banner/Header -->
-    <div class="tournament-card-header relative h-40 bg-gradient-to-br from-primary/20 to-accent/20 overflow-hidden">
+    <div class="tournament-card-header relative h-48 bg-gradient-to-br from-primary/20 to-accent/20 overflow-hidden">
       {% if tournament.banner_image %}
         <img 
           src="{{ tournament.banner_image.url }}" 
           alt="{{ tournament.name }}" 
-          class="w-full h-full object-cover"
+          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
         >
+        <div class="absolute inset-0 bg-gradient-to-t from-body/80 to-transparent"></div>
+      {% else %}
+        <!-- Default gradient background -->
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/30 via-accent/20 to-primary/30"></div>
+        <div class="absolute inset-0 flex items-center justify-center opacity-10">
+          <i class="fas fa-trophy text-9xl"></i>
+        </div>
       {% endif %}
       
       <!-- Game Badge (overlay) -->
       <div class="absolute top-3 left-3">
         {% if tournament.game %}
-          <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-surface/90 backdrop-blur">
+          <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-body/90 backdrop-blur-md border border-line shadow-lg">
             <i class="fas fa-gamepad mr-1.5 text-primary"></i>
             {{ tournament.game.name }}
           </span>
@@ -32,88 +39,125 @@ Props: tournament (Tournament model instance)
       <div class="absolute top-3 right-3">
         {% include "tournaments/public/browse/_status_pill.html" with status=tournament.status %}
       </div>
+
+      <!-- Entry Fee Badge (bottom left) -->
+      {% if tournament.entry_fee_amount %}
+        <div class="absolute bottom-3 left-3">
+          <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-warning/90 backdrop-blur-md text-white shadow-lg">
+            <i class="fas fa-coins mr-1.5"></i>
+            ৳{{ tournament.entry_fee_amount|floatformat:0 }}
+          </span>
+        </div>
+      {% else %}
+        <div class="absolute bottom-3 left-3">
+          <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-success/90 backdrop-blur-md text-white shadow-lg">
+            <i class="fas fa-gift mr-1.5"></i>
+            FREE
+          </span>
+        </div>
+      {% endif %}
     </div>
 
     <!-- Tournament Info -->
-    <div class="tournament-card-body p-4">
+    <div class="tournament-card-body p-5 flex-1 flex flex-col">
       <!-- Tournament Name -->
-      <h3 class="text-lg font-bold text-primary mb-2 line-clamp-2">
+      <h3 class="text-lg font-bold text-primary mb-3 line-clamp-2 group-hover:text-accent transition-colors">
         {{ tournament.name }}
       </h3>
 
       <!-- Key Info Grid -->
-      <div class="tournament-card-info grid grid-cols-2 gap-3 text-sm text-body-secondary mb-4">
+      <div class="tournament-card-info space-y-2.5 text-sm mb-4 flex-1">
         <!-- Format -->
-        <div class="flex items-center gap-2">
-          <i class="fas fa-trophy text-accent"></i>
-          <span>{{ tournament.get_format_display|default:"Tournament" }}</span>
+        <div class="flex items-center gap-2.5 text-body-secondary">
+          <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-sitemap text-primary text-sm"></i>
+          </div>
+          <div class="flex-1">
+            <div class="text-xs text-body-secondary/70">Format</div>
+            <div class="font-medium text-body">{{ tournament.get_format_display|default:"Tournament" }}</div>
+          </div>
         </div>
 
         <!-- Date -->
-        <div class="flex items-center gap-2">
-          <i class="fas fa-calendar text-accent"></i>
-          <span>{{ tournament.tournament_start|date:"M d, Y" }}</span>
+        <div class="flex items-center gap-2.5 text-body-secondary">
+          <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-calendar text-accent text-sm"></i>
+          </div>
+          <div class="flex-1">
+            <div class="text-xs text-body-secondary/70">Start Date</div>
+            <div class="font-medium text-body">{{ tournament.tournament_start|date:"M d, Y" }}</div>
+          </div>
         </div>
 
-        <!-- Prize Pool (if configured) -->
-        {% if tournament.prize_pool %}
-        <div class="flex items-center gap-2">
-          <i class="fas fa-coins text-accent"></i>
-          <span>৳{{ tournament.prize_pool|floatformat:0 }}</span>
-        </div>
-        {% else %}
-        <div class="flex items-center gap-2">
-          <i class="fas fa-gift text-accent"></i>
-          <span>Free Entry</span>
-        </div>
-        {% endif %}
-
-        <!-- Slots -->
-        <div class="flex items-center gap-2">
-          <i class="fas fa-users text-accent"></i>
-          {% if tournament.registration_count %}
-            <span>{{ tournament.registration_count }}/{{ tournament.max_participants }} Players</span>
-          {% else %}
-            <span>0/{{ tournament.max_participants }} Players</span>
-          {% endif %}
+        <!-- Prize Pool -->
+        <div class="flex items-center gap-2.5 text-body-secondary">
+          <div class="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-trophy text-warning text-sm"></i>
+          </div>
+          <div class="flex-1">
+            <div class="text-xs text-body-secondary/70">Prize Pool</div>
+            <div class="font-bold text-warning">
+              {% if tournament.prize_pool %}
+                ৳{{ tournament.prize_pool|floatformat:0 }}
+              {% else %}
+                To Be Announced
+              {% endif %}
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Progress Bar (slots filled) -->
-      <div class="slots-progress mb-3">
-        <div class="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
-          {% if tournament.registration_count and tournament.max_participants %}
-            {% widthratio tournament.registration_count tournament.max_participants 100 as slots_percent %}
-            <div 
-              class="h-full rounded-full transition-all duration-300
-                {% if slots_percent >= 90 %}bg-danger{% elif slots_percent >= 70 %}bg-warning{% else %}bg-primary{% endif %}
-              "
-              style="width: {{ slots_percent }}%"
-            ></div>
-          {% else %}
-            <div class="h-full rounded-full bg-primary transition-all duration-300" style="width: 0%"></div>
-          {% endif %}
+      <!-- Slots Progress -->
+      <div class="mb-4">
+        <div class="flex items-center justify-between text-xs text-body-secondary mb-2">
+          <span class="flex items-center gap-1.5">
+            <i class="fas fa-users text-primary"></i>
+            Participants
+          </span>
+          <span class="font-semibold">
+            {% if tournament.registration_count %}
+              {{ tournament.registration_count }}
+            {% else %}
+              0
+            {% endif %}
+            /{{ tournament.max_participants }}
+          </span>
+        </div>
+        <div class="slots-progress">
+          <div class="w-full bg-surface-elevated rounded-full h-2 overflow-hidden">
+            {% if tournament.registration_count and tournament.max_participants %}
+              {% widthratio tournament.registration_count tournament.max_participants 100 as slots_percent %}
+              <div 
+                class="h-full rounded-full transition-all duration-300
+                  {% if slots_percent >= 90 %}bg-danger{% elif slots_percent >= 70 %}bg-warning{% else %}bg-primary{% endif %}
+                "
+                style="width: {{ slots_percent }}%"
+              ></div>
+            {% else %}
+              <div class="h-full rounded-full bg-primary/30 transition-all duration-300" style="width: 0%"></div>
+            {% endif %}
+          </div>
         </div>
       </div>
 
       <!-- CTA Button -->
-      <div class="tournament-card-cta">
+      <div class="tournament-card-cta mt-auto">
         {% if tournament.status == 'registration_open' %}
-          <button class="w-full px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-hover transition-colors">
-            Register Now
-          </button>
+          <div class="w-full px-4 py-3 bg-gradient-to-r from-primary to-accent text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 text-center group-hover:scale-105">
+            <i class="fas fa-user-plus mr-2"></i>Register Now
+          </div>
         {% elif tournament.status == 'live' %}
-          <button class="w-full px-4 py-2 bg-accent text-white rounded-lg font-medium hover:bg-accent-hover transition-colors">
-            View Live
-          </button>
+          <div class="w-full px-4 py-3 bg-gradient-to-r from-success to-accent text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 text-center group-hover:scale-105">
+            <i class="fas fa-bolt mr-2"></i>Watch Live
+          </div>
         {% elif tournament.status == 'completed' %}
-          <button class="w-full px-4 py-2 bg-surface-elevated text-body-secondary rounded-lg font-medium hover:bg-surface transition-colors">
-            View Results
-          </button>
+          <div class="w-full px-4 py-3 bg-surface-elevated text-body-secondary rounded-lg font-semibold hover:bg-surface transition-colors text-center border border-line">
+            <i class="fas fa-chart-bar mr-2"></i>View Results
+          </div>
         {% else %}
-          <button class="w-full px-4 py-2 bg-surface-elevated text-body-secondary rounded-lg font-medium cursor-not-allowed" disabled>
-            Coming Soon
-          </button>
+          <div class="w-full px-4 py-3 bg-surface-elevated text-body-secondary rounded-lg font-medium text-center border border-line cursor-not-allowed opacity-60">
+            <i class="fas fa-clock mr-2"></i>Coming Soon
+          </div>
         {% endif %}
       </div>
     </div>

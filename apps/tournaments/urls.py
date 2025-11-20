@@ -25,6 +25,10 @@ Sprint 5 Frontend Implementation (November 16, 2025):
 - Check-In Status Polling (/tournaments/<slug>/check-in-status/)
 - Roster View (/tournaments/<slug>/roster/)
 
+Sprint 8 Frontend Implementation (November 20, 2025):
+- FE-T-014: Match Result Submission (/tournaments/<slug>/matches/<id>/submit-result/)
+- FE-T-016: Dispute Submission (/tournaments/<slug>/matches/<id>/report-dispute/)
+
 Backend APIs:
 - Admin panel: /admin/tournaments/ (Django admin)
 - API endpoints: /api/tournaments/ (Module 3.1)
@@ -56,6 +60,40 @@ from apps.tournaments.views.leaderboard import (
     TournamentLeaderboardView,
 )
 from apps.tournaments.views import checkin
+from apps.tournaments.views.result_submission import (
+    SubmitResultView,
+    report_dispute,
+)
+from apps.tournaments.views.group_stage import (
+    GroupConfigurationView,
+    GroupDrawView,
+    GroupStandingsView,
+)
+from apps.tournaments.views.lobby import (
+    TournamentLobbyView,
+    CheckInView,
+    LobbyRosterAPIView,
+    LobbyAnnouncementsAPIView,
+)
+from apps.tournaments.views.spectator import (
+    PublicSpectatorView,
+)
+from apps.tournaments.views.organizer_results import (
+    PendingResultsView,
+    confirm_match_result,
+    reject_match_result,
+    override_match_result,
+)
+from apps.tournaments.views.dispute_resolution import (
+    resolve_dispute as resolve_dispute_view,
+    update_dispute_status as update_dispute_status_view,
+)
+from apps.tournaments.views.disputes_management import (
+    DisputeManagementView,
+)
+from apps.tournaments.views.health_metrics import (
+    TournamentHealthMetricsView,
+)
 from apps.tournaments.views.organizer import (
     OrganizerDashboardView,
     OrganizerTournamentDetailView,
@@ -65,10 +103,23 @@ from apps.tournaments.views.organizer import (
     verify_payment,
     reject_payment,
     toggle_checkin,
-    update_dispute_status,
-    resolve_dispute,
     submit_match_score,
     create_tournament,
+    # FE-T-022: Participant Management
+    bulk_approve_registrations,
+    bulk_reject_registrations,
+    disqualify_participant,
+    export_roster_csv,
+    # FE-T-023: Payment Management
+    bulk_verify_payments,
+    process_refund,
+    export_payments_csv,
+    payment_history,
+    # FE-T-024: Match Management
+    reschedule_match,
+    forfeit_match,
+    override_match_score,
+    cancel_match,
 )
 
 app_name = 'tournaments'
@@ -83,15 +134,45 @@ urlpatterns = [
     path('organizer/<slug:slug>/', OrganizerHubView.as_view(), {'tab': 'overview'}, name='organizer_tournament_detail'),
     path('organizer/<slug:slug>/<str:tab>/', OrganizerHubView.as_view(), name='organizer_hub'),
     
+    # Organizer Result Management (FE-T-015)
+    path('organizer/<slug:slug>/pending-results/', PendingResultsView.as_view(), name='pending_results'),
+    path('organizer/<slug:slug>/confirm-result/<int:match_id>/', confirm_match_result, name='confirm_result'),
+    path('organizer/<slug:slug>/reject-result/<int:match_id>/', reject_match_result, name='reject_result'),
+    path('organizer/<slug:slug>/override-result/<int:match_id>/', override_match_result, name='override_result'),
+    
     # Organizer Hub Actions
     path('organizer/<slug:slug>/approve-registration/<int:registration_id>/', approve_registration, name='approve_registration'),
     path('organizer/<slug:slug>/reject-registration/<int:registration_id>/', reject_registration, name='reject_registration'),
     path('organizer/<slug:slug>/verify-payment/<int:payment_id>/', verify_payment, name='verify_payment'),
     path('organizer/<slug:slug>/reject-payment/<int:payment_id>/', reject_payment, name='reject_payment'),
     path('organizer/<slug:slug>/toggle-checkin/<int:registration_id>/', toggle_checkin, name='toggle_checkin'),
-    path('organizer/<slug:slug>/update-dispute/<int:dispute_id>/', update_dispute_status, name='update_dispute'),
-    path('organizer/<slug:slug>/resolve-dispute/<int:dispute_id>/', resolve_dispute, name='resolve_dispute'),
+    
+    # Organizer Dispute Resolution (FE-T-017 + FE-T-025)
+    path('organizer/<slug:slug>/disputes/manage/', DisputeManagementView.as_view(), name='disputes_manage'),
+    path('organizer/<slug:slug>/resolve-dispute/<int:dispute_id>/', resolve_dispute_view, name='resolve_dispute'),
+    path('organizer/<slug:slug>/update-dispute-status/<int:dispute_id>/', update_dispute_status_view, name='update_dispute_status'),
     path('organizer/<slug:slug>/submit-score/<int:match_id>/', submit_match_score, name='submit_match_score'),
+    
+    # Organizer Health Metrics (FE-T-026)
+    path('organizer/<slug:slug>/health/', TournamentHealthMetricsView.as_view(), name='health_metrics'),
+    
+    # FE-T-022: Participant Management Actions
+    path('organizer/<slug:slug>/bulk-approve-registrations/', bulk_approve_registrations, name='bulk_approve_registrations'),
+    path('organizer/<slug:slug>/bulk-reject-registrations/', bulk_reject_registrations, name='bulk_reject_registrations'),
+    path('organizer/<slug:slug>/disqualify/<int:registration_id>/', disqualify_participant, name='disqualify_participant'),
+    path('organizer/<slug:slug>/export-roster/', export_roster_csv, name='export_roster_csv'),
+    
+    # FE-T-023: Payment Management Actions
+    path('organizer/<slug:slug>/bulk-verify-payments/', bulk_verify_payments, name='bulk_verify_payments'),
+    path('organizer/<slug:slug>/refund-payment/<int:payment_id>/', process_refund, name='process_refund'),
+    path('organizer/<slug:slug>/export-payments/', export_payments_csv, name='export_payments_csv'),
+    path('organizer/<slug:slug>/registrations/<int:registration_id>/payment-history/', payment_history, name='payment_history'),
+    
+    # FE-T-024: Match Management Actions
+    path('organizer/<slug:slug>/reschedule-match/<int:match_id>/', reschedule_match, name='reschedule_match'),
+    path('organizer/<slug:slug>/forfeit-match/<int:match_id>/', forfeit_match, name='forfeit_match'),
+    path('organizer/<slug:slug>/override-score/<int:match_id>/', override_match_score, name='override_match_score'),
+    path('organizer/<slug:slug>/cancel-match/<int:match_id>/', cancel_match, name='cancel_match'),
     
     # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
@@ -115,6 +196,10 @@ urlpatterns = [
     # FE-T-018: Tournament Results Page
     path('<slug:slug>/results/', TournamentResultsView.as_view(), name='results'),
     
+    # Sprint 8: Match Result Submission & Disputes (FE-T-014, FE-T-016)
+    path('<slug:slug>/matches/<int:match_id>/submit-result/', SubmitResultView.as_view(), name='submit_result'),
+    path('<slug:slug>/matches/<int:match_id>/report-dispute/', report_dispute, name='report_dispute'),
+    
     # Sprint 4: Leaderboard & Standings
     # FE-T-010: Tournament Leaderboard Page
     path('<slug:slug>/leaderboard/', TournamentLeaderboardView.as_view(), name='leaderboard'),
@@ -124,6 +209,20 @@ urlpatterns = [
     path('<slug:slug>/check-in/', checkin.CheckInActionView.as_view(), name='check_in'),
     path('<slug:slug>/check-in-status/', checkin.CheckInStatusView.as_view(), name='check_in_status'),
     path('<slug:slug>/roster/', checkin.RosterView.as_view(), name='roster'),
+    
+    # Sprint 10: Group Stage Management (FE-T-011, FE-T-012, FE-T-013)
+    path('organizer/<slug:slug>/groups/configure/', GroupConfigurationView.as_view(), name='group_configure'),
+    path('organizer/<slug:slug>/groups/draw/', GroupDrawView.as_view(), name='group_draw'),
+    path('<slug:slug>/groups/standings/', GroupStandingsView.as_view(), name='group_standings'),
+    
+    # Sprint 10: Enhanced Tournament Lobby (FE-T-007)
+    path('<slug:slug>/lobby/v2/', TournamentLobbyView.as_view(), name='lobby_v2'),
+    path('<slug:slug>/lobby/check-in/', CheckInView.as_view(), name='lobby_check_in'),
+    path('api/<slug:slug>/lobby/roster/', LobbyRosterAPIView.as_view(), name='lobby_roster_api'),
+    path('api/<slug:slug>/lobby/announcements/', LobbyAnnouncementsAPIView.as_view(), name='lobby_announcements_api'),
+    
+    # Sprint 11: Public Spectator View (FE-T-006)
+    path('<slug:slug>/spectate/', PublicSpectatorView.as_view(), name='spectate'),
     
     # Legacy URL compatibility
     path('hub/', RedirectView.as_view(pattern_name='tournaments:list', permanent=True), name='hub'),

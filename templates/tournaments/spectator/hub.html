@@ -1,0 +1,451 @@
+{% extends "tournaments/base.html" %}
+{% load static %}
+
+{% block title %}{{ tournament.name }} - Live Spectator View{% endblock %}
+
+{% block extra_css %}
+<style>
+.spectator-container {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 30px 15px;
+}
+.spectator-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 50px 40px;
+    border-radius: 16px;
+    margin-bottom: 40px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+.spectator-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 15px;
+}
+.spectator-meta {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+}
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #dc3545;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 700;
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+.spectator-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 40px;
+    border-bottom: 3px solid #dee2e6;
+    padding-bottom: 0;
+    flex-wrap: wrap;
+}
+.spectator-tab {
+    padding: 16px 32px;
+    background: white;
+    border: none;
+    border-radius: 12px 12px 0 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #495057;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+.spectator-tab:hover {
+    background: #f8f9fa;
+    color: #007bff;
+}
+.spectator-tab.active {
+    background: #007bff;
+    color: white;
+    transform: translateY(3px);
+}
+.spectator-tab-icon {
+    font-size: 1.3rem;
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+.stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    text-align: center;
+    border-left: 4px solid #007bff;
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #212529;
+}
+.content-card {
+    background: white;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 30px;
+}
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #007bff;
+}
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #adb5bd;
+}
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+.cta-banner {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    margin-top: 40px;
+}
+.cta-banner h3 {
+    margin-bottom: 15px;
+}
+.cta-banner .btn {
+    background: white;
+    color: #28a745;
+    font-weight: 700;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="spectator-container">
+    <!-- Header -->
+    <div class="spectator-header">
+        <div class="spectator-title">
+            <i class="fas fa-tv me-3"></i>{{ tournament.name }}
+        </div>
+        <div class="spectator-meta">
+            {% if tournament.status == 'live' %}
+            <div class="live-indicator">
+                <i class="fas fa-circle"></i>
+                <span>LIVE NOW</span>
+            </div>
+            {% elif tournament.status == 'completed' %}
+            <div class="badge bg-secondary fs-5">
+                <i class="fas fa-flag-checkered me-2"></i>COMPLETED
+            </div>
+            {% endif %}
+            
+            <div class="meta-item">
+                <i class="fas fa-gamepad"></i>
+                <span>{{ tournament.game.name }}</span>
+            </div>
+            
+            <div class="meta-item">
+                <i class="fas fa-users"></i>
+                <span>{{ tournament.participants.count }} Participants</span>
+            </div>
+            
+            <div class="meta-item">
+                <i class="fas fa-trophy"></i>
+                <span>{{ tournament.prize_pool|default:"TBA" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Matches</div>
+            <div class="stat-value">{{ total_matches }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Completed</div>
+            <div class="stat-value text-success">{{ completed_matches }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Live Now</div>
+            <div class="stat-value text-danger">{{ live_matches }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" style="font-size: 1.5rem;">
+                {{ tournament.get_status_display|upper }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="spectator-nav">
+        <a href="?tab=bracket" class="spectator-tab {% if active_tab == 'bracket' %}active{% endif %}">
+            <span class="spectator-tab-icon">🏆</span>
+            <span>Bracket</span>
+        </a>
+        
+        {% if has_groups %}
+        <a href="?tab=groups" class="spectator-tab {% if active_tab == 'groups' %}active{% endif %}">
+            <span class="spectator-tab-icon">📊</span>
+            <span>Group Standings</span>
+        </a>
+        {% endif %}
+        
+        <a href="?tab=leaderboard" class="spectator-tab {% if active_tab == 'leaderboard' %}active{% endif %}">
+            <span class="spectator-tab-icon">🥇</span>
+            <span>Leaderboard</span>
+        </a>
+        
+        <a href="?tab=matches" class="spectator-tab {% if active_tab == 'matches' %}active{% endif %}">
+            <span class="spectator-tab-icon">⚔️</span>
+            <span>Matches</span>
+        </a>
+        
+        <a href="?tab=info" class="spectator-tab {% if active_tab == 'info' %}active{% endif %}">
+            <span class="spectator-tab-icon">ℹ️</span>
+            <span>Info</span>
+        </a>
+    </div>
+
+    <!-- Tab Content: Bracket -->
+    <div class="tab-content {% if active_tab == 'bracket' %}active{% endif %}" id="bracket-tab">
+        <div class="content-card">
+            <h2 class="section-title">Tournament Bracket</h2>
+            {% if has_bracket %}
+                {% include "tournaments/live/_bracket_viewer.html" %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🏆</div>
+                    <h4>Bracket Not Generated Yet</h4>
+                    <p>The tournament bracket will be available once the tournament starts.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab Content: Group Standings -->
+    {% if has_groups %}
+    <div class="tab-content {% if active_tab == 'groups' %}active{% endif %}" id="groups-tab">
+        <div class="content-card">
+            <h2 class="section-title">Group Stage Standings</h2>
+            {% include "tournaments/groups/_all_standings.html" %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tab Content: Leaderboard -->
+    <div class="tab-content {% if active_tab == 'leaderboard' %}active{% endif %}" id="leaderboard-tab">
+        <div class="content-card">
+            <h2 class="section-title">Tournament Leaderboard</h2>
+            {% if standings %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Participant</th>
+                            <th>Matches</th>
+                            <th>W/L</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for standing in standings %}
+                        <tr>
+                            <td><strong>{{ forloop.counter }}</strong></td>
+                            <td>
+                                {% if standing.user %}
+                                    {{ standing.user.username }}
+                                {% else %}
+                                    {{ standing.team.name }}
+                                {% endif %}
+                            </td>
+                            <td>{{ standing.matches_played }}</td>
+                            <td>{{ standing.wins }}/{{ standing.losses }}</td>
+                            <td><strong class="text-primary">{{ standing.points }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">🥇</div>
+                    <h4>No Standings Yet</h4>
+                    <p>Standings will be updated as matches are completed.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab Content: Matches -->
+    <div class="tab-content {% if active_tab == 'matches' %}active{% endif %}" id="matches-tab">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="content-card">
+                    <h2 class="section-title">Recent Results</h2>
+                    {% if recent_matches %}
+                        {% for match in recent_matches %}
+                        <div class="match-card mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>
+                                        {% if match.participant1.user %}{{ match.participant1.user.username }}{% else %}{{ match.participant1.team.name }}{% endif %}
+                                    </strong>
+                                    <span class="badge bg-primary ms-2">{{ match.participant1_score }}</span>
+                                </div>
+                                <span class="text-muted">vs</span>
+                                <div>
+                                    <span class="badge bg-primary me-2">{{ match.participant2_score }}</span>
+                                    <strong>
+                                        {% if match.participant2.user %}{{ match.participant2.user.username }}{% else %}{{ match.participant2.team.name }}{% endif %}
+                                    </strong>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-calendar me-1"></i>{{ match.completed_at|date:"M d, H:i" }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚔️</div>
+                            <p>No completed matches yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="content-card">
+                    <h2 class="section-title">Upcoming Matches</h2>
+                    {% if upcoming_matches %}
+                        {% for match in upcoming_matches %}
+                        <div class="match-card mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>
+                                        {% if match.participant1.user %}{{ match.participant1.user.username }}{% else %}{{ match.participant1.team.name }}{% endif %}
+                                    </strong>
+                                </div>
+                                <span class="text-muted">vs</span>
+                                <div>
+                                    <strong>
+                                        {% if match.participant2.user %}{{ match.participant2.user.username }}{% else %}{{ match.participant2.team.name }}{% endif %}
+                                    </strong>
+                                </div>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-clock me-1"></i>{{ match.scheduled_time|date:"M d, H:i" }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📅</div>
+                            <p>No upcoming matches scheduled.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content: Info -->
+    <div class="tab-content {% if active_tab == 'info' %}active{% endif %}" id="info-tab">
+        <div class="content-card">
+            <h2 class="section-title">Tournament Information</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-info-circle me-2"></i>Details</h5>
+                    <dl class="row">
+                        <dt class="col-sm-4">Format:</dt>
+                        <dd class="col-sm-8">{{ tournament.get_format_display }}</dd>
+                        
+                        <dt class="col-sm-4">Game:</dt>
+                        <dd class="col-sm-8">{{ tournament.game.name }}</dd>
+                        
+                        <dt class="col-sm-4">Start Date:</dt>
+                        <dd class="col-sm-8">{{ tournament.start_date|date:"M d, Y H:i" }}</dd>
+                        
+                        <dt class="col-sm-4">End Date:</dt>
+                        <dd class="col-sm-8">{{ tournament.end_date|date:"M d, Y H:i" }}</dd>
+                        
+                        <dt class="col-sm-4">Organizer:</dt>
+                        <dd class="col-sm-8">{{ tournament.organizer.username }}</dd>
+                    </dl>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-trophy me-2"></i>Prizes</h5>
+                    {% if tournament.prize_pool %}
+                        <p>{{ tournament.prize_pool }}</p>
+                    {% else %}
+                        <p class="text-muted">Prize pool information not available.</p>
+                    {% endif %}
+                    
+                    <h5 class="mt-4"><i class="fas fa-book me-2"></i>Rules</h5>
+                    {% if tournament.rules %}
+                        <div>{{ tournament.rules|linebreaks }}</div>
+                    {% else %}
+                        <p class="text-muted">Rules not published yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Banner for Non-Authenticated Users -->
+    {% if not user.is_authenticated %}
+    <div class="cta-banner">
+        <h3>Want to Participate in Tournaments?</h3>
+        <p class="mb-3">Join DeltaCrown to compete in exciting esports tournaments!</p>
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-lg">
+            <i class="fas fa-sign-in-alt me-2"></i>Login to Participate
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

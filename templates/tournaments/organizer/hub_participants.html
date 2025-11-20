@@ -5,20 +5,42 @@
     <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold">Participants Management</h2>
         
-        <!-- Filters -->
-        <div class="flex gap-4">
-            <select onchange="window.location.search='?status='+this.value" class="px-4 py-2 border rounded">
-                <option value="">All Statuses</option>
-                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
-                <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-                <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
-            </select>
-
-            <input type="search" placeholder="Search participants..." 
-                   value="{{ request.GET.search }}"
-                   onchange="window.location.search='?search='+this.value"
-                   class="px-4 py-2 border rounded">
+        <div class="flex gap-2">
+            <!-- FE-T-022: Export Roster -->
+            <a href="{% url 'tournaments:export_roster_csv' slug=tournament.slug %}" 
+               class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                <i class="fas fa-download"></i> Export CSV
+            </a>
+            
+            {% if can_manage %}
+            <!-- FE-T-022: Bulk Actions -->
+            <button onclick="bulkApprove()" 
+                    id="bulk-approve-btn"
+                    class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 hidden">
+                <i class="fas fa-check"></i> Approve Selected
+            </button>
+            <button onclick="bulkReject()" 
+                    id="bulk-reject-btn"
+                    class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 hidden">
+                <i class="fas fa-times"></i> Reject Selected
+            </button>
+            {% endif %}
         </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex gap-4 mb-6">
+        <select onchange="window.location.search='?status='+this.value" class="px-4 py-2 border rounded">
+            <option value="">All Statuses</option>
+            <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+            <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+
+        <input type="search" placeholder="Search participants..." 
+               value="{{ request.GET.search }}"
+               onchange="window.location.search='?search='+this.value"
+               class="px-4 py-2 border rounded">
     </div>
 
     <!-- Participants Table -->
@@ -26,6 +48,11 @@
         <table class="w-full">
             <thead>
                 <tr class="bg-gray-50 border-b">
+                    {% if can_manage %}
+                    <th class="px-4 py-3">
+                        <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                    </th>
+                    {% endif %}
                     <th class="px-4 py-3 text-left">Participant</th>
                     <th class="px-4 py-3 text-left">Team</th>
                     <th class="px-4 py-3 text-left">Status</th>
@@ -40,6 +67,11 @@
             <tbody>
                 {% for registration in registrations %}
                 <tr class="border-b hover:bg-gray-50">
+                    {% if can_manage %}
+                    <td class="px-4 py-3">
+                        <input type="checkbox" class="registration-checkbox" value="{{ registration.id }}">
+                    </td>
+                    {% endif %}
                     <td class="px-4 py-3">
                         <div>
                             <strong>{{ registration.user.username }}</strong>
@@ -96,6 +128,13 @@
                                     class="px-3 py-1 {% if registration.checked_in %}bg-gray-500{% else %}bg-blue-500{% endif %} text-white rounded hover:opacity-80">
                                 {% if registration.checked_in %}Undo{% else %}Check In{% endif %}
                             </button>
+                            
+                            <!-- FE-T-022: Disqualify Action -->
+                            <button onclick="disqualifyParticipant({{ registration.id }})" 
+                                    class="px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
+                                    title="Disqualify participant">
+                                <i class="fas fa-ban"></i>
+                            </button>
                             {% endif %}
                         </div>
                     </td>
@@ -103,7 +142,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                    <td colspan="{% if can_manage %}8{% else %}7{% endif %}" class="px-4 py-8 text-center text-gray-500">
                         No registrations found
                     </td>
                 </tr>
@@ -114,6 +153,127 @@
 </div>
 
 <script>
+// FE-T-022: Checkbox management for bulk actions
+function toggleSelectAll() {
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.registration-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateBulkActionButtons();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add listeners to all checkboxes
+    document.querySelectorAll('.registration-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkActionButtons);
+    });
+});
+
+function updateBulkActionButtons() {
+    const checked = document.querySelectorAll('.registration-checkbox:checked').length;
+    const approveBtn = document.getElementById('bulk-approve-btn');
+    const rejectBtn = document.getElementById('bulk-reject-btn');
+    
+    if (checked > 0) {
+        approveBtn.classList.remove('hidden');
+        rejectBtn.classList.remove('hidden');
+    } else {
+        approveBtn.classList.add('hidden');
+        rejectBtn.classList.add('hidden');
+    }
+}
+
+function getSelectedIds() {
+    const checkboxes = document.querySelectorAll('.registration-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+// FE-T-022: Bulk approve registrations
+function bulkApprove() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        alert('Please select registrations to approve');
+        return;
+    }
+    
+    if (!confirm(`Approve ${ids.length} registration(s)?`)) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/bulk-approve-registrations/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ registration_ids: ids })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+// FE-T-022: Bulk reject registrations
+function bulkReject() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        alert('Please select registrations to reject');
+        return;
+    }
+    
+    const reason = prompt('Rejection reason (optional):');
+    if (reason === null) return; // User cancelled
+    
+    if (!confirm(`Reject ${ids.length} registration(s)?`)) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/bulk-reject-registrations/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ registration_ids: ids, reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+// FE-T-022: Disqualify participant
+function disqualifyParticipant(id) {
+    const reason = prompt('Disqualification reason (required):');
+    if (!reason || reason.trim() === '') {
+        alert('Disqualification reason is required');
+        return;
+    }
+    
+    if (!confirm('Disqualify this participant? This action cannot be undone.')) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/disqualify/${id}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
 function approveRegistration(id) {
     if (!confirm('Approve this registration?')) return;
     

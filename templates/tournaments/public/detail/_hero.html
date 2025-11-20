@@ -5,7 +5,7 @@ FE-T-002: Tournament Detail Hero Section
 Purpose: Banner, name, game badge, status display
 {% endcomment %}
 
-<div class="tournament-hero relative overflow-hidden">
+<div class="tournament-hero relative overflow-hidden min-h-[400px] md:min-h-[500px]">
   <!-- Background Banner -->
   <div class="tournament-hero-bg absolute inset-0">
     {% if tournament.banner_url %}
@@ -14,31 +14,46 @@ Purpose: Banner, name, game badge, status display
         alt="{{ tournament.name }}" 
         class="w-full h-full object-cover"
       >
-      <div class="absolute inset-0 bg-gradient-to-t from-body via-body/50 to-transparent"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-body via-body/80 to-body/20"></div>
     {% else %}
-      <div class="w-full h-full bg-gradient-to-br from-primary/30 to-accent/30"></div>
+      <div class="w-full h-full bg-gradient-to-br from-primary/40 via-accent/30 to-primary/40"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-body via-body/60 to-transparent"></div>
     {% endif %}
+    <!-- Animated overlay pattern -->
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-20 left-20 w-64 h-64 rounded-full bg-primary blur-3xl animate-pulse"></div>
+      <div class="absolute bottom-20 right-20 w-80 h-80 rounded-full bg-accent blur-3xl animate-pulse delay-700"></div>
+    </div>
   </div>
 
   <!-- Hero Content -->
-  <div class="tournament-hero-content relative container mx-auto px-4 py-16">
+  <div class="tournament-hero-content relative container mx-auto px-4 py-12 md:py-16">
     <div class="max-w-4xl">
       <!-- Breadcrumbs -->
-      <nav class="mb-4" aria-label="Breadcrumb">
-        <ol class="flex items-center gap-2 text-sm text-body-secondary">
-          <li><a href="/" class="hover:text-primary transition-colors">Home</a></li>
-          <li><i class="fas fa-chevron-right text-xs"></i></li>
-          <li><a href="{% url 'tournaments:list' %}" class="hover:text-primary transition-colors">Tournaments</a></li>
-          <li><i class="fas fa-chevron-right text-xs"></i></li>
-          <li class="text-primary">{{ tournament.name|truncatewords:5 }}</li>
+      <nav class="mb-6" aria-label="Breadcrumb">
+        <ol class="flex items-center gap-2 text-sm">
+          <li>
+            <a href="/" class="text-body-secondary hover:text-primary transition-colors flex items-center gap-1">
+              <i class="fas fa-home"></i>
+              Home
+            </a>
+          </li>
+          <li class="text-body-secondary"><i class="fas fa-chevron-right text-xs"></i></li>
+          <li>
+            <a href="{% url 'tournaments:list' %}" class="text-body-secondary hover:text-primary transition-colors">
+              Tournaments
+            </a>
+          </li>
+          <li class="text-body-secondary"><i class="fas fa-chevron-right text-xs"></i></li>
+          <li class="text-primary font-medium">{{ tournament.name|truncatewords:5 }}</li>
         </ol>
       </nav>
 
       <!-- Game Badge & Status -->
-      <div class="flex flex-wrap items-center gap-3 mb-4">
+      <div class="flex flex-wrap items-center gap-3 mb-6">
         {% if tournament.game %}
-          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-surface/90 backdrop-blur">
-            <i class="fas fa-gamepad mr-2 text-primary"></i>
+          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-body/95 backdrop-blur-lg shadow-lg border border-line">
+            <i class="fas fa-gamepad mr-2 text-primary text-lg"></i>
             {{ tournament.game.name }}
           </span>
         {% endif %}
@@ -46,56 +61,63 @@ Purpose: Banner, name, game badge, status display
         {% include "tournaments/public/browse/_status_pill.html" with status=tournament.status %}
 
         {% if tournament.is_official %}
-          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-warning/20 text-warning border border-warning/30">
+          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-warning/90 backdrop-blur-lg text-white border-2 border-warning shadow-lg">
             <i class="fas fa-certificate mr-2"></i>
-            Official
+            Official Tournament
+          </span>
+        {% endif %}
+        
+        {% if tournament.is_featured %}
+          <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-accent/90 backdrop-blur-lg text-white border-2 border-accent shadow-lg">
+            <i class="fas fa-star mr-2"></i>
+            Featured
           </span>
         {% endif %}
       </div>
 
       <!-- Tournament Name -->
-      <h1 class="text-5xl font-bold text-primary mb-4">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 drop-shadow-2xl leading-tight">
         {{ tournament.name }}
       </h1>
 
       <!-- Key Info Bar -->
-      <div class="tournament-key-info grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-surface/90 backdrop-blur rounded-xl border border-line">
+      <div class="tournament-key-info grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-body/95 backdrop-blur-xl rounded-2xl border border-line shadow-2xl">
         <!-- Format -->
         <div class="text-center">
-          <div class="text-sm text-body-secondary mb-1">Format</div>
-          <div class="font-semibold text-primary">
-            <i class="fas fa-sitemap text-accent mr-1"></i>
+          <div class="text-xs text-body-secondary mb-2 uppercase tracking-wide">Format</div>
+          <div class="font-bold text-primary text-lg flex items-center justify-center gap-2">
+            <i class="fas fa-sitemap text-accent"></i>
             {{ tournament.get_format_display|default:"Tournament" }}
           </div>
         </div>
 
         <!-- Date -->
         <div class="text-center">
-          <div class="text-sm text-body-secondary mb-1">Start Date</div>
-          <div class="font-semibold text-primary">
-            <i class="fas fa-calendar text-accent mr-1"></i>
-            {{ tournament.tournament_start|date:"M d, Y" }}
+          <div class="text-xs text-body-secondary mb-2 uppercase tracking-wide">Start Date</div>
+          <div class="font-bold text-primary text-lg flex items-center justify-center gap-2">
+            <i class="fas fa-calendar text-accent"></i>
+            {{ tournament.tournament_start|date:"M d" }}
           </div>
         </div>
 
         <!-- Prize Pool -->
         <div class="text-center">
-          <div class="text-sm text-body-secondary mb-1">Prize Pool</div>
-          <div class="font-semibold text-primary">
-            <i class="fas fa-trophy text-accent mr-1"></i>
+          <div class="text-xs text-body-secondary mb-2 uppercase tracking-wide">Prize Pool</div>
+          <div class="font-bold text-warning text-xl flex items-center justify-center gap-2">
+            <i class="fas fa-trophy"></i>
             {% if tournament.prize_pool %}
               ৳{{ tournament.prize_pool|floatformat:0 }}
             {% else %}
-              Free
+              TBA
             {% endif %}
           </div>
         </div>
 
         <!-- Slots -->
         <div class="text-center">
-          <div class="text-sm text-body-secondary mb-1">Participants</div>
-          <div class="font-semibold text-primary">
-            <i class="fas fa-users text-accent mr-1"></i>
+          <div class="text-xs text-body-secondary mb-2 uppercase tracking-wide">Participants</div>
+          <div class="font-bold text-primary text-lg flex items-center justify-center gap-2">
+            <i class="fas fa-users text-accent"></i>
             {{ slots_filled }}/{{ slots_total }}
           </div>
         </div>

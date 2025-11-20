@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}{{ tournament.name }} - DeltaCrown Tournaments{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tournaments/css/tournament-detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="tournament-hero" 
+         data-tournament-slug="{{ tournament.slug }}"
+         data-game-slug="{{ tournament.game.slug }}"
+         data-status="{{ tournament.status }}"
+         data-is-registered="{% if is_registered %}true{% else %}false{% endif %}"
+         {% if tournament.lobby and tournament.lobby.check_in_opens_at %}data-check-in-opens="{{ tournament.lobby.check_in_opens_at.isoformat }}"{% endif %}
+         {% if tournament.lobby and tournament.lobby.check_in_closes_at %}data-check-in-closes="{{ tournament.lobby.check_in_closes_at.isoformat }}"{% endif %}
+         data-tournament-start="{{ tournament.tournament_start.isoformat }}"
+         {% if tournament.registration_end %}data-registration-end="{{ tournament.registration_end.isoformat }}"{% endif %}>
+    
+    <!-- Background Image -->
+    <div class="tournament-hero__bg">
+        {% if tournament.banner_image %}
+            <img src="{{ tournament.banner_image.url }}" 
+                 alt="{{ tournament.name }} Banner" 
+                 class="tournament-hero__bg-image">
+        {% else %}
+            <img src="{% static 'tournaments/img/default-banner.jpg' %}" 
+                 alt="Tournament Banner" 
+                 class="tournament-hero__bg-image">
+        {% endif %}
+    </div>
+    
+    <!-- Overlay & Glow -->
+    <div class="tournament-hero__overlay"></div>
+    <div class="tournament-hero__glow"></div>
+    
+    <!-- Content -->
+    <div class="tournament-hero__content">
+        <!-- Badges -->
+        <div class="tournament-hero__badges">
+            <!-- Status Badge -->
+            {% if tournament.status == 'live' %}
+                <span class="hero-badge hero-badge--live">
+                    <span class="badge-dot"></span>
+                    Live
+                </span>
+            {% elif tournament.status == 'registration_open' %}
+                <span class="hero-badge hero-badge--registration">
+                    🎫 Registration Open
+                </span>
+            {% elif tournament.status == 'published' or tournament.status == 'pending_approval' %}
+                <span class="hero-badge hero-badge--upcoming">
+                    📅 Upcoming
+                </span>
+            {% elif tournament.status == 'completed' %}
+                <span class="hero-badge">
+                    ✅ Completed
+                </span>
+            {% endif %}
+            
+            <!-- Official Badge -->
+            {% if tournament.is_official %}
+                <span class="hero-badge hero-badge--official">
+                    ⭐ Official
+                </span>
+            {% endif %}
+            
+            <!-- Game Badge -->
+            <span class="hero-badge">
+                {{ tournament.game.name }}
+            </span>
+        </div>
+        
+        <!-- Title & Subtitle -->
+        <h1 class="tournament-hero__title">{{ tournament.name }}</h1>
+        {% if tournament.description %}
+            <p class="tournament-hero__subtitle">{{ tournament.description|truncatewords:30 }}</p>
+        {% endif %}
+        
+        <!-- Quick Stats -->
+        <div class="tournament-hero__stats">
+            <!-- Prize Pool -->
+            {% if tournament.prize_pool %}
+                <div class="hero-stat">
+                    <div class="hero-stat__icon">💰</div>
+                    <div class="hero-stat__content">
+                        <div class="hero-stat__label">Prize Pool</div>
+                        <div class="hero-stat__value">
+                            {% if tournament.prize_currency %}
+                                {{ tournament.prize_pool|floatformat:0 }} {{ tournament.prize_currency }}
+                            {% endif %}
+                            {% if tournament.prize_deltacoin %}
+                                + {{ tournament.prize_deltacoin|intcomma }} DC
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Slots -->
+            <div class="hero-stat">
+                <div class="hero-stat__icon">👥</div>
+                <div class="hero-stat__content">
+                    <div class="hero-stat__label">Participants</div>
+                    <div class="hero-stat__value">{{ slots_filled }}/{{ slots_total }}</div>
+                </div>
+            </div>
+            
+            <!-- Format -->
+            <div class="hero-stat">
+                <div class="hero-stat__icon">🏆</div>
+                <div class="hero-stat__content">
+                    <div class="hero-stat__label">Format</div>
+                    <div class="hero-stat__value">{{ tournament.get_format_display }}</div>
+                </div>
+            </div>
+            
+            <!-- Date -->
+            <div class="hero-stat">
+                <div class="hero-stat__icon">📅</div>
+                <div class="hero-stat__content">
+                    <div class="hero-stat__label">Starts</div>
+                    <div class="hero-stat__value">{{ tournament.tournament_start|date:"M d, Y" }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Content -->
+<main class="tournament-main">
+    <div class="tournament-layout">
+        <!-- Left Column: Content -->
+        <div class="tournament-content">
+            <!-- Navigation Tabs -->
+            <nav class="tournament-nav">
+                <button class="tournament-nav__item" data-tab="overview">
+                    📖 Overview
+                </button>
+                <button class="tournament-nav__item" data-tab="details">
+                    ℹ️ Details
+                </button>
+                <button class="tournament-nav__item" data-tab="rules">
+                    📋 Rules
+                </button>
+                {% if announcements %}
+                    <button class="tournament-nav__item" data-tab="announcements">
+                        📢 Announcements <span style="background: var(--game-primary); color: var(--game-dark); padding: 0.25rem 0.5rem; border-radius: 1rem; font-size: 0.75rem; margin-left: 0.5rem;">{{ announcements|length }}</span>
+                    </button>
+                {% endif %}
+                {% if tournament.status == 'live' or tournament.status == 'completed' %}
+                    <button class="tournament-nav__item" data-tab="results">
+                        🏅 Results
+                    </button>
+                {% endif %}
+            </nav>
+            
+            <!-- Tab Content: Overview -->
+            <div class="tournament-section" data-tab-content="overview">
+                <div class="tournament-section__header">
+                    <h2 class="tournament-section__title">
+                        <span class="tournament-section__icon">📖</span>
+                        Overview
+                    </h2>
+                </div>
+                <div class="tournament-section__content">
+                    {% if tournament.description %}
+                        {{ tournament.description|linebreaks }}
+                    {% else %}
+                        <p>No description available.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Tab Content: Details -->
+            <div class="tournament-section hidden" data-tab-content="details">
+                <div class="tournament-section__header">
+                    <h2 class="tournament-section__title">
+                        <span class="tournament-section__icon">ℹ️</span>
+                        Tournament Details
+                    </h2>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-item__label">🎮 Game</div>
+                        <div class="info-item__value">{{ tournament.game.name }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">🏆 Format</div>
+                        <div class="info-item__value">{{ tournament.get_format_display }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">👥 Type</div>
+                        <div class="info-item__value">{{ tournament.get_participation_type_display }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">👤 Team Size</div>
+                        <div class="info-item__value">{{ tournament.game.default_team_size }}v{{ tournament.game.default_team_size }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">📅 Registration Opens</div>
+                        <div class="info-item__value">{{ tournament.registration_start|date:"M d, Y h:i A" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">📅 Registration Closes</div>
+                        <div class="info-item__value">{{ tournament.registration_end|date:"M d, Y h:i A" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">🚀 Tournament Start</div>
+                        <div class="info-item__value">{{ tournament.tournament_start|date:"M d, Y h:i A" }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">🏁 Tournament End</div>
+                        <div class="info-item__value">{{ tournament.tournament_end|date:"M d, Y h:i A" }}</div>
+                    </div>
+                    {% if tournament.has_entry_fee %}
+                        <div class="info-item">
+                            <div class="info-item__label">💵 Entry Fee</div>
+                            <div class="info-item__value">
+                                {% if tournament.entry_fee_amount %}
+                                    {{ tournament.entry_fee_amount|floatformat:0 }} {% if tournament.payment_methods and tournament.payment_methods.0 %}{{ tournament.payment_methods.0 }}{% else %}BDT{% endif %}
+                                {% endif %}
+                                {% if tournament.entry_fee_deltacoin %}
+                                    + {{ tournament.entry_fee_deltacoin|intcomma }} DC
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="info-item">
+                            <div class="info-item__label">💵 Entry Fee</div>
+                            <div class="info-item__value">Free</div>
+                        </div>
+                    {% endif %}
+                    <div class="info-item">
+                        <div class="info-item__label">📊 Max Participants</div>
+                        <div class="info-item__value">{{ tournament.max_participants }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">👤 Organizer</div>
+                        <div class="info-item__value">{{ tournament.organizer.username }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item__label">📍 Region</div>
+                        <div class="info-item__value">Global</div>
+                    </div>
+                </div>
+                
+                <!-- Prize Distribution -->
+                {% if tournament.prize_distribution %}
+                    <div class="tournament-section__header" style="margin-top: 2rem;">
+                        <h3 class="tournament-section__title">
+                            <span class="tournament-section__icon">💰</span>
+                            Prize Distribution
+                        </h3>
+                    </div>
+                    <table class="prize-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Prize</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rank, amount in tournament.prize_distribution.items %}
+                                <tr>
+                                    <td>
+                                        <div class="prize-rank">
+                                            {% if rank == '1' %}
+                                                <span class="prize-rank__icon gold">🥇</span>
+                                            {% elif rank == '2' %}
+                                                <span class="prize-rank__icon silver">🥈</span>
+                                            {% elif rank == '3' %}
+                                                <span class="prize-rank__icon bronze">🥉</span>
+                                            {% else %}
+                                                <span class="prize-rank__icon">🏅</span>
+                                            {% endif %}
+                                            #{{ rank }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="prize-amount">{{ amount|floatformat:2 }} {{ tournament.prize_currency }}</span>
+                                    </td>
+                                    <td>{{ amount|floatformat:1 }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+            
+            <!-- Tab Content: Rules -->
+            <div class="tournament-section hidden" data-tab-content="rules">
+                <div class="tournament-section__header">
+                    <h2 class="tournament-section__title">
+                        <span class="tournament-section__icon">📋</span>
+                        Tournament Rules
+                    </h2>
+                </div>
+                <div class="tournament-section__content">
+                    {% if tournament.rules %}
+                        {{ tournament.rules|linebreaks }}
+                    {% else %}
+                        <p>Standard tournament rules apply. Please contact the organizer for specific rules.</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Tab Content: Announcements -->
+            {% if announcements %}
+                <div class="tournament-section hidden" data-tab-content="announcements">
+                    <div class="tournament-section__header">
+                        <h2 class="tournament-section__title">
+                            <span class="tournament-section__icon">📢</span>
+                            Announcements
+                        </h2>
+                    </div>
+                    {% for announcement in announcements %}
+                        <div class="info-item" style="flex-direction: column; align-items: start; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; width: 100%; margin-bottom: 0.5rem;">
+                                <strong style="color: var(--text-primary);">
+                                    {% if announcement.is_pinned %}📌 {% endif %}
+                                    {{ announcement.title }}
+                                </strong>
+                                <span style="color: var(--text-muted); font-size: 0.875rem;">
+                                    {{ announcement.created_at|timesince }} ago
+                                </span>
+                            </div>
+                            <p style="color: var(--text-secondary); margin: 0;">{{ announcement.message }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Tab Content: Results -->
+            {% if tournament.status == 'live' or tournament.status == 'completed' %}
+                <div class="tournament-section hidden" data-tab-content="results">
+                    <div class="tournament-section__header">
+                        <h2 class="tournament-section__title">
+                            <span class="tournament-section__icon">🏅</span>
+                            Results
+                        </h2>
+                    </div>
+                    <div class="tournament-section__content text-center">
+                        {% if tournament.status == 'completed' %}
+                            <a href="{% url 'tournaments:results' tournament.slug %}" class="cta-button cta-button--primary" style="max-width: 300px; margin: 2rem auto;">
+                                <span>View Final Results</span>
+                            </a>
+                        {% else %}
+                            <p>Results will be available once the tournament is completed.</p>
+                            <a href="{% url 'tournaments:bracket' tournament.slug %}" class="cta-button cta-button--primary" style="max-width: 300px; margin: 2rem auto;">
+                                <span>View Live Bracket</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Column: Sidebar -->
+        <aside class="tournament-sidebar">
+            <!-- CTA Card -->
+            <div class="sidebar-card">
+                <h3 class="sidebar-card__title">🎮 Join Tournament</h3>
+                
+                <!-- Slots Progress -->
+                <div class="slots-progress">
+                    <div class="slots-progress__header">
+                        <span class="slots-progress__label">Available Slots</span>
+                        <span class="slots-progress__count">{{ slots_filled }}/{{ slots_total }}</span>
+                    </div>
+                    <div class="slots-progress__bar">
+                        <div class="slots-progress__fill {% if slots_percentage >= 100 %}slots-progress__fill--full{% endif %}" 
+                             style="width: {{ slots_percentage }}%;"></div>
+                    </div>
+                </div>
+                
+                <!-- Countdown -->
+                {% if tournament.status == 'registration_open' or tournament.status == 'published' %}
+                    {% if tournament.registration_end %}
+                        <div class="countdown" data-countdown="{{ tournament.registration_end.isoformat }}" data-countdown-id="registration">
+                            <div class="countdown__label">Registration Closes In</div>
+                            <div class="countdown__timer">
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-days>00</span>
+                                    <span class="countdown__unit-label">Days</span>
+                                </div>
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-hours>00</span>
+                                    <span class="countdown__unit-label">Hours</span>
+                                </div>
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-minutes>00</span>
+                                    <span class="countdown__unit-label">Mins</span>
+                                </div>
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-seconds>00</span>
+                                    <span class="countdown__unit-label">Secs</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% elif tournament.status == 'registration_closed' and tournament.enable_check_in %}
+                    {% if tournament.tournament_start %}
+                        <div class="countdown" data-countdown="{{ tournament.tournament_start.isoformat }}" data-countdown-id="checkin">
+                            <div class="countdown__label">Tournament Starts In</div>
+                            <div class="countdown__timer">
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-days>00</span>
+                                    <span class="countdown__unit-label">Days</span>
+                                </div>
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-hours>00</span>
+                                    <span class="countdown__unit-label">Hours</span>
+                                </div>
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-minutes>00</span>
+                                    <span class="countdown__unit-label">Mins</span>
+                                </div>
+                                <div class="countdown__unit">
+                                    <span class="countdown__value" data-countdown-seconds>00</span>
+                                    <span class="countdown__unit-label">Secs</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
+                <!-- CTA Button -->
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'account:login' %}?next={{ request.path }}" 
+                       class="cta-button cta-button--primary"
+                       data-cta-action="login">
+                        <span>Login to Register</span>
+                    </a>
+                {% elif is_registered %}
+                    {% if cta_state == 'check_in_required' %}
+                        <a href="{% url 'tournaments:participant_checkin' tournament.slug %}" 
+                       class="cta-button cta-button--primary"
+                       data-action="check-in">
+                            <span>✓ Check In Now</span>
+                        </a>
+                    {% elif cta_state == 'checked_in' %}
+                        <a href="{% url 'tournaments:lobby' tournament.slug %}" 
+                           class="cta-button cta-button--registered">
+                            <span>✓ Enter Lobby</span>
+                        </a>
+                    {% elif cta_state == 'payment_pending' %}
+                        <a href="{% url 'tournaments:register' tournament.slug %}" 
+                           class="cta-button cta-button--primary">
+                            <span>Complete Payment</span>
+                        </a>
+                    {% else %}
+                        <button class="cta-button cta-button--registered" disabled>
+                            <span>✓ Registered</span>
+                        </button>
+                    {% endif %}
+                {% elif can_register %}
+                    <a href="{% url 'tournaments:register' tournament.slug %}" 
+                       class="cta-button cta-button--primary"
+                       data-cta-action="register">
+                        <span>Register Now</span>
+                    </a>
+                {% else %}
+                    <button class="cta-button cta-button--disabled" disabled>
+                        <span>{{ cta_label }}</span>
+                    </button>
+                {% endif %}
+                
+                <!-- CTA Reason -->
+                {% if cta_reason and not is_registered %}
+                    <div class="cta-reason">{{ cta_reason }}</div>
+                {% endif %}
+                
+                <!-- Quick Actions -->
+                <div class="action-links">
+                    {% if tournament.status == 'live' %}
+                        <a href="{% url 'tournaments:bracket' tournament.slug %}" class="action-link" data-action="view-bracket">
+                            <span class="action-link__icon">🏆</span>
+                            <span class="action-link__label">View Bracket</span>
+                        </a>
+                    {% endif %}
+                    {% if is_registered and tournament.lobby %}
+                        <a href="{% url 'tournaments:lobby' tournament.slug %}" class="action-link">
+                            <span class="action-link__icon">🎮</span>
+                            <span class="action-link__label">Lobby</span>
+                        </a>
+                    {% endif %}
+                    {% if tournament.status == 'completed' %}
+                        <a href="{% url 'tournaments:results' tournament.slug %}" class="action-link">
+                            <span class="action-link__icon">🏅</span>
+                            <span class="action-link__label">Results</span>
+                        </a>
+                    {% endif %}
+                    <a href="#" class="action-link" data-action="share">
+                        <span class="action-link__icon">📤</span>
+                        <span class="action-link__label">Share</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Tournament Info Card -->
+            <div class="sidebar-card">
+                <h3 class="sidebar-card__title">ℹ️ Quick Info</h3>
+                <div class="quick-info">
+                    <div class="quick-info__item">
+                        <span class="quick-info__label">Organizer</span>
+                        <span class="quick-info__value">{{ tournament.organizer.username }}</span>
+                    </div>
+                    <div class="quick-info__item">
+                        <span class="quick-info__label">Format</span>
+                        <span class="quick-info__value">{{ tournament.get_format_display }}</span>
+                    </div>
+                    <div class="quick-info__item">
+                        <span class="quick-info__label">Type</span>
+                        <span class="quick-info__value">{{ tournament.get_participation_type_display }}</span>
+                    </div>
+                    <div class="quick-info__item">
+                        <span class="quick-info__label">Status</span>
+                        <span class="quick-info__value">{{ tournament.get_status_display }}</span>
+                    </div>
+                    {% if tournament.has_entry_fee %}
+                        <div class="quick-info__item">
+                            <span class="quick-info__label">Entry Fee</span>
+                            <span class="quick-info__value">
+                                {% if tournament.entry_fee_amount %}
+                                    {{ tournament.entry_fee_amount|floatformat:0 }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Organizer Management (if user is organizer) -->
+            {% if user == tournament.organizer %}
+                <div class="sidebar-card" style="border: 2px solid var(--game-primary);">
+                    <h3 class="sidebar-card__title">⚙️ Management</h3>
+                    <div class="action-links">
+                        <a href="{% url 'tournaments:organizer_hub' tournament.slug 'dashboard' %}" class="action-link">
+                            <span class="action-link__icon">📊</span>
+                            <span class="action-link__label">Dashboard</span>
+                        </a>
+                        <a href="{% url 'tournaments:pending_results' tournament.slug %}" class="action-link">
+                            <span class="action-link__icon">📝</span>
+                            <span class="action-link__label">Results</span>
+                        </a>
+                        <a href="{% url 'tournaments:disputes_manage' tournament.slug %}" class="action-link">
+                            <span class="action-link__icon">⚠️</span>
+                            <span class="action-link__label">Disputes</span>
+                        </a>
+                        <a href="{% url 'tournaments:health_metrics' tournament.slug %}" class="action-link">
+                            <span class="action-link__icon">💚</span>
+                            <span class="action-link__label">Health</span>
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </aside>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tournaments/js/tournament-detail.js' %}"></script>
+{% endblock %}

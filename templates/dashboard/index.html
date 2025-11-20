@@ -12,6 +12,41 @@
     </a>
   </div>
 
+  <!-- Check-in Reminders (FE-T-027: Dashboard Integration) -->
+  {% if checkin_reminders %}
+    {% for reminder in checkin_reminders %}
+      <div class="mb-6 p-4 rounded-xl bg-gradient-to-r from-accent/20 to-primary/20 border border-accent/30">
+        <div class="flex items-start gap-4">
+          <div class="w-12 h-12 rounded-lg bg-accent/30 flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-clipboard-check text-accent text-xl"></i>
+          </div>
+          <div class="flex-1">
+            <h3 class="font-semibold text-lg mb-1">Check-in Required</h3>
+            <p class="text-muted text-sm mb-3">
+              <strong>{{ reminder.tournament.name }}</strong> starts {{ reminder.tournament.tournament_start|timeuntil }}. 
+              Check-in {% if reminder.tournament.checkin_opens %}opens {{ reminder.tournament.checkin_opens|timeuntil }}{% else %}is now open{% endif %}.
+            </p>
+            <div class="flex items-center gap-3">
+              {% if reminder.has_checked_in %}
+                <span class="text-sm px-3 py-1.5 rounded-full bg-green-600/20 text-green-400 flex items-center gap-2">
+                  <i class="fas fa-check-circle"></i>
+                  Checked In
+                </span>
+              {% else %}
+                <a href="{% url 'tournaments:detail' reminder.tournament.slug %}" class="btn-sm bg-accent hover:bg-accent/80 text-white">
+                  <i class="fas fa-clipboard-check mr-1"></i>Check In Now
+                </a>
+              {% endif %}
+              <a href="{% url 'tournaments:detail' reminder.tournament.slug %}" class="btn-sm btn-secondary">
+                View Tournament
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% endif %}
+
   <div class="grid lg:grid-cols-3 gap-6 mt-2">
     <!-- My Teams -->
     <article class="glass p-6 rounded-2xl">
@@ -130,6 +165,92 @@
 
   <!-- Second Row: Tournaments & Payouts -->
   <div class="grid lg:grid-cols-2 gap-6 mt-6">
+    <!-- My Hosted Tournaments (FE-T-027: Organizer Dashboard Integration) -->
+    {% if hosted_tournaments %}
+    <article class="glass p-6 rounded-2xl border border-accent/30">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold flex items-center">
+          <i class="fas fa-crown mr-2 text-accent"></i>
+          My Hosted Tournaments
+        </h3>
+        <a href="{% url 'tournaments:list' %}?organizer={{ request.user.username }}" class="text-sm text-accent hover:underline">View All</a>
+      </div>
+      <ul class="grid gap-3">
+        {% for tournament in hosted_tournaments %}
+          <li class="p-3 rounded-lg hover:bg-white/5 transition border border-accent/20">
+            <div class="flex items-center justify-between mb-2">
+              <a href="{% url 'tournaments:organizer_hub' tournament.slug 'overview' %}" class="link-nav font-medium truncate flex-1">
+                {{ tournament.name }}
+              </a>
+              <span class="text-xs px-2 py-1 rounded-full ml-2 flex-shrink-0
+                {% if tournament.status == 'LIVE' %}bg-green-600/20 text-green-400
+                {% elif tournament.status == 'UPCOMING' %}bg-blue-600/20 text-blue-400
+                {% elif tournament.status == 'COMPLETED' %}bg-gray-600/20 text-gray-400
+                {% else %}bg-yellow-600/20 text-yellow-400{% endif %}">
+                {{ tournament.get_status_display }}
+              </span>
+            </div>
+            <div class="flex items-center gap-3 text-xs text-muted mb-2">
+              {% if tournament.game %}
+                <span class="px-2 py-0.5 rounded bg-accent/10 text-accent">{{ tournament.game.name }}</span>
+              {% endif %}
+              <span><i class="fas fa-users mr-1"></i>{{ tournament.registration_count|default:0 }} participants</span>
+            </div>
+            {% if tournament.pending_actions > 0 %}
+              <div class="flex items-center gap-2 text-xs bg-red-600/10 text-red-400 px-2 py-1 rounded">
+                <i class="fas fa-bell"></i>
+                <span>{{ tournament.pending_actions }} action{{ tournament.pending_actions|pluralize }} needed</span>
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endif %}
+
+    <!-- Upcoming Matches (FE-T-027: Dashboard Integration) -->
+    {% if upcoming_matches %}
+    <article class="glass p-6 rounded-2xl">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold flex items-center">
+          <i class="fas fa-gamepad mr-2 text-primary"></i>
+          Upcoming Matches
+        </h3>
+        <a href="{% url 'tournaments:my_tournaments' %}" class="text-sm text-primary hover:underline">View All</a>
+      </div>
+      <ul class="grid gap-3">
+        {% for match in upcoming_matches %}
+          <li class="p-3 rounded-lg hover:bg-white/5 transition border border-primary/20">
+            <div class="flex items-center justify-between mb-2">
+              <a href="{% url 'tournaments:detail' match.tournament.slug %}" class="link-nav font-medium text-sm truncate flex-1">
+                {{ match.tournament.name }}
+              </a>
+              <span class="text-xs text-accent ml-2">
+                {% if match.scheduled_time %}
+                  {% if match.scheduled_time|timeuntil == "0 minutes" %}
+                    Now!
+                  {% else %}
+                    in {{ match.scheduled_time|timeuntil }}
+                  {% endif %}
+                {% endif %}
+              </span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-muted">{{ match.participant_a_name }}</span>
+              <span class="text-primary font-bold">vs</span>
+              <span class="text-muted">{{ match.participant_b_name }}</span>
+            </div>
+            {% if match.round_name %}
+              <div class="text-xs text-muted mt-2">
+                <i class="fas fa-layer-group mr-1"></i>{{ match.round_name }}
+              </div>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </article>
+    {% endif %}
+
     <!-- My Tournaments (Sprint 2: Player Dashboard) -->
     <article class="glass p-6 rounded-2xl">
       <div class="flex items-center justify-between mb-3">

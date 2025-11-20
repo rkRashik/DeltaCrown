@@ -31,7 +31,7 @@ class TournamentListView(ListView):
     FE-T-001: Tournament List/Discovery Page
     
     URL: /tournaments/
-    Template: templates/tournaments/browse/list.html
+    Template: templates/tournaments/list.html
     
     Features:
     - Tournament cards with key info (game, format, prize, date, slots)
@@ -42,7 +42,7 @@ class TournamentListView(ListView):
     
     Backend API: GET /api/tournaments/tournament-discovery/ (discovery_views.py)
     """
-    template_name = 'tournaments/public/browse/list.html'
+    template_name = 'tournaments/list.html'
     context_object_name = 'tournament_list'
     paginate_by = 20
     
@@ -58,9 +58,20 @@ class TournamentListView(ListView):
         - format: Tournament format filter
         - free_only: Boolean for free tournaments
         """
+        from django.db.models import Count, Q
+        from apps.tournaments.models import Registration
+        
         # Optimize query with select_related for ForeignKey fields
         queryset = Tournament.objects.select_related('game', 'organizer').filter(
             status__in=['published', 'registration_open', 'live', 'completed']
+        ).annotate(
+            registration_count=Count(
+                'registrations',
+                filter=Q(
+                    registrations__status__in=['pending', 'payment_submitted', 'confirmed'],
+                    registrations__is_deleted=False
+                )
+            )
         ).order_by('-tournament_start')
         
         # Filter by game (match API param: ?game=<slug>)
@@ -135,7 +146,7 @@ class TournamentDetailView(DetailView):
     FE-T-002: Tournament Detail Page
     
     URL: /tournaments/<slug>/
-    Template: templates/tournaments/detail/overview.html
+    Template: templates/tournaments/detail.html
     
     Features:
     - Hero section with banner, game badge, status
@@ -149,7 +160,7 @@ class TournamentDetailView(DetailView):
     - GET /api/tournaments/registrations/status/ (registrations.py)
     """
     model = Tournament
-    template_name = 'tournaments/public/detail/overview.html'
+    template_name = 'tournaments/detail.html'
     context_object_name = 'tournament'
     slug_field = 'slug'
     slug_url_kwarg = 'slug'

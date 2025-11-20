@@ -131,8 +131,13 @@
                     </a>
                 </li>
                 <li class="hub-tab {% if active_tab == 'disputes' %}active{% endif %}">
-                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='disputes' %}">
-                        ⚖️ Disputes
+                    <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='disputes' %}" class="flex items-center gap-2">
+                        <span>⚖️ Disputes</span>
+                        {% if open_disputes_count > 0 %}
+                        <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                            {{ open_disputes_count }}
+                        </span>
+                        {% endif %}
                     </a>
                 </li>
                 <li class="hub-tab {% if active_tab == 'announcements' %}active{% endif %}">

@@ -279,6 +279,9 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
     """Enhanced dashboard with teams, registrations, matches, and invites."""
     Team = _get_model("teams.Team")
     TeamInvite = _get_model("teams.TeamInvite")
+    Tournament = _get_model("tournaments.Tournament")
+    Match = _get_model("tournaments.Match")
+    Registration = _get_model("tournaments.Registration")
 
     # Get user's tournament registrations (Sprint 2: Player Dashboard)
     user_tournaments = []
@@ -287,6 +290,78 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         user_tournaments = get_user_tournaments_for_dashboard(request.user, limit=5)
     except Exception:
         user_tournaments = []
+
+    # FE-T-027: Get tournaments hosted by this user
+    hosted_tournaments = []
+    try:
+        if Tournament:
+            from apps.tournaments.models import Dispute
+            hosted_tournaments = Tournament.objects.filter(organizer=request.user).select_related('game')
+            
+            # Add pending actions count for each
+            for t in hosted_tournaments:
+                pending_regs = Registration.objects.filter(tournament=t, status='PENDING').count() if Registration else 0
+                pending_disputes = Dispute.objects.filter(tournament=t, status='OPEN').count()
+                pending_results = Match.objects.filter(tournament=t, status='PENDING_VERIFICATION').count() if Match else 0
+                t.pending_actions = pending_regs + pending_disputes + pending_results
+                
+            # Get latest 3
+            hosted_tournaments = list(hosted_tournaments.order_by('-created_at')[:3])
+    except Exception as e:
+        print(f"Error loading hosted tournaments: {e}")
+        hosted_tournaments = []
+
+    # FE-T-027: Get upcoming matches for user's registrations
+    upcoming_matches = []
+    try:
+        if Match and Registration:
+            # Get user's active registrations
+            user_regs = Registration.objects.filter(
+                user=request.user,
+                status__in=['CONFIRMED', 'CHECKED_IN']
+            ).values_list('tournament_id', flat=True)
+            
+            # Get upcoming matches in those tournaments
+            now = timezone.now()
+            matches = Match.objects.filter(
+                tournament_id__in=user_regs,
+                scheduled_time__gte=now,
+                status='SCHEDULED'
+            ).select_related('tournament').order_by('scheduled_time')[:5]
+            
+            # Add participant names
+            for match in matches:
+                match.participant_a_name = getattr(match.participant_a, 'name', 'TBD') if match.participant_a else 'TBD'
+                match.participant_b_name = getattr(match.participant_b, 'name', 'TBD') if match.participant_b else 'TBD'
+                match.round_name = match.get_round_display() if hasattr(match, 'get_round_display') else f"Round {match.round_number}"
+            
+            upcoming_matches = list(matches)
+    except Exception as e:
+        print(f"Error loading upcoming matches: {e}")
+        upcoming_matches = []
+
+    # FE-T-027: Get check-in reminders (tournaments starting within 24 hours)
+    checkin_reminders = []
+    try:
+        if Registration and Tournament:
+            now = timezone.now()
+            soon = now + timedelta(hours=24)
+            
+            reminders = Registration.objects.filter(
+                user=request.user,
+                status='CONFIRMED',
+                tournament__tournament_start__gte=now,
+                tournament__tournament_start__lte=soon
+            ).select_related('tournament')
+            
+            for reg in reminders:
+                checkin_reminders.append({
+                    'tournament': reg.tournament,
+                    'has_checked_in': reg.has_checked_in,
+                })
+    except Exception as e:
+        print(f"Error loading check-in reminders: {e}")
+        checkin_reminders = []
 
     # Get registrations - Keep for backward compatibility
     regs = user_tournaments
@@ -327,5 +402,9 @@ def dashboard_index(request: HttpRequest) -> HttpResponse:
         "payouts": [],
         "my_teams": my_teams,
         "pending_invites": pending_invites,
+        # FE-T-027: Dashboard Integration
+        "hosted_tournaments": hosted_tournaments,
+        "upcoming_matches": upcoming_matches,
+        "checkin_reminders": checkin_reminders,
     }
     return render(request, "dashboard/index.html", context)

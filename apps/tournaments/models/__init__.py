@@ -56,6 +56,15 @@ from .staff import (
 from .announcement import (
     TournamentAnnouncement,  # Tournament announcements for participants
 )
+from .group import (
+    Group,  # Group stage groups
+    GroupStanding,  # Group standings tracking
+)
+from .lobby import (
+    TournamentLobby,  # Tournament lobby/participant hub
+    CheckIn,  # Check-in tracking
+    LobbyAnnouncement,  # Lobby announcements
+)
 
 __all__ = [
     'Game',
@@ -79,4 +88,9 @@ __all__ = [
     'TournamentStaff',
     'StaffPermissionChecker',
     'TournamentAnnouncement',
+    'Group',
+    'GroupStanding',
+    'TournamentLobby',
+    'CheckIn',
+    'LobbyAnnouncement',
 ]

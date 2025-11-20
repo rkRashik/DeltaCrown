@@ -15,17 +15,60 @@ URL: /tournaments/
 {% endblock %}
 
 {% block content %}
-<div class="tournament-list-container">
-  <!-- Page Header -->
-  <div class="tournament-list-header">
-    <div class="container mx-auto px-4 py-8">
-      <h1 class="text-4xl font-bold text-primary mb-2">Tournaments</h1>
-      <p class="text-lg text-body-secondary">Discover and join esports tournaments</p>
+<div class="tournament-list-container min-h-screen bg-body">
+  <!-- Hero Header -->
+  <div class="tournament-list-header relative overflow-hidden">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-transparent"></div>
+    <div class="absolute inset-0 opacity-5">
+      <div class="absolute top-10 left-10 w-32 h-32 rounded-full bg-primary blur-3xl"></div>
+      <div class="absolute bottom-10 right-10 w-40 h-40 rounded-full bg-accent blur-3xl"></div>
+    </div>
+    
+    <div class="container mx-auto px-4 py-12 md:py-16 relative">
+      <div class="text-center max-w-3xl mx-auto">
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-primary mb-4">
+          <i class="fas fa-trophy text-accent mr-3"></i>
+          Discover Tournaments
+        </h1>
+        <p class="text-lg md:text-xl text-body-secondary mb-8">Join competitive esports tournaments, showcase your skills, and win amazing prizes</p>
+        
+        <!-- Quick Stats -->
+        <div class="flex flex-wrap justify-center gap-6 text-sm">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <i class="fas fa-gamepad text-primary"></i>
+            </div>
+            <div class="text-left">
+              <div class="font-bold text-primary">{{ games|length }}+</div>
+              <div class="text-body-secondary">Games</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+              <i class="fas fa-users text-accent"></i>
+            </div>
+            <div class="text-left">
+              <div class="font-bold text-primary">{{ tournament_list|length }}</div>
+              <div class="text-body-secondary">Active</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
+              <i class="fas fa-trophy text-success"></i>
+            </div>
+            <div class="text-left">
+              <div class="font-bold text-primary">৳50L+</div>
+              <div class="text-body-secondary">Prize Pool</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Filters Section -->
-  <div class="tournament-filters-section bg-surface-elevated border-b border-line">
+  <div class="tournament-filters-section bg-surface-elevated border-y border-line shadow-sm sticky top-0 z-20">
     <div class="container mx-auto px-4 py-4">
       {% include "tournaments/public/browse/_filters.html" %}
     </div>
@@ -34,6 +77,18 @@ URL: /tournaments/
   <!-- Tournament Grid -->
   <div class="container mx-auto px-4 py-8">
     {% if tournament_list %}
+      <!-- Results Count -->
+      <div class="mb-6 flex items-center justify-between">
+        <p class="text-body-secondary">
+          <span class="font-semibold text-primary">{{ paginator.count }}</span> tournament{{ paginator.count|pluralize }} found
+        </p>
+        {% if current_search or current_game or current_status %}
+          <a href="{% url 'tournaments:list' %}" class="text-sm text-accent hover:text-accent-hover transition-colors">
+            <i class="fas fa-times-circle mr-1"></i>Clear Filters
+          </a>
+        {% endif %}
+      </div>
+
       <div class="tournament-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for tournament in tournament_list %}
           {% include "tournaments/public/browse/_tournament_card.html" with tournament=tournament %}
@@ -42,8 +97,34 @@ URL: /tournaments/
 
       <!-- Pagination -->
       {% if is_paginated %}
-        <div class="pagination-container mt-8 flex justify-center">
-          {% include "components/pagination.html" with page_obj=page_obj %}
+        <div class="pagination-container mt-12">
+          <div class="flex justify-center items-center gap-2">
+            {% if page_obj.has_previous %}
+              <a href="?page=1{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                 class="px-4 py-2 bg-surface border border-line rounded-lg hover:bg-surface-elevated transition-colors">
+                <i class="fas fa-angle-double-left"></i>
+              </a>
+              <a href="?page={{ page_obj.previous_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                 class="px-4 py-2 bg-surface border border-line rounded-lg hover:bg-surface-elevated transition-colors">
+                <i class="fas fa-angle-left"></i>
+              </a>
+            {% endif %}
+
+            <span class="px-4 py-2 bg-primary text-white rounded-lg font-medium">
+              Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                 class="px-4 py-2 bg-surface border border-line rounded-lg hover:bg-surface-elevated transition-colors">
+                <i class="fas fa-angle-right"></i>
+              </a>
+              <a href="?page={{ page_obj.paginator.num_pages }}{% if current_game %}&game={{ current_game }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+                 class="px-4 py-2 bg-surface border border-line rounded-lg hover:bg-surface-elevated transition-colors">
+                <i class="fas fa-angle-double-right"></i>
+              </a>
+            {% endif %}
+          </div>
         </div>
       {% endif %}
 

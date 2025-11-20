@@ -2,7 +2,22 @@
 
 {% block hub_content %}
 <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-2xl font-bold mb-6">Bracket & Match Management</h2>
+    <!-- Header with Pending Results Link -->
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold">Bracket & Match Management</h2>
+        <a href="{% url 'tournaments:pending_results' slug=tournament.slug %}" 
+           class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+            </svg>
+            Pending Results
+            {% if pending_results_count > 0 %}
+            <span class="ml-2 px-2 py-0.5 bg-white text-yellow-700 rounded-full text-xs font-bold">
+                {{ pending_results_count }}
+            </span>
+            {% endif %}
+        </a>
+    </div>
 
     {% if bracket %}
         <!-- Bracket Info -->
@@ -65,9 +80,35 @@
                         </div>
                         {% endif %}
                         {% if can_manage and match.state != 'completed' and match.participant1_id and match.participant2_id %}
-                        <button onclick="openScoreModal({{ match.id }}, '{{ match.participant1_name }}', '{{ match.participant2_name }}')" 
-                                class="mt-2 px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
-                            Enter Score
+                        <div class="mt-2 flex gap-2 justify-end">
+                            <button onclick="openScoreModal({{ match.id }}, '{{ match.participant1_name }}', '{{ match.participant2_name }}')" 
+                                    class="px-4 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                                Enter Score
+                            </button>
+                            <!-- FE-T-024: Match Management Actions -->
+                            <button onclick="rescheduleMatch({{ match.id }})" 
+                                    class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                                    title="Reschedule match">
+                                <i class="fas fa-clock"></i>
+                            </button>
+                            <button onclick="forfeitMatch({{ match.id }}, '{{ match.participant1_name }}', '{{ match.participant2_name }}')" 
+                                    class="px-3 py-1 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm"
+                                    title="Mark as forfeit">
+                                <i class="fas fa-flag"></i>
+                            </button>
+                            <button onclick="cancelMatch({{ match.id }})" 
+                                    class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                                    title="Cancel match">
+                                <i class="fas fa-ban"></i>
+                            </button>
+                        </div>
+                        {% endif %}
+                        
+                        {% if can_manage and match.state == 'completed' %}
+                        <!-- FE-T-024: Override score for completed matches -->
+                        <button onclick="overrideScore({{ match.id }}, {{ match.score1|default:0 }}, {{ match.score2|default:0 }})" 
+                                class="mt-2 px-4 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-sm">
+                            Override Score
                         </button>
                         {% endif %}
                     </div>
@@ -172,5 +213,127 @@ document.getElementById('scoreForm').addEventListener('submit', function(e) {
         }
     });
 });
+
+// FE-T-024: Reschedule match
+function rescheduleMatch(matchId) {
+    const newTime = prompt('Enter new scheduled time (YYYY-MM-DD HH:MM format):');
+    if (!newTime) return;
+    
+    const reason = prompt('Reason for rescheduling (optional):');
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/reschedule-match/${matchId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ scheduled_time: newTime, reason: reason || '' })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Match rescheduled successfully');
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+// FE-T-024: Forfeit match
+function forfeitMatch(matchId, participant1, participant2) {
+    const forfeiting = prompt(`Who is forfeiting?\n1: ${participant1}\n2: ${participant2}\n\nEnter 1 or 2:`);
+    if (!forfeiting || (forfeiting !== '1' && forfeiting !== '2')) {
+        alert('Please enter 1 or 2');
+        return;
+    }
+    
+    const reason = prompt('Forfeit reason (required):');
+    if (!reason || reason.trim() === '') {
+        alert('Forfeit reason is required');
+        return;
+    }
+    
+    if (!confirm(`Mark match as forfeit by participant ${forfeiting}?`)) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/forfeit-match/${matchId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ forfeiting_participant: parseInt(forfeiting), reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+// FE-T-024: Override match score
+function overrideScore(matchId, currentScore1, currentScore2) {
+    const newScore1 = prompt(`Current score: ${currentScore1}-${currentScore2}\nEnter new score for participant 1:`, currentScore1);
+    if (newScore1 === null) return;
+    
+    const newScore2 = prompt(`Enter new score for participant 2:`, currentScore2);
+    if (newScore2 === null) return;
+    
+    const reason = prompt('Override reason (required):');
+    if (!reason || reason.trim() === '') {
+        alert('Override reason is required');
+        return;
+    }
+    
+    if (!confirm(`Override score to ${newScore1}-${newScore2}?`)) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/override-score/${matchId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ score1: parseInt(newScore1), score2: parseInt(newScore2), reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
+
+// FE-T-024: Cancel match
+function cancelMatch(matchId) {
+    const reason = prompt('Cancellation reason (required):');
+    if (!reason || reason.trim() === '') {
+        alert('Cancellation reason is required');
+        return;
+    }
+    
+    if (!confirm('Cancel this match? This action cannot be undone.')) return;
+    
+    fetch(`/tournaments/organizer/{{ tournament.slug }}/cancel-match/${matchId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+}
 </script>
 {% endblock %}

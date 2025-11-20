@@ -270,6 +270,17 @@ class OrganizerHubView(LoginRequiredMixin, View):
         
         return tournament
     
+    def get_common_context(self, tournament):
+        """Get common context data for all tabs (e.g., badge counts)"""
+        open_disputes_count = Dispute.objects.filter(
+            match__tournament=tournament,
+            status='open'
+        ).count()
+        
+        return {
+            'open_disputes_count': open_disputes_count,
+        }
+    
     def check_permission(self, tournament, permission_code):
         """Check if user has specific permission"""
         checker = StaffPermissionChecker(tournament, self.request.user)
@@ -353,6 +364,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'dispute_stats': dispute_stats,
             'recent_registrations': recent_registrations,
         }
+        context.update(self.get_common_context(tournament))
         
         return render(request, 'tournaments/organizer/hub_overview.html', context)
     
@@ -435,6 +447,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'payment_stats': payment_stats,
             'can_approve': checker.can_approve_payments(),
         }
+        context.update(self.get_common_context(tournament))
         
         return render(request, 'tournaments/organizer/hub_payments.html', context)
     
@@ -456,14 +469,23 @@ class OrganizerHubView(LoginRequiredMixin, View):
             is_deleted=False
         ).select_related('participant1', 'participant2').order_by('round_number', 'match_number')
         
+        # Count pending results for badge notification
+        pending_results_count = Match.objects.filter(
+            tournament=tournament,
+            status='PENDING_RESULT',
+            is_deleted=False
+        ).count()
+        
         context = {
             'tournament': tournament,
             'checker': checker,
             'active_tab': 'brackets',
             'bracket': bracket,
             'matches': matches,
+            'pending_results_count': pending_results_count,
             'can_manage': checker.can_manage_brackets(),
         }
+        context.update(self.get_common_context(tournament))
         
         return render(request, 'tournaments/organizer/hub_brackets.html', context)
     
@@ -477,11 +499,18 @@ class OrganizerHubView(LoginRequiredMixin, View):
         status_filter = request.GET.get('status', '')
         
         # Base queryset
-        disputes = Dispute.objects.filter(
+        all_disputes = Dispute.objects.filter(
             match__tournament=tournament
-        ).select_related('match', 'filed_by')
+        ).select_related('match')
         
-        # Apply filters
+        # Calculate stats
+        open_count = all_disputes.filter(status='open').count()
+        under_review_count = all_disputes.filter(status='under_review').count()
+        resolved_count = all_disputes.filter(status='resolved').count()
+        total_count = all_disputes.count()
+        
+        # Apply filters for display
+        disputes = all_disputes
         if status_filter:
             disputes = disputes.filter(status=status_filter)
         
@@ -492,10 +521,15 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'checker': checker,
             'active_tab': 'disputes',
             'disputes': disputes,
+            'open_count': open_count,
+            'under_review_count': under_review_count,
+            'resolved_count': resolved_count,
+            'total_count': total_count,
             'can_resolve': checker.can_resolve_disputes(),
         }
+        context.update(self.get_common_context(tournament))
         
-        return render(request, 'tournaments/organizer/hub_disputes.html', context)
+        return render(request, 'tournaments/organizer/hub_disputes_enhanced.html', context)
     
     def announcements_tab(self, request, tournament, checker):
         """Announcements tab: create/manage announcements"""
@@ -536,6 +570,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'announcements': announcements,
             'can_announce': checker.can_make_announcements(),
         }
+        context.update(self.get_common_context(tournament))
         
         return render(request, 'tournaments/organizer/hub_announcements.html', context)
     
@@ -562,6 +597,7 @@ class OrganizerHubView(LoginRequiredMixin, View):
             'can_edit': checker.can_edit_settings(),
             'can_manage_staff': checker.can_manage_staff(),
         }
+        context.update(self.get_common_context(tournament))
         
         return render(request, 'tournaments/organizer/hub_settings.html', context)
 
@@ -806,3 +842,610 @@ def create_tournament(request):
         'form': form,
         'page_title': 'Create New Tournament',
     })
+
+
+# ============================================================================
+# FE-T-022: Participant Management Actions
+# ============================================================================
+
+@login_required
+@require_POST
+def bulk_approve_registrations(request, slug):
+    """
+    FE-T-022: Bulk approve multiple registrations
+    
+    POST body: { registration_ids: [1, 2, 3, ...] }
+    """
+    import json
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_manage_registrations():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        registration_ids = data.get('registration_ids', [])
+        
+        if not registration_ids:
+            return JsonResponse({'success': False, 'error': 'No registrations selected'}, status=400)
+        
+        # Update registrations
+        updated = Registration.objects.filter(
+            id__in=registration_ids,
+            tournament=tournament,
+            status=Registration.PENDING
+        ).update(status=Registration.CONFIRMED)
+        
+        messages.success(request, f"Successfully approved {updated} registration(s).")
+        return JsonResponse({'success': True, 'count': updated})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def bulk_reject_registrations(request, slug):
+    """
+    FE-T-022: Bulk reject multiple registrations
+    
+    POST body: { registration_ids: [1, 2, 3, ...], reason: "..." }
+    """
+    import json
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_manage_registrations():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        registration_ids = data.get('registration_ids', [])
+        reason = data.get('reason', '').strip()
+        
+        if not registration_ids:
+            return JsonResponse({'success': False, 'error': 'No registrations selected'}, status=400)
+        
+        # Update registrations
+        registrations = Registration.objects.filter(
+            id__in=registration_ids,
+            tournament=tournament,
+            status=Registration.PENDING
+        )
+        
+        updated = 0
+        for reg in registrations:
+            reg.status = Registration.REJECTED
+            if reason:
+                # Store rejection reason in registration_data JSONB
+                reg.registration_data = reg.registration_data or {}
+                reg.registration_data['rejection_reason'] = reason
+            reg.save()
+            updated += 1
+        
+        messages.warning(request, f"Rejected {updated} registration(s).")
+        return JsonResponse({'success': True, 'count': updated})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def disqualify_participant(request, slug, registration_id):
+    """
+    FE-T-022: Disqualify a participant
+    
+    POST body: { reason: "..." }
+    """
+    import json
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_manage_registrations():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    registration = get_object_or_404(Registration, id=registration_id, tournament=tournament)
+    
+    try:
+        data = json.loads(request.body)
+        reason = data.get('reason', '').strip()
+        
+        if not reason:
+            return JsonResponse({'success': False, 'error': 'Disqualification reason required'}, status=400)
+        
+        # Mark as disqualified (using cancelled status + flag in registration_data)
+        registration.status = Registration.CANCELLED
+        registration.registration_data = registration.registration_data or {}
+        registration.registration_data['disqualified'] = True
+        registration.registration_data['disqualification_reason'] = reason
+        registration.registration_data['disqualified_at'] = timezone.now().isoformat()
+        registration.registration_data['disqualified_by'] = request.user.username
+        registration.save()
+        
+        participant_name = registration.team.name if registration.team_id else registration.user.username
+        messages.warning(request, f"Participant {participant_name} has been disqualified.")
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def export_roster_csv(request, slug):
+    """
+    FE-T-022: Export tournament roster as CSV
+    
+    GET: /tournaments/organizer/<slug>/export-roster/
+    """
+    import csv
+    from django.http import HttpResponse
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.has_any(['manage_registrations', 'view_all']):
+        messages.error(request, "You don't have permission to export roster.")
+        return redirect('tournaments:organizer_hub', slug=slug, tab='participants')
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{tournament.slug}_roster_{timezone.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID', 'Username', 'Email', 'Team', 'Status', 
+        'Registered At', 'Checked In', 'Checked In At'
+    ])
+    
+    registrations = Registration.objects.filter(
+        tournament=tournament,
+        is_deleted=False
+    ).select_related('user', 'user__userprofile').order_by('created_at')
+    
+    for reg in registrations:
+        writer.writerow([
+            reg.id,
+            reg.user.username if reg.user else 'N/A',
+            reg.user.email if reg.user else 'N/A',
+            f'Team {reg.team_id}' if reg.team_id else 'Solo',
+            reg.get_status_display(),
+            reg.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'Yes' if reg.checked_in else 'No',
+            reg.checked_in_at.strftime('%Y-%m-%d %H:%M:%S') if reg.checked_in_at else 'N/A',
+        ])
+    
+    return response
+
+
+# ============================================================================
+# FE-T-023: Payment Management Actions
+# ============================================================================
+
+@login_required
+@require_POST
+def bulk_verify_payments(request, slug):
+    """
+    FE-T-023: Bulk verify multiple payments
+    
+    POST body: { payment_ids: [1, 2, 3, ...] }
+    """
+    import json
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_approve_payments():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        payment_ids = data.get('payment_ids', [])
+        
+        if not payment_ids:
+            return JsonResponse({'success': False, 'error': 'No payments selected'}, status=400)
+        
+        # Update payments
+        from apps.tournaments.models import Payment
+        updated = Payment.objects.filter(
+            id__in=payment_ids,
+            registration__tournament=tournament,
+            status='submitted'
+        ).update(
+            status='verified',
+            verified_by=request.user,
+            verified_at=timezone.now()
+        )
+        
+        messages.success(request, f"Successfully verified {updated} payment(s).")
+        return JsonResponse({'success': True, 'count': updated})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def process_refund(request, slug, payment_id):
+    """
+    FE-T-023: Process refund for a payment
+    
+    POST body: { amount: decimal, reason: "...", refund_method: "..." }
+    """
+    import json
+    from decimal import Decimal
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_approve_payments():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    from apps.tournaments.models import Payment
+    payment = get_object_or_404(Payment, id=payment_id, registration__tournament=tournament)
+    
+    try:
+        data = json.loads(request.body)
+        refund_amount = Decimal(str(data.get('amount', 0)))
+        reason = data.get('reason', '').strip()
+        refund_method = data.get('refund_method', 'manual')
+        
+        if refund_amount <= 0 or refund_amount > payment.amount:
+            return JsonResponse({'success': False, 'error': 'Invalid refund amount'}, status=400)
+        
+        if not reason:
+            return JsonResponse({'success': False, 'error': 'Refund reason required'}, status=400)
+        
+        # Store refund info in payment metadata (JSONB)
+        if not hasattr(payment, 'metadata'):
+            payment.metadata = {}
+        
+        payment.metadata['refund'] = {
+            'amount': str(refund_amount),
+            'reason': reason,
+            'method': refund_method,
+            'processed_at': timezone.now().isoformat(),
+            'processed_by': request.user.username,
+        }
+        payment.status = 'refunded'
+        payment.save()
+        
+        messages.success(request, f"Refund of ${refund_amount} processed successfully.")
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def export_payments_csv(request, slug):
+    """
+    FE-T-023: Export payment report as CSV
+    
+    GET: /tournaments/organizer/<slug>/export-payments/
+    """
+    import csv
+    from django.http import HttpResponse
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.has_any(['approve_payments', 'view_all']):
+        messages.error(request, "You don't have permission to export payments.")
+        return redirect('tournaments:organizer_hub', slug=slug, tab='payments')
+    
+    # Create CSV response
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{tournament.slug}_payments_{timezone.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([
+        'ID', 'Username', 'Amount', 'Method', 'Status', 
+        'Submitted At', 'Verified At', 'Verified By'
+    ])
+    
+    from apps.tournaments.models import Payment
+    payments = Payment.objects.filter(
+        registration__tournament=tournament
+    ).select_related('registration__user', 'verified_by').order_by('-submitted_at')
+    
+    for payment in payments:
+        writer.writerow([
+            payment.id,
+            payment.registration.user.username if payment.registration.user else 'N/A',
+            f'${payment.amount}' if hasattr(payment, 'amount') else 'N/A',
+            payment.payment_method if hasattr(payment, 'payment_method') else 'N/A',
+            payment.get_status_display() if hasattr(payment, 'get_status_display') else payment.status,
+            payment.submitted_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(payment, 'submitted_at') and payment.submitted_at else 'N/A',
+            payment.verified_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(payment, 'verified_at') and payment.verified_at else 'N/A',
+            payment.verified_by.username if hasattr(payment, 'verified_by') and payment.verified_by else 'N/A',
+        ])
+    
+    return response
+
+
+@login_required
+def payment_history(request, slug, registration_id):
+    """
+    FE-T-023: View payment history for a registration
+    
+    GET: /tournaments/organizer/<slug>/registrations/<id>/payment-history/
+    Returns JSON with payment history
+    """
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.has_any(['approve_payments', 'view_all']):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    registration = get_object_or_404(Registration, id=registration_id, tournament=tournament)
+    
+    from apps.tournaments.models import Payment
+    payments = Payment.objects.filter(
+        registration=registration
+    ).select_related('verified_by').order_by('-submitted_at')
+    
+    payment_data = []
+    for payment in payments:
+        payment_data.append({
+            'id': payment.id,
+            'amount': str(payment.amount) if hasattr(payment, 'amount') else '0',
+            'method': payment.payment_method if hasattr(payment, 'payment_method') else 'N/A',
+            'status': payment.status,
+            'submitted_at': payment.submitted_at.isoformat() if hasattr(payment, 'submitted_at') and payment.submitted_at else None,
+            'verified_at': payment.verified_at.isoformat() if hasattr(payment, 'verified_at') and payment.verified_at else None,
+            'verified_by': payment.verified_by.username if hasattr(payment, 'verified_by') and payment.verified_by else None,
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'participant': registration.user.username if registration.user else f'Team {registration.team_id}',
+        'payments': payment_data
+    })
+
+
+# ============================================================================
+# FE-T-024: Match Management Actions
+# ============================================================================
+
+@login_required
+@require_POST
+def reschedule_match(request, slug, match_id):
+    """
+    FE-T-024: Reschedule a match to a new time
+    
+    POST body: { scheduled_time: "ISO-8601 datetime", reason: "..." }
+    """
+    import json
+    from datetime import datetime
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_manage_brackets():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    match = get_object_or_404(Match, id=match_id, tournament=tournament)
+    
+    try:
+        data = json.loads(request.body)
+        new_time_str = data.get('scheduled_time', '').strip()
+        reason = data.get('reason', '').strip()
+        
+        if not new_time_str:
+            return JsonResponse({'success': False, 'error': 'New scheduled time required'}, status=400)
+        
+        # Parse datetime
+        try:
+            new_time = datetime.fromisoformat(new_time_str.replace('Z', '+00:00'))
+            if timezone.is_naive(new_time):
+                new_time = timezone.make_aware(new_time)
+        except ValueError:
+            return JsonResponse({'success': False, 'error': 'Invalid datetime format'}, status=400)
+        
+        # Store old time for audit
+        old_time = match.scheduled_time
+        
+        # Update match
+        match.scheduled_time = new_time
+        if not hasattr(match, 'metadata'):
+            match.metadata = {}
+        
+        match.metadata['rescheduled'] = {
+            'old_time': old_time.isoformat() if old_time else None,
+            'new_time': new_time.isoformat(),
+            'reason': reason,
+            'rescheduled_at': timezone.now().isoformat(),
+            'rescheduled_by': request.user.username,
+        }
+        match.save()
+        
+        messages.success(request, f"Match rescheduled to {new_time.strftime('%b %d, %H:%M')}.")
+        return JsonResponse({'success': True, 'new_time': new_time.isoformat()})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def forfeit_match(request, slug, match_id):
+    """
+    FE-T-024: Mark a match as forfeit
+    
+    POST body: { forfeiting_participant: 1 or 2, reason: "..." }
+    """
+    import json
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_manage_brackets():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    match = get_object_or_404(Match, id=match_id, tournament=tournament)
+    
+    try:
+        data = json.loads(request.body)
+        forfeiting = data.get('forfeiting_participant')
+        reason = data.get('reason', '').strip()
+        
+        if forfeiting not in [1, 2, '1', '2']:
+            return JsonResponse({'success': False, 'error': 'Invalid forfeiting participant'}, status=400)
+        
+        forfeiting = int(forfeiting)
+        
+        # Set winner (opposite of forfeiting participant)
+        if forfeiting == 1:
+            match.winner_id = match.participant2_id
+            match.loser_id = match.participant1_id
+            match.score1 = 0
+            match.score2 = 1  # Forfeit score
+        else:
+            match.winner_id = match.participant1_id
+            match.loser_id = match.participant2_id
+            match.score1 = 1  # Forfeit score
+            match.score2 = 0
+        
+        match.state = 'completed'
+        
+        # Store forfeit metadata
+        if not hasattr(match, 'metadata'):
+            match.metadata = {}
+        
+        match.metadata['forfeit'] = {
+            'forfeiting_participant': forfeiting,
+            'reason': reason,
+            'forfeited_at': timezone.now().isoformat(),
+            'forfeited_by': request.user.username,
+        }
+        match.save()
+        
+        messages.warning(request, f"Match marked as forfeit.")
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def override_match_score(request, slug, match_id):
+    """
+    FE-T-024: Override match score (for corrections)
+    
+    POST body: { score1: int, score2: int, reason: "..." }
+    """
+    import json
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_manage_brackets():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    match = get_object_or_404(Match, id=match_id, tournament=tournament)
+    
+    try:
+        data = json.loads(request.body)
+        score1 = int(data.get('score1'))
+        score2 = int(data.get('score2'))
+        reason = data.get('reason', '').strip()
+        
+        if score1 < 0 or score2 < 0:
+            return JsonResponse({'success': False, 'error': 'Scores must be non-negative'}, status=400)
+        
+        if score1 == score2:
+            return JsonResponse({'success': False, 'error': 'Scores cannot be tied'}, status=400)
+        
+        if not reason:
+            return JsonResponse({'success': False, 'error': 'Override reason required'}, status=400)
+        
+        # Store old scores for audit
+        old_score1 = match.score1
+        old_score2 = match.score2
+        
+        # Update match
+        match.score1 = score1
+        match.score2 = score2
+        
+        # Determine winner
+        if score1 > score2:
+            match.winner_id = match.participant1_id
+            match.loser_id = match.participant2_id
+        else:
+            match.winner_id = match.participant2_id
+            match.loser_id = match.participant1_id
+        
+        match.state = 'completed'
+        
+        # Store override metadata
+        if not hasattr(match, 'metadata'):
+            match.metadata = {}
+        
+        match.metadata['score_override'] = {
+            'old_score1': old_score1,
+            'old_score2': old_score2,
+            'new_score1': score1,
+            'new_score2': score2,
+            'reason': reason,
+            'overridden_at': timezone.now().isoformat(),
+            'overridden_by': request.user.username,
+        }
+        match.save()
+        
+        messages.success(request, f"Match score overridden to {score1}-{score2}.")
+        return JsonResponse({'success': True, 'score1': score1, 'score2': score2})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def cancel_match(request, slug, match_id):
+    """
+    FE-T-024: Cancel a match
+    
+    POST body: { reason: "..." }
+    """
+    import json
+    
+    tournament = get_object_or_404(Tournament, slug=slug)
+    checker = StaffPermissionChecker(tournament, request.user)
+    
+    if not checker.can_manage_brackets():
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    match = get_object_or_404(Match, id=match_id, tournament=tournament)
+    
+    try:
+        data = json.loads(request.body)
+        reason = data.get('reason', '').strip()
+        
+        if not reason:
+            return JsonResponse({'success': False, 'error': 'Cancellation reason required'}, status=400)
+        
+        # Mark match as cancelled
+        match.state = 'cancelled'
+        
+        # Store cancellation metadata
+        if not hasattr(match, 'metadata'):
+            match.metadata = {}
+        
+        match.metadata['cancelled'] = {
+            'reason': reason,
+            'cancelled_at': timezone.now().isoformat(),
+            'cancelled_by': request.user.username,
+        }
+        match.save()
+        
+        messages.warning(request, f"Match cancelled.")
+        return JsonResponse({'success': True})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
