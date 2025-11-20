@@ -1,0 +1,15 @@
+{# Challenges & Fan Voting Tab Placeholder #}
+{# Purpose: Show challenges and fan voting polls (feature flags) #}
+{# Content: Challenge cards, voting polls #}
+{# Note: Only shown if enable_challenges or enable_fan_voting is True #}
+
+<div class="detail-tab-panel" data-tab="challenges-fanvoting">
+    <!-- Challenges & Fan Voting content will be implemented here -->
+    {% if tournament.enable_challenges %}
+        <!-- Challenge cards: "Most kills Day 1", "Clutch King", etc. -->
+    {% endif %}
+    
+    {% if tournament.enable_fan_voting %}
+        <!-- Fan voting polls: "Who will win the finals?", progress bars, vote button -->
+    {% endif %}
+</div>

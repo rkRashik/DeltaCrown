@@ -146,7 +146,7 @@ class TournamentDetailView(DetailView):
     FE-T-002: Tournament Detail Page
     
     URL: /tournaments/<slug>/
-    Template: templates/tournaments/detail.html
+    Template: templates/tournaments/detailPages/detail.html
     
     Features:
     - Hero section with banner, game badge, status
@@ -160,7 +160,7 @@ class TournamentDetailView(DetailView):
     - GET /api/tournaments/registrations/status/ (registrations.py)
     """
     model = Tournament
-    template_name = 'tournaments/detail.html'
+    template_name = 'tournaments/detailPages/detail.html'
     context_object_name = 'tournament'
     slug_field = 'slug'
     slug_url_kwarg = 'slug'

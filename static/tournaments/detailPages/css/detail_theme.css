@@ -1,0 +1,143 @@
+/**
+ * Tournament Detail Page - Game-Based Esports Themes
+ * 
+ * Purpose: Define CSS variables for each game using [data-game-slug] attribute
+ * Visual language: Dark backgrounds, vivid accent colors, neon/glow edges
+ */
+
+/* ============================================
+   VALORANT THEME
+   ============================================ */
+[data-game-slug="valorant"] {
+    --accent: #ff4655;
+    --accent-soft: #ff9aa4;
+    --accent-glow: rgba(255, 70, 85, 0.5);
+    --bg-elevated: #111823;
+    --bg-surface: #0b1018;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(17, 24, 35, 0.95), rgba(11, 16, 24, 0.98));
+}
+
+/* ============================================
+   EFOOTBALL THEME
+   ============================================ */
+[data-game-slug="efootball"] {
+    --accent: #00b0ff;
+    --accent-soft: #6fd0ff;
+    --accent-glow: rgba(0, 176, 255, 0.5);
+    --bg-elevated: #07101f;
+    --bg-surface: #050b14;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(7, 16, 31, 0.95), rgba(5, 11, 20, 0.98));
+}
+
+/* ============================================
+   PUBG MOBILE THEME
+   ============================================ */
+[data-game-slug="pubg-mobile"] {
+    --accent: #f39c12;
+    --accent-soft: #f9c74f;
+    --accent-glow: rgba(243, 156, 18, 0.5);
+    --bg-elevated: #1a1410;
+    --bg-surface: #0f0b08;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(26, 20, 16, 0.95), rgba(15, 11, 8, 0.98));
+}
+
+/* ============================================
+   FIFA THEME
+   ============================================ */
+[data-game-slug="fifa"] {
+    --accent: #00ff87;
+    --accent-soft: #7fff9f;
+    --accent-glow: rgba(0, 255, 135, 0.5);
+    --bg-elevated: #0a1a12;
+    --bg-surface: #05100a;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(10, 26, 18, 0.95), rgba(5, 16, 10, 0.98));
+}
+
+/* ============================================
+   FREE FIRE THEME
+   ============================================ */
+[data-game-slug="free-fire"] {
+    --accent: #ff6b35;
+    --accent-soft: #ff9470;
+    --accent-glow: rgba(255, 107, 53, 0.5);
+    --bg-elevated: #1a0f0a;
+    --bg-surface: #100805;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(26, 15, 10, 0.95), rgba(16, 8, 5, 0.98));
+}
+
+/* ============================================
+   CALL OF DUTY MOBILE THEME
+   ============================================ */
+[data-game-slug="call-of-duty-mobile"] {
+    --accent: #ff9500;
+    --accent-soft: #ffb84d;
+    --accent-glow: rgba(255, 149, 0, 0.5);
+    --bg-elevated: #1a1510;
+    --bg-surface: #0f0c08;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(26, 21, 16, 0.95), rgba(15, 12, 8, 0.98));
+}
+
+/* ============================================
+   MOBILE LEGENDS THEME
+   ============================================ */
+[data-game-slug="mobile-legends"] {
+    --accent: #8e44ad;
+    --accent-soft: #b384c7;
+    --accent-glow: rgba(142, 68, 173, 0.5);
+    --bg-elevated: #15101a;
+    --bg-surface: #0b080f;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(21, 16, 26, 0.95), rgba(11, 8, 15, 0.98));
+}
+
+/* ============================================
+   CLASH OF CLANS THEME
+   ============================================ */
+[data-game-slug="clash-of-clans"] {
+    --accent: #ff6f00;
+    --accent-soft: #ff9f4d;
+    --accent-glow: rgba(255, 111, 0, 0.5);
+    --bg-elevated: #1a1208;
+    --bg-surface: #0f0a05;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(26, 18, 8, 0.95), rgba(15, 10, 5, 0.98));
+}
+
+/* ============================================
+   LEAGUE OF LEGENDS THEME
+   ============================================ */
+[data-game-slug="league-of-legends"] {
+    --accent: #0ac8b9;
+    --accent-soft: #5eddd4;
+    --accent-glow: rgba(10, 200, 185, 0.5);
+    --bg-elevated: #0a1a1a;
+    --bg-surface: #05100f;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(10, 26, 26, 0.95), rgba(5, 16, 15, 0.98));
+}
+
+/* ============================================
+   DEFAULT/FALLBACK THEME
+   ============================================ */
+.tournament-detail:not([data-game-slug]) {
+    --accent: #6366f1;
+    --accent-soft: #818cf8;
+    --accent-glow: rgba(99, 102, 241, 0.5);
+    --bg-elevated: #1e1e2e;
+    --bg-surface: #0f0f17;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(30, 30, 46, 0.95), rgba(15, 15, 23, 0.98));
+}
+
+/* ============================================
+   ESPORTS VISUAL LANGUAGE
+   ============================================ */
+
+/* Neon glow effects (subtle) - applied to buttons, cards on hover */
+.accent-glow {
+    box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* Gradient text for titles */
+.gradient-text {
+    background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}

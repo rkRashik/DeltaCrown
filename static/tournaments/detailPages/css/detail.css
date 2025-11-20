@@ -1,0 +1,84 @@
+/**
+ * Tournament Detail Page - Layout & Structure
+ * 
+ * Purpose: Core layout, spacing, cards, tab layout, sidebar, responsive grid
+ * No game-specific theming here - use detail_theme.css for that
+ */
+
+/* ============================================
+   ROOT VARIABLES (defaults, overridden by theme)
+   ============================================ */
+:root {
+    --accent: #6366f1;
+    --accent-soft: #818cf8;
+    --bg-elevated: #1e1e2e;
+    --bg-surface: #0f0f17;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b0;
+    --text-muted: #6b6b80;
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
+   LAYOUT STRUCTURE
+   ============================================ */
+
+/* Tournament detail container */
+.tournament-detail {
+    /* Container styles will be added here */
+}
+
+/* Hero Section */
+.detail-hero {
+    /* Hero layout will be added here */
+}
+
+/* Meta Strip */
+.detail-meta-strip {
+    /* Meta strip layout will be added here */
+}
+
+/* Main Content Wrapper */
+.detail-content-wrapper {
+    /* Main content + sidebar grid will be added here */
+}
+
+.detail-main {
+    /* Main content area styles will be added here */
+}
+
+/* Tab Navigation */
+.detail-tab-nav {
+    /* Tab navigation styles will be added here */
+}
+
+/* Tab Panels */
+.detail-tab-panel {
+    /* Tab panel styles will be added here */
+}
+
+/* Sidebar */
+.detail-sidebar {
+    /* Sidebar layout will be added here */
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* Mobile */
+@media (max-width: 768px) {
+    /* Mobile-specific styles will be added here */
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+    /* Tablet-specific styles will be added here */
+}
+
+/* Desktop */
+@media (min-width: 1025px) {
+    /* Desktop-specific styles will be added here */
+}

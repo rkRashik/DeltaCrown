@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ tournament.name }} - DeltaCrown Tournaments{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tournaments/detailPages/css/detail.css' %}">
+<link rel="stylesheet" href="{% static 'tournaments/detailPages/css/detail_theme.css' %}">
+<link rel="stylesheet" href="{% static 'tournaments/detailPages/css/detail_animations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tournament-detail" data-game-slug="{{ tournament.game.slug }}">
+    
+    {# Hero Section #}
+    {% include 'tournaments/detailPages/partials/detail/hero.html' %}
+    
+    {# Meta Strip #}
+    {% include 'tournaments/detailPages/partials/detail/meta_strip.html' %}
+    
+    {# Main Content Wrapper #}
+    <div class="detail-content-wrapper">
+        <div class="detail-main">
+            {# Tab Navigation #}
+            {% include 'tournaments/detailPages/partials/detail/tab_nav.html' %}
+            
+            {# Tab Content Panels #}
+            <div class="detail-tab-content">
+                {% include 'tournaments/detailPages/partials/detail/tab_overview.html' %}
+                {% include 'tournaments/detailPages/partials/detail/tab_rules.html' %}
+                {% include 'tournaments/detailPages/partials/detail/tab_prizes.html' %}
+                {% include 'tournaments/detailPages/partials/detail/tab_participants.html' %}
+                {% include 'tournaments/detailPages/partials/detail/tab_bracket.html' %}
+                {% include 'tournaments/detailPages/partials/detail/tab_matches.html' %}
+                {% include 'tournaments/detailPages/partials/detail/tab_standings.html' %}
+                {% include 'tournaments/detailPages/partials/detail/tab_streams_media.html' %}
+                {% if tournament.enable_challenges or tournament.enable_fan_voting %}
+                    {% include 'tournaments/detailPages/partials/detail/tab_challenges_fanvoting.html' %}
+                {% endif %}
+            </div>
+        </div>
+        
+        {# Sidebar #}
+        {% include 'tournaments/detailPages/partials/detail/sidebar.html' %}
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'tournaments/detailPages/js/detail.js' %}"></script>
+<script src="{% static 'tournaments/detailPages/js/detail_live.js' %}"></script>
+{% endblock %}
