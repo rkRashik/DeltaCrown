@@ -294,6 +294,18 @@ class Team(models.Model):
         """Get team detail URL"""
         return f"/teams/{self.slug}/" if self.slug else f"/teams/{self.pk}/"
     
+    def get_game_display(self):
+        """Get canonical game display name from Game Registry"""
+        if not self.game:
+            return ""
+        try:
+            from apps.common.game_registry import get_game
+            game = get_game(self.game)
+            return game.display_name
+        except (KeyError, Exception):
+            # Fallback to title case
+            return self.game.replace('_', ' ').replace('-', ' ').title()
+    
     def is_captain(self, profile):
         """Check if profile is team captain"""
         return self.captain == profile
