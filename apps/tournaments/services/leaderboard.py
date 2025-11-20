@@ -104,7 +104,8 @@ class LeaderboardService:
             raise ValidationError(f"Tournament {tournament_id} not found")
         
         # Determine game-specific point calculator
-        game_slug = tournament.game.slug if hasattr(tournament, 'game') else ''
+        from apps.common.game_registry import normalize_slug
+        game_slug = normalize_slug(tournament.game.slug) if hasattr(tournament, 'game') and tournament.game else ''
         if game_slug == 'free-fire':
             calc_points = calc_ff_points
         elif game_slug == 'pubg-mobile':

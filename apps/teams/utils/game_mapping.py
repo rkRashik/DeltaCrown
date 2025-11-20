@@ -1,11 +1,15 @@
 """
 Game code mapping and normalization utilities.
 
-Handles legacy game codes and provides a single source of truth
-for game configuration across the Teams app.
+NOW DELEGATES TO apps.common.game_registry for unified game handling.
+Maintains backwards compatibility for existing code.
 """
 
-from apps.common.game_assets import GAMES, get_game_data
+from apps.common.game_registry import (
+    normalize_slug,
+    get_game,
+    get_choices as get_game_choices_from_registry
+)
 
 # Legacy game code mappings
 LEGACY_GAME_CODES = {
@@ -33,63 +37,43 @@ def normalize_game_code(game_code):
     """
     Normalize a game code to its canonical form.
     
+    NOW DELEGATES TO GAME REGISTRY for platform-wide consistency.
+    Maintains backwards compatibility.
+    
     Args:
         game_code (str): Game code that might be legacy or non-standard
         
     Returns:
-        str: Normalized game code (uppercase)
+        str: Normalized game code (lowercase canonical slug)
     """
     if not game_code:
         return None
     
-    # Convert to uppercase for consistency
-    code = str(game_code).upper().strip()
-    
-    # Check if it's already a valid code
-    if code in GAMES:
-        return code
-    
-    # Try lowercase version in legacy mapping
-    lower_code = game_code.lower().strip()
-    if lower_code in LEGACY_GAME_CODES:
-        return LEGACY_GAME_CODES[lower_code]
-    
-    # Try hyphen/underscore variations
-    code_variations = [
-        code.replace('-', '_'),
-        code.replace('_', '-'),
-        code.replace('-', ''),
-        code.replace('_', ''),
-    ]
-    
-    for variant in code_variations:
-        if variant in GAMES:
-            return variant
-        lower_variant = variant.lower()
-        if lower_variant in LEGACY_GAME_CODES:
-            return LEGACY_GAME_CODES[lower_variant]
-    
-    # Return original if no mapping found
-    return code
+    # Delegate to Game Registry's normalize_slug for consistency
+    return normalize_slug(game_code)
 
 
 def get_game_config(game_code):
     """
     Get game configuration with legacy code support.
     
+    NOW USES GAME REGISTRY for complete game specifications.
+    
     Args:
         game_code (str): Game code (may be legacy)
         
     Returns:
-        dict: Game configuration from game_assets, or default config
+        GameSpec: Complete game specification from Game Registry
     """
     normalized = normalize_game_code(game_code)
-    return get_game_data(normalized)
+    return get_game(normalized) if normalized else None
 
 
 def is_valid_game_code(game_code):
     """
     Check if a game code is valid (including legacy codes).
+    
+    NOW USES GAME REGISTRY for validation.
     
     Args:
         game_code (str): Game code to validate
@@ -100,23 +84,31 @@ def is_valid_game_code(game_code):
     if not game_code:
         return False
     
-    normalized = normalize_game_code(game_code)
-    return normalized in GAMES
+    try:
+        normalized = normalize_game_code(game_code)
+        game_spec = get_game(normalized)
+        return game_spec is not None
+    except:
+        return False
 
 
 def get_all_game_choices():
     """
     Get all game choices for use in forms.
     
+    NOW DELEGATES TO GAME REGISTRY.
+    
     Returns:
         list: List of (code, display_name) tuples
     """
-    return [(code, data['display_name']) for code, data in GAMES.items()]
+    return get_game_choices_from_registry()
 
 
 def get_game_display_name(game_code):
     """
     Get display name for a game code (with legacy support).
+    
+    NOW USES GAME REGISTRY GameSpec.
     
     Args:
         game_code (str): Game code (may be legacy)
@@ -124,5 +116,7 @@ def get_game_display_name(game_code):
     Returns:
         str: Display name for the game
     """
-    config = get_game_config(game_code)
-    return config.get('display_name', game_code.upper() if game_code else 'Unknown Game')
+    game_spec = get_game_config(game_code)
+    if game_spec and hasattr(game_spec, 'display_name'):
+        return game_spec.display_name
+    return game_code.upper() if game_code else 'Unknown Game'

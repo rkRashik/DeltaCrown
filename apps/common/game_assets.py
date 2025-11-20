@@ -1,41 +1,49 @@
 """
-DeltaCrown Game Assets Configuration
-===================================
+DeltaCrown Game Assets Configuration (DEPRECATED)
+=================================================
 
-Centralized configuration for all game logos, ba    'CODM': {
-        'name': 'COD Mobile',
-        'display_name': 'Call of Duty: Mobile',
-        'logo': 'img/game_logos/codm_logo.jpg',  # needs to be added
-        'card': 'img/game_cards/codm_card.jpg',
-        'icon': 'logos/codm.svg',  # use existing svg
-        'banner': 'img/game_banners/codm_banner.jpg',
-        'color_primary': '#FF6900',
-        'color_secondary': '#000000',
-        'category': 'FPS',
-        'platform': ['Mobile'],
-    },, and related assets.
-This file provides a single source of truth for all game-related media paths.
+⚠️ DEPRECATION NOTICE ⚠️
+This module is DEPRECATED and kept only for backwards compatibility.
 
-Usage:
-    from apps.common.game_assets import GAMES, get_game_logo, get_game_card
+NEW CODE SHOULD USE: apps.common.game_registry
+
+This file now acts as a thin wrapper around the new Game Registry system.
+All game configuration has been moved to apps/common/game_registry/
+
+Migration Guide:
+---------------
+OLD:
+    from apps.common.game_assets import GAMES, get_game_logo
     
-    # Get game logo
-    logo_url = get_game_logo('VALORANT')
-    
-    # Get game card image
-    card_url = get_game_card('VALORANT')
-    
-    # Get all game data
-    game_data = GAMES.get('VALORANT', {})
+NEW:
+    from apps.common.game_registry import get_game, get_all_games
+    game = get_game('valorant')
+    logo_url = game.logo  # Access directly from GameSpec
+
+For template tags, use the game_registry template tags instead of game_assets.
+
 """
 
 from django.conf import settings
 from django.templatetags.static import static
+from apps.common.game_registry import get_game, get_all_games, normalize_slug
 
-# Game Assets Configuration
-# Update paths here to change logos/cards across the entire application
-# Synced with Documents/Games/Game_Spec.md
-GAMES = {
+# ============================================================================
+# BACKWARDS COMPATIBILITY LAYER
+# ============================================================================
+# These functions and constants delegate to the new game registry.
+# They are kept to avoid breaking existing code.
+
+def _build_legacy_games_dict():
+    """Build GAMES dict from registry for backwards compatibility."""
+    from apps.common.game_registry.assets import GAME_ASSETS
+    return GAME_ASSETS
+
+# Legacy GAMES constant (lazy-loaded)
+GAMES = _build_legacy_games_dict()
+
+# Recreate old GAMES structure for complete backwards compatibility
+_LEGACY_GAMES_COMPAT = {
     'VALORANT': {
         'name': 'Valorant',
         'display_name': 'Valorant',
@@ -217,7 +225,10 @@ GAMES = {
     },
 }
 
-# Default fallback assets
+# Update GAMES to include legacy compat
+GAMES.update(_LEGACY_GAMES_COMPAT)
+
+# Default fallback for unknown games
 DEFAULT_GAME = {
     'name': 'Unknown Game',
     'display_name': 'Unknown Game',
@@ -231,10 +242,16 @@ DEFAULT_GAME = {
     'platform': ['PC'],
 }
 
-# Utility Functions
+
+# ============================================================================
+# BACKWARDS COMPATIBILITY FUNCTIONS
+# ============================================================================
+# These delegate to the game registry but maintain the old API
 def get_game_data(game_code):
     """
     Get complete game data for a game code.
+    
+    ⚠️ DEPRECATED: Use game_registry.get_game() instead
     
     Args:
         game_code (str): Game code (e.g., 'VALORANT', 'CSGO')
@@ -242,11 +259,37 @@ def get_game_data(game_code):
     Returns:
         dict: Complete game data dictionary
     """
-    return GAMES.get(game_code.upper(), DEFAULT_GAME.copy())
+    try:
+        # Try registry first (handles normalization)
+        game = get_game(game_code)
+        return {
+            'name': game.name,
+            'display_name': game.display_name,
+            'slug': game.slug,
+            'logo': game.logo,
+            'card': game.card,
+            'icon': game.icon,
+            'banner': game.banner,
+            'color_primary': game.colors.get('primary', '#7c3aed'),
+            'color_secondary': game.colors.get('secondary', '#1a1a1a'),
+            'category': game.category,
+            'type': game.game_type,
+            'platform': game.platforms,
+            'team_size': game.get_team_size_display(),
+            'roster_size': game.get_roster_size_range(),
+            'player_id_label': game.player_id_label,
+            'player_id_format': game.player_id_format,
+            'player_id_placeholder': game.player_id_placeholder,
+        }
+    except (KeyError, Exception):
+        # Fallback to legacy dict lookup
+        return GAMES.get(game_code.upper(), DEFAULT_GAME.copy())
 
 def get_game_logo(game_code, use_static=True):
     """
     Get the logo URL for a game.
+    
+    ⚠️ DEPRECATED: Use game_registry.get_game(slug).logo instead
     
     Args:
         game_code (str): Game code (e.g., 'VALORANT', 'CSGO')
@@ -255,8 +298,15 @@ def get_game_logo(game_code, use_static=True):
     Returns:
         str: Logo URL or path
     """
-    game_data = get_game_data(game_code)
-    logo_path = game_data['logo']
+    try:
+        game = get_game(game_code)
+        logo_path = game.logo
+    except (KeyError, Exception):
+        game_data = get_game_data(game_code)
+        logo_path = game_data.get('logo', '')
+    
+    if not logo_path:
+        return ''
     
     if use_static:
         return static(logo_path)
@@ -266,6 +316,8 @@ def get_game_card(game_code, use_static=True):
     """
     Get the card image URL for a game.
     
+    ⚠️ DEPRECATED: Use game_registry.get_game(slug).card instead
+    
     Args:
         game_code (str): Game code (e.g., 'VALORANT', 'CSGO')
         use_static (bool): Whether to return a static URL or just the path
@@ -273,8 +325,15 @@ def get_game_card(game_code, use_static=True):
     Returns:
         str: Card image URL or path
     """
-    game_data = get_game_data(game_code)
-    card_path = game_data['card']
+    try:
+        game = get_game(game_code)
+        card_path = game.card
+    except (KeyError, Exception):
+        game_data = get_game_data(game_code)
+        card_path = game_data.get('card', '')
+    
+    if not card_path:
+        return ''
     
     if use_static:
         return static(card_path)
@@ -284,6 +343,8 @@ def get_game_icon(game_code, use_static=True):
     """
     Get the icon URL for a game.
     
+    ⚠️ DEPRECATED: Use game_registry.get_game(slug).icon instead
+    
     Args:
         game_code (str): Game code (e.g., 'VALORANT', 'CSGO')
         use_static (bool): Whether to return a static URL or just the path
@@ -291,8 +352,15 @@ def get_game_icon(game_code, use_static=True):
     Returns:
         str: Icon URL or path
     """
-    game_data = get_game_data(game_code)
-    icon_path = game_data['icon']
+    try:
+        game = get_game(game_code)
+        icon_path = game.icon
+    except (KeyError, Exception):
+        game_data = get_game_data(game_code)
+        icon_path = game_data.get('icon', '')
+    
+    if not icon_path:
+        return ''
     
     if use_static:
         return static(icon_path)
@@ -302,6 +370,8 @@ def get_game_banner(game_code, use_static=True):
     """
     Get the banner URL for a game.
     
+    ⚠️ DEPRECATED: Use game_registry.get_game(slug).banner instead
+    
     Args:
         game_code (str): Game code (e.g., 'VALORANT', 'CSGO')
         use_static (bool): Whether to return a static URL or just the path
@@ -309,8 +379,15 @@ def get_game_banner(game_code, use_static=True):
     Returns:
         str: Banner URL or path
     """
-    game_data = get_game_data(game_code)
-    banner_path = game_data['banner']
+    try:
+        game = get_game(game_code)
+        banner_path = game.banner
+    except (KeyError, Exception):
+        game_data = get_game_data(game_code)
+        banner_path = game_data.get('banner', '')
+    
+    if not banner_path:
+        return ''
     
     if use_static:
         return static(banner_path)
@@ -320,25 +397,37 @@ def get_game_colors(game_code):
     """
     Get the primary and secondary colors for a game.
     
+    ⚠️ DEPRECATED: Use game_registry.get_theme_variables(slug) instead
+    
     Args:
         game_code (str): Game code (e.g., 'VALORANT', 'CSGO')
         
     Returns:
         dict: Dictionary with 'primary' and 'secondary' color keys
     """
-    game_data = get_game_data(game_code)
-    return {
-        'primary': game_data['color_primary'],
-        'secondary': game_data['color_secondary']
-    }
+    try:
+        game = get_game(game_code)
+        return {
+            'primary': game.colors.get('primary', '#7c3aed'),
+            'secondary': game.colors.get('secondary', '#1a1a1a')
+        }
+    except (KeyError, Exception):
+        game_data = get_game_data(game_code)
+        return {
+            'primary': game_data.get('color_primary', '#7c3aed'),
+            'secondary': game_data.get('color_secondary', '#1a1a1a')
+        }
 
 def get_all_games():
     """
     Get all available games.
     
+    ⚠️ DEPRECATED: Use game_registry.get_all_games() instead
+    
     Returns:
         dict: Dictionary of all games with their data
     """
+    # Return legacy GAMES dict for backwards compatibility
     return GAMES.copy()
 
 def get_games_by_category(category):
@@ -376,6 +465,9 @@ def game_assets_context(request):
     """
     Context processor to make game assets available in all templates.
     
+    ⚠️ DEPRECATED: This is kept for backwards compatibility.
+    New code should use game_registry directly.
+    
     Add this to TEMPLATES['OPTIONS']['context_processors'] in settings.py:
     'apps.common.game_assets.game_assets_context'
     """
@@ -388,3 +480,22 @@ def game_assets_context(request):
         'get_game_colors': get_game_colors,
         'get_game_data': get_game_data,
     }
+
+
+# ============================================================================
+# MIGRATION NOTICE
+# ============================================================================
+import warnings
+
+def _show_deprecation_warning():
+    """Show deprecation warning when this module is imported."""
+    warnings.warn(
+        "apps.common.game_assets is deprecated. "
+        "Use apps.common.game_registry instead. "
+        "See module docstring for migration guide.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
+# Uncomment this line to show warnings (disabled by default to avoid noise)
+# _show_deprecation_warning()

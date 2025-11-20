@@ -4,9 +4,10 @@ Game-specific configuration for team roster management.
 
 This module defines the rules, constraints, and roles for each supported game.
 Makes it easy to add new games without changing core model logic.
+
+NOTE: Game normalization now delegates to apps.common.game_registry for consistency.
 """
 from typing import Dict, List, NamedTuple
-from apps.teams.utils.game_mapping import normalize_game_code, LEGACY_GAME_CODES
 
 
 class GameRosterConfig(NamedTuple):
@@ -401,8 +402,8 @@ def normalize_game_code(game_code: str) -> str:
     """
     Normalize game code to standard format.
     
-    Handles legacy game codes and alternate naming conventions.
-    For example: 'pubg-mobile' → 'pubg', 'free-fire' → 'freefire'
+    NOW DELEGATES TO GAME REGISTRY for consistency across the platform.
+    Maintains backwards compatibility with existing team roster configs.
     
     Args:
         game_code: Raw game identifier from database or user input
@@ -410,17 +411,13 @@ def normalize_game_code(game_code: str) -> str:
     Returns:
         Normalized game code that matches GAME_CONFIGS keys
     """
+    from apps.common.game_registry import normalize_slug
+    
     if not game_code:
         return game_code
     
-    # Lowercase and strip whitespace
-    normalized = game_code.lower().strip()
-    
-    # Check if it needs aliasing
-    if normalized in GAME_CODE_ALIASES:
-        return GAME_CODE_ALIASES[normalized]
-    
-    return normalized
+    # Use Game Registry's normalization for consistency
+    return normalize_slug(game_code)
 
 
 def get_game_config(game_code: str) -> GameRosterConfig:

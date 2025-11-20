@@ -3,8 +3,8 @@ Tournament Creation Frontend Form and View
 """
 
 from django import forms
-from apps.tournaments.models import Tournament
-from apps.common.game_assets import GAME_DATA
+from apps.tournaments.models import Tournament, Game
+from apps.common.game_registry import get_all_games, get_game, normalize_slug
 
 
 class TournamentCreateForm(forms.ModelForm):
@@ -42,11 +42,20 @@ class TournamentCreateForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Populate game choices from GAME_DATA
-        game_choices = [('', 'Select a game...')] + [
-            (code, data['display_name']) 
-            for code, data in GAME_DATA.items()
-        ]
+        # Populate game choices from Game Registry (canonical games only)
+        game_choices = [('', 'Select a game...')]
+        
+        # Get all canonical games from registry
+        for spec in get_all_games():
+            # Find matching Game model instance (by slug or legacy aliases)
+            matching_games = Game.objects.filter(
+                slug__in=[spec.slug] + list(spec.legacy_aliases),
+                is_active=True
+            )
+            if matching_games.exists():
+                game = matching_games.first()
+                game_choices.append((game.id, spec.display_name))
+        
         self.fields['game'].widget = forms.Select(
             choices=game_choices,
             attrs={'class': 'form-select'}

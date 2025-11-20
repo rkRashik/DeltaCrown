@@ -252,11 +252,15 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             
             # TODO: Load dynamic custom fields from tournament.custom_fields JSONField
             # For now, show placeholder in-game ID field
+            from apps.common.game_registry import get_game, normalize_slug
+            canonical_slug = normalize_slug(tournament.game.slug)
+            game_spec = get_game(canonical_slug)
+            game_display_name = game_spec.display_name if game_spec else tournament.game.name
             custom_field_values = wizard_data.get('custom_fields', {})
             context['custom_fields'] = [
                 {
                     'name': 'in_game_id',
-                    'label': f'{tournament.game.name} In-Game ID',
+                    'label': f'{game_display_name} In-Game ID',
                     'type': 'text',
                     'required': True,
                     'help_text': 'Your player ID or username in the game',
@@ -316,9 +320,13 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             context['is_final_step'] = True
             
             # Build summary
+            from apps.common.game_registry import get_game, normalize_slug
+            canonical_slug = normalize_slug(tournament.game.slug)
+            game_spec = get_game(canonical_slug)
+            game_display_name = game_spec.display_name if game_spec else tournament.game.name
             context['summary'] = {
                 'tournament_name': tournament.name,
-                'game': tournament.game.name,
+                'game': game_display_name,
                 'format': tournament.get_format_display(),
                 'entry_fee': tournament.entry_fee_amount if tournament.has_entry_fee else 0,
                 'team': wizard_data.get('team_name') if tournament.participation_type == 'team' else None,

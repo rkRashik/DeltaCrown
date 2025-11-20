@@ -465,7 +465,8 @@ class AnalyticsService:
         # Tournaments by game
         tournaments_by_game = {}
         for reg in registrations:
-            game_slug = reg.tournament.game.slug
+            from apps.common.game_registry import normalize_slug
+            game_slug = normalize_slug(reg.tournament.game.slug) if reg.tournament.game else ''
             tournaments_by_game[game_slug] = tournaments_by_game.get(game_slug, 0) + 1
         
         # Performance monitoring

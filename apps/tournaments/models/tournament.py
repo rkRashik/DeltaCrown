@@ -112,6 +112,30 @@ class Game(models.Model):
     description = models.TextField(blank=True, help_text='Game description and notes')
     created_at = models.DateTimeField(auto_now_add=True)
     
+    # Media fields (uploaded via Django admin)
+    banner = models.ImageField(upload_to='games/banners/', blank=True, null=True, help_text='Game banner image')
+    card_image = models.ImageField(upload_to='games/cards/', blank=True, null=True, help_text='Game card/thumbnail image')
+    logo = models.ImageField(upload_to='games/logos/', blank=True, null=True, help_text='Game logo image')
+    
+    # Presentation fields
+    primary_color = models.CharField(max_length=20, blank=True, null=True, help_text='Primary brand color (hex)')
+    secondary_color = models.CharField(max_length=20, blank=True, null=True, help_text='Secondary brand color (hex)')
+    
+    # Metadata fields
+    category = models.CharField(max_length=50, blank=True, null=True, help_text='Game category (MOBA, FPS, etc.)')
+    platform = models.CharField(max_length=50, blank=True, null=True, help_text='Platform (PC, Mobile, Console)')
+    
+    # Team structure
+    min_team_size = models.PositiveIntegerField(default=1, help_text='Minimum team size')
+    max_team_size = models.PositiveIntegerField(default=5, help_text='Maximum team size')
+    roster_rules = models.JSONField(default=dict, blank=True, help_text='Roster rules and structure (JSONB)')
+    
+    # Roles (optional)
+    roles = models.JSONField(default=list, blank=True, help_text='Available roles for this game (JSONB array)')
+    
+    # Result logic
+    result_logic = models.JSONField(default=dict, blank=True, help_text='Result calculation logic (JSONB)')
+    
     class Meta:
         ordering = ['name']
         verbose_name = 'Game'

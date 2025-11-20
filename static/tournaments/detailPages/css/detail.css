@@ -27,20 +27,511 @@
 
 /* Tournament detail container */
 .tournament-detail {
-    /* Container styles will be added here */
+    min-height: 100vh;
+    background: var(--bg-surface);
+    color: var(--text-primary);
 }
 
-/* Hero Section */
-.detail-hero {
-    /* Hero layout will be added here */
+/* ============================================
+   HERO SECTION - NEW LAYOUT
+   ============================================ */
+
+.td-hero {
+    position: relative;
+    background: linear-gradient(
+        135deg,
+        var(--bg-surface) 0%,
+        var(--bg-elevated) 50%,
+        var(--bg-surface) 100%
+    );
+    padding: 3rem 0;
+    overflow: hidden;
 }
 
-/* Meta Strip */
+/* Optional: Subtle accent glow effect */
+.td-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        var(--accent) 50%,
+        transparent 100%
+    );
+    opacity: 0.3;
+}
+
+.td-hero-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr);
+    gap: 3rem;
+    align-items: start;
+}
+
+/* Main Content Area */
+.td-hero-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Badges */
+.hero-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 180ms ease-out;
+}
+
+.badge-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
+.badge-game {
+    background: var(--accent);
+    color: white;
+}
+
+.badge-status {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+}
+
+.badge-status-live {
+    background: rgba(255, 59, 48, 0.2);
+    color: #ff3b30;
+    border-color: #ff3b30;
+    animation: pulse 2s infinite;
+}
+
+.badge-status-registration_open {
+    background: rgba(52, 199, 89, 0.2);
+    color: #34c759;
+    border-color: #34c759;
+}
+
+.badge-region {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+/* Title Section */
+.hero-title {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--text-primary);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.hero-subtitle {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.hero-info-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.info-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.info-icon {
+    opacity: 0.7;
+}
+
+.info-divider {
+    opacity: 0.3;
+}
+
+/* Actions Container */
+.hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* CTA Button */
+.hero-cta-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.hero-cta {
+    width: 100%;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 180ms ease-out;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.hero-cta-open,
+.hero-cta-login_required {
+    background: var(--accent);
+    color: white;
+}
+
+.hero-cta-open:hover,
+.hero-cta-login_required:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px var(--accent-glow);
+}
+
+.hero-cta-registered,
+.hero-cta-checked_in {
+    background: rgba(52, 199, 89, 0.2);
+    color: #34c759;
+    border: 2px solid #34c759;
+}
+
+.hero-cta-payment_pending,
+.hero-cta-check_in_required {
+    background: rgba(255, 159, 10, 0.2);
+    color: #ff9f0a;
+    border: 2px solid #ff9f0a;
+}
+
+.hero-cta-approval_pending,
+.hero-cta-full,
+.hero-cta-closed {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+    cursor: not-allowed;
+}
+
+.hero-cta:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.hero-cta-note {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Info Cards */
+.hero-entry-fee,
+.hero-fee-waiver,
+.hero-countdown {
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
+
+.entry-fee-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.entry-fee-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.fee-separator {
+    color: var(--text-muted);
+}
+
+.deltacoin-symbol {
+    color: var(--accent);
+}
+
+.hero-fee-waiver {
+    background: rgba(52, 199, 89, 0.08);
+    border-color: rgba(52, 199, 89, 0.3);
+}
+
+.fee-waiver-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    color: #34c759;
+}
+
+.waiver-icon {
+    flex-shrink: 0;
+}
+
+.fee-waiver-eligible {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(52, 199, 89, 0.2);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #34c759;
+}
+
+.hero-countdown {
+    text-align: center;
+}
+
+.countdown-live {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #ff3b30;
+}
+
+.live-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff3b30;
+    animation: pulse 2s infinite;
+}
+
+.countdown-timer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.countdown-icon {
+    opacity: 0.7;
+}
+
+.countdown-value {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.countdown-ended,
+.countdown-status {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   HERO ART - BANNER IMAGE CARD
+   ============================================ */
+
+.td-hero-art {
+    position: relative;
+}
+
+.td-hero-banner-frame {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: var(--bg-elevated);
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px var(--border-subtle),
+        0 0 40px var(--accent-glow);
+    transition: all 300ms ease-out;
+}
+
+.td-hero-banner-frame:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 12px 48px rgba(0, 0, 0, 0.5),
+        0 0 0 1px var(--accent-soft),
+        0 0 60px var(--accent-glow);
+}
+
+.td-hero-banner-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Fallback Banner */
+.td-hero-banner-fallback {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    border-radius: 1rem;
+    background: linear-gradient(
+        135deg,
+        var(--bg-elevated) 0%,
+        var(--bg-surface) 100%
+    );
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+}
+
+.fallback-game-icon {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    opacity: 0.8;
+}
+
+.fallback-game-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* ============================================
+   META STRIP
+   ============================================ */
+
 .detail-meta-strip {
-    /* Meta strip layout will be added here */
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 1.5rem 0;
 }
 
-/* Main Content Wrapper */
+.meta-strip-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.meta-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--accent);
+}
+
+.meta-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.meta-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.meta-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.meta-item-slots .meta-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.slots-progress {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.slots-progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 300ms ease-out;
+}
+
+.meta-item-live .meta-icon {
+    background: rgba(255, 59, 48, 0.2);
+}
+
+.live-pulse {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ff3b30;
+    animation: pulse 2s infinite;
+}
+
+.meta-value-live {
+    color: #ff3b30;
+}
+
+.live-text {
+    font-weight: 700;
+}
+
+/* ============================================
+   MAIN CONTENT WRAPPER
+   ============================================ */
 .detail-content-wrapper {
     /* Main content + sidebar grid will be added here */
 }
@@ -70,15 +561,19 @@
 
 /* Mobile */
 @media (max-width: 768px) {
-    /* Mobile-specific styles will be added here */
-}
+    .td-hero {\n        padding: 2rem 0;\n    }\n    \n    .td-hero-inner {\n        grid-template-columns: 1fr;\n        gap: 2rem;\n        /* Banner on top, content below */\n        grid-template-areas:\n            \"art\"\n            \"main\";\n    }\n    \n    .td-hero-main {\n        grid-area: main;\n        gap: 1.5rem;\n    }\n    \n    .td-hero-art {\n        grid-area: art;\n    }\n    \n    .hero-title {\n        font-size: 2rem;\n    }\n    \n    .hero-subtitle {\n        font-size: 1rem;\n    }\n    \n    .hero-badges {\n        gap: 0.5rem;\n    }\n    \n    .badge {\n        font-size: 0.75rem;\n        padding: 0.4rem 0.8rem;\n    }\n    \n    .hero-info-row {\n        font-size: 0.85rem;\n    }\n    \n    .hero-cta {\n        font-size: 1rem;\n        padding: 0.875rem 1.5rem;\n    }\n    \n    .entry-fee-amount {\n        font-size: 1.25rem;\n    }\n    \n    .td-hero-banner-frame,\n    .td-hero-banner-fallback {\n        border-radius: 0.75rem;\n    }\n    \n    .meta-strip-inner {\n        grid-template-columns: 1fr;\n        gap: 1.5rem;\n    }\n}\n\n/* Tablet */\n@media (min-width: 769px) and (max-width: 1024px) {\n    .td-hero-inner {\n        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);\n        gap: 2rem;\n    }\n    \n    .hero-title {\n        font-size: 2.5rem;\n    }\n    \n    .hero-subtitle {\n        font-size: 1rem;\n    }\n    \n    .meta-strip-inner {\n        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));\n    }\n}\n\n/* Desktop */\n@media (min-width: 1025px) {\n    .td-hero-inner {\n        padding-top: 1rem;\n        padding-bottom: 1rem;\n    }\n}\n\n/* Large Desktop - wider banner */\n@media (min-width: 1400px) {\n    .td-hero-inner {\n        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.3fr);\n    }\n}
 
-/* Tablet */
-@media (min-width: 769px) and (max-width: 1024px) {
-    /* Tablet-specific styles will be added here */
-}
+/* ============================================
+   ANIMATIONS
+   ============================================ */
 
-/* Desktop */
-@media (min-width: 1025px) {
-    /* Desktop-specific styles will be added here */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.05);
+    }
 }

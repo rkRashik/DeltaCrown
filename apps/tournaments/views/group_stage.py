@@ -270,9 +270,11 @@ class GroupStandingsView(View):
         for group in groups:
             # Recalculate standings
             try:
+                from apps.common.game_registry import normalize_slug
+                canonical_slug = normalize_slug(tournament.game.slug)
                 standings = GroupStageService.calculate_standings(
                     group_id=group.id,
-                    game_slug=tournament.game.slug
+                    game_slug=canonical_slug
                 )
             except Exception:
                 # Use existing standings if calculation fails
@@ -286,21 +288,22 @@ class GroupStandingsView(View):
             })
         
         # Determine which stat columns to show based on game
-        game_slug = tournament.game.slug
+        from apps.common.game_registry import normalize_slug
+        game_slug = normalize_slug(tournament.game.slug)
         
-        if game_slug in ['efootball', 'fc-mobile', 'fifa']:
+        if game_slug in ['efootball', 'fc26']:
             stat_columns = ['goals_for', 'goals_against', 'goal_difference']
             stat_labels = ['GF', 'GA', 'GD']
         elif game_slug in ['valorant', 'cs2']:
             stat_columns = ['rounds_won', 'rounds_lost', 'round_difference']
             stat_labels = ['RW', 'RL', 'RD']
-        elif game_slug in ['pubg-mobile', 'free-fire']:
+        elif game_slug in ['pubg', 'freefire']:
             stat_columns = ['total_kills', 'placement_points', 'average_placement']
             stat_labels = ['Kills', 'Placement Pts', 'Avg Place']
-        elif game_slug == 'mobile-legends':
+        elif game_slug == 'mlbb':
             stat_columns = ['total_kills', 'total_deaths', 'total_assists', 'kda_ratio']
             stat_labels = ['K', 'D', 'A', 'KDA']
-        elif game_slug == 'call-of-duty-mobile':
+        elif game_slug == 'codm':
             stat_columns = ['total_kills', 'total_deaths', 'total_score']
             stat_labels = ['Eliminations', 'Deaths', 'Score']
         else:
@@ -314,6 +317,7 @@ class GroupStandingsView(View):
             'stat_columns': stat_columns,
             'stat_labels': stat_labels,
             'game_name': tournament.game.name,
+            'game_slug': game_slug,  # Already normalized above
         }
         
         return render(request, self.template_name, context)

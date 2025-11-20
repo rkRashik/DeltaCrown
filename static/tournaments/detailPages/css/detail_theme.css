@@ -18,6 +18,30 @@
 }
 
 /* ============================================
+   CS2 (Counter-Strike 2) THEME
+   ============================================ */
+[data-game-slug="cs2"] {
+    --accent: #ff9500;
+    --accent-soft: #ffb84d;
+    --accent-glow: rgba(255, 149, 0, 0.5);
+    --bg-elevated: #1a1510;
+    --bg-surface: #0f0c08;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(26, 21, 16, 0.95), rgba(15, 12, 8, 0.98));
+}
+
+/* ============================================
+   DOTA 2 THEME
+   ============================================ */
+[data-game-slug="dota2"] {
+    --accent: #c23c2a;
+    --accent-soft: #d96459;
+    --accent-glow: rgba(194, 60, 42, 0.5);
+    --bg-elevated: #1a0f0d;
+    --bg-surface: #100805;
+    --bg-hero-overlay: linear-gradient(135deg, rgba(26, 15, 13, 0.95), rgba(16, 8, 5, 0.98));
+}
+
+/* ============================================
    EFOOTBALL THEME
    ============================================ */
 [data-game-slug="efootball"] {
@@ -30,9 +54,9 @@
 }
 
 /* ============================================
-   PUBG MOBILE THEME
+   PUBG THEME
    ============================================ */
-[data-game-slug="pubg-mobile"] {
+[data-game-slug="pubg"] {
     --accent: #f39c12;
     --accent-soft: #f9c74f;
     --accent-glow: rgba(243, 156, 18, 0.5);
@@ -42,9 +66,9 @@
 }
 
 /* ============================================
-   FIFA THEME
+   FC26 (FIFA) THEME
    ============================================ */
-[data-game-slug="fifa"] {
+[data-game-slug="fc26"] {
     --accent: #00ff87;
     --accent-soft: #7fff9f;
     --accent-glow: rgba(0, 255, 135, 0.5);
@@ -56,7 +80,7 @@
 /* ============================================
    FREE FIRE THEME
    ============================================ */
-[data-game-slug="free-fire"] {
+[data-game-slug="freefire"] {
     --accent: #ff6b35;
     --accent-soft: #ff9470;
     --accent-glow: rgba(255, 107, 53, 0.5);
@@ -66,9 +90,9 @@
 }
 
 /* ============================================
-   CALL OF DUTY MOBILE THEME
+   CALL OF DUTY MOBILE (CODM) THEME
    ============================================ */
-[data-game-slug="call-of-duty-mobile"] {
+[data-game-slug="codm"] {
     --accent: #ff9500;
     --accent-soft: #ffb84d;
     --accent-glow: rgba(255, 149, 0, 0.5);
@@ -78,39 +102,15 @@
 }
 
 /* ============================================
-   MOBILE LEGENDS THEME
+   MOBILE LEGENDS (MLBB) THEME
    ============================================ */
-[data-game-slug="mobile-legends"] {
+[data-game-slug="mlbb"] {
     --accent: #8e44ad;
     --accent-soft: #b384c7;
     --accent-glow: rgba(142, 68, 173, 0.5);
     --bg-elevated: #15101a;
     --bg-surface: #0b080f;
     --bg-hero-overlay: linear-gradient(135deg, rgba(21, 16, 26, 0.95), rgba(11, 8, 15, 0.98));
-}
-
-/* ============================================
-   CLASH OF CLANS THEME
-   ============================================ */
-[data-game-slug="clash-of-clans"] {
-    --accent: #ff6f00;
-    --accent-soft: #ff9f4d;
-    --accent-glow: rgba(255, 111, 0, 0.5);
-    --bg-elevated: #1a1208;
-    --bg-surface: #0f0a05;
-    --bg-hero-overlay: linear-gradient(135deg, rgba(26, 18, 8, 0.95), rgba(15, 10, 5, 0.98));
-}
-
-/* ============================================
-   LEAGUE OF LEGENDS THEME
-   ============================================ */
-[data-game-slug="league-of-legends"] {
-    --accent: #0ac8b9;
-    --accent-soft: #5eddd4;
-    --accent-glow: rgba(10, 200, 185, 0.5);
-    --bg-elevated: #0a1a1a;
-    --bg-surface: #05100f;
-    --bg-hero-overlay: linear-gradient(135deg, rgba(10, 26, 26, 0.95), rgba(5, 16, 15, 0.98));
 }
 
 /* ============================================

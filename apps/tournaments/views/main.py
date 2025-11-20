@@ -23,6 +23,7 @@ from django.utils import timezone
 from apps.tournaments.models import Tournament, TournamentAnnouncement
 from apps.tournaments.services.registration_service import RegistrationService
 from django.core.exceptions import ValidationError
+from apps.common.game_registry import get_game, normalize_slug
 import requests
 
 
@@ -169,6 +170,12 @@ class TournamentDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         tournament = self.object
         user = self.request.user
+        
+        # Add Game Registry integration - unified game data
+        # Provides: display_name, icon, logo, banner, colors, theme, roster config
+        canonical_slug = normalize_slug(tournament.game.slug)
+        game_spec = get_game(canonical_slug)
+        context['game_spec'] = game_spec
         
         # FE-T-003: Registration CTA state logic with backend eligibility checks (Enhanced Sprint 5)
         # Source: FRONTEND_TOURNAMENT_BACKLOG.md Section 1.3 + 1.4

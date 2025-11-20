@@ -1,8 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from apps.user_profile.models import UserProfile
+from apps.common.game_registry import get_choices as get_game_choices
 from .models import Team, TeamMembership, TeamInvite
-from .game_config import GAME_CHOICES
 import re
 
 # Region choices for team location
@@ -105,6 +105,9 @@ class TeamCreationForm(forms.ModelForm):
         # Set choices for region field
         self.fields['region'].choices = REGION_CHOICES
         self.fields['region'].required = True  # Make region required
+        
+        # Set game choices from Game Registry
+        self.fields['game'].choices = get_game_choices()
 
     def clean_banner_image(self):
         """Validate banner image file size (max 10MB)"""
@@ -211,7 +214,7 @@ class TeamCreationForm(forms.ModelForm):
                     team = existing_teams.first().team
                     team_name = team.name
                     team_tag = team.tag
-                    game_display = dict(GAME_CHOICES).get(game, game)
+                    game_display = dict(get_game_choices()).get(game, game)
                     # Friendly, supportive message explaining the one-team-per-game rule
                     raise ValidationError(
                         f"You already belong to {team_name} [{team_tag}] for {game_display}. "
@@ -238,7 +241,7 @@ class TeamCreationForm(forms.ModelForm):
                     field_name = game_id_field_map.get(game)
                     if field_name and not getattr(profile, field_name, None):
                         # Store game code in session for redirect (handled by view)
-                        game_display = dict(GAME_CHOICES).get(game, game)
+                        game_display = dict(get_game_choices()).get(game, game)
                         game_id_label = game_id_label_map.get(game, 'game ID')
                         # Friendly message explaining why game ID is needed
                         raise ValidationError(

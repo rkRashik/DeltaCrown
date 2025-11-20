@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.db.models import Count, Q
 from django.contrib import messages
+from apps.common.game_registry import get_choices as get_game_choices
 
 from .models import (
     Team, TeamMembership, TeamInvite,
@@ -210,6 +211,12 @@ class TeamAdmin(admin.ModelAdmin):
         qs = qs.select_related('captain__user')
         qs = qs.annotate(member_count=Count('memberships', filter=Q(memberships__status='active')))
         return qs
+    
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        """Override to use Game Registry choices for game field"""
+        if db_field.name == 'game':
+            kwargs['choices'] = get_game_choices()
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
     
     # Actions
     def verify_teams(self, request, queryset):

@@ -19,8 +19,8 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-# Import GAME_CHOICES from game_config
-from ..game_config import GAME_CHOICES
+# Import get_choices from Game Registry for unified game configuration
+from apps.common.game_registry import get_choices as get_game_choices
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -61,10 +61,10 @@ class Team(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Game association (Part A)
+    # Game association (Part A) - uses Game Registry for choices
     game = models.CharField(
         max_length=20,
-        choices=GAME_CHOICES,
+        choices=get_game_choices,  # Callable from Game Registry
         blank=True,
         default="",
         help_text="Which game this team competes in (blank for legacy teams).",

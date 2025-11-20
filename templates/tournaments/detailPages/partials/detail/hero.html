@@ -1,9 +1,191 @@
+{% load static %}
 {# Hero Section Placeholder #}
 {# Purpose: Immediate impact, state awareness, primary action #}
 {# Content: Banner image, tournament title, game badge, status pill, CTA button, entry fee, countdown #}
 
-<section class="detail-hero">
-    <!-- Hero content will be implemented here -->
-    <!-- Left: Banner + Title + Status + Game/Type -->
-    <!-- Right: CTA + Entry Fee + Waiver Info + Countdown -->
+<section class="td-hero" data-game-slug="{{ game_spec.slug }}">
+    <div class="td-hero-inner">
+        <!-- Main Content Area: Tournament Info, CTA, Entry Fee -->
+        <div class="td-hero-main">
+            <!-- Badges Row -->
+            <div class="hero-badges">
+                {% if game_spec %}
+                <span class="badge badge-game">
+                    {% if game_spec.icon %}
+                    <img src="{% static game_spec.icon %}" alt="{{ game_spec.display_name }}" class="badge-icon">
+                    {% elif tournament.game.icon %}
+                    <img src="{{ tournament.game.icon.url }}" alt="{{ tournament.game.name }}" class="badge-icon">
+                    {% endif %}
+                    {{ game_spec.display_name }}
+                </span>
+                {% elif tournament.game %}
+                <span class="badge badge-game">
+                    {% if tournament.game.icon %}
+                    <img src="{{ tournament.game.icon.url }}" alt="{{ tournament.game.name }}" class="badge-icon">
+                    {% endif %}
+                    {{ tournament.game.name }}
+                </span>
+                {% endif %}
+                
+                <span class="badge badge-status badge-status-{{ tournament.status }}">
+                    {{ tournament.get_status_display }}
+                </span>
+                
+                {% if tournament.region %}
+                <span class="badge badge-region">
+                    <svg class="badge-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                    </svg>
+                    {{ tournament.region }}
+                </span>
+                {% endif %}
+            </div>
+            
+            <!-- Tournament Title -->
+            <h1 class="hero-title">{{ tournament.name }}</h1>
+            
+            {% if tournament.subtitle %}
+            <p class="hero-subtitle">{{ tournament.subtitle }}</p>
+            {% endif %}
+            
+            <!-- Info Row -->
+            <div class="hero-info-row">
+                <span class="info-item">
+                    <svg class="info-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                        <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/>
+                    </svg>
+                    {{ tournament.format|default:"Single Elimination" }}
+                </span>
+                
+                <span class="info-divider">•</span>
+                
+                <span class="info-item">
+                    <svg class="info-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8Zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022ZM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816ZM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>
+                    </svg>
+                    {{ tournament.participation_type|title }}
+                </span>
+                
+                {% if game_spec or tournament.game %}
+                <span class="info-divider">•</span>
+                <span class="info-item">{{ game_spec.display_name|default:tournament.game.name }}</span>
+                {% endif %}
+            </div>
+            
+            <!-- CTA and Info Cards -->
+            <div class="hero-actions">
+            <!-- Primary CTA Button -->
+            <div class="hero-cta-wrapper">
+                <button class="hero-cta hero-cta-{{ cta_state }}" {% if cta_disabled %}disabled{% endif %}>
+                    {{ cta_label }}
+                </button>
+                
+                {% if cta_disabled and cta_reason %}
+                <p class="hero-cta-note">{{ cta_reason }}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Entry Fee Block -->
+            {% if tournament.has_entry_fee %}
+            <div class="hero-entry-fee">
+                <div class="entry-fee-label">Entry Fee</div>
+                <div class="entry-fee-amount">
+                    {% if tournament.entry_fee_amount and tournament.entry_fee_amount > 0 %}
+                    <span class="fee-currency">{{ tournament.entry_fee_amount }} {{ tournament.entry_fee_currency|default:"BDT" }}</span>
+                    {% endif %}
+                    {% if tournament.entry_fee_deltacoin and tournament.entry_fee_deltacoin > 0 %}
+                    {% if tournament.entry_fee_amount and tournament.entry_fee_amount > 0 %}<span class="fee-separator">+</span>{% endif %}
+                    <span class="fee-deltacoin">{{ tournament.entry_fee_deltacoin }} <span class="deltacoin-symbol">ΔC</span></span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Fee Waiver Block -->
+            {% if tournament.enable_fee_waiver and tournament.fee_waiver_top_n_teams %}
+            <div class="hero-fee-waiver">
+                <div class="fee-waiver-info">
+                    <svg class="waiver-icon" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                    </svg>
+                    <span>Top {{ tournament.fee_waiver_top_n_teams }} ranked teams enter free</span>
+                </div>
+                {% comment %}
+                TODO: Add logic to check if user's team is eligible for fee waiver
+                {% if user_team_eligible_for_waiver %}
+                <div class="fee-waiver-eligible">
+                    <svg class="check-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                    </svg>
+                    Your team qualifies!
+                </div>
+                {% endif %}
+                {% endcomment %}
+            </div>
+            {% endif %}
+            
+            <!-- Countdown Chip -->
+            <div class="hero-countdown" data-registration-start="{{ tournament.registration_start|date:'c' }}" data-registration-end="{{ tournament.registration_end|date:'c' }}" data-tournament-start="{{ tournament.tournament_start|date:'c' }}" data-tournament-end="{{ tournament.tournament_end|date:'c' }}" data-status="{{ tournament.status }}">
+                {% if tournament.status == 'live' %}
+                <span class="countdown-live">
+                    <span class="live-indicator"></span>
+                    Live Now
+                </span>
+                {% elif tournament.status == 'completed' %}
+                <span class="countdown-ended">Ended on {{ tournament.tournament_end|date:"M d, Y" }}</span>
+                {% elif tournament.status == 'registration_open' %}
+                <span class="countdown-timer" data-target="{{ tournament.tournament_start|date:'c' }}">
+                    <svg class="countdown-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                    </svg>
+                    Starts in <span class="countdown-value">--</span>
+                </span>
+                {% elif tournament.status == 'published' %}
+                <span class="countdown-timer" data-target="{{ tournament.registration_start|date:'c' }}">
+                    <svg class="countdown-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                    </svg>
+                    Registration opens in <span class="countdown-value">--</span>
+                </span>
+                {% else %}
+                <span class="countdown-status">{{ tournament.get_status_display }}</span>
+                {% endif %}
+            </div>
+            </div>
+        </div>
+        
+        <!-- Banner Art Area -->
+        <div class="td-hero-art">
+            {% if game_spec.banner %}
+            <div class="td-hero-banner-frame">
+                <img src="{% static game_spec.banner %}" 
+                     alt="{{ tournament.name }} - {{ game_spec.display_name }} banner" 
+                     class="td-hero-banner-img">
+            </div>
+            {% elif tournament.banner_image %}
+            <div class="td-hero-banner-frame">
+                <img src="{{ tournament.banner_image.url }}" 
+                     alt="{{ tournament.name }} banner" 
+                     class="td-hero-banner-img">
+            </div>
+            {% else %}
+            <!-- Fallback: Game-themed placeholder -->
+            <div class="td-hero-banner-fallback">
+                {% if game_spec.icon %}
+                <img src="{% static game_spec.icon %}" 
+                     alt="{{ game_spec.display_name }}" 
+                     class="fallback-game-icon">
+                {% elif tournament.game and tournament.game.icon %}
+                <img src="{{ tournament.game.icon.url }}" 
+                     alt="{{ tournament.game.name }}" 
+                     class="fallback-game-icon">
+                {% endif %}
+                <div class="fallback-game-name">{{ game_spec.display_name|default:tournament.game.name|default:"Tournament" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </section>

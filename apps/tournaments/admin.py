@@ -29,6 +29,7 @@ from apps.tournaments.models import (
     TournamentResult, PrizeTransaction, TournamentPaymentMethod,
     TournamentStaffRole, TournamentStaff, TournamentAnnouncement
 )
+from apps.common.game_registry import get_all_games, normalize_slug
 
 # Import specialized admin classes from separate modules
 from apps.tournaments.admin_registration import RegistrationAdmin, PaymentAdmin
@@ -126,39 +127,133 @@ class TournamentPaymentMethodInline(admin.StackedInline):
 
 @admin.register(Game)
 class GameAdmin(admin.ModelAdmin):
-    """Comprehensive game management"""
+    """
+    GameSpec Editor - Comprehensive admin interface for managing game specifications.
+    
+    This admin interface serves as the primary editing tool for game configurations,
+    allowing full control over game assets, branding, team structures, and result logic.
+    All fields edited here become the primary source of truth for the Game Registry.
+    """
     
     list_display = [
-        'name', 'slug', 'default_team_size', 'default_result_type', 
+        'name', 'slug', 'category', 'platform', 'registry_status', 
         'is_active', 'tournament_count', 'created_at'
     ]
-    list_filter = ['is_active', 'default_team_size', 'default_result_type', 'created_at']
+    list_filter = ['category', 'platform', 'is_active', 'default_team_size', 'created_at']
     search_fields = ['name', 'slug', 'description']
-    readonly_fields = ['created_at', 'tournament_count']
+    readonly_fields = [
+        'created_at', 'tournament_count', 
+        'icon_preview', 'logo_preview', 'card_image_preview', 'banner_preview'
+    ]
     prepopulated_fields = {'slug': ('name',)}
     ordering = ['name']
     
     fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'slug', 'description')
+        ('Identity', {
+            'fields': ('name', 'slug', 'description', 'is_active'),
+            'description': 'Core game identity and description'
         }),
-        ('Game Configuration', {
-            'fields': ('default_team_size', 'profile_id_field', 'default_result_type')
+        ('Media & Branding', {
+            'fields': (
+                'icon', 'icon_preview',
+                'logo', 'logo_preview',
+                'card_image', 'card_image_preview',
+                'banner', 'banner_preview',
+                'primary_color', 'secondary_color'
+            ),
+            'description': 'Visual assets and theme colors for this game. Upload images to replace asset fallbacks.'
         }),
-        ('Game Config (JSON)', {
+        ('Meta', {
+            'fields': ('category', 'platform', 'profile_id_field'),
+            'description': 'Game classification and player identification settings'
+        }),
+        ('Team Structure & Roles', {
+            'fields': (
+                'min_team_size', 'max_team_size', 'default_team_size',
+                'roles', 'roster_rules'
+            ),
+            'description': 'Team size constraints, available roles, and roster configuration'
+        }),
+        ('Result Logic', {
+            'fields': ('default_result_type', 'result_logic'),
+            'description': 'Match result format and calculation logic'
+        }),
+        ('Advanced Configuration', {
             'fields': ('game_config',),
             'classes': ('collapse',),
             'description': (
                 'Advanced configuration in JSON format. Defines allowed tournament formats, '
-                'team size constraints, custom field schemas, and match settings.'
+                'custom field schemas, and match settings.'
             )
         }),
-        ('Status', {
-            'fields': ('is_active', 'created_at', 'tournament_count')
+        ('Status & Statistics', {
+            'fields': ('created_at', 'tournament_count'),
+            'classes': ('collapse',)
         }),
     )
     
     actions = ['activate_games', 'deactivate_games']
+    
+    # Media Preview Methods
+    def icon_preview(self, obj):
+        """Display icon preview"""
+        if obj.icon:
+            return format_html(
+                '<img src="{}" style="max-height: 48px; max-width: 100px; '
+                'border: 1px solid #ddd; border-radius: 4px; background: white;" />',
+                obj.icon.url
+            )
+        return format_html('<span style="color: #999;">No icon uploaded (using asset fallback)</span>')
+    icon_preview.short_description = 'Icon Preview'
+    
+    def logo_preview(self, obj):
+        """Display logo preview"""
+        if obj.logo:
+            return format_html(
+                '<img src="{}" style="max-height: 60px; max-width: 150px; '
+                'border: 1px solid #ddd; border-radius: 4px; background: white; padding: 5px;" />',
+                obj.logo.url
+            )
+        return format_html('<span style="color: #999;">No logo uploaded (using asset fallback)</span>')
+    logo_preview.short_description = 'Logo Preview'
+    
+    def card_image_preview(self, obj):
+        """Display card image preview"""
+        if obj.card_image:
+            return format_html(
+                '<img src="{}" style="max-height: 120px; max-width: 200px; '
+                'border: 1px solid #ddd; border-radius: 4px;" />',
+                obj.card_image.url
+            )
+        return format_html('<span style="color: #999;">No card image uploaded (using asset fallback)</span>')
+    card_image_preview.short_description = 'Card Image Preview'
+    
+    def banner_preview(self, obj):
+        """Display banner preview"""
+        if obj.banner:
+            return format_html(
+                '<img src="{}" style="max-height: 150px; max-width: 100%; '
+                'border: 1px solid #ddd; border-radius: 4px;" />',
+                obj.banner.url
+            )
+        return format_html('<span style="color: #999;">No banner uploaded (using asset fallback)</span>')
+    banner_preview.short_description = 'Banner Preview'
+    
+    # List Display Methods
+    def registry_status(self, obj):
+        """Display whether game is in Game Registry (canonical)"""
+        normalized = normalize_slug(obj.slug)
+        canonical_slugs = [spec.slug for spec in get_all_games()]
+        if normalized in canonical_slugs:
+            return format_html(
+                '<span style="background: #4CAF50; color: white; padding: 3px 8px; '
+                'border-radius: 3px; font-size: 11px;">✓ CANONICAL</span>'
+            )
+        return format_html(
+            '<span style="background: #FF9800; color: white; padding: 3px 8px; '
+            'border-radius: 3px; font-size: 11px;">⚠ LEGACY</span>'
+        )
+    registry_status.short_description = 'Registry'
     
     def tournament_count(self, obj):
         """Display count of tournaments using this game"""
@@ -169,6 +264,7 @@ class GameAdmin(admin.ModelAdmin):
         return format_html('<span style="color: gray;">0 tournaments</span>')
     tournament_count.short_description = 'Tournaments'
     
+    # Actions
     def activate_games(self, request, queryset):
         """Activate selected games"""
         count = queryset.update(is_active=True)
@@ -182,10 +278,23 @@ class GameAdmin(admin.ModelAdmin):
     deactivate_games.short_description = "❌ Deactivate selected games"
     
     def formfield_for_dbfield(self, db_field, request, **kwargs):
-        """Enhance JSON fields with better textarea widget"""
-        if db_field.name == 'game_config':
+        """Enhance JSON fields with better textarea widgets"""
+        if db_field.name in ['roles', 'roster_rules', 'result_logic']:
             kwargs['widget'] = admin.widgets.AdminTextareaWidget(
-                attrs={'rows': 15, 'cols': 80, 'style': 'font-family: monospace;'}
+                attrs={
+                    'rows': 12, 
+                    'cols': 80, 
+                    'style': 'font-family: "Courier New", monospace; font-size: 13px;',
+                    'placeholder': 'Enter JSON data...'
+                }
+            )
+        elif db_field.name == 'game_config':
+            kwargs['widget'] = admin.widgets.AdminTextareaWidget(
+                attrs={
+                    'rows': 15, 
+                    'cols': 80, 
+                    'style': 'font-family: "Courier New", monospace; font-size: 13px;'
+                }
             )
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
@@ -410,11 +519,31 @@ class TournamentAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """Restrict organizer choices to staff users"""
+        """Restrict choices for organizer and game fields"""
         if db_field.name == 'organizer':
             from django.contrib.auth import get_user_model
             User = get_user_model()
             kwargs['queryset'] = User.objects.filter(is_staff=True)
+        elif db_field.name == 'game':
+            # Filter to only show games that exist in Game Registry (canonical games)
+            canonical_slugs = [spec.slug for spec in get_all_games()]
+            # Normalize existing game slugs and filter
+            game_ids = []
+            for game in Game.objects.filter(is_active=True):
+                normalized = normalize_slug(game.slug)
+                if normalized in canonical_slugs:
+                    game_ids.append(game.id)
+            kwargs['queryset'] = Game.objects.filter(id__in=game_ids, is_active=True)
+            # Override label to show display_name from registry
+            if 'widget' not in kwargs:
+                from django import forms
+                choices = [('', '---------')]
+                for spec in get_all_games():
+                    matching_games = Game.objects.filter(slug__in=[spec.slug] + list(spec.legacy_aliases), is_active=True)
+                    if matching_games.exists():
+                        game = matching_games.first()
+                        choices.append((game.id, spec.display_name))
+                kwargs['widget'] = forms.Select(choices=choices)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
     
     def formfield_for_dbfield(self, db_field, request, **kwargs):

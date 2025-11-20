@@ -321,8 +321,11 @@ class RegistrationService:
             # Profile doesn't exist or error accessing it
             return {}
         
-        # Get game-specific ID field
-        game_id_field = tournament.game.profile_id_field
+        # Get game-specific ID field from Game Registry
+        from apps.common.game_registry import get_game, normalize_slug
+        canonical_slug = normalize_slug(tournament.game.slug)
+        game_spec = get_game(canonical_slug)
+        game_id_field = game_spec.profile_id_field if game_spec else tournament.game.profile_id_field
         game_id = getattr(profile, game_id_field, None)
         
         data = {
