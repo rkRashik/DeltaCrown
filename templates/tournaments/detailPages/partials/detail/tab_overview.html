@@ -1,12 +1,401 @@
-{# Overview Tab Placeholder #}
-{# Purpose: Tell tournament story, show player journey #}
-{# Content: Journey timeline, description, sponsors, game/format cards, custom requirements #}
+{# Overview Tab - Esports Control Center Layout #}
+{# Purpose: Two-column layout with sticky rail (user status) + masonry cards (tournament info) #}
 
-<div class="detail-tab-panel" data-tab="overview">
-    <!-- Overview content will be implemented here -->
-    <!-- Player Journey Timeline -->
-    <!-- Description & Story -->
-    <!-- Sponsor Highlight -->
-    <!-- Game & Format Summary Cards -->
-    <!-- Custom Fields Summary -->
-</div>
+<section class="detail-tab-panel td-tab-panel" data-tab="overview">
+    <div class="td-overview-grid">
+        
+        {# LEFT COLUMN: MY STATUS / ACTIONS RAIL (Sticky) #}
+        <aside class="td-overview-rail">
+            
+            {# Always show: Game Badge + Tournament Status #}
+            <div class="td-rail-card td-game-badge-card">
+                <div class="td-game-badge">
+                    {% if game_spec.icon %}
+                    <img src="{{ game_spec.icon }}" alt="{{ game_spec.display_name }}" class="td-game-icon">
+                    {% else %}
+                    <div class="td-game-icon-placeholder">🎮</div>
+                    {% endif %}
+                    <div class="td-game-info">
+                        <h3 class="td-game-title">{{ game_spec.display_name }}</h3>
+                        <span class="td-status-pill td-status-{{ tournament.status }}">
+                            {{ tournament.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            {# Conditional Rail Cards Based on User Role #}
+            
+            {% if user.is_authenticated %}
+                {% if is_registered %}
+                    {# REGISTERED USER CARD #}
+                    <div class="td-rail-card td-user-status-card">
+                        <div class="td-card-header">
+                            <h3 class="td-card-title">✅ You Are Registered</h3>
+                        </div>
+                        
+                        <div class="td-card-body">
+                            {% if registration_status %}
+                                <div class="td-status-badge td-status-{{ registration_status.state }}">
+                                    {% if registration_status.state == 'payment_pending' %}Payment Pending
+                                    {% elif registration_status.state == 'approval_pending' %}Approval Pending
+                                    {% elif registration_status.state == 'check_in_required' %}Check-in Required
+                                    {% elif registration_status.state == 'checked_in' %}Checked In
+                                    {% else %}{{ registration_status.state|title }}
+                                    {% endif %}
+                                </div>
+                                
+                                {% if registration_status.state == 'payment_pending' %}
+                                <p class="td-status-note">Payment required to confirm registration</p>
+                                {% elif registration_status.state == 'approval_pending' %}
+                                <p class="td-status-note">Awaiting organizer approval</p>
+                                {% elif registration_status.state == 'check_in_required' %}
+                                <p class="td-status-note">Check-in opens soon</p>
+                                {% elif registration_status.state == 'checked_in' %}
+                                <p class="td-status-note">You're all set for the tournament!</p>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {# Quick Action Links #}
+                            <div class="td-rail-actions">
+                                <a href="#" class="td-action-btn td-btn-primary">
+                                    <span class="td-btn-icon">🚪</span>
+                                    Enter Tournament Room
+                                </a>
+                                {% if tournament.participation_type == 'team' %}
+                                <a href="#" class="td-action-btn td-btn-secondary">
+                                    <span class="td-btn-icon">👥</span>
+                                    View My Team
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                
+                {% else %}
+                    {# NOT REGISTERED - JOIN TOURNAMENT CARD #}
+                    <div class="td-rail-card td-join-card">
+                        <div class="td-card-header">
+                            <h3 class="td-card-title">Join This Tournament</h3>
+                        </div>
+                        
+                        <div class="td-card-body">
+                            {# Entry Fee Summary #}
+                            {% if tournament.has_entry_fee %}
+                            <div class="td-fee-summary">
+                                <div class="td-fee-label">Entry Fee</div>
+                                <div class="td-fee-value">
+                                    {{ tournament.entry_fee_amount }} {{ tournament.entry_fee_currency }}
+                                    {% if tournament.entry_fee_deltacoin %}
+                                    + {{ tournament.entry_fee_deltacoin }} ΔCoin
+                                    {% endif %}
+                                </div>
+                                
+                                {% if tournament.enable_fee_waiver %}
+                                <div class="td-fee-waiver">
+                                    ✨ Top {{ tournament.fee_waiver_top_n_teams }} ranked teams enter FREE
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div class="td-fee-summary">
+                                <div class="td-fee-free">🎉 FREE ENTRY</div>
+                            </div>
+                            {% endif %}
+                            
+                            {# Why Join Highlights #}
+                            <ul class="td-join-highlights">
+                                {% if tournament.prize_pool %}
+                                <li>💰 Win {{ tournament.prize_pool }} {{ tournament.prize_currency }}</li>
+                                {% endif %}
+                                <li>🏆 Compete with {{ slots_filled }} players</li>
+                                <li>📊 Earn ranking points</li>
+                            </ul>
+                            
+                            {# CTA Button #}
+                            <div class="td-rail-actions">
+                                <button class="td-action-btn td-btn-primary td-btn-cta" 
+                                        {% if cta_disabled %}disabled{% endif %}>
+                                    {{ cta_label }}
+                                </button>
+                                {% if cta_disabled and cta_reason %}
+                                <p class="td-cta-note">{{ cta_reason }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                
+                {# ORGANIZER TOOLS (if user is organizer) #}
+                {% if user == tournament.organizer or user.is_staff %}
+                <div class="td-rail-card td-organizer-card">
+                    <div class="td-card-header">
+                        <h3 class="td-card-title">🛠️ Organizer Tools</h3>
+                    </div>
+                    
+                    <div class="td-card-body">
+                        <div class="td-rail-actions">
+                            <a href="#" class="td-action-btn td-btn-secondary">
+                                <span class="td-btn-icon">⚙️</span>
+                                Manage Tournament
+                            </a>
+                            <a href="#" class="td-action-btn td-btn-secondary">
+                                <span class="td-btn-icon">✏️</span>
+                                Edit Details
+                            </a>
+                            <a href="#" class="td-action-btn td-btn-secondary">
+                                <span class="td-btn-icon">📢</span>
+                                Send Announcement
+                            </a>
+                            <a href="#" class="td-action-btn td-btn-primary">
+                                <span class="td-btn-icon">🚪</span>
+                                Open Lobby
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+            {% else %}
+                {# GUEST USER - LOGIN TO JOIN #}
+                <div class="td-rail-card td-guest-card">
+                    <div class="td-card-header">
+                        <h3 class="td-card-title">Join This Tournament</h3>
+                    </div>
+                    
+                    <div class="td-card-body">
+                        <p class="td-guest-message">Login to register and compete in this tournament.</p>
+                        
+                        {# Entry Fee Preview #}
+                        {% if tournament.has_entry_fee %}
+                        <div class="td-fee-summary">
+                            <div class="td-fee-label">Entry Fee</div>
+                            <div class="td-fee-value">
+                                {{ tournament.entry_fee_amount }} {{ tournament.entry_fee_currency }}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="td-fee-free">🎉 FREE ENTRY</div>
+                        {% endif %}
+                        
+                        <div class="td-rail-actions">
+                            <a href="{% url 'account:login' %}?next={{ request.path }}" class="td-action-btn td-btn-primary">
+                                Login to Register
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+        </aside>
+        
+        {# RIGHT COLUMN: DYNAMIC MASONRY CARD AREA #}
+        <div class="td-overview-cards">
+            
+            {# CARD 1: Tournament Story / Description #}
+            <div class="td-card td-card-masonry">
+                <div class="td-card-header">
+                    <h3 class="td-card-title">📖 Tournament Overview</h3>
+                </div>
+                
+                <div class="td-card-body">
+                    {% if tournament.description %}
+                    <div class="td-description-content">
+                        {{ tournament.description|safe }}
+                    </div>
+                    {% else %}
+                    <p class="td-empty-state">Tournament details coming soon.</p>
+                    {% endif %}
+                    
+                    {# Game Details Summary #}
+                    <div class="td-meta-grid">
+                        <div class="td-meta-item">
+                            <span class="td-meta-label">Category</span>
+                            <span class="td-meta-value">{{ game_spec.category|default:"Esports" }}</span>
+                        </div>
+                        <div class="td-meta-item">
+                            <span class="td-meta-label">Platform</span>
+                            <span class="td-meta-value">{{ tournament.game.platform|default:"Multi" }}</span>
+                        </div>
+                        <div class="td-meta-item">
+                            <span class="td-meta-label">Type</span>
+                            <span class="td-meta-value">
+                                {% if tournament.participation_type == 'team' %}
+                                Team ({{ game_spec.roster_config.min_players }}-{{ game_spec.roster_config.max_players }})
+                                {% else %}
+                                Solo
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="td-meta-item">
+                            <span class="td-meta-label">Format</span>
+                            <span class="td-meta-value">{{ tournament.get_format_display }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {# CARD 2: Prize & Rewards #}
+            {% if tournament.prize_pool %}
+            <div class="td-card td-card-masonry td-prize-card">
+                <div class="td-card-header">
+                    <h3 class="td-card-title">🏆 Prizes & Rewards</h3>
+                </div>
+                
+                <div class="td-card-body">
+                    <div class="td-prize-total">
+                        <div class="td-prize-label">Total Prize Pool</div>
+                        <div class="td-prize-amount">
+                            {{ tournament.prize_pool }} {{ tournament.prize_currency }}
+                            {% if tournament.prize_deltacoin %}
+                            <span class="td-prize-deltacoin">+ {{ tournament.prize_deltacoin }} ΔCoin</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {# Mini Podium if prize_distribution exists #}
+                    {% if tournament.prize_distribution %}
+                    <div class="td-mini-podium">
+                        <div class="td-podium-place td-place-2">
+                            <div class="td-podium-rank">2nd</div>
+                            <div class="td-podium-prize">{{ tournament.prize_distribution.2nd|default:"TBD" }}</div>
+                        </div>
+                        <div class="td-podium-place td-place-1">
+                            <div class="td-podium-rank">1st</div>
+                            <div class="td-podium-prize">{{ tournament.prize_distribution.1st|default:"TBD" }}</div>
+                        </div>
+                        <div class="td-podium-place td-place-3">
+                            <div class="td-podium-rank">3rd</div>
+                            <div class="td-podium-prize">{{ tournament.prize_distribution.3rd|default:"TBD" }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <a href="#prizes" class="td-link-btn">View Full Prize Details →</a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {# CARD 3: Journey Timeline (Mini Horizontal) #}
+            <div class="td-card td-card-masonry">
+                <div class="td-card-header">
+                    <h3 class="td-card-title">⏱️ Tournament Progress</h3>
+                </div>
+                
+                <div class="td-card-body">
+                    <div class="td-mini-timeline">
+                        <div class="td-timeline-step {% if tournament.status in 'published,registration_open' %}is-active{% elif tournament.status in 'registration_closed,live,completed' %}is-completed{% endif %}">
+                            <div class="td-timeline-dot"></div>
+                            <span class="td-timeline-label">Register</span>
+                        </div>
+                        
+                        {% if tournament.enable_check_in %}
+                        <div class="td-timeline-step {% if tournament.status == 'registration_closed' %}is-active{% elif tournament.status in 'live,completed' %}is-completed{% endif %}">
+                            <div class="td-timeline-dot"></div>
+                            <span class="td-timeline-label">Check-In</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="td-timeline-step {% if tournament.status == 'live' %}is-active{% elif tournament.status == 'completed' %}is-completed{% endif %}">
+                            <div class="td-timeline-dot"></div>
+                            <span class="td-timeline-label">Play</span>
+                        </div>
+                        
+                        <div class="td-timeline-step {% if tournament.status == 'completed' %}is-active is-completed{% endif %}">
+                            <div class="td-timeline-dot"></div>
+                            <span class="td-timeline-label">Winners</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {# CARD 4: Slots / Ranking / Fee Waiver Summary #}
+            <div class="td-card td-card-masonry">
+                <div class="td-card-header">
+                    <h3 class="td-card-title">📊 Tournament Stats</h3>
+                </div>
+                
+                <div class="td-card-body">
+                    {# Slots Progress #}
+                    <div class="td-slots-info">
+                        <div class="td-slots-header">
+                            <span class="td-slots-label">Participants</span>
+                            <span class="td-slots-count">{{ slots_filled }} / {{ tournament.max_participants }}</span>
+                        </div>
+                        <div class="td-slots-bar">
+                            <div class="td-slots-fill" style="width: {{ slots_percentage }}%"></div>
+                        </div>
+                    </div>
+                    
+                    {# Fee Waiver Info #}
+                    {% if tournament.enable_fee_waiver %}
+                    <div class="td-waiver-info">
+                        <div class="td-waiver-icon">✨</div>
+                        <div class="td-waiver-text">
+                            <strong>Free Entry for Top {{ tournament.fee_waiver_top_n_teams }}</strong>
+                            <p>Ranked teams get waived entry fees</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {# Region Info #}
+                    {% if tournament.region %}
+                    <div class="td-stat-item">
+                        <span class="td-stat-icon">🌍</span>
+                        <span class="td-stat-text">{{ tournament.get_region_display }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {# CARD 5: Custom Fields (if exists) #}
+            {% if tournament.custom_fields %}
+            <div class="td-card td-card-masonry">
+                <div class="td-card-header">
+                    <h3 class="td-card-title">📋 Additional Info</h3>
+                </div>
+                
+                <div class="td-card-body">
+                    <dl class="td-info-list">
+                        {% for field_key, field_value in tournament.custom_fields.items %}
+                        <div class="td-info-row">
+                            <dt class="td-info-key">{{ field_key }}</dt>
+                            <dd class="td-info-val">{{ field_value }}</dd>
+                        </div>
+                        {% endfor %}
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+            
+            {# CARD 6: Organizer Information #}
+            <div class="td-card td-card-masonry td-organizer-card-info">
+                <div class="td-card-header">
+                    <h3 class="td-card-title">👤 Organizer</h3>
+                </div>
+                
+                <div class="td-card-body">
+                    <div class="td-organizer-profile">
+                        <div class="td-organizer-avatar">
+                            {% if tournament.organizer.profile.avatar %}
+                            <img src="{{ tournament.organizer.profile.avatar.url }}" alt="{{ tournament.organizer.username }}">
+                            {% else %}
+                            <div class="td-avatar-placeholder">{{ tournament.organizer.username|first|upper }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="td-organizer-details">
+                            <h4 class="td-organizer-name">{{ tournament.organizer.username }}</h4>
+                            {% if tournament.organizer.profile.bio %}
+                            <p class="td-organizer-bio">{{ tournament.organizer.profile.bio|truncatewords:15 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <a href="#" class="td-link-btn">View Organizer Page →</a>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+</section>

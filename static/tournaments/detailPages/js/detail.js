@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize game theme
     initializeTheme();
     
+    // Initialize tab navigation
+    initializeTabs();
+    
     // Initialize countdown timers
     initializeCountdowns();
     
@@ -19,9 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize hover effects
     initializeHoverEffects();
-    
-    // Tab navigation will be initialized when tabs are implemented
-    // initializeTabs();
 });
 
 /**
@@ -43,11 +43,82 @@ function initializeTheme() {
 
 /**
  * Initialize tab navigation
- * Handles tab switching with smooth transitions
+ * Handles tab switching with smooth transitions and URL hash support
  */
 function initializeTabs() {
-    // Tab switching logic will be added here when tabs are implemented
-    console.log('[Detail] Tab navigation initialization placeholder');
+    const tabNav = document.querySelector('.td-tabs-rail-nav');
+    const tabButtons = document.querySelectorAll('.td-tab-rail-item');
+    const tabPanels = document.querySelectorAll('.td-tab-panel');
+    
+    if (!tabNav || tabButtons.length === 0 || tabPanels.length === 0) {
+        console.log('[Detail] Tab navigation elements not found');
+        return;
+    }
+    
+    // Function to switch to a specific tab
+    const switchTab = (tabId) => {
+        // Update buttons
+        tabButtons.forEach(btn => {
+            const isActive = btn.getAttribute('data-tab') === tabId;
+            btn.classList.toggle('is-active', isActive);
+        });
+        
+        // Update panels
+        tabPanels.forEach(panel => {
+            const isActive = panel.getAttribute('data-tab') === tabId;
+            panel.classList.toggle('is-active', isActive);
+        });
+        
+        // Update URL hash without triggering scroll
+        if (history.replaceState) {
+            history.replaceState(null, null, `#${tabId}`);
+        } else {
+            window.location.hash = tabId;
+        }
+        
+        console.log(`[Detail] Switched to tab: ${tabId}`);
+    };
+    
+    // Add click handlers to tab buttons
+    tabButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = button.getAttribute('data-tab');
+            switchTab(tabId);
+        });
+    });
+    
+    // Check URL hash on load and switch to that tab if present
+    const hashTab = window.location.hash.substring(1);
+    if (hashTab) {
+        const matchingButton = Array.from(tabButtons).find(
+            btn => btn.getAttribute('data-tab') === hashTab
+        );
+        if (matchingButton) {
+            switchTab(hashTab);
+        } else {
+            // Hash doesn't match any tab, show overview
+            switchTab('overview');
+        }
+    } else {
+        // No hash, show overview by default
+        switchTab('overview');
+    }
+    
+    // Listen for hash changes (browser back/forward buttons)
+    window.addEventListener('hashchange', () => {
+        const newHashTab = window.location.hash.substring(1);
+        if (newHashTab) {
+            const matchingButton = Array.from(tabButtons).find(
+                btn => btn.getAttribute('data-tab') === newHashTab
+            );
+            if (matchingButton) {
+                switchTab(newHashTab);
+            }
+        }
+    });
+    
+    console.log(`[Detail] Initialized tab navigation with ${tabButtons.length} tabs`);
 }
 
 /**

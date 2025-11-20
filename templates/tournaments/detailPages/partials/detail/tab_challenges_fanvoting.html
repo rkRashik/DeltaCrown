@@ -3,13 +3,9 @@
 {# Content: Challenge cards, voting polls #}
 {# Note: Only shown if enable_challenges or enable_fan_voting is True #}
 
-<div class="detail-tab-panel" data-tab="challenges-fanvoting">
-    <!-- Challenges & Fan Voting content will be implemented here -->
-    {% if tournament.enable_challenges %}
-        <!-- Challenge cards: "Most kills Day 1", "Clutch King", etc. -->
-    {% endif %}
-    
-    {% if tournament.enable_fan_voting %}
-        <!-- Fan voting polls: "Who will win the finals?", progress bars, vote button -->
-    {% endif %}
-</div>
+<section class="detail-tab-panel td-tab-panel" data-tab="challenges-fanvoting">
+    <div class="td-card">
+        <h2 class="td-section-title">Challenges & Fan Voting</h2>
+        <p class="td-empty-state">Interactive features coming soon.</p>
+    </div>
+</section>

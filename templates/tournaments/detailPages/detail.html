@@ -18,14 +18,16 @@
     {# Meta Strip #}
     {% include 'tournaments/detailPages/partials/detail/meta_strip.html' %}
     
-    {# Main Content Wrapper #}
-    <div class="detail-content-wrapper">
-        <div class="detail-main">
-            {# Tab Navigation #}
+    {# Main Layout: Esports Control Center with Vertical Icon Rail #}
+    <div class="td-main-layout">
+        {# Left: Vertical Icon Tab Rail (becomes horizontal on mobile) #}
+        <aside class="td-tabs-rail">
             {% include 'tournaments/detailPages/partials/detail/tab_nav.html' %}
-            
-            {# Tab Content Panels #}
-            <div class="detail-tab-content">
+        </aside>
+        
+        {# Right: Main Content Area with Tab Panels #}
+        <section class="td-main-content">
+            <div class="td-tab-panels">
                 {% include 'tournaments/detailPages/partials/detail/tab_overview.html' %}
                 {% include 'tournaments/detailPages/partials/detail/tab_rules.html' %}
                 {% include 'tournaments/detailPages/partials/detail/tab_prizes.html' %}
@@ -38,10 +40,7 @@
                     {% include 'tournaments/detailPages/partials/detail/tab_challenges_fanvoting.html' %}
                 {% endif %}
             </div>
-        </div>
-        
-        {# Sidebar #}
-        {% include 'tournaments/detailPages/partials/detail/sidebar.html' %}
+        </section>
     </div>
     
 </div>
