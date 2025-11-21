@@ -319,6 +319,14 @@ class TournamentDetailView(DetailView):
         # Add participants data for Participants tab
         context.update(self._get_participants_context(tournament, user))
         
+        # Add bracket context (for all tournament types)
+        from apps.tournaments.models import Bracket
+        try:
+            bracket = tournament.bracket  # OneToOneField relationship
+            context['bracket'] = bracket
+        except Bracket.DoesNotExist:
+            context['bracket'] = None
+        
         # Add multi-stage tournament context (GROUP_PLAYOFF format)
         if tournament.format == Tournament.GROUP_PLAYOFF:
             context['is_multi_stage'] = True
@@ -330,7 +338,7 @@ class TournamentDetailView(DetailView):
             context['stages'] = config.get('stages', [])
             
             # Always include groups data (useful for both group and knockout stages)
-            from apps.tournaments.models import Group, GroupStanding, Bracket
+            from apps.tournaments.models import Group, GroupStanding
             
             groups = Group.objects.filter(
                 tournament=tournament,
@@ -346,19 +354,6 @@ class TournamentDetailView(DetailView):
                     is_deleted=False
                 ).order_by('rank').select_related('team', 'user')
             context['group_standings'] = group_standings
-            
-            # Add bracket data only when in knockout stage
-            if current_stage == Tournament.STAGE_KNOCKOUT:
-                try:
-                    bracket = Bracket.objects.get(
-                        tournament=tournament,
-                        is_deleted=False
-                    )
-                    context['bracket'] = bracket
-                except Bracket.DoesNotExist:
-                    context['bracket'] = None
-            else:
-                context['bracket'] = None
         else:
             context['is_multi_stage'] = False
             context['current_stage'] = None
@@ -368,6 +363,9 @@ class TournamentDetailView(DetailView):
         
         # Add standings context for Standings tab
         context.update(self._get_standings_context(tournament))
+        
+        # Add streams context for Streams & Media tab
+        context.update(self._get_streams_context(tournament))
         
         return context
     
@@ -648,9 +646,11 @@ class TournamentDetailView(DetailView):
                 all_participant_ids.add(match.participant2_id)
         
         teams_map = {}
+        teams_logo_map = {}
         if tournament.participation_type == 'team' and all_participant_ids:
             teams = Team.objects.filter(id__in=all_participant_ids)
             teams_map = {team.id: team.name for team in teams}
+            teams_logo_map = {team.id: team.logo.url if team.logo else None for team in teams}
         
         # Precompute UI attributes for each match
         matches_list = []
@@ -686,6 +686,18 @@ class TournamentDetailView(DetailView):
                 elif match.winner_id == match.participant2_id:
                     winner = 2
             
+            # Group name for group stage (initialize early)
+            group_name = ''
+            if phase == 'group_stage':
+                # Try to find group by checking match participants
+                # This is a simple heuristic - you may need to adjust based on your data model
+                try:
+                    # If you have a direct group FK on Match, use that
+                    # Otherwise, we'll leave it empty for now
+                    pass
+                except:
+                    pass
+            
             # Round label for knockout
             round_label = ''
             if phase == 'knockout_stage' and match.round_number:
@@ -698,36 +710,79 @@ class TournamentDetailView(DetailView):
                 else:
                     round_label = f'Round {match.round_number}'
             
-            # Group name for group stage
-            group_name = ''
-            if phase == 'group_stage':
-                # Try to find group by checking match participants
-                # This is a simple heuristic - you may need to adjust based on your data model
-                try:
-                    # If you have a direct group FK on Match, use that
-                    # Otherwise, we'll leave it empty for now
-                    pass
-                except:
-                    pass
+            # Build stage label
+            stage_label = ''
+            if phase == 'group_stage' and group_name:
+                stage_label = f"Group {group_name}"
+                if match.round_number:
+                    stage_label += f" – Round {match.round_number}"
+            elif phase == 'knockout_stage' and round_label:
+                stage_label = round_label
+            elif match.round_number:
+                stage_label = f"Round {match.round_number}"
+            
+            # Match label
+            match_label = f"Match #{match.match_number}" if match.match_number else "Match"
             
             # Format start time
             start_time_display = ''
             if match.scheduled_time:
                 start_time_display = match.scheduled_time.strftime('%b %d · %H:%M')
             
-            # Resolve participant names
+            # Resolve participant names and logos
             p1_name = 'TBD'
             p2_name = 'TBD'
+            p1_logo = None
+            p2_logo = None
             
             if match.participant1_id:
                 p1_name = teams_map.get(match.participant1_id) or match.participant1_name or 'TBD'
+                p1_logo = teams_logo_map.get(match.participant1_id)
             elif match.participant1_name:
                 p1_name = match.participant1_name
             
             if match.participant2_id:
                 p2_name = teams_map.get(match.participant2_id) or match.participant2_name or 'TBD'
+                p2_logo = teams_logo_map.get(match.participant2_id)
             elif match.participant2_name:
                 p2_name = match.participant2_name
+            
+            # Determine winners
+            team1_is_winner = winner == 1
+            team2_is_winner = winner == 2
+            
+            # Format times
+            starts_at = match.scheduled_time
+            starts_at_display = start_time_display
+            
+            # Calculate relative time (simplified - could be enhanced)
+            starts_at_relative = ''
+            if starts_at:
+                delta = starts_at - now
+                if delta.total_seconds() > 0:
+                    hours = int(delta.total_seconds() // 3600)
+                    minutes = int((delta.total_seconds() % 3600) // 60)
+                    if hours > 24:
+                        days = hours // 24
+                        starts_at_relative = f"Starts in {days}d"
+                    elif hours > 0:
+                        starts_at_relative = f"Starts in {hours}h {minutes}m"
+                    else:
+                        starts_at_relative = f"Starts in {minutes}m"
+                else:
+                    # Past time
+                    hours = int(abs(delta.total_seconds()) // 3600)
+                    if is_completed:
+                        if hours > 24:
+                            days = hours // 24
+                            starts_at_relative = f"Finished {days}d ago"
+                        elif hours > 0:
+                            starts_at_relative = f"Finished {hours}h ago"
+                        else:
+                            starts_at_relative = "Finished recently"
+            
+            # Best of label (placeholder - extend if your model has this)
+            best_of_label = ''  # e.g., 'BO3', 'BO5'
             
             matches_list.append({
                 'id': match.id,
@@ -736,6 +791,7 @@ class TournamentDetailView(DetailView):
                 'participant1_score': match.participant1_score if show_scores else 0,
                 'participant2_score': match.participant2_score if show_scores else 0,
                 'state': match.state,
+                'status': ui_status,  # Normalized status
                 'ui_status': ui_status,
                 'phase': phase,
                 'is_live': is_live,
@@ -743,10 +799,26 @@ class TournamentDetailView(DetailView):
                 'show_scores': show_scores,
                 'winner': winner,
                 'round_label': round_label,
+                'stage_label': stage_label,
+                'match_label': match_label,
                 'group_name': group_name,
                 'start_time_display': start_time_display,
+                'starts_at': starts_at,
+                'starts_at_display': starts_at_display,
+                'starts_at_relative': starts_at_relative,
+                'team1_name': p1_name,
+                'team2_name': p2_name,
+                'team1_logo_url': p1_logo,
+                'team2_logo_url': p2_logo,
+                'team1_is_winner': team1_is_winner,
+                'team2_is_winner': team2_is_winner,
+                'score1': match.participant1_score if show_scores else None,
+                'score2': match.participant2_score if show_scores else None,
+                'best_of_label': best_of_label,
                 'stream_url': match.stream_url,
                 'vod_url': None,  # Add if you have a vod_url field
+                'participant1_logo': p1_logo,
+                'participant2_logo': p2_logo,
             })
         
         return {
@@ -947,6 +1019,83 @@ class TournamentDetailView(DetailView):
             context['standings_primary'] = standings_rows
             context['standings_source'] = 'bracket'
             context['group_standings_summary'] = None
+        
+        return context
+    
+    def _get_streams_context(self, tournament: Tournament) -> Dict[str, Any]:
+        """
+        Build streams and media context for Streams & Media tab.
+        
+        Returns:
+        - featured_stream: Primary stream URL and metadata
+        - additional_streams: List of secondary streams (other languages/POVs)
+        - vods: List of past broadcasts
+        - has_streams: Boolean indicating if any streams/VODs exist
+        """
+        context = {
+            'featured_stream': None,
+            'additional_streams': [],
+            'vods': [],
+            'has_streams': False
+        }
+        
+        # Check if tournament has a primary stream URL
+        if hasattr(tournament, 'stream_url') and tournament.stream_url:
+            # Detect platform from URL
+            stream_platform = 'other'
+            embed_url = tournament.stream_url
+            
+            if 'youtube.com' in tournament.stream_url or 'youtu.be' in tournament.stream_url:
+                stream_platform = 'youtube'
+                # Extract video ID and create embed URL
+                if 'watch?v=' in tournament.stream_url:
+                    video_id = tournament.stream_url.split('watch?v=')[1].split('&')[0]
+                    embed_url = f'https://www.youtube.com/embed/{video_id}'
+                elif 'youtu.be/' in tournament.stream_url:
+                    video_id = tournament.stream_url.split('youtu.be/')[1].split('?')[0]
+                    embed_url = f'https://www.youtube.com/embed/{video_id}'
+                    
+            elif 'twitch.tv' in tournament.stream_url:
+                stream_platform = 'twitch'
+                # Extract channel name
+                if '/videos/' in tournament.stream_url:
+                    # VOD link
+                    video_id = tournament.stream_url.split('/videos/')[1].split('?')[0]
+                    embed_url = f'https://player.twitch.tv/?video={video_id}&parent={self.request.get_host()}'
+                else:
+                    # Live channel
+                    channel = tournament.stream_url.split('twitch.tv/')[1].split('?')[0]
+                    embed_url = f'https://player.twitch.tv/?channel={channel}&parent={self.request.get_host()}'
+            
+            context['featured_stream'] = {
+                'url': tournament.stream_url,
+                'embed_url': embed_url,
+                'platform': stream_platform,
+                'title': f"{tournament.name} - Live Stream",
+                'is_live': tournament.status == 'live'
+            }
+            context['has_streams'] = True
+        
+        # Additional streams (if your model supports multiple streams)
+        # This is a placeholder - extend based on your data model
+        # if hasattr(tournament, 'additional_streams'):
+        #     for stream in tournament.additional_streams.all():
+        #         context['additional_streams'].append({
+        #             'url': stream.url,
+        #             'title': stream.title,
+        #             'language': stream.language
+        #         })
+        
+        # VODs (if your model supports VOD storage)
+        # This is a placeholder - extend based on your data model
+        # if hasattr(tournament, 'vods'):
+        #     context['vods'] = [{
+        #         'url': vod.url,
+        #         'title': vod.title,
+        #         'thumbnail': vod.thumbnail,
+        #         'duration': vod.duration,
+        #         'uploaded_at': vod.uploaded_at
+        #     } for vod in tournament.vods.all()]
         
         return context
 

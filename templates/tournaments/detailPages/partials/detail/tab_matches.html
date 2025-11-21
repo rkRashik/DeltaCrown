@@ -37,15 +37,15 @@
       {% for match in matches %}
         <article
           class="td-match-card td-match-state-{{ match.state|default:'scheduled' }}"
+          data-match-id="{{ match.id }}"
           data-status="{{ match.ui_status }}"
           data-phase="{{ match.phase }}"
+          data-match-json='{"id":{{ match.id }},"stage_label":"{{ match.stage_label|escapejs }}","match_label":"{{ match.match_label|escapejs }}","team1_name":"{{ match.team1_name|escapejs }}","team2_name":"{{ match.team2_name|escapejs }}","team1_logo":"{{ match.team1_logo_url|default:''|escapejs }}","team2_logo":"{{ match.team2_logo_url|default:''|escapejs }}","score1":{% if match.score1 is not None %}{{ match.score1 }}{% else %}null{% endif %},"score2":{% if match.score2 is not None %}{{ match.score2 }}{% else %}null{% endif %},"status":"{{ match.status|escapejs }}","starts_at":"{{ match.starts_at_display|escapejs }}","starts_at_relative":"{{ match.starts_at_relative|escapejs }}","best_of":"{{ match.best_of_label|escapejs }}","stream_url":"{{ match.stream_url|default:''|escapejs }}","vod_url":"{{ match.vod_url|default:''|escapejs }}","is_live":{% if match.is_live %}true{% else %}false{% endif %},"is_completed":{% if match.is_completed %}true{% else %}false{% endif %},"team1_is_winner":{% if match.team1_is_winner %}true{% else %}false{% endif %},"team2_is_winner":{% if match.team2_is_winner %}true{% else %}false{% endif %}}'
         >
           <header class="td-match-header">
             <div class="td-match-meta-left">
-              {% if match.phase == 'group_stage' and match.group_name %}
-                <span class="td-match-pill td-pill-group">Group {{ match.group_name }}</span>
-              {% elif match.phase == 'knockout_stage' and match.round_label %}
-                <span class="td-match-pill td-pill-bracket">{{ match.round_label }}</span>
+              {% if match.stage_label %}
+                <span class="td-match-stage-label">{{ match.stage_label }}</span>
               {% endif %}
               {% if match.is_live %}
                 <span class="td-match-status-pill td-status-live">
@@ -53,40 +53,38 @@
                   LIVE
                 </span>
               {% elif match.is_completed %}
-                <span class="td-match-status-pill td-status-completed">Final</span>
+                <span class="td-match-status-pill td-status-completed">FINAL</span>
               {% else %}
-                <span class="td-match-status-pill td-status-upcoming">
-                  {{ match.start_time_display|default:"Scheduled" }}
-                </span>
+                <span class="td-match-status-pill td-status-upcoming">UPCOMING</span>
               {% endif %}
             </div>
             <div class="td-match-meta-right">
-              {% if match.start_time_display and not match.is_live %}
-                <span class="td-match-time">{{ match.start_time_display }}</span>
+              {% if match.match_label %}
+                <span class="td-match-number">{{ match.match_label }}</span>
               {% endif %}
             </div>
           </header>
 
           <div class="td-match-body">
             {# Participant 1 #}
-            <div class="td-match-side td-match-side-1 {% if match.winner == 1 %}td-winner{% endif %}">
+            <div class="td-match-side td-match-side-1 {% if match.team1_is_winner %}td-winner{% endif %}">
               <div class="td-side-content">
                 <div class="td-side-logo">
-                  {% if match.participant1_logo %}
-                    <img src="{{ match.participant1_logo }}" alt="{{ match.participant1_name }}" class="td-team-logo">
+                  {% if match.team1_logo_url %}
+                    <img src="{{ match.team1_logo_url }}" alt="{{ match.team1_name }}" class="td-team-logo">
                   {% else %}
                     <div class="td-logo-placeholder">
-                      {{ match.participant1_name|default:"TBD"|slice:":2"|upper }}
+                      {{ match.team1_name|default:"TBD"|slice:":2"|upper }}
                     </div>
                   {% endif %}
                 </div>
                 <span class="td-match-team-name">
-                  {{ match.participant1_name|default:"TBD" }}
+                  {{ match.team1_name|default:"TBD" }}
                 </span>
               </div>
-              <span class="td-match-score">
-                {% if match.show_scores %}
-                  {{ match.participant1_score }}
+              <span class="td-match-score {% if match.is_live %}td-score-live{% endif %}">
+                {% if match.score1 is not None %}
+                  {{ match.score1 }}
                 {% else %}
                   <span class="td-score-empty">-</span>
                 {% endif %}
@@ -99,24 +97,24 @@
             </div>
             
             {# Participant 2 #}
-            <div class="td-match-side td-match-side-2 {% if match.winner == 2 %}td-winner{% endif %}">
-              <span class="td-match-score">
-                {% if match.show_scores %}
-                  {{ match.participant2_score }}
+            <div class="td-match-side td-match-side-2 {% if match.team2_is_winner %}td-winner{% endif %}">
+              <span class="td-match-score {% if match.is_live %}td-score-live{% endif %}">
+                {% if match.score2 is not None %}
+                  {{ match.score2 }}
                 {% else %}
                   <span class="td-score-empty">-</span>
                 {% endif %}
               </span>
               <div class="td-side-content">
                 <span class="td-match-team-name">
-                  {{ match.participant2_name|default:"TBD" }}
+                  {{ match.team2_name|default:"TBD" }}
                 </span>
                 <div class="td-side-logo">
-                  {% if match.participant2_logo %}
-                    <img src="{{ match.participant2_logo }}" alt="{{ match.participant2_name }}" class="td-team-logo">
+                  {% if match.team2_logo_url %}
+                    <img src="{{ match.team2_logo_url }}" alt="{{ match.team2_name }}" class="td-team-logo">
                   {% else %}
                     <div class="td-logo-placeholder">
-                      {{ match.participant2_name|default:"TBD"|slice:":2"|upper }}
+                      {{ match.team2_name|default:"TBD"|slice:":2"|upper }}
                     </div>
                   {% endif %}
                 </div>
@@ -124,23 +122,86 @@
             </div>
           </div>
 
-          {% if match.is_live and match.stream_url or match.is_completed and match.vod_url %}
           <footer class="td-match-footer">
-            {% if match.is_live and match.stream_url %}
-              <a href="{{ match.stream_url }}" class="td-match-cta td-cta-live" target="_blank" rel="noopener noreferrer">
-                <span class="td-cta-icon">📺</span>
-                <span>Watch Live</span>
-              </a>
-            {% elif match.is_completed and match.vod_url %}
-              <a href="{{ match.vod_url }}" class="td-match-cta td-cta-vod" target="_blank" rel="noopener noreferrer">
-                <span class="td-cta-icon">🎬</span>
-                <span>Watch Replay</span>
-              </a>
-            {% endif %}
+            <div class="td-match-footer-left">
+              {% if match.starts_at_display %}
+                <span class="td-match-time">
+                  <span class="td-time-icon">🕐</span>
+                  {{ match.starts_at_display }}
+                </span>
+              {% endif %}
+              {% if match.starts_at_relative %}
+                <span class="td-match-relative">{{ match.starts_at_relative }}</span>
+              {% endif %}
+            </div>
+            <div class="td-match-footer-right">
+              {% if match.is_live and match.stream_url %}
+                <a href="{{ match.stream_url }}" class="td-match-link td-link-watch" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">
+                  <span class="td-link-icon">📺</span>
+                  Watch
+                </a>
+              {% elif match.is_completed and match.vod_url %}
+                <a href="{{ match.vod_url }}" class="td-match-link td-link-vod" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();">
+                  <span class="td-link-icon">🎬</span>
+                  Replay
+                </a>
+              {% endif %}
+              <button class="td-match-details-btn" aria-label="View match details">
+                <span class="td-details-icon">›</span>
+              </button>
+            </div>
           </footer>
-          {% endif %}
         </article>
       {% endfor %}
+    </div>
+
+    {# Match Details Modal #}
+    <div class="td-match-modal-backdrop" id="tdMatchModalBackdrop" hidden>
+      <div class="td-match-modal" role="dialog" aria-modal="true" aria-labelledby="tdMatchModalTitle">
+        <button class="td-modal-close" aria-label="Close modal">×</button>
+        
+        <header class="td-modal-header">
+          <div class="td-modal-game-badge" id="tdModalGameBadge">{{ tournament.game.name }}</div>
+          <h3 class="td-modal-title" id="tdMatchModalTitle">Match Details</h3>
+          <div class="td-modal-subtitle" id="tdModalSubtitle"></div>
+        </header>
+
+        <div class="td-modal-body">
+          <div class="td-modal-status-pill" id="tdModalStatusPill"></div>
+          
+          <div class="td-modal-matchup">
+            {# Team 1 #}
+            <div class="td-modal-team td-modal-team-1" id="tdModalTeam1">
+              <div class="td-modal-team-logo" id="tdModalTeam1Logo"></div>
+              <div class="td-modal-team-info">
+                <div class="td-modal-team-name" id="tdModalTeam1Name"></div>
+              </div>
+              <div class="td-modal-team-score" id="tdModalTeam1Score"></div>
+            </div>
+
+            {# VS #}
+            <div class="td-modal-vs">VS</div>
+
+            {# Team 2 #}
+            <div class="td-modal-team td-modal-team-2" id="tdModalTeam2">
+              <div class="td-modal-team-score" id="tdModalTeam2Score"></div>
+              <div class="td-modal-team-info">
+                <div class="td-modal-team-name" id="tdModalTeam2Name"></div>
+              </div>
+              <div class="td-modal-team-logo" id="tdModalTeam2Logo"></div>
+            </div>
+          </div>
+
+          <div class="td-modal-meta">
+            <div class="td-modal-meta-item" id="tdModalSchedule"></div>
+            <div class="td-modal-meta-item" id="tdModalBestOf"></div>
+          </div>
+        </div>
+
+        <footer class="td-modal-footer" id="tdModalFooter">
+          {# Stream/VOD links will be injected here #}
+        </footer>
+      </div>
     </div>
   {% else %}
     <div class="td-matches-empty">

@@ -27,9 +27,10 @@ from datetime import timedelta
 from decimal import Decimal
 import random
 
-from apps.tournaments.models import Tournament, Registration, Match, Group, GroupStanding, Game
+from apps.tournaments.models import Tournament, Registration, Match, Group, GroupStanding, Game, Bracket, BracketNode
 from apps.tournaments.services.group_stage_service import GroupStageService
 from apps.tournaments.services.tournament_service import TournamentService
+from apps.tournaments.services.bracket_service import BracketService
 from apps.teams.models import Team
 from apps.accounts.models import User
 
@@ -391,6 +392,9 @@ class Command(BaseCommand):
                 loser_id=sf_winners[1],
                 completed_at=timezone.now() - timedelta(days=24)
             )
+            
+            # Generate bracket from existing matches
+            self._generate_bracket_from_matches(tournament, efootball_teams)
         
         return tournament
     
@@ -504,6 +508,9 @@ class Command(BaseCommand):
                 state=Match.SCHEDULED,
                 scheduled_time=timezone.now() + timedelta(days=2)
             )
+            
+            # Generate bracket structure from matches
+            self._generate_bracket_from_matches(tournament, cs2_teams)
         
         return tournament
     
@@ -555,3 +562,70 @@ class Command(BaseCommand):
                 )
         
         return tournament
+    
+    def _generate_bracket_from_matches(self, tournament, teams):
+        """Generate bracket structure from existing matches"""
+        # Create bracket object
+        bracket, created = Bracket.objects.get_or_create(
+            tournament=tournament,
+            defaults={
+                'format': 'single-elimination',
+                'bracket_structure': {},
+                'is_finalized': True,
+                'total_rounds': 3,  # For 8 teams: QF, SF, F
+                'total_matches': 7,  # 4+2+1
+                'seeding_method': 'slot-order'
+            }
+        )
+        
+        if not created:
+            return bracket
+        
+        # Get all matches ordered by round and match number
+        matches = Match.objects.filter(
+            tournament=tournament
+        ).order_by('round_number', 'match_number')
+        
+        # Create bracket nodes for each match
+        # For single-elim: each match is a node
+        nodes_by_round = {}
+        position_counter = 1
+        
+        for match in matches:
+            node = BracketNode.objects.create(
+                bracket=bracket,
+                round_number=match.round_number,
+                match_number_in_round=match.match_number,
+                match=match,
+                position=position_counter,  # Unique position across all rounds
+                participant1_id=match.participant1_id,
+                participant1_name=match.participant1_name,
+                participant2_id=match.participant2_id,
+                participant2_name=match.participant2_name,
+            )
+            position_counter += 1
+            
+            if match.round_number not in nodes_by_round:
+                nodes_by_round[match.round_number] = []
+            nodes_by_round[match.round_number].append(node)
+        
+        # Link parent-child relationships
+        # Each pair of nodes in round N feeds into one node in round N+1
+        for round_num in sorted(nodes_by_round.keys())[:-1]:
+            current_round = nodes_by_round[round_num]
+            next_round = nodes_by_round.get(round_num + 1, [])
+            
+            for i, parent_node in enumerate(next_round):
+                # Two matches from current round feed this parent
+                left_child_idx = i * 2
+                right_child_idx = i * 2 + 1
+                
+                if left_child_idx < len(current_round):
+                    current_round[left_child_idx].parent_match = parent_node
+                    current_round[left_child_idx].save()
+                    
+                if right_child_idx < len(current_round):
+                    current_round[right_child_idx].parent_match = parent_node
+                    current_round[right_child_idx].save()
+        
+        return bracket

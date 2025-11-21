@@ -1,11 +1,212 @@
-{# Challenges & Fan Voting Tab Placeholder #}
-{# Purpose: Show challenges and fan voting polls (feature flags) #}
-{# Content: Challenge cards, voting polls #}
-{# Note: Only shown if enable_challenges or enable_fan_voting is True #}
+{# Challenges & Fan Voting Tab #}
+{# Purpose: Show tournament challenges and fan voting polls (feature-flagged) #}
+{# Context: enable_challenges, enable_fan_voting (feature flags) #}
+{# Note: Displays mock UI structure for when backend models are implemented #}
 
-<section class="detail-tab-panel td-tab-panel" data-tab="challenges-fanvoting">
-    <div class="td-card">
-        <h2 class="td-section-title">Challenges & Fan Voting</h2>
-        <p class="td-empty-state">Interactive features coming soon.</p>
+<section class="td-tab-panel td-tab-panel-challenges" data-tab="challenges-fanvoting">
+    <div class="td-challenges-header">
+        <h2>Challenges & Fan Voting</h2>
+        <p class="td-challenges-subtitle">Earn rewards and vote for your favorites</p>
     </div>
+
+    {% if tournament.enable_challenges or tournament.enable_fan_voting %}
+        
+        {# Challenges Section #}
+        {% if tournament.enable_challenges %}
+            <section class="td-challenges-section">
+                <h3 class="td-section-subtitle">🏆 Tournament Challenges</h3>
+                
+                {# Mock challenges - replace with actual context when Challenge model exists #}
+                {% comment %}
+                Expected context structure when implemented:
+                challenges: [
+                    {
+                        'title': 'First Blood Champion',
+                        'description': 'Get the first kill in 3 matches',
+                        'reward': '500 DeltaCoin',
+                        'status': 'active',  # active, completed, expired, upcoming
+                        'progress': 2,
+                        'target': 3,
+                        'expires_at': datetime,
+                    },
+                    ...
+                ]
+                {% endcomment %}
+                
+                <div class="td-challenges-grid">
+                    {# Example Challenge Card Structure #}
+                    <article class="td-challenge-card td-challenge-status-example">
+                        <div class="td-challenge-header">
+                            <span class="td-challenge-badge td-badge-active">Active</span>
+                            <span class="td-challenge-reward">🪙 500 DeltaCoin</span>
+                        </div>
+                        
+                        <h4 class="td-challenge-title">First Blood Champion</h4>
+                        <p class="td-challenge-description">Get the first kill in 3 matches</p>
+                        
+                        <div class="td-challenge-progress">
+                            <div class="td-progress-bar">
+                                <div class="td-progress-fill" style="width: 66.7%"></div>
+                            </div>
+                            <span class="td-progress-text">2 / 3 completed</span>
+                        </div>
+                        
+                        <div class="td-challenge-footer">
+                            <span class="td-challenge-expires">Expires in 2 days</span>
+                        </div>
+                    </article>
+
+                    {# More example cards showing different states #}
+                    <article class="td-challenge-card">
+                        <div class="td-challenge-header">
+                            <span class="td-challenge-badge td-badge-upcoming">Upcoming</span>
+                            <span class="td-challenge-reward">🎁 Exclusive Badge</span>
+                        </div>
+                        
+                        <h4 class="td-challenge-title">Perfect Game</h4>
+                        <p class="td-challenge-description">Win a match without losing a single round</p>
+                        
+                        <div class="td-challenge-footer">
+                            <span class="td-challenge-starts">Starts in Knockout Stage</span>
+                        </div>
+                    </article>
+
+                    <article class="td-challenge-card td-challenge-completed">
+                        <div class="td-challenge-header">
+                            <span class="td-challenge-badge td-badge-completed">✓ Completed</span>
+                            <span class="td-challenge-reward">🪙 250 DeltaCoin</span>
+                        </div>
+                        
+                        <h4 class="td-challenge-title">Early Bird</h4>
+                        <p class="td-challenge-description">Check in within the first hour</p>
+                        
+                        <div class="td-challenge-progress">
+                            <div class="td-progress-bar">
+                                <div class="td-progress-fill" style="width: 100%"></div>
+                            </div>
+                            <span class="td-progress-text">Claimed</span>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        {% endif %}
+
+        {# Fan Voting Section #}
+        {% if tournament.enable_fan_voting %}
+            <section class="td-voting-section">
+                <h3 class="td-section-subtitle">🗳️ Fan Voting</h3>
+                
+                {# Mock voting polls - replace with actual context when Vote model exists #}
+                {% comment %}
+                Expected context structure when implemented:
+                voting_polls: [
+                    {
+                        'title': 'MVP of the Match',
+                        'description': 'Vote for the best player in Match #4',
+                        'match': Match object,
+                        'options': [
+                            {'player_name': 'PlayerX', 'votes': 42, 'percentage': 35},
+                            {'player_name': 'PlayerY', 'votes': 78, 'percentage': 65},
+                        ],
+                        'total_votes': 120,
+                        'user_voted': False,
+                        'closes_at': datetime,
+                    },
+                    ...
+                ]
+                {% endcomment %}
+                
+                <div class="td-voting-grid">
+                    {# Example Active Poll #}
+                    <article class="td-vote-card td-vote-active">
+                        <div class="td-vote-header">
+                            <h4 class="td-vote-title">MVP of the Match</h4>
+                            <span class="td-vote-status">🔴 Live</span>
+                        </div>
+                        
+                        <p class="td-vote-description">Vote for the best player in Semifinal #1</p>
+                        
+                        <div class="td-vote-options">
+                            <label class="td-vote-option">
+                                <input type="radio" name="vote-mvp" value="player1">
+                                <span class="td-vote-option-content">
+                                    <span class="td-vote-player">FlashKing</span>
+                                    <span class="td-vote-bar">
+                                        <span class="td-vote-bar-fill" style="width: 35%"></span>
+                                    </span>
+                                    <span class="td-vote-percentage">35%</span>
+                                </span>
+                            </label>
+                            
+                            <label class="td-vote-option">
+                                <input type="radio" name="vote-mvp" value="player2">
+                                <span class="td-vote-option-content">
+                                    <span class="td-vote-player">ShadowStrike</span>
+                                    <span class="td-vote-bar">
+                                        <span class="td-vote-bar-fill" style="width: 65%"></span>
+                                    </span>
+                                    <span class="td-vote-percentage">65%</span>
+                                </span>
+                            </label>
+                        </div>
+                        
+                        <div class="td-vote-footer">
+                            <button class="td-vote-submit" disabled>Cast Your Vote</button>
+                            <span class="td-vote-count">120 votes</span>
+                        </div>
+                    </article>
+
+                    {# Example Closed Poll #}
+                    <article class="td-vote-card td-vote-closed">
+                        <div class="td-vote-header">
+                            <h4 class="td-vote-title">Best Upset Victory</h4>
+                            <span class="td-vote-status td-status-closed">Closed</span>
+                        </div>
+                        
+                        <p class="td-vote-description">Which underdog win was most impressive?</p>
+                        
+                        <div class="td-vote-results">
+                            <div class="td-vote-result">
+                                <span class="td-vote-result-name">🥇 Team Alpha vs Team Omega</span>
+                                <span class="td-vote-result-bar">
+                                    <span class="td-vote-result-fill" style="width: 52%"></span>
+                                </span>
+                                <span class="td-vote-result-percentage">52%</span>
+                            </div>
+                            
+                            <div class="td-vote-result">
+                                <span class="td-vote-result-name">Team Beta vs Team Sigma</span>
+                                <span class="td-vote-result-bar">
+                                    <span class="td-vote-result-fill" style="width: 30%"></span>
+                                </span>
+                                <span class="td-vote-result-percentage">30%</span>
+                            </div>
+                            
+                            <div class="td-vote-result">
+                                <span class="td-vote-result-name">Team Gamma vs Team Delta</span>
+                                <span class="td-vote-result-bar">
+                                    <span class="td-vote-result-fill" style="width: 18%"></span>
+                                </span>
+                                <span class="td-vote-result-percentage">18%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="td-vote-footer">
+                            <span class="td-vote-final">Final results • 384 total votes</span>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        {% endif %}
+
+    {% else %}
+        {# Empty State - No Features Enabled #}
+        <div class="td-challenges-empty">
+            <div class="td-empty-icon">🎮</div>
+            <p class="td-empty-title">No interactive features enabled</p>
+            <p class="td-empty-subtitle">
+                Challenges and fan voting are not available for this tournament
+            </p>
+        </div>
+    {% endif %}
 </section>

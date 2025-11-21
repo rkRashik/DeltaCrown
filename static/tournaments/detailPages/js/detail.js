@@ -31,6 +31,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize matches tab filters
     initializeMatchesFilters();
+    
+    // Initialize match details modal
+    initializeMatchModal();
 });
 
 /**
@@ -586,4 +589,240 @@ function initializeMatchesFilters() {
     });
 
     console.debug('[Detail] Matches filters initialized');
+}
+
+/**
+ * Initialize Match Details Modal
+ * Handles opening/closing the modal and populating match data
+ */
+function initializeMatchModal() {
+    const backdrop = document.getElementById('tdMatchModalBackdrop');
+    const modal = backdrop ? backdrop.querySelector('.td-match-modal') : null;
+    const closeBtn = modal ? modal.querySelector('.td-modal-close') : null;
+    const matchCards = document.querySelectorAll('.td-match-card[data-match-json]');
+    
+    if (!backdrop || !modal || matchCards.length === 0) {
+        console.debug('[Detail] Match modal elements not found');
+        return;
+    }
+    
+    console.debug('[Detail] Match modal found, initializing...', { matchCards: matchCards.length });
+    
+    /**
+     * Open modal with match data
+     */
+    function openModal(matchData) {
+        // Populate modal header
+        document.getElementById('tdMatchModalTitle').textContent = matchData.stage_label || 'Match Details';
+        document.getElementById('tdModalSubtitle').textContent = matchData.match_label || '';
+        
+        // Populate status pill
+        const statusPill = document.getElementById('tdModalStatusPill');
+        statusPill.textContent = matchData.status.toUpperCase();
+        statusPill.className = 'td-modal-status-pill';
+        if (matchData.is_live) {
+            statusPill.classList.add('td-status-live');
+        } else if (matchData.is_completed) {
+            statusPill.classList.add('td-status-completed');
+        } else {
+            statusPill.classList.add('td-status-upcoming');
+        }
+        
+        // Populate team 1
+        const team1 = document.getElementById('tdModalTeam1');
+        const team1Logo = document.getElementById('tdModalTeam1Logo');
+        const team1Name = document.getElementById('tdModalTeam1Name');
+        const team1Score = document.getElementById('tdModalTeam1Score');
+        
+        if (matchData.team1_logo) {
+            team1Logo.innerHTML = `<img src="${matchData.team1_logo}" alt="${matchData.team1_name}">`;
+        } else {
+            const initials = matchData.team1_name.slice(0, 2).toUpperCase();
+            team1Logo.innerHTML = `<div class="td-logo-placeholder">${initials}</div>`;
+        }
+        team1Name.textContent = matchData.team1_name;
+        team1Score.textContent = matchData.score1 !== null ? matchData.score1 : '-';
+        
+        if (matchData.team1_is_winner) {
+            team1.classList.add('is-winner');
+        } else {
+            team1.classList.remove('is-winner');
+        }
+        
+        // Populate team 2
+        const team2 = document.getElementById('tdModalTeam2');
+        const team2Logo = document.getElementById('tdModalTeam2Logo');
+        const team2Name = document.getElementById('tdModalTeam2Name');
+        const team2Score = document.getElementById('tdModalTeam2Score');
+        
+        if (matchData.team2_logo) {
+            team2Logo.innerHTML = `<img src="${matchData.team2_logo}" alt="${matchData.team2_name}">`;
+        } else {
+            const initials = matchData.team2_name.slice(0, 2).toUpperCase();
+            team2Logo.innerHTML = `<div class="td-logo-placeholder">${initials}</div>`;
+        }
+        team2Name.textContent = matchData.team2_name;
+        team2Score.textContent = matchData.score2 !== null ? matchData.score2 : '-';
+        
+        if (matchData.team2_is_winner) {
+            team2.classList.add('is-winner');
+        } else {
+            team2.classList.remove('is-winner');
+        }
+        
+        // Populate metadata
+        const scheduleItem = document.getElementById('tdModalSchedule');
+        if (matchData.starts_at) {
+            scheduleItem.innerHTML = `<strong>📅 Schedule:</strong><br>${matchData.starts_at}`;
+            if (matchData.starts_at_relative) {
+                scheduleItem.innerHTML += `<br><em>${matchData.starts_at_relative}</em>`;
+            }
+        } else {
+            scheduleItem.innerHTML = '<strong>📅 Schedule:</strong><br>TBD';
+        }
+        
+        const bestOfItem = document.getElementById('tdModalBestOf');
+        if (matchData.best_of) {
+            bestOfItem.innerHTML = `<strong>🎮 Format:</strong><br>${matchData.best_of}`;
+        } else {
+            bestOfItem.innerHTML = '<strong>🎮 Format:</strong><br>Standard Match';
+        }
+        
+        // Populate footer with stream/VOD links
+        const footer = document.getElementById('tdModalFooter');
+        footer.innerHTML = '';
+        
+        if (matchData.is_live && matchData.stream_url) {
+            footer.innerHTML = `
+                <a href="${matchData.stream_url}" class="td-link-watch" target="_blank" rel="noopener noreferrer">
+                    <span class="td-link-icon">📺</span>
+                    Watch Live Stream
+                </a>
+            `;
+        } else if (matchData.is_completed && matchData.vod_url) {
+            footer.innerHTML = `
+                <a href="${matchData.vod_url}" class="td-link-vod" target="_blank" rel="noopener noreferrer">
+                    <span class="td-link-icon">🎬</span>
+                    Watch Replay
+                </a>
+            `;
+        }
+        
+        // Show modal
+        backdrop.removeAttribute('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent body scroll
+        
+        console.debug('[Detail] Modal opened for match:', matchData.id);
+    }
+    
+    /**
+     * Close modal
+     */
+    function closeModal() {
+        backdrop.setAttribute('hidden', '');
+        document.body.style.overflow = ''; // Restore body scroll
+        console.debug('[Detail] Modal closed');
+    }
+    
+    // Attach click handlers to match cards
+    matchCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Don't open modal if clicking on a link
+            if (e.target.tagName === 'A' || e.target.closest('a')) {
+                return;
+            }
+            
+            try {
+                const matchJson = card.getAttribute('data-match-json');
+                const matchData = JSON.parse(matchJson);
+                openModal(matchData);
+            } catch (error) {
+                console.error('[Detail] Failed to parse match data:', error);
+            }
+        });
+    });
+    
+    // Close button handler
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    // Backdrop click handler (click outside modal)
+    backdrop.addEventListener('click', function(e) {
+        if (e.target === backdrop) {
+            closeModal();
+        }
+    });
+    
+    // Escape key handler
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !backdrop.hasAttribute('hidden')) {
+            closeModal();
+        }
+    });
+    
+    console.debug('[Detail] Match modal initialized');
+}
+
+/**
+ * Initialize sidebar share functionality
+ * Handles copy link button
+ */
+function initializeSidebarShare() {
+    const copyBtn = document.querySelector('.td-share-copy');
+    
+    if (!copyBtn) {
+        return;
+    }
+    
+    copyBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        
+        const url = this.getAttribute('data-url') || window.location.href;
+        const originalLabel = this.querySelector('.td-share-label').textContent;
+        
+        try {
+            await navigator.clipboard.writeText(url);
+            
+            // Visual feedback
+            this.classList.add('copied');
+            this.querySelector('.td-share-icon').textContent = '✓';
+            this.querySelector('.td-share-label').textContent = 'Link Copied!';
+            
+            // Reset after 2 seconds
+            setTimeout(() => {
+                this.classList.remove('copied');
+                this.querySelector('.td-share-icon').textContent = '🔗';
+                this.querySelector('.td-share-label').textContent = originalLabel;
+            }, 2000);
+            
+            console.debug('[Detail] Link copied to clipboard:', url);
+        } catch (error) {
+            console.error('[Detail] Failed to copy link:', error);
+            
+            // Fallback: select text
+            const tempInput = document.createElement('input');
+            tempInput.value = url;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            
+            this.classList.add('copied');
+            this.querySelector('.td-share-label').textContent = 'Link Copied!';
+            setTimeout(() => {
+                this.classList.remove('copied');
+                this.querySelector('.td-share-label').textContent = originalLabel;
+            }, 2000);
+        }
+    });
+    
+    console.debug('[Detail] Sidebar share initialized');
+}
+
+// Initialize sidebar share when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeSidebarShare);
+} else {
+    initializeSidebarShare();
 }

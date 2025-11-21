@@ -4,8 +4,8 @@
 {% load dict_utils %}
 
 <section class="detail-tab-panel td-tab-panel td-tab-panel-bracket" data-tab="bracket">
-  {% if is_multi_stage %}
-    {# Stage Selector for GROUP_PLAYOFF tournaments #}
+  {% if tournament.format == 'group_playoff' %}
+    {# GROUP_PLAYOFF tournaments - Show stage selector #}
     <div class="td-stage-selector">
       <button
         type="button"
@@ -34,25 +34,38 @@
         {% endif %}
       </button>
     </div>
+
+    <div class="td-stage-panels">
+      {# Group Stage Panel #}
+      <div
+        class="td-stage-panel td-stage-panel-group {% if current_stage == 'group_stage' %}is-active{% endif %}"
+        data-stage-panel="group_stage"
+      >
+        {% include "tournaments/detailPages/partials/detail/_group_stage_panel.html" %}
+      </div>
+
+      {# Knockout Stage Panel #}
+      <div
+        class="td-stage-panel td-stage-panel-knockout {% if current_stage == 'knockout_stage' %}is-active{% endif %}"
+        data-stage-panel="knockout_stage"
+      >
+        {% include "tournaments/detailPages/partials/detail/_knockout_panel.html" %}
+      </div>
+    </div>
+  {% else %}
+    {# Single-stage tournaments (SINGLE_ELIM, DOUBLE_ELIM, etc.) - Pure bracket view #}
+    {% if bracket %}
+      <div class="td-single-stage-bracket">
+        {% include "tournaments/detailPages/partials/detail/_knockout_panel.html" %}
+      </div>
+    {% else %}
+      <div class="td-bracket-empty">
+        <div class="td-empty-icon">🏆</div>
+        <p class="td-empty-title">Bracket has not been generated yet</p>
+        <p class="td-empty-subtitle">
+          The tournament bracket will appear here once it has been generated.
+        </p>
+      </div>
+    {% endif %}
   {% endif %}
-
-  <div class="td-stage-panels">
-
-    {# Group Stage Panel #}
-    <div
-      class="td-stage-panel td-stage-panel-group {% if not is_multi_stage or current_stage == 'group_stage' %}is-active{% endif %}"
-      data-stage-panel="group_stage"
-    >
-      {% include "tournaments/detailPages/partials/detail/_group_stage_panel.html" %}
-    </div>
-
-    {# Knockout Stage Panel #}
-    <div
-      class="td-stage-panel td-stage-panel-knockout {% if is_multi_stage and current_stage == 'knockout_stage' %}is-active{% endif %}"
-      data-stage-panel="knockout_stage"
-    >
-      {% include "tournaments/detailPages/partials/detail/_knockout_panel.html" %}
-    </div>
-
-  </div>
 </section>

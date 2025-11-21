@@ -18,14 +18,14 @@
     {# Meta Strip #}
     {% include 'tournaments/detailPages/partials/detail/meta_strip.html' %}
     
-    {# Main Layout: Esports Control Center with Vertical Icon Rail #}
+    {# Main Layout: Esports Control Center with Vertical Icon Rail + Sidebar #}
     <div class="td-main-layout">
         {# Left: Vertical Icon Tab Rail (becomes horizontal on mobile) #}
         <aside class="td-tabs-rail">
             {% include 'tournaments/detailPages/partials/detail/tab_nav.html' %}
         </aside>
         
-        {# Right: Main Content Area with Tab Panels #}
+        {# Center: Main Content Area with Tab Panels #}
         <section class="td-main-content">
             <div class="td-tab-panels">
                 {% include 'tournaments/detailPages/partials/detail/tab_overview.html' %}
@@ -41,6 +41,9 @@
                 {% endif %}
             </div>
         </section>
+        
+        {# Right: Sidebar with User Status, Lobby, Organizer, Sponsors, Share #}
+        {% include 'tournaments/detailPages/partials/detail/sidebar.html' %}
     </div>
     
 </div>
