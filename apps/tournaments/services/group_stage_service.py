@@ -79,7 +79,7 @@ class GroupStageService:
         tournament = Tournament.objects.get(id=tournament_id)
         
         # Validate tournament format
-        if tournament.format not in ['group-stage', 'group-playoff']:
+        if tournament.format not in ['group-stage', 'group-playoff', 'group_stage', 'group_playoff']:
             raise ValidationError("Tournament must be group stage format")
         
         # Validate num_groups

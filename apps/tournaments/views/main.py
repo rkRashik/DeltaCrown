@@ -20,6 +20,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.db.models import Q
 from django.utils import timezone
+from typing import Dict, Any
 from apps.tournaments.models import Tournament, TournamentAnnouncement
 from apps.tournaments.services.registration_service import RegistrationService
 from django.core.exceptions import ValidationError
@@ -365,6 +366,9 @@ class TournamentDetailView(DetailView):
         # Add matches context for Matches tab
         context.update(self._get_matches_context(tournament))
         
+        # Add standings context for Standings tab
+        context.update(self._get_standings_context(tournament))
+        
         return context
     
     def _get_registration_status(self, tournament, user):
@@ -534,8 +538,11 @@ class TournamentDetailView(DetailView):
                 
                 participants_list.append({
                     'type': 'team',
+                    'kind': 'team',  # Explicit type for template
+                    'badge_label': 'TEAM',
                     'id': team.id,
                     'name': team.name,
+                    'display_name': team.name,
                     'tag': team.tag,
                     'slug': team.slug,
                     'logo': team.logo.url if team.logo else None,
@@ -544,6 +551,7 @@ class TournamentDetailView(DetailView):
                     'rank': team_rank,
                     'roster_count': active_members.count(),
                     'roster_summary': roster_summary,
+                    'sub_label': f"{active_members.count()} players" + (f" · {team.region}" if team.region else ""),
                     'status': reg.status,
                     'checked_in': reg.checked_in,
                     'registered_at': reg.registered_at,
@@ -570,14 +578,19 @@ class TournamentDetailView(DetailView):
                 if reg.registration_data and isinstance(reg.registration_data, dict):
                     game_id = reg.registration_data.get('game_id', '')
                 
+                region = profile.region if profile and hasattr(profile, 'region') else ''
                 participants_list.append({
                     'type': 'solo',
+                    'kind': 'player',  # Explicit type for template
+                    'badge_label': 'PLAYER',
                     'id': reg.user.id,
                     'name': display_name,
+                    'display_name': display_name,
                     'username': reg.user.username,
                     'avatar': profile.avatar.url if profile and profile.avatar else None,
                     'game_id': game_id,
-                    'region': profile.region if profile and hasattr(profile, 'region') else '',
+                    'region': region,
+                    'sub_label': "Solo player" + (f" · {region}" if region else ""),
                     'status': reg.status,
                     'checked_in': reg.checked_in,
                     'registered_at': reg.registered_at,
@@ -613,6 +626,7 @@ class TournamentDetailView(DetailView):
         - matches: list of match dicts with UI-friendly attributes
         """
         from apps.tournaments.models import Match, Group
+        from apps.teams.models import Team
         from django.utils import timezone
         
         # Fetch all matches for this tournament
@@ -624,6 +638,19 @@ class TournamentDetailView(DetailView):
             'round_number',
             'match_number'
         )
+        
+        # Preload team names for efficient lookup
+        all_participant_ids = set()
+        for match in matches_qs:
+            if match.participant1_id:
+                all_participant_ids.add(match.participant1_id)
+            if match.participant2_id:
+                all_participant_ids.add(match.participant2_id)
+        
+        teams_map = {}
+        if tournament.participation_type == 'team' and all_participant_ids:
+            teams = Team.objects.filter(id__in=all_participant_ids)
+            teams_map = {team.id: team.name for team in teams}
         
         # Precompute UI attributes for each match
         matches_list = []
@@ -688,10 +715,24 @@ class TournamentDetailView(DetailView):
             if match.scheduled_time:
                 start_time_display = match.scheduled_time.strftime('%b %d · %H:%M')
             
+            # Resolve participant names
+            p1_name = 'TBD'
+            p2_name = 'TBD'
+            
+            if match.participant1_id:
+                p1_name = teams_map.get(match.participant1_id) or match.participant1_name or 'TBD'
+            elif match.participant1_name:
+                p1_name = match.participant1_name
+            
+            if match.participant2_id:
+                p2_name = teams_map.get(match.participant2_id) or match.participant2_name or 'TBD'
+            elif match.participant2_name:
+                p2_name = match.participant2_name
+            
             matches_list.append({
                 'id': match.id,
-                'participant1_name': match.participant1_name or 'TBD',
-                'participant2_name': match.participant2_name or 'TBD',
+                'participant1_name': p1_name,
+                'participant2_name': p2_name,
                 'participant1_score': match.participant1_score if show_scores else 0,
                 'participant2_score': match.participant2_score if show_scores else 0,
                 'state': match.state,
@@ -711,6 +752,203 @@ class TournamentDetailView(DetailView):
         return {
             'matches': matches_list,
         }
+    
+    def _get_standings_context(self, tournament: Tournament) -> Dict[str, Any]:
+        """
+        Build standings context for Standings tab.
+        
+        Returns unified standings data for both GROUP_PLAYOFF and single-stage tournaments:
+        - standings_primary: main leaderboard table rows
+        - standings_source: source description ("group_stage", "bracket", "mixed")
+        - group_standings_summary: grouped advancers/others for GROUP_PLAYOFF (optional)
+        
+        Logic:
+        - GROUP_PLAYOFF: Aggregate all group standings, rank by group position then points
+        - Single-stage: Build from match results or registrations (simplified)
+        """
+        from apps.tournaments.models.group import Group, GroupStanding
+        from django.db.models import Q, Count, Sum, F
+        
+        context = {
+            'standings_primary': [],
+            'standings_source': 'unknown',
+            'group_standings_summary': None
+        }
+        
+        # GROUP_PLAYOFF: Use group standings
+        if tournament.format == 'group_playoff':
+            groups = Group.objects.filter(
+                tournament=tournament,
+                is_deleted=False
+            ).order_by('display_order')
+            
+            if not groups.exists():
+                return context
+            
+            # Build primary standings: all participants from all groups
+            all_standings = []
+            group_summaries = []
+            
+            for group in groups:
+                group_standings = GroupStanding.objects.filter(
+                    group=group,
+                    is_deleted=False
+                ).select_related('team', 'user').order_by('rank')
+                
+                advancers = []
+                others = []
+                
+                for idx, standing in enumerate(group_standings, start=1):
+                    # Determine participant name
+                    if standing.team:
+                        participant_name = standing.team.name
+                        participant_id = f"team-{standing.team.id}"
+                    elif standing.user:
+                        participant_name = standing.user.profile.display_name if hasattr(standing.user, 'profile') and standing.user.profile.display_name else standing.user.username
+                        participant_id = f"user-{standing.user.id}"
+                    else:
+                        participant_name = "Unknown"
+                        participant_id = "unknown"
+                    
+                    # Determine if advancing
+                    is_advancing = idx <= group.advancement_count
+                    
+                    # Build row for primary table
+                    row = {
+                        'rank': standing.rank or idx,
+                        'name': participant_name,
+                        'participant_id': participant_id,
+                        'group_name': group.name,
+                        'matches_played': standing.matches_played,
+                        'wins': standing.matches_won,
+                        'draws': standing.matches_drawn,
+                        'losses': standing.matches_lost,
+                        'points': int(standing.points),
+                        'is_advancing': is_advancing,
+                        # Game-specific stats (nullable)
+                        'goal_difference': standing.goal_difference if standing.goal_difference != 0 else None,
+                        'round_difference': standing.round_difference if standing.round_difference != 0 else None,
+                        'kill_difference': standing.total_kills - standing.total_deaths if (standing.total_kills > 0 or standing.total_deaths > 0) else None,
+                        'game_specific_label': None
+                    }
+                    
+                    all_standings.append(row)
+                    
+                    # Build group summary entry
+                    summary_entry = {
+                        'rank': idx,
+                        'name': participant_name
+                    }
+                    
+                    if is_advancing:
+                        advancers.append(summary_entry)
+                    else:
+                        others.append(summary_entry)
+                
+                # Add group summary
+                group_summaries.append({
+                    'name': group.name,
+                    'advancers': advancers,
+                    'others': others
+                })
+            
+            # Sort primary standings: advancers first (by rank), then others
+            all_standings.sort(key=lambda x: (
+                not x['is_advancing'],  # False (advancing) sorts before True (not advancing)
+                x['rank']  # Then by rank within each category
+            ))
+            
+            # Reassign global ranks
+            for idx, row in enumerate(all_standings, start=1):
+                row['global_rank'] = idx
+            
+            context['standings_primary'] = all_standings
+            context['standings_source'] = 'group_stage'
+            context['group_standings_summary'] = group_summaries
+            
+        else:
+            # Single-stage tournaments: Build simplified standings from matches or registrations
+            # For now, use a basic aggregation from Registration model
+            from apps.tournaments.models import Registration, Match
+            from apps.teams.models import Team
+            
+            registrations = Registration.objects.filter(
+                tournament=tournament,
+                is_deleted=False,
+                status__in=['confirmed', 'checked_in']
+            ).select_related('user')
+            
+            if not registrations.exists():
+                return context
+            
+            # Fetch all teams in one query (for team_id lookups)
+            team_ids = [reg.team_id for reg in registrations if reg.team_id]
+            teams_map = {team.id: team for team in Team.objects.filter(id__in=team_ids)} if team_ids else {}
+            
+            # Build standings from match results (simplified)
+            standings_rows = []
+            
+            for reg in registrations:
+                # Determine participant name and ID
+                if reg.team_id:
+                    team = teams_map.get(reg.team_id)
+                    participant_name = team.name if team else f"Team #{reg.team_id}"
+                    participant_id = f"team-{reg.team_id}"
+                    participant_type = 'team'
+                    pid = reg.team_id
+                elif reg.user:
+                    participant_name = reg.user.profile.display_name if hasattr(reg.user, 'profile') and reg.user.profile.display_name else reg.user.username
+                    participant_id = f"user-{reg.user.id}"
+                    participant_type = 'user'
+                    pid = reg.user.id
+                else:
+                    continue
+                
+                # Count matches for this participant
+                # Match model uses participant1_id/participant2_id as integers
+                matches = Match.objects.filter(
+                    tournament=tournament,
+                    is_deleted=False,
+                    state__in=['completed', 'forfeit']
+                ).filter(
+                    Q(participant1_id=pid) | Q(participant2_id=pid)
+                )
+                winner_matches = matches.filter(winner_id=pid)
+                
+                matches_played = matches.count()
+                wins = winner_matches.count()
+                losses = matches_played - wins
+                points = wins * 3  # Simple 3 points per win
+                
+                standings_rows.append({
+                    'rank': 0,  # Will be assigned after sorting
+                    'name': participant_name,
+                    'participant_id': participant_id,
+                    'group_name': None,
+                    'matches_played': matches_played,
+                    'wins': wins,
+                    'draws': 0,
+                    'losses': losses,
+                    'points': points,
+                    'is_advancing': False,
+                    'goal_difference': None,
+                    'round_difference': None,
+                    'kill_difference': None,
+                    'game_specific_label': None
+                })
+            
+            # Sort by points DESC, then wins DESC
+            standings_rows.sort(key=lambda x: (-x['points'], -x['wins']))
+            
+            # Assign ranks
+            for idx, row in enumerate(standings_rows, start=1):
+                row['rank'] = idx
+            
+            context['standings_primary'] = standings_rows
+            context['standings_source'] = 'bracket'
+            context['group_standings_summary'] = None
+        
+        return context
 
 
 # ============================================================================
