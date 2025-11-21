@@ -315,6 +315,9 @@ class TournamentDetailView(DetailView):
         ).select_related('created_by').order_by('-is_pinned', '-created_at')[:10]
         context['announcements'] = announcements
         
+        # Add participants data for Participants tab
+        context.update(self._get_participants_context(tournament, user))
+        
         return context
     
     def _get_registration_status(self, tournament, user):
@@ -404,6 +407,155 @@ class TournamentDetailView(DetailView):
         return {
             'state': 'confirmed',
             'reason': 'Registration confirmed',
+        }
+    
+    def _get_participants_context(self, tournament, user):
+        """
+        Get context data for Participants tab.
+        
+        Returns dict with:
+        - participants: List of participant data (team or user)
+        - participants_total: Total registered count
+        - participants_confirmed: Confirmed count
+        - participants_waitlist: Waitlist count
+        - current_user_registration: Current user's registration (if any)
+        - is_organizer: Whether user is organizer
+        """
+        from apps.tournaments.models import Registration
+        from apps.teams.models import Team
+        
+        # Base queryset - only non-deleted, non-cancelled, non-rejected registrations
+        registrations_qs = Registration.objects.filter(
+            tournament=tournament,
+            is_deleted=False
+        ).exclude(
+            status__in=[Registration.CANCELLED, Registration.REJECTED]
+        ).select_related('user', 'user__profile').order_by('registered_at')
+        
+        participants_list = []
+        current_user_registration = None
+        
+        if tournament.participation_type == 'team':
+            # Team-based tournament
+            for reg in registrations_qs:
+                if not reg.team_id:
+                    continue
+                
+                # Get team data (Team model uses IntegerField for team_id)
+                try:
+                    team = Team.objects.select_related('captain').prefetch_related(
+                        'memberships__profile'
+                    ).get(id=reg.team_id)
+                except Team.DoesNotExist:
+                    continue
+                
+                # Build roster summary
+                active_members = team.memberships.filter(
+                    status='ACTIVE'
+                ).select_related('profile', 'profile__user')
+                
+                roster_summary = []
+                for membership in active_members[:3]:  # Show first 3 members
+                    roster_summary.append({
+                        'name': membership.profile.display_name or membership.profile.user.username,
+                        'role': membership.get_role_display(),
+                    })
+                
+                # Check if this is current user's team
+                is_current_user_team = False
+                if user.is_authenticated:
+                    is_current_user_team = active_members.filter(
+                        profile__user=user
+                    ).exists()
+                    if is_current_user_team:
+                        current_user_registration = reg
+                
+                # Get team ranking (if available)
+                team_rank = None
+                try:
+                    from apps.teams.models import TeamRankingBreakdown
+                    ranking = TeamRankingBreakdown.objects.filter(team=team).first()
+                    if ranking and ranking.final_total > 0:
+                        # Calculate rank
+                        teams_above = TeamRankingBreakdown.objects.filter(
+                            team__game=team.game,
+                            final_total__gt=ranking.final_total
+                        ).count()
+                        team_rank = teams_above + 1
+                except:
+                    pass
+                
+                participants_list.append({
+                    'type': 'team',
+                    'id': team.id,
+                    'name': team.name,
+                    'tag': team.tag,
+                    'slug': team.slug,
+                    'logo': team.logo.url if team.logo else None,
+                    'region': team.region,
+                    'game': team.game,
+                    'rank': team_rank,
+                    'roster_count': active_members.count(),
+                    'roster_summary': roster_summary,
+                    'status': reg.status,
+                    'checked_in': reg.checked_in,
+                    'registered_at': reg.registered_at,
+                    'is_current_user': is_current_user_team,
+                    'registration_id': reg.id,
+                })
+        else:
+            # Solo tournament
+            for reg in registrations_qs:
+                if not reg.user:
+                    continue
+                
+                # Check if this is current user
+                is_current_user = user.is_authenticated and reg.user.id == user.id
+                if is_current_user:
+                    current_user_registration = reg
+                
+                # Get player data
+                profile = reg.user.profile if hasattr(reg.user, 'profile') else None
+                display_name = profile.display_name if profile and profile.display_name else reg.user.username
+                
+                # Get game ID from registration_data if available
+                game_id = ''
+                if reg.registration_data and isinstance(reg.registration_data, dict):
+                    game_id = reg.registration_data.get('game_id', '')
+                
+                participants_list.append({
+                    'type': 'solo',
+                    'id': reg.user.id,
+                    'name': display_name,
+                    'username': reg.user.username,
+                    'avatar': profile.avatar.url if profile and profile.avatar else None,
+                    'game_id': game_id,
+                    'region': profile.region if profile and hasattr(profile, 'region') else '',
+                    'status': reg.status,
+                    'checked_in': reg.checked_in,
+                    'registered_at': reg.registered_at,
+                    'is_current_user': is_current_user,
+                    'registration_id': reg.id,
+                })
+        
+        # Calculate stats
+        confirmed_count = registrations_qs.filter(status=Registration.CONFIRMED).count()
+        waitlist_count = 0  # TODO: Implement waitlist logic if needed
+        
+        # Check if user is organizer
+        is_organizer = user.is_authenticated and (
+            user == tournament.organizer or 
+            user.is_staff or 
+            user.is_superuser
+        )
+        
+        return {
+            'participants': participants_list,
+            'participants_total': len(participants_list),
+            'participants_confirmed': confirmed_count,
+            'participants_waitlist': waitlist_count,
+            'current_user_registration': current_user_registration,
+            'is_organizer': is_organizer,
         }
 
 

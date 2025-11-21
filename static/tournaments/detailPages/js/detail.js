@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize hover effects
     initializeHoverEffects();
+    
+    // Initialize Participants tab filtering
+    initializeParticipantsFilters();
 });
 
 /**
@@ -311,4 +314,116 @@ function formatTimeRemaining(time) {
 function animateNumber(element, start, end, duration) {
     // Number animation logic will be added here when needed
     console.log('[Detail] Number animation placeholder');
+}
+
+/**
+ * Initialize Participants Tab Filtering
+ * Client-side filtering for search, status, and region
+ */
+function initializeParticipantsFilters() {
+    const searchInput = document.getElementById('participantSearch');
+    const statusFilter = document.getElementById('statusFilter');
+    const regionFilter = document.getElementById('regionFilter');
+    const clearButton = document.getElementById('clearFilters');
+    const participantsGrid = document.getElementById('participantsGrid');
+    
+    if (!participantsGrid) {
+        console.log('[Detail] Participants grid not found - skipping filter initialization');
+        return;
+    }
+    
+    console.log('[Detail] Initializing participants filters');
+    
+    // Get all participant cards
+    const getAllCards = () => Array.from(participantsGrid.querySelectorAll('.td-participant-card'));
+    
+    // Filter function
+    const applyFilters = () => {
+        const cards = getAllCards();
+        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectedStatus = statusFilter ? statusFilter.value.toLowerCase() : '';
+        const selectedRegion = regionFilter ? regionFilter.value.toUpperCase() : '';
+        
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const name = card.getAttribute('data-name') || '';
+            const status = card.getAttribute('data-status') || '';
+            const checkedIn = card.getAttribute('data-checked-in') === 'true';
+            const region = card.getAttribute('data-region') || '';
+            
+            // Search filter
+            const matchesSearch = !searchTerm || name.includes(searchTerm);
+            
+            // Status filter
+            let matchesStatus = !selectedStatus || status === selectedStatus;
+            if (selectedStatus === 'checked-in') {
+                matchesStatus = checkedIn;
+            }
+            
+            // Region filter
+            const matchesRegion = !selectedRegion || region === selectedRegion;
+            
+            // Show/hide card
+            const isVisible = matchesSearch && matchesStatus && matchesRegion;
+            card.classList.toggle('is-hidden', !isVisible);
+            
+            if (isVisible) visibleCount++;
+        });
+        
+        console.log(`[Detail] Filtered: ${visibleCount} of ${cards.length} participants visible`);
+        
+        // Show empty state if no results
+        showEmptyState(visibleCount === 0 && cards.length > 0);
+    };
+    
+    // Show/hide empty state for no results
+    const showEmptyState = (show) => {
+        let emptyState = participantsGrid.parentElement.querySelector('.td-no-results-state');
+        
+        if (show && !emptyState) {
+            emptyState = document.createElement('div');
+            emptyState.className = 'td-empty-state td-no-results-state';
+            emptyState.innerHTML = `
+                <div class="td-empty-icon">🔍</div>
+                <h3 class="td-empty-title">No Matches Found</h3>
+                <p class="td-empty-message">
+                    Try adjusting your filters or search terms.
+                </p>
+            `;
+            participantsGrid.parentElement.insertBefore(emptyState, participantsGrid.nextSibling);
+            participantsGrid.style.display = 'none';
+        } else if (!show && emptyState) {
+            emptyState.remove();
+            participantsGrid.style.display = '';
+        }
+    };
+    
+    // Clear all filters
+    const clearFilters = () => {
+        if (searchInput) searchInput.value = '';
+        if (statusFilter) statusFilter.value = '';
+        if (regionFilter) regionFilter.value = '';
+        applyFilters();
+        console.log('[Detail] Filters cleared');
+    };
+    
+    // Attach event listeners
+    if (searchInput) {
+        searchInput.addEventListener('input', applyFilters);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', applyFilters);
+    }
+    
+    if (regionFilter) {
+        regionFilter.addEventListener('change', applyFilters);
+    }
+    
+    if (clearButton) {
+        clearButton.addEventListener('click', clearFilters);
+    }
+    
+    console.log('[Detail] Participants filters initialized successfully');
 }

@@ -3214,3 +3214,710 @@
         transform: scale(1.05);
     }
 }
+
+/* ============================================
+   PARTICIPANTS TAB - MINI LOBBY LAYOUT
+   ============================================ */
+
+/* ==============================================
+   PARTICIPANTS TAB - GALLERY LAYOUT
+   Modern card gallery with minimal header
+   ============================================== */
+
+/* Header: Summary + Filters */
+.td-participants-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 1.5rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Summary Section */
+.td-participants-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.td-summary-text {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.td-summary-icon {
+    font-size: 1.5rem;
+}
+
+.td-summary-label {
+    font-weight: 500;
+}
+
+.td-summary-bar {
+    height: 4px;
+    width: 200px;
+    background: var(--bg-surface);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.td-summary-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+    transition: width 0.3s ease;
+}
+
+/* Filters Section */
+.td-participants-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.td-filter-input {
+    padding: 0.625rem 1rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    min-width: 200px;
+    transition: all 0.2s ease;
+}
+
+.td-filter-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 99, 102, 241), 0.2);
+}
+
+.td-filter-select {
+    padding: 0.625rem 1rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.td-filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 99, 102, 241), 0.2);
+}
+
+.td-filter-select:hover {
+    border-color: var(--accent-soft);
+}
+
+/* Sidebar Cards */
+.td-participants-summary-card,
+.td-my-participation-card,
+.td-participants-filters-card,
+.td-organizer-tools-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+/* Summary Stats */
+.td-summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.td-stat-item {
+    text-align: center;
+}
+
+.td-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.25rem;
+}
+
+.td-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Progress Bar */
+.td-slots-progress {
+    margin-bottom: 1rem;
+}
+
+.td-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.td-progress-label {
+    color: var(--text-secondary);
+}
+
+.td-progress-value {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.td-progress-bar {
+    height: 8px;
+    background: var(--bg-surface);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.td-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+    border-radius: 1rem;
+    transition: width 0.3s ease;
+}
+
+/* Info Note */
+.td-info-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(var(--accent-rgb, 99, 102, 241), 0.1);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.td-info-icon {
+    font-size: 1rem;
+}
+
+/* My Participation Card */
+.td-status-badge-lg {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--bg-surface);
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.td-status-icon {
+    font-size: 1.25rem;
+}
+
+.td-status-text {
+    flex: 1;
+}
+
+.td-checkin-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.td-checkin-status.is-checked-in {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.td-checkin-icon {
+    font-size: 1rem;
+}
+
+.td-registered-at {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    margin-bottom: 1rem;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 0.875rem;
+}
+
+.td-registered-at .td-label {
+    color: var(--text-muted);
+}
+
+.td-registered-at .td-value {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.td-participation-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.td-not-registered-message,
+.td-guest-message {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.td-cta-disabled-reason {
+    padding: 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 0.5rem;
+    color: #f87171;
+    font-size: 0.875rem;
+}
+
+/* Filter Inputs */
+.td-filter-group {
+    margin-bottom: 1rem;
+}
+
+.td-filter-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.td-filter-input,
+.td-filter-select {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.td-filter-input:focus,
+.td-filter-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 99, 102, 241), 0.1);
+}
+
+.td-btn-clear-filters {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+/* Organizer Tools */
+.td-organizer-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.td-organizer-stats {
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.td-org-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+}
+
+.td-org-stat-label {
+    color: var(--text-muted);
+}
+
+.td-org-stat-value {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* Main Content Area */
+/* Participants Grid - Full Width */
+.td-participants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1.25rem;
+    padding: 0;
+}
+
+/* Participant Card - Clickable Link */
+.td-participant-card {
+    display: block;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+.td-participant-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.td-participant-card.is-current-user {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb, 99, 102, 241), 0.2);
+}
+
+.td-participant-card.is-hidden {
+    display: none;
+}
+
+/* Card Header */
+.td-participant-card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: var(--bg-surface);
+    position: relative;
+}
+
+.td-participant-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+}
+
+.td-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.td-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+    color: white;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.td-participant-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.td-participant-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.td-you-pill {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    background: var(--accent);
+    color: white;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 1rem;
+    letter-spacing: 0.05em;
+}
+
+.td-participant-tag {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Status Chip - Compact */
+.td-status-chip {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1;
+}
+    white-space: nowrap;
+}
+
+.td-status-chip.td-status-confirmed {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.td-status-chip.td-status-pending {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+}
+
+.td-status-chip.td-status-payment_submitted {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+/* Card Body */
+.td-participant-card-body {
+    padding: 1rem 1.25rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Badges Row */
+.td-participant-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.td-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.td-badge-icon {
+    font-size: 0.875rem;
+    line-height: 1;
+}
+
+.td-badge-text {
+    line-height: 1;
+}
+
+.td-badge-rank {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.td-badge-region {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.td-badge-checkin {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+/* Roster Summary */
+.td-participant-roster {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+.td-roster-icon {
+    font-size: 1rem;
+}
+
+.td-roster-count {
+    font-weight: 500;
+}
+
+.td-roster-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.td-roster-member {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.375rem 0;
+    font-size: 0.8125rem;
+}
+
+.td-member-name {
+    color: var(--text-secondary);
+}
+
+.td-member-role {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.td-roster-more {
+    padding: 0.375rem 0;
+    font-size: 0.8125rem;
+    color: var(--accent);
+    font-style: italic;
+}
+
+/* Check-in Badge */
+.td-participant-checkin {
+    padding: 0.5rem;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 0.5rem;
+    text-align: center;
+}
+
+.td-checkin-badge {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #22c55e;
+}
+
+/* Card Footer */
+.td-participant-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 0.75rem;
+}
+
+.td-registered-date {
+    color: var(--text-muted);
+}
+
+.td-view-team-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.td-view-team-link:hover {
+    color: var(--accent-soft);
+}
+
+/* Empty State */
+.td-participants-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 1rem;
+}
+
+.td-empty-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.4;
+}
+
+.td-empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.td-empty-message {
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    max-width: 400px;
+}
+
+/* ============================================
+   PARTICIPANTS TAB - RESPONSIVE
+   ============================================ */
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .td-participants-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .td-participants-filters {
+        flex-direction: column;
+    }
+    
+    .td-filter-input {
+        width: 100%;
+    }
+    
+    .td-participants-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+    .td-participants-header {
+        padding: 1rem;
+    }
+    
+    .td-summary-bar {
+        width: 100%;
+    }
+    
+    .td-participants-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .td-participant-card-header {
+        padding: 1rem;
+    }
+    
+    .td-status-chip {
+        position: static;
+        align-self: flex-start;
+        margin-top: 0.5rem;
+    }
+    
+    .td-participant-name {
+        font-size: 0.875rem;
+    }
+}
+
+/* ============================================
+   END PARTICIPANTS TAB STYLES
+   ============================================ */
