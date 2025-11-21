@@ -4411,3 +4411,371 @@
 /* ============================================
    END BRACKET TAB STYLES
    ============================================ */
+
+/* ============================================
+   MATCHES TAB - LIVE SCHEDULE HUB
+   ============================================ */
+
+/* Matches Header */
+.td-matches-header {
+    margin-bottom: 2rem;
+}
+
+.td-matches-header-main {
+    margin-bottom: 1.5rem;
+}
+
+.td-matches-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.td-matches-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Filter Chips */
+.td-matches-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.td-matches-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.td-filter-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.td-filter-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.td-chip {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.td-chip:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--accent-soft);
+    color: var(--text-primary);
+}
+
+.td-chip.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
+
+.td-chip.is-active:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent-soft);
+}
+
+/* Matches List */
+.td-matches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Match Card */
+.td-match-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.3s ease;
+}
+
+.td-match-card:hover {
+    border-color: var(--accent-soft);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.td-match-card.is-hidden {
+    display: none;
+}
+
+/* Match Header - Pills and Time */
+.td-match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.td-match-meta-left {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.td-match-meta-right {
+    display: flex;
+    align-items: center;
+}
+
+.td-match-pill {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.td-match-status-pill {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.td-match-status-pill.is-live {
+    background: #ef4444;
+    color: #ffffff;
+    animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+    0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+    }
+    50% {
+        opacity: 0.85;
+        box-shadow: 0 0 16px rgba(239, 68, 68, 0.8);
+    }
+}
+
+.td-match-status-pill.is-completed {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.td-match-status-pill.is-upcoming {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+}
+
+.td-match-time {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Match Body - Teams and Scores */
+.td-match-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.td-match-side {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    transition: all 0.2s ease;
+}
+
+.td-match-side.is-winner {
+    background: rgba(99, 102, 241, 0.15);
+    border: 2px solid var(--accent);
+}
+
+.td-match-side.is-winner .td-match-team-name {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.td-match-side:not(.is-winner) .td-match-team-name {
+    opacity: 0.7;
+}
+
+.td-match-team-name {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.td-match-score {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    min-width: 2rem;
+    text-align: right;
+}
+
+.td-match-side:not(.is-winner) .td-match-score {
+    opacity: 0.5;
+}
+
+/* Match Footer - CTAs */
+.td-match-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.td-match-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: #ffffff;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.td-match-cta:hover {
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* Live Match Special Styling */
+.td-match-state-live {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
+}
+
+.td-match-state-live:hover {
+    border-color: rgba(239, 68, 68, 0.8);
+    box-shadow: 0 0 24px rgba(239, 68, 68, 0.3);
+}
+
+/* Empty State */
+.td-matches-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+}
+
+.td-empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.td-empty-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem 0;
+}
+
+.td-empty-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* ============================================
+   MATCHES TAB - RESPONSIVE
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .td-matches-filters {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .td-match-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .td-match-meta-right {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .td-matches-title {
+        font-size: 1.5rem;
+    }
+
+    .td-matches-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .td-match-card {
+        padding: 1rem;
+    }
+
+    .td-match-team-name {
+        font-size: 0.9rem;
+    }
+
+    .td-match-score {
+        font-size: 1.25rem;
+    }
+
+    .td-filter-chips {
+        width: 100%;
+    }
+
+    .td-chip {
+        flex: 1;
+        text-align: center;
+        padding: 0.6rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .td-match-cta {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .td-matches-empty {
+        padding: 3rem 1.5rem;
+    }
+
+    .td-empty-icon {
+        font-size: 3rem;
+    }
+}
+
+/* ============================================
+   END MATCHES TAB STYLES
+   ============================================ */

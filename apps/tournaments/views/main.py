@@ -362,6 +362,9 @@ class TournamentDetailView(DetailView):
             context['is_multi_stage'] = False
             context['current_stage'] = None
         
+        # Add matches context for Matches tab
+        context.update(self._get_matches_context(tournament))
+        
         return context
     
     def _get_registration_status(self, tournament, user):
@@ -600,6 +603,113 @@ class TournamentDetailView(DetailView):
             'participants_waitlist': waitlist_count,
             'current_user_registration': current_user_registration,
             'is_organizer': is_organizer,
+        }
+    
+    def _get_matches_context(self, tournament):
+        """
+        Build matches context for Matches tab.
+        
+        Returns dict with:
+        - matches: list of match dicts with UI-friendly attributes
+        """
+        from apps.tournaments.models import Match, Group
+        from django.utils import timezone
+        
+        # Fetch all matches for this tournament
+        matches_qs = Match.objects.filter(
+            tournament=tournament,
+            is_deleted=False
+        ).select_related('bracket').order_by(
+            'scheduled_time',
+            'round_number',
+            'match_number'
+        )
+        
+        # Precompute UI attributes for each match
+        matches_list = []
+        now = timezone.now()
+        
+        for match in matches_qs:
+            # Determine phase
+            if tournament.format == tournament.GROUP_PLAYOFF:
+                phase = 'group_stage' if match.bracket is None else 'knockout_stage'
+            else:
+                phase = 'knockout_stage'  # Single-stage tournaments
+            
+            # Determine UI status
+            if match.state == 'live':
+                ui_status = 'live'
+            elif match.state in ['completed', 'forfeit', 'cancelled', 'disputed']:
+                ui_status = 'completed'
+            else:
+                ui_status = 'upcoming'
+            
+            # Determine if live/completed
+            is_live = match.state == 'live'
+            is_completed = match.state in ['completed', 'forfeit', 'cancelled']
+            
+            # Show scores for live and completed matches
+            show_scores = match.state in ['live', 'completed', 'pending_result', 'disputed']
+            
+            # Determine winner (1 or 2 or None)
+            winner = None
+            if match.winner_id:
+                if match.winner_id == match.participant1_id:
+                    winner = 1
+                elif match.winner_id == match.participant2_id:
+                    winner = 2
+            
+            # Round label for knockout
+            round_label = ''
+            if phase == 'knockout_stage' and match.round_number:
+                if match.round_number == 1:
+                    round_label = 'Final'
+                elif match.round_number == 2:
+                    round_label = 'Semi-Finals'
+                elif match.round_number == 3:
+                    round_label = 'Quarter-Finals'
+                else:
+                    round_label = f'Round {match.round_number}'
+            
+            # Group name for group stage
+            group_name = ''
+            if phase == 'group_stage':
+                # Try to find group by checking match participants
+                # This is a simple heuristic - you may need to adjust based on your data model
+                try:
+                    # If you have a direct group FK on Match, use that
+                    # Otherwise, we'll leave it empty for now
+                    pass
+                except:
+                    pass
+            
+            # Format start time
+            start_time_display = ''
+            if match.scheduled_time:
+                start_time_display = match.scheduled_time.strftime('%b %d · %H:%M')
+            
+            matches_list.append({
+                'id': match.id,
+                'participant1_name': match.participant1_name or 'TBD',
+                'participant2_name': match.participant2_name or 'TBD',
+                'participant1_score': match.participant1_score if show_scores else 0,
+                'participant2_score': match.participant2_score if show_scores else 0,
+                'state': match.state,
+                'ui_status': ui_status,
+                'phase': phase,
+                'is_live': is_live,
+                'is_completed': is_completed,
+                'show_scores': show_scores,
+                'winner': winner,
+                'round_label': round_label,
+                'group_name': group_name,
+                'start_time_display': start_time_display,
+                'stream_url': match.stream_url,
+                'vod_url': None,  # Add if you have a vod_url field
+            })
+        
+        return {
+            'matches': matches_list,
         }
 
 

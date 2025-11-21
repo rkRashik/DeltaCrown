@@ -1,10 +1,119 @@
-{# Matches Tab Placeholder #}
-{# Purpose: List matches with filters, highlight user's matches #}
-{# Content: Filter bar, match cards #}
+{# Matches Tab - Live Schedule Hub #}
 
-<section class="detail-tab-panel td-tab-panel" data-tab="matches">
-    <div class="td-card">
-        <h2 class="td-section-title">Matches</h2>
-        <p class="td-empty-state">Match schedule coming soon.</p>
+<section class="td-tab-panel td-tab-panel-matches" data-tab="matches">
+  <div class="td-matches-header">
+    <div class="td-matches-header-main">
+      <h2 class="td-matches-title">Matches</h2>
+      <p class="td-matches-subtitle">
+        Live schedule, results, and fixtures for this tournament.
+      </p>
     </div>
+    <div class="td-matches-filters" id="tdMatchesFilters">
+      <div class="td-matches-filter-group">
+        <label class="td-filter-label">Status</label>
+        <div class="td-filter-chips" data-filter-group="status">
+          <button type="button" class="td-chip is-active" data-status="all">All</button>
+          <button type="button" class="td-chip" data-status="live">Live</button>
+          <button type="button" class="td-chip" data-status="upcoming">Upcoming</button>
+          <button type="button" class="td-chip" data-status="completed">Completed</button>
+        </div>
+      </div>
+
+      {% if is_multi_stage %}
+      <div class="td-matches-filter-group">
+        <label class="td-filter-label">Phase</label>
+        <div class="td-filter-chips" data-filter-group="phase">
+          <button type="button" class="td-chip is-active" data-phase="all">All</button>
+          <button type="button" class="td-chip" data-phase="group_stage">Group Stage</button>
+          <button type="button" class="td-chip" data-phase="knockout_stage">Knockout</button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if matches %}
+    <div class="td-matches-list" id="tdMatchesList">
+      {% for match in matches %}
+        <article
+          class="td-match-card td-match-state-{{ match.state|default:'scheduled' }}"
+          data-status="{{ match.ui_status }}"
+          data-phase="{{ match.phase }}"
+        >
+          <header class="td-match-header">
+            <div class="td-match-meta-left">
+              {% if match.phase == 'group_stage' and match.group_name %}
+                <span class="td-match-pill">Group {{ match.group_name }}</span>
+              {% elif match.phase == 'knockout_stage' and match.round_label %}
+                <span class="td-match-pill">{{ match.round_label }}</span>
+              {% endif %}
+              {% if match.is_live %}
+                <span class="td-match-status-pill is-live">LIVE</span>
+              {% elif match.is_completed %}
+                <span class="td-match-status-pill is-completed">Final</span>
+              {% else %}
+                <span class="td-match-status-pill is-upcoming">
+                  {{ match.start_time_display|default:"Scheduled" }}
+                </span>
+              {% endif %}
+            </div>
+            <div class="td-match-meta-right">
+              {% if match.start_time_display and not match.is_live %}
+                <span class="td-match-time">{{ match.start_time_display }}</span>
+              {% endif %}
+            </div>
+          </header>
+
+          <div class="td-match-body">
+            <div class="td-match-side td-match-side-1 {% if match.winner == 1 %}is-winner{% endif %}">
+              <span class="td-match-team-name">
+                {{ match.participant1_name|default:"TBD" }}
+              </span>
+              <span class="td-match-score">
+                {% if match.show_scores %}
+                  {{ match.participant1_score }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </div>
+            <div class="td-match-side td-match-side-2 {% if match.winner == 2 %}is-winner{% endif %}">
+              <span class="td-match-team-name">
+                {{ match.participant2_name|default:"TBD" }}
+              </span>
+              <span class="td-match-score">
+                {% if match.show_scores %}
+                  {{ match.participant2_score }}
+                {% else %}
+                  -
+                {% endif %}
+              </span>
+            </div>
+          </div>
+
+          {% if match.is_live and match.stream_url or match.is_completed and match.vod_url %}
+          <footer class="td-match-footer">
+            {% if match.is_live and match.stream_url %}
+              <a href="{{ match.stream_url }}" class="td-match-cta" target="_blank" rel="noopener noreferrer">
+                <span>Watch Live</span>
+              </a>
+            {% elif match.is_completed and match.vod_url %}
+              <a href="{{ match.vod_url }}" class="td-match-cta" target="_blank" rel="noopener noreferrer">
+                <span>Watch Replay</span>
+              </a>
+            {% endif %}
+          </footer>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="td-matches-empty">
+      <div class="td-empty-icon">⚔️</div>
+      <p class="td-empty-title">No matches scheduled yet.</p>
+      <p class="td-empty-subtitle">
+        Matches will appear here once the schedule is generated.
+      </p>
+    </div>
+  {% endif %}
 </section>

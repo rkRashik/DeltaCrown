@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize stage selector for multi-stage tournaments
     initializeStageSelector();
+
+    // Initialize matches tab filters
+    initializeMatchesFilters();
 });
 
 /**
@@ -483,4 +486,104 @@ function initializeStageSelector() {
     });
     
     console.debug('[Detail] Stage selector initialized with', pills.length, 'stages');
+}
+
+/**
+ * Initialize Matches tab filters
+ * Handles status (live/upcoming/completed) and phase (group_stage/knockout_stage) filtering
+ */
+function initializeMatchesFilters() {
+    const filtersContainer = document.getElementById('tdMatchesFilters');
+    const matchesList = document.getElementById('tdMatchesList');
+    
+    if (!filtersContainer || !matchesList) {
+        console.debug('[Detail] Matches filters not found - tab may not be active');
+        return;
+    }
+
+    // Track active filters
+    let activeStatus = 'all';
+    let activePhase = 'all';
+
+    // Get all filter chips
+    const statusChips = filtersContainer.querySelectorAll('[data-filter-group="status"] .td-chip');
+    const phaseChips = filtersContainer.querySelectorAll('[data-filter-group="phase"] .td-chip');
+    
+    // Get all match cards
+    const matchCards = matchesList.querySelectorAll('.td-match-card');
+
+    console.debug('[Detail] Matches filters found:', {
+        statusChips: statusChips.length,
+        phaseChips: phaseChips.length,
+        matchCards: matchCards.length
+    });
+
+    /**
+     * Apply filters to match cards
+     */
+    function applyFilters() {
+        let visibleCount = 0;
+        
+        matchCards.forEach(card => {
+            const cardStatus = card.getAttribute('data-status');
+            const cardPhase = card.getAttribute('data-phase');
+            
+            const statusMatch = activeStatus === 'all' || cardStatus === activeStatus;
+            const phaseMatch = activePhase === 'all' || cardPhase === activePhase;
+            
+            if (statusMatch && phaseMatch) {
+                card.classList.remove('is-hidden');
+                visibleCount++;
+            } else {
+                card.classList.add('is-hidden');
+            }
+        });
+
+        console.debug('[Detail] Filters applied:', {
+            activeStatus,
+            activePhase,
+            visibleCount,
+            totalCards: matchCards.length
+        });
+    }
+
+    /**
+     * Handle status chip clicks
+     */
+    statusChips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            const newStatus = this.getAttribute('data-status');
+            
+            // Toggle active state
+            statusChips.forEach(c => c.classList.remove('is-active'));
+            this.classList.add('is-active');
+            
+            // Update filter and apply
+            activeStatus = newStatus;
+            applyFilters();
+            
+            console.debug('[Detail] Status filter changed:', newStatus);
+        });
+    });
+
+    /**
+     * Handle phase chip clicks
+     */
+    phaseChips.forEach(chip => {
+        chip.addEventListener('click', function() {
+            const newPhase = this.getAttribute('data-phase');
+            
+            // Toggle active state
+            phaseChips.forEach(c => c.classList.remove('is-active'));
+            this.classList.add('is-active');
+            
+            // Update filter and apply
+            activePhase = newPhase;
+            applyFilters();
+            
+            console.debug('[Detail] Phase filter changed:', newPhase);
+        });
+    });
+
+    console.debug('[Detail] Matches filters initialized');
 }
