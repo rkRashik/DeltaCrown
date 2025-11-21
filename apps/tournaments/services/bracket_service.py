@@ -173,6 +173,205 @@ class BracketService:
         return bracket
     
     @staticmethod
+    @transaction.atomic
+    def generate_knockout_from_groups(
+        tournament_id: int,
+        bracket_format: Optional[str] = None,
+        seeding_method: str = "ranked",
+    ) -> Bracket:
+        """
+        Generate a knockout bracket using group stage results as input.
+        
+        Collects all advancers from all groups, orders them based on group position,
+        points, and game-specific stats, then passes them into generate_bracket().
+        
+        Args:
+            tournament_id: Tournament ID
+            bracket_format: Bracket format (single-elimination, double-elimination).
+                          If None, defaults to 'single-elimination'
+            seeding_method: Seeding method (default: "ranked" by group results)
+        
+        Returns:
+            Generated Bracket instance for knockout stage
+        
+        Raises:
+            ValidationError: If tournament not GROUP_PLAYOFF, no groups, or insufficient advancers
+        
+        Example:
+            >>> # After group stage completes, generate knockout bracket
+            >>> bracket = BracketService.generate_knockout_from_groups(
+            ...     tournament_id=123,
+            ...     bracket_format='single-elimination',
+            ...     seeding_method='ranked'
+            ... )
+            >>> print(f"Knockout bracket created with {bracket.participant_count} participants")
+        """
+        from apps.tournaments.services.group_stage_service import GroupStageService
+        
+        # Load tournament
+        try:
+            tournament = Tournament.objects.select_related('game').get(id=tournament_id)
+        except Tournament.DoesNotExist:
+            raise ValidationError(f"Tournament with ID {tournament_id} not found")
+        
+        # Validate format
+        if tournament.format != Tournament.GROUP_PLAYOFF:
+            raise ValidationError(
+                f"Tournament must be GROUP_PLAYOFF format to generate knockout from groups. "
+                f"Current format: {tournament.format}"
+            )
+        
+        # Get advancers from all groups
+        try:
+            advancers_by_group = GroupStageService.get_advancers(tournament_id)
+        except ValidationError as e:
+            raise ValidationError(f"Failed to get group advancers: {str(e)}")
+        
+        if not advancers_by_group:
+            raise ValidationError("No advancers found from group stage")
+        
+        # Flatten advancers into a list with seeding info
+        advancers = []
+        for group_name, standings in advancers_by_group.items():
+            for standing in standings:
+                advancer = {
+                    "group": group_name,
+                    "group_position": standing.rank,  # Position within group (1, 2, 3...)
+                    "points": float(standing.points),
+                    "team_id": standing.team_id,
+                    "user_id": standing.user_id,
+                    "name": "",
+                }
+                
+                # Get participant name
+                if standing.team:
+                    advancer["name"] = standing.team.name
+                elif standing.user:
+                    advancer["name"] = (
+                        standing.user.profile.display_name 
+                        if hasattr(standing.user, 'profile') and standing.user.profile.display_name
+                        else standing.user.username
+                    )
+                else:
+                    advancer["name"] = "Unknown Participant"
+                
+                # Add game-specific tie-breaking stats
+                game_slug = tournament.game.slug
+                if game_slug in ['efootball', 'fc-mobile', 'fifa']:
+                    advancer["goal_difference"] = standing.goal_difference
+                    advancer["goals_for"] = standing.goals_for
+                elif game_slug in ['valorant', 'cs2']:
+                    advancer["round_difference"] = standing.round_difference
+                    advancer["rounds_won"] = standing.rounds_won
+                elif game_slug in ['pubg-mobile', 'free-fire']:
+                    advancer["placement_points"] = float(standing.placement_points or 0)
+                    advancer["total_kills"] = standing.total_kills
+                elif game_slug == 'mobile-legends':
+                    advancer["kda_ratio"] = float(standing.kda_ratio or 0)
+                    advancer["total_kills"] = standing.total_kills
+                elif game_slug == 'call-of-duty-mobile':
+                    advancer["total_score"] = standing.total_score
+                    advancer["total_kills"] = standing.total_kills
+                    advancer["total_deaths"] = standing.total_deaths
+                
+                advancers.append(advancer)
+        
+        # Sort advancers by group position first, then by points and game-specific stats
+        game_slug = tournament.game.slug
+        if game_slug in ['efootball', 'fc-mobile', 'fifa']:
+            advancers.sort(key=lambda x: (
+                x["group_position"],
+                -x["points"],
+                -x.get("goal_difference", 0),
+                -x.get("goals_for", 0)
+            ))
+        elif game_slug in ['valorant', 'cs2']:
+            advancers.sort(key=lambda x: (
+                x["group_position"],
+                -x["points"],
+                -x.get("round_difference", 0),
+                -x.get("rounds_won", 0)
+            ))
+        elif game_slug in ['pubg-mobile', 'free-fire']:
+            advancers.sort(key=lambda x: (
+                x["group_position"],
+                -x["points"],
+                -x.get("placement_points", 0),
+                -x.get("total_kills", 0)
+            ))
+        elif game_slug == 'mobile-legends':
+            advancers.sort(key=lambda x: (
+                x["group_position"],
+                -x["points"],
+                -x.get("kda_ratio", 0),
+                -x.get("total_kills", 0)
+            ))
+        elif game_slug == 'call-of-duty-mobile':
+            advancers.sort(key=lambda x: (
+                x["group_position"],
+                -x["points"],
+                -x.get("total_score", 0),
+                -x.get("total_kills", 0),
+                x.get("total_deaths", 999)  # Fewer deaths is better
+            ))
+        else:
+            # Default: group position, then points
+            advancers.sort(key=lambda x: (x["group_position"], -x["points"]))
+        
+        # Assign seeds based on sorted order
+        for i, advancer in enumerate(advancers, start=1):
+            advancer["seed"] = i
+        
+        # Build participants list for generate_bracket()
+        participants = []
+        for adv in advancers:
+            # Participant ID is either team_id or user_id
+            pid = adv["team_id"] or adv["user_id"]
+            if pid is None:
+                logger.warning(f"Advancer from {adv['group']} has no team_id or user_id, skipping")
+                continue
+            
+            participants.append({
+                "id": pid,
+                "name": adv["name"],
+                "seed": adv["seed"],
+            })
+        
+        # Validate sufficient participants
+        if len(participants) < 2:
+            raise ValidationError(
+                f"Insufficient participants for knockout bracket. Need at least 2, got {len(participants)}"
+            )
+        
+        # Determine bracket format
+        if bracket_format is None:
+            # Default to single elimination
+            bracket_format = Bracket.SINGLE_ELIM
+        
+        # Validate bracket format
+        if bracket_format not in [Bracket.SINGLE_ELIM, Bracket.DOUBLE_ELIM]:
+            raise ValidationError(
+                f"Invalid bracket format '{bracket_format}'. "
+                f"For GROUP_PLAYOFF knockout stage, use 'single-elimination' or 'double-elimination'"
+            )
+        
+        logger.info(
+            f"Generating {bracket_format} knockout bracket for tournament {tournament.name} "
+            f"with {len(participants)} advancers from {len(advancers_by_group)} groups"
+        )
+        
+        # Generate the bracket using existing generate_bracket logic
+        # Use seeding_method="manual" since we've already assigned seeds
+        bracket = BracketService.generate_bracket(
+            tournament_id=tournament_id,
+            bracket_format=bracket_format,
+            seeding_method="manual",  # Seeds already assigned
+            participants=participants
+        )
+        
+        return bracket
+    
+    @staticmethod
     def apply_seeding(
         participants: List[Dict],
         seeding_method: str,

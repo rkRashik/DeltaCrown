@@ -318,6 +318,50 @@ class TournamentDetailView(DetailView):
         # Add participants data for Participants tab
         context.update(self._get_participants_context(tournament, user))
         
+        # Add multi-stage tournament context (GROUP_PLAYOFF format)
+        if tournament.format == Tournament.GROUP_PLAYOFF:
+            context['is_multi_stage'] = True
+            current_stage = tournament.get_current_stage()
+            context['current_stage'] = current_stage
+            
+            # Stage history from config
+            config = tournament.config or {}
+            context['stages'] = config.get('stages', [])
+            
+            # Always include groups data (useful for both group and knockout stages)
+            from apps.tournaments.models import Group, GroupStanding, Bracket
+            
+            groups = Group.objects.filter(
+                tournament=tournament,
+                is_deleted=False
+            ).order_by('display_order')
+            context['groups'] = groups
+            
+            # Build group standings dict: {group.id: [standings...]}
+            group_standings = {}
+            for g in groups:
+                group_standings[g.id] = GroupStanding.objects.filter(
+                    group=g,
+                    is_deleted=False
+                ).order_by('rank').select_related('team', 'user')
+            context['group_standings'] = group_standings
+            
+            # Add bracket data only when in knockout stage
+            if current_stage == Tournament.STAGE_KNOCKOUT:
+                try:
+                    bracket = Bracket.objects.get(
+                        tournament=tournament,
+                        is_deleted=False
+                    )
+                    context['bracket'] = bracket
+                except Bracket.DoesNotExist:
+                    context['bracket'] = None
+            else:
+                context['bracket'] = None
+        else:
+            context['is_multi_stage'] = False
+            context['current_stage'] = None
+        
         return context
     
     def _get_registration_status(self, tournament, user):

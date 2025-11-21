@@ -584,6 +584,78 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     def is_full(self) -> bool:
         """Check if tournament has reached capacity."""
         return self.total_registrations >= self.max_participants
+    
+    # =========================================================================
+    # STAGE TRACKING FOR MULTI-STAGE TOURNAMENTS (GROUP_PLAYOFF format)
+    # =========================================================================
+    
+    STAGE_GROUP = "group_stage"
+    STAGE_KNOCKOUT = "knockout_stage"
+    
+    def get_current_stage(self) -> Optional[str]:
+        """
+        Get current tournament stage for GROUP_PLAYOFF tournaments.
+        
+        Returns:
+            - "group_stage": Currently in group stage
+            - "knockout_stage": Currently in knockout/playoff stage
+            - None: Not a multi-stage tournament
+        
+        Example:
+            >>> tournament = Tournament.objects.get(format=Tournament.GROUP_PLAYOFF)
+            >>> stage = tournament.get_current_stage()
+            >>> print(stage)  # "group_stage" or "knockout_stage"
+        """
+        if self.format != self.GROUP_PLAYOFF:
+            return None
+        
+        config = self.config or {}
+        return config.get("current_stage", self.STAGE_GROUP)
+    
+    def set_current_stage(self, stage: str, save: bool = True) -> None:
+        """
+        Set the current tournament stage.
+        
+        Args:
+            stage: Stage name (STAGE_GROUP or STAGE_KNOCKOUT)
+            save: Whether to save to database immediately
+        
+        Example:
+            >>> tournament.set_current_stage(Tournament.STAGE_KNOCKOUT)
+        """
+        if self.format != self.GROUP_PLAYOFF:
+            return  # Ignore for single-phase formats
+        
+        config = self.config or {}
+        config["current_stage"] = stage
+        self.config = config
+        if save:
+            self.save(update_fields=["config"])
+    
+    def add_stage_history_entry(self, name: str, status: str, **extra) -> None:
+        """
+        Append a stage history entry to config["stages"].
+        
+        Args:
+            name: Stage name (e.g., "group_stage", "knockout_stage")
+            status: Stage status (e.g., "completed", "live", "pending")
+            **extra: Additional fields (completed_at, started_at, etc.)
+        
+        Example:
+            >>> tournament.add_stage_history_entry(
+            ...     name="group_stage",
+            ...     status="completed",
+            ...     completed_at=timezone.now().isoformat()
+            ... )
+        """
+        config = self.config or {}
+        stages = config.get("stages", [])
+        entry = {"name": name, "status": status}
+        entry.update(extra)
+        stages.append(entry)
+        config["stages"] = stages
+        self.config = config
+        self.save(update_fields=["config"])
 
 
 class CustomField(models.Model):

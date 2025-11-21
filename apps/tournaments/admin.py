@@ -393,7 +393,8 @@ class TournamentAdmin(admin.ModelAdmin):
     
     actions = [
         'publish_tournaments', 'open_registration', 'close_registration', 
-        'cancel_tournaments', 'feature_tournaments', 'import_rules_from_pdf_action'
+        'cancel_tournaments', 'feature_tournaments', 'import_rules_from_pdf_action',
+        'transition_to_knockout_stage_action'
     ]
     
     def get_queryset(self, request):
@@ -667,6 +668,87 @@ class TournamentAdmin(admin.ModelAdmin):
                 self.message_user(
                     request, 
                     f'... and {len(errors) - 5} more error(s)', 
+                    messages.ERROR
+                )
+    
+    @admin.action(description='🚀 Transition GROUP_PLAYOFF tournaments to knockout stage')
+    def transition_to_knockout_stage_action(self, request, queryset):
+        """
+        Transition selected GROUP_PLAYOFF tournaments from group stage to knockout stage.
+        
+        For each tournament:
+        - Validates format is GROUP_PLAYOFF
+        - Ensures all group stage matches are completed
+        - Recalculates final group standings
+        - Generates knockout bracket from advancers
+        - Updates tournament stage tracking
+        
+        Skips tournaments that:
+        - Are not GROUP_PLAYOFF format
+        - Have incomplete group stage matches
+        - Are already in knockout stage
+        """
+        from apps.tournaments.services.tournament_service import TournamentService
+        
+        success_count = 0
+        skip_count = 0
+        error_count = 0
+        errors = []
+        
+        for tournament in queryset:
+            try:
+                # Skip if not GROUP_PLAYOFF
+                if tournament.format != Tournament.GROUP_PLAYOFF:
+                    skip_count += 1
+                    continue
+                
+                # Skip if already in knockout stage
+                current_stage = tournament.get_current_stage()
+                if current_stage == Tournament.STAGE_KNOCKOUT:
+                    skip_count += 1
+                    continue
+                
+                # Attempt transition
+                bracket = TournamentService.transition_to_knockout_stage(tournament.id)
+                success_count += 1
+                
+            except ValidationError as e:
+                error_count += 1
+                errors.append(f"{tournament.name}: {str(e)}")
+            except Exception as e:
+                error_count += 1
+                errors.append(f"{tournament.name}: Unexpected error: {str(e)}")
+        
+        # Build result message
+        message_parts = []
+        
+        if success_count > 0:
+            message_parts.append(f'✅ Successfully transitioned {success_count} tournament(s) to knockout stage')
+        
+        if skip_count > 0:
+            message_parts.append(f'⏭️ Skipped {skip_count} tournament(s) (not GROUP_PLAYOFF or already in knockout)')
+        
+        if error_count > 0:
+            message_parts.append(f'❌ Failed {error_count} tournament(s)')
+        
+        # Show main message
+        if success_count > 0:
+            level = messages.SUCCESS
+        elif error_count > 0:
+            level = messages.ERROR
+        else:
+            level = messages.INFO
+        
+        self.message_user(request, ' | '.join(message_parts), level)
+        
+        # Show detailed errors
+        if errors:
+            for error in errors[:5]:
+                self.message_user(request, f'Error: {error}', messages.ERROR)
+            if len(errors) > 5:
+                self.message_user(
+                    request,
+                    f'... and {len(errors) - 5} more error(s)',
                     messages.ERROR
                 )
 

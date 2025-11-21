@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize Participants tab filtering
     initializeParticipantsFilters();
+    
+    // Initialize stage selector for multi-stage tournaments
+    initializeStageSelector();
 });
 
 /**
@@ -426,4 +429,58 @@ function initializeParticipantsFilters() {
     }
     
     console.log('[Detail] Participants filters initialized successfully');
+}
+
+/**
+ * Initialize stage selector for multi-stage tournaments
+ * Handles switching between group stage and knockout stage views
+ */
+function initializeStageSelector() {
+    const selector = document.querySelector('.td-stage-selector');
+    if (!selector) {
+        console.debug('[Detail] No stage selector found - single-stage tournament or bracket tab not active');
+        return;
+    }
+    
+    const pills = selector.querySelectorAll('.td-stage-pill');
+    const panels = document.querySelectorAll('.td-stage-panel');
+    
+    if (pills.length === 0 || panels.length === 0) {
+        console.warn('[Detail] Stage selector found but pills or panels missing', {pills: pills.length, panels: panels.length});
+        return;
+    }
+    
+    pills.forEach((pill) => {
+        pill.addEventListener('click', () => {
+            const target = pill.getAttribute('data-stage-target');
+            const disabled = pill.getAttribute('data-disabled-stage') === 'true';
+            
+            if (!target) {
+                console.warn('[Detail] Stage pill missing data-stage-target attribute');
+                return;
+            }
+            
+            if (disabled) {
+                console.debug('[Detail] Stage disabled:', target);
+                return;
+            }
+            
+            // Update active state on pills
+            pills.forEach((p) => p.classList.remove('is-active'));
+            pill.classList.add('is-active');
+            
+            // Update active state on panels
+            panels.forEach((panel) => {
+                if (panel.getAttribute('data-stage-panel') === target) {
+                    panel.classList.add('is-active');
+                } else {
+                    panel.classList.remove('is-active');
+                }
+            });
+            
+            console.debug(`[Detail] Switched to stage: ${target}`);
+        });
+    });
+    
+    console.debug('[Detail] Stage selector initialized with', pills.length, 'stages');
 }

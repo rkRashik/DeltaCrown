@@ -3921,3 +3921,493 @@
 /* ============================================
    END PARTICIPANTS TAB STYLES
    ============================================ */
+
+/* ============================================
+   BRACKET TAB - MULTI-STAGE SUPPORT
+   ============================================ */
+
+/* Stage Selector */
+.td-stage-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 999px;
+    background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.04),
+        rgba(255, 255, 255, 0.01)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 1.5rem;
+}
+
+.td-stage-pill {
+    position: relative;
+    border: none;
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    transition: background 160ms ease-out, color 160ms ease-out, box-shadow 160ms ease-out, transform 120ms ease-out;
+    font-weight: 500;
+}
+
+.td-stage-pill-status {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    font-weight: 400;
+}
+
+.td-stage-pill.is-active {
+    background: radial-gradient(circle at top left, var(--accent-soft), transparent);
+    color: var(--text-primary);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 14px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+}
+
+.td-stage-pill[data-disabled-stage="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.td-stage-pill[data-disabled-stage="true"]:hover {
+    background: transparent;
+}
+
+/* Stage Panels Container */
+.td-stage-panels {
+    position: relative;
+}
+
+.td-stage-panel {
+    display: none;
+    animation: tdFadeInUp 180ms ease-out;
+}
+
+.td-stage-panel.is-active {
+    display: block;
+}
+
+@keyframes tdFadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   GROUP STAGE LAYOUT
+   ============================================ */
+
+.td-groupstage-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+.td-group-card {
+    background: var(--bg-elevated);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+}
+
+.td-group-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.td-group-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.td-group-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.td-group-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.td-group-name {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.td-group-meta {
+    padding: 0.25rem 0.625rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.td-group-meta-text {
+    font-size: 0.7rem;
+    color: var(--accent-soft);
+    font-weight: 500;
+}
+
+/* Group Standings Table */
+.td-group-standings {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.02), transparent);
+    overflow: hidden;
+}
+
+.td-group-standings-header,
+.td-group-standings-body {
+    display: grid;
+    grid-template-columns: 2fr 0.6fr 0.6fr 0.6fr 0.6fr 0.7fr 0.8fr;
+}
+
+.td-group-standings-header {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0.4rem 0.7rem;
+    font-weight: 600;
+}
+
+.td-gs-row {
+    display: contents;
+}
+
+.td-gs-cell {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    align-items: center;
+    color: var(--text-secondary);
+}
+
+.td-gs-col-team {
+    gap: 0.5rem;
+}
+
+.td-gs-rank {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.td-gs-team {
+    overflow: hidden;
+}
+
+.td-gs-team-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.td-gs-points {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.875rem;
+}
+
+/* Advancing rows highlight */
+.td-gs-row.is-advancing .td-gs-cell {
+    background: linear-gradient(
+        90deg,
+        rgba(56, 189, 248, 0.13),
+        transparent
+    );
+    box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.td-gs-row.is-advancing .td-gs-rank {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+.td-gs-empty-row {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    grid-column: 1 / -1;
+}
+
+/* ============================================
+   KNOCKOUT BRACKET LAYOUT
+   ============================================ */
+
+.td-knockout-wrapper {
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.td-knockout-scroller {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+}
+
+.td-knockout-scroller::-webkit-scrollbar {
+    height: 8px;
+}
+
+.td-knockout-scroller::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.td-knockout-scroller::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.td-knockout-scroller::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.td-knockout-rounds {
+    display: inline-flex;
+    gap: 2rem;
+    min-height: 8rem;
+    padding: 0.5rem;
+}
+
+.td-knockout-round {
+    min-width: 220px;
+    flex-shrink: 0;
+}
+
+.td-knockout-round-header {
+    margin-bottom: 0.75rem;
+}
+
+.td-knockout-round-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.td-knockout-round-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Knockout Match Card */
+.td-knockout-match {
+    position: relative;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.02), transparent);
+    padding: 0.625rem 0.85rem;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    transition: transform 100ms ease-out, box-shadow 100ms ease-out;
+}
+
+.td-knockout-match:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+.td-ko-team {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+    transition: all 120ms ease-out;
+}
+
+.td-ko-team.is-winner {
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.td-ko-team.is-winner .td-ko-team-name {
+    color: var(--text-primary);
+}
+
+.td-ko-team-name {
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.td-ko-team-score {
+    min-width: 2rem;
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.td-ko-match-status {
+    margin-top: 0.375rem;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    opacity: 0.9;
+    font-weight: 600;
+}
+
+.td-ko-match-status.is-live {
+    color: #f97373;
+    animation: tdPulse 2s ease-in-out infinite;
+}
+
+.td-ko-match-status.is-completed {
+    color: #22c55e;
+}
+
+.td-ko-match-status.is-upcoming {
+    color: var(--text-muted);
+}
+
+@keyframes tdPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Empty States */
+.td-groupstage-empty,
+.td-knockout-empty,
+.td-knockout-placeholder {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.td-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.5;
+}
+
+.td-empty-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.td-empty-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.85;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   BRACKET TAB - RESPONSIVE
+   ============================================ */
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .td-groupstage-layout {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+    }
+    
+    .td-knockout-rounds {
+        gap: 1.5rem;
+    }
+    
+    .td-knockout-round {
+        min-width: 200px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .td-stage-selector {
+        width: 100%;
+        justify-content: center;
+        padding: 0.375rem;
+        gap: 0.5rem;
+    }
+    
+    .td-stage-pill {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .td-groupstage-layout {
+        grid-template-columns: 1fr;
+        gap: 0.875rem;
+    }
+    
+    .td-group-standings-header,
+    .td-group-standings-body {
+        grid-template-columns: 2fr 0.5fr 0.5fr 0.5fr 0.5fr 0.6fr 0.7fr;
+        font-size: 0.7rem;
+    }
+    
+    .td-gs-cell {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .td-knockout-rounds {
+        gap: 1.25rem;
+    }
+    
+    .td-knockout-round {
+        min-width: 180px;
+    }
+    
+    .td-knockout-match {
+        padding: 0.5rem 0.7rem;
+    }
+    
+    .td-ko-team-name {
+        max-width: 110px;
+        font-size: 0.8rem;
+    }
+}
+
+/* ============================================
+   END BRACKET TAB STYLES
+   ============================================ */

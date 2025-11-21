@@ -542,3 +542,72 @@ class GroupStageService:
         # Assign ranks
         for rank, standing in enumerate(standings, start=1):
             standing.update_rank(rank)
+    
+    @staticmethod
+    def get_advancers(tournament_id: int) -> Dict[str, List[GroupStanding]]:
+        """
+        Get top N advancers from each group for a GROUP_PLAYOFF tournament.
+        
+        N is taken from group.advancement_count (e.g., top 2 from each group).
+        
+        Args:
+            tournament_id: Tournament ID
+        
+        Returns:
+            Dict mapping group.name -> list of GroupStanding objects
+            Ordered by final position within the group.
+        
+        Raises:
+            ValidationError: If tournament has no groups or invalid format
+        
+        Example:
+            >>> advancers = GroupStageService.get_advancers(tournament_id=123)
+            >>> for group_name, standings in advancers.items():
+            ...     print(f"{group_name}: {[s.team.name for s in standings]}")
+            Group A: ['Team Alpha', 'Team Beta']
+            Group B: ['Team Gamma', 'Team Delta']
+        """
+        from apps.tournaments.models import Tournament
+        
+        try:
+            tournament = Tournament.objects.get(id=tournament_id)
+        except Tournament.DoesNotExist:
+            raise ValidationError(f"Tournament with ID {tournament_id} not found")
+        
+        # Validate format
+        if tournament.format != Tournament.GROUP_PLAYOFF:
+            raise ValidationError(
+                f"Tournament must be GROUP_PLAYOFF format, got {tournament.format}"
+            )
+        
+        # Get all groups for this tournament
+        groups = Group.objects.filter(
+            tournament=tournament,
+            is_deleted=False
+        ).order_by('display_order')
+        
+        if not groups.exists():
+            raise ValidationError(f"Tournament {tournament.name} has no groups configured")
+        
+        advancers_by_group = {}
+        
+        for group in groups:
+            # Get standings ordered by rank (position field)
+            standings = GroupStanding.objects.filter(
+                group=group,
+                is_deleted=False
+            ).order_by('rank').select_related('team', 'user')
+            
+            # Get top N based on advancement_count
+            advancement_count = group.advancement_count
+            top_standings = list(standings[:advancement_count])
+            
+            if len(top_standings) < advancement_count:
+                raise ValidationError(
+                    f"Group {group.name} has only {len(top_standings)} participants, "
+                    f"but needs {advancement_count} to advance"
+                )
+            
+            advancers_by_group[group.name] = top_standings
+        
+        return advancers_by_group
