@@ -30,6 +30,7 @@ from apps.tournaments.models import (
     TournamentStaffRole, TournamentStaff, TournamentAnnouncement
 )
 from apps.common.game_registry import get_all_games, normalize_slug
+from apps.tournaments.utils import import_rules_from_pdf
 
 # Import specialized admin classes from separate modules
 from apps.tournaments.admin_registration import RegistrationAdmin, PaymentAdmin
@@ -392,7 +393,7 @@ class TournamentAdmin(admin.ModelAdmin):
     
     actions = [
         'publish_tournaments', 'open_registration', 'close_registration', 
-        'cancel_tournaments', 'feature_tournaments'
+        'cancel_tournaments', 'feature_tournaments', 'import_rules_from_pdf_action'
     ]
     
     def get_queryset(self, request):
@@ -595,6 +596,79 @@ class TournamentAdmin(admin.ModelAdmin):
         """Mark tournaments as featured/official"""
         updated = queryset.update(is_official=True)
         self.message_user(request, f'{updated} tournament(s) marked as official.', messages.SUCCESS)
+    
+    @admin.action(description='📄 Import rules_text from PDF')
+    def import_rules_from_pdf_action(self, request, queryset):
+        """
+        Import rules from PDF files into rules_text field.
+        
+        For each selected tournament:
+        - If rules_pdf exists, extract text and convert to HTML
+        - Overwrites existing rules_text
+        - Skips tournaments without PDF attached
+        """
+        success_count = 0
+        skip_count = 0
+        error_count = 0
+        errors = []
+        
+        for tournament in queryset:
+            try:
+                # Check if tournament has a PDF
+                if not tournament.rules_pdf or not tournament.rules_pdf.name:
+                    skip_count += 1
+                    continue
+                
+                # Import rules from PDF
+                html = import_rules_from_pdf(tournament, overwrite=True)
+                
+                if html:
+                    success_count += 1
+                else:
+                    skip_count += 1
+                    
+            except ImportError as e:
+                error_count += 1
+                errors.append(f"{tournament.name}: {str(e)}")
+            except FileNotFoundError:
+                error_count += 1
+                errors.append(f"{tournament.name}: PDF file not found on disk")
+            except Exception as e:
+                error_count += 1
+                errors.append(f"{tournament.name}: {str(e)}")
+        
+        # Build result message
+        message_parts = []
+        
+        if success_count > 0:
+            message_parts.append(f'✅ Successfully imported {success_count} tournament(s)')
+        
+        if skip_count > 0:
+            message_parts.append(f'⏭️ Skipped {skip_count} tournament(s) (no PDF attached)')
+        
+        if error_count > 0:
+            message_parts.append(f'❌ Failed {error_count} tournament(s)')
+        
+        # Show main message
+        if success_count > 0:
+            level = messages.SUCCESS
+        elif error_count > 0:
+            level = messages.ERROR
+        else:
+            level = messages.INFO
+        
+        self.message_user(request, ' | '.join(message_parts), level)
+        
+        # Show individual errors if any
+        if errors:
+            for error in errors[:5]:  # Show first 5 errors
+                self.message_user(request, f'Error: {error}', messages.ERROR)
+            if len(errors) > 5:
+                self.message_user(
+                    request, 
+                    f'... and {len(errors) - 5} more error(s)', 
+                    messages.ERROR
+                )
 
 
 @admin.register(CustomField)
