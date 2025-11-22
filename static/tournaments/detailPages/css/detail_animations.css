@@ -15,6 +15,141 @@
 }
 
 /* ============================================
+   ULTRA-MODERN BACKGROUND ANIMATIONS
+   ============================================ */
+
+/* Floating orbs animation */
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.08;
+    }
+    25% {
+        transform: translate(30px, -40px) scale(1.1);
+        opacity: 0.12;
+    }
+    50% {
+        transform: translate(-20px, -80px) scale(0.95);
+        opacity: 0.06;
+    }
+    75% {
+        transform: translate(40px, -50px) scale(1.05);
+        opacity: 0.1;
+    }
+}
+
+.animate-float {
+    animation: float 20s ease-in-out infinite;
+}
+
+/* Delayed floating animation for second orb */
+.animate-float-delayed {
+    animation: float 25s ease-in-out infinite;
+    animation-delay: -10s;
+}
+
+/* Gradient color shift animation */
+@keyframes gradient-shift {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.animate-gradient-shift {
+    animation: gradient-shift 15s ease-in-out infinite;
+}
+
+/* Scanlines movement */
+@keyframes scanlines {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(4px);
+    }
+}
+
+.animate-scanlines {
+    animation: scanlines 8s linear infinite;
+}
+
+/* ============================================
+   TAB & CARD ANIMATIONS
+   ============================================ */
+
+/* Match card pulse for live matches */
+@keyframes liveMatchPulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        border-color: rgba(239, 68, 68, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+        border-color: rgba(239, 68, 68, 0.8);
+    }
+}
+
+.td-match-card.td-match-state-live {
+    animation: liveMatchPulse 2s ease-in-out infinite;
+}
+
+/* Score update animation */
+@keyframes scoreUpdate {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+        color: #fbbf24;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.td-score-live {
+    animation: scoreUpdate 1s ease-in-out;
+}
+
+/* Standings rank change animation */
+@keyframes rankUp {
+    0% {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.rank-change-up {
+    animation: rankUp 0.5s ease-out;
+}
+
+/* Tab panel fade in */
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.td-tab-panel {
+    animation: tabFadeIn 0.4s ease-out;
+}
+
+/* ============================================
    HOVER EFFECTS
    ============================================ */
 

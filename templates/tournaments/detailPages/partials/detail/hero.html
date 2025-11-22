@@ -1,217 +1,282 @@
 {% load static %}
 {% load game_assets %}
-{# Hero Section - Modern 2025 Split Layout #}
-{# Section A: Cinematic Banner with Tournament Identity #}
-{# Section B: Sub-Banner with Game Info & Tournament Lobby CTA #}
+
+{# Hero Section - Ultra-Modern 2025 Esports Design #}
+{# Section A: 16:9 Professional Banner with Status Badges Only #}
+{# Section B: Modern Gradient Sub-Banner with Dynamic CTAs #}
 
 <section class="td-hero" data-game-slug="{{ game_spec.slug }}">
-    {# ========== SECTION A: CINEMATIC BANNER ========== #}
-    <div class="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
-        {# Background Image/Banner #}
-        <div class="absolute inset-0">
+    
+    {# ========== SECTION A: 16:9 CINEMATIC BANNER (PROFESSIONAL STANDARD) ========== #}
+    <div class="relative w-full aspect-video overflow-hidden group">
+        
+        {# Banner Image - Professional 16:9 Aspect Ratio #}
+        <div class="absolute inset-0 bg-slate-900">
             {% if tournament.banner_image %}
                 <img src="{{ tournament.banner_image.url }}"
                      alt="{{ tournament.name }}"
-                     class="w-full h-full object-cover">
+                     class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105">
             {% elif game_spec.banner %}
                 {% if game_spec.banner|slice:":1" == "/" or "://" in game_spec.banner %}
                     <img src="{{ game_spec.banner }}" 
                          alt="{{ tournament.name }} - {{ game_spec.display_name }}" 
-                         class="w-full h-full object-cover"
+                         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                          onerror="this.style.display='none'">
                 {% else %}
                     <img src="{% static game_spec.banner %}" 
                          alt="{{ tournament.name }} - {{ game_spec.display_name }}" 
-                         class="w-full h-full object-cover"
+                         class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                          onerror="this.style.display='none'">
                 {% endif %}
             {% else %}
-                {# Fallback gradient background based on game #}
-                <div class="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
+                {# Fallback: Game-themed gradient #}
+                {% if game_spec.slug == 'valorant' %}
+                    <div class="w-full h-full bg-gradient-to-br from-red-600 via-rose-700 to-slate-900"></div>
+                {% elif game_spec.slug == 'cs2' or game_spec.slug == 'csgo' %}
+                    <div class="w-full h-full bg-gradient-to-br from-orange-600 via-yellow-700 to-slate-900"></div>
+                {% elif game_spec.slug == 'mlbb' or game_spec.slug == 'mobile_legends' %}
+                    <div class="w-full h-full bg-gradient-to-br from-blue-600 via-purple-700 to-slate-900"></div>
+                {% elif game_spec.slug == 'lol' or game_spec.slug == 'league_of_legends' %}
+                    <div class="w-full h-full bg-gradient-to-br from-indigo-600 via-cyan-700 to-slate-900"></div>
+                {% else %}
+                    <div class="w-full h-full bg-gradient-to-br from-cyan-600 via-blue-700 to-slate-900"></div>
+                {% endif %}
             {% endif %}
         </div>
         
-        {# Dark gradient overlay for readability #}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30"></div>
+        {# Premium gradient overlay for depth #}
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-transparent"></div>
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/50 via-transparent to-slate-950/50"></div>
         
-        {# Cinematic noise texture overlay #}
-        <div class="absolute inset-0 opacity-10 mix-blend-overlay" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 400 400%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E');"></div>
+        {# Cinematic light rays effect #}
+        <div class="absolute inset-0 opacity-10 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none"></div>
         
-        {# Content Container #}
-        <div class="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-12 md:pb-16">
-            
-            {# Tournament Name & Status #}
-            <div class="space-y-4 animate-fade-in-up">
+        {# Content Overlay - Status Badges Only (Bottom Positioning) #}
+        <div class="absolute inset-0 flex items-end">
+            <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 md:pb-12">
                 
-                {# Status & Stage Info #}
-                <div class="flex flex-wrap items-center gap-3">
-                    {# Live Status Badge #}
-                    {% if tournament.status == 'live' %}
-                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/20 border border-red-500/50 backdrop-blur-sm">
-                            <span class="relative flex h-3 w-3">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                            </span>
-                            <span class="text-red-100 text-sm font-bold uppercase tracking-wider">Live Now</span>
-                        </span>
-                    {% elif tournament.status == 'completed' %}
-                        <span class="px-4 py-2 rounded-full bg-slate-700/50 border border-slate-600/50 backdrop-blur-sm text-slate-300 text-sm font-semibold uppercase tracking-wide">
-                            Completed
-                        </span>
-                    {% elif tournament.status == 'registration_open' %}
-                        <span class="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-sm text-emerald-100 text-sm font-semibold uppercase tracking-wide">
-                            Registration Open
-                        </span>
-                    {% else %}
-                        <span class="px-4 py-2 rounded-full bg-slate-700/50 border border-slate-600/50 backdrop-blur-sm text-slate-300 text-sm font-semibold uppercase tracking-wide">
-                            {{ tournament.get_status_display }}
-                        </span>
-                    {% endif %}
+                {# Tournament Name & Status Badges #}
+                <div class="space-y-6 animate-fade-in-up">
                     
-                    {# Stage Info (for multi-stage tournaments) #}
-                    {% if tournament.is_multi_stage and tournament.current_stage %}
-                        <span class="px-4 py-2 rounded-full bg-blue-500/20 border border-blue-500/50 backdrop-blur-sm text-blue-100 text-sm font-semibold">
-                            {% if tournament.current_stage == 'group_stage' %}
-                                📊 Group Stage
-                            {% elif tournament.current_stage == 'knockout_stage' %}
-                                🏆 Playoffs
-                            {% else %}
-                                {{ tournament.current_stage|title }}
-                            {% endif %}
-                        </span>
-                    {% endif %}
-                    
-                    {# Official Tournament Badge #}
-                    {% if tournament.is_official %}
-                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/20 border border-yellow-500/50 backdrop-blur-sm text-yellow-100 text-sm font-semibold">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                            </svg>
-                            Official Tournament
-                        </span>
-                    {% endif %}
-                </div>
-                
-                {# Tournament Title #}
-                <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
-                    <span class="block text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300 drop-shadow-2xl">
-                        {{ tournament.name }}
-                    </span>
-                </h1>
-                
-                {# Subtitle #}
-                {% if tournament.subtitle %}
-                    <p class="text-lg sm:text-xl md:text-2xl text-slate-300 font-medium max-w-3xl">
-                        {{ tournament.subtitle }}
-                    </p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    {# ========== SECTION B: SUB-BANNER INFO BAR ========== #}
-    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-y border-slate-700/50 backdrop-blur-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col lg:flex-row items-center justify-between gap-6 py-6">
-                
-                {# LEFT: Game Identity + Metadata Pills #}
-                <div class="flex flex-col sm:flex-row items-center gap-6 w-full lg:w-auto">
-                    
-                    {# Game Logo & Name #}
-                    <div class="flex items-center gap-4">
-                        {% if game_spec.icon %}
-                            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 flex items-center justify-center backdrop-blur-sm hover:border-slate-600 transition-all duration-300 hover:scale-105">
-                                {% if game_spec.icon|slice:":1" == "/" or "://" in game_spec.icon %}
-                                    <img src="{{ game_spec.icon }}" 
-                                         alt="{{ game_spec.display_name }}" 
-                                         class="w-full h-full object-contain">
+                    {# Status & Official Badges Row #}
+                    <div class="flex flex-wrap items-center gap-3">
+                        
+                        {# Live Status Badge #}
+                        {% if tournament.status == 'live' %}
+                            <div class="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-red-500/20 border-2 border-red-500/60 backdrop-blur-md shadow-lg shadow-red-500/20 hover:shadow-red-500/30 transition-all duration-300 hover:scale-105">
+                                <span class="relative flex h-3 w-3">
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-lg shadow-red-500/50"></span>
+                                </span>
+                                <span class="text-red-100 text-sm sm:text-base font-black uppercase tracking-widest">Live Now</span>
+                            </div>
+                        {% elif tournament.status == 'completed' %}
+                            <div class="px-5 py-3 rounded-xl bg-slate-700/40 border-2 border-slate-600/60 backdrop-blur-md text-slate-300 text-sm sm:text-base font-bold uppercase tracking-wide shadow-lg">
+                                ✓ Completed
+                            </div>
+                        {% elif tournament.status == 'registration_open' %}
+                            <div class="px-5 py-3 rounded-xl bg-emerald-500/20 border-2 border-emerald-500/60 backdrop-blur-md text-emerald-100 text-sm sm:text-base font-bold uppercase tracking-wide shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-105">
+                                🎫 Registration Open
+                            </div>
+                        {% else %}
+                            <div class="px-5 py-3 rounded-xl bg-slate-700/40 border-2 border-slate-600/60 backdrop-blur-md text-slate-300 text-sm sm:text-base font-bold uppercase tracking-wide shadow-lg">
+                                {{ tournament.get_status_display }}
+                            </div>
+                        {% endif %}
+                        
+                        {# Stage Badge (for multi-stage tournaments) #}
+                        {% if tournament.is_multi_stage and tournament.current_stage %}
+                            <div class="px-5 py-3 rounded-xl bg-blue-500/20 border-2 border-blue-500/60 backdrop-blur-md text-blue-100 text-sm sm:text-base font-bold shadow-lg shadow-blue-500/20">
+                                {% if tournament.current_stage == 'group_stage' %}
+                                    📊 Group Stage
+                                {% elif tournament.current_stage == 'knockout_stage' %}
+                                    🏆 Playoffs
                                 {% else %}
-                                    <img src="{% static game_spec.icon %}" 
-                                         alt="{{ game_spec.display_name }}" 
-                                         class="w-full h-full object-contain">
+                                    {{ tournament.current_stage|title }}
                                 {% endif %}
                             </div>
                         {% endif %}
                         
+                        {# Official Tournament Badge #}
+                        {% if tournament.is_official %}
+                            <div class="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-2 border-yellow-500/60 backdrop-blur-md text-yellow-100 text-sm sm:text-base font-bold shadow-lg shadow-yellow-500/20 hover:shadow-yellow-500/30 transition-all duration-300 hover:scale-105">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                                <span class="uppercase tracking-wider">Official</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    {# Tournament Title #}
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-tight tracking-tight drop-shadow-2xl">
+                        {{ tournament.name }}
+                    </h1>
+                    
+                    {# Subtitle (if exists) #}
+                    {% if tournament.subtitle %}
+                        <p class="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-200 font-medium max-w-4xl drop-shadow-lg">
+                            {{ tournament.subtitle }}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        {# Corner accent decorations #}
+        <div class="absolute top-0 left-0 w-32 h-32 border-t-4 border-l-4 border-cyan-500/30 rounded-tl-3xl pointer-events-none"></div>
+        <div class="absolute bottom-0 right-0 w-32 h-32 border-b-4 border-r-4 border-cyan-500/30 rounded-br-3xl pointer-events-none"></div>
+    </div>
+    
+    {# ========== SECTION B: MODERN GRADIENT SUB-BANNER WITH DYNAMIC CTAS ========== #}
+    <div class="relative bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 border-b-2 border-slate-700/50 backdrop-blur-xl shadow-2xl">
+        
+        {# Animated gradient overlay #}
+        {% if game_spec.slug == 'valorant' %}
+            <div class="absolute inset-0 bg-gradient-to-r from-red-600/5 via-rose-600/10 to-red-600/5 opacity-60"></div>
+        {% elif game_spec.slug == 'cs2' or game_spec.slug == 'csgo' %}
+            <div class="absolute inset-0 bg-gradient-to-r from-orange-600/5 via-yellow-600/10 to-orange-600/5 opacity-60"></div>
+        {% elif game_spec.slug == 'mlbb' or game_spec.slug == 'mobile_legends' %}
+            <div class="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/10 to-blue-600/5 opacity-60"></div>
+        {% elif game_spec.slug == 'lol' or game_spec.slug == 'league_of_legends' %}
+            <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/5 via-cyan-600/10 to-indigo-600/5 opacity-60"></div>
+        {% else %}
+            <div class="absolute inset-0 bg-gradient-to-r from-cyan-600/5 via-blue-600/10 to-cyan-600/5 opacity-60"></div>
+        {% endif %}
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6 py-6 lg:py-8">
+                
+                {# LEFT: Game Identity + Metadata #}
+                <div class="flex flex-col sm:flex-row items-center gap-6 w-full lg:w-auto">
+                    
+                    {# Game Logo & Name #}
+                    <div class="flex items-center gap-5">
+                        {% if game_spec.icon %}
+                            <div class="relative group/icon">
+                                <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-2 border-slate-700/70 p-4 flex items-center justify-center backdrop-blur-md shadow-xl transition-all duration-300 group-hover/icon:border-slate-600 group-hover/icon:scale-110 group-hover/icon:shadow-2xl">
+                                    {% if game_spec.icon|slice:":1" == "/" or "://" in game_spec.icon %}
+                                        <img src="{{ game_spec.icon }}" 
+                                             alt="{{ game_spec.display_name }}" 
+                                             class="w-full h-full object-contain filter drop-shadow-lg">
+                                    {% else %}
+                                        <img src="{% static game_spec.icon %}" 
+                                             alt="{{ game_spec.display_name }}" 
+                                             class="w-full h-full object-contain filter drop-shadow-lg">
+                                    {% endif %}
+                                </div>
+                                {# Glow effect #}
+                                <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 blur-xl opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300"></div>
+                            </div>
+                        {% endif %}
+                        
                         <div>
-                            <div class="text-sm text-slate-400 font-medium mb-1">Playing</div>
-                            <div class="text-xl sm:text-2xl font-bold text-white">{{ game_spec.display_name }}</div>
+                            <div class="text-xs sm:text-sm text-slate-400 font-semibold uppercase tracking-wider mb-1.5">Playing</div>
+                            <div class="text-xl sm:text-2xl lg:text-3xl font-black text-white drop-shadow-lg">{{ game_spec.display_name }}</div>
                         </div>
                     </div>
                     
-                    {# Metadata Pills #}
+                    {# Metadata Pills with Icons #}
                     <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-                        {# Region Pill #}
                         {% if tournament.region %}
-                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors duration-200">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700/70 text-slate-300 text-sm font-semibold hover:bg-slate-800 hover:border-slate-600 transition-all duration-200 backdrop-blur-sm shadow-lg">
+                                <svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
                                 </svg>
                                 {{ tournament.region }}
-                            </span>
+                            </div>
                         {% endif %}
                         
-                        {# Platform Pill #}
                         {% if game_spec.platform %}
-                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors duration-200">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700/70 text-slate-300 text-sm font-semibold hover:bg-slate-800 hover:border-slate-600 transition-all duration-200 backdrop-blur-sm shadow-lg">
+                                <svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd"/>
                                 </svg>
                                 {{ game_spec.platform|default:"PC" }}
-                            </span>
+                            </div>
                         {% endif %}
                         
-                        {# Mode Pill (e.g., 5v5, BO3) #}
                         {% if tournament.participation_type == 'team' and game_spec.roster_config %}
-                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors duration-200">
-                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <div class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700/70 text-slate-300 text-sm font-semibold hover:bg-slate-800 hover:border-slate-600 transition-all duration-200 backdrop-blur-sm shadow-lg">
+                                <svg class="w-4 h-4 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
                                 </svg>
-                                {{ game_spec.roster_config.min_players }}v{{ game_spec.roster_config.min_players }} Team
-                            </span>
+                                {{ game_spec.roster_config.min_players }}v{{ game_spec.roster_config.min_players }}
+                            </div>
                         {% endif %}
                     </div>
                 </div>
                 
-                {# RIGHT: Tournament Lobby CTA Button #}
-                <div class="w-full lg:w-auto">
+                {# RIGHT: Dynamic CTA Buttons Based on User Identity #}
+                <div class="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                    
                     {% if user.is_authenticated %}
-                        {% if user_registration or is_organizer %}
-                            <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" 
-                               class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full lg:w-auto rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-lg shadow-lg shadow-cyan-500/50 hover:shadow-cyan-400/60 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-cyan-500/50">
-                                <svg class="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd"/>
+                        
+                        {# ORGANIZER: Show "Manage Tournament" Button #}
+                        {% if is_organizer %}
+                            <a href="{% url 'tournaments:organizer_tournament_detail' slug=tournament.slug %}" 
+                               class="group relative inline-flex items-center justify-center gap-3 px-6 py-4 w-full sm:w-auto rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-purple-500/40 hover:shadow-purple-400/50 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-500/50 border-2 border-purple-500/30">
+                                <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
                                 </svg>
-                                <span>Enter Tournament Lobby</span>
+                                <span>Manage Tournament</span>
                                 <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                             </a>
+                        
+                        {# REGISTERED USER: Show "Tournament Lobby" Button #}
+                        {% elif current_user_registration %}
+                            <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" 
+                               class="group relative inline-flex items-center justify-center gap-3 px-6 py-4 w-full sm:w-auto rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-base shadow-xl shadow-cyan-500/40 hover:shadow-cyan-400/50 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-cyan-500/50 border-2 border-cyan-400/30">
+                                <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                                </svg>
+                                <span>Tournament Lobby</span>
+                                <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            </a>
+                        
+                        {# ELIGIBLE USER: Show "Register Now" Button #}
+                        {% elif can_register %}
+                            <a href="{% url 'tournaments:register' slug=tournament.slug %}" 
+                               class="group relative inline-flex items-center justify-center gap-3 px-6 py-4 w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold text-base shadow-xl shadow-emerald-500/40 hover:shadow-emerald-400/50 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-500/50 border-2 border-emerald-400/30">
+                                <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Register Now</span>
+                                <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            </a>
+                        
+                        {# NOT ELIGIBLE: Show Disabled Button with Tooltip #}
                         {% else %}
-                            {# Not registered - show muted lobby button #}
-                            <div class="relative group">
+                            <div class="relative group/tooltip">
                                 <button disabled
-                                        class="inline-flex items-center justify-center gap-3 px-8 py-4 w-full lg:w-auto rounded-xl bg-slate-800 border border-slate-700 text-slate-400 font-bold text-lg cursor-not-allowed opacity-60">
-                                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        class="inline-flex items-center justify-center gap-3 px-6 py-4 w-full sm:w-auto rounded-xl bg-slate-800/60 border-2 border-slate-700 text-slate-400 font-bold text-base cursor-not-allowed opacity-60 backdrop-blur-sm">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
                                     </svg>
-                                    <span>Tournament Lobby</span>
+                                    <span>{{ cta_label|default:"Not Available" }}</span>
                                 </button>
-                                <div class="absolute hidden group-hover:block top-full mt-2 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 whitespace-nowrap shadow-xl z-20">
-                                    Register to access the lobby
+                                <div class="absolute hidden group-hover/tooltip:block top-full mt-3 left-1/2 transform -translate-x-1/2 px-4 py-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-sm text-slate-300 whitespace-nowrap shadow-2xl z-20 backdrop-blur-md max-w-xs text-center">
+                                    {{ cta_reason|default:"Registration not available" }}
                                 </div>
                             </div>
                         {% endif %}
+                        
                     {% else %}
-                        {# Guest - show login prompt #}
+                        {# GUEST: Show "Login to Join" Button #}
                         <a href="{% url 'account:login' %}?next={{ request.path }}" 
-                           class="inline-flex items-center justify-center gap-3 px-8 py-4 w-full lg:w-auto rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-white font-bold text-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-slate-600/50">
-                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                           class="group relative inline-flex items-center justify-center gap-3 px-6 py-4 w-full sm:w-auto rounded-xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-slate-600 text-white font-bold text-base transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-slate-600/50 shadow-xl">
+                            <svg class="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd"/>
                             </svg>
                             <span>Login to Join</span>
+                            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         </a>
                     {% endif %}
                 </div>
             </div>
         </div>
+        
+        {# Bottom accent line #}
+        <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
     </div>
 </section>

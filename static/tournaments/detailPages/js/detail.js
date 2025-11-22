@@ -100,6 +100,18 @@ function initializeTabs() {
         });
     });
     
+    // Footer tab navigation support
+    const footerTabLinks = document.querySelectorAll('[data-tab-target]');
+    footerTabLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabId = link.getAttribute('data-tab-target');
+            switchTab(tabId);
+            // Scroll to top of page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+    
     // Check URL hash on load and switch to that tab if present
     const hashTab = window.location.hash.substring(1);
     if (hashTab) {
