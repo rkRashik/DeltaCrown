@@ -923,6 +923,22 @@
     align-items: start;
 }
 
+/* No-sidebar layout (new modernized version) */
+.td-main-layout-no-sidebar {
+    max-width: 1600px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 2rem;
+    align-items: start;
+}
+
+.td-main-content-full {
+    min-width: 0;
+    width: 100%;
+}
+
 /* ============================================
    VERTICAL TABS RAIL (Desktop/Tablet)
    ============================================ */

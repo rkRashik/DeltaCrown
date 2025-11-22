@@ -10,7 +10,44 @@
 {% endblock %}
 
 {% block content %}
-<div class="tournament-detail" data-game-slug="{{ game_spec.slug }}">
+<div class="tournament-detail relative min-h-screen" data-game-slug="{{ game_spec.slug }}">
+    
+    {# Dynamic Game-Themed Background #}
+    <div class="fixed inset-0 z-0 overflow-hidden">
+        {# Base gradient based on game #}
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"></div>
+        
+        {# Game-specific accent gradients #}
+        {% if game_spec.slug == 'valorant' %}
+            <div class="absolute inset-0 bg-gradient-to-br from-red-950/30 via-transparent to-rose-950/30"></div>
+            <div class="absolute top-0 right-0 w-1/2 h-1/2 bg-red-500/5 rounded-full filter blur-3xl"></div>
+        {% elif game_spec.slug == 'cs2' or game_spec.slug == 'csgo' %}
+            <div class="absolute inset-0 bg-gradient-to-br from-orange-950/30 via-transparent to-yellow-950/30"></div>
+            <div class="absolute bottom-0 left-0 w-1/2 h-1/2 bg-orange-500/5 rounded-full filter blur-3xl"></div>
+        {% elif game_spec.slug == 'mlbb' or game_spec.slug == 'mobile_legends' %}
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-950/30 via-transparent to-purple-950/30"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 bg-blue-500/5 rounded-full filter blur-3xl"></div>
+        {% elif game_spec.slug == 'lol' or game_spec.slug == 'league_of_legends' %}
+            <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/30 via-transparent to-cyan-950/30"></div>
+            <div class="absolute top-0 left-0 w-1/3 h-1/3 bg-cyan-500/5 rounded-full filter blur-3xl"></div>
+        {% elif game_spec.slug == 'efootball' or game_spec.slug == 'fifa' %}
+            <div class="absolute inset-0 bg-gradient-to-br from-emerald-950/30 via-transparent to-green-950/30"></div>
+            <div class="absolute bottom-0 right-0 w-1/2 h-1/2 bg-emerald-500/5 rounded-full filter blur-3xl"></div>
+        {% else %}
+            {# Default cyan/blue theme #}
+            <div class="absolute inset-0 bg-gradient-to-br from-cyan-950/30 via-transparent to-blue-950/30"></div>
+            <div class="absolute top-1/4 right-1/4 w-1/2 h-1/2 bg-cyan-500/5 rounded-full filter blur-3xl animate-pulse"></div>
+        {% endif %}
+        
+        {# Subtle noise texture #}
+        <div class="absolute inset-0 opacity-[0.03]" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 400 400%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E');"></div>
+        
+        {# Animated scanlines effect #}
+        <div class="absolute inset-0 opacity-[0.02] pointer-events-none" style="background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px);"></div>
+    </div>
+    
+    {# Main Content (relative z-index) #}
+    <div class="relative z-10">
     
     {# Hero Section #}
     {% include 'tournaments/detailPages/partials/detail/hero.html' %}
@@ -18,15 +55,15 @@
     {# Meta Strip #}
     {% include 'tournaments/detailPages/partials/detail/meta_strip.html' %}
     
-    {# Main Layout: Esports Control Center with Vertical Icon Rail + Sidebar #}
-    <div class="td-main-layout">
+    {# Main Layout: Esports Control Center with Vertical Icon Rail (NO SIDEBAR) #}
+    <div class="td-main-layout-no-sidebar">
         {# Left: Vertical Icon Tab Rail (becomes horizontal on mobile) #}
         <aside class="td-tabs-rail">
             {% include 'tournaments/detailPages/partials/detail/tab_nav.html' %}
         </aside>
         
-        {# Center: Main Content Area with Tab Panels #}
-        <section class="td-main-content">
+        {# Center: Main Content Area with Tab Panels (Full Width) #}
+        <section class="td-main-content-full">
             <div class="td-tab-panels">
                 {% include 'tournaments/detailPages/partials/detail/tab_overview.html' %}
                 {% include 'tournaments/detailPages/partials/detail/tab_rules.html' %}
@@ -41,12 +78,13 @@
                 {% endif %}
             </div>
         </section>
-        
-        {# Right: Sidebar with User Status, Lobby, Organizer, Sponsors, Share #}
-        {% include 'tournaments/detailPages/partials/detail/sidebar.html' %}
     </div>
     
-</div>
+    {# Dynamic Footer #}
+    {% include 'tournaments/detailPages/partials/detail/footer_dynamic.html' %}
+    
+    </div> {# End relative z-10 wrapper #}
+</div> {# End tournament-detail #}
 {% endblock %}
 
 {% block extra_js %}

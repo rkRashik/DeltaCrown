@@ -826,3 +826,55 @@ if (document.readyState === 'loading') {
 } else {
     initializeSidebarShare();
 }
+
+/**
+ * Initialize scroll-based animations for elements
+ * Uses IntersectionObserver for performance
+ */
+function initializeScrollAnimations() {
+    const animatedElements = document.querySelectorAll('.animate-fade-in');
+    
+    if (animatedElements.length === 0) {
+        return;
+    }
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '50px'
+    });
+    
+    animatedElements.forEach(el => {
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
+    });
+    
+    console.debug('[Detail] Scroll animations initialized for', animatedElements.length, 'elements');
+}
+
+// Initialize scroll animations
+document.addEventListener('DOMContentLoaded', initializeScrollAnimations);
+
+/**
+ * Enhanced "Read More" functionality for expandable text
+ */
+document.addEventListener('click', function(e) {
+    if (e.target.matches('[data-read-more]')) {
+        e.preventDefault();
+        const targetId = e.target.getAttribute('data-read-more');
+        const targetElement = document.getElementById(targetId);
+        
+        if (targetElement) {
+            targetElement.style.maxHeight = 'none';
+            e.target.style.display = 'none';
+        }
+    }
+});
+
+console.log('[Detail] Enhanced tournament detail page JavaScript loaded successfully');

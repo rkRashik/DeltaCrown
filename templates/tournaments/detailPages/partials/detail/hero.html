@@ -1,226 +1,216 @@
 {% load static %}
 {% load game_assets %}
-{# Hero Section - Cinematic Banner-First Layout #}
-{# Purpose: Immediate visual impact with banner, state awareness, conversion-focused action strip #}
-{# Content: Full-width banner, action strip with identity/info/CTA zones #}
+{# Hero Section - Modern 2025 Split Layout #}
+{# Section A: Cinematic Banner with Tournament Identity #}
+{# Section B: Sub-Banner with Game Info & Tournament Lobby CTA #}
 
 <section class="td-hero" data-game-slug="{{ game_spec.slug }}">
-    <!-- Full-Width Cinematic Banner -->
-    <div class="td-hero-banner">
-        {% if tournament.banner_image %}
-        <div class="td-hero-banner-frame">
-            <img src="{{ tournament.banner_image.url }}"
-                 alt="{{ tournament.name }}"
-                 class="td-hero-banner-img">
-        </div>
-        {% elif game_spec.banner %}
-        <div class="td-hero-banner-frame">
-            {# Banner can be either a full URL (from DB) or a static path (from assets) #}
-            {% if game_spec.banner|slice:":1" == "/" or "://" in game_spec.banner %}
-                {# Full URL from database ImageField #}
-                <img src="{{ game_spec.banner }}" alt="{{ tournament.name }} - {{ game_spec.display_name }}" class="td-hero-banner-img" onerror="this.style.display='none'">
-            {% else %}
-                {# Static path from GAME_ASSETS #}
-                <img src="{% static game_spec.banner %}" alt="{{ tournament.name }} - {{ game_spec.display_name }}" class="td-hero-banner-img" onerror="this.style.display='none'">
-            {% endif %}
-        </div>
-        {% else %}
-        <div class="td-hero-banner-fallback">
-            {# Fallback: Show game icon when no banner available #}
-            {% if game_spec.icon %}
-                {% if game_spec.icon|slice:":1" == "/" or "://" in game_spec.icon %}
-                    {# Full URL from database #}
-                    <img src="{{ game_spec.icon }}" 
-                         alt="{{ game_spec.display_name }}" 
-                         class="fallback-game-icon">
+    {# ========== SECTION A: CINEMATIC BANNER ========== #}
+    <div class="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
+        {# Background Image/Banner #}
+        <div class="absolute inset-0">
+            {% if tournament.banner_image %}
+                <img src="{{ tournament.banner_image.url }}"
+                     alt="{{ tournament.name }}"
+                     class="w-full h-full object-cover">
+            {% elif game_spec.banner %}
+                {% if game_spec.banner|slice:":1" == "/" or "://" in game_spec.banner %}
+                    <img src="{{ game_spec.banner }}" 
+                         alt="{{ tournament.name }} - {{ game_spec.display_name }}" 
+                         class="w-full h-full object-cover"
+                         onerror="this.style.display='none'">
                 {% else %}
-                    {# Static path #}
-                    <img src="{% static game_spec.icon %}" 
-                         alt="{{ game_spec.display_name }}" 
-                         class="fallback-game-icon">
+                    <img src="{% static game_spec.banner %}" 
+                         alt="{{ tournament.name }} - {{ game_spec.display_name }}" 
+                         class="w-full h-full object-cover"
+                         onerror="this.style.display='none'">
                 {% endif %}
-            {% elif tournament.game and tournament.game.icon %}
-                <img src="{{ tournament.game.icon.url }}" 
-                     alt="{{ tournament.game.name }}" 
-                     class="fallback-game-icon">
             {% else %}
-                {# Last resort: Show initials #}
-                <div class="fallback-game-initials">
-                    {{ game_spec.display_name|slice:":2"|upper|default:"TC" }}
-                </div>
+                {# Fallback gradient background based on game #}
+                <div class="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
             {% endif %}
-            <div class="fallback-game-name">{{ game_spec.display_name|default:tournament.game.name|default:"Tournament" }}</div>
         </div>
-        {% endif %}
         
-        <!-- Small overlay badge in corner (optional, minimal) -->
-        {% if game_spec %}
-        <div class="td-hero-banner-overlay">
-            <span class="badge badge-game-overlay">
-                {% if game_spec.icon %}
-                    {% if game_spec.icon|slice:":1" == "/" or "://" in game_spec.icon %}
-                        {# Full URL from database #}
-                        <img src="{{ game_spec.icon }}" 
-                             alt="{{ game_spec.display_name }}" 
-                             class="badge-icon">
+        {# Dark gradient overlay for readability #}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-black/30"></div>
+        
+        {# Cinematic noise texture overlay #}
+        <div class="absolute inset-0 opacity-10 mix-blend-overlay" style="background-image: url('data:image/svg+xml,%3Csvg viewBox=%220 0 400 400%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E');"></div>
+        
+        {# Content Container #}
+        <div class="relative z-10 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-end pb-12 md:pb-16">
+            
+            {# Tournament Name & Status #}
+            <div class="space-y-4 animate-fade-in-up">
+                
+                {# Status & Stage Info #}
+                <div class="flex flex-wrap items-center gap-3">
+                    {# Live Status Badge #}
+                    {% if tournament.status == 'live' %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/20 border border-red-500/50 backdrop-blur-sm">
+                            <span class="relative flex h-3 w-3">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </span>
+                            <span class="text-red-100 text-sm font-bold uppercase tracking-wider">Live Now</span>
+                        </span>
+                    {% elif tournament.status == 'completed' %}
+                        <span class="px-4 py-2 rounded-full bg-slate-700/50 border border-slate-600/50 backdrop-blur-sm text-slate-300 text-sm font-semibold uppercase tracking-wide">
+                            Completed
+                        </span>
+                    {% elif tournament.status == 'registration_open' %}
+                        <span class="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/50 backdrop-blur-sm text-emerald-100 text-sm font-semibold uppercase tracking-wide">
+                            Registration Open
+                        </span>
                     {% else %}
-                        {# Static path #}
-                        <img src="{% static game_spec.icon %}" 
-                             alt="{{ game_spec.display_name }}" 
-                             class="badge-icon">
+                        <span class="px-4 py-2 rounded-full bg-slate-700/50 border border-slate-600/50 backdrop-blur-sm text-slate-300 text-sm font-semibold uppercase tracking-wide">
+                            {{ tournament.get_status_display }}
+                        </span>
                     {% endif %}
-                {% elif tournament.game and tournament.game.icon %}
-                    <img src="{{ tournament.game.icon.url }}" 
-                         alt="{{ tournament.game.name }}" 
-                         class="badge-icon">
+                    
+                    {# Stage Info (for multi-stage tournaments) #}
+                    {% if tournament.is_multi_stage and tournament.current_stage %}
+                        <span class="px-4 py-2 rounded-full bg-blue-500/20 border border-blue-500/50 backdrop-blur-sm text-blue-100 text-sm font-semibold">
+                            {% if tournament.current_stage == 'group_stage' %}
+                                📊 Group Stage
+                            {% elif tournament.current_stage == 'knockout_stage' %}
+                                🏆 Playoffs
+                            {% else %}
+                                {{ tournament.current_stage|title }}
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                    
+                    {# Official Tournament Badge #}
+                    {% if tournament.is_official %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/20 border border-yellow-500/50 backdrop-blur-sm text-yellow-100 text-sm font-semibold">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            Official Tournament
+                        </span>
+                    {% endif %}
+                </div>
+                
+                {# Tournament Title #}
+                <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-tight tracking-tight">
+                    <span class="block text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300 drop-shadow-2xl">
+                        {{ tournament.name }}
+                    </span>
+                </h1>
+                
+                {# Subtitle #}
+                {% if tournament.subtitle %}
+                    <p class="text-lg sm:text-xl md:text-2xl text-slate-300 font-medium max-w-3xl">
+                        {{ tournament.subtitle }}
+                    </p>
                 {% endif %}
-                {{ game_spec.display_name|default:tournament.game.name }}
-            </span>
+            </div>
         </div>
-        {% endif %}
     </div>
     
-    <!-- Tournament Action Strip (Below Banner) -->
-    <div class="td-hero-action">
-        <!-- LEFT: Identity Zone -->
-        <div class="td-hero-action-left">
-            <div class="action-identity">
-                <h1 class="action-title">{{ tournament.name }}</h1>
+    {# ========== SECTION B: SUB-BANNER INFO BAR ========== #}
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-y border-slate-700/50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row items-center justify-between gap-6 py-6">
                 
-                {% if tournament.subtitle %}
-                <p class="action-subtitle">{{ tournament.subtitle }}</p>
-                {% endif %}
-                
-                <div class="action-badges">
-                    <span class="badge badge-status badge-status-{{ tournament.status }}">
-                        {{ tournament.get_status_display }}
-                    </span>
+                {# LEFT: Game Identity + Metadata Pills #}
+                <div class="flex flex-col sm:flex-row items-center gap-6 w-full lg:w-auto">
                     
-                    {% if game_spec %}
-                    <span class="badge badge-game-small">
+                    {# Game Logo & Name #}
+                    <div class="flex items-center gap-4">
                         {% if game_spec.icon %}
-                            {% if game_spec.icon|slice:":1" == "/" or "://" in game_spec.icon %}
-                                {# Full URL from database #}
-                                <img src="{{ game_spec.icon }}" 
-                                     alt="{{ game_spec.display_name }}" 
-                                     class="badge-icon">
-                            {% else %}
-                                {# Static path #}
-                                <img src="{% static game_spec.icon %}" 
-                                     alt="{{ game_spec.display_name }}" 
-                                     class="badge-icon">
-                            {% endif %}
+                            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-slate-800/50 border border-slate-700/50 p-3 flex items-center justify-center backdrop-blur-sm hover:border-slate-600 transition-all duration-300 hover:scale-105">
+                                {% if game_spec.icon|slice:":1" == "/" or "://" in game_spec.icon %}
+                                    <img src="{{ game_spec.icon }}" 
+                                         alt="{{ game_spec.display_name }}" 
+                                         class="w-full h-full object-contain">
+                                {% else %}
+                                    <img src="{% static game_spec.icon %}" 
+                                         alt="{{ game_spec.display_name }}" 
+                                         class="w-full h-full object-contain">
+                                {% endif %}
+                            </div>
                         {% endif %}
-                        {{ game_spec.display_name }}
-                    </span>
-                    {% endif %}
+                        
+                        <div>
+                            <div class="text-sm text-slate-400 font-medium mb-1">Playing</div>
+                            <div class="text-xl sm:text-2xl font-bold text-white">{{ game_spec.display_name }}</div>
+                        </div>
+                    </div>
                     
-                    {% if tournament.region %}
-                    <span class="badge badge-region">
-                        <svg class="badge-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
-                        </svg>
-                        {{ tournament.region }}
-                    </span>
-                    {% endif %}
+                    {# Metadata Pills #}
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                        {# Region Pill #}
+                        {% if tournament.region %}
+                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                                </svg>
+                                {{ tournament.region }}
+                            </span>
+                        {% endif %}
+                        
+                        {# Platform Pill #}
+                        {% if game_spec.platform %}
+                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd"/>
+                                </svg>
+                                {{ game_spec.platform|default:"PC" }}
+                            </span>
+                        {% endif %}
+                        
+                        {# Mode Pill (e.g., 5v5, BO3) #}
+                        {% if tournament.participation_type == 'team' and game_spec.roster_config %}
+                            <span class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors duration-200">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                                </svg>
+                                {{ game_spec.roster_config.min_players }}v{{ game_spec.roster_config.min_players }} Team
+                            </span>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- CENTER: Info Zone -->
-        <div class="td-hero-action-center">
-            <div class="action-info">
-                <!-- Countdown -->
-                <div class="info-countdown" data-registration-start="{{ tournament.registration_start|date:'c' }}" data-registration-end="{{ tournament.registration_end|date:'c' }}" data-tournament-start="{{ tournament.tournament_start|date:'c' }}" data-tournament-end="{{ tournament.tournament_end|date:'c' }}" data-status="{{ tournament.status }}">
-                    {% if tournament.status == 'live' %}
-                    <span class="countdown-live">
-                        <span class="live-indicator"></span>
-                        Live Now
-                    </span>
-                    {% elif tournament.status == 'completed' %}
-                    <span class="countdown-ended">Ended {{ tournament.tournament_end|date:"M d, Y" }}</span>
-                    {% elif tournament.status == 'registration_open' %}
-                    <span class="countdown-timer" data-target="{{ tournament.tournament_start|date:'c' }}">
-                        <svg class="countdown-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
-                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
-                        </svg>
-                        Starts in <span class="countdown-value">--</span>
-                    </span>
-                    {% elif tournament.status == 'published' %}
-                    <span class="countdown-timer" data-target="{{ tournament.registration_start|date:'c' }}">
-                        <svg class="countdown-icon" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
-                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
-                        </svg>
-                        Registration opens in <span class="countdown-value">--</span>
-                    </span>
+                
+                {# RIGHT: Tournament Lobby CTA Button #}
+                <div class="w-full lg:w-auto">
+                    {% if user.is_authenticated %}
+                        {% if user_registration or is_organizer %}
+                            <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" 
+                               class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full lg:w-auto rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-lg shadow-lg shadow-cyan-500/50 hover:shadow-cyan-400/60 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-cyan-500/50">
+                                <svg class="w-6 h-6 transition-transform duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Enter Tournament Lobby</span>
+                                <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            </a>
+                        {% else %}
+                            {# Not registered - show muted lobby button #}
+                            <div class="relative group">
+                                <button disabled
+                                        class="inline-flex items-center justify-center gap-3 px-8 py-4 w-full lg:w-auto rounded-xl bg-slate-800 border border-slate-700 text-slate-400 font-bold text-lg cursor-not-allowed opacity-60">
+                                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>Tournament Lobby</span>
+                                </button>
+                                <div class="absolute hidden group-hover:block top-full mt-2 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 whitespace-nowrap shadow-xl z-20">
+                                    Register to access the lobby
+                                </div>
+                            </div>
+                        {% endif %}
                     {% else %}
-                    <span class="countdown-status">{{ tournament.get_status_display }}</span>
+                        {# Guest - show login prompt #}
+                        <a href="{% url 'account:login' %}?next={{ request.path }}" 
+                           class="inline-flex items-center justify-center gap-3 px-8 py-4 w-full lg:w-auto rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-white font-bold text-lg transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-slate-600/50">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Login to Join</span>
+                        </a>
                     {% endif %}
                 </div>
-                
-                <!-- Entry Fee -->
-                {% if tournament.has_entry_fee %}
-                <div class="info-entry-fee">
-                    <span class="info-label">Entry Fee</span>
-                    <span class="info-value">
-                        {% if tournament.entry_fee_amount and tournament.entry_fee_amount > 0 %}
-                        {{ tournament.entry_fee_amount }} {{ tournament.entry_fee_currency|default:"BDT" }}
-                        {% endif %}
-                        {% if tournament.entry_fee_deltacoin and tournament.entry_fee_deltacoin > 0 %}
-                        {% if tournament.entry_fee_amount and tournament.entry_fee_amount > 0 %} + {% endif %}
-                        {{ tournament.entry_fee_deltacoin }} <span class="deltacoin-symbol">ΔC</span>
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
-                
-                <!-- Prize Pool (compact summary) -->
-                {% if tournament.prize_pool or tournament.prize_deltacoin %}
-                <div class="info-prize-pool">
-                    <span class="info-label">Prize Pool</span>
-                    <span class="info-value prize-highlight">
-                        {% if tournament.prize_pool %}{{ tournament.prize_pool }} {{ tournament.prize_currency|default:"BDT" }}{% endif %}
-                        {% if tournament.prize_deltacoin %}
-                        {% if tournament.prize_pool %} + {% endif %}{{ tournament.prize_deltacoin }} <span class="deltacoin-symbol">ΔC</span>
-                        {% endif %}
-                    </span>
-                </div>
-                {% endif %}
-                
-                <!-- Fee Waiver Badge -->
-                {% if tournament.enable_fee_waiver and tournament.fee_waiver_top_n_teams %}
-                <div class="info-fee-waiver">
-                    <svg class="waiver-icon" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-                    </svg>
-                    <span>Top {{ tournament.fee_waiver_top_n_teams }} teams enter free</span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- RIGHT: Action Zone -->
-        <div class="td-hero-action-right">
-            <div class="action-cta">
-                <!-- Primary CTA Button -->
-                <button class="action-cta-button action-cta-{{ cta_state }}" {% if cta_disabled %}disabled{% endif %}>
-                    {{ cta_label }}
-                </button>
-                
-                {% if cta_disabled and cta_reason %}
-                <p class="action-cta-note">{{ cta_reason }}</p>
-                {% endif %}
-                
-                {% comment %}
-                TODO: Secondary action for registered users
-                {% if user_is_registered %}
-                <a href="{% url 'tournaments:room' tournament.slug %}" class="action-cta-secondary">
-                    Enter Tournament Room
-                </a>
-                {% endif %}
-                {% endcomment %}
             </div>
         </div>
     </div>
