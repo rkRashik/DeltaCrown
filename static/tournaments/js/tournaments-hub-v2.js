@@ -20,6 +20,7 @@
         initScrollToTop();
         initViewSwitcher();
         initCinematicEffects();
+        initCountdownTimers();
     });
     
     // ====================================
@@ -574,6 +575,51 @@
         
         setTimeout(() => {
             announcement.remove();
+        }, 1000);
+    }
+    
+    // ====================================
+    // Countdown Timers for Tournament Slots
+    // ====================================
+    function initCountdownTimers() {
+        const countdownElements = document.querySelectorAll('.dc-countdown-timer');
+        
+        if (countdownElements.length === 0) return;
+        
+        function updateCountdown(element) {
+            const deadline = element.dataset.deadline;
+            if (!deadline) return;
+            
+            const deadlineDate = new Date(deadline);
+            const now = new Date();
+            const diff = deadlineDate - now;
+            
+            if (diff <= 0) {
+                element.textContent = 'CLOSED';
+                element.style.color = 'var(--dc-text-muted)';
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            if (days > 0) {
+                element.textContent = `${days}d ${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                element.textContent = `${hours}h ${minutes}m ${seconds}s`;
+            } else {
+                element.textContent = `${minutes}m ${seconds}s`;
+            }
+        }
+        
+        // Update all countdowns immediately
+        countdownElements.forEach(updateCountdown);
+        
+        // Update every second
+        setInterval(() => {
+            countdownElements.forEach(updateCountdown);
         }, 1000);
     }
     

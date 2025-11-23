@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load static humanize %}
+{% load static humanize tournament_filters %}
 
 {% block title %}Tournaments - Bangladesh's Premier Esports Platform | DeltaCrown{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'tournaments/css/tournaments-hub-v2.css' %}?v=4.0">
+<link rel="stylesheet" href="{% static 'tournaments/css/tournaments-hub-v2.css' %}?v=5.0">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 {% endblock %}
@@ -581,6 +581,41 @@
                                     <i class="fas fa-users"></i>
                                     <span>All slots filled!</span>
                                 </div>
+                                {% else %}
+                                    {% remaining_slots tournament.max_participants tournament.registration_count as remaining %}
+                                    {% if remaining <= 5 and remaining > 0 %}
+                                    <div class="dc-slots-available dc-slots-urgent">
+                                        <div class="dc-slots-message">
+                                            <div class="dc-slots-highlight">
+                                                <i class="fas fa-bolt"></i>
+                                                <span>Only {{ remaining }} spot{{ remaining|pluralize }} left!</span>
+                                            </div>
+                                            <div class="dc-slots-subtext">Hurry! Filling fast</div>
+                                        </div>
+                                        {% if tournament.registration_deadline %}
+                                        <div class="dc-slots-countdown">
+                                            <div class="dc-countdown-timer" data-deadline="{{ tournament.registration_deadline|date:'c' }}">--:--:--</div>
+                                            <div class="dc-countdown-label">Time Left</div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% elif remaining > 5 %}
+                                    <div class="dc-slots-available">
+                                        <div class="dc-slots-message">
+                                            <div class="dc-slots-highlight">
+                                                <i class="fas fa-rocket"></i>
+                                                <span>{{ remaining }} slots available</span>
+                                            </div>
+                                            <div class="dc-slots-subtext">Register now to secure your spot</div>
+                                        </div>
+                                        {% if tournament.registration_deadline %}
+                                        <div class="dc-slots-countdown">
+                                            <div class="dc-countdown-timer" data-deadline="{{ tournament.registration_deadline|date:'c' }}">--:--:--</div>
+                                            <div class="dc-countdown-label">Closes In</div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                             {% endif %}
@@ -699,5 +734,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'tournaments/js/tournaments-hub-v2.js' %}?v=2.0"></script>
+<script src="{% static 'tournaments/js/tournaments-hub-v2.js' %}?v=3.0"></script>
 {% endblock %}
