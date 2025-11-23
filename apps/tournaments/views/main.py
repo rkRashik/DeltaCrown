@@ -110,10 +110,21 @@ class TournamentListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Add games for filter dropdown (from planning docs: Game dropdown filter)
-        # Query all active games from Game model and convert to list
-        from apps.tournaments.models import Game
-        context['games'] = list(Game.objects.filter(is_active=True).values('slug', 'name'))
+        # Add games for filter dropdown using Game Registry (unified game data)
+        # Provides: display_name, icon, logo, banner, card, colors, category
+        from apps.common.game_registry import get_all_games
+        all_games = get_all_games()
+        
+        # Convert Game Registry specs to format expected by template
+        context['games'] = [
+            {
+                'slug': game.slug,
+                'name': game.display_name,
+                'icon': game.icon,
+                'card': game.card,
+            }
+            for game in all_games
+        ]
         
         # Add current filter values (all parameters must be URL-synced)
         context['current_game'] = self.request.GET.get('game', '')

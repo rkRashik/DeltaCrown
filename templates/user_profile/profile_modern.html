@@ -1182,7 +1182,7 @@
                                         </span>
                                         {% if team_membership.game %}
                                         <span class="game-badge">
-                                            <img src="{% get_team_game_logo team_membership.team.game %}" alt="{{ team_membership.team.game|game_display_name }}" class="game-icon">
+                                            <img src="{% game_logo team_membership.team.game %}" alt="{{ team_membership.team.game|game_display_name }}" class="game-icon">
                                             <span class="team-game-name">{{ team_membership.team.game|game_display_name }}</span>
                                             {{ team_membership.game }}
                                         </span>

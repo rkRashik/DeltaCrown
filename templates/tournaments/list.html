@@ -88,15 +88,15 @@
             <!-- Dynamic Games -->
             {% for game in games %}
             <a href="?game={{ game.slug }}" class="dc-game-card {% if current_game == game.slug %}active{% endif %}">
-                {% if game.icon %}
+                {% if game.card %}
                 <div class="dc-game-bg">
-                    <img src="{{ game.icon.url }}" alt="{{ game.name }}">
+                    <img src="{{ game.card }}" alt="{{ game.name }}">
                 </div>
                 {% endif %}
                 <div class="dc-game-overlay"></div>
                 <div class="dc-game-content">
                     {% if game.icon %}
-                        <img src="{{ game.icon.url }}" alt="{{ game.name }}" class="dc-game-icon">
+                        <img src="{{ game.icon }}" alt="{{ game.name }}" class="dc-game-icon">
                     {% else %}
                         <i class="fas fa-gamepad dc-game-icon" style="font-size: 48px;"></i>
                     {% endif %}

@@ -105,8 +105,8 @@
         const searchValue = event.target.value.trim();
         console.log('Search:', searchValue);
         
-        // Update URL parameter
-        updateURL({ q: searchValue });
+        // Update URL parameter (use 'search' to match Django view)
+        updateURL({ search: searchValue });
         
         // Submit form after debounce
         submitFilters();
@@ -164,7 +164,7 @@
         
         // Clear URL parameters except search
         const currentSearch = elements.searchInput ? elements.searchInput.value : '';
-        window.location.href = window.location.pathname + (currentSearch ? `?q=${encodeURIComponent(currentSearch)}` : '');
+        window.location.href = window.location.pathname + (currentSearch ? `?search=${encodeURIComponent(currentSearch)}` : '');
     }
     
     /**

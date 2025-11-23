@@ -130,6 +130,21 @@ def game_category(game_code):
     return 'Gaming'  # default category
 
 @register.filter
+def game_display_name(game_code):
+    """Get game display name from Game Registry - filter version."""
+    if not game_code:
+        return ''
+    try:
+        from apps.common.game_registry import get_game
+        game = get_game(game_code)
+        return game.display_name
+    except (KeyError, Exception):
+        game_data = get_game_data(game_code)
+        if game_data and 'display_name' in game_data:
+            return game_data['display_name']
+        return game_code.title()
+
+@register.filter
 def multiply(value, arg):
     """Multiply filter for mathematical operations in templates."""
     try:

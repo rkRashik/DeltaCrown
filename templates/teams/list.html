@@ -439,7 +439,7 @@
                                 {% if team.game %}
                                 <div class="meta-badge game">
                                     {% load game_helpers %}
-                                    <img src="{% get_team_game_logo team.game %}" alt="{{ team.game }}">
+                                    <img src="{% game_logo team.game %}" alt="{{ team.game }}">
                                     <span>{{ team.game|game_display_name }}</span>
                                 </div>
                                 {% endif %}
