@@ -1494,206 +1494,272 @@
    ======================================== */
 
 /* List View Container */
+/* ========================================
+   LIST VIEW - VLR.GG MINIMALISTIC STYLE
+   ======================================== */
+
 .teams-container.list-view {
-    grid-template-columns: 1fr;
-    gap: 0;
     display: block;
     padding: 0;
-    max-width: 1400px;
-    margin: 0 auto;
+    max-width: 100%;
 }
 
-/* Hide default cards - we'll use custom structure */
+/* Hide grid cards in list view */
 .teams-container.list-view .team-card-premium {
-    display: none;
+    display: none !important;
 }
 
-/* Game Section Wrapper */
-.teams-container.list-view .game-section {
-    margin-bottom: 40px;
-    background: rgba(17, 24, 39, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
+/* VLR-Style Compact Table */
+.teams-table-compact {
+    background: var(--dark-elevated);
+    border: 1px solid var(--dark-border);
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
-/* Game Section Header */
-.teams-container.list-view .game-header {
-    background: linear-gradient(135deg, rgba(0, 240, 255, 0.08), rgba(168, 85, 247, 0.08));
-    backdrop-filter: blur(10px);
-    border-bottom: 2px solid rgba(0, 240, 255, 0.2);
-    padding: 18px 24px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.teams-container.list-view .game-header-icon {
-    width: 42px;
-    height: 42px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 240, 255, 0.12);
-    border: 2px solid rgba(0, 240, 255, 0.3);
-    flex-shrink: 0;
-}
-
-.teams-container.list-view .game-header-icon img {
-    width: 28px;
-    height: 28px;
-    object-fit: contain;
-}
-
-.teams-container.list-view .game-header-icon i {
-    font-size: 1.25rem;
-    color: rgba(0, 240, 255, 1);
-}
-
-.teams-container.list-view .game-header-title {
-    flex: 1;
-}
-
-.teams-container.list-view .game-header-title h2 {
-    font-size: 1.375rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.teams-container.list-view .game-header-count {
-    padding: 6px 14px;
-    background: rgba(0, 240, 255, 0.15);
-    border: 1px solid rgba(0, 240, 255, 0.3);
-    border-radius: 20px;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: rgba(0, 240, 255, 1);
-    white-space: nowrap;
-}
-
-/* Teams Table */
-.teams-container.list-view .game-teams-table {
-    background: transparent;
-}
-
-/* Team Row - Clickable like VLR.gg */
-.teams-container.list-view .team-row {
+/* Table Header */
+.teams-table-header {
     display: grid;
-    grid-template-columns: 50px 60px 1fr 180px 100px 100px;
-    gap: 20px;
-    padding: 16px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    transition: all 0.2s ease;
+    grid-template-columns: 50px 60px 1fr 140px 100px 100px 80px;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 2px solid var(--dark-border);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.teams-table-header > div {
+    display: flex;
     align-items: center;
-    position: relative;
-    cursor: pointer;
+}
+
+.teams-table-header .th-rank {
+    justify-content: center;
+}
+
+.teams-table-header .th-stats {
+    justify-content: center;
+}
+
+/* Team Row - Minimal & Clean */
+.team-row-compact {
+    display: grid;
+    grid-template-columns: 50px 60px 1fr 140px 100px 100px 80px;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.15s ease;
+    align-items: center;
     text-decoration: none;
     color: inherit;
+    position: relative;
 }
 
-.teams-container.list-view .team-row:last-child {
+.team-row-compact:last-child {
     border-bottom: none;
 }
 
-.teams-container.list-view .team-row:hover {
-    background: rgba(0, 240, 255, 0.05);
+.team-row-compact:hover {
+    background: rgba(0, 240, 255, 0.04);
 }
 
-.teams-container.list-view .team-row::before {
+.team-row-compact::before {
     content: '';
     position: absolute;
     left: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, rgba(0, 240, 255, 0.8), rgba(168, 85, 247, 0.8));
+    width: 3px;
+    background: var(--gradient-primary);
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.15s ease;
 }
 
-.teams-container.list-view .team-row:hover::before {
+.team-row-compact:hover::before {
     opacity: 1;
 }
 
-/* Rank Cell */
-.teams-container.list-view .rank-cell {
+/* Rank */
+.tr-rank {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 0.9375rem;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.4);
 }
 
-.teams-container.list-view .team-row.podium-1 .rank-cell,
-.teams-container.list-view .team-row.podium-2 .rank-cell,
-.teams-container.list-view .team-row.podium-3 .rank-cell {
-    font-size: 1.125rem;
+.team-row-compact:hover .tr-rank {
+    color: rgba(255, 255, 255, 0.7);
 }
 
-.teams-container.list-view .team-row.podium-1 .rank-cell {
+/* Top 3 Rankings */
+.team-row-compact.rank-1 .tr-rank {
     color: #FFD700;
-    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+    font-size: 1.0625rem;
 }
 
-.teams-container.list-view .team-row.podium-2 .rank-cell {
-    color: #E8E8E8;
-    text-shadow: 0 0 8px rgba(232, 232, 232, 0.5);
+.team-row-compact.rank-2 .tr-rank {
+    color: #C0C0C0;
+    font-size: 1.0625rem;
 }
 
-.teams-container.list-view .team-row.podium-3 .rank-cell {
+.team-row-compact.rank-3 .tr-rank {
     color: #CD7F32;
-    text-shadow: 0 0 8px rgba(205, 127, 50, 0.5);
+    font-size: 1.0625rem;
 }
 
-/* Logo Cell */
-.teams-container.list-view .logo-cell {
-    width: 52px;
-    height: 52px;
-    border-radius: 8px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.3);
+/* Logo */
+.tr-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
     overflow: hidden;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
+    transition: all 0.15s ease;
 }
 
-.teams-container.list-view .team-row:hover .logo-cell {
-    border-color: rgba(0, 240, 255, 0.5);
-    transform: scale(1.05);
+.team-row-compact:hover .tr-logo {
+    border-color: rgba(0, 240, 255, 0.3);
 }
 
-.teams-container.list-view .logo-cell img {
+.tr-logo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.teams-container.list-view .logo-cell .logo-placeholder {
+.tr-logo-placeholder {
     font-size: 1.125rem;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.5);
 }
 
-/* Team Info Cell */
-.teams-container.list-view .team-info-cell {
+/* Team Info */
+.tr-team {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 0.25rem;
     min-width: 0;
 }
 
-.teams-container.list-view .team-name-row {
+.tr-team-name {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.team-row-compact:hover .tr-team-name {
+    color: var(--primary-cyan);
+}
+
+.tr-team-tag {
+    font-size: 0.75rem;
+    color: rgba(0, 240, 255, 0.6);
+    font-weight: 600;
+}
+
+.tr-verified {
+    color: var(--primary-cyan);
+    font-size: 0.8125rem;
+    flex-shrink: 0;
+}
+
+.tr-team-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.tr-game-name {
+    font-size: 0.75rem;
+    color: rgba(168, 85, 247, 0.8);
+    font-weight: 600;
+}
+
+.tr-badge {
+    padding: 0.125rem 0.5rem;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 4px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    color: rgba(34, 197, 94, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tr-badge.verified {
+    background: rgba(0, 240, 255, 0.12);
+    border-color: rgba(0, 240, 255, 0.25);
+    color: var(--primary-cyan);
+}
+
+.tr-badge.featured {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.25);
+    color: var(--accent-gold);
+}
+
+/* Region */
+.tr-region {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+}
+
+.tr-region i {
+    font-size: 0.75rem;
+    color: rgba(168, 85, 247, 0.6);
+}
+
+/* Stats */
+.tr-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.tr-stat-value {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: white;
+}
+
+.tr-stat-label {
+    font-size: 0.625rem;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Points Highlight */
+.tr-points .tr-stat-value {
+    background: linear-gradient(135deg, var(--primary-cyan), var(--primary-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .teams-container.list-view .team-name-text {
@@ -1802,33 +1868,115 @@
 }
 
 /* ========================================
-   RESPONSIVE - VLR STYLE LIST VIEW
+   LIST VIEW RESPONSIVE
    ======================================== */
+
 @media (max-width: 1400px) {
-    .teams-container.list-view .team-row {
-        grid-template-columns: 45px 50px 1fr 150px 90px 90px;
-        gap: 16px;
-        padding: 14px 20px;
+    .teams-table-header,
+    .team-row-compact {
+        grid-template-columns: 45px 55px 1fr 130px 90px 90px 75px;
+        gap: var(--space-sm);
+        padding: var(--space-sm) var(--space-lg);
     }
     
-    .teams-container.list-view .game-header {
-        padding: 16px 20px;
+    .tr-logo {
+        width: 44px;
+        height: 44px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .teams-table-header,
+    .team-row-compact {
+        grid-template-columns: 42px 50px 1fr 120px 85px;
     }
     
-    .teams-container.list-view .logo-cell {
-        width: 48px;
-        height: 48px;
+    .teams-table-header .th-wins,
+    .tr-wins {
+        display: none;
     }
 }
 
 @media (max-width: 1024px) {
-    .teams-container.list-view .team-row {
-        grid-template-columns: 40px 48px 1fr 130px;
-        gap: 14px;
+    .teams-table-header,
+    .team-row-compact {
+        grid-template-columns: 40px 48px 1fr 110px;
     }
     
-    .teams-container.list-view .stat-cell:nth-child(6) {
-        display: none; /* Hide wins on tablets */
+    .teams-table-header .th-points,
+    .tr-points {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .teams-table-header {
+        font-size: 0.625rem;
+        padding: var(--space-sm) var(--space-md);
+    }
+
+    .teams-table-header,
+    .team-row-compact {
+        grid-template-columns: 35px 42px 1fr 90px;
+        gap: var(--space-xs);
+        padding: var(--space-sm) var(--space-md);
+    }
+
+    .tr-logo {
+        width: 40px;
+        height: 40px;
+    }
+
+    .tr-team-name {
+        font-size: 0.875rem;
+    }
+
+    .tr-team-meta {
+        display: none;
+    }
+
+    .tr-region {
+        font-size: 0.75rem;
+    }
+
+    .tr-stat-value {
+        font-size: 0.875rem;
+    }
+
+    .tr-stat-label {
+        font-size: 0.5625rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .teams-table-header,
+    .team-row-compact {
+        grid-template-columns: 32px 38px 1fr;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .teams-table-header .th-region,
+    .teams-table-header .th-members,
+    .tr-region,
+    .tr-members {
+        display: none;
+    }
+
+    .tr-rank {
+        font-size: 0.8125rem;
+    }
+
+    .tr-logo {
+        width: 36px;
+        height: 36px;
+    }
+
+    .tr-team-name {
+        font-size: 0.8125rem;
+    }
+
+    .tr-team-tag {
+        display: none;
     }
 }
 

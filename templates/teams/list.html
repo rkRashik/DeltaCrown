@@ -531,8 +531,129 @@
                         {% endif %}
                     </article>
                     {% endfor %}
+                {% else %}
+                    <!-- Empty State -->
+                    <div class="empty-state-premium">
+                        <div class="empty-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>No Teams Found</h3>
+                        <p>
+                            {% if query or active_game %}
+                                No teams match your current search and filters.
+                                Try adjusting your criteria or clearing all filters.
+                            {% else %}
+                                Be the first to create a competitive team!
+                            {% endif %}
+                        </p>
+                        <div class="empty-actions">
+                            {% if query or active_game %}
+                                <button class="btn-empty primary" onclick="window.location.href='{% url 'teams:list' %}'">
+                                    <i class="fas fa-undo"></i>
+                                    Clear Filters
+                                </button>
+                            {% endif %}
+                            <a href="{% url 'teams:create' %}" class="btn-empty secondary">
+                                <i class="fas fa-plus-circle"></i>
+                                Create Team
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
 
-                    <!-- Modern Pagination & Load More -->
+            <!-- VLR.gg Style Minimalistic List View (Hidden by default) -->
+            <div class="teams-table-compact" id="teams-table-list" style="display: none;">
+                {% if object_list %}
+                    <!-- Table Header -->
+                    <div class="teams-table-header">
+                        <div class="th-rank">#</div>
+                        <div class="th-logo"></div>
+                        <div class="th-team">Team</div>
+                        <div class="th-region">Region</div>
+                        <div class="th-members th-stats">Members</div>
+                        <div class="th-points th-stats">Points</div>
+                        <div class="th-wins th-stats">Wins</div>
+                    </div>
+
+                    <!-- Team Rows -->
+                    {% for team in object_list %}
+                    <a href="{{ team.get_absolute_url }}" 
+                       class="team-row-compact {% if team.rank_position == 1 %}rank-1{% elif team.rank_position == 2 %}rank-2{% elif team.rank_position == 3 %}rank-3{% endif %}"
+                       data-team-id="{{ team.id }}">
+                        
+                        <!-- Rank -->
+                        <div class="tr-rank">{{ team.rank_position|default:"—" }}</div>
+
+                        <!-- Logo -->
+                        <div class="tr-logo">
+                            {% if team.logo %}
+                                <img src="{{ team.logo.url }}" alt="{{ team.name }}">
+                            {% else %}
+                                <span class="tr-logo-placeholder">{{ team.name|first|upper }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Team Info -->
+                        <div class="tr-team">
+                            <div class="tr-team-name">
+                                <span>{{ team.name }}</span>
+                                {% if team.is_verified %}
+                                    <i class="fas fa-check-circle tr-verified" title="Verified"></i>
+                                {% endif %}
+                                {% if team.tag %}
+                                    <span class="tr-team-tag">[{{ team.tag }}]</span>
+                                {% endif %}
+                            </div>
+                            <div class="tr-team-meta">
+                                {% if not active_game and team.game %}
+                                    {% load game_helpers %}
+                                    <span class="tr-game-name">{{ team.game|game_display_name }}</span>
+                                {% endif %}
+                                {% if team.is_recruiting or team.allow_join_requests %}
+                                    <span class="tr-badge">Recruiting</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Region -->
+                        <div class="tr-region">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>{{ team.region|default:"N/A" }}</span>
+                        </div>
+
+                        <!-- Members -->
+                        <div class="tr-stat tr-members">
+                            <div class="tr-stat-value">{{ team.members_count|default:0 }}</div>
+                            <div class="tr-stat-label">Members</div>
+                        </div>
+
+                        <!-- Points -->
+                        <div class="tr-stat tr-points">
+                            <div class="tr-stat-value">{{ team.total_points|default:0 }}</div>
+                            <div class="tr-stat-label">Points</div>
+                        </div>
+
+                        <!-- Wins -->
+                        <div class="tr-stat tr-wins">
+                            <div class="tr-stat-value">{{ team.tournament_wins|default:0 }}</div>
+                            <div class="tr-stat-label">Wins</div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <!-- Empty State for List View -->
+                    <div class="empty-state-premium" style="padding: 4rem 2rem;">
+                        <div class="empty-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>No Teams Found</h3>
+                        <p>Try adjusting your search or filters.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Modern Pagination & Load More (Shared by both grid and list views) -->
                     {% if paginator.num_pages > 1 %}
                     <div class="pagination-modern-container">
                         <!-- Load More Button (for progressive loading) -->
@@ -621,38 +742,7 @@
                             </div>
                         </div>
                     </div>
-                    {% endif %}
-
-                {% else %}
-                    <!-- Empty State -->
-                    <div class="empty-state-premium">
-                        <div class="empty-icon">
-                            <i class="fas fa-search"></i>
-                        </div>
-                        <h3>No Teams Found</h3>
-                        <p>
-                            {% if query or active_game %}
-                                No teams match your current search and filters.
-                                Try adjusting your criteria or clearing all filters.
-                            {% else %}
-                                Be the first to create a competitive team!
-                            {% endif %}
-                        </p>
-                        <div class="empty-actions">
-                            {% if query or active_game %}
-                                <button class="btn-empty primary" onclick="window.location.href='{% url 'teams:list' %}'">
-                                    <i class="fas fa-undo"></i>
-                                    Clear Filters
-                                </button>
-                            {% endif %}
-                            <a href="{% url 'teams:create' %}" class="btn-empty secondary">
-                                <i class="fas fa-plus-circle"></i>
-                                Create Team
-                            </a>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
+            {% endif %}
         </section>
     </div>
 </div>

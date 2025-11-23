@@ -29,6 +29,7 @@
     // ========================================
     const elements = {
         teamsContainer: document.querySelector('.teams-container'),
+        teamsTableList: document.getElementById('teams-table-list'),
         paginationContainer: document.querySelector('.pagination-modern-container, .pagination-container-premium'),
         loadingOverlay: document.getElementById('loading-overlay-premium'),
         searchInput: document.getElementById('team-search-premium'),
@@ -354,10 +355,16 @@
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
 
-        // Update teams container
+        // Update teams grid container
         const newTeamsContainer = doc.querySelector('.teams-container');
         if (newTeamsContainer && elements.teamsContainer) {
             elements.teamsContainer.innerHTML = newTeamsContainer.innerHTML;
+        }
+
+        // Update list view table
+        const newTeamsTableList = doc.getElementById('teams-table-list');
+        if (newTeamsTableList && elements.teamsTableList) {
+            elements.teamsTableList.innerHTML = newTeamsTableList.innerHTML;
         }
 
         // Update pagination (support both old and new classes)
@@ -376,7 +383,8 @@
             currentPagination.remove();
         } else if (newPagination && !currentPagination) {
             // Add pagination
-            elements.teamsContainer.insertAdjacentElement('afterend', newPagination);
+            const insertAfter = state.currentView === 'list' ? elements.teamsTableList : elements.teamsContainer;
+            insertAfter.insertAdjacentElement('afterend', newPagination);
             elements.loadMoreBtn = document.getElementById('load-more-btn');
             elements.pageJumpInput = document.getElementById('page-jump-input-modern');
             elements.pageJumpBtn = document.getElementById('page-jump-btn-modern');
@@ -507,9 +515,21 @@
             btn.classList.toggle('active', btn.dataset.view === view);
         });
 
-        // Update container
-        if (elements.teamsContainer) {
-            elements.teamsContainer.classList.toggle('list-view', view === 'list');
+        // Toggle between grid container and list table
+        if (elements.teamsContainer && elements.teamsTableList) {
+            if (view === 'list') {
+                // Show list view, hide grid
+                elements.teamsContainer.style.display = 'none';
+                elements.teamsTableList.style.display = 'block';
+                elements.teamsContainer.classList.remove('grid-view');
+                elements.teamsContainer.classList.add('list-view');
+            } else {
+                // Show grid view, hide list
+                elements.teamsContainer.style.display = 'grid';
+                elements.teamsTableList.style.display = 'none';
+                elements.teamsContainer.classList.remove('list-view');
+                elements.teamsContainer.classList.add('grid-view');
+            }
         }
 
         // Save preference
