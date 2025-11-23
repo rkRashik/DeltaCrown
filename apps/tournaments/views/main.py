@@ -33,7 +33,7 @@ class TournamentListView(ListView):
     FE-T-001: Tournament List/Discovery Page
     
     URL: /tournaments/
-    Template: templates/tournaments/list.html
+    Template: templates/tournaments/list_redesigned.html
     
     Features:
     - Tournament cards with key info (game, format, prize, date, slots)
@@ -44,7 +44,7 @@ class TournamentListView(ListView):
     
     Backend API: GET /api/tournaments/tournament-discovery/ (discovery_views.py)
     """
-    template_name = 'tournaments/list.html'
+    template_name = 'tournaments/list_redesigned.html'
     context_object_name = 'tournament_list'
     paginate_by = 20
     
