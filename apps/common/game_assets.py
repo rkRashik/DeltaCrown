@@ -308,6 +308,10 @@ def get_game_logo(game_code, use_static=True):
     if not logo_path:
         return ''
     
+    # If it's already a full URL (from media or external), return as-is
+    if logo_path.startswith(('/media/', 'http://', 'https://')):
+        return logo_path
+    
     if use_static:
         return static(logo_path)
     return logo_path
@@ -334,6 +338,10 @@ def get_game_card(game_code, use_static=True):
     
     if not card_path:
         return ''
+    
+    # If it's already a full URL (from media or external), return as-is
+    if card_path.startswith(('/media/', 'http://', 'https://')):
+        return card_path
     
     if use_static:
         return static(card_path)
@@ -362,6 +370,10 @@ def get_game_icon(game_code, use_static=True):
     if not icon_path:
         return ''
     
+    # If it's already a full URL (from media or external), return as-is
+    if icon_path.startswith(('/media/', 'http://', 'https://')):
+        return icon_path
+    
     if use_static:
         return static(icon_path)
     return icon_path
@@ -388,6 +400,10 @@ def get_game_banner(game_code, use_static=True):
     
     if not banner_path:
         return ''
+    
+    # If it's already a full URL (from media or external), return as-is
+    if banner_path.startswith(('/media/', 'http://', 'https://')):
+        return banner_path
     
     if use_static:
         return static(banner_path)

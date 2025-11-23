@@ -68,3 +68,8 @@ def team_game_badge(game_code):
 def game_display_name(game_code):
     """Template filter to get canonical game display name from Game Registry."""
     return get_team_game_name(game_code)
+
+@register.simple_tag
+def game_logo(game_code):
+    """Get game logo URL - simple tag version for easier use."""
+    return get_team_game_logo(game_code)

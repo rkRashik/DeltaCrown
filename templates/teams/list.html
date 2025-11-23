@@ -165,9 +165,10 @@
                     <div class="game-card-inner">
                         <div class="game-icon-wrapper">
                             {% if game_info.code %}
-                                <img src="{% static 'img/game_logos/' %}{{ game_info.code }}_logo.jpg" 
+                                {% load game_assets %}
+                                <img src="{% game_logo game_info.code|upper %}" 
                                      alt="{{ game_info.name }}"
-                                     onerror="this.onerror=null; this.src='{% static 'img/game_logos/default_game.png' %}';"
+                                     onerror="this.onerror=null; this.src='{% static 'img/game_logos/default_game_logo.jpg' %}';"
                                      loading="lazy">
                             {% else %}
                                 <i class="fas fa-gamepad"></i>
