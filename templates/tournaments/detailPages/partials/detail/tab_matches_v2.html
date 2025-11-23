@@ -55,15 +55,15 @@
                 <div class="col-span-12 sm:col-span-4">
                   <div class="flex items-center gap-4">
                     <div class="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 flex items-center justify-center">
-                      <span class="text-2xl font-black text-purple-400">{% if match.lobby_info and match.lobby_info.round %}{{ match.lobby_info.round }}{% else %}{{ match.round_number }}{% endif %}</span>
+                      <span class="text-2xl font-black text-purple-400">{{ match.lobby_info.round|default:match.round_number }}</span>
                     </div>
                     <div>
-                      <div class="text-xs uppercase tracking-widest font-bold text-slate-400">Round {% if match.lobby_info and match.lobby_info.round %}{{ match.lobby_info.round }}{% else %}{{ match.round_number }}{% endif %}/{% if match.lobby_info and match.lobby_info.total_rounds %}{{ match.lobby_info.total_rounds }}{% else %}6{% endif %}</div>
-                      <div class="text-lg font-black text-white mt-0.5">MAP: {% if match.lobby_info and match.lobby_info.map %}{{ match.lobby_info.map }}{% else %}TBD{% endif %}</div>
+                      <div class="text-xs uppercase tracking-widest font-bold text-slate-400">Round {{ match.lobby_info.round|default:match.round_number }}/{{ match.lobby_info.total_rounds|default:6 }}</div>
+                      <div class="text-lg font-black text-white mt-0.5">MAP: {{ match.lobby_info.map|default:"TBD" }}</div>
                       {% if match.is_live %}
                         <div class="flex items-center gap-2 mt-1">
                           <span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
-                          <span class="text-xs font-bold text-red-400 uppercase">{% if match.lobby_info and match.lobby_info.alive_teams %}{{ match.lobby_info.alive_teams }}{% else %}16{% endif %} Teams Alive</span>
+                          <span class="text-xs font-bold text-red-400 uppercase">{{ match.lobby_info.alive_teams|default:16 }} Teams Alive</span>
                         </div>
                       {% endif %}
                     </div>
@@ -139,7 +139,7 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-800">
-                    {% for entry in match.lobby_info.leaderboard|slice:":16" %}
+                    {% for entry in match.lobby_info.leaderboard|default:[]|slice:":16" %}
                       <tr class="{% if forloop.counter <= 3 %}bg-gradient-to-r {% if forloop.counter == 1 %}from-yellow-500/10 to-transparent{% elif forloop.counter == 2 %}from-slate-400/10 to-transparent{% else %}from-amber-600/10 to-transparent{% endif %}{% endif %} hover:bg-slate-800/30 transition-colors">
                         <td class="px-4 py-3">
                           <div class="flex items-center gap-2">
@@ -186,7 +186,7 @@
                 {# Cols 1-2: Context (Stage & Time) #}
                 <div class="col-span-12 sm:col-span-2 space-y-2">
                   <div class="text-xs uppercase tracking-widest font-bold text-slate-400">
-                    {% if match.lobby_info and match.lobby_info.stage %}{{ match.lobby_info.stage }}{% elif match.stage_label %}{{ match.stage_label }}{% else %}Match{% endif %}
+                    {{ match.lobby_info.stage|default:match.stage_label|default:"Match" }}
                   </div>
                   <div>
                     {% if match.is_live %}
@@ -205,7 +205,7 @@
                       <span class="text-xs text-slate-500">TBD</span>
                     {% endif %}
                   </div>
-                  {% if match.lobby_info and match.lobby_info.best_of %}
+                  {% if match.lobby_info.best_of %}
                     <div class="text-xs text-slate-500 font-semibold">BO{{ match.lobby_info.best_of }}</div>
                   {% endif %}
                 </div>
@@ -252,7 +252,7 @@
                           </span>
                         </div>
                       </div>
-                      {% if match.lobby_info and match.lobby_info.best_of %}
+                      {% if match.lobby_info.best_of %}
                         <span class="text-xs text-slate-500 font-semibold">Best of {{ match.lobby_info.best_of }}</span>
                       {% endif %}
                     </div>

@@ -784,6 +784,13 @@ class TournamentDetailView(DetailView):
             # Best of label (placeholder - extend if your model has this)
             best_of_label = ''  # e.g., 'BO3', 'BO5'
             
+            # Extract lobby_info for template access
+            lobby_info = match.lobby_info or {}
+            
+            # If lobby_info has best_of, use it for label
+            if lobby_info.get('best_of'):
+                best_of_label = f"BO{lobby_info['best_of']}"
+            
             matches_list.append({
                 'id': match.id,
                 'participant1_name': p1_name,
@@ -819,6 +826,9 @@ class TournamentDetailView(DetailView):
                 'vod_url': None,  # Add if you have a vod_url field
                 'participant1_logo': p1_logo,
                 'participant2_logo': p2_logo,
+                'lobby_info': lobby_info,  # Pass lobby_info to template for BR leaderboards and stage labels
+                'round_number': match.round_number,  # For BR round display
+                'winner_id': match.winner_id,  # For BR winner detection
             })
         
         return {
