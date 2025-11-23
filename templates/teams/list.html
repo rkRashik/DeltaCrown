@@ -130,55 +130,55 @@
     <!-- Main Container -->
     <div class="teams-main-container">
         
-        <!-- Advanced Game Filter Bar -->
-        <section class="game-filter-premium">
-            <div class="filter-header-bar">
-                <h2 class="filter-title">
-                    <i class="fas fa-gamepad"></i>
-                    Browse by Game
-                </h2>
-                <div class="filter-actions">
-                    <button class="filter-scroll-btn" id="scroll-left">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button class="filter-scroll-btn" id="scroll-right">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+        <!-- Modern Game Filter Section -->
+        <section class="game-filter-modern">
+            <div class="game-filter-header">
+                <div class="filter-title-group">
+                    <h2 class="filter-title">
+                        <i class="fas fa-gamepad"></i>
+                        <span>Browse by Game</span>
+                    </h2>
+                    <span class="filter-count">{{ games_list|length|add:"1" }} games</span>
                 </div>
             </div>
 
-            <div class="game-filters-container" id="game-filters-scroll">
-                <!-- All Games -->
+            <div class="game-cards-grid">
+                <!-- All Games Card -->
                 <a href="?{% if query %}q={{ query }}&{% endif %}{% if sort %}sort={{ sort }}{% endif %}" 
-                   class="game-filter-card {% if not active_game %}active{% endif %}">
-                    <div class="game-card-icon all-games">
-                        <i class="fas fa-globe"></i>
+                   class="game-card-compact {% if not active_game %}active{% endif %}">
+                    <div class="game-card-inner">
+                        <div class="game-icon-wrapper all-games">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <div class="game-info">
+                            <span class="game-name">All Games</span>
+                            <span class="team-count">{{ total_teams|default:"0" }}</span>
+                        </div>
                     </div>
-                    <div class="game-card-info">
-                        <span class="game-card-name">All Games</span>
-                        <span class="game-card-count">{{ total_teams|default:"0" }} teams</span>
-                    </div>
-                    <div class="game-card-arrow">
-                        <i class="fas fa-arrow-right"></i>
-                    </div>
+                    <div class="active-indicator"></div>
                 </a>
 
-                <!-- Individual Games -->
+                <!-- Individual Game Cards -->
                 {% for game_info in games_list %}
                 <a href="?game={{ game_info.code }}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                   class="game-filter-card {% if active_game == game_info.code %}active{% endif %}">
-                    <div class="game-card-icon">
-                        {% with game_code=game_info.code|upper %}
-                        <img src="{% game_logo game_code %}" alt="{{ game_info.name }}">
-                        {% endwith %}
+                   class="game-card-compact {% if active_game == game_info.code %}active{% endif %}">
+                    <div class="game-card-inner">
+                        <div class="game-icon-wrapper">
+                            {% if game_info.code %}
+                                <img src="{% static 'img/game_logos/' %}{{ game_info.code }}_logo.jpg" 
+                                     alt="{{ game_info.name }}"
+                                     onerror="this.onerror=null; this.src='{% static 'img/game_logos/default_game.png' %}';"
+                                     loading="lazy">
+                            {% else %}
+                                <i class="fas fa-gamepad"></i>
+                            {% endif %}
+                        </div>
+                        <div class="game-info">
+                            <span class="game-name">{{ game_info.name }}</span>
+                            <span class="team-count">{{ game_info.team_count|default:"0" }}</span>
+                        </div>
                     </div>
-                    <div class="game-card-info">
-                        <span class="game-card-name">{{ game_info.name }}</span>
-                        <span class="game-card-count">{{ game_info.team_count|default:"0" }} teams</span>
-                    </div>
-                    <div class="game-card-arrow">
-                        <i class="fas fa-arrow-right"></i>
-                    </div>
+                    <div class="active-indicator"></div>
                 </a>
                 {% endfor %}
             </div>
@@ -532,92 +532,93 @@
                     </article>
                     {% endfor %}
 
-                    <!-- Pagination Controls -->
+                    <!-- Modern Pagination & Load More -->
                     {% if paginator.num_pages > 1 %}
-                    <div class="pagination-container-premium">
-                        <div class="pagination-info">
-                            <i class="fas fa-list"></i>
-                            <span>Showing page {{ page_obj.number }} of {{ paginator.num_pages }} ({{ paginator.count }} total teams)</span>
-                        </div>
-                        
-                        <nav class="pagination-controls" aria-label="Team pagination">
-                            <!-- Previous Button -->
-                            {% if page_obj.has_previous %}
-                                <a href="?page=1{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                                   class="pagination-btn" title="First page">
-                                    <i class="fas fa-angle-double-left"></i>
-                                </a>
-                                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                                   class="pagination-btn" title="Previous page">
-                                    <i class="fas fa-angle-left"></i>
-                                    <span class="btn-text">Previous</span>
-                                </a>
-                            {% else %}
-                                <span class="pagination-btn disabled">
-                                    <i class="fas fa-angle-double-left"></i>
-                                </span>
-                                <span class="pagination-btn disabled">
-                                    <i class="fas fa-angle-left"></i>
-                                    <span class="btn-text">Previous</span>
-                                </span>
-                            {% endif %}
+                    <div class="pagination-modern-container">
+                        <!-- Load More Button (for progressive loading) -->
+                        {% if page_obj.has_next %}
+                        <button class="load-more-btn" id="load-more-btn" data-next-page="{{ page_obj.next_page_number }}">
+                            <span class="btn-content">
+                                <span class="btn-text">Load More Teams</span>
+                                <span class="btn-subtext">Showing {{ object_list|length }} of {{ paginator.count }}</span>
+                            </span>
+                            <div class="btn-spinner" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </div>
+                            <i class="fas fa-chevron-down btn-icon"></i>
+                        </button>
+                        {% endif %}
 
-                            <!-- Page Numbers -->
-                            <div class="pagination-numbers">
-                                {% for num in paginator.page_range %}
-                                    {% if page_obj.number == num %}
-                                        <span class="pagination-number active">{{ num }}</span>
-                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                        <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                                           class="pagination-number">{{ num }}</a>
-                                    {% elif num == 1 or num == paginator.num_pages %}
-                                        {% if num == 1 and page_obj.number > 4 %}
-                                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                                               class="pagination-number">{{ num }}</a>
-                                            <span class="pagination-ellipsis">...</span>
-                                        {% elif num == paginator.num_pages and page_obj.number < paginator.num_pages|add:'-3' %}
-                                            <span class="pagination-ellipsis">...</span>
-                                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                                               class="pagination-number">{{ num }}</a>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
+                        <!-- Modern Pagination Navigation -->
+                        <div class="pagination-modern-nav">
+                            <!-- Page Info -->
+                            <div class="pagination-info-modern">
+                                <span class="page-indicator">Page <strong>{{ page_obj.number }}</strong> of <strong>{{ paginator.num_pages }}</strong></span>
+                                <span class="items-count">{{ paginator.count }} teams total</span>
                             </div>
 
-                            <!-- Next Button -->
-                            {% if page_obj.has_next %}
-                                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                                   class="pagination-btn" title="Next page">
-                                    <span class="btn-text">Next</span>
-                                    <i class="fas fa-angle-right"></i>
+                            <!-- Navigation Controls -->
+                            <nav class="pagination-controls-modern" aria-label="Team pagination">
+                                <!-- Previous -->
+                                {% if page_obj.has_previous %}
+                                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                   class="page-nav-btn prev" title="Previous page">
+                                    <i class="fas fa-chevron-left"></i>
                                 </a>
-                                <a href="?page={{ paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                                   class="pagination-btn" title="Last page">
-                                    <i class="fas fa-angle-double-right"></i>
-                                </a>
-                            {% else %}
-                                <span class="pagination-btn disabled">
-                                    <span class="btn-text">Next</span>
-                                    <i class="fas fa-angle-right"></i>
+                                {% else %}
+                                <span class="page-nav-btn prev disabled">
+                                    <i class="fas fa-chevron-left"></i>
                                 </span>
-                                <span class="pagination-btn disabled">
-                                    <i class="fas fa-angle-double-right"></i>
-                                </span>
-                            {% endif %}
-                        </nav>
+                                {% endif %}
 
-                        <!-- Quick Jump -->
-                        <div class="pagination-jump">
-                            <label for="page-jump-input">Go to page:</label>
-                            <input type="number" 
-                                   id="page-jump-input" 
-                                   min="1" 
-                                   max="{{ paginator.num_pages }}" 
-                                   value="{{ page_obj.number }}"
-                                   class="page-jump-input">
-                            <button class="page-jump-btn" id="page-jump-btn">
-                                <i class="fas fa-arrow-right"></i>
-                            </button>
+                                <!-- Page Numbers -->
+                                <div class="page-numbers-modern">
+                                    {% for num in paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <span class="page-num active">{{ num }}</span>
+                                        {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
+                                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                               class="page-num">{{ num }}</a>
+                                        {% elif num == 1 or num == paginator.num_pages %}
+                                            {% if num == 1 and page_obj.number > 3 %}
+                                                <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                                   class="page-num">{{ num }}</a>
+                                                <span class="page-dots">···</span>
+                                            {% elif num == paginator.num_pages and page_obj.number < paginator.num_pages|add:'-2' %}
+                                                <span class="page-dots">···</span>
+                                                <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                                   class="page-num">{{ num }}</a>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Next -->
+                                {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                   class="page-nav-btn next" title="Next page">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                                {% else %}
+                                <span class="page-nav-btn next disabled">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                                {% endif %}
+                            </nav>
+
+                            <!-- Quick Jump -->
+                            <div class="page-jump-modern">
+                                <input type="number" 
+                                       id="page-jump-input-modern" 
+                                       min="1" 
+                                       max="{{ paginator.num_pages }}" 
+                                       value="{{ page_obj.number }}"
+                                       placeholder="#"
+                                       class="page-jump-input-modern">
+                                <button class="page-jump-btn-modern" id="page-jump-btn-modern" title="Jump to page">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     {% endif %}
@@ -667,8 +668,7 @@
 
 {% block extra_js %}
     <script src="{% static 'teams/js/team-join-modern.js' %}?v=1.0"></script>
-    <script src="{% static 'teams/js/team-list-premium.js' %}?v=8.0"></script>
-    <script src="{% static 'teams/js/team-list-vlr-style.js' %}?v=1.0"></script>
+    <script src="{% static 'teams/js/team-list-enhanced.js' %}?v=1.0"></script>
     
     <!-- Pagination Quick Jump Script -->
     <script>
