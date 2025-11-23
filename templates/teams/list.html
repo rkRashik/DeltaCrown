@@ -532,16 +532,93 @@
                     </article>
                     {% endfor %}
 
-                    <!-- Load More -->
-                    {% if paginator.num_pages > 1 and page_obj.has_next %}
-                    <div class="load-more-container">
-                        <button class="btn-load-more-premium" id="load-more-premium" data-next-page="{{ page_obj.next_page_number }}">
-                            <span>Load More Teams</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <p class="load-more-info">
-                            Showing {{ object_list|length }} of {{ total_teams }} teams
-                        </p>
+                    <!-- Pagination Controls -->
+                    {% if paginator.num_pages > 1 %}
+                    <div class="pagination-container-premium">
+                        <div class="pagination-info">
+                            <i class="fas fa-list"></i>
+                            <span>Showing page {{ page_obj.number }} of {{ paginator.num_pages }} ({{ paginator.count }} total teams)</span>
+                        </div>
+                        
+                        <nav class="pagination-controls" aria-label="Team pagination">
+                            <!-- Previous Button -->
+                            {% if page_obj.has_previous %}
+                                <a href="?page=1{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                   class="pagination-btn" title="First page">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </a>
+                                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                   class="pagination-btn" title="Previous page">
+                                    <i class="fas fa-angle-left"></i>
+                                    <span class="btn-text">Previous</span>
+                                </a>
+                            {% else %}
+                                <span class="pagination-btn disabled">
+                                    <i class="fas fa-angle-double-left"></i>
+                                </span>
+                                <span class="pagination-btn disabled">
+                                    <i class="fas fa-angle-left"></i>
+                                    <span class="btn-text">Previous</span>
+                                </span>
+                            {% endif %}
+
+                            <!-- Page Numbers -->
+                            <div class="pagination-numbers">
+                                {% for num in paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <span class="pagination-number active">{{ num }}</span>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                           class="pagination-number">{{ num }}</a>
+                                    {% elif num == 1 or num == paginator.num_pages %}
+                                        {% if num == 1 and page_obj.number > 4 %}
+                                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                               class="pagination-number">{{ num }}</a>
+                                            <span class="pagination-ellipsis">...</span>
+                                        {% elif num == paginator.num_pages and page_obj.number < paginator.num_pages|add:'-3' %}
+                                            <span class="pagination-ellipsis">...</span>
+                                            <a href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                               class="pagination-number">{{ num }}</a>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+
+                            <!-- Next Button -->
+                            {% if page_obj.has_next %}
+                                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                   class="pagination-btn" title="Next page">
+                                    <span class="btn-text">Next</span>
+                                    <i class="fas fa-angle-right"></i>
+                                </a>
+                                <a href="?page={{ paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if active_game %}&game={{ active_game }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                                   class="pagination-btn" title="Last page">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </a>
+                            {% else %}
+                                <span class="pagination-btn disabled">
+                                    <span class="btn-text">Next</span>
+                                    <i class="fas fa-angle-right"></i>
+                                </span>
+                                <span class="pagination-btn disabled">
+                                    <i class="fas fa-angle-double-right"></i>
+                                </span>
+                            {% endif %}
+                        </nav>
+
+                        <!-- Quick Jump -->
+                        <div class="pagination-jump">
+                            <label for="page-jump-input">Go to page:</label>
+                            <input type="number" 
+                                   id="page-jump-input" 
+                                   min="1" 
+                                   max="{{ paginator.num_pages }}" 
+                                   value="{{ page_obj.number }}"
+                                   class="page-jump-input">
+                            <button class="page-jump-btn" id="page-jump-btn">
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
                     </div>
                     {% endif %}
 
@@ -590,6 +667,42 @@
 
 {% block extra_js %}
     <script src="{% static 'teams/js/team-join-modern.js' %}?v=1.0"></script>
-    <script src="{% static 'teams/js/team-list-premium.js' %}?v=7.1"></script>
+    <script src="{% static 'teams/js/team-list-premium.js' %}?v=8.0"></script>
     <script src="{% static 'teams/js/team-list-vlr-style.js' %}?v=1.0"></script>
+    
+    <!-- Pagination Quick Jump Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const pageJumpBtn = document.getElementById('page-jump-btn');
+            const pageJumpInput = document.getElementById('page-jump-input');
+            
+            if (pageJumpBtn && pageJumpInput) {
+                // Handle jump button click
+                pageJumpBtn.addEventListener('click', function() {
+                    const pageNum = parseInt(pageJumpInput.value);
+                    const maxPages = parseInt(pageJumpInput.max);
+                    
+                    if (pageNum >= 1 && pageNum <= maxPages) {
+                        // Build URL with current filters preserved
+                        const currentUrl = new URL(window.location.href);
+                        const params = new URLSearchParams(currentUrl.search);
+                        params.set('page', pageNum);
+                        window.location.href = `${currentUrl.pathname}?${params.toString()}`;
+                    } else {
+                        alert(`Please enter a page number between 1 and ${maxPages}`);
+                        pageJumpInput.value = '';
+                        pageJumpInput.focus();
+                    }
+                });
+                
+                // Allow Enter key to trigger jump
+                pageJumpInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        pageJumpBtn.click();
+                    }
+                });
+            }
+        });
+    </script>
 {% endblock %}

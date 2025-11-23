@@ -32,6 +32,7 @@
     // ========================================
     const elements = {
         searchInput: document.getElementById('team-search-premium'),
+        searchClear: document.getElementById('search-clear-premium'),
         searchLoader: document.querySelector('.search-loader'),
         gameFilters: document.querySelectorAll('.game-filter-premium'),
         filterGameList: document.getElementById('filterGameList'),
@@ -64,30 +65,111 @@
             return;
         }
 
+        // Initialize state from URL parameters
+        initializeStateFromURL();
+        
         setupEventListeners();
         loadViewPreference();
         checkScrollButtons();
         updateActiveFilters();
+        updateSearchClearButton();
         
         console.log('✅ Premium Team List initialized');
+    }
+    
+    // ========================================
+    // INITIALIZE STATE FROM URL
+    // ========================================
+    function initializeStateFromURL() {
+        const url = new URL(window.location.href);
+        const params = url.searchParams;
+        
+        // Read filter states from URL
+        state.currentGame = params.get('game') || 'all';
+        state.searchQuery = params.get('q') || '';
+        state.sortBy = params.get('sort') || 'rank';
+        state.page = parseInt(params.get('page')) || 1;
+        
+        // Read advanced filters
+        state.filters.verified = params.get('verified') === 'true';
+        state.filters.recruiting = params.get('recruiting') === 'true';
+        state.filters.featured = params.get('featured') === 'true';
+        state.filters.region = params.get('region') || '';
+        state.filters.minMembers = params.get('min_members') || '';
+        state.filters.maxMembers = params.get('max_members') || '';
+        
+        // Update filter chips to match URL state
+        elements.filterChips.forEach(chip => {
+            const filterType = chip.dataset.filter;
+            if (state.filters[filterType]) {
+                chip.classList.add('active');
+            }
+        });
+        
+        // Update region select if present
+        if (elements.regionSelect && state.filters.region) {
+            elements.regionSelect.value = state.filters.region;
+        }
+        
+        // Update member inputs if present
+        if (elements.minMembersInput && state.filters.minMembers) {
+            elements.minMembersInput.value = state.filters.minMembers;
+        }
+        if (elements.maxMembersInput && state.filters.maxMembers) {
+            elements.maxMembersInput.value = state.filters.maxMembers;
+        }
     }
 
     // ========================================
     // EVENT LISTENERS
     // ========================================
     function setupEventListeners() {
-        // Search with debounce
+        // Search with debounce - Use URL navigation
         if (elements.searchInput) {
             let searchTimeout;
+            
             elements.searchInput.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 showSearchLoader();
                 
                 searchTimeout = setTimeout(() => {
-                    state.searchQuery = e.target.value.trim();
-                    state.page = 1;
-                    performSearch();
+                    hideSearchLoader();
+                    const searchValue = e.target.value.trim();
+                    
+                    // Build new URL preserving current parameters
+                    const url = new URL(window.location.href);
+                    
+                    if (searchValue) {
+                        url.searchParams.set('q', searchValue);
+                    } else {
+                        url.searchParams.delete('q');
+                    }
+                    
+                    // Reset to page 1 when searching
+                    url.searchParams.delete('page');
+                    
+                    // Navigate to new URL
+                    window.location.href = url.toString();
                 }, 500);
+            });
+            
+            // Show/hide clear button based on search value
+            elements.searchInput.addEventListener('input', updateSearchClearButton);
+        }
+        
+        // Search clear button
+        if (elements.searchClear) {
+            elements.searchClear.addEventListener('click', () => {
+                if (elements.searchInput) {
+                    elements.searchInput.value = '';
+                    updateSearchClearButton();
+                    
+                    // Clear search from URL
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('q');
+                    url.searchParams.delete('page');
+                    window.location.href = url.toString();
+                }
             });
         }
 
@@ -109,12 +191,14 @@
             });
         });
 
-        // Sort dropdown
+        // Sort dropdown - Use standard navigation
         if (elements.sortSelect) {
             elements.sortSelect.addEventListener('change', (e) => {
-                state.sortBy = e.target.value;
-                state.page = 1;
-                loadTeams();
+                // Update URL with new sort parameter
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort', e.target.value);
+                url.searchParams.delete('page'); // Reset to page 1
+                window.location.href = url.toString();
             });
         }
 
@@ -132,10 +216,68 @@
             });
         });
 
-        // Apply filters
+        // Apply filters - Use standard form submission
         if (elements.applyFiltersBtn) {
             elements.applyFiltersBtn.addEventListener('click', () => {
-                applyFilters();
+                // Update filters from inputs first
+                if (elements.regionSelect) {
+                    state.filters.region = elements.regionSelect.value;
+                }
+                if (elements.minMembersInput) {
+                    state.filters.minMembers = elements.minMembersInput.value;
+                }
+                if (elements.maxMembersInput) {
+                    state.filters.maxMembers = elements.maxMembersInput.value;
+                }
+                
+                // Read filter chip states
+                elements.filterChips.forEach(chip => {
+                    const filterType = chip.dataset.filter;
+                    state.filters[filterType] = chip.classList.contains('active');
+                });
+                
+                // Build URL with all current filters
+                const url = new URL(window.location.href);
+                url.searchParams.delete('page'); // Reset to page 1
+                
+                // Add/remove filter parameters based on state
+                if (state.filters.verified) {
+                    url.searchParams.set('verified', 'true');
+                } else {
+                    url.searchParams.delete('verified');
+                }
+                
+                if (state.filters.recruiting) {
+                    url.searchParams.set('recruiting', 'true');
+                } else {
+                    url.searchParams.delete('recruiting');
+                }
+                
+                if (state.filters.featured) {
+                    url.searchParams.set('featured', 'true');
+                } else {
+                    url.searchParams.delete('featured');
+                }
+                
+                if (state.filters.region) {
+                    url.searchParams.set('region', state.filters.region);
+                } else {
+                    url.searchParams.delete('region');
+                }
+                
+                if (state.filters.minMembers) {
+                    url.searchParams.set('min_members', state.filters.minMembers);
+                } else {
+                    url.searchParams.delete('min_members');
+                }
+                
+                if (state.filters.maxMembers) {
+                    url.searchParams.set('max_members', state.filters.maxMembers);
+                } else {
+                    url.searchParams.delete('max_members');
+                }
+                
+                window.location.href = url.toString();
             });
         }
 
@@ -202,6 +344,16 @@
     function hideSearchLoader() {
         if (elements.searchLoader) {
             elements.searchLoader.style.display = 'none';
+        }
+    }
+    
+    function updateSearchClearButton() {
+        if (elements.searchClear && elements.searchInput) {
+            if (elements.searchInput.value.trim()) {
+                elements.searchClear.style.display = 'flex';
+            } else {
+                elements.searchClear.style.display = 'none';
+            }
         }
     }
 
@@ -331,12 +483,21 @@
         if (elements.minMembersInput) elements.minMembersInput.value = '';
         if (elements.maxMembersInput) elements.maxMembersInput.value = '';
 
-        // Reload
-        state.page = 1;
-        loadTeams();
-        updateActiveFilters();
-
-        showToast('Filters cleared', 'info');
+        // Navigate to base URL (clears all filters)
+        const url = new URL(window.location.href);
+        
+        // Keep only search query if present
+        const query = url.searchParams.get('q');
+        
+        // Clear all params
+        url.search = '';
+        
+        // Re-add query if it existed
+        if (query) {
+            url.searchParams.set('q', query);
+        }
+        
+        window.location.href = url.toString();
     }
 
     function updateActiveFilters() {
@@ -442,8 +603,12 @@
         if (state.filters.minMembers) params.append('min_members', state.filters.minMembers);
         if (state.filters.maxMembers) params.append('max_members', state.filters.maxMembers);
 
-        // Make request
-        fetch(`/teams/api/list/?${params.toString()}`)
+        // Make request with proper AJAX header
+        fetch(`/teams/?${params.toString()}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 if (state.page === 1) {
@@ -452,8 +617,8 @@
                     appendTeams(data.teams);
                 }
 
-                updateResultsCount(data.total);
-                state.hasMore = data.has_more;
+                updateResultsCount(data.total_count || data.total);
+                state.hasMore = data.has_next || false;
                 updateLoadMoreButton();
 
                 state.loading = false;
