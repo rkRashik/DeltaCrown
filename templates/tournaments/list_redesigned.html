@@ -74,13 +74,13 @@
                             <span>Create Tournament</span>
                         </a>
                     {% else %}
-                        <a href="{% url 'accounts:login' %}?next={% url 'tournaments:list' %}" class="cta-btn cta-primary">
+                        <a href="{% url 'account:login' %}?next={% url 'tournaments:list' %}" class="cta-btn cta-primary">
                             <span class="btn-glow"></span>
                             <i class="fas fa-sign-in-alt"></i>
                             <span>Login to Compete</span>
                             <i class="fas fa-arrow-right"></i>
                         </a>
-                        <a href="{% url 'accounts:signup' %}" class="cta-btn cta-secondary">
+                        <a href="{% url 'account:signup' %}" class="cta-btn cta-secondary">
                             <i class="fas fa-user-plus"></i>
                             <span>Create Account</span>
                         </a>
