@@ -7301,8 +7301,8 @@
 /* Tab navigation should sit below the main site header */
 nav[aria-label="Tournament navigation"] {
     position: sticky;
-    /* Use the site nav height variable if available (falls back to 72px) */
-    top: var(--nav-height, 72px);
+    /* Read runtime computed top offset (set by JS) or fallback to site var */
+    top: var(--td-sticky-top, var(--nav-height, 72px));
     z-index: 110; /* sit under .site-nav (z-120) but above content */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
@@ -7335,8 +7335,8 @@ nav[aria-label="Tournament navigation"] {
 
 .td-modern-tabs-container {
     position: sticky;
-    /* sit below the site nav using shared nav height variable */
-    top: var(--nav-height, 72px);
+    /* Read runtime computed top offset (set by JS) or fallback to site var */
+    top: var(--td-sticky-top, var(--nav-height, 72px));
     z-index: 110;
     background: linear-gradient(to right, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.85));
     backdrop-filter: blur(16px) saturate(180%);

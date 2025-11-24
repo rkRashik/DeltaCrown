@@ -8,6 +8,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[Detail] Tournament Detail Page - Main JS loaded');
     
+    // Ensure CSS knows the runtime header offset so tabs stick correctly on mobile and desktop
+    initializeStickyTabOffset();
+
     // Initialize game theme
     initializeTheme();
     
@@ -51,6 +54,127 @@ function initializeTheme() {
     } else {
         console.log('[Detail] No data-game-slug found, using default theme');
     }
+}
+
+/**
+ * Compute runtime header height (desktop or mobile) and expose as CSS variable --td-sticky-top
+ * This helps position sticky tab navigation reliably when the header shrinks/hides on scroll
+ */
+function initializeStickyTabOffset() {
+    const root = document.documentElement;
+
+    const getHeaderHeight = () => {
+        // Prefer desktop site header when visible
+        const siteNav = document.querySelector('.site-nav');
+        if (siteNav) {
+            const style = window.getComputedStyle(siteNav);
+            if (style && style.display !== 'none' && style.visibility !== 'hidden') {
+                return Math.ceil(siteNav.getBoundingClientRect().height || 0);
+            }
+        }
+
+        // Fallback to mobile header bar
+        const mobileHeader = document.querySelector('.mobile-header-bar');
+        if (mobileHeader) {
+            const style = window.getComputedStyle(mobileHeader);
+            if (style && style.display !== 'none' && style.visibility !== 'hidden') {
+                return Math.ceil(mobileHeader.getBoundingClientRect().height || 0);
+            }
+        }
+
+        // Default conservative value
+        return 72; // px
+    };
+
+    // Debounce helper
+    const debounce = (fn, wait) => {
+        let t = null;
+        return (...args) => {
+            clearTimeout(t);
+            t = setTimeout(() => fn.apply(this, args), wait);
+        };
+    };
+
+    const getHeaderVisibleHeight = () => {
+        // Determine visible portion of the header (handles transforms/auto-hide)
+        const siteNav = document.querySelector('.site-nav');
+        const mobileHeader = document.querySelector('.mobile-header-bar');
+        const header = (siteNav && window.getComputedStyle(siteNav).display !== 'none') ? siteNav : mobileHeader;
+        if (!header) return getHeaderHeight();
+
+        const rect = header.getBoundingClientRect();
+        // Visible height is overlap between header rect and viewport (0..rect.height)
+        const visibleTop = Math.max(rect.top, 0);
+        const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+        const visible = Math.max(0, visibleBottom - visibleTop);
+        // If header is fully hidden, visible will be 0
+        return Math.ceil(visible || 0);
+    };
+
+    const apply = (value) => {
+        const height = (typeof value === 'number') ? value : getHeaderVisibleHeight();
+        // Apply to root CSS variable --td-sticky-top
+        root.style.setProperty('--td-sticky-top', `${height}px`);
+        // Also provide log for debugging
+        // console.debug('[Detail] --td-sticky-top set to', height);
+    };
+
+    // Run immediately
+    apply();
+
+    // Update on window resize/orientationchange
+    const debouncedApply = debounce(apply, 120);
+    window.addEventListener('resize', debouncedApply);
+    window.addEventListener('orientationchange', debouncedApply);
+
+    // Observe header attribute/class changes (eg. .site-nav.is-shrunk or .mobile-header-bar.scrolled)
+    const siteNav = document.querySelector('.site-nav');
+    const mobileHeader = document.querySelector('.mobile-header-bar');
+    const bodyEl = document.body;
+
+    if (typeof MutationObserver !== 'undefined') {
+        const headerObserver = new MutationObserver(debouncedApply);
+        if (siteNav) headerObserver.observe(siteNav, { attributes: true, attributeFilter: ['class', 'style'] });
+        if (mobileHeader) headerObserver.observe(mobileHeader, { attributes: true, attributeFilter: ['class', 'style'] });
+
+        // If header toggles are driven by body class changes (other scripts), watch body too
+        const bodyObserver = new MutationObserver(debouncedApply);
+        bodyObserver.observe(bodyEl, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
+
+    // Add scroll-driven auto-hide tracking: compute visible header portion on scroll and follow scroll direction
+    let lastScroll = window.scrollY || document.documentElement.scrollTop;
+    let scrollTimeoutHandle = null;
+
+    const onScroll = () => {
+        const current = window.scrollY || document.documentElement.scrollTop;
+        const delta = current - lastScroll;
+
+        // Short-circuit: if scrolling down strongly, push tabs to top (header likely hiding)
+        if (delta > 10 && current > 60) {
+            // minimize to 0 so tabs move to very top while header is hidden
+            apply(0);
+        } else if (delta < -10) {
+            // scrolling up: restore to header visible height
+            apply();
+        } else {
+            // small/no movement — recalc after user stops scrolling
+            // do nothing immediately
+        }
+
+        lastScroll = current;
+
+        // When scroll stops, recompute the exact visible header height.
+        if (scrollTimeoutHandle) clearTimeout(scrollTimeoutHandle);
+        scrollTimeoutHandle = setTimeout(() => {
+            apply();
+        }, 140);
+    };
+
+    window.addEventListener('scroll', debounce(onScroll, 32), { passive: true });
+
+    // Also refresh after a short interval on load to handle deferred layout changes
+    setTimeout(apply, 400);
 }
 
 /**
