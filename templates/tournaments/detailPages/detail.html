@@ -76,32 +76,27 @@
     {# Hero Section #}
     {% include 'tournaments/detailPages/partials/detail/hero.html' %}
     
-    {# Meta Strip #}
+    {# Meta Strip - Sticky Quick Stats #}
     {% include 'tournaments/detailPages/partials/detail/meta_strip.html' %}
     
-    {# Main Layout: Esports Control Center with Vertical Icon Rail (NO SIDEBAR) #}
-    <div class="td-main-layout-no-sidebar">
-        {# Left: Vertical Icon Tab Rail (becomes horizontal on mobile) #}
-        <aside class="td-tabs-rail">
-            {% include 'tournaments/detailPages/partials/detail/tab_nav.html' %}
-        </aside>
-        
-        {# Center: Main Content Area with Tab Panels (Full Width) #}
-        <section class="td-main-content-full">
-            <div class="td-tab-panels">
-                {% include 'tournaments/detailPages/partials/detail/tab_overview.html' %}
-                {% include 'tournaments/detailPages/partials/detail/tab_rules.html' %}
-                {% include 'tournaments/detailPages/partials/detail/tab_prizes.html' %}
-                {% include 'tournaments/detailPages/partials/detail/tab_participants.html' %}
-                {% include 'tournaments/detailPages/partials/detail/tab_bracket.html' %}
-                {% include 'tournaments/detailPages/partials/detail/tab_matches.html' %}
-                {% include 'tournaments/detailPages/partials/detail/tab_standings.html' %}
-                {% include 'tournaments/detailPages/partials/detail/tab_streams_media.html' %}
-                {% if tournament.enable_challenges or tournament.enable_fan_voting %}
-                    {% include 'tournaments/detailPages/partials/detail/tab_challenges_fanvoting.html' %}
-                {% endif %}
-            </div>
-        </section>
+    {# Horizontal Tab Navigation - Sticky Below Meta Strip #}
+    {% include 'tournaments/detailPages/partials/detail/tab_nav.html' %}
+    
+    {# Main Content Area - Full Width (No Sidebar) #}
+    <div class="td-main-content-fullwidth">
+        <div class="td-tab-panels">
+            {% include 'tournaments/detailPages/partials/detail/tab_overview.html' %}
+            {% include 'tournaments/detailPages/partials/detail/tab_rules.html' %}
+            {% include 'tournaments/detailPages/partials/detail/tab_prizes.html' %}
+            {% include 'tournaments/detailPages/partials/detail/tab_participants.html' %}
+            {% include 'tournaments/detailPages/partials/detail/tab_bracket.html' %}
+            {% include 'tournaments/detailPages/partials/detail/tab_matches.html' %}
+            {% include 'tournaments/detailPages/partials/detail/tab_standings.html' %}
+            {% include 'tournaments/detailPages/partials/detail/tab_streams_media.html' %}
+            {% if tournament.enable_challenges or tournament.enable_fan_voting %}
+                {% include 'tournaments/detailPages/partials/detail/tab_challenges_fanvoting.html' %}
+            {% endif %}
+        </div>
     </div>
     
     {# Dynamic Footer #}

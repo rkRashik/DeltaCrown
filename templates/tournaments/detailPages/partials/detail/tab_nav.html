@@ -1,88 +1,93 @@
-{# Vertical Icon Rail Navigation #}
-{# Purpose: Esports HUD-style vertical tab navigation (horizontal on mobile) #}
-{# Tabs: Overview, Rules, Prizes, Participants, Bracket, Matches, Standings, Streams & Media, Challenges & Fan Voting #}
+{# Horizontal Sticky Tab Navigation #}
+{# Purpose: Modern horizontal tab bar with swipeable overflow on mobile - stays at top when scrolling #}
 
-<nav class="td-tabs-rail-nav" aria-label="Tournament navigation">
-    <button 
-        class="td-tab-rail-item is-active" 
-        data-tab="overview"
-        type="button"
-        aria-label="Overview">
-        <span class="td-tab-icon">📊</span>
-        <span class="td-tab-label">Overview</span>
-    </button>
-    
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="rules"
-        type="button"
-        aria-label="Rules">
-        <span class="td-tab-icon">📋</span>
-        <span class="td-tab-label">Rules</span>
-    </button>
-    
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="prizes"
-        type="button"
-        aria-label="Prizes">
-        <span class="td-tab-icon">🏆</span>
-        <span class="td-tab-label">Prizes</span>
-    </button>
-    
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="participants"
-        type="button"
-        aria-label="Participants">
-        <span class="td-tab-icon">👥</span>
-        <span class="td-tab-label">Players</span>
-    </button>
-    
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="bracket"
-        type="button"
-        aria-label="Bracket">
-        <span class="td-tab-icon">🎯</span>
-        <span class="td-tab-label">Bracket</span>
-    </button>
-    
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="matches"
-        type="button"
-        aria-label="Matches">
-        <span class="td-tab-icon">⚔️</span>
-        <span class="td-tab-label">Matches</span>
-    </button>
-    
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="standings"
-        type="button"
-        aria-label="Standings">
-        <span class="td-tab-icon">📈</span>
-        <span class="td-tab-label">Standings</span>
-    </button>
-    
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="streams-media"
-        type="button"
-        aria-label="Streams & Media">
-        <span class="td-tab-icon">📺</span>
-        <span class="td-tab-label">Streams</span>
-    </button>
-    
-    {% if tournament.enable_challenges or tournament.enable_fan_voting %}
-    <button 
-        class="td-tab-rail-item" 
-        data-tab="challenges-fanvoting"
-        type="button"
-        aria-label="Challenges & Fan Voting">
-        <span class="td-tab-icon">🎮</span>
-        <span class="td-tab-label">{% if tournament.enable_challenges and tournament.enable_fan_voting %}Events{% elif tournament.enable_challenges %}Challenges{% else %}Voting{% endif %}</span>
-    </button>
-    {% endif %}
+<nav class="sticky z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-700/50 shadow-lg" aria-label="Tournament navigation">
+    <div class="max-w-7xl mx-auto">
+        <div class="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            <div class="flex items-center gap-1 px-3 sm:px-4 lg:px-8 py-2 min-w-max">
+                <button 
+                    class="td-tab-horizontal-item is-active" 
+                    data-tab="overview"
+                    type="button"
+                    aria-label="Overview">
+                    <span class="td-tab-icon-h">📊</span>
+                    <span class="td-tab-label-h">Overview</span>
+                </button>
+                
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="rules"
+                    type="button"
+                    aria-label="Rules">
+                    <span class="td-tab-icon-h">📋</span>
+                    <span class="td-tab-label-h">Rules</span>
+                </button>
+                
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="prizes"
+                    type="button"
+                    aria-label="Prizes">
+                    <span class="td-tab-icon-h">🏆</span>
+                    <span class="td-tab-label-h">Prizes</span>
+                </button>
+                
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="participants"
+                    type="button"
+                    aria-label="Participants">
+                    <span class="td-tab-icon-h">👥</span>
+                    <span class="td-tab-label-h">Players</span>
+                </button>
+                
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="bracket"
+                    type="button"
+                    aria-label="Bracket">
+                    <span class="td-tab-icon-h">🎯</span>
+                    <span class="td-tab-label-h">Bracket</span>
+                </button>
+                
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="matches"
+                    type="button"
+                    aria-label="Matches">
+                    <span class="td-tab-icon-h">⚔️</span>
+                    <span class="td-tab-label-h">Matches</span>
+                </button>
+                
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="standings"
+                    type="button"
+                    aria-label="Standings">
+                    <span class="td-tab-icon-h">📈</span>
+                    <span class="td-tab-label-h">Standings</span>
+                </button>
+                
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="streams-media"
+                    type="button"
+                    aria-label="Streams & Media">
+                    <span class="td-tab-icon-h">📺</span>
+                    <span class="td-tab-label-h">Streams</span>
+                </button>
+                
+                {% if tournament.enable_challenges or tournament.enable_fan_voting %}
+                <button 
+                    class="td-tab-horizontal-item" 
+                    data-tab="challenges-fanvoting"
+                    type="button"
+                    aria-label="Challenges & Fan Voting">
+                    <span class="td-tab-icon-h">🎮</span>
+                    <span class="td-tab-label-h">{% if tournament.enable_challenges and tournament.enable_fan_voting %}Events{% elif tournament.enable_challenges %}Challenges{% else %}Voting{% endif %}</span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </nav>

@@ -56,13 +56,13 @@ function initializeTheme() {
 /**
  * Initialize tab navigation
  * Handles tab switching with smooth transitions and URL hash support
+ * Supports both vertical rail and horizontal tab layouts
  */
 function initializeTabs() {
-    const tabNav = document.querySelector('.td-tabs-rail-nav');
-    const tabButtons = document.querySelectorAll('.td-tab-rail-item');
+    const tabButtons = document.querySelectorAll('.td-tab-rail-item, .td-tab-horizontal-item');
     const tabPanels = document.querySelectorAll('.td-tab-panel');
     
-    if (!tabNav || tabButtons.length === 0 || tabPanels.length === 0) {
+    if (tabButtons.length === 0 || tabPanels.length === 0) {
         console.log('[Detail] Tab navigation elements not found');
         return;
     }
