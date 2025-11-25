@@ -84,6 +84,10 @@ from apps.tournaments.views.organizer_results import (
     reject_match_result,
     override_match_result,
 )
+from apps.tournaments.views.registration_demo import (
+    SoloRegistrationDemoView,
+    TeamRegistrationDemoView,
+)
 from apps.tournaments.views.dispute_resolution import (
     resolve_dispute as resolve_dispute_view,
     update_dispute_status as update_dispute_status_view,
@@ -183,6 +187,13 @@ urlpatterns = [
     
     # Participant check-in
     path('<slug:slug>/checkin/', views.participant_checkin, name='participant_checkin'),
+    
+    # Demo Registration Forms (New Dynamic Form Builder Preview)
+    path('<slug:slug>/register/demo/solo/', SoloRegistrationDemoView.as_view(), name='registration_demo_solo'),
+    path('<slug:slug>/register/demo/solo/<int:step>/', SoloRegistrationDemoView.as_view(), name='registration_demo_solo_step'),
+    path('<slug:slug>/register/demo/team/', TeamRegistrationDemoView.as_view(), name='registration_demo_team'),
+    path('<slug:slug>/register/demo/team/<int:step>/', TeamRegistrationDemoView.as_view(), name='registration_demo_team_step'),
+    path('<slug:slug>/register/demo/success/', views.RegistrationDemoSuccessView.as_view(), name='registration_demo_success'),
     
     # FE-T-004: Registration Wizard
     path('<slug:slug>/register/', TournamentRegistrationView.as_view(), name='register'),

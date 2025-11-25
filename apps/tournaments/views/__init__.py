@@ -20,6 +20,10 @@ from apps.tournaments.views.registration import (
     TournamentRegistrationSuccessView,
 )
 
+from apps.tournaments.views.registration_demo import (
+    RegistrationDemoSuccessView,
+)
+
 __all__ = [
     # Sprint 1 main views (FE-T-001, FE-T-002, FE-T-003)
     'TournamentListView',
@@ -29,5 +33,8 @@ __all__ = [
     # Registration wizard views (FE-T-004)
     'TournamentRegistrationView',
     'TournamentRegistrationSuccessView',
+    
+    # Demo registration views
+    'RegistrationDemoSuccessView',
 ]
 

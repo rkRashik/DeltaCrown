@@ -84,7 +84,7 @@
                 {% endif %}
                 
                 {% if tournament.status == 'open' or tournament.status == 'registration_open' %}
-                    <a href="{% url 'tournaments:register' slug=tournament.slug %}" class="td-sidebar-btn td-btn-primary">
+                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:registration_demo_team' slug=tournament.slug %}{% else %}{% url 'tournaments:registration_demo_solo' slug=tournament.slug %}{% endif %}" class="td-sidebar-btn td-btn-primary">
                         Register Now
                     </a>
                 {% else %}

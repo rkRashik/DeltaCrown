@@ -154,12 +154,12 @@
                                     <span>Lobby</span>
                                 </a>
                             {% elif can_register %}
-                                <a href="{% url 'tournaments:register' slug=tournament.slug %}" 
+                                <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:registration_demo_team' slug=tournament.slug %}{% else %}{% url 'tournaments:registration_demo_solo' slug=tournament.slug %}{% endif %}" 
                                    class="group inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-bold text-sm sm:text-base shadow-xl shadow-emerald-500/40 hover:shadow-emerald-400/50 transition-all duration-300 hover:scale-105 border-2 border-emerald-400/30 whitespace-nowrap">
                                     <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/>
                                     </svg>
-                                    <span>Register</span>
+                                    <span>Register Now</span>
                                 </a>
                             {% else %}
                                 <button disabled class="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-slate-800/60 border-2 border-slate-700 text-slate-400 font-bold text-sm sm:text-base cursor-not-allowed opacity-60 whitespace-nowrap">
