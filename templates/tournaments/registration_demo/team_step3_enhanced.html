@@ -6,16 +6,16 @@
     <div class="text-center">
         <h2 class="text-3xl font-bold text-white mb-2">
             <span class="text-4xl mr-2">💳</span>
-            Payment
+            Team Payment
         </h2>
-        <p class="text-gray-400">Complete your registration payment</p>
+        <p class="text-gray-400">Complete your team registration payment</p>
     </div>
 
     <!-- Split-Screen Layout -->
     <form method="POST" enctype="multipart/form-data" id="paymentForm" class="space-y-6">
         {% csrf_token %}
         <input type="hidden" name="step" value="3">
-        <input type="hidden" name="type" value="solo">
+        <input type="hidden" name="type" value="team">
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT: Payment Details -->
@@ -28,15 +28,19 @@
                             {{ tournament.title }}
                         </h3>
                         <div class="text-right">
-                            <div class="text-sm text-gray-400">Entry Fee</div>
-                            <div class="text-3xl font-bold text-primary">৳{{ entry_fee|floatformat:0 }}</div>
+                            <div class="text-sm text-gray-400">Team Entry Fee</div>
+                            <div class="text-3xl font-bold text-primary">৳{{ team_entry_fee|floatformat:0 }}</div>
                         </div>
                     </div>
 
                     <div class="bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
                         <div class="flex justify-between">
-                            <span class="text-gray-400">Solo Registration</span>
-                            <span class="text-white">৳{{ entry_fee|floatformat:0 }}</span>
+                            <span class="text-gray-400">Team: {{ step_data.team_name }}</span>
+                            <span class="text-white font-medium">[{{ step_data.team_tag }}]</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Team Registration</span>
+                            <span class="text-white">৳{{ team_entry_fee|floatformat:0 }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-400">Processing Fee</span>
@@ -44,11 +48,9 @@
                         </div>
                         <div class="border-t border-gray-700 pt-2 mt-2 flex justify-between font-bold">
                             <span class="text-white">Total Amount</span>
-                            <span class="text-primary text-lg">৳{{ entry_fee|floatformat:0 }}</span>
+                            <span class="text-primary text-lg">৳{{ team_entry_fee|floatformat:0 }}</span>
                         </div>
                     </div>
-                </div>
-
                 </div>
 
                 <!-- Payment Method Selection -->
@@ -59,70 +61,6 @@
                     </h3>
 
                     <div class="space-y-3" id="paymentMethods">
-                        <!-- DeltaCoin Payment (if available) -->
-                        {% if 'deltacoin' in payment_methods %}
-                        <label class="payment-method-option flex items-center p-4 bg-gradient-to-br from-yellow-900/20 to-orange-900/20 border-2 border-yellow-500/30 rounded-lg cursor-pointer hover:border-yellow-500 transition-all">
-                            <input type="radio" name="payment_method" value="deltacoin" 
-                                {% if not deltacoin_can_afford %}disabled{% endif %}
-                                class="w-5 h-5 text-yellow-500 bg-gray-700 border-gray-600">
-                            <div class="ml-4 flex-1">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center">
-                                        <span class="text-3xl mr-3">🪙</span>
-                                        <div>
-                                            <div class="text-white font-bold text-lg">DeltaCoin</div>
-                                            <div class="text-xs text-gray-300">Instant verification • No upload needed</div>
-                                        </div>
-                                    </div>
-                                    {% if deltacoin_can_afford %}
-                                    <div class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold">
-                                        ✓ Available
-                                    </div>
-                                    {% else %}
-                                    <div class="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-xs font-bold">
-                                        Insufficient
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Balance Display -->
-                                <div class="mt-3 bg-gray-900/50 rounded-lg p-3 border border-gray-700">
-                                    <div class="flex items-center justify-between text-sm">
-                                        <div class="text-gray-400">Your Balance:</div>
-                                        <div class="font-bold {% if deltacoin_can_afford %}text-green-400{% else %}text-red-400{% endif %}">
-                                            {{ deltacoin_balance }} DC
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center justify-between text-sm mt-1">
-                                        <div class="text-gray-400">Entry Fee:</div>
-                                        <div class="font-bold text-yellow-400">{{ entry_fee|floatformat:0 }} DC</div>
-                                    </div>
-                                    {% if not deltacoin_can_afford %}
-                                    <div class="flex items-center justify-between text-sm mt-1 pt-2 border-t border-gray-700">
-                                        <div class="text-gray-400">Need:</div>
-                                        <div class="font-bold text-red-400">{{ deltacoin_shortfall }} DC more</div>
-                                    </div>
-                                    <div class="mt-2 text-xs text-gray-400 flex items-center">
-                                        <i class="fas fa-info-circle mr-1"></i>
-                                        <a href="{% url 'economy:wallet' %}" class="text-yellow-500 hover:underline">
-                                            Get more DeltaCoin
-                                        </a>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                
-                                {% if deltacoin_can_afford %}
-                                <!-- Benefits Badge -->
-                                <div class="mt-2 flex items-center gap-2 text-xs">
-                                    <span class="bg-green-500/10 text-green-400 px-2 py-1 rounded">⚡ Instant</span>
-                                    <span class="bg-blue-500/10 text-blue-400 px-2 py-1 rounded">🔒 Secure</span>
-                                    <span class="bg-purple-500/10 text-purple-400 px-2 py-1 rounded">✨ Auto-Verified</span>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </label>
-                        {% endif %}
-                        
                         <!-- bKash -->
                         <label class="payment-method-option flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent">
                             <input type="radio" name="payment_method" value="bkash" required 
@@ -180,11 +118,11 @@
                             <div class="text-sm text-gray-300">
                                 <p class="font-bold text-white mb-2">How to pay:</p>
                                 <ol class="list-decimal list-inside space-y-1">
-                                    <li>Send <strong class="text-primary">৳{{ entry_fee|floatformat:0 }}</strong> to the account below</li>
+                                    <li>Send <strong class="text-primary">৳{{ team_entry_fee|floatformat:0 }}</strong> to the account below</li>
                                     <li>Copy the Transaction ID from your payment app</li>
                                     <li>Upload a screenshot (drag & drop or click)</li>
                                     <li>Paste the Transaction ID</li>
-                                    <li>Submit your registration</li>
+                                    <li>Submit your team registration</li>
                                 </ol>
                             </div>
                         </div>
@@ -213,7 +151,7 @@
                             </div>
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-400">Amount to Send:</span>
-                                <span class="text-primary font-bold text-lg">৳{{ entry_fee|floatformat:0 }}</span>
+                                <span class="text-primary font-bold text-lg">৳{{ team_entry_fee|floatformat:0 }}</span>
                             </div>
                         </div>
                     </div>
@@ -315,7 +253,7 @@
                             <p class="font-bold text-yellow-500 mb-2">Important:</p>
                             <ul class="list-disc list-inside space-y-1 text-xs">
                                 <li>Payment verification takes 1-2 hours</li>
-                                <li>You'll receive email confirmation</li>
+                                <li>Team captain will receive email confirmation</li>
                                 <li>Keep screenshot for your records</li>
                             </ul>
                         </div>
@@ -326,7 +264,7 @@
 
         <!-- Navigation Buttons -->
         <div class="flex items-center justify-between pt-6">
-            <a href="?type=solo&step=2" 
+            <a href="?type=team&step=2" 
                 class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
                 <i class="fas fa-arrow-left mr-2"></i>
                 Back
@@ -335,7 +273,7 @@
             <button type="submit" id="submitBtn" disabled
                 class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-bold rounded-lg glow-button disabled:opacity-50 disabled:cursor-not-allowed">
                 <i class="fas fa-check-circle mr-2"></i>
-                Complete Registration
+                Complete Team Registration
             </button>
         </div>
     </form>
@@ -352,68 +290,14 @@ document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
         });
         this.closest('.payment-method-option').classList.add('border-primary', 'bg-gray-750');
         
-        // Check if DeltaCoin selected
-        const isDeltaCoin = this.value === 'deltacoin';
+        // Show instructions
         const instructions = document.getElementById('paymentInstructions');
-        const uploadSection = document.querySelector('#dropZone')?.closest('.gradient-border');
-        const verificationChecklist = document.getElementById('verificationChecklist');
-        const transactionIdInput = document.getElementById('transaction_id');
-        const proofInput = document.getElementById('payment_proof');
+        instructions.classList.remove('hidden');
         
-        if (isDeltaCoin) {
-            // Hide traditional payment fields for DeltaCoin
-            instructions.classList.add('hidden');
-            if (uploadSection) uploadSection.classList.add('hidden');
-            if (verificationChecklist) verificationChecklist.classList.add('hidden');
-            
-            // Make transaction ID and proof optional for DeltaCoin
-            if (transactionIdInput) transactionIdInput.required = false;
-            if (proofInput) proofInput.required = false;
-            
-            // Show DeltaCoin confirmation message
-            let deltaCoinMessage = document.getElementById('deltaCoinMessage');
-            if (!deltaCoinMessage) {
-                deltaCoinMessage = document.createElement('div');
-                deltaCoinMessage.id = 'deltaCoinMessage';
-                deltaCoinMessage.className = 'gradient-border rounded-lg p-6 mt-6';
-                deltaCoinMessage.innerHTML = `
-                    <div class="flex items-start">
-                        <span class="text-4xl mr-4">🪙</span>
-                        <div>
-                            <h3 class="text-xl font-bold text-white mb-2">DeltaCoin Payment Selected</h3>
-                            <p class="text-gray-300 mb-3">
-                                Your payment will be processed instantly when you submit. 
-                                <strong class="text-yellow-400">{{ entry_fee|floatformat:0 }} DC</strong> will be deducted from your wallet.
-                            </p>
-                            <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-sm text-green-300">
-                                <i class="fas fa-check-circle mr-2"></i>
-                                No manual verification needed • Registration confirmed immediately
-                            </div>
-                        </div>
-                    </div>
-                `;
-                document.getElementById('paymentMethods').parentElement.appendChild(deltaCoinMessage);
-            } else {
-                deltaCoinMessage.classList.remove('hidden');
-            }
-        } else {
-            // Show traditional payment fields
-            instructions.classList.remove('hidden');
-            if (uploadSection) uploadSection.classList.remove('hidden');
-            if (verificationChecklist) verificationChecklist.classList.remove('hidden');
-            
-            // Make transaction ID required for traditional methods
-            if (transactionIdInput) transactionIdInput.required = true;
-            
-            // Hide DeltaCoin message
-            const deltaCoinMessage = document.getElementById('deltaCoinMessage');
-            if (deltaCoinMessage) deltaCoinMessage.classList.add('hidden');
-            
-            // Update account details
-            document.getElementById('selectedMethod').textContent = this.nextElementSibling.querySelector('.font-medium').textContent;
-            document.getElementById('accountNumber').textContent = this.dataset.account;
-            document.getElementById('accountName').textContent = this.dataset.name;
-        }
+        // Update account details
+        document.getElementById('selectedMethod').textContent = this.nextElementSibling.querySelector('.font-medium').textContent;
+        document.getElementById('accountNumber').textContent = this.dataset.account;
+        document.getElementById('accountName').textContent = this.dataset.name;
         
         // Enable submit if file uploaded
         checkFormComplete();

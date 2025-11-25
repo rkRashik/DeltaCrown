@@ -42,6 +42,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
     CONFIRMED = 'confirmed'
     REJECTED = 'rejected'
     CANCELLED = 'cancelled'
+    WAITLISTED = 'waitlisted'
     NO_SHOW = 'no_show'
     
     STATUS_CHOICES = [
@@ -50,6 +51,7 @@ class Registration(SoftDeleteModel, TimestampedModel):
         (CONFIRMED, 'Confirmed'),
         (REJECTED, 'Rejected'),
         (CANCELLED, 'Cancelled'),
+        (WAITLISTED, 'Waitlisted'),
         (NO_SHOW, 'No Show'),
     ]
     
@@ -131,6 +133,13 @@ class Registration(SoftDeleteModel, TimestampedModel):
         null=True,
         blank=True,
         help_text="Seeding number for bracket generation (lower = higher seed)"
+    )
+    
+    # Waitlist tracking
+    waitlist_position = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Position in waitlist queue (FIFO order)"
     )
     
     # Manager
@@ -291,6 +300,7 @@ class Payment(models.Model):
     VERIFIED = 'verified'
     REJECTED = 'rejected'
     REFUNDED = 'refunded'
+    WAIVED = 'waived'
     
     STATUS_CHOICES = [
         (PENDING, 'Pending'),
@@ -298,6 +308,7 @@ class Payment(models.Model):
         (VERIFIED, 'Verified'),
         (REJECTED, 'Rejected'),
         (REFUNDED, 'Refunded'),
+        (WAIVED, 'Fee Waived'),
     ]
     
     # Core fields
@@ -381,6 +392,24 @@ class Payment(models.Model):
         null=True,
         blank=True,
         help_text="When payment was verified/rejected"
+    )
+    
+    # Fee waiver tracking
+    waived = models.BooleanField(
+        default=False,
+        help_text="Fee waived by organizer (for top teams, sponsors, etc.)"
+    )
+    
+    waive_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text="Reason for fee waiver (e.g., 'Top-ranked team', 'Sponsor invitation')"
+    )
+    
+    # Resubmission tracking
+    resubmission_count = models.IntegerField(
+        default=0,
+        help_text="Number of times payment was resubmitted after rejection"
     )
     
     # Timestamps

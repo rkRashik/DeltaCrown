@@ -129,6 +129,16 @@ from apps.tournaments.views.registration_demo import (
     SoloRegistrationDemoView,
     TeamRegistrationDemoView,
 )
+from apps.tournaments.views.registration_wizard import (
+    RegistrationWizardView,
+    RegistrationSuccessView as WizardSuccessView,
+)
+from apps.tournaments.views.payment_status import (
+    RegistrationStatusView,
+    PaymentResubmitView,
+    DownloadPaymentProofView,
+)
+from apps.tournaments.views.permission_request import RequestRegistrationPermissionView
 from apps.tournaments.views.dispute_resolution import (
     resolve_dispute as resolve_dispute_view,
     update_dispute_status as update_dispute_status_view,
@@ -237,14 +247,26 @@ urlpatterns = [
     # Participant check-in
     path('<slug:slug>/checkin/', views.participant_checkin, name='participant_checkin'),
     
-    # Demo Registration Forms (New Dynamic Form Builder Preview)
+    # Classic Registration Wizard (Production - Uses Beautiful Demo Templates)
+    path('<slug:slug>/register/wizard/', RegistrationWizardView.as_view(), name='registration_wizard'),
+    path('<slug:slug>/register/wizard/success/', WizardSuccessView.as_view(), name='registration_wizard_success'),
+    
+    # Registration Permission Request
+    path('<slug:slug>/request-permission/', RequestRegistrationPermissionView.as_view(), name='request_registration_permission'),
+    
+    # Payment Status & Management
+    path('<slug:slug>/registration/<int:registration_id>/status/', RegistrationStatusView.as_view(), name='registration_status'),
+    path('<slug:slug>/registration/<int:registration_id>/resubmit/', PaymentResubmitView.as_view(), name='payment_resubmit'),
+    path('<slug:slug>/payment/<int:payment_id>/download/', DownloadPaymentProofView.as_view(), name='download_payment_proof'),
+    
+    # Demo Registration Forms (Legacy - kept for reference)
     path('<slug:slug>/register/demo/solo/', SoloRegistrationDemoView.as_view(), name='registration_demo_solo'),
     path('<slug:slug>/register/demo/solo/<int:step>/', SoloRegistrationDemoView.as_view(), name='registration_demo_solo_step'),
     path('<slug:slug>/register/demo/team/', TeamRegistrationDemoView.as_view(), name='registration_demo_team'),
     path('<slug:slug>/register/demo/team/<int:step>/', TeamRegistrationDemoView.as_view(), name='registration_demo_team_step'),
     path('<slug:slug>/register/demo/success/', views.RegistrationDemoSuccessView.as_view(), name='registration_demo_success'),
     
-    # FE-T-004: Dynamic Registration System (Production - Form Builder Sprint 1)
+    # FE-T-004: Dynamic Registration System (Form Builder - Marketplace System)
     path('<slug:tournament_slug>/register/', DynamicRegistrationView.as_view(), name='register'),
     path('<slug:tournament_slug>/register/success/<int:response_id>/', RegistrationSuccessView.as_view(), name='registration_success'),
     
