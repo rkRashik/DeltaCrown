@@ -27,12 +27,15 @@ User = get_user_model()
 @pytest.fixture
 def staff_user(db):
     """Create a staff user for permission tests."""
-    return User.objects.create_user(
+    user = User.objects.create_user(
         username='staffuser',
         email='staff@example.com',
-        password='testpass123',
-        is_staff=True
+        password='testpass123'
     )
+    user.is_staff = True
+    user.is_superuser = True  # Bypass group-based is_staff signal
+    user.save()
+    return user
 
 
 @pytest.fixture

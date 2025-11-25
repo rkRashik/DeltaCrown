@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% load static %}
+{% load dict_extras %}
+
+{% block title %}{{ template.name }} - Template Library{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Breadcrumb -->
+        <div class="mb-6 text-sm text-gray-400">
+            <a href="{% url 'tournaments:marketplace' %}" class="hover:text-white">Template Library</a>
+            <span class="mx-2">/</span>
+            <span>{{ template.name }}</span>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2">
+                <!-- Template Header -->
+                <div class="bg-gray-800 rounded-lg p-8 mb-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <h1 class="text-3xl font-bold mb-4">{{ template.name }}</h1>
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                {% if template.game %}
+                                <span class="bg-blue-600 px-3 py-1 rounded">{{ template.game.name }}</span>
+                                {% endif %}
+                                <span class="bg-gray-700 px-3 py-1 rounded">{{ template.get_participation_type_display }}</span>
+                                {% if template.is_featured %}
+                                <span class="bg-yellow-500 text-black px-3 py-1 rounded font-bold">⭐ FEATURED</span>
+                                {% endif %}
+                                {% if template.template_type == 'system' %}
+                                <span class="bg-green-600 px-3 py-1 rounded">SYSTEM</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-gray-300 text-lg mb-6">{{ template.description }}</p>
+                    
+                    <!-- Rating Summary -->
+                    <div class="flex items-center gap-6 mb-6 pb-6 border-b border-gray-700">
+                        <div class="text-center">
+                            <div class="text-4xl font-bold mb-1">{{ statistics.average_rating }}</div>
+                            <div class="flex items-center justify-center gap-1 mb-1">
+                                {% for i in "12345" %}
+                                <span class="text-xl {% if forloop.counter <= statistics.average_rating %}text-yellow-400{% else %}text-gray-600{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <div class="text-sm text-gray-400">{{ statistics.total_ratings }} ratings</div>
+                        </div>
+                        
+                        <div class="flex-1">
+                            {% for star in "54321" %}
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-sm w-6">{{ star }}★</span>
+                                <div class="flex-1 bg-gray-700 rounded-full h-2">
+                                    <div class="bg-yellow-400 h-2 rounded-full" 
+                                         style="width: {{ statistics.star_distribution|get_item:star|get_item:'percentage' }}%"></div>
+                                </div>
+                                <span class="text-sm text-gray-400 w-12 text-right">
+                                    {{ statistics.star_distribution|get_item:star|get_item:'percentage' }}%
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Aspects -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold mb-1">{{ statistics.aspects.ease_of_use }}</div>
+                            <div class="text-sm text-gray-400">Ease of Use</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold mb-1">{{ statistics.aspects.participant_experience }}</div>
+                            <div class="text-sm text-gray-400">Participant UX</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-2xl font-bold mb-1">{{ statistics.aspects.data_quality }}</div>
+                            <div class="text-sm text-gray-400">Data Quality</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tags -->
+                    {% if template.tags %}
+                    <div class="mb-6">
+                        <div class="flex flex-wrap gap-2">
+                            {% for tag in template.tags %}
+                            <span class="bg-gray-700 px-3 py-1 rounded text-sm">#{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Actions -->
+                    <div class="flex gap-4">
+                        {% if user.is_authenticated %}
+                        <form method="post" action="{% url 'tournaments:clone_template' template.slug %}">
+                            {% csrf_token %}
+                            <button type="submit" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded font-bold transition">
+                                📋 Clone Template
+                            </button>
+                        </form>
+                        
+                        {% if not user_rating %}
+                        <a href="{% url 'tournaments:rate_template' template.slug %}" 
+                           class="bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded font-bold transition">
+                            ⭐ Rate This Template
+                        </a>
+                        {% else %}
+                        <a href="{% url 'tournaments:rate_template' template.slug %}" 
+                           class="bg-gray-700 hover:bg-gray-600 px-6 py-3 rounded font-bold transition">
+                            ✏️ Edit Your Rating
+                        </a>
+                        {% endif %}
+                        {% else %}
+                        <a href="{% url 'account:login' %}?next={{ request.path }}" 
+                           class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded font-bold transition">
+                            Login to Clone
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Form Preview -->
+                <div class="bg-gray-800 rounded-lg p-8 mb-6">
+                    <h2 class="text-2xl font-bold mb-6">Form Preview</h2>
+                    
+                    {% for section in template.form_schema.sections %}
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold mb-4">{{ section.title }}</h3>
+                        {% if section.description %}
+                        <p class="text-gray-400 mb-4">{{ section.description }}</p>
+                        {% endif %}
+                        
+                        <div class="space-y-4">
+                            {% for field in section.fields %}
+                            <div class="bg-gray-700 p-4 rounded">
+                                <div class="flex items-start justify-between mb-2">
+                                    <label class="font-semibold">
+                                        {{ field.label }}
+                                        {% if field.required %}
+                                        <span class="text-red-400">*</span>
+                                        {% endif %}
+                                    </label>
+                                    <span class="text-xs bg-gray-600 px-2 py-1 rounded">{{ field.type }}</span>
+                                </div>
+                                
+                                {% if field.help_text %}
+                                <p class="text-sm text-gray-400 mb-2">{{ field.help_text }}</p>
+                                {% endif %}
+                                
+                                {% if field.type == 'dropdown' or field.type == 'radio' %}
+                                <div class="text-sm text-gray-400">
+                                    Options: {{ field.options|join:", " }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Reviews -->
+                <div class="bg-gray-800 rounded-lg p-8">
+                    <h2 class="text-2xl font-bold mb-6">Reviews</h2>
+                    
+                    {% if top_reviews %}
+                    <div class="space-y-6">
+                        {% for rating in top_reviews %}
+                        <div class="border-b border-gray-700 pb-6 last:border-b-0">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <div class="font-bold mb-1">{{ rating.user.username }}</div>
+                                    <div class="flex items-center gap-1 mb-2">
+                                        {% for i in "12345" %}
+                                        <span class="{% if forloop.counter <= rating.rating %}text-yellow-400{% else %}text-gray-600{% endif %}">★</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-400">
+                                    {{ rating.created_at|date:"M d, Y" }}
+                                </div>
+                            </div>
+                            
+                            {% if rating.title %}
+                            <h4 class="font-bold mb-2">{{ rating.title }}</h4>
+                            {% endif %}
+                            
+                            <p class="text-gray-300 mb-3">{{ rating.review }}</p>
+                            
+                            {% if rating.tournament %}
+                            <div class="text-sm text-gray-400 mb-3">
+                                Used in: <a href="{% url 'tournaments:detail' rating.tournament.slug %}" class="text-purple-400 hover:text-purple-300">{{ rating.tournament.name }}</a>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="flex items-center gap-4 text-sm">
+                                {% if rating.would_recommend %}
+                                <span class="text-green-400">✓ Recommends</span>
+                                {% endif %}
+                                
+                                <button onclick="markHelpful({{ rating.id }})" 
+                                        class="text-gray-400 hover:text-white transition">
+                                    👍 Helpful ({{ rating.helpful_count }})
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if recent_ratings.count > top_reviews.count %}
+                    <div class="text-center mt-6">
+                        <button class="text-purple-400 hover:text-purple-300">
+                            View All {{ statistics.total_ratings }} Reviews
+                        </button>
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="text-center py-8 text-gray-400">
+                        <p class="mb-4">No reviews yet. Be the first to review this template!</p>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'tournaments:rate_template' template.slug %}" 
+                           class="inline-block bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded font-bold transition">
+                            Write a Review
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- Stats -->
+                <div class="bg-gray-800 rounded-lg p-6 mb-6 sticky top-4">
+                    <h3 class="text-xl font-bold mb-4">Statistics</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400">Usage Count</span>
+                            <span class="font-bold">{{ statistics.usage_count }}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400">Recommendation Rate</span>
+                            <span class="font-bold">{{ statistics.recommendation_rate }}%</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400">Created</span>
+                            <span class="font-bold">{{ statistics.created_at|date:"M Y" }}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400">Last Updated</span>
+                            <span class="font-bold">{{ statistics.updated_at|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Similar Templates -->
+                {% if similar_templates %}
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h3 class="text-xl font-bold mb-4">Similar Templates</h3>
+                    
+                    <div class="space-y-4">
+                        {% for sim in similar_templates %}
+                        <a href="{% url 'tournaments:template_detail' sim.slug %}" 
+                           class="block bg-gray-700 hover:bg-gray-600 p-4 rounded transition">
+                            <h4 class="font-bold mb-2">{{ sim.name }}</h4>
+                            <div class="flex items-center gap-2 text-sm mb-2">
+                                <span class="text-yellow-400">★</span>
+                                <span>{{ sim.avg_rating|floatformat:1 }}</span>
+                                <span class="text-gray-400">·</span>
+                                <span class="text-gray-400">{{ sim.usage_count }} uses</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function markHelpful(ratingId) {
+    fetch(`/tournaments/ratings/${ratingId}/helpful/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert(data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

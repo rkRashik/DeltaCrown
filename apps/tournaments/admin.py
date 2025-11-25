@@ -27,7 +27,8 @@ from apps.tournaments.models import (
     Game, Tournament, CustomField, TournamentVersion, TournamentTemplate,
     Registration, Payment, Match, Dispute, Bracket, Certificate,
     TournamentResult, PrizeTransaction, TournamentPaymentMethod,
-    TournamentStaffRole, TournamentStaff, TournamentAnnouncement
+    TournamentStaffRole, TournamentStaff, TournamentAnnouncement,
+    RegistrationFormTemplate, TournamentRegistrationForm, FormResponse,
 )
 from apps.common.game_registry import get_all_games, normalize_slug
 from apps.tournaments.utils import import_rules_from_pdf
@@ -993,3 +994,455 @@ class TournamentAnnouncementAdmin(admin.ModelAdmin):
         updated = queryset.update(is_important=False)
         self.message_user(request, f"{updated} announcement(s) marked as normal.", messages.INFO)
 
+
+# ============================================================================
+# FORM BUILDER ADMIN (Sprint 1 - Dynamic Registration System)
+# ============================================================================
+
+@admin.register(RegistrationFormTemplate)
+class RegistrationFormTemplateAdmin(admin.ModelAdmin):
+    """Admin for registration form templates"""
+    list_display = [
+        'template_badge', 'name', 'participation_type', 'game',
+        'usage_badge', 'featured_badge', 'status_badge', 'created_at'
+    ]
+    list_filter = ['participation_type', 'is_active', 'is_system_template', 'is_featured', 'game']
+    search_fields = ['name', 'description', 'slug']
+    prepopulated_fields = {'slug': ('name',)}
+    readonly_fields = ['usage_count', 'average_completion_rate', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description', 'icon')
+        }),
+        ('Classification', {
+            'fields': ('participation_type', 'game', 'tags')
+        }),
+        ('Form Schema', {
+            'fields': ('form_schema',),
+            'classes': ('collapse',),
+            'description': 'JSON schema defining form structure'
+        }),
+        ('Display Settings', {
+            'fields': ('thumbnail', 'is_featured', 'is_active')
+        }),
+        ('Template Status', {
+            'fields': ('is_system_template', 'created_by')
+        }),
+        ('Analytics', {
+            'fields': ('usage_count', 'average_completion_rate'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def template_badge(self, obj):
+        """Display template type badge"""
+        if obj.is_system_template:
+            return format_html('<span style="background:#28a745;color:white;padding:3px 8px;border-radius:3px;font-size:11px;">⭐ SYSTEM</span>')
+        return format_html('<span style="background:#6c757d;color:white;padding:3px 8px;border-radius:3px;font-size:11px;">USER</span>')
+    template_badge.short_description = 'Type'
+    
+    def usage_badge(self, obj):
+        """Display usage count"""
+        color = '#28a745' if obj.usage_count > 10 else '#ffc107' if obj.usage_count > 0 else '#dc3545'
+        return format_html(
+            '<span style="background:{};color:white;padding:3px 8px;border-radius:3px;font-size:11px;">{} uses</span>',
+            color, obj.usage_count
+        )
+    usage_badge.short_description = 'Usage'
+    
+    def featured_badge(self, obj):
+        """Display featured badge"""
+        if obj.is_featured:
+            return format_html('<span style="color:#ffc107;font-size:16px;" title="Featured">⭐</span>')
+        return ''
+    featured_badge.short_description = 'Featured'
+    
+    def status_badge(self, obj):
+        """Display status badge"""
+        if obj.is_active:
+            return format_html('<span style="background:#28a745;color:white;padding:3px 8px;border-radius:3px;font-size:11px;">✓ ACTIVE</span>')
+        return format_html('<span style="background:#dc3545;color:white;padding:3px 8px;border-radius:3px;font-size:11px;">✗ INACTIVE</span>')
+    status_badge.short_description = 'Status'
+    
+    @admin.action(description="⭐ Mark as featured")
+    def mark_featured(self, request, queryset):
+        """Mark templates as featured"""
+        updated = queryset.update(is_featured=True)
+        self.message_user(request, f"{updated} template(s) marked as featured.", messages.SUCCESS)
+    
+    @admin.action(description="Remove featured status")
+    def mark_not_featured(self, request, queryset):
+        """Remove featured status from templates"""
+        updated = queryset.update(is_featured=False)
+        self.message_user(request, f"{updated} template(s) unmarked.", messages.INFO)
+    
+    @admin.action(description="✓ Activate templates")
+    def activate_templates(self, request, queryset):
+        """Activate templates"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"{updated} template(s) activated.", messages.SUCCESS)
+    
+    @admin.action(description="✗ Deactivate templates")
+    def deactivate_templates(self, request, queryset):
+        """Deactivate templates"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"{updated} template(s) deactivated.", messages.WARNING)
+    
+    actions = ['mark_featured', 'mark_not_featured', 'activate_templates', 'deactivate_templates']
+
+
+@admin.register(TournamentRegistrationForm)
+class TournamentRegistrationFormAdmin(admin.ModelAdmin):
+    """Admin for tournament registration forms"""
+    list_display = [
+        'tournament_link', 'template_used', 'analytics_badge',
+        'multi_step_badge', 'captcha_badge', 'updated_at'
+    ]
+    list_filter = ['enable_multi_step', 'enable_captcha', 'enable_autosave']
+    search_fields = ['tournament__name', 'tournament__slug']
+    readonly_fields = [
+        'total_views', 'total_starts', 'total_completions',
+        'completion_rate', 'abandonment_rate', 'created_at', 'updated_at'
+    ]
+    
+    fieldsets = (
+        ('Tournament', {
+            'fields': ('tournament', 'based_on_template')
+        }),
+        ('Form Schema', {
+            'fields': ('form_schema',),
+            'classes': ('collapse',),
+        }),
+        ('Behavior Settings', {
+            'fields': (
+                'enable_multi_step', 'enable_autosave', 'enable_progress_bar',
+                'allow_edits_after_submit', 'require_email_verification'
+            )
+        }),
+        ('Anti-Spam', {
+            'fields': ('enable_captcha', 'rate_limit_per_ip')
+        }),
+        ('Confirmation', {
+            'fields': ('success_message', 'redirect_url', 'send_confirmation_email')
+        }),
+        ('Advanced', {
+            'fields': ('conditional_logic_rules', 'validation_rules'),
+            'classes': ('collapse',)
+        }),
+        ('Analytics', {
+            'fields': (
+                'total_views', 'total_starts', 'total_completions',
+                'completion_rate', 'abandonment_rate'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def tournament_link(self, obj):
+        url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.id])
+        return format_html('<a href="{}">{}</a>', url, obj.tournament.name)
+    tournament_link.short_description = 'Tournament'
+    
+    def template_used(self, obj):
+        if obj.based_on_template:
+            url = reverse('admin:tournaments_registrationformtemplate_change', args=[obj.based_on_template.id])
+            return format_html('<a href="{}">{}</a>', url, obj.based_on_template.name)
+        return format_html('<span style="color:#6c757d;">Custom Form</span>')
+    template_used.short_description = 'Based On'
+    
+    def analytics_badge(self, obj):
+        if obj.total_completions > 0:
+            color = '#28a745' if obj.completion_rate > 70 else '#ffc107' if obj.completion_rate > 40 else '#dc3545'
+            return format_html(
+                '<span style="background:{};color:white;padding:3px 8px;border-radius:3px;font-size:11px;">{} regs ({}%)</span>',
+                color, obj.total_completions, int(obj.completion_rate)
+            )
+        return format_html('<span style="color:#6c757d;">No data</span>')
+    analytics_badge.short_description = 'Analytics'
+    
+    def multi_step_badge(self, obj):
+        if obj.enable_multi_step:
+            return format_html('<span style="color:#28a745;">📊</span>')
+        return ''
+    multi_step_badge.short_description = 'Steps'
+    
+    def captcha_badge(self, obj):
+        if obj.enable_captcha:
+            return format_html('<span style="color:#17a2b8;">🛡️</span>')
+        return ''
+    captcha_badge.short_description = 'Security'
+
+
+@admin.register(FormResponse)
+class FormResponseAdmin(admin.ModelAdmin):
+    """Admin for form responses"""
+    list_display = [
+        'id', 'user_link', 'tournament_link', 'status_badge',
+        'payment_badge', 'submitted_at', 'admin_actions'
+    ]
+    list_filter = ['status', 'has_paid', 'payment_verified', 'tournament']
+    search_fields = ['user__username', 'tournament__name']
+    readonly_fields = ['created_at', 'submitted_at', 'approved_at', 'updated_at']
+    
+    fieldsets = (
+        ('Registration', {
+            'fields': ('tournament', 'user', 'team', 'status')
+        }),
+        ('Response Data', {
+            'fields': ('response_data',),
+            'classes': ('collapse',),
+        }),
+        ('Payment', {
+            'fields': (
+                'has_paid', 'payment_verified', 'payment_amount',
+                'payment_method', 'payment_transaction_id', 'payment_proof'
+            )
+        }),
+        ('Admin Notes', {
+            'fields': ('admin_notes', 'rejection_reason')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'submitted_at', 'approved_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+        ('Metadata', {
+            'fields': ('ip_address', 'user_agent', 'metadata'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def user_link(self, obj):
+        return format_html('<a href="/admin/auth/user/{}/change/">{}</a>', obj.user.id, obj.user.username)
+    user_link.short_description = 'User'
+    
+    def tournament_link(self, obj):
+        url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.id])
+        return format_html('<a href="{}">{}</a>', url, obj.tournament.name)
+    tournament_link.short_description = 'Tournament'
+    
+    def status_badge(self, obj):
+        colors = {
+            'draft': '#6c757d', 'submitted': '#17a2b8', 'under_review': '#ffc107',
+            'approved': '#28a745', 'rejected': '#dc3545', 'cancelled': '#6c757d',
+        }
+        color = colors.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="background:{};color:white;padding:3px 8px;border-radius:3px;font-size:11px;">{}</span>',
+            color, obj.get_status_display().upper()
+        )
+    status_badge.short_description = 'Status'
+    
+    def payment_badge(self, obj):
+        if obj.payment_verified:
+            return format_html('<span style="background:#28a745;color:white;padding:3px 8px;border-radius:3px;">✓ VERIFIED</span>')
+        elif obj.has_paid:
+            return format_html('<span style="background:#ffc107;color:white;padding:3px 8px;border-radius:3px;">⏳ PENDING</span>')
+        return format_html('<span style="color:#6c757d;">Not Required</span>')
+    payment_badge.short_description = 'Payment'
+    
+    def admin_actions(self, obj):
+        """Quick admin action links"""
+        actions = []
+        if obj.status == 'submitted':
+            actions.append(f'<a href="#" style="color:#28a745;" title="Approve">✓</a>')
+            actions.append(f'<a href="#" style="color:#dc3545;" title="Reject">✗</a>')
+        if obj.has_paid and not obj.payment_verified:
+            actions.append(f'<a href="#" style="color:#17a2b8;" title="Verify Payment">💳</a>')
+        return format_html(' | '.join(actions)) if actions else '-'
+    admin_actions.short_description = 'Actions'
+    
+    @admin.action(description="✓ Approve registrations")
+    def approve_registrations(self, request, queryset):
+        """Bulk approve submitted registrations"""
+        count = 0
+        for response in queryset.filter(status='submitted'):
+            response.approve()
+            count += 1
+        self.message_user(request, f"{count} registration(s) approved.", messages.SUCCESS)
+    
+    @admin.action(description="✗ Reject registrations")
+    def reject_registrations(self, request, queryset):
+        """Bulk reject registrations"""
+        count = 0
+        for response in queryset.filter(status__in=['submitted', 'under_review']):
+            response.reject(reason="Bulk rejection by admin")
+            count += 1
+        self.message_user(request, f"{count} registration(s) rejected.", messages.WARNING)
+    
+    @admin.action(description="💳 Verify payments")
+    def verify_payments(self, request, queryset):
+        """Bulk verify payments"""
+        updated = queryset.filter(has_paid=True, payment_verified=False).update(payment_verified=True)
+        self.message_user(request, f"{updated} payment(s) verified.", messages.SUCCESS)
+    
+    actions = ['approve_registrations', 'reject_registrations', 'verify_payments']
+
+
+# ============================================================================
+# WEBHOOK & RATING ADMIN
+# ============================================================================
+
+from apps.tournaments.models.webhooks import FormWebhook, WebhookDelivery
+from apps.tournaments.models.template_rating import TemplateRating, RatingHelpful
+
+
+@admin.register(FormWebhook)
+class FormWebhookAdmin(admin.ModelAdmin):
+    """Admin for form webhooks"""
+    
+    list_display = ['id', 'tournament_form', 'url', 'event_count', 'is_active', 'delivery_stats', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['url', 'tournament_form__tournament__name']
+    readonly_fields = ['created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('tournament_form', 'url', 'is_active')
+        }),
+        ('Configuration', {
+            'fields': ('events', 'secret', 'custom_headers', 'retry_count', 'timeout')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def event_count(self, obj):
+        return len(obj.events) if obj.events else 0
+    event_count.short_description = 'Events'
+    
+    def delivery_stats(self, obj):
+        total = obj.deliveries.count()
+        success = obj.deliveries.filter(status='success').count()
+        if total == 0:
+            return '-'
+        rate = int((success / total) * 100)
+        color = '#28a745' if rate >= 90 else '#ffc107' if rate >= 70 else '#dc3545'
+        return format_html(
+            '<span style="color:{};">{}/{} ({}%)</span>',
+            color, success, total, rate
+        )
+    delivery_stats.short_description = 'Delivery Success'
+
+
+@admin.register(WebhookDelivery)
+class WebhookDeliveryAdmin(admin.ModelAdmin):
+    """Admin for webhook deliveries"""
+    
+    list_display = ['id', 'webhook', 'event', 'status_badge', 'status_code', 'attempts', 'created_at']
+    list_filter = ['status', 'event', 'created_at']
+    search_fields = ['webhook__url', 'event']
+    readonly_fields = ['webhook', 'event', 'payload', 'status', 'status_code', 
+                      'response_body', 'error_message', 'attempts', 'created_at', 'delivered_at']
+    
+    def status_badge(self, obj):
+        colors = {
+            'pending': '#6c757d',
+            'success': '#28a745',
+            'failed': '#dc3545',
+        }
+        return format_html(
+            '<span style="background:{}; color:white; padding:3px 8px; border-radius:3px; font-size:11px;">{}</span>',
+            colors.get(obj.status, '#6c757d'),
+            obj.status.upper()
+        )
+    status_badge.short_description = 'Status'
+    
+    def has_add_permission(self, request):
+        return False  # Deliveries are created automatically
+
+
+@admin.register(TemplateRating)
+class TemplateRatingAdmin(admin.ModelAdmin):
+    """Admin for template ratings"""
+    
+    list_display = ['id', 'template', 'user', 'rating_stars', 'aspects_avg', 
+                    'helpful_count', 'verified_badge', 'tournament_link', 'created_at']
+    list_filter = ['rating', 'verified_usage', 'would_recommend', 'created_at']
+    search_fields = ['template__name', 'user__username', 'title', 'review']
+    readonly_fields = ['helpful_count', 'created_at', 'updated_at']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('template', 'user', 'tournament')
+        }),
+        ('Rating', {
+            'fields': ('rating', 'title', 'review', 'would_recommend')
+        }),
+        ('Aspect Ratings', {
+            'fields': ('ease_of_use', 'participant_experience', 'data_quality')
+        }),
+        ('Engagement', {
+            'fields': ('helpful_count', 'verified_usage')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def rating_stars(self, obj):
+        stars = '⭐' * obj.rating
+        return format_html('<span style="color:#ffc107;">{}</span>', stars)
+    rating_stars.short_description = 'Rating'
+    
+    def aspects_avg(self, obj):
+        avg = obj.average_aspect_rating
+        color = '#28a745' if avg >= 4 else '#ffc107' if avg >= 3 else '#dc3545'
+        return format_html('<span style="color:{};">{:.1f}</span>', color, avg)
+    aspects_avg.short_description = 'Aspects Avg'
+    
+    def verified_badge(self, obj):
+        if obj.verified_usage:
+            return format_html('<span style="color:#28a745;">✓ Verified</span>')
+        return '-'
+    verified_badge.short_description = 'Verified'
+    
+    def tournament_link(self, obj):
+        if obj.tournament:
+            url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.id])
+            return format_html('<a href="{}">{}</a>', url, obj.tournament.name[:30])
+        return '-'
+    tournament_link.short_description = 'Tournament'
+    
+    @admin.action(description="✓ Mark as verified usage")
+    def verify_ratings(self, request, queryset):
+        updated = queryset.update(verified_usage=True)
+        self.message_user(request, f"{updated} rating(s) marked as verified.", messages.SUCCESS)
+    
+    @admin.action(description="⭐ Auto-feature high-rated templates")
+    def feature_high_rated(self, request, queryset):
+        """Mark templates with 4+ average rating as featured"""
+        count = 0
+        for rating in queryset.filter(rating__gte=4):
+            template = rating.template
+            if not template.is_featured:
+                template.is_featured = True
+                template.save()
+                count += 1
+        self.message_user(request, f"{count} template(s) featured based on ratings.", messages.SUCCESS)
+    
+    actions = ['verify_ratings', 'feature_high_rated']
+
+
+@admin.register(RatingHelpful)
+class RatingHelpfulAdmin(admin.ModelAdmin):
+    """Admin for rating helpful votes"""
+    
+    list_display = ['id', 'rating', 'user', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['rating__title', 'user__username']
+    readonly_fields = ['rating', 'user', 'created_at']
+    
+    def has_add_permission(self, request):
+        return False  # Created via UI only

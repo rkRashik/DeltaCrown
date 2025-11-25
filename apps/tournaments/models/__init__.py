@@ -65,6 +65,19 @@ from .lobby import (
     CheckIn,  # Check-in tracking
     LobbyAnnouncement,  # Lobby announcements
 )
+from .form_template import (
+    RegistrationFormTemplate,  # Dynamic form templates
+    TournamentRegistrationForm,  # Per-tournament form config
+    FormResponse,  # Registration submissions
+)
+from .template_rating import (
+    TemplateRating,  # Template ratings and reviews
+    RatingHelpful,  # Helpful vote tracking
+)
+from .webhooks import (
+    FormWebhook,  # Webhook configurations
+    WebhookDelivery,  # Webhook delivery tracking
+)
 
 __all__ = [
     'Game',
@@ -93,4 +106,11 @@ __all__ = [
     'TournamentLobby',
     'CheckIn',
     'LobbyAnnouncement',
+    'RegistrationFormTemplate',
+    'TournamentRegistrationForm',
+    'FormResponse',
+    'TemplateRating',
+    'RatingHelpful',
+    'FormWebhook',
+    'WebhookDelivery',
 ]

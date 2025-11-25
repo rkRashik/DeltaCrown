@@ -1,0 +1,31 @@
+<div class="form-group mb-6">
+    <label for="field_{{ field.id }}" class="block text-sm font-medium text-gray-300 mb-2">
+        {{ field.label }}
+        {% if field.required %}<span class="text-red-500 ml-1">*</span>{% endif %}
+    </label>
+    
+    {% if field.description %}
+    <p class="text-xs text-gray-500 mb-2">{{ field.description }}</p>
+    {% endif %}
+    
+    <input 
+        type="text"
+        id="field_{{ field.id }}"
+        name="{{ field.id }}"
+        value="{{ value|default:'' }}"
+        {% if field.required %}required{% endif %}
+        {% if field.validation.min_length %}minlength="{{ field.validation.min_length }}"{% endif %}
+        {% if field.validation.max_length %}maxlength="{{ field.validation.max_length }}"{% endif %}
+        {% if field.validation.pattern %}pattern="{{ field.validation.pattern }}"{% endif %}
+        {% if field.placeholder %}placeholder="{{ field.placeholder }}"{% endif %}
+        class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+    >
+    
+    {% if field.validation.error_message %}
+    <p class="text-xs text-gray-500 mt-1">{{ field.validation.error_message }}</p>
+    {% endif %}
+    
+    {% if errors %}
+    <p class="text-sm text-red-500 mt-2">{{ errors }}</p>
+    {% endif %}
+</div>

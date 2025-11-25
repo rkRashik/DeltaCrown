@@ -181,6 +181,7 @@ class TestTournamentList:
         now = timezone.now()
         data1 = {
             'name': 'Valorant Tournament',
+            'description': 'Test Valorant tournament',
             'game_id': game.id,
             'format': Tournament.SINGLE_ELIM,
             'max_participants': 16,
@@ -190,6 +191,7 @@ class TestTournamentList:
         }
         data2 = {
             'name': 'CS:GO Tournament',
+            'description': 'Test CS:GO tournament',
             'game_id': game2.id,
             'format': Tournament.SINGLE_ELIM,
             'max_participants': 16,
@@ -255,6 +257,7 @@ class TestTournamentCreate:
         now = timezone.now()
         data = {
             'name': 'Anonymous Tournament',
+            'description': 'Test anonymous tournament',
             'game_id': game.id,
             'format': Tournament.SINGLE_ELIM,
             'max_participants': 16,
@@ -275,6 +278,7 @@ class TestTournamentCreate:
         now = timezone.now()
         data = {
             'name': 'Invalid Tournament',
+            'description': 'Test invalid tournament',
             'game_id': game.id,
             'format': Tournament.SINGLE_ELIM,
             'max_participants': 16,
@@ -303,6 +307,7 @@ class TestTournamentCreate:
         now = timezone.now()
         data = {
             'name': 'Organizer Test',
+            'description': 'Test organizer auto-set',
             'game_id': game.id,
             'format': Tournament.SINGLE_ELIM,
             'max_participants': 16,
@@ -327,6 +332,7 @@ class TestTournamentCreate:
         
         data = {
             'name': 'Incomplete Tournament',
+            'description': 'Test incomplete tournament',
             # Missing: game_id, format, max_participants, dates
         }
         

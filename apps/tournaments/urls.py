@@ -47,6 +47,47 @@ from apps.tournaments.views import (
     TournamentRegistrationView,
     TournamentRegistrationSuccessView,
 )
+# Form Builder - Dynamic Registration (Sprint 1)
+from apps.tournaments.views.dynamic_registration import (
+    DynamicRegistrationView,
+    RegistrationSuccessView,
+    RegistrationDashboardView,
+)
+from apps.tournaments.views.template_marketplace import (
+    TemplateMarketplaceView,
+    TemplateDetailView,
+    CloneTemplateView,
+    RateTemplateView,
+    MarkRatingHelpfulView,
+)
+from apps.tournaments.views.form_analytics_view import (
+    FormAnalyticsDashboardView,
+    FormAnalyticsAPIView,
+)
+from apps.tournaments.views.response_export_view import (
+    ExportResponsesView,
+    ExportPreviewView,
+)
+from apps.tournaments.views.bulk_operations_view import (
+    BulkActionView,
+    BulkActionPreviewView,
+)
+from apps.tournaments.views.webhook_views import (
+    WebhookListView,
+    WebhookDeliveryHistoryView,
+    TestWebhookView,
+)
+from apps.tournaments.views.registration_ux_api import (
+    SaveDraftAPIView,
+    GetDraftAPIView,
+    GetProgressAPIView,
+    ValidateFieldAPIView,
+)
+from apps.tournaments.views.registration_dashboard import (
+    RegistrationManagementDashboardView,
+    ResponseDetailAPIView,
+    QuickActionAPIView,
+)
 from apps.tournaments.views.player import (
     TournamentPlayerDashboardView,
     TournamentPlayerMatchesView,
@@ -181,6 +222,14 @@ urlpatterns = [
     # Sprint 2: Player Dashboard URLs (must be before <slug> pattern)
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
     path('my/matches/', TournamentPlayerMatchesView.as_view(), name='my_matches'),
+    path('my/registrations/', RegistrationDashboardView.as_view(), name='registration_dashboard'),
+    
+    # === Template Library (MUST be before <slug> pattern) ===
+    path('marketplace/', TemplateMarketplaceView.as_view(), name='marketplace'),
+    path('marketplace/<slug:slug>/', TemplateDetailView.as_view(), name='template_detail'),
+    path('marketplace/<slug:slug>/clone/', CloneTemplateView.as_view(), name='clone_template'),
+    path('marketplace/<slug:slug>/rate/', RateTemplateView.as_view(), name='rate_template'),
+    path('ratings/<int:pk>/helpful/', MarkRatingHelpfulView.as_view(), name='rating_helpful'),
     
     # FE-T-002: Tournament Detail Page (includes FE-T-003: CTA states)
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
@@ -195,9 +244,13 @@ urlpatterns = [
     path('<slug:slug>/register/demo/team/<int:step>/', TeamRegistrationDemoView.as_view(), name='registration_demo_team_step'),
     path('<slug:slug>/register/demo/success/', views.RegistrationDemoSuccessView.as_view(), name='registration_demo_success'),
     
-    # FE-T-004: Registration Wizard
-    path('<slug:slug>/register/', TournamentRegistrationView.as_view(), name='register'),
-    path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success'),
+    # FE-T-004: Dynamic Registration System (Production - Form Builder Sprint 1)
+    path('<slug:tournament_slug>/register/', DynamicRegistrationView.as_view(), name='register'),
+    path('<slug:tournament_slug>/register/success/<int:response_id>/', RegistrationSuccessView.as_view(), name='registration_success'),
+    
+    # Legacy Registration (Deprecated - kept for backward compatibility)
+    # path('<slug:slug>/register/', TournamentRegistrationView.as_view(), name='register_legacy'),
+    # path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success_legacy'),
     
     # Sprint 3: Public Live Tournament Experience
     # FE-T-008: Live Bracket View
@@ -237,6 +290,34 @@ urlpatterns = [
     
     # Legacy URL compatibility
     path('hub/', RedirectView.as_view(pattern_name='tournaments:list', permanent=True), name='hub'),
+    
+    # === Form Analytics ===
+    path('<slug:tournament_slug>/analytics/', FormAnalyticsDashboardView.as_view(), name='form_analytics'),
+    path('<slug:tournament_slug>/analytics/api/', FormAnalyticsAPIView.as_view(), name='form_analytics_api'),
+    
+    # === Response Export ===
+    path('<slug:tournament_slug>/export/', ExportResponsesView.as_view(), name='export_responses'),
+    path('<slug:tournament_slug>/export/preview/', ExportPreviewView.as_view(), name='export_preview'),
+    
+    # === Bulk Operations ===
+    path('<slug:tournament_slug>/bulk-action/', BulkActionView.as_view(), name='bulk_action'),
+    path('<slug:tournament_slug>/bulk-action/preview/', BulkActionPreviewView.as_view(), name='bulk_action_preview'),
+    
+    # === Webhooks ===
+    path('<slug:tournament_slug>/webhooks/', WebhookListView.as_view(), name='webhooks'),
+    path('webhooks/<int:webhook_id>/history/', WebhookDeliveryHistoryView.as_view(), name='webhook_history'),
+    path('webhooks/<int:webhook_id>/test/', TestWebhookView.as_view(), name='webhook_test'),
+    
+    # === Registration UX APIs ===
+    path('<slug:tournament_slug>/api/draft/save/', SaveDraftAPIView.as_view(), name='save_draft'),
+    path('<slug:tournament_slug>/api/draft/get/', GetDraftAPIView.as_view(), name='get_draft'),
+    path('<slug:tournament_slug>/api/progress/', GetProgressAPIView.as_view(), name='get_progress'),
+    path('<slug:tournament_slug>/api/validate-field/', ValidateFieldAPIView.as_view(), name='validate_field'),
+    
+    # === Registration Management Dashboard ===
+    path('<slug:tournament_slug>/manage/', RegistrationManagementDashboardView.as_view(), name='registration_dashboard'),
+    path('responses/<int:response_id>/detail/', ResponseDetailAPIView.as_view(), name='response_detail'),
+    path('responses/<int:response_id>/quick-action/', QuickActionAPIView.as_view(), name='quick_action'),
 ]
 
 # Note: Actual tournament management is done through:

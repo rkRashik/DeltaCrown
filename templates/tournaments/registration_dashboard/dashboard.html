@@ -1,0 +1,524 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registration Management - {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Registration Management</h1>
+                    <div class="text-gray-400">
+                        <a href="{% url 'tournaments:organizer_hub' slug=tournament.slug tab='overview' %}" class="hover:text-white">{{ tournament.name }}</a>
+                        <span class="mx-2">/</span>
+                        <span>Manage Registrations</span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <a href="{% url 'tournaments:export_responses' tournament_slug=tournament.slug %}" 
+                       class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold transition">
+                        📥 Export Data
+                    </a>
+                    <a href="{% url 'tournaments:form_analytics' tournament_slug=tournament.slug %}" 
+                       class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold transition">
+                        📊 View Analytics
+                    </a>
+                    <a href="{% url 'tournaments:webhooks' tournament_slug=tournament.slug %}" 
+                       class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded font-semibold transition">
+                        🔔 Webhooks
+                    </a>
+                    <a href="{% url 'tournaments:marketplace' %}" 
+                       class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded font-semibold transition">
+                        🏪 Templates
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="text-gray-400 text-xs mb-1">Total</div>
+                <div class="text-2xl font-bold">{{ stats.total }}</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4">
+                <div class="text-gray-400 text-xs mb-1">Drafts</div>
+                <div class="text-2xl font-bold text-gray-500">{{ stats.drafts }}</div>
+            </div>
+            <div class="bg-blue-900 rounded-lg p-4">
+                <div class="text-blue-300 text-xs mb-1">Submitted</div>
+                <div class="text-2xl font-bold text-blue-400">{{ stats.submitted }}</div>
+            </div>
+            <div class="bg-green-900 rounded-lg p-4">
+                <div class="text-green-300 text-xs mb-1">Approved</div>
+                <div class="text-2xl font-bold text-green-400">{{ stats.approved }}</div>
+            </div>
+            <div class="bg-red-900 rounded-lg p-4">
+                <div class="text-red-300 text-xs mb-1">Rejected</div>
+                <div class="text-2xl font-bold text-red-400">{{ stats.rejected }}</div>
+            </div>
+            <div class="bg-yellow-900 rounded-lg p-4">
+                <div class="text-yellow-300 text-xs mb-1">Paid</div>
+                <div class="text-2xl font-bold text-yellow-400">{{ stats.paid }}</div>
+            </div>
+            <div class="bg-purple-900 rounded-lg p-4">
+                <div class="text-purple-300 text-xs mb-1">Verified</div>
+                <div class="text-2xl font-bold text-purple-400">{{ stats.verified }}</div>
+            </div>
+            <div class="bg-orange-900 rounded-lg p-4">
+                <div class="text-orange-300 text-xs mb-1">Pending</div>
+                <div class="text-2xl font-bold text-orange-400">{{ stats.pending_approval }}</div>
+            </div>
+        </div>
+        
+        <!-- Filters and Bulk Actions -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <form id="filterForm" method="get" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Status Filter -->
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Status</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" name="status" value="draft" 
+                                       {% if 'draft' in current_filters.status %}checked{% endif %}>
+                                <span class="text-sm">Drafts</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" name="status" value="submitted" 
+                                       {% if 'submitted' in current_filters.status %}checked{% endif %}>
+                                <span class="text-sm">Submitted</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" name="status" value="approved" 
+                                       {% if 'approved' in current_filters.status %}checked{% endif %}>
+                                <span class="text-sm">Approved</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="checkbox" name="status" value="rejected" 
+                                       {% if 'rejected' in current_filters.status %}checked{% endif %}>
+                                <span class="text-sm">Rejected</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Filter -->
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Payment Status</label>
+                        <select name="has_paid" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                            <option value="">All</option>
+                            <option value="true" {% if current_filters.has_paid == 'true' %}selected{% endif %}>Paid</option>
+                            <option value="false" {% if current_filters.has_paid == 'false' %}selected{% endif %}>Unpaid</option>
+                        </select>
+                        
+                        <label class="block text-sm font-semibold mb-2 mt-3">Payment Verified</label>
+                        <select name="payment_verified" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                            <option value="">All</option>
+                            <option value="true" {% if current_filters.payment_verified == 'true' %}selected{% endif %}>Verified</option>
+                            <option value="false" {% if current_filters.payment_verified == 'false' %}selected{% endif %}>Unverified</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Date Range -->
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Date From</label>
+                        <input type="date" name="date_from" value="{{ current_filters.date_from }}"
+                               class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        
+                        <label class="block text-sm font-semibold mb-2 mt-3">Date To</label>
+                        <input type="date" name="date_to" value="{{ current_filters.date_to }}"
+                               class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                    </div>
+                    
+                    <!-- Search and Sort -->
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Search</label>
+                        <input type="text" name="search" placeholder="Username or team name..." 
+                               value="{{ current_filters.search }}"
+                               class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                        
+                        <label class="block text-sm font-semibold mb-2 mt-3">Sort By</label>
+                        <select name="sort" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                            <option value="-created_at" {% if current_filters.sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                            <option value="created_at" {% if current_filters.sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                            <option value="-submitted_at" {% if current_filters.sort == '-submitted_at' %}selected{% endif %}>Recently Submitted</option>
+                            <option value="status" {% if current_filters.sort == 'status' %}selected{% endif %}>Status</option>
+                            <option value="user__username" {% if current_filters.sort == 'user__username' %}selected{% endif %}>Username A-Z</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded font-semibold transition">
+                        🔍 Apply Filters
+                    </button>
+                    <a href="{% url 'tournaments:registration_dashboard' tournament.slug %}" 
+                       class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded font-semibold transition">
+                        Clear All
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Bulk Actions Bar -->
+        <div id="bulkActionsBar" class="bg-purple-900 border border-purple-700 rounded-lg p-4 mb-6 hidden">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="font-bold"><span id="selectedCount">0</span> registrations selected</span>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="bulkAction('approve')" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition">
+                        ✅ Approve
+                    </button>
+                    <button onclick="bulkAction('reject')" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition">
+                        ❌ Reject
+                    </button>
+                    <button onclick="bulkAction('verify_payment')" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition">
+                        💰 Verify Payment
+                    </button>
+                    <button onclick="bulkAction('send_notification')" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded transition">
+                        📧 Send Email
+                    </button>
+                    <button onclick="clearSelection()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">
+                        Clear Selection
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Registrations Table -->
+        <div class="bg-gray-800 rounded-lg overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-gray-700">
+                    <tr>
+                        <th class="px-4 py-3 text-left">
+                            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                        </th>
+                        <th class="px-4 py-3 text-left">ID</th>
+                        <th class="px-4 py-3 text-left">User/Team</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Payment</th>
+                        <th class="px-4 py-3 text-left">Submitted</th>
+                        <th class="px-4 py-3 text-left">Created</th>
+                        <th class="px-4 py-3 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for response in responses %}
+                    <tr class="border-b border-gray-700 hover:bg-gray-750">
+                        <td class="px-4 py-3">
+                            <input type="checkbox" class="response-checkbox" value="{{ response.id }}">
+                        </td>
+                        <td class="px-4 py-3 font-mono text-sm">#{{ response.id }}</td>
+                        <td class="px-4 py-3">
+                            <div class="font-semibold">{{ response.user.username|default:"N/A" }}</div>
+                            {% if response.team %}
+                            <div class="text-xs text-gray-400">{{ response.team.name }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if response.status == 'draft' %}
+                            <span class="bg-gray-600 text-gray-300 px-2 py-1 rounded text-xs">Draft</span>
+                            {% elif response.status == 'submitted' %}
+                            <span class="bg-blue-600 text-white px-2 py-1 rounded text-xs">Submitted</span>
+                            {% elif response.status == 'approved' %}
+                            <span class="bg-green-600 text-white px-2 py-1 rounded text-xs">Approved</span>
+                            {% elif response.status == 'rejected' %}
+                            <span class="bg-red-600 text-white px-2 py-1 rounded text-xs">Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if response.payment_verified %}
+                            <span class="text-green-400">✓ Verified</span>
+                            {% elif response.has_paid %}
+                            <span class="text-yellow-400">⏳ Pending</span>
+                            {% else %}
+                            <span class="text-gray-500">Not Paid</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-400">
+                            {{ response.submitted_at|date:"M d, Y"|default:"N/A" }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-400">
+                            {{ response.created_at|date:"M d, Y" }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-2">
+                                <button onclick="viewResponse({{ response.id }})" 
+                                        class="text-blue-400 hover:text-blue-300 text-sm">
+                                    👁️ View
+                                </button>
+                                {% if response.status in 'draft,submitted' %}
+                                <button onclick="quickApprove({{ response.id }})" 
+                                        class="text-green-400 hover:text-green-300 text-sm">
+                                    ✅ Approve
+                                </button>
+                                {% endif %}
+                                {% if response.has_paid and not response.payment_verified %}
+                                <button onclick="quickVerifyPayment({{ response.id }})" 
+                                        class="text-yellow-400 hover:text-yellow-300 text-sm">
+                                    💰 Verify
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-400">
+                            No registrations found matching your filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="flex items-center justify-between mt-6">
+            <div class="text-sm text-gray-400">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} registrations
+            </div>
+            <div class="flex gap-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}" 
+                   class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">Previous</a>
+                {% endif %}
+                
+                <span class="bg-gray-700 px-4 py-2 rounded">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}" 
+                   class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Response Detail Modal -->
+<div id="responseModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div class="flex items-center justify-between p-6 border-b border-gray-700">
+            <h3 class="text-2xl font-bold">Registration Details</h3>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-white text-2xl">×</button>
+        </div>
+        
+        <div class="p-6 overflow-auto max-h-[70vh]" id="responseContent">
+            <div class="text-center text-gray-400 py-8">
+                Loading...
+            </div>
+        </div>
+        
+        <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-700">
+            <button onclick="closeModal()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Selection management
+let selectedResponses = new Set();
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.response-checkbox');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAll.checked;
+        if (selectAll.checked) {
+            selectedResponses.add(parseInt(cb.value));
+        } else {
+            selectedResponses.delete(parseInt(cb.value));
+        }
+    });
+    
+    updateBulkActionsBar();
+}
+
+document.querySelectorAll('.response-checkbox').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            selectedResponses.add(parseInt(e.target.value));
+        } else {
+            selectedResponses.delete(parseInt(e.target.value));
+        }
+        updateBulkActionsBar();
+    });
+});
+
+function updateBulkActionsBar() {
+    const bar = document.getElementById('bulkActionsBar');
+    const count = document.getElementById('selectedCount');
+    
+    count.textContent = selectedResponses.size;
+    
+    if (selectedResponses.size > 0) {
+        bar.classList.remove('hidden');
+    } else {
+        bar.classList.add('hidden');
+    }
+}
+
+function clearSelection() {
+    selectedResponses.clear();
+    document.querySelectorAll('.response-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('selectAll').checked = false;
+    updateBulkActionsBar();
+}
+
+// Bulk actions
+function bulkAction(action) {
+    if (selectedResponses.size === 0) {
+        alert('Please select at least one registration');
+        return;
+    }
+    
+    const confirmMsg = `Are you sure you want to ${action} ${selectedResponses.size} registration(s)?`;
+    if (!confirm(confirmMsg)) return;
+    
+    const formData = new FormData();
+    formData.append('action', action);
+    selectedResponses.forEach(id => formData.append('response_ids[]', id));
+    
+    fetch('{% url "tournaments:bulk_action" tournament.slug %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Successfully ${action}ed ${data.result.approved || data.result.rejected || data.result.verified || 0} registration(s)`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+// Quick actions
+function quickApprove(id) {
+    if (!confirm('Approve this registration?')) return;
+    
+    quickAction(id, 'approve');
+}
+
+function quickVerifyPayment(id) {
+    if (!confirm('Verify payment for this registration?')) return;
+    
+    quickAction(id, 'verify_payment');
+}
+
+function quickAction(id, action) {
+    const formData = new FormData();
+    formData.append('action', action);
+    
+    fetch(`/tournaments/responses/${id}/quick-action/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
+
+// View response details
+function viewResponse(id) {
+    document.getElementById('responseModal').classList.remove('hidden');
+    
+    fetch(`/tournaments/responses/${id}/detail/`)
+        .then(response => response.json())
+        .then(data => {
+            renderResponseDetails(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('responseContent').innerHTML = '<p class="text-red-400">Failed to load response details</p>';
+        });
+}
+
+function renderResponseDetails(data) {
+    let html = '<div class="space-y-4">';
+    
+    // Basic info
+    html += `
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="text-xs text-gray-400">Status</label>
+                <div class="font-bold">${data.status_display}</div>
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">User</label>
+                <div class="font-bold">${data.user ? data.user.username : 'N/A'}</div>
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">Payment Status</label>
+                <div class="font-bold">${data.payment_verified ? '✓ Verified' : (data.has_paid ? '⏳ Pending' : 'Not Paid')}</div>
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">Submitted</label>
+                <div class="font-bold">${data.submitted_at ? new Date(data.submitted_at).toLocaleString() : 'Not submitted'}</div>
+            </div>
+        </div>
+    `;
+    
+    // Form data
+    html += '<h4 class="text-xl font-bold mb-4">Form Responses</h4>';
+    
+    data.form_schema.sections.forEach(section => {
+        html += `<div class="bg-gray-700 rounded p-4 mb-4">`;
+        html += `<h5 class="font-bold mb-3">${section.title}</h5>`;
+        
+        section.fields.forEach(field => {
+            if (field.type !== 'section_header' && field.type !== 'divider') {
+                const value = data.form_data[field.id] || 'N/A';
+                html += `
+                    <div class="mb-3">
+                        <label class="text-xs text-gray-400">${field.label}</label>
+                        <div>${Array.isArray(value) ? value.join(', ') : value}</div>
+                    </div>
+                `;
+            }
+        });
+        
+        html += '</div>';
+    });
+    
+    html += '</div>';
+    
+    document.getElementById('responseContent').innerHTML = html;
+}
+
+function closeModal() {
+    document.getElementById('responseModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

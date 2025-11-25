@@ -16,12 +16,14 @@ Test Count Target: 15+ tests (combined with API tests as per backlog)
 
 import pytest
 from decimal import Decimal
-from datetime import date
+from datetime import date, timedelta
+from django.utils import timezone
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 
 from apps.tournaments.models.tournament import Tournament, Game, CustomField
 from apps.tournaments.services.custom_field_service import CustomFieldService
+from apps.tournaments.services.tournament_service import TournamentService
 
 User = get_user_model()
 
@@ -39,12 +41,15 @@ def organizer(db):
 @pytest.fixture
 def staff_user(db):
     """Create a staff user."""
-    return User.objects.create_user(
+    user = User.objects.create_user(
         username='staffuser',
         email='staff@example.com',
-        password='testpass123',
-        is_staff=True
+        password='testpass123'
     )
+    user.is_staff = True
+    user.is_superuser = True  # Bypass group-based is_staff signal
+    user.save()
+    return user
 
 
 @pytest.fixture
@@ -73,37 +78,43 @@ def game(db):
 @pytest.fixture
 def draft_tournament(db, game, organizer):
     """Create a DRAFT tournament."""
-    return Tournament.objects.create(
-        name='Test Tournament',
-        slug='test-tournament',
-        game=game,
-        organizer=organizer,
-        status=Tournament.DRAFT,
-        format=Tournament.SINGLE_ELIMINATION,
-        max_teams=16,
-        registration_start_date=date(2025, 1, 1),
-        registration_end_date=date(2025, 1, 15),
-        start_date=date(2025, 1, 20),
-        end_date=date(2025, 1, 25)
-    )
+    now = timezone.now()
+    data = {
+        'name': 'Test Tournament',
+        'description': 'Test tournament for custom fields',
+        'game_id': game.id,
+        'format': Tournament.SINGLE_ELIM,
+        'participation_type': Tournament.TEAM,
+        'max_participants': 16,
+        'min_participants': 4,
+        'registration_start': now + timedelta(days=1),
+        'registration_end': now + timedelta(days=7),
+        'tournament_start': now + timedelta(days=10),
+    }
+    return TournamentService.create_tournament(organizer=organizer, data=data)
 
 
 @pytest.fixture
 def published_tournament(db, game, organizer):
     """Create a PUBLISHED tournament."""
-    return Tournament.objects.create(
-        name='Published Tournament',
-        slug='published-tournament',
-        game=game,
-        organizer=organizer,
-        status=Tournament.PUBLISHED,
-        format=Tournament.SINGLE_ELIMINATION,
-        max_teams=16,
-        registration_start_date=date(2025, 1, 1),
-        registration_end_date=date(2025, 1, 15),
-        start_date=date(2025, 1, 20),
-        end_date=date(2025, 1, 25)
-    )
+    now = timezone.now()
+    data = {
+        'name': 'Published Tournament',
+        'description': 'Published tournament for testing',
+        'game_id': game.id,
+        'format': Tournament.SINGLE_ELIM,
+        'participation_type': Tournament.TEAM,
+        'max_participants': 16,
+        'min_participants': 4,
+        'registration_start': now + timedelta(days=1),
+        'registration_end': now + timedelta(days=7),
+        'tournament_start': now + timedelta(days=10),
+    }
+    tournament = TournamentService.create_tournament(organizer=organizer, data=data)
+    # Publish the tournament
+    TournamentService.publish_tournament(tournament_id=tournament.id, user=organizer)
+    tournament.refresh_from_db()
+    return tournament
 
 
 # ============================================================================
