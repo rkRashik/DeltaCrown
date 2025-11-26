@@ -3,94 +3,97 @@
      Section 3.3.2 - Master Plan
      Display: Followers, Following, Tournaments, Win Rate
      ============================================ -->
-<div class="glass-card p-6 space-y-4">
+<div class="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl p-5 md:p-6 
+            hover:border-slate-700/50 transition-all duration-300 shadow-lg hover:shadow-xl">
     
     <!-- Header -->
-    <h3 class="text-white font-bold text-lg uppercase tracking-wide mb-4">Stats</h3>
+    <h3 class="text-white font-bold text-base md:text-lg uppercase tracking-wide mb-4 md:mb-5 
+               flex items-center gap-2">
+        <i class="fas fa-chart-line text-indigo-400"></i>
+        <span>Stats</span>
+    </h3>
     
     <!-- Social Stats Grid -->
-    <div class="grid grid-cols-2 gap-4 pb-4 border-b border-white/5">
+    <div class="grid grid-cols-2 gap-3 md:gap-4 pb-4 md:pb-5 border-b border-slate-800/50">
         
         <!-- Followers -->
-        <a href="{% url 'user_profile:followers_list' profile_user.username %}" class="text-center hover:bg-white/5 rounded-lg py-2 transition-colors">
-            <p class="text-2xl md:text-3xl font-black text-white">{{ follower_count|default:0 }}</p>
-            <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">Followers</p>
+        <a href="{% url 'user_profile:followers_list' profile_user.username %}" 
+           class="text-center hover:bg-slate-800/50 rounded-lg p-3 md:p-4 transition-all duration-200 
+                  group hover:scale-105 active:scale-95">
+            <p class="text-2xl md:text-3xl font-black text-white group-hover:text-indigo-400 transition-colors">
+                {{ follower_count|default:0 }}
+            </p>
+            <p class="text-xs text-slate-400 uppercase tracking-wide mt-1 font-medium">Followers</p>
         </a>
         
         <!-- Following -->
-        <a href="{% url 'user_profile:following_list' profile_user.username %}" class="text-center hover:bg-white/5 rounded-lg py-2 transition-colors">
-            <p class="text-2xl md:text-3xl font-black text-white">{{ following_count|default:0 }}</p>
-            <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">Following</p>
+        <a href="{% url 'user_profile:following_list' profile_user.username %}" 
+           class="text-center hover:bg-slate-800/50 rounded-lg p-3 md:p-4 transition-all duration-200 
+                  group hover:scale-105 active:scale-95">
+            <p class="text-2xl md:text-3xl font-black text-white group-hover:text-purple-400 transition-colors">
+                {{ following_count|default:0 }}
+            </p>
+            <p class="text-xs text-slate-400 uppercase tracking-wide mt-1 font-medium">Following</p>
         </a>
         
     </div>
     
-    <!-- Follow Button (if not own profile) -->
-    {% if not is_own_profile and request.user.is_authenticated %}
-    <div class="pb-4 border-b border-white/5">
-        {% if is_following %}
-        <button onclick="unfollowUser('{{ profile_user.username }}')" 
-                class="w-full px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors">
-            Following
-        </button>
-        {% else %}
-        <button onclick="followUser('{{ profile_user.username }}')" 
-                class="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold transition-all">
-            + Follow
-        </button>
-        {% endif %}
-    </div>
-    {% endif %}
-    
     <!-- Competitive Stats -->
-    <div class="space-y-4 pt-2">
+    <div class="space-y-3 md:space-y-4 pt-4">
         
         <!-- Tournaments Played -->
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-amber-500 text-xl">🏆</span>
+        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-800/30 transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <i class="fas fa-trophy text-amber-400 text-sm"></i>
+                </div>
                 <span class="text-slate-300 text-sm font-semibold">Tournaments</span>
             </div>
-            <span class="text-white text-lg font-black">{{ tournaments_played|default:0 }}</span>
+            <span class="text-white text-lg md:text-xl font-black">{{ tournaments_played|default:0 }}</span>
         </div>
         
-        <!-- Win Rate with Progress Ring -->
-        <div>
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                    <span class="text-emerald-500 text-xl">📈</span>
+        <!-- Win Rate with Progress Bar -->
+        <div class="p-3 rounded-lg hover:bg-slate-800/30 transition-colors">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                        <i class="fas fa-chart-line text-emerald-400 text-sm"></i>
+                    </div>
                     <span class="text-slate-300 text-sm font-semibold">Win Rate</span>
                 </div>
-                <span class="text-white text-lg font-black">{{ win_rate|default:0 }}%</span>
+                <span class="text-white text-lg md:text-xl font-black">{{ win_rate|default:0 }}%</span>
             </div>
             
             <!-- Progress Bar -->
-            <div class="relative w-full h-3 bg-slate-800 rounded-full overflow-hidden">
-                <div class="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+            <div class="relative w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div class="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full 
+                            transition-all duration-700 ease-out"
                      style="width: {{ win_rate|default:0 }}%;">
                 </div>
-                <!-- Shimmer Effect -->
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
             </div>
         </div>
         
         <!-- Total Matches -->
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-indigo-500 text-xl">⚔</span>
+        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-800/30 transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                    <i class="fas fa-gamepad text-indigo-400 text-sm"></i>
+                </div>
                 <span class="text-slate-300 text-sm font-semibold">Total Matches</span>
             </div>
-            <span class="text-white text-lg font-black">{{ total_matches|default:0 }}</span>
+            <span class="text-white text-lg md:text-xl font-black">{{ total_matches|default:0 }}</span>
         </div>
         
         <!-- Total Earnings (if available) -->
         {% if total_earnings %}
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-yellow-500 text-xl">💰</span>
+        <div class="flex items-center justify-between p-3 rounded-lg hover:bg-slate-800/30 transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                    <i class="fas fa-coins text-yellow-400 text-sm"></i>
+                </div>
                 <span class="text-slate-300 text-sm font-semibold">Earnings</span>
             </div>
-            <span class="text-white text-lg font-black">${{ total_earnings|floatformat:0|default:"0" }}</span>
+            <span class="text-white text-lg md:text-xl font-black">${{ total_earnings|floatformat:0|default:"0" }}</span>
         </div>
         {% endif %}
         
@@ -98,9 +101,12 @@
     
     <!-- Empty State -->
     {% if not tournaments_played and not total_matches %}
-    <div class="text-center py-6">
-        <p class="text-slate-500 text-sm">No competitive history yet</p>
-        <p class="text-slate-600 text-xs mt-1">Start playing to build your record!</p>
+    <div class="text-center py-8 px-4">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
+            <i class="fas fa-chart-line text-slate-600 text-2xl"></i>
+        </div>
+        <p class="text-slate-400 text-sm font-medium">No competitive history yet</p>
+        <p class="text-slate-600 text-xs mt-2">Start playing to build your record!</p>
     </div>
     {% endif %}
     

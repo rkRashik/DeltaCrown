@@ -214,3 +214,49 @@ def award_content_creator_badge(user):
     award_badge(user, 'content-creator', context={'timestamp': timezone.now().isoformat()})
     
     logger.info(f"Awarded Content Creator badge to {user.username}")
+
+
+# ============================================================================
+# ACHIEVEMENT SYSTEM SIGNALS
+# Automatically check and award achievements when relevant actions occur
+# ============================================================================
+
+@receiver(post_save, sender='user_profile.Follow')
+def check_achievements_on_follow(sender, instance, created, **kwargs):
+    """Check social achievements when someone gets a new follower"""
+    if created:
+        from apps.user_profile.services.achievement_service import check_social_achievements
+        # Check for the user who was followed (gained a follower)
+        check_social_achievements(instance.following)
+
+
+@receiver(post_save, sender='user_profile.GameProfile')
+def check_achievements_on_game_profile(sender, instance, created, **kwargs):
+    """Check profile achievements when game profiles are added"""
+    if created:
+        from apps.user_profile.services.achievement_service import check_profile_achievements
+        check_profile_achievements(instance.user)
+
+
+@receiver(post_save, sender='user_profile.SocialLink')
+def check_achievements_on_social_link(sender, instance, created, **kwargs):
+    """Check profile achievements when social links are added"""
+    if created:
+        from apps.user_profile.services.achievement_service import check_profile_achievements
+        check_profile_achievements(instance.user)
+
+
+@receiver(post_save, sender='teams.TeamMembership')
+def check_achievements_on_team_join(sender, instance, created, **kwargs):
+    """Check social achievements when joining a team"""
+    if created and instance.status == 'active':
+        from apps.user_profile.services.achievement_service import check_social_achievements
+        check_social_achievements(instance.user)
+
+
+@receiver(post_save, sender=UserProfile)
+def check_achievements_on_kyc_verification(sender, instance, created, **kwargs):
+    """Check profile achievements when KYC is verified"""
+    if not created and instance.kyc_verified:
+        from apps.user_profile.services.achievement_service import check_profile_achievements
+        check_profile_achievements(instance.user)

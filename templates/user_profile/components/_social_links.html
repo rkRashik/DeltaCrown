@@ -28,17 +28,27 @@
            class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-white/5 hover:border-indigo-500/50 transition-all group">
             
             <!-- Platform Icon -->
-            <span class="text-2xl flex-shrink-0 transition-transform group-hover:scale-110">
-                {% if social.platform == 'twitch' %}🟣
-                {% elif social.platform == 'youtube' %}▶
-                {% elif social.platform == 'twitter' %}🐦
-                {% elif social.platform == 'discord' %}💬
-                {% elif social.platform == 'instagram' %}📸
-                {% elif social.platform == 'tiktok' %}🎵
-                {% elif social.platform == 'facebook' %}👤
-                {% else %}🔗
-                {% endif %}
-            </span>
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all group-hover:scale-110
+                {% if social.platform == 'twitch' %}bg-purple-500/10 border border-purple-500/20
+                {% elif social.platform == 'youtube' %}bg-red-500/10 border border-red-500/20
+                {% elif social.platform == 'twitter' %}bg-blue-400/10 border border-blue-400/20
+                {% elif social.platform == 'discord' %}bg-indigo-400/10 border border-indigo-400/20
+                {% elif social.platform == 'instagram' %}bg-pink-500/10 border border-pink-500/20
+                {% elif social.platform == 'tiktok' %}bg-slate-100/10 border border-slate-100/20
+                {% elif social.platform == 'facebook' %}bg-blue-600/10 border border-blue-600/20
+                {% else %}bg-slate-400/10 border border-slate-400/20
+                {% endif %}">
+                <i class="text-lg
+                    {% if social.platform == 'twitch' %}fab fa-twitch text-purple-400
+                    {% elif social.platform == 'youtube' %}fab fa-youtube text-red-500
+                    {% elif social.platform == 'twitter' %}fab fa-twitter text-blue-400
+                    {% elif social.platform == 'discord' %}fab fa-discord text-indigo-400
+                    {% elif social.platform == 'instagram' %}fab fa-instagram text-pink-400
+                    {% elif social.platform == 'tiktok' %}fab fa-tiktok text-white
+                    {% elif social.platform == 'facebook' %}fab fa-facebook text-blue-500
+                    {% else %}fas fa-link text-slate-400
+                    {% endif %}"></i>
+            </div>
             
             <!-- Platform Name & Handle -->
             <div class="flex-1 min-w-0">
@@ -74,23 +84,11 @@
      Alpine.js Modal with Platform Dropdown
      ============================================ -->
 {% if is_own_profile %}
-<div x-data="{ 
+<div x-data="{
         showSocialModal: false,
         selectedPlatform: 'twitch',
         socialUrl: '',
-        socialHandle: '',
-        platforms: {
-            'twitch': { name: 'Twitch', icon: '🟣', placeholder: 'https://twitch.tv/username' },
-            'youtube': { name: 'YouTube', icon: '▶', placeholder: 'https://youtube.com/@username' },
-            'twitter': { name: 'Twitter', icon: '🐦', placeholder: 'https://twitter.com/username' },
-            'discord': { name: 'Discord', icon: '💬', placeholder: 'username#1234 or Discord Server URL' },
-            'instagram': { name: 'Instagram', icon: '📸', placeholder: 'https://instagram.com/username' },
-            'tiktok': { name: 'TikTok', icon: '🎵', placeholder: 'https://tiktok.com/@username' },
-            'facebook': { name: 'Facebook', icon: '👤', placeholder: 'https://facebook.com/username' }
-        },
-        get currentPlatform() {
-            return this.platforms[this.selectedPlatform];
-        }
+        socialHandle: ''
      }"
      @open-social-modal.window="showSocialModal = true"
      @keydown.escape.window="showSocialModal = false"
@@ -137,13 +135,13 @@
                                 x-model="selectedPlatform"
                                 class="glass-input w-full px-4 py-3 pr-10 rounded-lg text-white appearance-none cursor-pointer
                                        focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <option value="twitch">🟣 Twitch</option>
-                            <option value="youtube">▶ YouTube</option>
-                            <option value="twitter">🐦 Twitter</option>
-                            <option value="discord">💬 Discord</option>
-                            <option value="instagram">📸 Instagram</option>
-                            <option value="tiktok">🎵 TikTok</option>
-                            <option value="facebook">👤 Facebook</option>
+                            <option value="twitch">Twitch</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="twitter">Twitter</option>
+                            <option value="discord">Discord</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="facebook">Facebook</option>
                         </select>
                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                             <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +157,7 @@
                     <input type="text" 
                            name="url" 
                            x-model="socialUrl"
-                           :placeholder="currentPlatform.placeholder"
+                           placeholder="Enter your profile URL"
                            required
                            class="glass-input w-full px-4 py-3 rounded-lg text-white placeholder-slate-500 
                                   focus:ring-2 focus:ring-indigo-500 focus:outline-none">

@@ -22,10 +22,8 @@
         mobileTab: 'info',
         
         // State Management
-        isFollowing: false,
+        isFollowing: {{ is_following|yesno:"true,false" }},
         walletBlurred: true,
-        showNotifications: false,
-        notificationCount: {{ unread_notification_count|default:0 }},
         
         // Toast Notification System
         toast: {
@@ -67,10 +65,10 @@
      }">
 
     <!-- ============================================
-         HERO BANNER SECTION (Full Width, 280px)
+         HERO BANNER SECTION (Full Width, Responsive Height)
          Section 3.1.1 - Master Plan
          ============================================ -->
-    <section class="relative w-full h-[280px] overflow-hidden">
+    <section class="relative w-full h-64 md:h-80 lg:h-96 overflow-hidden">
         <!-- Background Image -->
         {% if profile.banner %}
         <img src="{{ profile.banner.url }}" 
@@ -81,27 +79,27 @@
         <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950"></div>
         {% endif %}
         
-        <!-- Gradient Fade (Bottom 120px) -->
-        <div class="absolute bottom-0 left-0 right-0 h-32 hero-fade"></div>
+        <!-- Gradient Fade (Bottom) -->
+        <div class="absolute bottom-0 left-0 right-0 h-24 md:h-32 bg-gradient-to-t from-slate-950 to-transparent"></div>
         
         <!-- Content Layer (Bottom Aligned) -->
         <div class="absolute bottom-0 left-0 right-0 z-10">
-            <div class="container mx-auto px-4 md:px-6 pb-6 max-w-7xl">
-                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div class="container mx-auto px-4 md:px-6 lg:px-8 pb-4 md:pb-6 max-w-7xl">
+                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 md:gap-4">
                     
                     <!-- Left: Avatar + Name + Metadata -->
-                    <div class="flex items-end gap-4 md:gap-6">
+                    <div class="flex items-end gap-3 md:gap-5">
                         <!-- Avatar with Online Ring -->
                         <div class="relative flex-shrink-0">
                             {% if profile.avatar %}
                             <img src="{{ profile.avatar.url }}" 
                                  alt="{{ profile.display_name }}" 
-                                 class="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-slate-950 object-cover
+                                 class="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-full border-4 md:border-[6px] border-slate-950 object-cover shadow-2xl
                                         {% if profile.stream_status %}ring-4 ring-emerald-500 ring-offset-4 ring-offset-slate-950 animate-pulse-border{% endif %}">
                             {% else %}
-                            <div class="w-32 h-32 md:w-40 md:h-40 rounded-full border-[6px] border-slate-950 
+                            <div class="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-full border-4 md:border-[6px] border-slate-950 
                                         bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center 
-                                        text-5xl font-black text-white
+                                        text-3xl md:text-4xl lg:text-5xl font-black text-white shadow-2xl
                                         {% if profile.stream_status %}ring-4 ring-emerald-500 ring-offset-4 ring-offset-slate-950 animate-pulse-border{% endif %}">
                                 {{ profile.display_name|slice:":1"|upper }}
                             </div>
@@ -109,7 +107,7 @@
                             
                             <!-- Live Badge -->
                             {% if profile.stream_status %}
-                            <div class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse-glow">
+                            <div class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold px-2 md:px-3 py-1 rounded-full animate-pulse shadow-lg">
                                 🔴 LIVE
                             </div>
                             {% endif %}
@@ -117,75 +115,81 @@
                         
                         <!-- Name, Username, Level, Team -->
                         <div class="pb-1 md:pb-2">
-                            <div class="flex items-center gap-3 mb-1">
-                                <h1 class="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">
+                            <div class="flex items-center gap-2 md:gap-3 mb-1">
+                                <h1 class="text-2xl md:text-4xl lg:text-5xl font-black text-white uppercase tracking-tight leading-none">
                                     {{ profile.display_name }}
                                 </h1>
                                 {% if profile.is_kyc_verified %}
-                                <span class="text-blue-500 text-2xl md:text-3xl" title="KYC Verified">✓</span>
+                                <span class="text-blue-500 text-xl md:text-2xl lg:text-3xl" title="KYC Verified">✓</span>
                                 {% endif %}
                             </div>
-                            <div class="flex items-center gap-3 text-slate-400 text-sm md:text-base">
+                            <div class="flex items-center gap-2 md:gap-3 text-slate-400 text-xs md:text-sm lg:text-base flex-wrap">
                                 <span>@{{ profile_user.username }}</span>
                                 <span class="text-slate-600">•</span>
                                 <span class="text-amber-400 font-semibold">Lvl {{ profile.level }}</span>
                                 {% if current_teams %}
-                                <span class="text-slate-600 hidden md:inline">•</span>
-                                <span class="hidden md:inline">{{ current_teams.0.team.name }}</span>
+                                <span class="text-slate-600 hidden sm:inline">•</span>
+                                <span class="hidden sm:inline">{{ current_teams.0.team.name }}</span>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Right: Floating Command Deck -->
-                    <div class="flex gap-3 pb-1 md:pb-2 flex-wrap md:flex-nowrap">
+                    <!-- Right: Action Buttons -->
+                    <div class="flex gap-2 md:gap-3 pb-1 md:pb-2 flex-wrap">
                         {% if is_own_profile %}
                             <!-- Owner Actions -->
                             <a href="{% url 'user_profile:settings' %}" 
-                               class="glass-card px-4 md:px-5 py-2 md:py-3 text-sm md:text-base font-semibold text-white hover-lift">
-                                ⚙ <span class="hidden md:inline">Settings</span>
+                               class="btn-primary px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-semibold rounded-lg 
+                                      transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl
+                                      inline-flex items-center gap-2">
+                                <i class="fas fa-cog text-sm md:text-base"></i>
+                                <span class="hidden sm:inline">Settings</span>
+                                <span class="sm:hidden">Edit</span>
                             </a>
                             <button @click="shareProfile()" 
-                                    class="glass-card px-4 md:px-5 py-2 md:py-3 text-sm md:text-base font-semibold text-white hover-lift">
-                                ↗ <span class="hidden md:inline">Share</span>
+                                    class="btn-secondary px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-semibold rounded-lg 
+                                           transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl
+                                           inline-flex items-center gap-2">
+                                <i class="fas fa-share-alt text-sm md:text-base"></i>
+                                <span class="hidden sm:inline">Share</span>
+                            </button>
+                        {% else %}
+                            <!-- Visitor Actions -->
+                            <button @click="toggleFollow()" 
+                                    :disabled="followLoading"
+                                    :class="isFollowing 
+                                            ? 'bg-slate-700 hover:bg-red-600 border-2 border-slate-600 hover:border-red-500' 
+                                            : 'btn-primary'"
+                                    class="px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-semibold rounded-lg 
+                                           transition-all duration-200 shadow-lg hover:shadow-xl
+                                           inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed
+                                           hover:scale-105 active:scale-95">
+                                <i :class="isFollowing ? 'fas fa-user-check' : 'fas fa-user-plus'" class="text-sm md:text-base"></i>
+                                <span x-text="followLoading ? 'Loading...' : (isFollowing ? 'Following' : 'Follow')"></span>
                             </button>
                             
-                            <!-- Notification Bell -->
-                            <div class="relative">
-                                <button @click="showNotifications = !showNotifications" 
-                                        class="glass-card px-4 md:px-5 py-2 md:py-3 text-white hover-lift relative">
-                                    🔔
-                                    <span x-show="notificationCount > 0" 
-                                          x-text="notificationCount"
-                                          class="absolute -top-1 -right-1 w-5 h-5 bg-rose-600 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse-glow"></span>
-                                </button>
-                                
-                                <!-- Notification Dropdown -->
-                                <div x-show="showNotifications" 
-                                     @click.away="showNotifications = false"
-                                     x-transition
-                                     class="absolute top-full right-0 mt-2 w-96 max-h-[500px] overflow-y-auto glass-card border border-slate-700 rounded-xl shadow-2xl z-50"
-                                     style="display: none;">
-                                    <div class="px-4 py-3 border-b border-slate-700">
-                                        <h3 class="text-white font-bold">Notifications</h3>
-                                    </div>
-                                    <div class="px-4 py-8 text-center">
-                                        <p class="text-slate-500 text-sm">All caught up! 🎉</p>
-                                    </div>
-                                </div>
-                            </div>
-                        {% else %}
-                            <!-- Spectator Actions -->
-                            <button @click="toggleFollow()" 
-                                    class="px-5 md:px-6 py-2 md:py-3 text-sm md:text-base font-bold text-white rounded-lg transition-all duration-300 hover-lift"
-                                    :class="isFollowing ? 'bg-slate-700' : 'bg-emerald-600 hover:bg-emerald-500'">
-                                👤 <span x-text="isFollowing ? 'Following' : 'Follow'"></span>
+                            <button class="btn-secondary px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-semibold rounded-lg 
+                                           transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl
+                                           inline-flex items-center gap-2">
+                                <i class="fas fa-envelope text-sm md:text-base"></i>
+                                <span class="hidden sm:inline">Message</span>
                             </button>
-                            <button class="px-5 md:px-6 py-2 md:py-3 text-sm md:text-base font-bold text-white rounded-lg bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 transition-all duration-300 hover-lift">
-                                ⚔ <span class="hidden md:inline">Challenge</span>
+                            
+                            <button @click="shareProfile()" 
+                                    class="btn-secondary px-4 py-2 md:py-2.5 text-sm md:text-base font-semibold rounded-lg 
+                                           transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl
+                                           inline-flex items-center justify-center md:hidden"
+                                    title="Share Profile">
+                                <i class="fas fa-share-alt text-sm"></i>
                             </button>
-                            <button class="glass-card px-4 md:px-5 py-2 md:py-3 text-sm md:text-base font-semibold text-white hover-lift">
-                                💬
+                            
+                            <button @click="shareProfile()" 
+                                    class="btn-secondary px-4 md:px-6 py-2 md:py-2.5 text-sm md:text-base font-semibold rounded-lg 
+                                           transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl
+                                           hidden md:inline-flex items-center gap-2">
+                                <i class="fas fa-share-alt text-sm md:text-base"></i>
+                                <span>Share</span>
                             </button>
                         {% endif %}
                     </div>
@@ -199,16 +203,16 @@
          MAIN CONTENT AREA
          Section 3.1 & 3.2 - Master Plan
          ============================================ -->
-    <div class="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+    <div class="container mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-10">
         
         <!-- ============================================
              DESKTOP LAYOUT: 3-COLUMN GRID
              Hidden on Mobile (md:grid)
              ============================================ -->
-        <div class="hidden md:grid md:grid-cols-12 gap-6">
+        <div class="hidden md:grid md:grid-cols-12 gap-6 lg:gap-8">
             
             <!-- LEFT COLUMN (col-span-3) - Sticky -->
-            <div class="col-span-3 space-y-6 sticky top-6 self-start">
+            <div class="col-span-12 md:col-span-4 lg:col-span-3 space-y-4 lg:space-y-6 md:sticky md:top-6 md:self-start">
                 <!-- Component: Identity Card -->
                 {% include 'user_profile/components/_identity_card.html' %}
                 
@@ -220,9 +224,9 @@
             </div>
             
             <!-- MIDDLE COLUMN (col-span-6) - Scrollable -->
-            <div class="col-span-6 space-y-6">
-                <!-- Component: Trophy Shelf -->
-                {% include 'user_profile/components/_trophy_shelf.html' %}
+            <div class="col-span-12 md:col-span-8 lg:col-span-6 space-y-4 lg:space-y-6">
+                <!-- Component: Current Team(s) -->
+                {% include 'user_profile/components/_team_card.html' %}
                 
                 <!-- Component: Game Passport -->
                 {% include 'user_profile/components/_game_passport.html' %}
@@ -232,9 +236,9 @@
             </div>
             
             <!-- RIGHT COLUMN (col-span-3) - Sticky -->
-            <div class="col-span-3 space-y-6 sticky top-6 self-start">
-                <!-- Component: Current Team -->
-                {% include 'user_profile/components/_team_card.html' %}
+            <div class="hidden lg:block lg:col-span-3 space-y-4 lg:space-y-6 lg:sticky lg:top-6 lg:self-start">
+                <!-- Component: Trophy Shelf (Achievements) -->
+                {% include 'user_profile/components/_trophy_shelf.html' %}
                 
                 <!-- Component: Wallet -->
                 {% include 'user_profile/components/_wallet_card.html' %}
@@ -253,30 +257,30 @@
         <div class="md:hidden">
             
             <!-- Sticky Tab Bar -->
-            <div class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-xl border-b border-white/10 -mx-4 px-4 mb-6">
+            <div class="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-xl border-b border-white/10 -mx-4 px-4 mb-6 shadow-lg">
                 <div class="flex">
                     <button @click="mobileTab = 'info'"
-                            :class="mobileTab === 'info' ? 'border-b-2 border-indigo-500 text-white' : 'text-slate-400'"
-                            class="flex-1 py-4 text-sm font-bold uppercase tracking-wide transition-colors">
-                        Info
+                            :class="mobileTab === 'info' ? 'border-b-2 border-indigo-500 text-white font-bold' : 'text-slate-400'"
+                            class="flex-1 py-4 text-xs md:text-sm font-semibold uppercase tracking-wide transition-all duration-200">
+                        <i class="fas fa-user mr-1"></i> Info
                     </button>
                     <button @click="mobileTab = 'games'"
-                            :class="mobileTab === 'games' ? 'border-b-2 border-indigo-500 text-white' : 'text-slate-400'"
-                            class="flex-1 py-4 text-sm font-bold uppercase tracking-wide transition-colors">
-                        Games
+                            :class="mobileTab === 'games' ? 'border-b-2 border-indigo-500 text-white font-bold' : 'text-slate-400'"
+                            class="flex-1 py-4 text-xs md:text-sm font-semibold uppercase tracking-wide transition-all duration-200">
+                        <i class="fas fa-gamepad mr-1"></i> Games
                     </button>
-                    <button @click="mobileTab = 'career'"
-                            :class="mobileTab === 'career' ? 'border-b-2 border-indigo-500 text-white' : 'text-slate-400'"
-                            class="flex-1 py-4 text-sm font-bold uppercase tracking-wide transition-colors">
-                        Career
+                    <button @click="mobileTab === 'career'"
+                            :class="mobileTab === 'career' ? 'border-b-2 border-indigo-500 text-white font-bold' : 'text-slate-400'"
+                            class="flex-1 py-4 text-xs md:text-sm font-semibold uppercase tracking-wide transition-all duration-200">
+                        <i class="fas fa-trophy mr-1"></i> Career
                     </button>
                 </div>
             </div>
             
             <!-- Mobile Tab Content -->
-            <div class="space-y-6">
+            <div class="space-y-4">
                 <!-- INFO Tab (Identity + Vitals + Socials + Trophies) -->
-                <div x-show="mobileTab === 'info'" class="space-y-6">
+                <div x-show="mobileTab === 'info'" class="space-y-4">
                     {% include 'user_profile/components/_identity_card.html' %}
                     {% include 'user_profile/components/_vital_stats.html' %}
                     {% include 'user_profile/components/_social_links.html' %}
@@ -284,13 +288,13 @@
                 </div>
                 
                 <!-- GAMES Tab (Game Passport + Match History) -->
-                <div x-show="mobileTab === 'games'" class="space-y-6" style="display: none;">
+                <div x-show="mobileTab === 'games'" class="space-y-4" style="display: none;">
                     {% include 'user_profile/components/_game_passport.html' %}
                     {% include 'user_profile/components/_match_history.html' %}
                 </div>
                 
                 <!-- CAREER Tab (Team + Wallet + Certificates) -->
-                <div x-show="mobileTab === 'career'" class="space-y-6" style="display: none;">
+                <div x-show="mobileTab === 'career'" class="space-y-4" style="display: none;">
                     {% include 'user_profile/components/_team_card.html' %}
                     {% include 'user_profile/components/_wallet_card.html' %}
                     {% include 'user_profile/components/_certificates.html' %}

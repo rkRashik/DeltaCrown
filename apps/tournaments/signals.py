@@ -378,6 +378,16 @@ def handle_tournament_completed(sender, instance, created, **kwargs):
         f"Tournament completion notifications sent: tournament_id={instance.id}, "
         f"created={result.get('created', 0)}, email_sent={result.get('email_sent', 0)}"
     )
+    
+    # Auto-generate certificates for top placements
+    try:
+        from apps.user_profile.services.certificate_service import auto_generate_certificates_for_tournament
+        certificates = auto_generate_certificates_for_tournament(instance)
+        logger.info(
+            f"Auto-generated {len(certificates)} certificates for tournament {instance.id}"
+        )
+    except Exception as e:
+        logger.error(f"Failed to auto-generate certificates: {e}")
 
 
 @receiver(pre_save, sender=Tournament)
@@ -395,3 +405,110 @@ def track_tournament_status_change(sender, instance, **kwargs):
             instance._original_status = None
     else:
         instance._original_status = None
+
+
+# ===========================
+# User Profile Match History Integration
+# ===========================
+
+@receiver(post_save, sender=Match)
+def sync_match_to_profile_history(sender, instance, created, **kwargs):
+    """
+    Create user profile Match records when tournament matches complete.
+    This populates the match history section on user profiles.
+    
+    Triggers:
+    - When match state changes to COMPLETED
+    - Creates Match records for both participants (if they are individual users)
+    
+    Note: This is for individual player tournaments. Team tournaments may need
+    different logic to create match records for all team members.
+    """
+    # Only sync completed matches
+    if instance.state != Match.COMPLETED:
+        return
+    
+    # Skip if no winner (shouldn't happen but safety check)
+    if not instance.winner_id:
+        return
+    
+    from apps.user_profile.models import Match as ProfileMatch
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    # Determine if this is a user-based or team-based tournament
+    # For now, we'll assume participant IDs could be user IDs
+    # A more robust solution would check tournament.participation_type
+    
+    participant_ids = []
+    if instance.participant1_id:
+        participant_ids.append(instance.participant1_id)
+    if instance.participant2_id:
+        participant_ids.append(instance.participant2_id)
+    
+    # Try to find users with these IDs
+    for participant_id in participant_ids:
+        try:
+            user = User.objects.get(id=participant_id)
+            
+            # Determine result for this user
+            if instance.winner_id == participant_id:
+                result = 'win'
+                score = instance.participant1_score if participant_id == instance.participant1_id else instance.participant2_score
+                opponent_score = instance.participant2_score if participant_id == instance.participant1_id else instance.participant1_score
+            else:
+                result = 'loss'
+                score = instance.participant1_score if participant_id == instance.participant1_id else instance.participant2_score
+                opponent_score = instance.participant2_score if participant_id == instance.participant1_id else instance.participant1_score
+            
+            # Determine opponent name
+            if participant_id == instance.participant1_id:
+                opponent = instance.participant2_name or f"Player {instance.participant2_id}"
+            else:
+                opponent = instance.participant1_name or f"Player {instance.participant1_id}"
+            
+            # Create or update profile match record
+            ProfileMatch.objects.update_or_create(
+                user=user,
+                context={
+                    'tournament_id': instance.tournament.id,
+                    'match_id': instance.id,
+                    'round': instance.round_number,
+                    'match_number': instance.match_number,
+                },
+                defaults={
+                    'game_name': instance.tournament.game or 'Unknown',
+                    'mode': 'Tournament',
+                    'result': result,
+                    'score': f'{score}-{opponent_score}',
+                    'opponent': opponent,
+                    'duration_minutes': None,  # Could calculate if we track match start/end times
+                    'match_date': instance.updated_at,  # Use match completion time
+                }
+            )
+            
+            logger.info(
+                f"Synced match to profile: user_id={user.id}, match_id={instance.id}, "
+                f"result={result}, tournament={instance.tournament.name}"
+            )
+            
+        except User.DoesNotExist:
+            # Participant is not a user (probably a team), skip
+            logger.debug(
+                f"Skipping match sync for participant {participant_id} - not a user"
+            )
+            continue
+    
+    # Also check and award tournament achievements
+    try:
+        from apps.user_profile.services.achievement_service import check_tournament_achievements
+        
+        # Award achievements to winner
+        try:
+            winner_user = User.objects.get(id=instance.winner_id)
+            check_tournament_achievements(winner_user)
+        except User.DoesNotExist:
+            pass
+        
+    except ImportError:
+        logger.debug("Achievement service not available for match completion")

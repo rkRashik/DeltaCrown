@@ -32,11 +32,11 @@
             <div :class="walletBlurred ? 'filter blur-md select-none' : ''" 
                  class="transition-all duration-300">
                 <p class="text-4xl md:text-5xl font-black text-white mb-1">
-                    {% if wallet %}{{ wallet.cached_balance|floatformat:2 }}{% else %}0.00{% endif %}
-                    <span class="text-2xl text-amber-400">DC</span>
+                    {% if wallet %}{{ wallet.cached_balance|floatformat:0 }}{% else %}0{% endif %}
+                    <span class="text-2xl text-amber-400 font-bold">DC</span>
                 </p>
-                    <p class="text-sm text-slate-400">
-                        ≈ ${% if wallet and usd_equivalent %}{{ usd_equivalent|floatformat:2 }}{% else %}0.00{% endif %} USD
+                <p class="text-sm text-slate-400">
+                    ≈ ${% if wallet %}{{ usd_equivalent|floatformat:2 }}{% else %}0.00{% endif %} USD
                 </p>
             </div>
         </div>
