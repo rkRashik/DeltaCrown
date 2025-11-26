@@ -1,0 +1,126 @@
+<!-- ============================================
+     TEAM CARD COMPONENT
+     Section 3.3.7 - Master Plan
+     Display: Current Team Affiliation
+     Empty State: Free Agent CTA
+     ============================================ -->
+<div class="glass-card p-6">
+    
+    <!-- Header -->
+    <h3 class="text-white font-bold text-lg uppercase tracking-wide mb-4 flex items-center gap-2">
+        <span>👥</span> Team
+    </h3>
+    
+    {% if current_teams %}
+    
+    <!-- Team Display -->
+    {% for team_membership in current_teams|slice:":1" %}
+    <a href="{% url 'teams:detail' team_membership.team.slug %}" 
+       class="block group">
+        
+        <!-- Team Banner/Background -->
+        <div class="relative h-32 rounded-lg overflow-hidden mb-4 bg-gradient-to-br from-indigo-900 to-slate-900">
+            {% if team_membership.team.banner %}
+            <img src="{{ team_membership.team.banner.url }}" 
+                 alt="{{ team_membership.team.name }}" 
+                 class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            {% endif %}
+            
+            <!-- Gradient Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent"></div>
+            
+            <!-- Team Logo (Floating) -->
+            <div class="absolute -bottom-6 left-4">
+                {% if team_membership.team.logo %}
+                <img src="{{ team_membership.team.logo.url }}" 
+                     alt="{{ team_membership.team.name }}" 
+                     class="w-20 h-20 rounded-lg border-4 border-slate-950 bg-slate-900 object-cover 
+                            group-hover:scale-105 transition-transform duration-300">
+                {% else %}
+                <div class="w-20 h-20 rounded-lg border-4 border-slate-950 bg-gradient-to-br from-indigo-600 to-purple-600 
+                            flex items-center justify-center text-3xl font-black text-white">
+                    {{ team_membership.team.name|slice:":1"|upper }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Team Info -->
+        <div class="pt-8 space-y-3">
+            
+            <!-- Team Name -->
+            <div>
+                <h4 class="text-xl font-black text-white group-hover:text-indigo-400 transition-colors">
+                    {{ team_membership.team.name }}
+                </h4>
+                <p class="text-slate-400 text-sm">@{{ team_membership.team.tag|default:team_membership.team.slug }}</p>
+            </div>
+            
+            <!-- Role Badge -->
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-500/30">
+                <span class="text-indigo-400 text-sm">
+                    {% if team_membership.role == 'captain' %}👑
+                    {% elif team_membership.role == 'coach' %}📋
+                    {% else %}⚔
+                    {% endif %}
+                </span>
+                <span class="text-indigo-300 text-xs font-bold uppercase">{{ team_membership.role|default:"Member" }}</span>
+            </div>
+            
+            <!-- Join Date -->
+            <div class="flex items-center gap-2 text-slate-500 text-xs">
+                <span>📅</span>
+                <span>Joined {{ team_membership.joined_at|date:"M Y" }}</span>
+            </div>
+            
+            <!-- Team Stats (if available) -->
+            {% if team_membership.team.wins or team_membership.team.tournaments_won %}
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
+                {% if team_membership.team.wins %}
+                <div class="text-center">
+                    <p class="text-lg font-black text-emerald-400">{{ team_membership.team.wins }}</p>
+                    <p class="text-xs text-slate-500 uppercase">Wins</p>
+                </div>
+                {% endif %}
+                {% if team_membership.team.tournaments_won %}
+                <div class="text-center">
+                    <p class="text-lg font-black text-amber-400">{{ team_membership.team.tournaments_won }}</p>
+                    <p class="text-xs text-slate-500 uppercase">Trophies</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+        </div>
+        
+    </a>
+    {% endfor %}
+    
+    {% else %}
+    
+    <!-- Free Agent State -->
+    <div class="text-center py-8">
+        <div class="text-6xl mb-3 opacity-50">🆓</div>
+        <p class="text-slate-400 text-sm font-semibold mb-1">Free Agent</p>
+        {% if is_own_profile %}
+        <p class="text-slate-600 text-xs mb-4">Join or create a team to compete together</p>
+        <div class="flex flex-col gap-2">
+            <a href="{% url 'teams:browse' %}" 
+               class="px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                      text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
+                🔍 Find a Team
+            </a>
+            <a href="{% url 'teams:create' %}" 
+               class="px-5 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 
+                      text-white text-sm font-bold transition-colors">
+                + Create Team
+            </a>
+        </div>
+        {% else %}
+        <p class="text-slate-600 text-xs">Not currently in a team</p>
+        {% endif %}
+    </div>
+    
+    {% endif %}
+    
+</div>

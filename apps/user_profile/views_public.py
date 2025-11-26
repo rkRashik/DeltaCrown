@@ -6,6 +6,30 @@ from django.db.models import Q, Count
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _should_debug(request=None):
+    """Return True if we should show debug logs for this request.
+    Allow debug output if Django settings.DEBUG or the requesting user is a superuser.
+    """
+    from django.conf import settings as _settings
+    if getattr(_settings, "DEBUG", False):
+        return True
+    if request is None:
+        return False
+    try:
+        return getattr(request, "user", None) and getattr(request.user, "is_superuser", False)
+    except Exception:
+        return False
+
+
+def _debug_log(request, *args, **kwargs):
+    if _should_debug(request):
+        logger.debug(*args, **kwargs)
 
 User = get_user_model()
 
@@ -30,6 +54,15 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
 
     profile = _get_profile(user)
 
+    # Debugging: log request info so we can track public profile requests
+    _debug_log(request, f'public_profile called for username={username}, request.user={request.user}, authenticated={getattr(request.user, "is_authenticated", False)}')
+    _debug_log(request, '\n' + '='*80)
+    _debug_log(request, 'DEBUG: public_profile() called')
+    _debug_log(request, '='*80)
+    _debug_log(request, f"DEBUG [1]: Requested username: {username}")
+    _debug_log(request, f"DEBUG [1]: Request.user: {request.user} (authenticated: {getattr(request.user, 'is_authenticated', False)})")
+    _debug_log(request, f"DEBUG [1]: Request.path: {request.path}")
+
     # If profile exists and is private, render minimal card
     is_private = bool(getattr(profile, "is_private", False))
     if is_private:
@@ -39,6 +72,11 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             "is_private": True,
         })
 
+    # Ownership: whether the current viewer is the profile owner
+    is_own_profile = request.user.is_authenticated and request.user == user
+    _debug_log(request, f"DEBUG [5]: is_own_profile calculated as: {is_own_profile}")
+    _debug_log(request, f"DEBUG [5]: Request User: {request.user} vs Profile User: {user}")
+
     # Field-level toggles
     show_email = bool(getattr(profile, "show_email", False))
     show_phone = bool(getattr(profile, "show_phone", False))
@@ -47,6 +85,9 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     # Optional fields (best-effort)
     phone = getattr(profile, "phone", None)
     socials = getattr(profile, "socials", None)
+
+    # Initialize social_links to prevent UnboundLocalError
+    social_links = []
     ign = getattr(profile, "ign", None)
     riot_id = getattr(profile, "riot_id", None)
     efootball_id = getattr(profile, "efootball_id", None)
@@ -97,6 +138,22 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             # Be resilient to any unexpected data
             social = []
 
+    # Now compute social_links for the template (prefer explicit profile.socials if present)
+    try:
+        if profile and show_socials:
+            if socials:
+                # Profile may store socials as a list or QuerySet-like object
+                try:
+                    social_links = list(socials)
+                except Exception:
+                    social_links = socials
+            else:
+                social_links = social or []
+        else:
+            social_links = []
+    except Exception:
+        social_links = social or []
+
     # Get team memberships for the user
     teams = []
     current_teams = []
@@ -144,7 +201,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 
     except Exception as e:
         # Fail gracefully if team models aren't available
-        print(f"Error loading team data: {e}")
+        logger.warning(f"Error loading team data: {e}")
         teams = []
         current_teams = []
         team_history = []
@@ -159,7 +216,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                     
     except Exception as e:
         # Fail gracefully if tournament models aren't available
-        print(f"Error loading tournament data: {e}")
+        logger.warning(f"Error loading tournament data: {e}")
         tournament_history = []
         upcoming_tournaments = []
     
@@ -174,6 +231,11 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             # Get or create wallet
             wallet, created = DeltaCrownWallet.objects.get_or_create(profile=profile)
             wallet_balance = wallet.cached_balance
+            # Compute USD equivalent for display purposes (simple conversion rate: 1 DC = 0.01 USD)
+            try:
+                usd_equivalent = float(wallet_balance) * 0.01
+            except Exception:
+                usd_equivalent = 0.0
             
             # Get recent transactions
             # NOTE: tournament, registration, match are now IntegerFields, not ForeignKeys
@@ -182,7 +244,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             ).order_by('-created_at')[:10]
             
     except Exception as e:
-        print(f"Error loading economy data: {e}")
+        logger.warning(f"Error loading economy data: {e}")
         wallet_balance = 0
         recent_transactions = []
     
@@ -202,7 +264,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             total_orders = Order.objects.filter(user=profile).count()
             
     except Exception as e:
-        print(f"Error loading ecommerce data: {e}")
+        logger.warning(f"Error loading ecommerce data: {e}")
         recent_orders = []
         total_orders = 0
     
@@ -272,7 +334,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             activity.sort(key=lambda x: x['date'], reverse=True)
                 
     except Exception as e:
-        print(f"Error loading activity data: {e}")
+        logger.warning(f"Error loading activity data: {e}")
         activity = []
 
     # Get game profiles from the new pluggable system
@@ -297,13 +359,18 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
                 is_pinned=True
             ).select_related('badge').order_by('-earned_at')[:5]
     except Exception as e:
-        print(f"Error loading badge data: {e}")
+        logger.warning(f"Error loading badge data: {e}")
         pinned_badges = []
     
     context = {
         "public_user": user,
         "profile": profile,
         "is_private": False,
+            # Aliases expected by templates
+            'profile_user': user,
+            'is_own_profile': is_own_profile,
+            'social_links': social_links,
+            'matches': match_history,
         "show_email": show_email,
         "show_phone": show_phone,
         "show_socials": show_socials,
@@ -327,6 +394,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         "social": social,
         # economy & ecommerce data
         "wallet_balance": wallet_balance,
+        "usd_equivalent": usd_equivalent,
         "recent_transactions": recent_transactions,
         "recent_orders": recent_orders,
         "total_orders": total_orders,
@@ -334,7 +402,32 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         "game_profiles": game_profiles,
         "tournament_stats": tournament_stats,
         "pinned_badges": pinned_badges,
+        'debug': settings.DEBUG,
     }
+
+    # Provide wallet & notification info for owners (best-effort)
+    try:
+        context['unread_notification_count'] = 0
+        context['wallet'] = None
+        context['recent_transactions'] = []
+        if is_own_profile and profile:
+            from apps.notifications.models import Notification
+            # Notification.recipient is a ForeignKey to User, not UserProfile
+            context['unread_notification_count'] = Notification.objects.filter(recipient=user, is_read=False).count()
+            from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+            wallet, created = DeltaCrownWallet.objects.get_or_create(profile=profile)
+            context['wallet'] = wallet
+            context['recent_transactions'] = list(DeltaCrownTransaction.objects.filter(wallet=wallet).order_by('-created_at')[:3])
+    except Exception as e:
+        logger.warning(f"Error loading owner-specific data: {e}")
+        # gracefully ignore missing apps/models
+        context['unread_notification_count'] = context.get('unread_notification_count', 0)
+        context['wallet'] = context.get('wallet', None)
+        context['recent_transactions'] = context.get('recent_transactions', [])
+
+    # Add internal instrumentation variables
+    from django.utils import timezone
+    context['debug_timestamp'] = timezone.now().isoformat()
 
     # Add alias expected by template
     context['profile_user'] = user

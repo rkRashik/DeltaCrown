@@ -156,7 +156,7 @@
 
             <div class="profile-menu-section" role="none">
               <span class="profile-menu-heading" role="presentation">Quick Actions</span>
-              <a class="profile-menu-item" href="/user/u/{{ request.user.username }}/" role="menuitem">View Profile</a>
+              <a class="profile-menu-item" href="{% url 'user_profile:public_profile' request.user.username %}" role="menuitem">View Profile</a>
               <a class="profile-menu-item" href="/teams/" role="menuitem">My Teams</a>
               <a class="profile-menu-item" href="/dashboard/matches/" role="menuitem">My Matches</a>
             </div>

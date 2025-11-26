@@ -1,0 +1,107 @@
+<!-- ============================================
+     VITAL STATISTICS COMPONENT
+     Section 3.3.2 - Master Plan
+     Display: Followers, Following, Tournaments, Win Rate
+     ============================================ -->
+<div class="glass-card p-6 space-y-4">
+    
+    <!-- Header -->
+    <h3 class="text-white font-bold text-lg uppercase tracking-wide mb-4">Stats</h3>
+    
+    <!-- Social Stats Grid -->
+    <div class="grid grid-cols-2 gap-4 pb-4 border-b border-white/5">
+        
+        <!-- Followers -->
+        <a href="{% url 'user_profile:followers_list' profile_user.username %}" class="text-center hover:bg-white/5 rounded-lg py-2 transition-colors">
+            <p class="text-2xl md:text-3xl font-black text-white">{{ follower_count|default:0 }}</p>
+            <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">Followers</p>
+        </a>
+        
+        <!-- Following -->
+        <a href="{% url 'user_profile:following_list' profile_user.username %}" class="text-center hover:bg-white/5 rounded-lg py-2 transition-colors">
+            <p class="text-2xl md:text-3xl font-black text-white">{{ following_count|default:0 }}</p>
+            <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">Following</p>
+        </a>
+        
+    </div>
+    
+    <!-- Follow Button (if not own profile) -->
+    {% if not is_own_profile and request.user.is_authenticated %}
+    <div class="pb-4 border-b border-white/5">
+        {% if is_following %}
+        <button onclick="unfollowUser('{{ profile_user.username }}')" 
+                class="w-full px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-bold transition-colors">
+            Following
+        </button>
+        {% else %}
+        <button onclick="followUser('{{ profile_user.username }}')" 
+                class="w-full px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold transition-all">
+            + Follow
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <!-- Competitive Stats -->
+    <div class="space-y-4 pt-2">
+        
+        <!-- Tournaments Played -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-amber-500 text-xl">🏆</span>
+                <span class="text-slate-300 text-sm font-semibold">Tournaments</span>
+            </div>
+            <span class="text-white text-lg font-black">{{ tournaments_played|default:0 }}</span>
+        </div>
+        
+        <!-- Win Rate with Progress Ring -->
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-emerald-500 text-xl">📈</span>
+                    <span class="text-slate-300 text-sm font-semibold">Win Rate</span>
+                </div>
+                <span class="text-white text-lg font-black">{{ win_rate|default:0 }}%</span>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="relative w-full h-3 bg-slate-800 rounded-full overflow-hidden">
+                <div class="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                     style="width: {{ win_rate|default:0 }}%;">
+                </div>
+                <!-- Shimmer Effect -->
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+            </div>
+        </div>
+        
+        <!-- Total Matches -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-indigo-500 text-xl">⚔</span>
+                <span class="text-slate-300 text-sm font-semibold">Total Matches</span>
+            </div>
+            <span class="text-white text-lg font-black">{{ total_matches|default:0 }}</span>
+        </div>
+        
+        <!-- Total Earnings (if available) -->
+        {% if total_earnings %}
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-yellow-500 text-xl">💰</span>
+                <span class="text-slate-300 text-sm font-semibold">Earnings</span>
+            </div>
+            <span class="text-white text-lg font-black">${{ total_earnings|floatformat:0|default:"0" }}</span>
+        </div>
+        {% endif %}
+        
+    </div>
+    
+    <!-- Empty State -->
+    {% if not tournaments_played and not total_matches %}
+    <div class="text-center py-6">
+        <p class="text-slate-500 text-sm">No competitive history yet</p>
+        <p class="text-slate-600 text-xs mt-1">Start playing to build your record!</p>
+    </div>
+    {% endif %}
+    
+</div>

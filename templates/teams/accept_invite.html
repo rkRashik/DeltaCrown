@@ -206,7 +206,7 @@ async function handleAccept() {
     
     // Check for game ID if needed
     if (inviteData.teamGame && !inviteData.hasGameId && window.gameIDPrompt) {
-        console.log('[InviteAccept] User missing game ID, showing prompt');
+        dcLog('[InviteAccept] User missing game ID, showing prompt');
         
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
@@ -215,13 +215,13 @@ async function handleAccept() {
             const success = await window.gameIDPrompt.prompt(inviteData.teamGame);
             
             if (!success) {
-                console.log('[InviteAccept] User cancelled game ID prompt');
+                dcLog('[InviteAccept] User cancelled game ID prompt');
                 btn.disabled = false;
                 btn.innerHTML = originalText;
                 return;
             }
             
-            console.log('[InviteAccept] Game ID saved, proceeding with accept');
+            dcLog('[InviteAccept] Game ID saved, proceeding with accept');
         } catch (error) {
             console.error('[InviteAccept] Error showing game ID prompt:', error);
             btn.disabled = false;

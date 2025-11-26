@@ -66,14 +66,18 @@ urlpatterns = [
     # Phase G: Spectator Live Views (public read-only tournament/match pages)
     path("spectator/", include(("apps.spectator.urls", "spectator"), namespace="spectator")),
 
-    # User profile — include ONCE with namespace & prefix invariant
-    path("user/", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
+    # CRITICAL FIX: User profile URLs at ROOT level (no prefix) to support @username/ pattern
+    # Phase 4: Modern profile system with @ prefix requires root-level mounting
+    path("", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
+    # Backwards-compatibility routes: legacy URLs should redirect to modern routes
+    path("user/u/<str:username>/", RedirectView.as_view(pattern_name="user_profile:public_profile", permanent=True)),
+    path("user/me/settings/", RedirectView.as_view(pattern_name="user_profile:settings", permanent=True)),
 
     # Optional extras mounted if present
     path("notifications/", include("apps.notifications.urls")) if import_module else None,
     path("", include("apps.dashboard.urls")),
     path("crownstore/", include(("apps.ecommerce.urls", "ecommerce"), namespace="ecommerce")),
-    path("", include("apps.economy.urls")),
+    path("", include(("apps.economy.urls", "economy"), namespace="economy")),
     path("ckeditor5/", include("django_ckeditor_5.urls")),
     path("players/<str:username>/", player_views.player_detail, name="player_detail"),
     path("search/", search_views.search, name="search"),

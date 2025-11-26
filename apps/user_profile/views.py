@@ -2,16 +2,41 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.http import JsonResponse
 
 from django.views.generic import UpdateView
 from django.urls import reverse_lazy
 from django import forms
 from django.shortcuts import get_object_or_404, render, redirect
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from .models import UserProfile
 from .forms import UserProfileForm
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _should_debug(request=None):
+    """Return True if we should print debug logs for this request.
+    We allow debug logs if Django settings.DEBUG is True or the request user is a superuser.
+    """
+    from django.conf import settings as _settings
+    if getattr(_settings, "DEBUG", False):
+        return True
+    if request is None:
+        return False
+    try:
+        return getattr(request, "user", None) and getattr(request.user, "is_superuser", False)
+    except Exception:
+        return False
+
+
+def _debug_log(request, *args, **kwargs):
+    if _should_debug(request):
+        logger.debug(*args, **kwargs)
 
 
 def _get_upcoming_matches_for_user(user, limit=5):
@@ -89,209 +114,277 @@ User = get_user_model()
 
 @login_required  
 def profile_view(request, username=None):
+    """
+    Main profile view - displays user profile with all components.
+    Phase 3 Implementation - Full backend integration.
+    Phase 4 Fix: Corrected user lookup and profile access.
+    DEBUG MODE: Extensive logging enabled.
+    """
+    import datetime
+    from django.utils import timezone
+    
+    _debug_log(request, "profile_view() called")
+    _debug_log(request, "" + "="*80)
+    _debug_log(request, f"DEBUG [1]: Requested username: {username}")
+    _debug_log(request, f"DEBUG [1]: Request.user: {request.user} (authenticated: {request.user.is_authenticated})")
+    _debug_log(request, f"DEBUG [1]: Request.path: {request.path}")
+    
+    # Determine which user's profile to show
     if username is None:
-        # If no username provided, show current user's profile
-        user = request.user
-    else:
-        user = get_object_or_404(User, username=username)
-    profile = getattr(user, "userprofile", None) or getattr(user, "profile", None)
+        _debug_log(request, "DEBUG [2]: No username provided, redirecting to own profile")
+        from django.shortcuts import redirect
+        return redirect('user_profile:profile', username=request.user.username)
+    
+    # Get the user being viewed
+    profile_user = get_object_or_404(User, username=username)
+    _debug_log(request, f"DEBUG [3]: Found User: {profile_user} (ID: {profile_user.id})")
+    _debug_log(request, f"DEBUG [3]: Profile User Email: {profile_user.email}")
+    
+    # Get the UserProfile instance (related_name='profile')
+    try:
+        profile = profile_user.profile
+        _debug_log(request, f"DEBUG [4]: Profile found: {profile} (ID: {profile.id})")
+        _debug_log(request, f"DEBUG [4]: Profile.display_name: {profile.display_name}")
+        _debug_log(request, f"DEBUG [4]: Profile.bio: {profile.bio[:50] if profile.bio else 'None'}...")
+    except UserProfile.DoesNotExist:
+        _debug_log(request, "DEBUG [4]: Profile does NOT exist, creating new one...")
+        # Create profile if it doesn't exist
+        profile = UserProfile.objects.create(user=profile_user)
+        _debug_log(request, f"DEBUG [4]: Profile created: {profile}")
 
     # Check if viewing own profile
-    is_own_profile = request.user.is_authenticated and request.user == user
-
-    # Try showing user's upcoming matches widget on their private dashboard/profile page
-    upcoming = _get_upcoming_matches_for_user(user, limit=5)
+    is_own_profile = request.user.is_authenticated and request.user == profile_user
+    _debug_log(request, f"DEBUG [5]: Request User: {request.user} vs Profile User: {profile_user}")
+    _debug_log(request, f"DEBUG [5]: is_own_profile calculated as: {is_own_profile}")
+    try:
+        _debug_log(request, f"DEBUG [5]: Comparison: {request.user.id} == {profile_user.id} ? {request.user.id == profile_user.id}")
+    except Exception:
+        _debug_log(request, 'DEBUG [5]: Request.user may not have id attribute (Anonymous)')
     
-    # Get team information
-    teams = []
+    # ===== IDENTITY CARD DATA =====
+    # Uses: profile.bio, profile.country, profile.city, profile.pronouns, 
+    #       profile.age, profile.show_age (from property and PrivacySettings)
+    
+    # ===== VITAL STATS =====
+    from apps.user_profile.models import Follow
+    
+    # Calculate real follower/following counts from Follow model
+    follower_count = Follow.objects.filter(following=profile_user).count()
+    following_count = Follow.objects.filter(follower=profile_user).count()
+    is_following = False
+    if request.user.is_authenticated and not is_own_profile:
+        is_following = Follow.objects.filter(follower=request.user, following=profile_user).exists()
+    
+    tournaments_played = 0
+    total_matches = 0
+    win_rate = 0
+    total_earnings = 0
+    
+    if profile:
+        # Follower/Following (placeholder - implement social system later)
+        try:
+            follower_count = profile.followers.count() if hasattr(profile, 'followers') else 0
+            following_count = profile.following.count() if hasattr(profile, 'following') else 0
+        except Exception as e:
+            logger.warning(f"Error reading follower/following counts: {e}")
+            follower_count = 0
+            following_count = 0
+        
+        # Tournaments (placeholder - link to tournament system)
+        try:
+            tournaments_played = profile.tournament_participations.count()
+        except Exception as e:
+            logger.warning(f"Error reading tournaments_played: {e}")
+            tournaments_played = 0
+        
+        # Match stats
+        try:
+            from apps.user_profile.models import Match
+            total_matches = Match.objects.filter(user=profile_user).count()
+            if total_matches > 0:
+                wins = Match.objects.filter(user=profile_user, result='win').count()
+                win_rate = int((wins / total_matches) * 100)
+        except Exception as e:
+            logger.warning(f"Error reading match stats: {e}")
+            total_matches = 0
+            win_rate = 0
+        
+        # Earnings (use total_earnings property from Phase 3)
+        try:
+            total_earnings = profile.total_earnings if hasattr(profile, 'total_earnings') else 0
+        except Exception as e:
+            logger.warning(f"Error reading total earnings: {e}")
+            total_earnings = 0
+    
+    # ===== SOCIAL LINKS =====
+    social_links = []
+    if profile:
+        try:
+            from apps.user_profile.models import SocialLink
+            social_links = SocialLink.objects.filter(user=profile_user).order_by('platform')
+            _debug_log(request, f"DEBUG [6]: Social Links Count: {social_links.count()}")
+            if social_links.exists():
+                _debug_log(request, f"DEBUG [6]: First Social Link: {social_links.first().platform} - {social_links.first().url}")
+        except Exception as e:
+            logger.warning(f"DEBUG [6]: Error loading social links: {e}")
+            social_links = []
+    
+    # ===== TROPHY SHELF (ACHIEVEMENTS) =====
+    achievements = []
+    if profile:
+        try:
+            from apps.user_profile.models import Achievement
+            achievements = Achievement.objects.filter(user=profile_user).order_by('-earned_at')
+            _debug_log(request, f"DEBUG [7]: Achievements Count: {achievements.count()}")
+        except Exception as e:
+            logger.warning(f"DEBUG [7]: Error loading achievements: {e}")
+            achievements = []
+    
+    # ===== GAME PASSPORT =====
+    game_profiles = []
+    if profile:
+        try:
+            from apps.user_profile.models import GameProfile
+            game_profiles = GameProfile.objects.filter(user=profile_user).order_by('-updated_at')
+            _debug_log(request, f"DEBUG [8]: Game Profiles Count: {game_profiles.count()}")
+            if game_profiles.exists():
+                _debug_log(request, f"DEBUG [8]: First Game: {game_profiles.first().game} - {game_profiles.first().in_game_name}")
+        except Exception as e:
+            logger.warning(f"DEBUG [8]: Error loading game profiles: {e}")
+            game_profiles = []
+    
+    # ===== MATCH HISTORY =====
+    matches = []
+    if profile:
+        try:
+            from apps.user_profile.models import Match
+            matches = Match.objects.filter(user=profile_user).order_by('-played_at')[:5]
+            _debug_log(request, f"DEBUG [9]: Match History Count: {matches.count()}")
+        except Exception as e:
+            logger.warning(f"DEBUG [9]: Error loading match history: {e}")
+            matches = []
+    
+    # ===== TEAM CARD =====
     current_teams = []
-    
-    try:
-        if profile:
+    if profile:
+        try:
             from apps.teams.models import TeamMembership
-            
-            # Get active team memberships
             active_memberships = TeamMembership.objects.filter(
-                profile=profile, 
-                status=TeamMembership.Status.ACTIVE
+                profile=profile,
+                status='ACTIVE'
             ).select_related('team').order_by('-joined_at')
-            
-            for membership in active_memberships:
-                team_data = {
-                    'team': membership.team,
-                    'role': membership.get_role_display(),
-                    'role_code': membership.role,
-                    'joined_at': membership.joined_at,
-                    'is_captain': membership.role == TeamMembership.Role.CAPTAIN,
-                    'game': membership.team.get_game_display() if membership.team.game else None,
-                    'logo_url': membership.team.logo.url if membership.team.logo else None,
-                }
-                current_teams.append(team_data)
-                teams.append(team_data)
-                
-    except Exception as e:
-        print(f"Error loading team data: {e}")
-        teams = []
-        current_teams = []
-
-    # Get economy information
-    wallet_balance = 0
-    recent_transactions = []
+            current_teams = list(active_memberships)
+            _debug_log(request, f"DEBUG [10]: Current Teams Count: {len(current_teams)}")
+        except Exception as e:
+            logger.warning(f"DEBUG [10]: Error loading team data: {e}")
+            logger.warning(f"DEBUG [10]: Exception type: {type(e).__name__}")
+            current_teams = []
     
-    try:
-        if profile:
+    # ===== WALLET (OWNER ONLY) =====
+    wallet = None
+    recent_transactions = []
+    usd_equivalent = 0
+    if is_own_profile and profile:
+        _debug_log(request, f"DEBUG [11]: Loading wallet for owner...")
+        try:
             from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
-            
-            # Get or create wallet
             wallet, created = DeltaCrownWallet.objects.get_or_create(profile=profile)
-            wallet_balance = wallet.cached_balance
+            _debug_log(request, f"DEBUG [11]: Wallet Object: {wallet} (Balance: {wallet.cached_balance if wallet else 'N/A'})")
+            _debug_log(request, f"DEBUG [11]: Wallet Created: {created}")
             
-            # Get recent transactions
-            # NOTE: tournament, registration, match are now IntegerFields, not ForeignKeys
+            # Compute USD equivalent (1 DC = $0.10 as per Phase 3 spec)
+            if wallet and wallet.cached_balance:
+                usd_equivalent = float(wallet.cached_balance) * 0.10
+            
             recent_transactions = DeltaCrownTransaction.objects.filter(
                 wallet=wallet
-            ).order_by('-created_at')[:10]
-            
-    except Exception as e:
-        print(f"Error loading economy data: {e}")
-        wallet_balance = 0
-        recent_transactions = []
+            ).order_by('-created_at')[:3]
+            _debug_log(request, f"DEBUG [11]: Recent Transactions Count: {recent_transactions.count()}")
+        except Exception as e:
+            logger.warning(f"DEBUG [11]: Error loading wallet data: {e}")
+            logger.warning(f"DEBUG [11]: Exception type: {type(e).__name__}")
+            wallet = None
+            recent_transactions = []
+    else:
+        _debug_log(request, f"DEBUG [11]: Wallet NOT loaded (is_own_profile={is_own_profile})")
     
-    # Get ecommerce information  
-    recent_orders = []
-    total_orders = 0
+    # ===== CERTIFICATES =====
+    certificates = []
+    if profile:
+        try:
+            from apps.user_profile.models import Certificate
+            certificates = Certificate.objects.filter(user=profile_user).order_by('-issued_at')
+        except Exception as e:
+            logger.warning(f"Error loading certificates: {e}")
+            certificates = []
     
-    try:
-        if profile:
-            from apps.ecommerce.models import Order
-            
-            # Get recent orders
-            recent_orders = Order.objects.filter(
-                user=profile
-            ).prefetch_related('items__product').order_by('-created_at')[:5]
-            
-            total_orders = Order.objects.filter(user=profile).count()
-            
-    except Exception as e:
-        print(f"Error loading ecommerce data: {e}")
-        recent_orders = []
-        total_orders = 0
+    # ===== NOTIFICATIONS (OWNER ONLY) =====
+    unread_notification_count = 0
+    if is_own_profile:
+        try:
+            from apps.notifications.models import Notification
+            # Notification.recipient expects a User not a UserProfile
+            unread_notification_count = Notification.objects.filter(
+                recipient=profile_user,
+                is_read=False
+            ).count()
+            _debug_log(request, f"DEBUG [12]: Unread Notifications: {unread_notification_count}")
+        except Exception as e:
+            logger.warning(f"Error loading notifications: {e}")
+            unread_notification_count = 0
     
-    # Get badges and gamification data
-    earned_badges = []
-    pinned_badges = []
-    total_badges = 0
-    badge_stats = {}
+    # ===== CONTEXT FOR TEMPLATE =====
+    _debug_log(request, "\nDEBUG [13]: Building context dictionary...")
+    _debug_log(request, f"  - profile_user: {profile_user}")
+    _debug_log(request, f"  - profile: {profile}")
+    _debug_log(request, f"  - is_own_profile: {is_own_profile}")
+    _debug_log(request, f"  - social_links: {len(list(social_links))} items")
+    _debug_log(request, f"  - game_profiles: {len(list(game_profiles))} items")
+    _debug_log(request, f"  - achievements: {len(list(achievements))} items")
+    _debug_log(request, f"  - matches: {len(list(matches))} items")
+    _debug_log(request, f"  - wallet: {wallet}")
+    _debug_log(request, f"  - current_teams: {len(current_teams)} items")
     
-    try:
-        if profile:
-            from apps.user_profile.models import UserBadge, Badge
-            
-            # Get all earned badges
-            earned_badges = UserBadge.objects.filter(
-                user=user
-            ).select_related('badge').order_by('-earned_at')
-            
-            total_badges = earned_badges.count()
-            
-            # Get pinned badges
-            pinned_badges = profile.get_pinned_badges()
-            
-            # Calculate badge statistics
-            badge_stats = {
-                'total': total_badges,
-                'common': earned_badges.filter(badge__rarity='common').count(),
-                'rare': earned_badges.filter(badge__rarity='rare').count(),
-                'epic': earned_badges.filter(badge__rarity='epic').count(),
-                'legendary': earned_badges.filter(badge__rarity='legendary').count(),
-            }
-            
-    except Exception as e:
-        print(f"Error loading badge data: {e}")
-        earned_badges = []
-        pinned_badges = []
-        total_badges = 0
-        badge_stats = {}
-    
-    # Get privacy settings
-    privacy_settings = None
-    try:
-        if profile:
-            from apps.user_profile.models import PrivacySettings
-            privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
-    except Exception as e:
-        print(f"Error loading privacy settings: {e}")
-        privacy_settings = None
-    
-    # Get verification status
-    verification_record = None
-    try:
-        if profile:
-            from apps.user_profile.models import VerificationRecord
-            verification_record = VerificationRecord.objects.filter(user_profile=profile).first()
-    except Exception as e:
-        print(f"Error loading verification data: {e}")
-        verification_record = None
-    
-    # Get game profiles from the new pluggable system
-    game_profiles = []
-    if profile and profile.game_profiles:
-        game_profiles = profile.game_profiles
-    
-    # Calculate tournament stats (placeholder for now)
-    tournament_stats = {
-        'total_wins': 0,
-        'total_tournaments': 0,
-        'win_rate': 0
+    context = {
+        'profile_user': profile_user,
+        'profile': profile,
+        'user_profile': profile,  # COMPATIBILITY: Template may use either name
+        'is_own_profile': is_own_profile,
+        'is_following': is_following,
+        
+        # Force template refresh
+        'current_time': timezone.now(),
+        'debug_timestamp': datetime.datetime.now().isoformat(),
+        
+        # Vital Stats
+        'follower_count': follower_count,
+        'following_count': following_count,
+        'tournaments_played': tournaments_played,
+        'total_matches': total_matches,
+        'win_rate': win_rate,
+        'total_earnings': total_earnings,
+        
+        # Components
+        'social_links': social_links,
+        'achievements': achievements,
+        'game_profiles': game_profiles,
+        'matches': matches,
+        'current_teams': current_teams,
+        'wallet': wallet,
+        'recent_transactions': recent_transactions,
+        'usd_equivalent': usd_equivalent,
+        'certificates': certificates,
+        
+        # Notifications
+        'unread_notification_count': unread_notification_count,
+        'debug': settings.DEBUG,
     }
     
-    # Social links
-    social = []
-    if profile and profile.show_socials:
-        try:
-            if profile.youtube_link:
-                social.append({"platform": "YouTube", "handle": "", "url": profile.youtube_link})
-            if profile.twitch_link:
-                social.append({"platform": "Twitch", "handle": "", "url": profile.twitch_link})
-            if profile.discord_id:
-                social.append({"platform": "Discord", "handle": profile.discord_id, "url": f"https://discord.com/users/{profile.discord_id}"})
-            if profile.facebook:
-                social.append({"platform": "Facebook", "handle": "", "url": profile.facebook})
-            if profile.instagram:
-                social.append({"platform": "Instagram", "handle": "", "url": profile.instagram})
-            if profile.twitter:
-                social.append({"platform": "Twitter", "handle": "", "url": profile.twitter})
-        except Exception as e:
-            print(f"Error loading social links: {e}")
-            social = []
-
-    return render(
-        request,
-        "user_profile/profile.html",
-        {
-            "profile_user": user,
-            "profile": profile,
-            "is_own_profile": is_own_profile,
-            "upcoming_matches": upcoming,
-            "teams": teams,
-            "current_teams": current_teams,
-            "wallet_balance": wallet_balance,
-            "recent_transactions": recent_transactions,
-            "recent_orders": recent_orders,
-            "total_orders": total_orders,
-            "earned_badges": earned_badges,
-            "pinned_badges": pinned_badges,
-            "total_badges": total_badges,
-            "badge_stats": badge_stats,
-            "privacy_settings": privacy_settings,
-            "verification_record": verification_record,
-            "game_profiles": game_profiles,
-            "tournament_stats": tournament_stats,
-            "social": social,
-            "match_history": [],
-            "tournament_history": [],
-        },
-    )
+    _debug_log(request, "\nDEBUG [14]: Context dictionary complete")
+    _debug_log(request, "DEBUG [14]: Rendering template: user_profile/profile.html")
+    _debug_log(request, "="*80 + "\n")
+    
+    return render(request, 'user_profile/profile.html', context)
 
 
 @login_required
@@ -489,6 +582,10 @@ def settings_view(request):
     # Get verification record if exists
     verification_record = VerificationRecord.objects.filter(user_profile=profile).first()
     
+    # Get existing game profiles
+    from .models import GameProfile
+    game_profiles = GameProfile.objects.filter(user=request.user).order_by('game')
+    
     if request.method == 'POST':
         # Handle profile updates
         try:
@@ -561,9 +658,13 @@ def settings_view(request):
                 changed = True
 
             if changed:
-                profile.save()
+                try:
+                    profile.save()
+                except Exception as e:
+                    logger.warning(f"Error saving profile data: {e}")
+
         except Exception as e:
-            print(f"Error saving profile data: {e}")
+            logger.warning(f"Error handling profile update POST: {e}")
 
         # Handle privacy settings POST
         try:
@@ -581,7 +682,7 @@ def settings_view(request):
             privacy_settings.save()
             profile.save()
         except Exception as e:
-            print(f"Error saving privacy settings: {e}")
+            logger.warning(f"Error saving privacy settings: {e}")
 
         messages.success(request, 'Your settings have been updated.')
         return redirect('user_profile:settings')
@@ -590,8 +691,370 @@ def settings_view(request):
         'profile': profile,
         'privacy_settings': privacy_settings,
         'verification_record': verification_record,
+        'game_profiles': game_profiles,
     }
 
     return render(request, 'user_profile/settings.html', context)
+
+
+# ============================================================================
+# PHASE 3: MODAL ACTION VIEWS
+# ============================================================================
+
+@login_required
+def update_bio(request):
+    """
+    Handle bio update from Edit Bio modal.
+    Frontend: _identity_card.html edit bio modal
+    """
+    if request.method == 'POST':
+        bio = request.POST.get('bio', '').strip()
+        
+        # Validate length (500 char limit enforced by frontend)
+        if len(bio) > 500:
+            messages.error(request, 'Bio must be 500 characters or less.')
+            return redirect('user_profile:profile', username=request.user.username)
+        
+        profile = request.user.profile
+        profile.bio = bio
+        profile.save(update_fields=['bio', 'updated_at'])
+        
+        messages.success(request, 'Bio updated successfully!')
+    
+    return redirect('user_profile:profile', username=request.user.username)
+
+
+@login_required
+def add_social_link(request):
+    """
+    Handle social link addition from Add Social Link modal.
+    Frontend: _social_links.html add social modal
+    """
+    if request.method == 'POST':
+        from apps.user_profile.models import SocialLink
+        
+        platform = request.POST.get('platform', '').strip()
+        url = request.POST.get('url', '').strip()
+        handle = request.POST.get('handle', '').strip()
+        
+        # Validate required fields
+        if not platform or not url:
+            messages.error(request, 'Platform and URL are required.')
+            return redirect('user_profile:profile', username=request.user.username)
+        
+        try:
+            # Update or create social link
+            social_link, created = SocialLink.objects.update_or_create(
+                user=request.user,
+                platform=platform,
+                defaults={
+                    'url': url,
+                    'handle': handle,
+                }
+            )
+            
+            if created:
+                messages.success(request, f'{social_link.get_platform_display()} link added successfully!')
+            else:
+                messages.success(request, f'{social_link.get_platform_display()} link updated successfully!')
+                
+        except ValidationError as e:
+            messages.error(request, str(e))
+        except Exception as e:
+            messages.error(request, f'Error adding social link: {str(e)}')
+    
+    return redirect('user_profile:profile', username=request.user.username)
+
+
+@login_required
+def add_game_profile(request):
+    """
+    Handle game profile addition from Add Game Profile modal or settings page.
+    Frontend: _game_passport.html add game modal OR settings page form
+    """
+    if request.method == 'POST':
+        from apps.user_profile.models import GameProfile
+        
+        game = request.POST.get('game', '').strip()
+        in_game_name = request.POST.get('in_game_name', '').strip()
+        rank_name = request.POST.get('rank_name', '').strip()
+        main_role = request.POST.get('main_role', '').strip()
+        
+        # Determine redirect target (settings or profile)
+        redirect_to = request.POST.get('redirect_to', 'profile')
+        
+        # Validate required fields
+        if not game or not in_game_name:
+            messages.error(request, 'Game and in-game username are required.')
+            if redirect_to == 'settings':
+                return redirect('user_profile:settings')
+            return redirect('user_profile:profile', username=request.user.username)
+        
+        try:
+            # Check if this game already exists for this user
+            existing = GameProfile.objects.filter(user=request.user, game=game).first()
+            if existing:
+                messages.warning(request, f'You already have a {existing.game_display_name} profile. Edit it instead.')
+                if redirect_to == 'settings':
+                    return redirect('user_profile:settings')
+                return redirect('user_profile:profile', username=request.user.username)
+            
+            # Create new game profile
+            game_profile = GameProfile.objects.create(
+                user=request.user,
+                game=game,
+                in_game_name=in_game_name,
+                rank_name=rank_name,
+                main_role=main_role,
+            )
+            
+            messages.success(request, f'{game_profile.game_display_name} profile added successfully!')
+                
+        except Exception as e:
+            messages.error(request, f'Error adding game profile: {str(e)}')
+        
+        if redirect_to == 'settings':
+            return redirect('user_profile:settings')
+        return redirect('user_profile:profile', username=request.user.username)
+    
+    # GET request - redirect to appropriate page
+    return redirect('user_profile:settings')
+
+
+@login_required
+def edit_game_profile(request, profile_id):
+    """
+    Handle game profile editing from settings page.
+    GET: Show edit form (or redirect to settings with modal data)
+    POST: Update game profile
+    """
+    from apps.user_profile.models import GameProfile
+    
+    # Get the game profile or 404
+    game_profile = get_object_or_404(GameProfile, id=profile_id, user=request.user)
+    
+    if request.method == 'POST':
+        in_game_name = request.POST.get('in_game_name', '').strip()
+        rank_name = request.POST.get('rank_name', '').strip()
+        main_role = request.POST.get('main_role', '').strip()
+        
+        # Validate
+        if not in_game_name:
+            messages.error(request, 'In-game username is required.')
+            return redirect('user_profile:settings')
+        
+        try:
+            # Update fields
+            game_profile.in_game_name = in_game_name
+            game_profile.rank_name = rank_name
+            game_profile.main_role = main_role
+            game_profile.save()
+            
+            messages.success(request, f'{game_profile.game_display_name} profile updated successfully!')
+        except Exception as e:
+            messages.error(request, f'Error updating game profile: {str(e)}')
+        
+        return redirect('user_profile:settings')
+    
+    # GET: Render edit form (simple inline template or redirect back)
+    # For now, redirect to settings with a message to use the form
+    messages.info(request, f'Editing {game_profile.game_display_name} profile')
+    return redirect('user_profile:settings')
+
+
+@login_required
+def delete_game_profile(request, profile_id):
+    """
+    Handle game profile deletion from settings page.
+    POST only: Delete game profile
+    """
+    from apps.user_profile.models import GameProfile
+    
+    if request.method == 'POST':
+        # Get the game profile or 404
+        game_profile = get_object_or_404(GameProfile, id=profile_id, user=request.user)
+        
+        try:
+            game_name = game_profile.game_display_name
+            game_profile.delete()
+            messages.success(request, f'{game_name} profile deleted successfully!')
+        except Exception as e:
+            messages.error(request, f'Error deleting game profile: {str(e)}')
+    
+    return redirect('user_profile:settings')
+
+
+@login_required
+def follow_user(request, username):
+    """
+    Follow a user (Ajax endpoint).
+    """
+    if request.method == 'POST':
+        from apps.user_profile.models import Follow
+        
+        user_to_follow = get_object_or_404(User, username=username)
+        
+        if request.user == user_to_follow:
+            return JsonResponse({'error': 'Cannot follow yourself'}, status=400)
+        
+        try:
+            follow, created = Follow.objects.get_or_create(
+                follower=request.user,
+                following=user_to_follow
+            )
+            
+            if created:
+                return JsonResponse({
+                    'status': 'following',
+                    'follower_count': user_to_follow.followers.count()
+                })
+            else:
+                return JsonResponse({'error': 'Already following'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+
+@login_required
+def unfollow_user(request, username):
+    """
+    Unfollow a user (Ajax endpoint).
+    """
+    if request.method == 'POST':
+        from apps.user_profile.models import Follow
+        
+        user_to_unfollow = get_object_or_404(User, username=username)
+        
+        try:
+            follow = Follow.objects.get(
+                follower=request.user,
+                following=user_to_unfollow
+            )
+            follow.delete()
+            
+            return JsonResponse({
+                'status': 'unfollowed',
+                'follower_count': user_to_unfollow.followers.count()
+            })
+        except Follow.DoesNotExist:
+            return JsonResponse({'error': 'Not following'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+
+@login_required
+def followers_list(request, username):
+    """
+    Instagram-style followers list modal view.
+    """
+    from apps.user_profile.models import Follow
+    
+    user = get_object_or_404(User, username=username)
+    followers = Follow.objects.filter(following=user).select_related('follower__profile').order_by('-created_at')
+    
+    context = {
+        'profile_user': user,
+        'followers': followers,
+        'is_own_profile': request.user == user,
+    }
+    
+    return render(request, 'user_profile/followers_modal.html', context)
+
+
+@login_required
+def following_list(request, username):
+    """
+    Instagram-style following list modal view.
+    """
+    from apps.user_profile.models import Follow
+    
+    user = get_object_or_404(User, username=username)
+    following = Follow.objects.filter(follower=user).select_related('following__profile').order_by('-created_at')
+    
+    context = {
+        'profile_user': user,
+        'following': following,
+        'is_own_profile': request.user == user,
+    }
+    
+    return render(request, 'user_profile/following_modal.html', context)
+
+
+@login_required
+def achievements_view(request, username):
+    """
+    View all achievements for a user.
+    Full page view for trophy shelf.
+    """
+    user = get_object_or_404(User, username=username)
+    profile = user.profile
+    is_own_profile = request.user == user
+    
+    from apps.user_profile.models import Achievement
+    achievements = Achievement.objects.filter(user=user).order_by('-earned_at')
+    
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'is_own_profile': is_own_profile,
+        'achievements': achievements,
+    }
+    
+    return render(request, 'user_profile/achievements.html', context)
+
+
+@login_required
+def match_history_view(request, username):
+    """
+    View full match history for a user.
+    Full page view for match history.
+    """
+    user = get_object_or_404(User, username=username)
+    profile = user.profile
+    is_own_profile = request.user == user
+    
+    from apps.user_profile.models import Match
+    matches = Match.objects.filter(user=user).order_by('-played_at')
+    
+    # Pagination
+    from django.core.paginator import Paginator
+    paginator = Paginator(matches, 25)  # 25 matches per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'is_own_profile': is_own_profile,
+        'matches': page_obj,
+    }
+    
+    return render(request, 'user_profile/match_history.html', context)
+
+
+@login_required
+def certificates_view(request, username):
+    """
+    View all certificates for a user.
+    Full page view for certificates.
+    """
+    user = get_object_or_404(User, username=username)
+    profile = user.profile
+    is_own_profile = request.user == user
+    
+    from apps.user_profile.models import Certificate
+    certificates = Certificate.objects.filter(user=user).order_by('-issued_at')
+    
+    context = {
+        'profile_user': user,
+        'profile': profile,
+        'is_own_profile': is_own_profile,
+        'certificates': certificates,
+    }
+    
+    return render(request, 'user_profile/certificates.html', context)
 
 

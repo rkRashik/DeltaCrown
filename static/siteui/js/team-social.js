@@ -493,6 +493,6 @@ document.addEventListener('click', function(e) {
         const postId = button.dataset.postId;
         
         // This would load more comments via AJAX
-        console.log('Loading more comments for post:', postId);
+        dcLog('Loading more comments for post:', postId);
     }
 });

@@ -55,7 +55,7 @@
          * Initialize the wizard
          */
         init() {
-            console.log('🚀 TeamCreateWizard initializing...');
+            dcLog('🚀 TeamCreateWizard initializing...');
             
             // Check for draft on load
             this.checkForDraft();
@@ -71,7 +71,7 @@
             this.setupDraftAutoSave();
             this.setupModalHandlers();
             
-            console.log('✅ TeamCreateWizard initialized successfully');
+            dcLog('✅ TeamCreateWizard initialized successfully');
         }
 
         /* ================================================
@@ -211,7 +211,7 @@
                     body: JSON.stringify(draftData)
                 });
                 
-                console.log('💾 Draft saved');
+                dcLog('💾 Draft saved');
             } catch (error) {
                 console.error('Failed to save draft:', error);
             }
@@ -304,7 +304,7 @@
                 this.populateSummary();
             }
 
-            console.log(`📍 Navigated to step ${stepNumber}`);
+            dcLog(`📍 Navigated to step ${stepNumber}`);
         }
 
         /**
@@ -694,16 +694,16 @@
             const games = this.config.gameConfigs || {};
             const existingTeams = this.config.existingTeams || {};
             
-            console.log('📋 Setting up game cards...');
-            console.log('Existing teams raw data:', existingTeams);
-            console.log('Game configs keys:', Object.keys(games));
+            dcLog('📋 Setting up game cards...');
+            dcLog('Existing teams raw data:', existingTeams);
+            dcLog('Game configs keys:', Object.keys(games));
             
             // Normalize game codes for comparison (handle variants like 'pubg-mobile' vs 'PUBG')
             const normalizedExistingTeams = {};
             Object.keys(existingTeams).forEach(code => {
                 const normalized = this.normalizeGameCode(code);
                 normalizedExistingTeams[normalized] = existingTeams[code];
-                console.log(`  Normalized ${code} -> ${normalized}`);
+                dcLog(`  Normalized ${code} -> ${normalized}`);
             });
             
             Object.keys(games).forEach(code => {
@@ -711,7 +711,7 @@
                 const normalized = this.normalizeGameCode(code);
                 const hasTeam = normalizedExistingTeams[normalized] !== undefined;
                 const teamInfo = normalizedExistingTeams[normalized];
-                console.log(`Game ${code} (normalized: ${normalized}): hasTeam = ${hasTeam}`, teamInfo);
+                dcLog(`Game ${code} (normalized: ${normalized}): hasTeam = ${hasTeam}`, teamInfo);
                 const card = this.createGameCard(code, game, hasTeam, teamInfo);
                 grid.appendChild(card);
             });
@@ -787,7 +787,7 @@
                 if (normalizedExisting[normalizedCode]) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log(`🚫 Click blocked for ${code} (${normalizedCode}) - user has existing team`);
+                    dcLog(`🚫 Click blocked for ${code} (${normalizedCode}) - user has existing team`);
                     this.showExistingTeamWarning(code, normalizedExisting[normalizedCode]);
                     return false;
                 }
@@ -811,7 +811,7 @@
          * Show warning when user tries to select a game they already have a team for
          */
         showExistingTeamWarning(gameCode, teamInfo) {
-            console.log('showExistingTeamWarning called with:', gameCode, teamInfo);
+            dcLog('showExistingTeamWarning called with:', gameCode, teamInfo);
             const gameName = this.config.gameConfigs[gameCode]?.name || gameCode;
             
             // Remove any existing modals
@@ -881,11 +881,11 @@
             modalContainer.appendChild(modalContent);
             document.body.appendChild(modalContainer);
             
-            console.log('Modal appended, adding event listeners');
+            dcLog('Modal appended, adding event listeners');
             
             // Add event listeners directly to the button element we created
             closeBtn.addEventListener('click', (e) => {
-                console.log('Close button clicked');
+                dcLog('Close button clicked');
                 e.preventDefault();
                 e.stopPropagation();
                 modalContainer.remove();
@@ -899,7 +899,7 @@
             // Close on backdrop click
             modalContainer.addEventListener('click', (e) => {
                 if (e.target === modalContainer) {
-                    console.log('Backdrop clicked');
+                    dcLog('Backdrop clicked');
                     modalContainer.remove();
                 }
             });
@@ -907,7 +907,7 @@
             // Close on ESC key
             const escHandler = (e) => {
                 if (e.key === 'Escape') {
-                    console.log('ESC pressed');
+                    dcLog('ESC pressed');
                     modalContainer.remove();
                     document.removeEventListener('keydown', escHandler);
                 }

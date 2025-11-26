@@ -302,9 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', function(e) {
       // Debug form data
       const formData = new FormData(form);
-      console.log('Form submission data:');
+      dcLog('Form submission data:');
       for (let [key, value] of formData.entries()) {
-        console.log(key, value);
+        dcLog(key, value);
       }
       
       const submitBtn = form.querySelector('button[type="submit"]');

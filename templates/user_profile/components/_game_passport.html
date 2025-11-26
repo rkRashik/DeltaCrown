@@ -1,0 +1,288 @@
+<!-- ============================================
+     GAME PASSPORT COMPONENT
+     Section 3.3.5 - Master Plan
+     Display: Tabbed Game Profiles with Stats
+     Owner: Add Games via Dropdown Modal
+     ============================================ -->
+<div class="glass-card"
+     x-data="{ activeGame: '{{ game_profiles.0.game|default:"valorant" }}' }">
+    
+    <!-- Header with Add Game Button -->
+    <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
+        <h3 class="text-white font-bold text-lg uppercase tracking-wide flex items-center gap-2">
+            <span>🎮</span> Game Profiles
+        </h3>
+        {% if is_own_profile %}
+        <button @click="$dispatch('open-game-modal')" 
+                class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">
+            + Add Game
+        </button>
+        {% endif %}
+    </div>
+    
+    {% if game_profiles %}
+    
+    <!-- Game Tabs (Horizontal Scroll on Mobile) -->
+    <div class="overflow-x-auto border-b border-white/5">
+        <div class="flex min-w-max px-6">
+            {% for game_profile in game_profiles %}
+            <button @click="activeGame = '{{ game_profile.game }}'"
+                    :class="activeGame === '{{ game_profile.game }}' ? 'border-b-2 border-indigo-500 text-white' : 'text-slate-400'"
+                    class="px-4 py-3 text-sm font-bold uppercase tracking-wide transition-colors whitespace-nowrap">
+                {{ game_profile.game_display_name }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Game Profile Content -->
+    <div class="p-6">
+        
+        {% for game_profile in game_profiles %}
+        <div x-show="activeGame === '{{ game_profile.game }}'" 
+             class="space-y-6"
+             style="{% if not forloop.first %}display: none;{% endif %}">
+            
+            <!-- Rank Badge (Large Display) -->
+            <div class="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-slate-800/50 to-slate-900/50 border border-white/5">
+                {% if game_profile.rank_image %}
+                <img src="{{ game_profile.rank_image }}" 
+                     alt="{{ game_profile.rank_name }}" 
+                     class="w-20 h-20 object-contain">
+                {% else %}
+                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-3xl font-black text-white">
+                    {{ game_profile.rank_tier|default:"?" }}
+                </div>
+                {% endif %}
+                
+                <div class="flex-1">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">Current Rank</p>
+                    <h4 class="text-2xl font-black text-white uppercase">{{ game_profile.rank_name|default:"Unranked" }}</h4>
+                    {% if game_profile.rank_points %}
+                    <p class="text-sm text-slate-400 mt-1">{{ game_profile.rank_points }} LP</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                
+                <!-- Matches Played -->
+                <div class="text-center p-4 rounded-lg bg-slate-800/30 border border-white/5">
+                    <p class="text-2xl font-black text-white">{{ game_profile.matches_played|default:0 }}</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">Matches</p>
+                </div>
+                
+                <!-- Win Rate -->
+                <div class="text-center p-4 rounded-lg bg-slate-800/30 border border-white/5">
+                    <p class="text-2xl font-black text-emerald-400">{{ game_profile.win_rate|default:0 }}%</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">Win Rate</p>
+                </div>
+                
+                <!-- K/D Ratio -->
+                {% if game_profile.kd_ratio %}
+                <div class="text-center p-4 rounded-lg bg-slate-800/30 border border-white/5">
+                    <p class="text-2xl font-black text-indigo-400">{{ game_profile.kd_ratio|floatformat:2 }}</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">K/D Ratio</p>
+                </div>
+                {% endif %}
+                
+                <!-- Peak Rank -->
+                {% if game_profile.peak_rank %}
+                <div class="text-center p-4 rounded-lg bg-slate-800/30 border border-white/5">
+                    <p class="text-2xl font-black text-amber-400">{{ game_profile.peak_rank }}</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wide mt-1">Peak Rank</p>
+                </div>
+                {% endif %}
+                
+            </div>
+            
+            <!-- Additional Stats -->
+            {% if game_profile.hours_played or game_profile.main_role %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                
+                {% if game_profile.hours_played %}
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/20 border border-white/5">
+                    <span class="text-2xl">⏱</span>
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Playtime</p>
+                        <p class="text-white font-bold">{{ game_profile.hours_played }}h</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if game_profile.main_role %}
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/20 border border-white/5">
+                    <span class="text-2xl">👤</span>
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase tracking-wide">Main Role</p>
+                        <p class="text-white font-bold capitalize">{{ game_profile.main_role }}</p>
+                    </div>
+                </div>
+                {% endif %}
+                
+            </div>
+            {% endif %}
+            
+            <!-- In-Game Username -->
+            {% if game_profile.in_game_name %}
+            <div class="p-4 rounded-lg bg-slate-800/20 border border-white/5">
+                <p class="text-xs text-slate-500 uppercase tracking-wide mb-1">In-Game Name</p>
+                <div class="flex items-center justify-between">
+                    <p class="text-white font-mono font-bold">{{ game_profile.in_game_name }}</p>
+                    <button @click="$dispatch('copy-text', { text: '{{ game_profile.in_game_name }}' })"
+                            class="text-slate-400 hover:text-indigo-400 transition-colors text-sm">
+                        📋 Copy
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+            
+        </div>
+        {% endfor %}
+        
+    </div>
+    
+    {% else %}
+    
+    <!-- Empty State -->
+    <div class="p-6 text-center py-12">
+        <div class="text-6xl mb-3 opacity-50">🎮</div>
+        {% if is_own_profile %}
+        <p class="text-slate-400 text-sm font-semibold mb-1">No game profiles yet</p>
+        <p class="text-slate-600 text-xs mb-4">Add your competitive games to showcase your ranks</p>
+        <button @click="$dispatch('open-game-modal')"
+                class="inline-block px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                       text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
+            + Add Your First Game
+        </button>
+        {% else %}
+        <p class="text-slate-500 text-sm italic">No game profiles added yet</p>
+        {% endif %}
+    </div>
+    
+    {% endif %}
+    
+</div>
+
+<!-- ============================================
+     ADD GAME MODAL
+     Alpine.js Modal with Game Dropdown
+     ============================================ -->
+{% if is_own_profile %}
+<div x-data="{ 
+        showGameModal: false,
+        selectedGame: 'valorant',
+        games: {
+            'valorant': { name: 'VALORANT', icon: '🎯', has_rank: true },
+            'csgo': { name: 'CS:GO', icon: '🔫', has_rank: true },
+            'lol': { name: 'League of Legends', icon: '⚔', has_rank: true },
+            'dota2': { name: 'Dota 2', icon: '🛡', has_rank: true },
+            'overwatch': { name: 'Overwatch 2', icon: '🎮', has_rank: true },
+            'apex': { name: 'Apex Legends', icon: '🏹', has_rank: true },
+            'fortnite': { name: 'Fortnite', icon: '🪂', has_rank: false },
+            'pubg': { name: 'PUBG', icon: '🔥', has_rank: true },
+            'r6': { name: 'Rainbow Six Siege', icon: '🏰', has_rank: true },
+            'rocket_league': { name: 'Rocket League', icon: '🚗', has_rank: true }
+        }
+     }"
+     @open-game-modal.window="showGameModal = true"
+     @keydown.escape.window="showGameModal = false"
+     x-show="showGameModal"
+     x-transition
+     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+     style="display: none;">
+    
+    <!-- Modal Card -->
+    <div @click.away="showGameModal = false"
+         x-transition:enter="transition ease-out duration-200 transform"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         class="glass-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        
+        <!-- Header -->
+        <div class="sticky top-0 bg-slate-900/95 backdrop-blur-xl px-6 py-4 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-white uppercase tracking-wide">Add Game Profile</h2>
+            <button @click="showGameModal = false" 
+                    class="text-slate-400 hover:text-white text-2xl leading-none transition-colors">
+                ×
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6">
+            
+            <form method="POST" action="{% url 'user_profile:add_game_profile' %}">
+                {% csrf_token %}
+                
+                <!-- Game Dropdown -->
+                <div class="mb-4">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">Select Game</label>
+                    <div class="relative">
+                        <select name="game" 
+                                x-model="selectedGame"
+                                required
+                                class="glass-input w-full px-4 py-3 pr-10 rounded-lg text-white appearance-none cursor-pointer
+                                       focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="valorant">🎯 VALORANT</option>
+                            <option value="csgo">🔫 CS:GO</option>
+                            <option value="lol">⚔ League of Legends</option>
+                            <option value="dota2">🛡 Dota 2</option>
+                            <option value="overwatch">🎮 Overwatch 2</option>
+                            <option value="apex">🏹 Apex Legends</option>
+                            <option value="fortnite">🪂 Fortnite</option>
+                            <option value="pubg">🔥 PUBG</option>
+                            <option value="r6">🏰 Rainbow Six Siege</option>
+                            <option value="rocket_league">🚗 Rocket League</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- In-Game Name -->
+                <div class="mb-4">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">In-Game Username</label>
+                    <input type="text" 
+                           name="in_game_name" 
+                           placeholder="e.g., ProGamer#1234"
+                           required
+                           class="glass-input w-full px-4 py-3 rounded-lg text-white placeholder-slate-500 
+                                  focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                
+                <!-- Current Rank (Optional) -->
+                <div class="mb-6">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">Current Rank (Optional)</label>
+                    <input type="text" 
+                           name="rank_name" 
+                           placeholder="e.g., Diamond 2, Global Elite"
+                           class="glass-input w-full px-4 py-3 rounded-lg text-white placeholder-slate-500 
+                                  focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <p class="text-slate-500 text-xs mt-2">You can update stats later in settings</p>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button type="button" 
+                            @click="showGameModal = false"
+                            class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-slate-700 hover:bg-slate-600 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all">
+                        🎮 Add Game
+                    </button>
+                </div>
+                
+            </form>
+            
+        </div>
+        
+    </div>
+    
+</div>
+{% endif %}

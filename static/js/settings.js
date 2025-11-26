@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Save to localStorage
             try {
                 localStorage.setItem('settings_draft', JSON.stringify(formData));
-                console.log('Draft saved');
+                dcLog('Draft saved');
             } catch (e) {
                 console.error('Failed to save draft:', e);
             }

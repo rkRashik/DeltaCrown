@@ -74,7 +74,7 @@
         updateActiveFilters();
         updateSearchClearButton();
         
-        console.log('✅ Premium Team List initialized');
+        dcLog('✅ Premium Team List initialized');
     }
     
     // ========================================
@@ -776,7 +776,7 @@
             card.style.setProperty('--banner-color-2', `rgba(${colors[1].r}, ${colors[1].g}, ${colors[1].b}, 0.3)`);
         } catch (e) {
             // CORS error or other issue, use defaults
-            console.log('Could not extract banner colors:', e);
+            dcLog('Could not extract banner colors:', e);
         }
     }
     
@@ -1131,7 +1131,7 @@
             });
         });
 
-        console.log(`✅ Modern join initialized for ${joinButtons.length} buttons`);
+        dcLog(`✅ Modern join initialized for ${joinButtons.length} buttons`);
     }
 
     // ========================================

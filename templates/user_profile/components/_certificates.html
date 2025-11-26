@@ -1,0 +1,181 @@
+<!-- ============================================
+     CERTIFICATES COMPONENT
+     Section 3.3.9 - Master Plan
+     Display: Tournament Certificates Grid
+     Features: Modal Viewer, Download, Verify
+     ============================================ -->
+<div class="glass-card p-6"
+     x-data="{ 
+        selectedCert: null,
+        showCertModal: false,
+        openCertificate(cert) {
+            this.selectedCert = cert;
+            this.showCertModal = true;
+        }
+     }">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-white font-bold text-lg uppercase tracking-wide flex items-center gap-2">
+            <span>📜</span> Certificates
+        </h3>
+        {% if certificates %}
+        <span class="text-slate-400 text-sm">{{ certificates|length }}</span>
+        {% endif %}
+    </div>
+    
+    {% if certificates %}
+    
+    <!-- Certificate Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-1 gap-3">
+        
+        {% for certificate in certificates|slice:":4" %}
+        <button @click="openCertificate({
+                    id: {{ certificate.id }},
+                    title: '{{ certificate.title|escapejs }}',
+                    tournament: '{{ certificate.tournament_name|escapejs }}',
+                    date: '{{ certificate.issued_at|date:"F j, Y" }}',
+                    image: '{{ certificate.image.url }}',
+                    verify_url: '{% url 'user_profile:verify_certificate' certificate.verification_code %}'
+                })"
+                class="group relative aspect-[3/4] rounded-lg overflow-hidden border-2 border-white/10 hover:border-amber-500/50 transition-all duration-300 hover-lift">
+            
+            <!-- Certificate Image -->
+            <img src="{{ certificate.thumbnail_url|default:certificate.image.url }}" 
+                 alt="{{ certificate.title }}" 
+                 class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            
+            <!-- Gradient Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            
+            <!-- Title (Shows on Hover) -->
+            <div class="absolute bottom-0 left-0 right-0 p-3 text-left opacity-0 group-hover:opacity-100 transition-opacity">
+                <p class="text-white text-xs font-bold truncate">{{ certificate.title }}</p>
+                <p class="text-slate-400 text-[10px] truncate">{{ certificate.tournament_name }}</p>
+            </div>
+            
+            <!-- Verified Badge -->
+            {% if certificate.is_verified %}
+            <div class="absolute top-2 right-2 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs">
+                ✓
+            </div>
+            {% endif %}
+            
+        </button>
+        {% endfor %}
+        
+    </div>
+    
+    <!-- View All Link -->
+    {% if certificates|length > 4 %}
+    <div class="text-center mt-4">
+        <a href="{% url 'user_profile:certificates' profile_user.username %}" 
+           class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">
+            View All {{ certificates|length }} Certificates →
+        </a>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    
+    <!-- Empty State -->
+    <div class="text-center py-12">
+        <div class="text-6xl mb-3 opacity-50">📜</div>
+        {% if is_own_profile %}
+        <p class="text-slate-400 text-sm font-semibold mb-1">No certificates yet</p>
+        <p class="text-slate-600 text-xs mb-4">Win tournaments to earn verified certificates</p>
+        <a href="{% url 'tournaments:browse' %}" 
+           class="inline-block px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                  text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
+            🏆 Browse Tournaments
+        </a>
+        {% else %}
+        <p class="text-slate-500 text-sm italic">No certificates earned yet</p>
+        {% endif %}
+    </div>
+    
+    {% endif %}
+    
+    <!-- ============================================
+         CERTIFICATE VIEWER MODAL
+         Full-Screen Image with Actions
+         ============================================ -->
+    <div x-show="showCertModal"
+         @keydown.escape.window="showCertModal = false"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+         style="display: none;">
+        
+        <!-- Close Button (Top Right) -->
+        <button @click="showCertModal = false" 
+                class="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-slate-800/80 hover:bg-slate-700 
+                       text-white text-2xl flex items-center justify-center transition-colors">
+            ×
+        </button>
+        
+        <!-- Modal Content -->
+        <div @click.away="showCertModal = false"
+             class="relative max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            
+            <!-- Certificate Image -->
+            <div class="mb-6">
+                <img :src="selectedCert?.image" 
+                     :alt="selectedCert?.title"
+                     class="w-full rounded-lg shadow-2xl border-4 border-amber-500/30">
+            </div>
+            
+            <!-- Certificate Info -->
+            <div class="glass-card p-6 space-y-4">
+                
+                <!-- Title -->
+                <div>
+                    <h3 class="text-2xl font-black text-white mb-1" x-text="selectedCert?.title"></h3>
+                    <p class="text-slate-400" x-text="selectedCert?.tournament"></p>
+                </div>
+                
+                <!-- Issue Date -->
+                <div class="flex items-center gap-2 text-slate-300 text-sm">
+                    <span>📅</span>
+                    <span>Issued on <span x-text="selectedCert?.date"></span></span>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                    
+                    <!-- Download -->
+                    <a :href="selectedCert?.image" 
+                       download
+                       class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 
+                              text-white font-bold text-sm transition-colors">
+                        <span>⬇</span> Download
+                    </a>
+                    
+                    <!-- Verify -->
+                    <a :href="selectedCert?.verify_url" 
+                       target="_blank"
+                       class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 
+                              text-white font-bold text-sm transition-colors">
+                        <span>✓</span> Verify
+                    </a>
+                    
+                    <!-- Share -->
+                    <button @click="$dispatch('share-certificate', selectedCert)"
+                            class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 
+                                   text-white font-bold text-sm transition-colors">
+                        <span>↗</span> Share
+                    </button>
+                    
+                </div>
+                
+            </div>
+            
+        </div>
+        
+    </div>
+    
+</div>

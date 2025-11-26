@@ -187,7 +187,7 @@ class PlayerProfileModal {
       
       <!-- Modal Footer -->
       <div class="eclipse-modal-footer">
-        <button class="eclipse-modal-cta-btn" onclick="window.location.href='/user/u/${player.username}/'">
+        <button class="eclipse-modal-cta-btn" onclick="window.location.href='/u/${player.username}/'">
           View Full Profile
           <i class="fas fa-arrow-right"></i>
         </button>

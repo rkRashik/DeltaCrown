@@ -136,20 +136,20 @@
                 const token = localStorage.getItem('access_token') || '';
                 const wsUrlWithToken = token ? `${wsUrl}?token=${token}` : wsUrl;
                 
-                console.log('Connecting to WebSocket:', wsUrl);
+                dcLog('Connecting to WebSocket:', wsUrl);
                 
                 try {
                     this.ws = new WebSocket(wsUrlWithToken);
                     
                     this.ws.onopen = () => {
-                        console.log('WebSocket connected');
+                        dcLog('WebSocket connected');
                         this.wsConnected = true;
                         this.lastUpdate = new Date().toLocaleTimeString();
                     };
                     
                     this.ws.onmessage = (event) => {
                         const data = JSON.parse(event.data);
-                        console.log('WebSocket message:', data);
+                        dcLog('WebSocket message:', data);
                         
                         this.lastUpdate = new Date().toLocaleTimeString();
                         
@@ -171,12 +171,12 @@
                     };
                     
                     this.ws.onclose = () => {
-                        console.log('WebSocket closed');
+                        dcLog('WebSocket closed');
                         this.wsConnected = false;
                         
                         // Reconnect after 5 seconds
                         setTimeout(() => {
-                            console.log('Attempting to reconnect...');
+                            dcLog('Attempting to reconnect...');
                             this.connectWebSocket();
                         }, 5000);
                     };

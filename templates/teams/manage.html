@@ -768,7 +768,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle edit forms
     window.toggleEdit = function(sectionId) {
         // Implementation for toggling edit forms
-        console.log('Toggle edit for:', sectionId);
+        dcLog('Toggle edit for:', sectionId);
     };
     
     // Member management
@@ -782,11 +782,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (action === 'Remove Member') {
                 if (confirm(`Are you sure you want to remove ${memberName} from the team?`)) {
                     // Implementation for removing member
-                    console.log('Remove member:', memberName);
+                    dcLog('Remove member:', memberName);
                 }
             } else if (action === 'Edit Role') {
                 // Implementation for editing member role
-                console.log('Edit role for:', memberName);
+                dcLog('Edit role for:', memberName);
             }
         });
     });

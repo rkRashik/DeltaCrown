@@ -1,0 +1,317 @@
+/* ============================================
+   DELTACROWN ESPORTS HUD - DESIGN SYSTEM CORE
+   User Profile Module - Glassmorphic Cyberpunk 2025
+   Version: 2.0
+   ============================================ */
+
+/* ===== DESIGN TOKENS (Section 2 - Master Plan) ===== */
+:root {
+    /* Base Colors */
+    --bg-primary: rgb(2, 6, 23);           /* slate-950 - Deep space background */
+    --bg-glass: rgba(15, 23, 42, 0.6);     /* slate-900/60 - Glass panels */
+    --bg-glass-fallback: rgba(15, 23, 42, 0.95); /* Solid fallback for old devices */
+    --border-glass: rgba(255, 255, 255, 0.1);    /* Frosted edge */
+
+    /* Brand Colors */
+    --brand-primary: #6366f1;   /* indigo-500 - Call-to-action */
+    --brand-glow: #818cf8;      /* indigo-400 - Hover state */
+
+    /* Accent Colors */
+    --accent-win: #10b981;      /* emerald-500 - Victory */
+    --accent-loss: #e11d48;     /* rose-600 - Defeat */
+    --accent-gold: #fbbf24;     /* amber-400 - Trophies */
+    --accent-verified: #3b82f6; /* blue-500 - Trust badge */
+
+    /* Text Colors */
+    --text-primary: #f8fafc;    /* slate-50 - Headings */
+    --text-secondary: #94a3b8;  /* slate-400 - Body */
+    --text-muted: #64748b;      /* slate-500 - Labels */
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(to top, 
+        rgb(2, 6, 23) 0%, 
+        rgba(2, 6, 23, 0.8) 60%, 
+        transparent 100%
+    );
+
+    --gradient-wallet: linear-gradient(135deg, 
+        #6366f1 0%, 
+        #8b5cf6 50%, 
+        #a855f7 100%
+    );
+
+    --gradient-rank: linear-gradient(135deg, 
+        #a855f7 0%, 
+        #ec4899 100%
+    );
+
+    /* Spacing & Sizing */
+    --container-max-width: 1280px;
+    --glass-blur: 24px;
+    --glass-blur-mobile: 12px;
+    --transition-standard: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== GLASS CARD COMPONENT (with Progressive Enhancement) ===== */
+.glass-card {
+    /* Fallback: Solid background for devices without backdrop-filter support */
+    background: var(--bg-glass-fallback);
+    border: 1px solid var(--border-glass);
+    border-radius: 1rem; /* 16px */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    transition: all var(--transition-standard);
+}
+
+/* Progressive Enhancement: Apply blur only if supported */
+@supports (backdrop-filter: blur(24px)) or (-webkit-backdrop-filter: blur(24px)) {
+    .glass-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(var(--glass-blur));
+        -webkit-backdrop-filter: blur(var(--glass-blur));
+    }
+}
+
+/* Mobile Optimization: Reduce blur intensity */
+@media (max-width: 768px) {
+    @supports (backdrop-filter: blur(12px)) {
+        .glass-card {
+            backdrop-filter: blur(var(--glass-blur-mobile));
+            -webkit-backdrop-filter: blur(var(--glass-blur-mobile));
+        }
+    }
+}
+
+/* ===== HERO SECTION GRADIENT ===== */
+.hero-fade {
+    background: var(--gradient-hero);
+}
+
+/* ===== ANIMATIONS (Section 2.4 - Master Plan) ===== */
+
+/* 1. Pulse Border - Avatar Green Glow (Live Status) */
+@keyframes pulse-border {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 35px rgba(16, 185, 129, 0.9);
+    }
+}
+
+.animate-pulse-border {
+    animation: pulse-border 2s ease-in-out infinite;
+}
+
+/* 2. Spin Slow - DeltaCoin Rotation */
+@keyframes spin-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+}
+
+/* 3. Pulse Glow - Live Streaming Indicator */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+}
+
+.animate-pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 4. Hover Lift - Interactive Card Hover */
+.hover-lift {
+    transition: all var(--transition-standard);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.3);
+}
+
+/* 5. Shimmer - Loading Skeleton */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.shimmer {
+    background: linear-gradient(90deg, 
+        rgba(51, 65, 85, 0.4) 25%, 
+        rgba(71, 85, 105, 0.4) 50%, 
+        rgba(51, 65, 85, 0.4) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+/* Scrollbar Customization */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Custom Scrollbar (for glass cards) */
+.glass-card::-webkit-scrollbar {
+    width: 8px;
+}
+
+.glass-card::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.3);
+    border-radius: 4px;
+}
+
+.glass-card::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.5);
+    border-radius: 4px;
+}
+
+.glass-card::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.7);
+}
+
+/* Glass Input Fields */
+.glass-input {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: white;
+    font-size: 0.875rem;
+    transition: all 200ms;
+}
+
+@supports (backdrop-filter: blur(12px)) {
+    .glass-input {
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+}
+
+.glass-input:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.glass-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Badge Rarity Gradients */
+.badge-rarity-common {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+}
+
+.badge-rarity-rare {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.badge-rarity-epic {
+    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+}
+
+.badge-rarity-legendary {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+/* Win/Loss Match Strips */
+.match-win {
+    border-left-color: var(--accent-win);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.match-loss {
+    border-left-color: var(--accent-loss);
+    background: rgba(225, 29, 72, 0.05);
+}
+
+/* ===== ACCESSIBILITY ===== */
+
+/* Focus Styles */
+.glass-card:focus-visible,
+button:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .glass-card {
+        background: rgba(15, 23, 42, 1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Tablet and below: Further reduce blur */
+@media (max-width: 1024px) {
+    :root {
+        --glass-blur: 16px;
+    }
+}
+
+/* Mobile: Minimal blur for performance */
+@media (max-width: 640px) {
+    :root {
+        --glass-blur-mobile: 8px;
+    }
+    
+    /* Disable blur on very old devices */
+    @media (prefers-reduced-motion: reduce) {
+        .glass-card {
+            background: var(--bg-glass-fallback);
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+    }
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+    .glass-card {
+        background: white;
+        border: 1px solid #000;
+        box-shadow: none;
+    }
+    
+    .animate-pulse-border,
+    .animate-spin-slow,
+    .animate-pulse-glow {
+        animation: none;
+    }
+}

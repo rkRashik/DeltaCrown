@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Privacy Settings - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Privacy Settings</h1>
+            <p class="text-gray-600">
+                Control what information is visible on your public profile and who can interact with you.
+            </p>
+        </div>
+
+        <form method="post" class="space-y-8">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Profile Visibility Section -->
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">👤 Profile Visibility</h2>
+                <p class="text-sm text-gray-600 mb-4">Control what personal information is displayed on your public profile</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Show Real Name -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_real_name }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_real_name.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_real_name.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_real_name.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Show Phone -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_phone }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_phone.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_phone.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_phone.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Show Email -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_email }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_email.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_email.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_email.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Show Age -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_age }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_age.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_age.label }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Show Gender -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_gender }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_gender.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_gender.label }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Show Country -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_country }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_country.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_country.label }}
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Show Address -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_address }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_address.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_address.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_address.help_text }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gaming & Activity Section -->
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">🎮 Gaming & Activity</h2>
+                <p class="text-sm text-gray-600 mb-4">Control visibility of your gaming information and tournament history</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Show Game IDs -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_game_ids }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_game_ids.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_game_ids.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_game_ids.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Show Match History -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_match_history }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_match_history.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_match_history.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_match_history.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Show Teams -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_teams }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_teams.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_teams.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_teams.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Show Achievements -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_achievements }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_achievements.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_achievements.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_achievements.help_text }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Economy & Inventory Section -->
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">💰 Economy & Progression</h2>
+                <p class="text-sm text-gray-600 mb-4">Control visibility of your economy and progression data</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Show Inventory Value -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_inventory_value }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_inventory_value.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_inventory_value.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.show_inventory_value.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Show Level/XP -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.show_level_xp }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.show_level_xp.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.show_level_xp.label }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Section -->
+            <div class="border-b border-gray-200 pb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">🔗 Social Media</h2>
+                
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        {{ form.show_social_links }}
+                    </div>
+                    <div class="ml-3">
+                        <label for="{{ form.show_social_links.id_for_label }}" class="font-medium text-gray-700">
+                            {{ form.show_social_links.label }}
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interaction Permissions Section -->
+            <div class="pb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">💬 Interaction Permissions</h2>
+                <p class="text-sm text-gray-600 mb-4">Control who can send you invitations and messages</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Allow Team Invites -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.allow_team_invites }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.allow_team_invites.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.allow_team_invites.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.allow_team_invites.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Allow Friend Requests -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.allow_friend_requests }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.allow_friend_requests.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.allow_friend_requests.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.allow_friend_requests.help_text }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Allow Direct Messages -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            {{ form.allow_direct_messages }}
+                        </div>
+                        <div class="ml-3">
+                            <label for="{{ form.allow_direct_messages.id_for_label }}" class="font-medium text-gray-700">
+                                {{ form.allow_direct_messages.label }}
+                            </label>
+                            <p class="text-sm text-gray-500">{{ form.allow_direct_messages.help_text }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notice -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                <p class="text-sm text-blue-800">
+                    <strong>Note:</strong> Your profile is always visible to DeltaCrown staff and to yourself. 
+                    Privacy settings only affect what other users can see.
+                </p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex gap-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                    Save Privacy Settings
+                </button>
+                <a href="{% url 'user_profile:profile' %}" class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-400 transition">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

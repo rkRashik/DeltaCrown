@@ -287,13 +287,13 @@ class CountdownTimer {
     triggerStateUpdate() {
         // If tournament state poller exists, trigger immediate poll
         if (window.tournamentPoller) {
-            console.log('[CountdownTimer] Triggering state update after countdown expiry');
+            dcLog('[CountdownTimer] Triggering state update after countdown expiry');
             window.tournamentPoller.poll();
         }
 
         // Trigger page refresh after a short delay to show updated state
         setTimeout(() => {
-            console.log('[CountdownTimer] Refreshing page to show updated state');
+            dcLog('[CountdownTimer] Refreshing page to show updated state');
             window.location.reload();
         }, 3000);
     }
@@ -347,13 +347,13 @@ function initCountdownTimers() {
     const timers = [];
     const elements = document.querySelectorAll('.countdown-timer[data-target-time]');
     
-    console.log(`[CountdownTimer] Found ${elements.length} countdown timer(s)`);
+    dcLog(`[CountdownTimer] Found ${elements.length} countdown timer(s)`);
 
     elements.forEach((element, index) => {
         try {
             const timer = new CountdownTimer(element);
             timers.push(timer);
-            console.log(`[CountdownTimer] Initialized timer ${index + 1}:`, {
+            dcLog(`[CountdownTimer] Initialized timer ${index + 1}:`, {
                 type: element.dataset.countdownType,
                 target: element.dataset.targetTime
             });
@@ -375,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Listen for countdown expiry events
 document.addEventListener('countdownExpired', (event) => {
-    console.log('[CountdownTimer] Countdown expired:', event.detail);
+    dcLog('[CountdownTimer] Countdown expired:', event.detail);
 });
 
 // Export for use in other scripts

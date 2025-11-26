@@ -38,17 +38,8 @@ class Migration(migrations.Migration):
             field=models.IntegerField(default=0, help_text='Number of times payment was resubmitted'),
         ),
         
-        # Add file type tracking to Payment
-        migrations.AddField(
-            model_name='payment',
-            name='file_type',
-            field=models.CharField(
-                max_length=10,
-                choices=[('IMAGE', 'Image'), ('PDF', 'PDF')],
-                blank=True,
-                help_text='Type of payment proof file'
-            ),
-        ),
+        # NOTE: file_type column already exists on Payment (created in initial migration)
+        # No-op: historical duplication removed to prevent duplicate column creation.
         
         # Add waitlist status to Registration.STATUS_CHOICES
         migrations.AlterField(
@@ -143,13 +134,13 @@ class Migration(migrations.Migration):
             CREATE INDEX idx_payment_method 
             ON tournaments_payment(payment_method);
             
-            -- Index 4: Index on payment created_at for deadline tracking
+            -- Index 4: Index on payment submitted_at for deadline tracking
             CREATE INDEX idx_payment_created_at 
-            ON tournaments_payment(created_at);
+            ON tournaments_payment(submitted_at);
             
-            -- Index 5: Composite index for payment verification queue
+            -- Index 5: Composite index for payment verification queue (by status and submitted_at)
             CREATE INDEX idx_payment_verification_queue 
-            ON tournaments_payment(status, created_at) 
+            ON tournaments_payment(status, submitted_at) 
             WHERE status IN ('pending', 'submitted');
             """,
             reverse_sql="""

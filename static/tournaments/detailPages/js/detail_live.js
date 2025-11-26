@@ -6,7 +6,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Tournament Detail Page - Live Updates JS loaded');
+    dcLog('Tournament Detail Page - Live Updates JS loaded');
     
     // Initialize live updates system
     initializeLiveUpdates();
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function initializeLiveUpdates() {
     // Live updates initialization logic will be added here
-    console.log('Live updates initialization placeholder');
+    dcLog('Live updates initialization placeholder');
     
     // Check if WebSocket is available
     if (shouldUseWebSocket()) {
@@ -43,7 +43,7 @@ function shouldUseWebSocket() {
  */
 function initializeWebSocket() {
     // WebSocket connection logic will be added here
-    console.log('WebSocket initialization placeholder');
+    dcLog('WebSocket initialization placeholder');
 }
 
 /**
@@ -52,7 +52,7 @@ function initializeWebSocket() {
  */
 function initializePolling() {
     // HTMX polling logic will be added here
-    console.log('Polling initialization placeholder');
+    dcLog('Polling initialization placeholder');
 }
 
 /**
@@ -61,7 +61,7 @@ function initializePolling() {
  */
 function handleLiveUpdate(data) {
     // Live update handling logic will be added here
-    console.log('Live update handling placeholder', data);
+    dcLog('Live update handling placeholder', data);
 }
 
 /**
@@ -71,7 +71,7 @@ function handleLiveUpdate(data) {
  */
 function updateMatchList(matches) {
     // Match list update logic will be added here
-    console.log('Match list update placeholder');
+    dcLog('Match list update placeholder');
 }
 
 /**
@@ -81,7 +81,7 @@ function updateMatchList(matches) {
  */
 function updateAnnouncements(announcements) {
     // Announcements update logic will be added here
-    console.log('Announcements update placeholder');
+    dcLog('Announcements update placeholder');
 }
 
 /**
@@ -91,5 +91,5 @@ function updateAnnouncements(announcements) {
  */
 function updateLiveStatus(status) {
     // Live status update logic will be added here
-    console.log('Live status update placeholder');
+    dcLog('Live status update placeholder');
 }

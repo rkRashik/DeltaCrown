@@ -52,7 +52,7 @@
     // ========================================
     function init() {
         if (!elements.teamsContainer) {
-            console.log('Teams container not found - skipping initialization');
+            dcLog('Teams container not found - skipping initialization');
             return;
         }
 
@@ -64,7 +64,7 @@
         setupLoadMore();
         setupPageJump();
         
-        console.log('✅ Teams List Enhanced - Initialized');
+        dcLog('✅ Teams List Enhanced - Initialized');
     }
 
     // ========================================
@@ -336,7 +336,7 @@
 
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.log('Request aborted');
+                dcLog('Request aborted');
             } else {
                 console.error('Error loading page:', error);
                 // Fallback to normal navigation

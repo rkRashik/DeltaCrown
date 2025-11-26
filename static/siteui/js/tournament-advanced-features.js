@@ -405,7 +405,7 @@ class TournamentAdvancedFeatures {
         this.chatWs = new WebSocket(wsUrl);
         
         this.chatWs.onopen = () => {
-            console.log('Chat connected');
+            dcLog('Chat connected');
             this.loadChatHistory();
         };
         
@@ -419,7 +419,7 @@ class TournamentAdvancedFeatures {
         };
         
         this.chatWs.onclose = () => {
-            console.log('Chat disconnected');
+            dcLog('Chat disconnected');
             this.chatWs = null;
             // Attempt reconnect after 5 seconds
             setTimeout(() => this.connectChatWebSocket(), 5000);

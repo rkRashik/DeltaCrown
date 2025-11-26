@@ -374,8 +374,8 @@
     // CONSOLE EASTER EGG
     // ================================================================
     
-    console.log('%c🎮 DeltaCrown Gaming Platform', 'color: #00FF88; font-size: 24px; font-weight: bold;');
-    console.log('%cWelcome to the source! Interested in joining our team?', 'color: #00D8FF; font-size: 14px;');
-    console.log('%cCheck out our careers page or contact us!', 'color: #B8C5D6; font-size: 12px;');
+    dcLog('%c🎮 DeltaCrown Gaming Platform', 'color: #00FF88; font-size: 24px; font-weight: bold;');
+    dcLog('%cWelcome to the source! Interested in joining our team?', 'color: #00D8FF; font-size: 14px;');
+    dcLog('%cCheck out our careers page or contact us!', 'color: #B8C5D6; font-size: 12px;');
     
 })();

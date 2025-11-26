@@ -14,7 +14,7 @@ class PremiumCommunityApp {
         this.initSearch();
         this.initScrollEffects();
         this.initPostCreation();
-        console.log('Premium Community Hub initialized');
+        dcLog('Premium Community Hub initialized');
     }
 
     // Theme Management

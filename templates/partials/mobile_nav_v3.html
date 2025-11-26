@@ -180,7 +180,7 @@
             <div class="drawer-profile__name">{{ request.user.get_full_name|default:request.user.username }}</div>
             <div class="drawer-profile__handle">@{{ request.user.username }}</div>
           </div>
-          <a href="/user/u/{{ request.user.username }}/" class="drawer-profile__view-link" aria-label="View profile">
+          <a href="{% url 'user_profile:public_profile' request.user.username %}" class="drawer-profile__view-link" aria-label="View profile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>

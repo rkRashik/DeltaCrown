@@ -282,7 +282,7 @@ class TournamentFeatures {
 
     showMatchDetails(matchId) {
         // Open modal or drawer with detailed match information
-        console.log('Show match details:', matchId);
+        dcLog('Show match details:', matchId);
         // TODO: Implement match details modal
     }
 

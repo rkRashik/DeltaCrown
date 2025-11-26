@@ -5,7 +5,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Tournament detail page initialized');
+  dcLog('Tournament detail page initialized');
 
   // Smooth scroll to sections
   const anchorLinks = document.querySelectorAll('a[href^="#"]');
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (ctaButton) {
     ctaButton.addEventListener('click', function(e) {
       // Future: Handle registration modal or redirect
-      console.log('CTA clicked:', this.textContent);
+      dcLog('CTA clicked:', this.textContent);
     });
   }
 
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
         navigator.share({
           title: document.title,
           url: window.location.href
-        }).catch(err => console.log('Share failed:', err));
+        }).catch(err => dcLog('Share failed:', err));
       } else {
         // Fallback: Copy to clipboard
         navigator.clipboard.writeText(window.location.href).then(() => {

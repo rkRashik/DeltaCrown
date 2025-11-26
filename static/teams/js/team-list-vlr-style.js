@@ -48,7 +48,7 @@
         const container = document.getElementById('teams-container');
         const teamCards = container.querySelectorAll('.team-card-premium');
         
-        console.log(`VLR List View: Found ${teamCards.length} team cards`);
+        dcLog(`VLR List View: Found ${teamCards.length} team cards`);
         
         originalTeamsData = Array.from(teamCards).map(card => {
             // Extract game name from meta-badge
@@ -91,7 +91,7 @@
             
             // Debug log for first few teams
             if (originalTeamsData.length < 3) {
-                console.log('VLR List View: Team data sample:', {
+                dcLog('VLR List View: Team data sample:', {
                     name: team.name,
                     game: team.game,
                     region: team.region
@@ -101,11 +101,11 @@
             return team;
         });
         
-        console.log(`VLR List View: Stored ${originalTeamsData.length} teams`);
+        dcLog(`VLR List View: Stored ${originalTeamsData.length} teams`);
         
         // Log unique games found
         const uniqueGames = [...new Set(originalTeamsData.map(t => t.game))];
-        console.log('VLR List View: Unique games found:', uniqueGames);
+        dcLog('VLR List View: Unique games found:', uniqueGames);
     }
     
     /**
@@ -178,8 +178,8 @@
         const groupedTeams = groupTeamsByGame(originalTeamsData);
         
         // Debug: Log grouped teams
-        console.log('VLR List View: Grouped teams by game:', groupedTeams);
-        console.log('VLR List View: Total games:', Object.keys(groupedTeams).length);
+        dcLog('VLR List View: Grouped teams by game:', groupedTeams);
+        dcLog('VLR List View: Total games:', Object.keys(groupedTeams).length);
         
         // Clear container
         container.innerHTML = '';
@@ -187,17 +187,17 @@
         // Sort games alphabetically
         const sortedGames = Object.keys(groupedTeams).sort();
         
-        console.log('VLR List View: Rendering games:', sortedGames);
+        dcLog('VLR List View: Rendering games:', sortedGames);
         
         // Render each game section
         sortedGames.forEach(gameName => {
             const teams = groupedTeams[gameName];
-            console.log(`VLR List View: Rendering ${gameName} with ${teams.length} teams`);
+            dcLog(`VLR List View: Rendering ${gameName} with ${teams.length} teams`);
             const gameSection = createGameSection(gameName, teams);
             container.appendChild(gameSection);
         });
         
-        console.log('VLR List View: Rendering complete');
+        dcLog('VLR List View: Rendering complete');
     }
     
     /**

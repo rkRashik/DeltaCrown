@@ -6,7 +6,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Detail] Tournament Detail Page - Main JS loaded');
+    dcLog('[Detail] Tournament Detail Page - Main JS loaded');
     
     // Ensure CSS knows the runtime header offset so tabs stick correctly on mobile and desktop
     initializeStickyTabOffset();
@@ -47,12 +47,12 @@ function initializeTheme() {
     const container = document.querySelector('[data-game-slug]');
     if (container) {
         const gameSlug = container.getAttribute('data-game-slug');
-        console.log(`[Detail] Theme applied for game: ${gameSlug}`);
+        dcLog(`[Detail] Theme applied for game: ${gameSlug}`);
         
         // Theme is applied via CSS [data-game-slug] selector
         // No additional JS needed - CSS variables handle everything
     } else {
-        console.log('[Detail] No data-game-slug found, using default theme');
+        dcLog('[Detail] No data-game-slug found, using default theme');
     }
 }
 
@@ -187,7 +187,7 @@ function initializeTabs() {
     const tabPanels = document.querySelectorAll('.td-tab-panel');
     
     if (tabButtons.length === 0 || tabPanels.length === 0) {
-        console.log('[Detail] Tab navigation elements not found');
+        dcLog('[Detail] Tab navigation elements not found');
         return;
     }
     
@@ -212,7 +212,7 @@ function initializeTabs() {
             window.location.hash = tabId;
         }
         
-        console.log(`[Detail] Switched to tab: ${tabId}`);
+        dcLog(`[Detail] Switched to tab: ${tabId}`);
     };
     
     // Add click handlers to tab buttons
@@ -266,7 +266,7 @@ function initializeTabs() {
         }
     });
     
-    console.log(`[Detail] Initialized tab navigation with ${tabButtons.length} tabs`);
+    dcLog(`[Detail] Initialized tab navigation with ${tabButtons.length} tabs`);
 }
 
 /**
@@ -277,7 +277,7 @@ function initializeCountdowns() {
     const countdownElements = document.querySelectorAll('.countdown-timer[data-target]');
     
     if (countdownElements.length === 0) {
-        console.log('[Detail] No countdown timers found');
+        dcLog('[Detail] No countdown timers found');
         return;
     }
     
@@ -312,7 +312,7 @@ function initializeCountdowns() {
         const intervalId = setInterval(updateCountdown, 1000);
     });
     
-    console.log(`[Detail] Initialized ${countdownElements.length} countdown timer(s)`);
+    dcLog(`[Detail] Initialized ${countdownElements.length} countdown timer(s)`);
 }
 
 /**
@@ -324,7 +324,7 @@ function initializeCounters() {
     const prizeElements = document.querySelectorAll('[data-amount]');
     
     if (prizeElements.length === 0) {
-        console.log('[Detail] No counter elements found');
+        dcLog('[Detail] No counter elements found');
         return;
     }
     
@@ -388,7 +388,7 @@ function animatePrizeCounters() {
         requestAnimationFrame(updateCounter);
     });
     
-    console.log(`[Detail] Animated ${prizeElements.length} prize counter(s)`);
+    dcLog(`[Detail] Animated ${prizeElements.length} prize counter(s)`);
 }
 
 /**
@@ -409,7 +409,7 @@ function initializeHoverEffects() {
         });
     });
     
-    console.log(`[Detail] Initialized hover effects for ${ctaButtons.length} interactive element(s)`);
+    dcLog(`[Detail] Initialized hover effects for ${ctaButtons.length} interactive element(s)`);
 }
 
 /**
@@ -458,7 +458,7 @@ function formatTimeRemaining(time) {
  */
 function animateNumber(element, start, end, duration) {
     // Number animation logic will be added here when needed
-    console.log('[Detail] Number animation placeholder');
+    dcLog('[Detail] Number animation placeholder');
 }
 
 /**
@@ -473,11 +473,11 @@ function initializeParticipantsFilters() {
     const participantsGrid = document.getElementById('participantsGrid');
     
     if (!participantsGrid) {
-        console.log('[Detail] Participants grid not found - skipping filter initialization');
+        dcLog('[Detail] Participants grid not found - skipping filter initialization');
         return;
     }
     
-    console.log('[Detail] Initializing participants filters');
+    dcLog('[Detail] Initializing participants filters');
     
     // Get all participant cards
     const getAllCards = () => Array.from(participantsGrid.querySelectorAll('.td-participant-card'));
@@ -516,7 +516,7 @@ function initializeParticipantsFilters() {
             if (isVisible) visibleCount++;
         });
         
-        console.log(`[Detail] Filtered: ${visibleCount} of ${cards.length} participants visible`);
+        dcLog(`[Detail] Filtered: ${visibleCount} of ${cards.length} participants visible`);
         
         // Show empty state if no results
         showEmptyState(visibleCount === 0 && cards.length > 0);
@@ -550,7 +550,7 @@ function initializeParticipantsFilters() {
         if (statusFilter) statusFilter.value = '';
         if (regionFilter) regionFilter.value = '';
         applyFilters();
-        console.log('[Detail] Filters cleared');
+        dcLog('[Detail] Filters cleared');
     };
     
     // Attach event listeners
@@ -570,7 +570,7 @@ function initializeParticipantsFilters() {
         clearButton.addEventListener('click', clearFilters);
     }
     
-    console.log('[Detail] Participants filters initialized successfully');
+    dcLog('[Detail] Participants filters initialized successfully');
 }
 
 /**
@@ -1013,4 +1013,4 @@ document.addEventListener('click', function(e) {
     }
 });
 
-console.log('[Detail] Enhanced tournament detail page JavaScript loaded successfully');
+dcLog('[Detail] Enhanced tournament detail page JavaScript loaded successfully');

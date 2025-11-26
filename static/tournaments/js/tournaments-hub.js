@@ -103,7 +103,7 @@
      */
     function handleSearch(event) {
         const searchValue = event.target.value.trim();
-        console.log('Search:', searchValue);
+        dcLog('Search:', searchValue);
         
         // Update URL parameter (use 'search' to match Django view)
         updateURL({ search: searchValue });
@@ -119,7 +119,7 @@
         if (elements.searchInput) {
             const debouncedSearch = debounce(handleSearch, CONFIG.searchDebounceMs);
             elements.searchInput.addEventListener('input', debouncedSearch);
-            console.log('Search initialized');
+            dcLog('Search initialized');
         }
     }
     
@@ -133,7 +133,7 @@
         const filterName = input.name;
         const filterValue = input.value;
         
-        console.log('Filter changed:', filterName, filterValue);
+        dcLog('Filter changed:', filterName, filterValue);
         
         // Update URL parameter
         const params = { [filterName]: filterValue };
@@ -151,7 +151,7 @@
             elements.filterInputs.forEach(input => {
                 input.addEventListener('change', handleFilterChange);
             });
-            console.log('Filters initialized:', elements.filterInputs.length);
+            dcLog('Filters initialized:', elements.filterInputs.length);
         }
     }
     
@@ -160,7 +160,7 @@
      */
     function resetFilters(event) {
         event.preventDefault();
-        console.log('Resetting filters');
+        dcLog('Resetting filters');
         
         // Clear URL parameters except search
         const currentSearch = elements.searchInput ? elements.searchInput.value : '';
@@ -173,7 +173,7 @@
     function initResetButton() {
         if (elements.resetButton) {
             elements.resetButton.addEventListener('click', resetFilters);
-            console.log('Reset button initialized');
+            dcLog('Reset button initialized');
         }
     }
     
@@ -184,7 +184,7 @@
      */
     function handleSortChange(event) {
         const sortValue = event.target.value;
-        console.log('Sort changed:', sortValue);
+        dcLog('Sort changed:', sortValue);
         
         // Update URL parameter
         updateURL({ sort: sortValue });
@@ -199,7 +199,7 @@
     function initSort() {
         if (elements.sortSelect) {
             elements.sortSelect.addEventListener('change', handleSortChange);
-            console.log('Sort initialized');
+            dcLog('Sort initialized');
         }
     }
     
@@ -213,7 +213,7 @@
             elements.filtersPanel.classList.add('active');
             elements.body.style.overflow = 'hidden';
             isFilterPanelOpen = true;
-            console.log('Filter panel opened');
+            dcLog('Filter panel opened');
         }
     }
     
@@ -225,7 +225,7 @@
             elements.filtersPanel.classList.remove('active');
             elements.body.style.overflow = '';
             isFilterPanelOpen = false;
-            console.log('Filter panel closed');
+            dcLog('Filter panel closed');
         }
     }
     
@@ -235,12 +235,12 @@
     function initMobileFilterPanel() {
         if (elements.mobileFilterBtn) {
             elements.mobileFilterBtn.addEventListener('click', openFilterPanel);
-            console.log('Mobile filter button initialized');
+            dcLog('Mobile filter button initialized');
         }
         
         if (elements.closeFiltersBtn) {
             elements.closeFiltersBtn.addEventListener('click', closeFilterPanel);
-            console.log('Close filter button initialized');
+            dcLog('Close filter button initialized');
         }
         
         // Close on escape key
@@ -283,7 +283,7 @@
             observer.observe(card);
         });
         
-        console.log('Card animations initialized:', elements.tournamentCards.length);
+        dcLog('Card animations initialized:', elements.tournamentCards.length);
     }
     
     // ==================== Scroll to Top ====================
@@ -336,7 +336,7 @@
         // Scroll to top on click
         scrollTopBtn.addEventListener('click', scrollToTop);
         
-        console.log('Scroll to top initialized');
+        dcLog('Scroll to top initialized');
     }
     
     // ==================== Initialization ====================
@@ -345,7 +345,7 @@
      * Initialize all functionality
      */
     function init() {
-        console.log('🎮 DeltaCrown Tournaments Hub - Initializing...');
+        dcLog('🎮 DeltaCrown Tournaments Hub - Initializing...');
         
         // Initialize features
         initSearch();
@@ -356,7 +356,7 @@
         initCardAnimations();
         initScrollToTop();
         
-        console.log('✅ DeltaCrown Tournaments Hub - Initialized successfully!');
+        dcLog('✅ DeltaCrown Tournaments Hub - Initialized successfully!');
     }
     
     // ==================== Execute on DOM Ready ====================

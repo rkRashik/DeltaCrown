@@ -438,4 +438,4 @@ class GameIDPrompt {
 // Initialize global instance
 window.gameIDPrompt = new GameIDPrompt();
 
-console.log('[GameIDPrompt] System initialized');
+dcLog('[GameIDPrompt] System initialized');

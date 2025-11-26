@@ -28,11 +28,11 @@
    * Fetch registration context once and update all button locations
    */
   function loadRegistrationButtons(slug, locations) {
-    console.log('[Tournament Detail] Loading buttons for slug:', slug);
+    dcLog('[Tournament Detail] Loading buttons for slug:', slug);
     fetch(`/tournaments/api/${slug}/register/context/`)
       .then(response => response.json())
       .then(data => {
-        console.log('[Tournament Detail] API Response:', data);
+        dcLog('[Tournament Detail] API Response:', data);
         if (data.success && data.context) {
           locations.forEach(loc => {
             if (loc.element) {
@@ -67,7 +67,7 @@
     const isLarge = variant === 'large';
     const sizeClass = isLarge ? 'big wfull' : '';
     
-    console.log('[Tournament Detail] Rendering button:', { slug, state, text });
+    dcLog('[Tournament Detail] Rendering button:', { slug, state, text });
     
     let html = '';
     let helpText = message ? `<p class="small muted" style="margin-top:.35rem;">${escapeHtml(message)}</p>` : '';

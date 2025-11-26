@@ -426,12 +426,18 @@ class UserBadgeAdmin(admin.ModelAdmin):
     
     def user_link(self, obj):
         """Link to user profile"""
-        url = reverse('admin:user_profile_userprofile_change', args=[obj.user.userprofile.id])
-        return format_html(
-            '<a href="{}">{}</a>',
-            url,
-            obj.user.username
-        )
+        try:
+            # Use 'profile' related name instead of 'userprofile'
+            profile = obj.user.profile
+            url = reverse('admin:user_profile_userprofile_change', args=[profile.id])
+            return format_html(
+                '<a href="{}">{}</a>',
+                url,
+                obj.user.username
+            )
+        except Exception:
+            # Fallback if profile doesn't exist
+            return obj.user.username
     user_link.short_description = 'User'
     
     def badge_display(self, obj):

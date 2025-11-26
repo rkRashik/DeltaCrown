@@ -515,6 +515,6 @@
      INITIALIZATION COMPLETE
      ========================================================================= */
 
-  console.log('✅ Mobile Navigation V2 initialized successfully');
+  dcLog('✅ Mobile Navigation V2 initialized successfully');
 
 })();

@@ -47,7 +47,7 @@
                 
                 // Show appropriate inline
                 if (selectedGame) {
-                    console.log('Selected game:', selectedGame);
+                    dcLog('Selected game:', selectedGame);
                 }
             }
             
@@ -191,6 +191,6 @@
             });
         }
         
-        console.log('Tournament Admin JS loaded successfully');
+        dcLog('Tournament Admin JS loaded successfully');
     });
 })(django.jQuery, django);

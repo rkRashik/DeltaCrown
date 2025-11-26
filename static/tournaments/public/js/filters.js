@@ -83,5 +83,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  console.log('Tournament filters initialized');
+  dcLog('Tournament filters initialized');
 });

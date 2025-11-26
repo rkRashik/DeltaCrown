@@ -303,7 +303,7 @@ const wizardController = {
     this.setupAutoSave();
     this.restoreFromLocalStorage();
     
-  console.log('✓ Wizard initialized:', {
+  dcLog('✓ Wizard initialized:', {
       totalSteps: registrationState.totalSteps,
       game: window.tournamentData.game,
       isTeam: window.tournamentData.isTeam
@@ -396,7 +396,7 @@ const wizardController = {
     const profileData = window.tournamentData.profileData;
     const game = window.tournamentData.game;
     
-    console.log('🔄 Auto-filling fields for', game, profileData);
+    dcLog('🔄 Auto-filling fields for', game, profileData);
     
     // Wait a bit for fields to render
     setTimeout(() => {
@@ -432,7 +432,7 @@ const wizardController = {
         this.setFieldValue('fc26Username', profileData.fc26Username);
       }
       
-  console.log('✓ Auto-fill complete');
+  dcLog('✓ Auto-fill complete');
     }, 500);
   },
 
@@ -840,13 +840,13 @@ const rosterManager = {
     }
     
     const roster = window.tournamentData.teamRoster;
-    console.log('🔄 Auto-filling roster with', roster.length, 'players');
+    dcLog('🔄 Auto-filling roster with', roster.length, 'players');
     
     // Process each roster member except captain (who is in step 1)
     roster.forEach((member, index) => {
       if (member.isCaptain) {
         // Captain data is already in step 1
-        console.log('  ✓ Captain:', member.displayName);
+        dcLog('  ✓ Captain:', member.displayName);
         return;
       }
       
@@ -854,7 +854,7 @@ const rosterManager = {
       this.addPlayerCard(member);
     });
     
-  console.log('✓ Roster auto-fill complete');
+  dcLog('✓ Roster auto-fill complete');
   },
 
   addPlayerCard(playerData = null) {
@@ -1089,5 +1089,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
-  console.log('✓ Registration Form V2 loaded successfully');
+  dcLog('✓ Registration Form V2 loaded successfully');
 });

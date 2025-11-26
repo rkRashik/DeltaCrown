@@ -182,6 +182,8 @@ app_name = 'tournaments'
 urlpatterns = [
     # FE-T-001: Tournament List/Discovery Page
     path('', views.TournamentListView.as_view(), name='list'),
+    # Backwards-compatibility alias used in templates: "tournaments:browse"
+    path('browse/', views.TournamentListView.as_view(), name='browse'),
     
     # Organizer Console URLs (must be before <slug> pattern)
     path('organizer/', OrganizerDashboardView.as_view(), name='organizer_dashboard'),

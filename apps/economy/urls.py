@@ -10,6 +10,10 @@ urlpatterns = [
     
     # Wallet Dashboard
     path('wallet/dashboard/', withdrawal.wallet_dashboard_view, name='wallet_dashboard'),
+    # Backwards compatibility / short links used in templates
+    path('deposit/', wallet_view, name='deposit'),
+    path('withdraw/', withdrawal.withdrawal_request_view, name='withdraw'),
+    path('transactions/', wallet_view, name='transaction_history'),
     
     # Withdrawal
     path('withdrawal/request/', withdrawal.withdrawal_request_view, name='withdrawal_request'),

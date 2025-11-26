@@ -45,7 +45,7 @@
         // Initialize share functionality
         initializeShareButtons();
         
-        console.log('Tournament detail page initialized');
+        dcLog('Tournament detail page initialized');
     }
 
     // ==================== DATA EXTRACTION ====================
@@ -72,7 +72,7 @@
         const gameSlug = state.tournamentData.gameSlug.toLowerCase();
         document.body.setAttribute('data-game', gameSlug);
         
-        console.log(`Applied game theme: ${gameSlug}`);
+        dcLog(`Applied game theme: ${gameSlug}`);
     }
 
     // ==================== TAB NAVIGATION ====================
@@ -209,7 +209,7 @@
                 
                 // Update check-in status if changed
                 if (data.checkInStatus && data.checkInStatus !== state.tournamentData.checkInStatus) {
-                    console.log('Check-in status changed, reloading...');
+                    dcLog('Check-in status changed, reloading...');
                     window.location.reload();
                 }
                 
@@ -363,8 +363,8 @@
                 text: `Check out this tournament: ${tournamentName}`,
                 url: url,
             })
-            .then(() => console.log('Share successful'))
-            .catch(error => console.log('Share failed:', error));
+            .then(() => dcLog('Share successful'))
+            .catch(error => dcLog('Share failed:', error));
         } else {
             // Fallback to copy link
             handleCopyLink(e);

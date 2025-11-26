@@ -175,9 +175,107 @@
             <!-- Game IDs Section -->
             <section id="section-games" class="settings-section">
                 <h2 class="section-title">Game Profiles</h2>
+                <p class="section-description">Manage your competitive gaming profiles and in-game usernames</p>
                 
-                <form method="post" class="settings-form">
-                    {% csrf_token %}
+                <!-- Existing Game Profiles -->
+                {% if game_profiles %}
+                <div class="game-profiles-list" style="margin-bottom: 2rem;" x-data="{ editingId: null }">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #e2e8f0;">Your Game Profiles</h3>
+                    {% for gp in game_profiles %}
+                    <div class="game-profile-card" style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem;">
+                        
+                        <!-- View Mode -->
+                        <div x-show="editingId !== {{ gp.id }}" style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 1.5rem;">🎮</span>
+                                    <h4 style="font-size: 1.1rem; font-weight: 700; color: white;">{{ gp.game_display_name }}</h4>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; color: #94a3b8; font-size: 0.875rem;">
+                                    <div>
+                                        <span style="color: #64748b;">In-Game Name:</span>
+                                        <span style="color: white; font-weight: 600; margin-left: 0.25rem;">{{ gp.in_game_name }}</span>
+                                    </div>
+                                    {% if gp.rank_name %}
+                                    <div>
+                                        <span style="color: #64748b;">Rank:</span>
+                                        <span style="color: #fbbf24; font-weight: 600; margin-left: 0.25rem;">{{ gp.rank_name }}</span>
+                                    </div>
+                                    {% endif %}
+                                    {% if gp.main_role %}
+                                    <div>
+                                        <span style="color: #64748b;">Role:</span>
+                                        <span style="color: #a78bfa; margin-left: 0.25rem;">{{ gp.main_role }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <span style="color: #64748b;">Matches:</span>
+                                        <span style="color: white; margin-left: 0.25rem;">{{ gp.matches_played }}</span>
+                                    </div>
+                                    {% if gp.win_rate %}
+                                    <div>
+                                        <span style="color: #64748b;">Win Rate:</span>
+                                        <span style="color: #10b981; margin-left: 0.25rem;">{{ gp.win_rate }}%</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button @click="editingId = {{ gp.id }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Edit</button>
+                                <form method="post" action="{% url 'user_profile:delete_game_profile' gp.id %}" style="display: inline;" onsubmit="return confirm('Delete this game profile?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        <!-- Edit Mode -->
+                        <div x-show="editingId === {{ gp.id }}" style="display: none;">
+                            <form method="post" action="{% url 'user_profile:edit_game_profile' gp.id %}">
+                                {% csrf_token %}
+                                <div style="margin-bottom: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                                        <span style="font-size: 1.5rem;">🎮</span>
+                                        <h4 style="font-size: 1.1rem; font-weight: 700; color: white;">{{ gp.game_display_name }}</h4>
+                                    </div>
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                        <div>
+                                            <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem;">In-Game Name *</label>
+                                            <input type="text" name="in_game_name" value="{{ gp.in_game_name }}" required class="form-input" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                                        </div>
+                                        <div>
+                                            <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem;">Rank</label>
+                                            <input type="text" name="rank_name" value="{{ gp.rank_name }}" class="form-input" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                                        </div>
+                                        <div style="grid-column: 1 / -1;">
+                                            <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem;">Main Role</label>
+                                            <input type="text" name="main_role" value="{{ gp.main_role }}" class="form-input" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <button type="button" @click="editingId = null" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Cancel</button>
+                                    <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Save Changes</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="background: rgba(30, 41, 59, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem; padding: 2rem; text-align: center; margin-bottom: 2rem;">
+                    <span style="font-size: 3rem; opacity: 0.5;">🎮</span>
+                    <p style="color: #94a3b8; margin-top: 0.5rem;">No game profiles added yet</p>
+                    <p style="color: #64748b; font-size: 0.875rem; margin-top: 0.25rem;">Add your first game profile using the form below</p>
+                </div>
+                {% endif %}
+                
+                <!-- Legacy Game IDs (Backward Compatibility) -->
+                <details style="margin-bottom: 2rem;">
+                    <summary style="cursor: pointer; font-weight: 600; color: #94a3b8; margin-bottom: 1rem;">Legacy Game IDs (Deprecated)</summary>
+                    <form method="post" class="settings-form">
+                        {% csrf_token %}
                     
                     <div class="game-id-group">
                         <h3 class="game-title">Riot Games</h3>
@@ -227,8 +325,62 @@
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary">Save Game IDs</button>
-                </form>
+                        <button type="submit" class="btn btn-primary">Save Game IDs</button>
+                    </form>
+                </details>
+                
+                <!-- Add New Game Profile -->
+                <div class="add-game-profile" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 0.5rem; padding: 1.5rem;">
+                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #e2e8f0;">Add New Game Profile</h3>
+                    <form method="post" action="{% url 'user_profile:add_game_profile' %}" class="settings-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="redirect_to" value="settings">
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="game">Game</label>
+                                <select id="game" name="game" class="form-input" required>
+                                    <option value="">-- Select Game --</option>
+                                    <option value="valorant">🎯 VALORANT</option>
+                                    <option value="csgo">🔫 CS:GO</option>
+                                    <option value="cs2">🔫 Counter-Strike 2</option>
+                                    <option value="lol">⚔ League of Legends</option>
+                                    <option value="dota2">🛡 Dota 2</option>
+                                    <option value="overwatch">🎮 Overwatch 2</option>
+                                    <option value="apex">🏹 Apex Legends</option>
+                                    <option value="fortnite">🪂 Fortnite</option>
+                                    <option value="pubg">🔥 PUBG</option>
+                                    <option value="r6">🏰 Rainbow Six Siege</option>
+                                    <option value="rocket_league">🚗 Rocket League</option>
+                                    <option value="mlbb">⚡ Mobile Legends</option>
+                                    <option value="codm">🎖 Call of Duty Mobile</option>
+                                    <option value="pubgm">📱 PUBG Mobile</option>
+                                    <option value="freefire">🔥 Free Fire</option>
+                                    <option value="fc24">⚽ FC 24</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="in_game_name">In-Game Username</label>
+                                <input type="text" id="in_game_name" name="in_game_name" class="form-input" placeholder="e.g., PlayerName#TAG" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="rank_name">Current Rank (Optional)</label>
+                                <input type="text" id="rank_name" name="rank_name" class="form-input" placeholder="e.g., Diamond 2, Global Elite">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="main_role">Main Role (Optional)</label>
+                                <input type="text" id="main_role" name="main_role" class="form-input" placeholder="e.g., Duelist, Support, Mid">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">➕ Add Game Profile</button>
+                    </form>
+                </div>
             </section>
             
             <!-- Social Links Section -->

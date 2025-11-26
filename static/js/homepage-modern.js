@@ -518,7 +518,7 @@ class ModernHomepage {
             window.addEventListener('load', () => {
                 const perfData = performance.getEntriesByType('navigation')[0];
                 if (perfData) {
-                    console.log('Page Load Time:', Math.round(perfData.loadEventEnd - perfData.loadEventStart));
+                    dcLog('Page Load Time:', Math.round(perfData.loadEventEnd - perfData.loadEventStart));
                 }
             });
 

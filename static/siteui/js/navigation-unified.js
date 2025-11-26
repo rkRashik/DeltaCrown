@@ -160,7 +160,7 @@
         </div>
       </div>
       <div class="dc-profile-dropdown__menu">
-        <a href="/user/u/${username}/" class="dc-profile-dropdown__item">
+        <a href="/u/${username}/" class="dc-profile-dropdown__item">
           <i class="fas fa-user dc-profile-dropdown__item-icon"></i>
           <span>My Profile</span>
         </a>

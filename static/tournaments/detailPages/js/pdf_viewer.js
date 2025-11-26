@@ -141,7 +141,7 @@
                 return;
             }
             
-            console.log('[Rules PDF] Initializing PDF.js with URL:', pdfUrl);
+            dcLog('[Rules PDF] Initializing PDF.js with URL:', pdfUrl);
             
             // Find container
             const container = document.querySelector(containerSelector);
@@ -160,12 +160,12 @@
             
             // Load PDF.js if needed
             if (!pdfjsLib) {
-                console.log('[Rules PDF] Loading PDF.js library...');
+                dcLog('[Rules PDF] Loading PDF.js library...');
                 await loadPdfJs();
             }
             
             // Fetch PDF manually to avoid IDM interception and direct downloads
-            console.log('[Rules PDF] Fetching PDF via fetch()...');
+            dcLog('[Rules PDF] Fetching PDF via fetch()...');
             const response = await fetch(pdfUrl, { 
                 credentials: 'same-origin',
                 headers: {
@@ -173,7 +173,7 @@
                 }
             });
             
-            console.log('[Rules PDF] Fetch response status:', response.status);
+            dcLog('[Rules PDF] Fetch response status:', response.status);
             
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status} when fetching PDF`);
@@ -181,10 +181,10 @@
             
             // Get PDF as ArrayBuffer
             const arrayBuffer = await response.arrayBuffer();
-            console.log('[Rules PDF] PDF downloaded, size:', arrayBuffer.byteLength, 'bytes');
+            dcLog('[Rules PDF] PDF downloaded, size:', arrayBuffer.byteLength, 'bytes');
             
             // Load PDF from data (not URL) to prevent direct navigation
-            console.log('[Rules PDF] Loading PDF from ArrayBuffer...');
+            dcLog('[Rules PDF] Loading PDF from ArrayBuffer...');
             const loadingTask = pdfjsLib.getDocument({
                 data: arrayBuffer,
                 isEvalSupported: false,
@@ -193,7 +193,7 @@
             });
             const pdf = await loadingTask.promise;
             
-            console.log('[Rules PDF] PDF loaded successfully, numPages:', pdf.numPages);
+            dcLog('[Rules PDF] PDF loaded successfully, numPages:', pdf.numPages);
             
             // Clear loading state
             container.innerHTML = '';
@@ -228,7 +228,7 @@
             // Track active viewer
             activeViewers.add(container);
             
-            console.log(`[Rules PDF] Viewer initialized: ${pdf.numPages} pages rendered`);
+            dcLog(`[Rules PDF] Viewer initialized: ${pdf.numPages} pages rendered`);
             
         } catch (error) {
             console.error('[Rules PDF] Error initializing PDF viewer:', error);

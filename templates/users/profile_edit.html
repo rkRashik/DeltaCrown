@@ -5,7 +5,7 @@
 {% block content %}
 <main class="container mx-auto px-4 max-w-7xl py-8">
   <nav aria-label="Breadcrumb" class="text-sm text-muted mb-3">
-    <a class="link-nav" href="/">Home</a> / <a class="link-nav" href="/user/u/{{ request.user.username }}/">Profile</a> / <span>Settings</span>
+    <a class="link-nav" href="/">Home</a> / <a class="link-nav" href="{% url 'user_profile:public_profile' request.user.username %}">Profile</a> / <span>Settings</span>
   </nav>
 
   <h1 class="text-2xl font-bold">Profile Settings</h1>

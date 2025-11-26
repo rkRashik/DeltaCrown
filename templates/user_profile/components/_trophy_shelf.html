@@ -1,0 +1,109 @@
+<!-- ============================================
+     TROPHY SHELF COMPONENT
+     Section 3.3.4 - Master Plan
+     Display: Recent Achievements & Badges
+     Layout: Horizontal Scroll (Mobile), Grid (Desktop)
+     ============================================ -->
+<div class="glass-card p-6">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-white font-bold text-lg uppercase tracking-wide flex items-center gap-2">
+            <span>🏆</span> Achievements
+        </h3>
+        {% if achievements %}
+        <a href="{% url 'user_profile:achievements' profile_user.username %}" 
+           class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">
+            View All
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Trophies Grid/Scroll -->
+    {% if achievements %}
+    <div class="overflow-x-auto md:overflow-visible -mx-2 px-2 md:mx-0 md:px-0">
+        <div class="flex md:grid md:grid-cols-3 gap-3 min-w-max md:min-w-0">
+            
+            {% for achievement in achievements|slice:":6" %}
+            <div class="flex-shrink-0 w-24 md:w-auto group">
+                <!-- Trophy Card -->
+                <div class="relative aspect-square rounded-lg bg-gradient-to-br from-slate-800 to-slate-900 border transition-all duration-300 hover-lift overflow-hidden
+                            {% if achievement.rarity == 'legendary' %}border-amber-500/30 hover:border-amber-500/70
+                            {% elif achievement.rarity == 'epic' %}border-purple-500/30 hover:border-purple-500/70
+                            {% elif achievement.rarity == 'rare' %}border-blue-500/30 hover:border-blue-500/70
+                            {% else %}border-white/10 hover:border-indigo-500/50{% endif %}">
+                    
+                    <!-- Rarity Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-opacity
+                                {% if achievement.rarity == 'legendary' %}from-amber-500/20 to-transparent
+                                {% elif achievement.rarity == 'epic' %}from-purple-500/20 to-transparent
+                                {% elif achievement.rarity == 'rare' %}from-blue-500/20 to-transparent
+                                {% else %}from-indigo-500/20 to-transparent{% endif %}"></div>
+                    
+                    <!-- Icon/Image -->
+                    {% if achievement.icon_url %}
+                    <img src="{{ achievement.icon_url }}" 
+                         alt="{{ achievement.name }}" 
+                         class="absolute inset-0 w-full h-full object-cover">
+                    {% else %}
+                    <div class="absolute inset-0 flex items-center justify-center text-4xl">
+                        {{ achievement.emoji|default:'🏆' }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Rarity Badge -->
+                    {% if achievement.rarity %}
+                    <div class="absolute top-1 right-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase text-white backdrop-blur-sm
+                                {% if achievement.rarity == 'legendary' %}bg-amber-500/90
+                                {% elif achievement.rarity == 'epic' %}bg-purple-500/90
+                                {% elif achievement.rarity == 'rare' %}bg-blue-500/90
+                                {% else %}bg-slate-500/90{% endif %}">
+                        {{ achievement.rarity|upper }}
+                    </div>
+                    {% endif %}
+                    
+                </div>
+                
+                <!-- Trophy Name (Hidden on Mobile Scroll) -->
+                <p class="hidden md:block text-center text-xs text-slate-300 font-semibold mt-2 truncate" title="{{ achievement.name }}">
+                    {{ achievement.name }}
+                </p>
+                <p class="hidden md:block text-center text-[10px] text-slate-500 truncate" title="{{ achievement.description }}">
+                    {{ achievement.description|truncatewords:5 }}
+                </p>
+            </div>
+            {% endfor %}
+            
+        </div>
+    </div>
+    
+    <!-- Achievement Count (Mobile Only) -->
+    <div class="md:hidden mt-3 text-center">
+        <p class="text-slate-500 text-xs">
+            Showing <span class="text-white font-semibold">{{ achievements|slice:":6"|length }}</span> of 
+            <span class="text-white font-semibold">{{ achievements|length }}</span> achievements
+        </p>
+    </div>
+    
+    {% else %}
+    
+    <!-- Empty State -->
+    <div class="text-center py-8">
+        <div class="text-6xl mb-3 opacity-50">🏆</div>
+        {% if is_own_profile %}
+        <p class="text-slate-400 text-sm font-semibold mb-1">No achievements yet!</p>
+        <p class="text-slate-600 text-xs">Compete in tournaments to earn trophies and badges</p>
+        <a href="{% url 'tournaments:browse' %}" 
+           class="inline-block mt-4 px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                  text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
+            🎮 Browse Tournaments
+        </a>
+        {% else %}
+        <p class="text-slate-500 text-sm italic">No achievements earned yet</p>
+        <p class="text-slate-600 text-xs mt-1">Check back later!</p>
+        {% endif %}
+    </div>
+    
+    {% endif %}
+    
+</div>

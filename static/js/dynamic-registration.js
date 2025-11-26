@@ -60,7 +60,7 @@ class DynamicRegistrationForm {
       // Hide loading, show form
       this.hideLoading();
       
-      console.log('✅ Dynamic registration form initialized');
+      dcLog('✅ Dynamic registration form initialized');
     } catch (error) {
       console.error('❌ Failed to initialize form:', error);
       this.showError('Failed to load registration form. Please refresh the page.');
@@ -105,7 +105,7 @@ class DynamicRegistrationForm {
       container.appendChild(fieldElement);
     });
     
-    console.log(`✅ Rendered ${sortedFields.length} dynamic fields`);
+    dcLog(`✅ Rendered ${sortedFields.length} dynamic fields`);
   }
   
   initializeValidation() {
@@ -186,7 +186,7 @@ class DynamicRegistrationForm {
   }
   
   async handleSubmit() {
-    console.log('📝 Submitting registration form...');
+    dcLog('📝 Submitting registration form...');
     
     // Validate all fields
     const isValid = await this.validateAllFields();
@@ -282,11 +282,11 @@ class GameConfigLoader {
   async load() {
     // Return cached if available
     if (this.cache) {
-      console.log('✅ Using cached game config');
+      dcLog('✅ Using cached game config');
       return this.cache;
     }
     
-    console.log(`📡 Fetching game config for: ${this.gameCode}`);
+    dcLog(`📡 Fetching game config for: ${this.gameCode}`);
     
     const response = await fetch(`/tournaments/api/games/${this.gameCode}/config/`);
     
@@ -303,7 +303,7 @@ class GameConfigLoader {
     // Cache the config
     this.cache = data.config;
     
-    console.log(`✅ Loaded config: ${this.cache.fields.length} fields, ${this.cache.roles.length} roles`);
+    dcLog(`✅ Loaded config: ${this.cache.fields.length} fields, ${this.cache.roles.length} roles`);
     
     return this.cache;
   }
@@ -592,7 +592,7 @@ class AutoFillHandler {
         input.value = profileData[fieldName];
         input.classList.add('auto-filled');
         
-        console.log(`✅ Auto-filled: ${fieldName}`);
+        dcLog(`✅ Auto-filled: ${fieldName}`);
       }
     });
   }

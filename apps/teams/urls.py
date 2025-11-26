@@ -208,6 +208,8 @@ urlpatterns = [
     path("", team_list, name="index"),
     path("", team_list, name="hub"),
     path("list/", team_list, name="list"),
+    # Backwards-compatibility alias: 'teams:browse' used across multiple templates
+    path('browse/', team_list, name='browse'),
     path("rankings/", team_ranking_view, name="rankings"),  # Updated to use ranking view
     
     path("test/", lambda request: render(request, "teams/test_page.html"), name="test"),  # TEST PAGE

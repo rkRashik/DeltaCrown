@@ -139,7 +139,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    console.log('Draft saved successfully');
+                    dcLog('Draft saved successfully');
                 }
             })
             .catch(error => console.error('Draft save error:', error));

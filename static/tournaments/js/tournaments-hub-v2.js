@@ -636,7 +636,7 @@
     // ====================================
     function trackEvent(category, action, label) {
         // Placeholder for analytics integration
-        console.log('Event:', category, action, label);
+        dcLog('Event:', category, action, label);
         
         // Example: Google Analytics
         // if (typeof gtag !== 'undefined') {

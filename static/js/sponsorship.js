@@ -238,14 +238,14 @@ class SponsorshipDashboard {
     
     async loadDashboardData() {
         // Implementation for real-time dashboard updates
-        console.log('Loading dashboard data...');
+        dcLog('Loading dashboard data...');
         // This can be expanded to fetch real-time analytics
     }
     
     renderChart(elementId, data) {
         // Placeholder for chart rendering
         // Can be implemented with Chart.js or similar
-        console.log('Rendering chart:', elementId, data);
+        dcLog('Rendering chart:', elementId, data);
     }
 }
 

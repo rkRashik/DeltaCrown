@@ -106,7 +106,7 @@
             </div>
             
             <div class="profile-menu-items">
-              <a href="/user/u/{{ request.user.username }}/" class="profile-menu-item">
+              <a href="{% url 'user_profile:public_profile' request.user.username %}" class="profile-menu-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
@@ -269,7 +269,7 @@
 
         <ul class="unified-nav-mobile__menu">
           <li><a href="/dashboard/">Dashboard</a></li>
-          <li><a href="/user/u/{{ request.user.username }}/">Profile</a></li>
+          <li><a href="{% url 'user_profile:public_profile' request.user.username %}">Profile</a></li>
           <li><a href="/notifications/">Notifications</a></li>
           <li><a href="{% url 'user_profile:settings' %}">Settings</a></li>
           <li><a href="/accounts/logout/" class="unified-nav-mobile__signout">Sign Out</a></li>

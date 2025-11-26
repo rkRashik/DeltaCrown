@@ -1,0 +1,199 @@
+<!-- ============================================
+     SOCIAL LINKS COMPONENT
+     Section 3.3.3 - Master Plan
+     Display: Connected Social Platforms
+     Owner: Add/Edit via Modal
+     ============================================ -->
+<div class="glass-card p-6 space-y-4">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-2">
+        <h3 class="text-white font-bold text-lg uppercase tracking-wide">Socials</h3>
+        {% if is_own_profile %}
+        <button @click="$dispatch('open-social-modal')" 
+                class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">
+            + Add
+        </button>
+        {% endif %}
+    </div>
+    
+    <!-- Social Links Grid -->
+    {% if social_links %}
+    <div class="space-y-2">
+        
+        {% for social in social_links %}
+        <a href="{{ social.url }}" 
+           target="_blank" 
+           rel="noopener noreferrer"
+           class="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-white/5 hover:border-indigo-500/50 transition-all group">
+            
+            <!-- Platform Icon -->
+            <span class="text-2xl flex-shrink-0 transition-transform group-hover:scale-110">
+                {% if social.platform == 'twitch' %}🟣
+                {% elif social.platform == 'youtube' %}▶
+                {% elif social.platform == 'twitter' %}🐦
+                {% elif social.platform == 'discord' %}💬
+                {% elif social.platform == 'instagram' %}📸
+                {% elif social.platform == 'tiktok' %}🎵
+                {% elif social.platform == 'facebook' %}👤
+                {% else %}🔗
+                {% endif %}
+            </span>
+            
+            <!-- Platform Name & Handle -->
+            <div class="flex-1 min-w-0">
+                <p class="text-white font-semibold text-sm capitalize">{{ social.platform }}</p>
+                <p class="text-slate-400 text-xs truncate">{{ social.handle|default:social.url }}</p>
+            </div>
+            
+            <!-- External Link Icon -->
+            <span class="text-slate-500 group-hover:text-indigo-400 transition-colors text-sm">↗</span>
+            
+        </a>
+        {% endfor %}
+        
+    </div>
+    {% else %}
+    
+    <!-- Empty State -->
+    <div class="text-center py-6">
+        {% if is_own_profile %}
+        <p class="text-slate-500 text-sm">No social links yet</p>
+        <p class="text-slate-600 text-xs mt-1">Connect your platforms to grow your following</p>
+        {% else %}
+        <p class="text-slate-500 text-sm italic">No social links connected</p>
+        {% endif %}
+    </div>
+    
+    {% endif %}
+    
+</div>
+
+<!-- ============================================
+     ADD SOCIAL MODAL
+     Alpine.js Modal with Platform Dropdown
+     ============================================ -->
+{% if is_own_profile %}
+<div x-data="{ 
+        showSocialModal: false,
+        selectedPlatform: 'twitch',
+        socialUrl: '',
+        socialHandle: '',
+        platforms: {
+            'twitch': { name: 'Twitch', icon: '🟣', placeholder: 'https://twitch.tv/username' },
+            'youtube': { name: 'YouTube', icon: '▶', placeholder: 'https://youtube.com/@username' },
+            'twitter': { name: 'Twitter', icon: '🐦', placeholder: 'https://twitter.com/username' },
+            'discord': { name: 'Discord', icon: '💬', placeholder: 'username#1234 or Discord Server URL' },
+            'instagram': { name: 'Instagram', icon: '📸', placeholder: 'https://instagram.com/username' },
+            'tiktok': { name: 'TikTok', icon: '🎵', placeholder: 'https://tiktok.com/@username' },
+            'facebook': { name: 'Facebook', icon: '👤', placeholder: 'https://facebook.com/username' }
+        },
+        get currentPlatform() {
+            return this.platforms[this.selectedPlatform];
+        }
+     }"
+     @open-social-modal.window="showSocialModal = true"
+     @keydown.escape.window="showSocialModal = false"
+     x-show="showSocialModal"
+     x-transition:enter="transition ease-out duration-200"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-150"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+     style="display: none;">
+    
+    <!-- Modal Card -->
+    <div @click.away="showSocialModal = false"
+         x-transition:enter="transition ease-out duration-200 transform"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150 transform"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95"
+         class="glass-card w-full max-w-lg">
+        
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-white uppercase tracking-wide">Add Social Link</h2>
+            <button @click="showSocialModal = false" 
+                    class="text-slate-400 hover:text-white text-2xl leading-none transition-colors">
+                ×
+            </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-6">
+            
+            <form method="POST" action="{% url 'user_profile:add_social_link' %}">
+                {% csrf_token %}
+                
+                <!-- Platform Dropdown -->
+                <div class="mb-4">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">Platform</label>
+                    <div class="relative">
+                        <select name="platform" 
+                                x-model="selectedPlatform"
+                                class="glass-input w-full px-4 py-3 pr-10 rounded-lg text-white appearance-none cursor-pointer
+                                       focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="twitch">🟣 Twitch</option>
+                            <option value="youtube">▶ YouTube</option>
+                            <option value="twitter">🐦 Twitter</option>
+                            <option value="discord">💬 Discord</option>
+                            <option value="instagram">📸 Instagram</option>
+                            <option value="tiktok">🎵 TikTok</option>
+                            <option value="facebook">👤 Facebook</option>
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- URL Input -->
+                <div class="mb-4">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">URL or Handle</label>
+                    <input type="text" 
+                           name="url" 
+                           x-model="socialUrl"
+                           :placeholder="currentPlatform.placeholder"
+                           required
+                           class="glass-input w-full px-4 py-3 rounded-lg text-white placeholder-slate-500 
+                                  focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                
+                <!-- Optional Handle -->
+                <div class="mb-6">
+                    <label class="block text-slate-300 text-sm font-semibold mb-2">Display Name (Optional)</label>
+                    <input type="text" 
+                           name="handle" 
+                           x-model="socialHandle"
+                           placeholder="e.g., ProGamer123"
+                           class="glass-input w-full px-4 py-3 rounded-lg text-white placeholder-slate-500 
+                                  focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button type="button" 
+                            @click="showSocialModal = false"
+                            class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-slate-700 hover:bg-slate-600 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all">
+                        🔗 Add Link
+                    </button>
+                </div>
+                
+            </form>
+            
+        </div>
+        
+    </div>
+    
+</div>
+{% endif %}

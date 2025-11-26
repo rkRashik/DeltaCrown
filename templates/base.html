@@ -47,6 +47,11 @@
     {# 🔽 allow pages to inject extra CSS (e.g., tournaments-detail.css) #}
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
+    <!-- Provide a safe no-op `dcLog` early so inline scripts can call it without errors -->
+    <script>
+      window.DELTACROWN_DEBUG = false;
+      window.dcLog = function(){};
+    </script>
   </head>
   <body class="min-h-full bg-body text-body antialiased">
     <a href="#main" class="skip-link">Skip to main content</a>
@@ -65,6 +70,11 @@
     {% include "partials/toasts.html" %}
 
     <!-- Site JS -->
+    <script>
+      // Server-side controlled debug flag (authorized users only)
+      window.DELTACROWN_DEBUG = {% if request.user.is_superuser or debug|default:False %}true{% else %}false{% endif %};
+    </script>
+    <script src="{% static 'siteui/js/debug.js' %}"></script>
     <script src="{% static 'siteui/js/theme.js' %}"></script>
     <script src="{% static 'siteui/js/esports-theme-toggle.js' %}"></script>
     <script src="{% static 'siteui/js/notifications.js' %}?v=2"></script>
@@ -77,6 +87,7 @@
     <script src="{% static 'siteui/js/micro.js' %}"></script>
     <script src="{% static 'siteui/js/navigation-unified.js' %}"></script>
     <script src="{% static 'siteui/js/reg_wizard.js' %}"></script>
+    <script src="{% static 'siteui/js/follow.js' %}"></script>
 
     {% if messages %}
     <script id="dj-messages" type="application/json">[

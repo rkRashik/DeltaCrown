@@ -408,7 +408,7 @@
    * Initialize mobile navigation
    */
   function init() {
-    console.log('Mobile nav V3: Initializing...');
+    dcLog('Mobile nav V3: Initializing...');
 
     // Event Listeners - Drawer Controls
     if (hamburgerBtn) {
@@ -450,7 +450,7 @@
     // Listen for custom navigation events
     window.addEventListener('popstate', updateActiveLinks);
 
-    console.log('Mobile nav V3: Initialized successfully');
+    dcLog('Mobile nav V3: Initialized successfully');
   }
 
   // =========================================================================
@@ -476,6 +476,6 @@
     version: '3.0.0'
   };
 
-  console.log('Mobile nav V3: Module loaded (v3.0.0)');
+  dcLog('Mobile nav V3: Module loaded (v3.0.0)');
 
 })();

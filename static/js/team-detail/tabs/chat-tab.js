@@ -355,7 +355,7 @@ class ChatTab {
     setTimeout(() => {
       this.isConnected = true;
       this.updateConnectionStatus();
-      console.log('Chat WebSocket connected (simulated)');
+      dcLog('Chat WebSocket connected (simulated)');
     }, 1000);
 
     // Simulate incoming messages every 30 seconds (for demo)
@@ -578,7 +578,7 @@ class ChatTab {
     // Simple emoji picker (could be enhanced with a library)
     const emojis = ['😀', '😂', '❤️', '👍', '🎉', '🔥', '👏', '✨'];
     // For now, just log - full implementation would show a picker modal
-    console.log('Emoji picker:', emojis);
+    dcLog('Emoji picker:', emojis);
   }
 
   showFileUpload() {
@@ -594,7 +594,7 @@ class ChatTab {
     if (!files || files.length === 0) return;
     
     const file = files[0];
-    console.log('Uploading file:', file.name);
+    dcLog('Uploading file:', file.name);
     
     // In production, upload file and add as attachment
     // For now, just show a placeholder message
@@ -672,7 +672,7 @@ class ChatTab {
 
   editMessage(messageId) {
     // TODO: Implement edit functionality
-    console.log('Edit message:', messageId);
+    dcLog('Edit message:', messageId);
   }
 
   async deleteMessage(messageId) {

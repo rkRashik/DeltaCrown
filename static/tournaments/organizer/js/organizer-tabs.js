@@ -32,7 +32,7 @@
             });
         });
 
-        console.log('✅ Organizer Hub tabs initialized');
+        dcLog('✅ Organizer Hub tabs initialized');
     }
 
     // Initialize on DOM ready

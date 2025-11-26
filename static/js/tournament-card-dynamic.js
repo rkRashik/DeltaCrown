@@ -8,13 +8,13 @@
 
   // Initialize all tournament cards on page load
   document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Tournament Card Dynamic] Initializing...');
+    dcLog('[Tournament Card Dynamic] Initializing...');
     const containers = document.querySelectorAll('.dc-reg-btn-container[data-loading="true"]');
-    console.log('[Tournament Card Dynamic] Found', containers.length, 'containers');
+    dcLog('[Tournament Card Dynamic] Found', containers.length, 'containers');
     
     containers.forEach((container, index) => {
       const slug = container.dataset.tournamentSlug;
-      console.log(`[Tournament Card Dynamic] Container ${index + 1}:`, {
+      dcLog(`[Tournament Card Dynamic] Container ${index + 1}:`, {
         slug: slug,
         element: container,
         dataset: container.dataset

@@ -1,6 +1,8 @@
 ﻿from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
 import uuid
 
 REGION_CHOICES = [
@@ -184,6 +186,14 @@ class UserProfile(models.Model):
     stream_status = models.BooleanField(
         default=False,
         help_text="Automatically indicates if user is currently live on linked Twitch/YouTube"
+    )
+    
+    # ===== PROFILE CUSTOMIZATION (Phase 3) =====
+    pronouns = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Pronouns (e.g., he/him, she/her, they/them)"
     )
     
     preferred_games = models.JSONField(default=list, blank=True, null=True)
@@ -504,6 +514,69 @@ class UserProfile(models.Model):
         
         progress = ((self.xp - current_level_xp) / (next_level_xp - current_level_xp)) * 100
         return max(0, min(100, progress))
+    
+    # ===== PHASE 3: PROFILE STATS METHODS =====
+    
+    def calculate_win_rate(self):
+        """Calculate overall win rate percentage from match history"""
+        try:
+            total_matches = self.user.matches.count()
+            if total_matches == 0:
+                return 0
+            wins = self.user.matches.filter(result='win').count()
+            return int((wins / total_matches) * 100)
+        except Exception:
+            return 0
+    
+    @property
+    def total_earnings(self):
+        """Get total earnings from wallet/economy system"""
+        try:
+            from apps.economy.models import DeltaCrownWallet
+            wallet = DeltaCrownWallet.objects.filter(profile=self).first()
+            if wallet:
+                # Return lifetime earnings if tracked, otherwise current balance
+                return getattr(wallet, 'lifetime_earnings', wallet.cached_balance)
+            return self.lifetime_earnings
+        except Exception:
+            return self.lifetime_earnings
+    
+    @property
+    def wallet(self):
+        """Get user's wallet instance"""
+        try:
+            from apps.economy.models import DeltaCrownWallet
+            wallet, _ = DeltaCrownWallet.objects.get_or_create(profile=self)
+            return wallet
+        except Exception:
+            return None
+    
+    @property
+    def followers(self):
+        """Get followers queryset (placeholder for future social system)"""
+        # TODO: Implement follower system
+        return self.user.followers if hasattr(self.user, 'followers') else self.user.objects.none()
+    
+    @property
+    def following(self):
+        """Get following queryset (placeholder for future social system)"""
+        # TODO: Implement following system
+        return self.user.following if hasattr(self.user, 'following') else self.user.objects.none()
+    
+    @property
+    def tournament_participations(self):
+        """Get tournament participations (placeholder)"""
+        # TODO: Link to tournament system when available
+        return self.user.objects.none()
+    
+    @property
+    def team_memberships(self):
+        """Get team memberships"""
+        try:
+            from apps.teams.models import TeamMembership
+            return TeamMembership.objects.filter(profile=self)
+        except Exception:
+            return self.user.objects.none()
 
 
 def kyc_document_path(instance, filename):
@@ -971,4 +1044,508 @@ class UserBadge(models.Model):
     
     def __str__(self):
         return f"{self.user.username} earned {self.badge.name}"
+
+
+# ============================================================================
+# PHASE 3: PROFILE ENHANCEMENT MODELS
+# ============================================================================
+
+class SocialLink(models.Model):
+    """
+    User's connected social media platforms.
+    Frontend component: _social_links.html
+    """
+    
+    PLATFORM_CHOICES = [
+        ('twitch', 'Twitch'),
+        ('youtube', 'YouTube'),
+        ('twitter', 'Twitter'),
+        ('discord', 'Discord'),
+        ('instagram', 'Instagram'),
+        ('tiktok', 'TikTok'),
+        ('facebook', 'Facebook'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='social_links'
+    )
+    platform = models.CharField(
+        max_length=20,
+        choices=PLATFORM_CHOICES,
+        help_text="Social media platform"
+    )
+    url = models.URLField(
+        max_length=500,
+        help_text="Full URL to profile"
+    )
+    handle = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Display name or handle (optional)"
+    )
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="Whether this link has been verified by platform API"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = [['user', 'platform']]
+        ordering = ['platform']
+        verbose_name = "Social Link"
+        verbose_name_plural = "Social Links"
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_platform_display()}"
+    
+    def clean(self):
+        """Validate URL format for specific platforms"""
+        url_validators = {
+            'twitch': 'twitch.tv/',
+            'youtube': ('youtube.com/', 'youtu.be/'),
+            'twitter': ('twitter.com/', 'x.com/'),
+            'discord': 'discord.gg/',
+            'instagram': 'instagram.com/',
+            'tiktok': 'tiktok.com/@',
+            'facebook': 'facebook.com/',
+        }
+        
+        if self.platform in url_validators:
+            expected = url_validators[self.platform]
+            if isinstance(expected, tuple):
+                if not any(exp in self.url for exp in expected):
+                    raise ValidationError(
+                        f"{self.get_platform_display()} URL must contain one of: {', '.join(expected)}"
+                    )
+            else:
+                if expected not in self.url:
+                    raise ValidationError(
+                        f"{self.get_platform_display()} URL must contain: {expected}"
+                    )
+
+
+class GameProfile(models.Model):
+    """
+    User's game-specific profiles with stats and rank.
+    Frontend component: _game_passport.html
+    """
+    
+    GAME_CHOICES = [
+        ('valorant', 'VALORANT'),
+        ('csgo', 'CS:GO'),
+        ('cs2', 'Counter-Strike 2'),
+        ('lol', 'League of Legends'),
+        ('dota2', 'Dota 2'),
+        ('overwatch', 'Overwatch 2'),
+        ('apex', 'Apex Legends'),
+        ('fortnite', 'Fortnite'),
+        ('pubg', 'PUBG'),
+        ('r6', 'Rainbow Six Siege'),
+        ('rocket_league', 'Rocket League'),
+        ('mlbb', 'Mobile Legends'),
+        ('codm', 'Call of Duty Mobile'),
+        ('pubgm', 'PUBG Mobile'),
+        ('freefire', 'Free Fire'),
+        ('fc24', 'FC 24'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='game_profiles'
+    )
+    game = models.CharField(
+        max_length=20,
+        choices=GAME_CHOICES,
+        help_text="Game identifier"
+    )
+    game_display_name = models.CharField(
+        max_length=100,
+        editable=False,
+        help_text="Auto-filled from choices"
+    )
+    in_game_name = models.CharField(
+        max_length=100,
+        help_text="In-game username (e.g., Player#TAG)"
+    )
+    
+    # Rank Information
+    rank_name = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Current rank (e.g., Diamond 2, Global Elite)"
+    )
+    rank_image = models.ImageField(
+        upload_to='rank_images/',
+        blank=True,
+        null=True,
+        help_text="Rank badge image"
+    )
+    rank_points = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="LP/RR/MMR points"
+    )
+    rank_tier = models.IntegerField(
+        default=0,
+        help_text="Numeric rank tier (for sorting/comparison)"
+    )
+    peak_rank = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Highest rank achieved"
+    )
+    
+    # Statistics
+    matches_played = models.IntegerField(
+        default=0,
+        help_text="Total matches played"
+    )
+    win_rate = models.IntegerField(
+        default=0,
+        help_text="Win rate percentage (0-100)"
+    )
+    kd_ratio = models.FloatField(
+        blank=True,
+        null=True,
+        help_text="Kill/Death ratio"
+    )
+    hours_played = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Total hours played"
+    )
+    
+    # Role/Position
+    main_role = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        help_text="Main role/position (e.g., Duelist, Support, Mid)"
+    )
+    
+    # Verification
+    is_verified = models.BooleanField(
+        default=False,
+        help_text="Whether this profile has been verified via game API"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = [['user', 'game']]
+        ordering = ['-updated_at']
+        verbose_name = "Game Profile"
+        verbose_name_plural = "Game Profiles"
+        indexes = [
+            models.Index(fields=['user', 'game']),
+            models.Index(fields=['game', '-rank_tier']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.get_game_display()}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-populate display name from choices
+        if not self.game_display_name:
+            self.game_display_name = self.get_game_display()
+        super().save(*args, **kwargs)
+    
+    @property
+    def win_loss_record(self):
+        """Calculate W-L record from win rate"""
+        if self.matches_played == 0:
+            return "0-0"
+        wins = int(self.matches_played * (self.win_rate / 100))
+        losses = self.matches_played - wins
+        return f"{wins}-{losses}"
+
+
+class Achievement(models.Model):
+    """
+    Tournament achievements and trophies earned by users.
+    Frontend component: _trophy_shelf.html
+    """
+    
+    RARITY_CHOICES = [
+        ('common', 'Common'),
+        ('rare', 'Rare'),
+        ('epic', 'Epic'),
+        ('legendary', 'Legendary'),
+    ]
+    
+    RARITY_COLORS = {
+        'common': 'slate',
+        'rare': 'indigo',
+        'epic': 'purple',
+        'legendary': 'amber',
+    }
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='achievements'
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Achievement name"
+    )
+    description = models.TextField(
+        help_text="Achievement description"
+    )
+    emoji = models.CharField(
+        max_length=10,
+        default='🏆',
+        help_text="Emoji icon for display"
+    )
+    icon_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="Optional custom icon URL"
+    )
+    rarity = models.CharField(
+        max_length=20,
+        choices=RARITY_CHOICES,
+        default='common',
+        help_text="Achievement rarity"
+    )
+    
+    # Metadata
+    earned_at = models.DateTimeField(auto_now_add=True)
+    context = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Context data (tournament_id, placement, etc.)"
+    )
+    
+    class Meta:
+        ordering = ['-earned_at']
+        verbose_name = "Achievement"
+        verbose_name_plural = "Achievements"
+        indexes = [
+            models.Index(fields=['user', '-earned_at']),
+            models.Index(fields=['rarity', '-earned_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"
+    
+    @property
+    def rarity_color(self):
+        """Get Tailwind color for rarity"""
+        return self.RARITY_COLORS.get(self.rarity, 'slate')
+
+
+class Match(models.Model):
+    """
+    Match history records for user profiles.
+    Frontend component: _match_history.html
+    """
+    
+    RESULT_CHOICES = [
+        ('win', 'Win'),
+        ('loss', 'Loss'),
+        ('draw', 'Draw'),
+    ]
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='matches'
+    )
+    game_name = models.CharField(
+        max_length=100,
+        help_text="Game name"
+    )
+    mode = models.CharField(
+        max_length=50,
+        default="Competitive",
+        help_text="Game mode (Competitive, Ranked, Casual)"
+    )
+    result = models.CharField(
+        max_length=10,
+        choices=RESULT_CHOICES,
+        help_text="Match result"
+    )
+    
+    # Score & Stats
+    score = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="Match score (e.g., 13-11)"
+    )
+    kda = models.CharField(
+        max_length=30,
+        blank=True,
+        default="",
+        help_text="Kill/Death/Assist (e.g., 24/12/8)"
+    )
+    duration = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Match duration in minutes"
+    )
+    
+    # Timing
+    played_at = models.DateTimeField(
+        help_text="When the match was played"
+    )
+    
+    # Context
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional match data (map, characters, tournament_id, etc.)"
+    )
+    
+    class Meta:
+        ordering = ['-played_at']
+        verbose_name = "Match"
+        verbose_name_plural = "Matches"
+        indexes = [
+            models.Index(fields=['user', '-played_at']),
+            models.Index(fields=['game_name', '-played_at']),
+            models.Index(fields=['result', '-played_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.game_name} ({self.result}) - {self.played_at.date()}"
+
+
+class Certificate(models.Model):
+    """
+    Tournament certificates and awards.
+    Frontend component: _certificates.html
+    """
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='certificates'
+    )
+    title = models.CharField(
+        max_length=200,
+        help_text="Certificate title"
+    )
+    tournament_name = models.CharField(
+        max_length=200,
+        help_text="Tournament name"
+    )
+    tournament_id = models.IntegerField(
+        blank=True,
+        null=True,
+        help_text="Tournament ID reference"
+    )
+    
+    # Images
+    image = models.ImageField(
+        upload_to='certificates/',
+        help_text="Full certificate image"
+    )
+    thumbnail_url = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Thumbnail URL (auto-generated if empty)"
+    )
+    
+    # Verification
+    issued_at = models.DateTimeField(
+        help_text="When certificate was issued"
+    )
+    verification_code = models.CharField(
+        max_length=50,
+        unique=True,
+        help_text="Unique verification code"
+    )
+    is_verified = models.BooleanField(
+        default=True,
+        help_text="Whether certificate is verified"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional certificate data (placement, prize, etc.)"
+    )
+    
+    class Meta:
+        ordering = ['-issued_at']
+        verbose_name = "Certificate"
+        verbose_name_plural = "Certificates"
+        indexes = [
+            models.Index(fields=['user', '-issued_at']),
+            models.Index(fields=['verification_code']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+    
+    @property
+    def tournament(self):
+        """Fake tournament object for template compatibility"""
+        class TournamentStub:
+            def __init__(self, name):
+                self.name = name
+        return TournamentStub(self.tournament_name)
+    
+    def save(self, *args, **kwargs):
+        # Generate verification code if not set
+        if not self.verification_code:
+            import secrets
+            self.verification_code = secrets.token_urlsafe(16)
+        super().save(*args, **kwargs)
+
+
+# ============================================================================
+# FOLLOW SYSTEM (Phase 4: Social Features)
+# ============================================================================
+
+class Follow(models.Model):
+    """
+    Instagram-style follower/following relationships.
+    Frontend component: _followers_modal.html
+    """
+    follower = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='following',
+        help_text="User who is following"
+    )
+    following = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='followers',
+        help_text="User being followed"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('follower', 'following')
+        indexes = [
+            models.Index(fields=['follower', 'created_at']),
+            models.Index(fields=['following', 'created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.follower.username} follows {self.following.username}"
+    
+    def save(self, *args, **kwargs):
+        # Prevent self-following
+        if self.follower == self.following:
+            raise ValueError("Users cannot follow themselves")
+        super().save(*args, **kwargs)
+
+
 

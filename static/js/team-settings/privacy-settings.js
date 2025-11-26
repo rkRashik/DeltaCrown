@@ -197,7 +197,7 @@ class PrivacySettingsManager {
     } else {
       // Fallback to alert
       if (type === 'success') {
-        console.log('✓', message);
+        dcLog('✓', message);
       } else {
         console.error('✗', message);
       }

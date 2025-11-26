@@ -127,6 +127,13 @@ class DeltaCrownWallet(models.Model):
         This is the amount user can actually withdraw or spend.
         """
         return self.cached_balance - self.pending_balance
+
+    @property
+    def balance(self) -> int:
+        """
+        Backwards compatible alias for cached_balance used across older templates and tests.
+        """
+        return self.cached_balance
     
     @transaction.atomic
     def recalc_and_save(self) -> int:

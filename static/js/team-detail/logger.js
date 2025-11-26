@@ -10,7 +10,7 @@ class Logger {
 
   log(...args) {
     if (this.isDev) {
-      console.log(`[${this.prefix}]`, ...args);
+      dcLog(`[${this.prefix}]`, ...args);
     }
   }
 

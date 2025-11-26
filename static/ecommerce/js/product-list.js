@@ -626,7 +626,7 @@ class ProductComparison {
 
     async showCompareModal() {
         // Implementation for comparison modal
-        console.log('Show compare modal for products:', this.compareList);
+        dcLog('Show compare modal for products:', this.compareList);
     }
 }
 

@@ -1,0 +1,56 @@
+[ EXISTING NAVBAR PRESERVED ]
+
++---------------------------------------------------------------------------------------------------------+
+|  HERO BANNER (Full Width, 280px)                                                                        |
+|  [                                                                                                   ]  |
+|  [     CUSTOM ARTWORK / GAME BANNER (e.g., Valorant Map Art)                                         ]  |
+|  [                                                                                                   ]  |
+|  [                                                     [ ⚙ Settings ] [ ↗ Share ]                    ]  |
+|  +---------------------------------------------------------------------------------------------------+  |
+|  |  (Gradient Glass Overlay - Bottom 80px)                                                           |  |
+|  +---------------------------------------------------------------------------------------------------+  |
++---------------------------------------------------------------------------------------------------------+
+|                                                                                                         |
+|  [ LEFT COLUMN: IDENTITY ]           [ MIDDLE COLUMN: PERFORMANCE FEED ]        [ RIGHT COLUMN: META ]  |
+|  (Sticky Sidebar - w-1/4)            (Scrollable - w-1/2)                       (Sticky Sidebar - w-1/4)|
+|                                                                                                         |
+|  +---------------------------+       +-----------------------------------+      +---------------------+ |
+|  | IDENTITY CARD             |       |  FEATURED TROPHIES (Shelf)        |      |  CURRENT TEAM       | |
+|  |                           |       |                                   |      |                     | |
+|  |   [ AVATAR ] (128px)      |       |  [ 🏆 ]    [ 🥇 ]    [ 🎙️ ]      |      |  [LOGO] TEAM DELTA  | |
+|  |   (Pulsing Green Border)  |       |  S1 Champ   MVP      Caster       |      |                     | |
+|  |                           |       +-----------------------------------+      |  Role: Captain (IGL)| |
+|  |   VIPER [✔ Verified]      |                                                  |                     | |
+|  |   @viper_bd • Lvl 42      |       +-----------------------------------+      |  Roster:            | |
+|  |                           |       |  GAME PASSPORT (Tabs)             |      |  [😊][😎][🤠] +2    | |
+|  |   [  Edit  ] [ Message ]  |       |                                   |      |                     | |
+|  +---------------------------+       |  [VALORANT]  [CS2]  [PUBG]        |      |  [ View Team Page ] | |
+|                                      |  +-----------------------------+  |      +---------------------+ |
+|  +---------------------------+       |  |  VALORANT STATS CARD        |  |                              |
+|  | VITAL STATISTICS          |       |  |                             |  |      +---------------------+ |
+|  |                           |       |  |  [ RANK ICON (Lg) ]         |  |      |  WALLET (Private)   | |
+|  |  📍 Location: 🇧🇩 Dhaka    |       |  |  Ascendant 2                |  |      |                     | |
+|  |  🎂 Age: 22 (Visible)     |       |  |  (Top 4.2% of region)       |  |      |  [💳 DELTA CARD  ]  | |
+|  |  📞 Phone: (+880) ****** |       |  |                             |  |      |  Balance: 5,400 DC  | |
+|  |     (Hidden by Privacy)   |       |  |  Riot ID:                   |  |      |                     | |
+|  |                           |       |  |  Viper#BD1  [ 📋 Copy ]     |  |      |  Earnings Graph:    | |
+|  |  Reputation Score:        |       |  |                             |  |      |  _./''\._ (Last 30d)| |
+|  |  [██████████░░] 85%       |       |  |  Main Roles:                |  |      |                     | |
+|  |  (High Trust)             |       |  |  [🤺 Duelist] [🎮 Initiator]|  |      |  [+ Deposit Funds]  | |
+|  +---------------------------+       |  +-----------------------------+  |      +---------------------+ |
+|                                      +-----------------------------------+                              |
+|  +---------------------------+                                                  +---------------------+ |
+|  | CONNECTED SOCIALS         |       +-----------------------------------+      |  CERTIFICATES       | |
+|  |                           |       |  MATCH HISTORY                    |      |                     | |
+|  |  [Discord Icon]           |       |                                   |      |  📄 Season 1 Cert   | |
+|  |  viper#001 [Online]       |       |  [ WIN ] vs Team X (Valorant)     |      |  (Verified PDF)     | |
+|  |                           |       |  [Map: Ascent] • 13-9 • 2h ago    |      |  [ ⬇ Download ]     | |
+|  |  [Twitch Icon]            |       |  Stats: 24/12/5 (KDA)             |      |                     | |
+|  |  /viper_streams           |       |                                   |      |  📄 MVP Award       | |
+|  |                           |       |  [ LOSS ] vs Team Y (CS2)         |      |  [ ⬇ Download ]     | |
+|  |  [Facebook Icon]          |       |  [Map: Mirage] • 0-2 • Yday       |      |                     | |
+|  |  /official.viper          |       |  Stats: 18/20/4 (KDA)             |      |  [ View Vault > ]   | |
+|  +---------------------------+       |                                   |      +---------------------+ |
+|                                      |  [ View Full History ]            |                              |
+|                                      +-----------------------------------+                              |
++---------------------------------------------------------------------------------------------------------+

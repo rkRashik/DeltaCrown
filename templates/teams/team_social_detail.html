@@ -1386,7 +1386,7 @@
           
           function toggleLike(postId) {
             // TODO: Implement like functionality
-            console.log('Toggle like for post', postId);
+            dcLog('Toggle like for post', postId);
           }
           
           function toggleComments(postId) {
@@ -1397,7 +1397,7 @@
           function postComment(postId, content) {
             if (content.trim()) {
               // TODO: Implement comment posting
-              console.log('Post comment for post', postId, ':', content);
+              dcLog('Post comment for post', postId, ':', content);
             }
           }
           
@@ -1658,7 +1658,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
-                console.log('Failed to load stats for', username, error);
+                dcLog('Failed to load stats for', username, error);
                 // Generate consistent fake data as fallback
                 const hash = username.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
                 const matches = Math.abs(hash % 200) + 50;
@@ -1799,14 +1799,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     
-                    <a href="/user/u/${data.username || username}/" style="display: block; background: linear-gradient(135deg, #1f6feb, #0969da); color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 16px rgba(31, 111, 235, 0.3); transition: all 0.2s;">
+                    <a href="/u/${data.username || username}/" style="display: block; background: linear-gradient(135deg, #1f6feb, #0969da); color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 16px rgba(31, 111, 235, 0.3); transition: all 0.2s;">
                         <i class="fas fa-user"></i> View Full Profile
                     </a>
                 </div>
             `;
         })
         .catch(error => {
-            console.log('Using fallback profile data:', error);
+            dcLog('Using fallback profile data:', error);
             // Generate consistent fake data based on username hash
             const hash = username.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
             const matches = Math.abs(hash % 200) + 50; // 50-250 matches (consistent per user)
@@ -1854,7 +1854,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     
-                    <a href="/user/u/${username}/" style="display: block; background: linear-gradient(135deg, #1f6feb, #0969da); color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 16px rgba(31, 111, 235, 0.3); transition: all 0.2s;">
+                    <a href="/u/${username}/" style="display: block; background: linear-gradient(135deg, #1f6feb, #0969da); color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-weight: 700; box-shadow: 0 4px 16px rgba(31, 111, 235, 0.3); transition: all 0.2s;">
                         <i class="fas fa-user"></i> View Full Profile
                     </a>
                 </div>
