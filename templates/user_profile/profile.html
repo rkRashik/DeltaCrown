@@ -1,299 +1,369 @@
 {% extends "base.html" %}
 {% load static %}
-{% load team_social_tags %}
-{% block title %}{{ profile.display_name|default:profile_user.username|default:"Player" }} - Profile | DeltaCrown{% endblock %}
+{% load profile_tags %}
 
-{% block extra_head %}
-<link href="{% static 'siteui/css/team-social.css' %}" rel="stylesheet">
-<link href="{% static 'siteui/css/user-profile.css' %}" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% block title %}{{ profile_user.username }}'s Profile - DeltaCrown{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="profile-dashboard">
-    <div class="dashboard-container">
-        <!-- Profile Header -->
-        <div class="profile-header">
-            <div class="profile-info">
-                {% if profile and profile.avatar %}
-                    <img src="{{ profile.avatar.url }}" alt="{{ profile_user.username }}" class="profile-avatar">
-                {% else %}
-                    <div class="profile-avatar" style="background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 800; color: white;">
-                        {{ profile_user.username|first|upper }}
-                    </div>
-                {% endif %}
+<div class="profile-container">
+    
+    <!-- Profile Header with Parallax Banner -->
+    <div class="profile-header">
+        <div class="banner-wrapper">
+            {% if profile.banner %}
+                <img src="{{ profile.banner.url }}" alt="Profile Banner" class="profile-banner">
+            {% else %}
+                <div class="profile-banner gradient-banner"></div>
+            {% endif %}
+            <div class="banner-overlay"></div>
+        </div>
+        
+        <div class="profile-info-card">
+            <div class="avatar-section">
+                <div class="avatar-ring">
+                    {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="{{ profile_user.username }}" class="profile-avatar">
+                    {% else %}
+                        <div class="profile-avatar default-avatar">
+                            {{ profile_user.username|first|upper }}
+                        </div>
+                    {% endif %}
+                    {% if profile.is_kyc_verified %}
+                        <div class="verified-badge" title="KYC Verified">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                            </svg>
+                        </div>
+                    {% endif %}
+                    {% if profile.stream_status %}
+                        <div class="live-badge">LIVE</div>
+                    {% endif %}
+                </div>
                 
-                <div class="profile-details">
-                    <h1>{{ profile.display_name|default:profile_user.get_full_name|default:profile_user.username }}</h1>
-                    <div class="username">@{{ profile_user.username }}</div>
+                <div class="user-info">
+                    <h1 class="username">{{ profile_user.username }}</h1>
+                    {% if profile.display_name and profile.display_name != profile_user.username %}
+                        <p class="display-name">{{ profile.display_name }}</p>
+                    {% endif %}
                     {% if profile.bio %}
-                        <div class="bio">{{ profile.bio }}</div>
+                        <p class="bio">{{ profile.bio }}</p>
                     {% endif %}
                     
-                    <div class="quick-actions" style="margin-top: 20px;">
-                        <a href="{% url 'user_profile:edit' %}" class="action-btn">
-                            <i class="fas fa-edit"></i> Edit Profile
-                        </a>
-                        <a href="{% url 'user_profile:my_tournaments' %}" class="action-btn secondary-btn">
-                            <i class="fas fa-trophy"></i> My Tournaments
-                        </a>
-                        <a href="#" class="action-btn secondary-btn">
-                            <i class="fas fa-cog"></i> Settings
-                        </a>
+                    <div class="user-meta">
+                        {% if profile.country and profile.show_country %}
+                            <span class="meta-item">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                                {{ profile.country }}
+                            </span>
+                        {% endif %}
+                        
+                        {% if profile.age and profile.show_age %}
+                            <span class="meta-item">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
+                                {{ profile.age }} years old
+                            </span>
+                        {% endif %}
+                        
+                        <span class="meta-item">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            Joined {{ profile.created_at|date:"M Y" }}
+                        </span>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Level & XP Progress -->
+            <div class="level-section">
+                <div class="level-badge">
+                    <span class="level-number">{{ profile.level }}</span>
+                    <span class="level-label">LVL</span>
+                </div>
+                <div class="xp-progress">
+                    <div class="xp-bar-container">
+                        <div class="xp-bar" style="width: {{ profile.level_progress_percentage }}%"></div>
+                    </div>
+                    <span class="xp-text">{{ profile.xp }} / {{ profile.xp_to_next_level }} XP</span>
+                </div>
+            </div>
+            {% if is_own_profile %}
+            <div class="profile-actions">
+                <a href="{% url 'user_profile:settings' %}" class="btn btn-secondary settings-btn">Settings</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Stats Dashboard -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon trophy">🏆</div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ tournament_stats.total_wins|default:0 }}</h3>
+                <p class="stat-label">Tournament Wins</p>
             </div>
         </div>
-
-        <!-- Dashboard Grid -->
-        <div class="dashboard-grid">
-            <!-- Main Content -->
-            <div class="main-content">
-                
-                <!-- Current Teams -->
-                {% if current_teams %}
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h2 class="card-title"><i class="fas fa-users"></i> My Teams</h2>
-                        <a href="{% url 'teams:teams:team_list' %}" class="secondary-btn" style="padding: 8px 15px; font-size: 0.8rem;">
-                            <i class="fas fa-plus"></i> Join Team
-                        </a>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                        {% for team_membership in current_teams %}
-                        <div class="team-card">
-                            {% if team_membership.is_captain %}
-                                <div class="captain-badge">
-                                    <i class="fas fa-crown"></i> CAPTAIN
-                                </div>
-                            {% endif %}
-                            
-                            <div class="team-header">
-                                {% if team_membership.logo_url %}
-                                    <img src="{{ team_membership.logo_url }}" alt="{{ team_membership.team.name }}" class="team-logo">
-                                {% else %}
-                                    <div class="team-logo" style="background: linear-gradient(45deg, #ff006e, #8338ec); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800; color: white;">
-                                        {{ team_membership.team.name|first|upper }}
-                                    </div>
-                                {% endif %}
-                                
-                                <div class="team-info">
-                                    <h4>{{ team_membership.team.name }}</h4>
-                                    <div class="team-role">{{ team_membership.role }}</div>
-                                    {% if team_membership.game %}
-                                        <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; margin-top: 3px;">
-                                            <i class="fas fa-gamepad"></i> {{ team_membership.game }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">
-                                <span><i class="fas fa-calendar"></i> Joined {{ team_membership.joined_at|date:"M j, Y" }}</span>
-                                <span><i class="fas fa-users"></i> {{ team_membership.team.members_count|default:"--" }} members</span>
-                            </div>
-                            
-                            <div style="display: flex; gap: 10px;">
-                                <a href="{% url 'teams:teams_social:team_social_detail' team_membership.team.slug %}" class="action-btn" style="flex: 1; text-align: center; padding: 8px 12px; font-size: 0.8rem;">
-                                    <i class="fas fa-arrow-right"></i> View Team
-                                </a>
-                                {% if team_membership.is_captain %}
-                                <a href="{% url 'teams:teams:team_settings' team_membership.team.slug %}" class="secondary-btn" style="padding: 8px 12px; font-size: 0.8rem;">
-                                    <i class="fas fa-cog"></i>
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Upcoming Matches -->
-                {% if upcoming_matches %}
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h2 class="card-title"><i class="fas fa-gamepad"></i> Upcoming Matches</h2>
-                        <a href="/tournaments/" class="secondary-btn" style="padding: 8px 15px; font-size: 0.8rem;">
-                            View All
-                        </a>
-                    </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        {% for match in upcoming_matches|slice:":5" %}
-                        <div class="match-item">
-                            <div class="match-result" style="background: rgba(0, 212, 255, 0.2); color: #00d4ff;">
-                                UPCOMING
-                            </div>
-                            <div style="flex: 1;">
-                                <div style="color: white; font-weight: 500; margin-bottom: 4px;">
-                                    {{ match.tournament.name }}
-                                </div>
-                                <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.85rem;">
-                                    Round {{ match.round_no }} • {{ match.created_at|date:"M j, g:i A" }}
-                                </div>
-                            </div>
-                            <a href="#" class="secondary-btn" style="padding: 6px 12px; font-size: 0.8rem;">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- No Teams Message -->
-                {% if not current_teams %}
-                <div class="dashboard-card">
-                    <div style="text-align: center; padding: 40px 20px;">
-                        <i class="fas fa-users" style="font-size: 4rem; color: rgba(255, 255, 255, 0.2); margin-bottom: 20px;"></i>
-                        <h3 style="color: rgba(255, 255, 255, 0.8); margin-bottom: 15px;">Join Your First Team</h3>
-                        <p style="color: rgba(255, 255, 255, 0.6); margin-bottom: 25px;">Connect with other players and compete in team tournaments.</p>
-                        <a href="{% url 'teams:list' %}" class="action-btn">
-                            <i class="fas fa-search"></i> Browse Teams
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
+        
+        <div class="stat-card">
+            <div class="stat-icon coins">💰</div>
+            <div class="stat-content">
+                <h3 class="stat-value">₿{{ profile.lifetime_earnings|floatformat:0 }}</h3>
+                <p class="stat-label">Lifetime Earnings</p>
             </div>
-
-            <!-- Sidebar -->
-            <div class="sidebar">
-                
-                <!-- Quick Stats -->
-                <div class="dashboard-card">
-                    <h3 class="card-title"><i class="fas fa-chart-line"></i> Quick Stats</h3>
-                    <div class="stats-mini-grid">
-                        <div class="stat-mini-card">
-                            <div class="stat-number">{{ current_teams|length|default:"0" }}</div>
-                            <div class="stat-label">Teams</div>
-                        </div>
-                        <div class="stat-mini-card">
-                            <div class="stat-number">{{ upcoming_matches|length|default:"0" }}</div>
-                            <div class="stat-label">Matches</div>
-                        </div>
-                        <div class="stat-mini-card">
-                            <div class="stat-number">{{ wallet_balance|default:"0" }}</div>
-                            <div class="stat-label">Coins</div>
-                        </div>
-                        <div class="stat-mini-card">
-                            <div class="stat-number">{{ total_orders|default:"0" }}</div>
-                            <div class="stat-label">Orders</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gaming IDs -->
-                {% if profile.riot_id or profile.efootball_id or profile.discord_id %}
-                <div class="dashboard-card">
-                    <h3 class="card-title"><i class="fas fa-gamepad"></i> Gaming IDs</h3>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        {% if profile.riot_id %}
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
-                            <span style="color: rgba(255, 255, 255, 0.7);"><i class="fas fa-fire"></i> Riot ID:</span>
-                            <span style="color: #ff4757; font-weight: 600;">{{ profile.riot_id }}</span>
-                        </div>
-                        {% endif %}
-                        {% if profile.efootball_id %}
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
-                            <span style="color: rgba(255, 255, 255, 0.7);"><i class="fas fa-futbol"></i> eFootball:</span>
-                            <span style="color: #2ed573; font-weight: 600;">{{ profile.efootball_id }}</span>
-                        </div>
-                        {% endif %}
-                        {% if profile.discord_id %}
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
-                            <span style="color: rgba(255, 255, 255, 0.7);"><i class="fab fa-discord"></i> Discord:</span>
-                            <span style="color: #7289da; font-weight: 600;">{{ profile.discord_id }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- DeltaCoin Wallet -->
-                <div class="dashboard-card">
-                    <h3 class="card-title"><i class="fas fa-coins"></i> DeltaCoin Wallet</h3>
-                    
-                    <div style="text-align: center; padding: 20px; background: rgba(255, 215, 0, 0.05); border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 15px; margin-bottom: 20px;">
-                        <div style="font-size: 2.5rem; font-weight: 800; color: #ffd700; text-shadow: 0 0 15px rgba(255, 215, 0, 0.6); margin-bottom: 5px;">
-                            {{ wallet_balance|default:"0" }}
-                        </div>
-                        <div style="color: rgba(255, 255, 255, 0.7); font-size: 0.9rem;">DeltaCoins Balance</div>
-                    </div>
-                    
-                    {% if recent_transactions %}
-                    <div style="margin-bottom: 15px;">
-                        <h4 style="color: rgba(255, 255, 255, 0.8); font-size: 1rem; margin-bottom: 10px;">Recent Transactions</h4>
-                        {% for transaction in recent_transactions|slice:":5" %}
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                            <div>
-                                <div style="color: white; font-size: 0.9rem;">{{ transaction.get_reason_display }}</div>
-                                <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ transaction.created_at|date:"M j, g:i A" }}</div>
-                            </div>
-                            <div style="font-weight: 600; {% if transaction.amount > 0 %}color: #00d4aa{% else %}color: #ff4757{% endif %};">
-                                {% if transaction.amount > 0 %}+{% endif %}{{ transaction.amount }}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    
-                    <a href="/economy/" class="action-btn secondary-btn" style="justify-content: center; width: 100%;">
-                        <i class="fas fa-wallet"></i> View Wallet
-                    </a>
-                </div>
-
-                <!-- Recent Orders -->
-                {% if recent_orders %}
-                <div class="dashboard-card">
-                    <h3 class="card-title"><i class="fas fa-shopping-cart"></i> Recent Orders</h3>
-                    
-                    {% for order in recent_orders|slice:":3" %}
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255, 255, 255, 0.03); border-radius: 10px; margin-bottom: 10px;">
-                        <div>
-                            <div style="color: white; font-size: 0.9rem; font-weight: 500;">Order #{{ order.id }}</div>
-                            <div style="color: rgba(255, 255, 255, 0.6); font-size: 0.8rem;">{{ order.items.count }} items • {{ order.created_at|date:"M j" }}</div>
-                        </div>
-                        <div>
-                            <div style="color: #ffd700; font-weight: 600;">${{ order.total_price }}</div>
-                            <div style="color: {% if order.status == 'completed' %}#00d4aa{% elif order.status == 'shipped' %}#3a86ff{% elif order.status == 'paid' %}#ffd700{% else %}#ff6b6b{% endif %}; font-size: 0.8rem; text-align: right;">{{ order.get_status_display }}</div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                    
-                    <a href="/shop/orders/" class="action-btn secondary-btn" style="justify-content: center; width: 100%; margin-top: 10px;">
-                        <i class="fas fa-list"></i> View All Orders
-                    </a>
-                </div>
-                {% endif %}
-
-                <!-- Quick Links -->
-                <div class="dashboard-card">
-                    <h3 class="card-title"><i class="fas fa-bolt"></i> Quick Actions</h3>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <a href="{% url 'teams:create' %}" class="action-btn secondary-btn" style="justify-content: center;">
-                            <i class="fas fa-plus"></i> Create Team
-                        </a>
-                        <a href="/tournaments/" class="action-btn secondary-btn" style="justify-content: center;">
-                            <i class="fas fa-trophy"></i> Join Tournament
-                        </a>
-                        <a href="/shop/" class="action-btn secondary-btn" style="justify-content: center;">
-                            <i class="fas fa-shopping-cart"></i> Visit Shop
-                        </a>
-                        <a href="{% url 'user_profile:public_profile' profile_user.username %}" class="action-btn secondary-btn" style="justify-content: center;">
-                            <i class="fas fa-eye"></i> View Public Profile
-                        </a>
-                    </div>
-                </div>
-
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon teams">👥</div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ current_teams|length }}</h3>
+                <p class="stat-label">Active Teams</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon rating">⭐</div>
+            <div class="stat-content">
+                <h3 class="stat-value">{{ profile.skill_rating }}</h3>
+                <p class="stat-label">Skill Rating</p>
             </div>
         </div>
     </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        
+        <!-- Left Column -->
+        <div class="left-column">
+            
+            <!-- Pinned Badges -->
+            {% if pinned_badges %}
+            <div class="content-card badges-card">
+                <h2 class="card-title">
+                    <span class="title-icon">🏅</span>
+                    Showcase Badges
+                </h2>
+                <div class="badges-showcase">
+                    {% for user_badge in pinned_badges %}
+                        <div class="badge-item" data-rarity="{{ user_badge.badge.rarity }}" title="{{ user_badge.badge.description }}">
+                            <div class="badge-icon">{{ user_badge.badge.icon }}</div>
+                            <p class="badge-name">{{ user_badge.badge.name }}</p>
+                            <span class="badge-rarity">{{ user_badge.badge.get_rarity_display }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Game Profiles -->
+            {% if game_profiles or profile.riot_id or profile.steam_id or profile.mlbb_id %}
+            <div class="content-card game-profiles-card">
+                <h2 class="card-title">
+                    <span class="title-icon">🎮</span>
+                    Game Profiles
+                </h2>
+                <div class="game-profiles-list">
+                    {% for game_profile in game_profiles %}
+                        <div class="game-profile-item">
+                            <div class="game-info">
+                                <span class="game-name">{{ game_profile.game|upper }}</span>
+                                {% if game_profile.rank %}
+                                    <span class="game-rank">{{ game_profile.rank }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="game-ign">{{ game_profile.ign }}</div>
+                            {% if game_profile.is_verified %}
+                                <div class="verified-icon" title="Verified">✓</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    {% if profile.riot_id %}
+                        <div class="game-profile-item legacy">
+                            <div class="game-info">
+                                <span class="game-name">VALORANT</span>
+                            </div>
+                            <div class="game-ign">{{ profile.riot_id }}</div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if profile.steam_id %}
+                        <div class="game-profile-item legacy">
+                            <div class="game-info">
+                                <span class="game-name">STEAM</span>
+                            </div>
+                            <div class="game-ign">{{ profile.steam_id }}</div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if profile.mlbb_id %}
+                        <div class="game-profile-item legacy">
+                            <div class="game-info">
+                                <span class="game-name">MLBB</span>
+                            </div>
+                            <div class="game-ign">{{ profile.mlbb_id }}</div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Social Links -->
+            {% if profile.show_socials and social %}
+            <div class="content-card social-card">
+                <h2 class="card-title">
+                    <span class="title-icon">🔗</span>
+                    Connect
+                </h2>
+                <div class="social-links">
+                    {% for link in social %}
+                        <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="social-link" data-platform="{{ link.platform|lower }}">
+                            <span class="social-icon">
+                                {% if link.platform == "YouTube" %}📺
+                                {% elif link.platform == "Twitch" %}🎥
+                                {% elif link.platform == "Discord" %}💬
+                                {% elif link.platform == "Twitter" %}🐦
+                                {% elif link.platform == "Instagram" %}📷
+                                {% elif link.platform == "Facebook" %}👍
+                                {% else %}🔗{% endif %}
+                            </span>
+                            <span class="social-platform">{{ link.platform }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Right Column -->
+        <div class="right-column">
+            
+            <!-- Active Teams -->
+            {% if current_teams %}
+            <div class="content-card teams-card">
+                <h2 class="card-title">
+                    <span class="title-icon">🛡️</span>
+                    Teams
+                </h2>
+                <div class="teams-list">
+                    {% for team_data in current_teams %}
+                        <a href="{% url 'teams:detail' team_data.team.slug %}" class="team-item">
+                            <div class="team-logo">
+                                {% if team_data.logo_url %}
+                                    <img src="{{ team_data.logo_url }}" alt="{{ team_data.team.name }}">
+                                {% else %}
+                                    <div class="team-logo-placeholder">{{ team_data.team.name|first|upper }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="team-details">
+                                <h3 class="team-name">{{ team_data.team.name }}</h3>
+                                <p class="team-meta">
+                                    <span class="team-role">{{ team_data.role }}</span>
+                                    {% if team_data.game %}
+                                        <span class="team-game">{{ team_data.game }}</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            {% if team_data.is_captain %}
+                                <div class="captain-badge" title="Team Captain">★</div>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tournament Activity -->
+            {% if tournament_history %}
+            <div class="content-card tournaments-card">
+                <h2 class="card-title">
+                    <span class="title-icon">🎯</span>
+                    Tournament History
+                </h2>
+                <div class="tournament-timeline">
+                    {% for tournament in tournament_history %}
+                        <div class="timeline-item" data-result="{{ tournament.placement|default:'participated' }}">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <h4 class="tournament-name">{{ tournament.tournament.name }}</h4>
+                                <p class="tournament-meta">
+                                    <span class="tournament-game">{{ tournament.tournament.game_display|default:tournament.tournament.game }}</span>
+                                    <span class="tournament-date">{{ tournament.registered_at|date:"M d, Y" }}</span>
+                                </p>
+                                {% if tournament.placement %}
+                                    <div class="placement-badge" data-placement="{{ tournament.placement }}">
+                                        {% if tournament.placement == 1 %}🥇
+                                        {% elif tournament.placement == 2 %}🥈
+                                        {% elif tournament.placement == 3 %}🥉
+                                        {% else %}#{{ tournament.placement }}{% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Match History -->
+            {% if match_history %}
+            <div class="content-card matches-card">
+                <h2 class="card-title">
+                    <span class="title-icon">⚔️</span>
+                    Recent Matches
+                </h2>
+                <div class="matches-list">
+                    {% for match in match_history %}
+                        <div class="match-item" data-result="{{ match.result|lower }}">
+                            <div class="match-result {{ match.result|lower }}">{{ match.result }}</div>
+                            <div class="match-details">
+                                <p class="match-tournament">{{ match.tournament_name }}</p>
+                                <p class="match-meta">
+                                    <span class="match-game">{{ match.game }}</span>
+                                    <span class="match-date">{{ match.played_at|date:"M d" }}</span>
+                                </p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Activity Feed (Placeholder for future) -->
+            <div class="content-card activity-card">
+                <h2 class="card-title">
+                    <span class="title-icon">📊</span>
+                    Recent Activity
+                </h2>
+                <div class="activity-feed">
+                    <div class="activity-item">
+                        <div class="activity-icon">🎮</div>
+                        <div class="activity-content">
+                            <p>Joined DeltaCrown</p>
+                            <span class="activity-time">{{ profile.created_at|timesince }} ago</span>
+                        </div>
+                    </div>
+                    
+                    {% if current_teams %}
+                        <div class="activity-item">
+                            <div class="activity-icon">👥</div>
+                            <div class="activity-content">
+                                <p>Joined team {{ current_teams.0.team.name }}</p>
+                                <span class="activity-time">{{ current_teams.0.joined_at|timesince }} ago</span>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'siteui/js/user-profile.js' %}"></script>
+<script src="{% static 'js/profile.js' %}"></script>
 {% endblock %}

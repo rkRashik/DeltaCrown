@@ -33,7 +33,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     # If profile exists and is private, render minimal card
     is_private = bool(getattr(profile, "is_private", False))
     if is_private:
-        return render(request, "users/public_profile.html", {
+        return render(request, "user_profile/profile.html", {
             "public_user": user,
             "profile": profile,
             "is_private": True,
@@ -275,6 +275,31 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         print(f"Error loading activity data: {e}")
         activity = []
 
+    # Get game profiles from the new pluggable system
+    game_profiles = []
+    if profile and profile.game_profiles:
+        game_profiles = profile.game_profiles
+    
+    # Calculate tournament stats (placeholder for now)
+    tournament_stats = {
+        'total_wins': 0,
+        'total_tournaments': len(tournament_history),
+        'win_rate': 0
+    }
+    
+    # Get badges data
+    pinned_badges = []
+    try:
+        if profile:
+            from apps.user_profile.models import UserBadge
+            pinned_badges = UserBadge.objects.filter(
+                user=user,
+                is_pinned=True
+            ).select_related('badge').order_by('-earned_at')[:5]
+    except Exception as e:
+        print(f"Error loading badge data: {e}")
+        pinned_badges = []
+    
     context = {
         "public_user": user,
         "profile": profile,
@@ -305,9 +330,15 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         "recent_transactions": recent_transactions,
         "recent_orders": recent_orders,
         "total_orders": total_orders,
+        # new template context
+        "game_profiles": game_profiles,
+        "tournament_stats": tournament_stats,
+        "pinned_badges": pinned_badges,
     }
 
-    return render(request, "users/public_profile_modern.html", context)
+    # Add alias expected by template
+    context['profile_user'] = user
+    return render(request, "user_profile/profile.html", context)
 
 
 def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:

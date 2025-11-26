@@ -168,7 +168,7 @@
           <i class="fas fa-th-large dc-profile-dropdown__item-icon"></i>
           <span>Dashboard</span>
         </a>
-        <a href="/user/me/edit/" class="dc-profile-dropdown__item">
+        <a href="/user/me/settings/" class="dc-profile-dropdown__item">
           <i class="fas fa-cog dc-profile-dropdown__item-icon"></i>
           <span>Settings</span>
         </a>

@@ -163,7 +163,7 @@
 
             <div class="profile-menu-section" role="none">
               <span class="profile-menu-heading" role="presentation">Account</span>
-              <a class="profile-menu-item" href="/user/me/edit/" role="menuitem">Settings</a>
+              <a class="profile-menu-item" href="{% url 'user_profile:settings' %}" role="menuitem">Settings</a>
               <a class="profile-menu-item" href="/notifications/" role="menuitem">Notification Center</a>
               <label for="profile-theme-toggle" class="profile-menu-item profile-theme-toggle" role="menuitem" tabindex="0">
                 <input type="checkbox" id="profile-theme-toggle" data-theme-toggle style="position: absolute; opacity: 0; pointer-events: none;" />

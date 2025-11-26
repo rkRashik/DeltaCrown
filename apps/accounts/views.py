@@ -9,7 +9,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView, LogoutView
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, HttpResponseRedirect
-from django.shortcuts import redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -102,9 +101,11 @@ class SignUpView(FormView):
         return super().form_valid(form)
 
 
+from django.shortcuts import redirect, render
 @login_required
 def profile_view(request: HttpRequest) -> HttpResponse:
-    return render(request, "account/profile.html", {})
+    # Redirect to the unified profile page handled by apps.user_profile
+    return redirect('user_profile:profile')
 
 
 # ---------- Email OTP ----------

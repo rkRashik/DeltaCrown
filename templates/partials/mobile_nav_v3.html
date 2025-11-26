@@ -209,7 +209,7 @@
             <span class="drawer-quick-action__badge">{{ nav_unread_count }}</span>
           {% endif %}
         </a>
-        <a href="/user/me/edit/" class="drawer-quick-action">
+        <a href="{% url 'user_profile:settings' %}" class="drawer-quick-action">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.364 6.364l-4.243-4.243m-6.364 0L3.636 17.364m12.728 0l-4.243-4.243m-6.364 0L3.636 6.636"></path>

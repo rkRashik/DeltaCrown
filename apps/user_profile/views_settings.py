@@ -4,7 +4,7 @@ from __future__ import annotations
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import redirect, render
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views import View
 from django.apps import apps
 
@@ -34,9 +34,8 @@ class MyProfileUpdateView(LoginRequiredMixin, View):
     success_url = reverse_lazy("user_profile:edit")
 
     def get(self, request, *args, **kwargs):
-        profile = _get_profile_for(request.user)
-        form = PrivacySettingsForm(instance=profile)
-        return render(request, self.template_name, {"form": form})
+        # Redirect legacy edit URL to the new unified settings page
+        return redirect(reverse("user_profile:settings"))
 
     def post(self, request, *args, **kwargs):
         # Interpret checkbox presence as boolean
@@ -54,4 +53,5 @@ class MyProfileUpdateView(LoginRequiredMixin, View):
         )
 
         messages.success(request, "Your privacy settings have been saved.")
-        return redirect(self.success_url)
+        # After saving privacy fields, send user to the new unified settings page
+        return redirect(reverse("user_profile:settings"))

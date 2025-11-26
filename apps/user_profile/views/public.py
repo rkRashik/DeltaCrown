@@ -30,7 +30,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     # If profile exists and is private, show a minimal card
     is_private = bool(getattr(profile, "is_private", False))
     if is_private:
-        return render(request, "users/public_profile.html", {
+        return render(request, "user_profile/profile.html", {
             "public_user": user,
             "profile": profile,
             "is_private": True,
@@ -49,7 +49,25 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     efootball_id = getattr(profile, "efootball_id", None)
     discord_id = getattr(profile, "discord_id", None)
 
-    return render(request, "users/public_profile.html", {
+    # Add `profile_user` alias for templates expecting that name
+    context = {
+        **{
+            "public_user": user,
+            "profile": profile,
+            "is_private": False,
+            "show_email": show_email,
+            "show_phone": show_phone,
+            "show_socials": show_socials,
+            "phone": phone,
+            "socials": socials,
+            "ign": ign,
+            "riot_id": riot_id,
+            "efootball_id": efootball_id,
+            "discord_id": discord_id,
+        }
+    }
+    context['profile_user'] = user
+    return render(request, "user_profile/profile.html", context)
         "public_user": user,
         "profile": profile,
         "is_private": False,

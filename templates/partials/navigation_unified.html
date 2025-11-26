@@ -271,7 +271,7 @@
           <li><a href="/dashboard/">Dashboard</a></li>
           <li><a href="/user/u/{{ request.user.username }}/">Profile</a></li>
           <li><a href="/notifications/">Notifications</a></li>
-          <li><a href="/user/me/edit/">Settings</a></li>
+          <li><a href="{% url 'user_profile:settings' %}">Settings</a></li>
           <li><a href="/accounts/logout/" class="unified-nav-mobile__signout">Sign Out</a></li>
         </ul>
       {% else %}

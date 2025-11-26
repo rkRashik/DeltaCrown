@@ -78,6 +78,11 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
         # Otherwise, proceed with normal form-driven update (full profile edits)
         return super().post(request, *args, **kwargs)
 
+    def get(self, request, *args, **kwargs):
+        # Redirect GET requests for legacy edit page to the unified settings page
+        from django.urls import reverse
+        return redirect(reverse("user_profile:settings"))
+
 
 User = get_user_model()
 
@@ -227,10 +232,42 @@ def profile_view(request, username=None):
     except Exception as e:
         print(f"Error loading verification data: {e}")
         verification_record = None
+    
+    # Get game profiles from the new pluggable system
+    game_profiles = []
+    if profile and profile.game_profiles:
+        game_profiles = profile.game_profiles
+    
+    # Calculate tournament stats (placeholder for now)
+    tournament_stats = {
+        'total_wins': 0,
+        'total_tournaments': 0,
+        'win_rate': 0
+    }
+    
+    # Social links
+    social = []
+    if profile and profile.show_socials:
+        try:
+            if profile.youtube_link:
+                social.append({"platform": "YouTube", "handle": "", "url": profile.youtube_link})
+            if profile.twitch_link:
+                social.append({"platform": "Twitch", "handle": "", "url": profile.twitch_link})
+            if profile.discord_id:
+                social.append({"platform": "Discord", "handle": profile.discord_id, "url": f"https://discord.com/users/{profile.discord_id}"})
+            if profile.facebook:
+                social.append({"platform": "Facebook", "handle": "", "url": profile.facebook})
+            if profile.instagram:
+                social.append({"platform": "Instagram", "handle": "", "url": profile.instagram})
+            if profile.twitter:
+                social.append({"platform": "Twitter", "handle": "", "url": profile.twitter})
+        except Exception as e:
+            print(f"Error loading social links: {e}")
+            social = []
 
     return render(
         request,
-        "user_profile/profile_modern.html",
+        "user_profile/profile.html",
         {
             "profile_user": user,
             "profile": profile,
@@ -248,6 +285,11 @@ def profile_view(request, username=None):
             "badge_stats": badge_stats,
             "privacy_settings": privacy_settings,
             "verification_record": verification_record,
+            "game_profiles": game_profiles,
+            "tournament_stats": tournament_stats,
+            "social": social,
+            "match_history": [],
+            "tournament_history": [],
         },
     )
 
@@ -447,12 +489,109 @@ def settings_view(request):
     # Get verification record if exists
     verification_record = VerificationRecord.objects.filter(user_profile=profile).first()
     
+    if request.method == 'POST':
+        # Handle profile updates
+        try:
+            display_name = request.POST.get('display_name')
+            bio = request.POST.get('bio')
+            country = request.POST.get('country')
+            city = request.POST.get('city')
+            real_full_name = request.POST.get('real_full_name')
+            date_of_birth = request.POST.get('date_of_birth')
+            nationality = request.POST.get('nationality')
+            # Update profile fields if present
+            changed = False
+            if display_name is not None:
+                profile.display_name = display_name.strip()[:80]
+                changed = True
+            if bio is not None:
+                profile.bio = bio.strip()[:500]
+                changed = True
+            if country is not None:
+                profile.country = country.strip()
+                changed = True
+            if city is not None:
+                profile.city = city.strip()
+                changed = True
+            if real_full_name is not None:
+                # lock if KYC verified: follow existing behavior
+                if not profile.is_kyc_verified:
+                    profile.real_full_name = real_full_name.strip()
+                    changed = True
+            if date_of_birth:
+                try:
+                    from django.utils.dateparse import parse_date
+                    parsed = parse_date(date_of_birth)
+                    profile.date_of_birth = parsed
+                    changed = True
+                except Exception:
+                    pass
+            if nationality is not None:
+                profile.nationality = nationality.strip()
+                changed = True
+
+            # Files: avatar/banner
+            if request.FILES.get('avatar'):
+                profile.avatar = request.FILES.get('avatar')
+                changed = True
+            if request.FILES.get('banner'):
+                profile.banner = request.FILES.get('banner')
+                changed = True
+
+            # Game ID updates (legacy) - best effort
+            riot_id = request.POST.get('riot_id')
+            if riot_id is not None:
+                profile.riot_id = riot_id.strip()
+                changed = True
+            steam_id = request.POST.get('steam_id')
+            if steam_id is not None:
+                profile.steam_id = steam_id.strip()
+                changed = True
+            mlbb_id = request.POST.get('mlbb_id')
+            if mlbb_id is not None:
+                profile.mlbb_id = mlbb_id.strip()
+                changed = True
+            ea_id = request.POST.get('ea_id')
+            if ea_id is not None:
+                profile.ea_id = ea_id.strip()
+                changed = True
+            pubg_mobile_id = request.POST.get('pubg_mobile_id')
+            if pubg_mobile_id is not None:
+                profile.pubg_mobile_id = pubg_mobile_id.strip()
+                changed = True
+
+            if changed:
+                profile.save()
+        except Exception as e:
+            print(f"Error saving profile data: {e}")
+
+        # Handle privacy settings POST
+        try:
+            from .models import PrivacySettings
+            privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
+            privacy_settings.show_email = bool(request.POST.get('show_email'))
+            privacy_settings.show_phone = bool(request.POST.get('show_phone'))
+            privacy_settings.show_real_name = bool(request.POST.get('show_real_name'))
+            privacy_settings.show_age = bool(request.POST.get('show_age'))
+            privacy_settings.show_country = bool(request.POST.get('show_country'))
+            privacy_settings.show_social_links = bool(request.POST.get('show_socials'))
+            privacy_settings.allow_friend_requests = bool(request.POST.get('allow_friend_requests'))
+            # Profile-level 'is_private' lives on the UserProfile model
+            profile.is_private = bool(request.POST.get('is_private'))
+            privacy_settings.save()
+            profile.save()
+        except Exception as e:
+            print(f"Error saving privacy settings: {e}")
+
+        messages.success(request, 'Your settings have been updated.')
+        return redirect('user_profile:settings')
+
     context = {
         'profile': profile,
         'privacy_settings': privacy_settings,
         'verification_record': verification_record,
     }
-    
-    return render(request, 'user_profile/settings_modular.html', context)
+
+    return render(request, 'user_profile/settings.html', context)
 
 
