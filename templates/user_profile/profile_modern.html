@@ -35,10 +35,161 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     
+    /* Badge Rarities */
+    --rarity-common: #9ca3af;
+    --rarity-rare: #3b82f6;
+    --rarity-epic: #8b5cf6;
+    --rarity-legendary: #f59e0b;
+    
     --radius-sm: 0.375rem;
     --radius-md: 0.5rem;
     --radius-lg: 0.75rem;
     --radius-xl: 1rem;
+}
+
+/* XP Progress Bar */
+.xp-progress-section {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: var(--radius-lg);
+}
+
+.xp-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.xp-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.xp-value {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.xp-progress-bar {
+    height: 10px;
+    background: rgba(15, 23, 42, 0.8);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+.xp-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    border-radius: 9999px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
+}
+
+/* Badge Showcase */
+.badge-showcase {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.badge-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.badge-item:hover {
+    transform: translateY(-4px);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-lg);
+}
+
+.badge-item.pinned {
+    border-color: var(--warning-color);
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.badge-item.pinned::before {
+    content: '📌';
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.badge-icon-display {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.badge-name-display {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.badge-rarity {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge-rarity.common {
+    background: var(--rarity-common);
+    color: white;
+}
+
+.badge-rarity.rare {
+    background: var(--rarity-rare);
+    color: white;
+}
+
+.badge-rarity.epic {
+    background: var(--rarity-epic);
+    color: white;
+}
+
+.badge-rarity.legendary {
+    background: var(--rarity-legendary);
+    color: #1f2937;
+    font-weight: 800;
+}
+
+/* Level Badge */
+.level-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    border-radius: 9999px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+    box-shadow: var(--shadow-md);
 }
 
 /* Modern Profile Layout */
@@ -1046,8 +1197,18 @@
             
             <!-- Main Info -->
             <div class="profile-main-info">
-                <h1 class="profile-name">{{ profile.display_name|default:profile_user.get_full_name|default:profile_user.username }}</h1>
-                <div class="profile-username">@{{ profile_user.username }}</div>
+                <h1 class="profile-name">
+                    {{ profile.display_name|default:profile_user.get_full_name|default:profile_user.username }}
+                    {% if profile.is_kyc_verified %}
+                        <span style="color: var(--success-color); font-size: 1.5rem; margin-left: 0.5rem;" title="Verified Player">✓</span>
+                    {% endif %}
+                </h1>
+                <div class="profile-username">
+                    @{{ profile_user.username }}
+                    <span class="level-badge" style="margin-left: 1rem;">
+                        <i class="fas fa-star"></i> Level {{ profile.level|default:1 }}
+                    </span>
+                </div>
                 
                 {% if profile.bio %}
                     <div class="profile-bio">{{ profile.bio }}</div>
@@ -1068,21 +1229,44 @@
                         <i class="fas fa-users"></i>
                         <span>{{ current_teams|length }} Team{{ current_teams|length|pluralize }}</span>
                     </div>
+                    {% if privacy_settings.show_achievements or is_own_profile %}
+                        <div class="meta-item">
+                            <i class="fas fa-trophy"></i>
+                            <span>{{ total_badges|default:0 }} Badge{{ total_badges|pluralize }}</span>
+                        </div>
+                    {% endif %}
                 </div>
+                
+                {% if privacy_settings.show_level_xp or is_own_profile %}
+                <div class="xp-progress-section">
+                    <div class="xp-progress-header">
+                        <span class="xp-label">Level {{ profile.level|default:1 }} Progress</span>
+                        <span class="xp-value">{{ profile.xp|default:0 }} / {{ profile.xp|default:0|add:profile.xp_to_next_level }} XP</span>
+                    </div>
+                    <div class="xp-progress-bar">
+                        <div class="xp-progress-fill" style="width: {{ profile.level_progress_percentage|default:0 }}%"></div>
+                    </div>
+                    <div style="text-align: center; margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted);">
+                        {{ profile.xp_to_next_level|default:100 }} XP to Level {{ profile.level|default:1|add:1 }}
+                    </div>
+                </div>
+                {% endif %}
             </div>
             
             <!-- Actions -->
+            {% if is_own_profile %}
             <div class="profile-actions slide-in-right">
                 <a href="{% url 'user_profile:edit' %}" class="action-btn primary">
                     <i class="fas fa-edit"></i> Edit Profile
                 </a>
-                <a href="{% url 'user_profile:my_tournaments' %}" class="action-btn secondary">
-                    <i class="fas fa-trophy"></i> Tournaments
+                <a href="{% url 'user_profile:privacy_settings' %}" class="action-btn secondary">
+                    <i class="fas fa-lock"></i> Privacy
                 </a>
-                <a href="#" class="action-btn secondary">
-                    <i class="fas fa-cog"></i> Settings
+                <a href="{% url 'user_profile:kyc_upload' %}" class="action-btn secondary">
+                    <i class="fas fa-shield-alt"></i> KYC
                 </a>
             </div>
+            {% endif %}
         </div>
     </section>
 
@@ -1133,7 +1317,77 @@
                 </div>
             </div>
             
+            <!-- Badge Showcase Section -->
+            {% if privacy_settings.show_achievements or is_own_profile %}
+            <div class="profile-card slide-in-left">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-trophy"></i>
+                        Badges & Achievements
+                    </h2>
+                    {% if badge_stats %}
+                    <div style="display: flex; gap: 0.5rem;">
+                        {% if badge_stats.legendary > 0 %}
+                        <span class="badge-rarity legendary">{{ badge_stats.legendary }} Legendary</span>
+                        {% endif %}
+                        {% if badge_stats.epic > 0 %}
+                        <span class="badge-rarity epic">{{ badge_stats.epic }} Epic</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if pinned_badges %}
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem; font-weight: 600;">
+                        <i class="fas fa-thumbtack"></i> Pinned Badges
+                    </h3>
+                    <div class="badge-showcase">
+                        {% for badge in pinned_badges %}
+                        <div class="badge-item pinned" title="{{ badge.name }}">
+                            <span class="badge-icon-display">{{ badge.icon }}</span>
+                            <div class="badge-name-display">{{ badge.name }}</div>
+                            <span class="badge-rarity {{ badge.rarity }}">{{ badge.get_rarity_display }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if earned_badges %}
+                <div>
+                    <h3 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1rem; font-weight: 600;">
+                        All Badges ({{ total_badges }})
+                    </h3>
+                    <div class="badge-showcase">
+                        {% for user_badge in earned_badges|slice:":12" %}
+                        <div class="badge-item {% if user_badge.is_pinned %}pinned{% endif %}" title="{{ user_badge.badge.name }} - Earned {{ user_badge.earned_at|date:'M j, Y' }}">
+                            <span class="badge-icon-display">{{ user_badge.badge.icon }}</span>
+                            <div class="badge-name-display">{{ user_badge.badge.name }}</div>
+                            <span class="badge-rarity {{ user_badge.badge.rarity }}">{{ user_badge.badge.get_rarity_display }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if total_badges > 12 %}
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <a href="#" class="action-btn secondary" style="display: inline-flex;">
+                            View All {{ total_badges }} Badges
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-trophy"></i>
+                    <h3>No Badges Yet</h3>
+                    <p>Start playing tournaments, completing challenges, and engaging with the community to earn badges!</p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
             <!-- Enhanced Teams Section -->
+            {% if privacy_settings.show_teams or is_own_profile %}
             {% if current_teams %}
             <div class="profile-card slide-in-left">
                 <div class="card-header">
@@ -1223,6 +1477,7 @@
                 </div>
             </div>
             {% endif %}
+            {% endif %}
             
             <!-- Recent Activity -->
             {% if upcoming_matches %}
@@ -1265,14 +1520,29 @@
                 </div>
                 
                 <div class="stats-grid">
+                    {% if privacy_settings.show_level_xp or is_own_profile %}
+                    <div class="stat-card">
+                        <div class="stat-number">{{ profile.level|default:"1" }}</div>
+                        <div class="stat-label">Level</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ profile.xp|default:"0" }}</div>
+                        <div class="stat-label">Total XP</div>
+                    </div>
+                    {% endif %}
+                    {% if privacy_settings.show_achievements or is_own_profile %}
+                    <div class="stat-card">
+                        <div class="stat-number">{{ total_badges|default:"0" }}</div>
+                        <div class="stat-label">Badges</div>
+                    </div>
+                    {% endif %}
+                    {% if privacy_settings.show_teams or is_own_profile %}
                     <div class="stat-card">
                         <div class="stat-number">{{ current_teams|length|default:"0" }}</div>
                         <div class="stat-label">Teams</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number">{{ upcoming_matches|length|default:"0" }}</div>
-                        <div class="stat-label">Matches</div>
-                    </div>
+                    {% endif %}
+                    {% if is_own_profile or privacy_settings.show_inventory_value %}
                     <div class="stat-card deltacoin-card">
                         <div class="deltacoin-display">
                             <i class="fas fa-coins deltacoin-icon"></i>
@@ -1280,10 +1550,7 @@
                         </div>
                         <div class="stat-label">DeltaCoins</div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-number">{{ total_orders|default:"0" }}</div>
-                        <div class="stat-label">Orders</div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
             

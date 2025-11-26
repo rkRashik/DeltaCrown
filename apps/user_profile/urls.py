@@ -1,6 +1,9 @@
 # apps/user_profile/urls.py
 from django.urls import path
-from .views import MyProfileUpdateView, profile_view, my_tournaments_view
+from .views import (
+    MyProfileUpdateView, profile_view, my_tournaments_view,
+    kyc_upload_view, kyc_status_view, privacy_settings_view, settings_view
+)
 from .views_public import public_profile, profile_api
 from .api_views import get_game_id, update_game_id
 from .api.game_id_api import (
@@ -16,6 +19,16 @@ urlpatterns = [
     # Owner pages
     path("me/edit/", MyProfileUpdateView.as_view(), name="edit"),
     path("me/tournaments/", my_tournaments_view, name="my_tournaments"),
+    
+    # KYC Verification
+    path("me/kyc/upload/", kyc_upload_view, name="kyc_upload"),
+    path("me/kyc/status/", kyc_status_view, name="kyc_status"),
+    
+    # Privacy Settings
+    path("me/privacy/", privacy_settings_view, name="privacy_settings"),
+    
+    # Modular Settings Page
+    path("me/settings/", settings_view, name="settings"),
 
     # Public profile (invariant)
     path("u/<str:username>/", public_profile, name="public_profile"),

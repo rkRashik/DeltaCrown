@@ -1,0 +1,1028 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Settings - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #3b82f6;
+        --secondary-color: #8b5cf6;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --dark-bg: #1f2937;
+        --darker-bg: #111827;
+        --card-bg: #374151;
+        --text-primary: #f9fafb;
+        --text-secondary: #9ca3af;
+        --border-color: #4b5563;
+    }
+
+    body {
+        background: linear-gradient(135deg, var(--darker-bg) 0%, #0f172a 100%);
+        color: var(--text-primary);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .settings-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .settings-header {
+        margin-bottom: 2rem;
+    }
+
+    .settings-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .settings-subtitle {
+        color: var(--text-secondary);
+        font-size: 1rem;
+    }
+
+    /* Settings Navigation */
+    .settings-layout {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 2rem;
+    }
+
+    .settings-nav {
+        background: var(--card-bg);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        height: fit-content;
+        position: sticky;
+        top: 2rem;
+    }
+
+    .nav-section {
+        margin-bottom: 2rem;
+    }
+
+    .nav-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .nav-section-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+        border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+    }
+
+    .nav-item.active {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border-color: transparent;
+    }
+
+    .nav-item i {
+        width: 20px;
+        text-align: center;
+    }
+
+    /* Settings Content */
+    .settings-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .settings-section {
+        background: var(--card-bg);
+        border-radius: 1rem;
+        padding: 2rem;
+        border: 1px solid var(--border-color);
+        display: none;
+    }
+
+    .settings-section.active {
+        display: block;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-description {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Form Elements */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .form-help {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--darker-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    /* Toggle Switch */
+    .toggle-group {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 0.75rem;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .toggle-group:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .toggle-info {
+        flex: 1;
+    }
+
+    .toggle-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .toggle-description {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 26px;
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--darker-bg);
+        border: 2px solid var(--border-color);
+        transition: 0.3s;
+        border-radius: 9999px;
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 2px;
+        bottom: 2px;
+        background: var(--text-secondary);
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+        transform: translateX(24px);
+        background: white;
+    }
+
+    /* Button Styles */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-secondary {
+        background: var(--darker-bg);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--dark-bg);
+        color: var(--text-primary);
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+    }
+
+    /* KYC Status Badge */
+    .kyc-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .kyc-status-badge.verified {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+        border: 1px solid var(--success-color);
+    }
+
+    .kyc-status-badge.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning-color);
+        border: 1px solid var(--warning-color);
+    }
+
+    .kyc-status-badge.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger-color);
+        border: 1px solid var(--danger-color);
+    }
+
+    /* File Upload */
+    .file-upload {
+        position: relative;
+        display: block;
+        width: 100%;
+    }
+
+    .file-upload-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 3rem 2rem;
+        border: 2px dashed var(--border-color);
+        border-radius: 0.75rem;
+        background: rgba(255, 255, 255, 0.02);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .file-upload-label:hover {
+        border-color: var(--primary-color);
+        background: rgba(59, 130, 246, 0.05);
+    }
+
+    .file-upload input[type="file"] {
+        display: none;
+    }
+
+    .file-upload-icon {
+        font-size: 3rem;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+    }
+
+    /* Payment Method Card */
+    .payment-method {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .payment-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 0.5rem;
+        background: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .payment-info {
+        flex: 1;
+    }
+
+    .payment-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .payment-details {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    /* Game Account Item */
+    .game-account {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .game-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.5rem;
+        object-fit: contain;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .settings-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .settings-nav {
+            position: relative;
+            top: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .nav-section {
+            margin-bottom: 0;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .settings-nav {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <!-- Header -->
+    <div class="settings-header">
+        <h1 class="settings-title">Settings</h1>
+        <p class="settings-subtitle">Manage your account preferences and privacy settings</p>
+    </div>
+
+    <!-- Settings Layout -->
+    <div class="settings-layout">
+        <!-- Navigation -->
+        <nav class="settings-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Account</div>
+                <a class="nav-item active" data-section="profile">
+                    <i class="fas fa-user"></i>
+                    <span>Profile</span>
+                </a>
+                <a class="nav-item" data-section="privacy">
+                    <i class="fas fa-lock"></i>
+                    <span>Privacy</span>
+                </a>
+                <a class="nav-item" data-section="security">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Security</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Verification</div>
+                <a class="nav-item" data-section="kyc">
+                    <i class="fas fa-id-card"></i>
+                    <span>KYC Verification</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Gaming</div>
+                <a class="nav-item" data-section="game-accounts">
+                    <i class="fas fa-gamepad"></i>
+                    <span>Game Accounts</span>
+                </a>
+                <a class="nav-item" data-section="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Economy</div>
+                <a class="nav-item" data-section="payment">
+                    <i class="fas fa-wallet"></i>
+                    <span>Payment Methods</span>
+                </a>
+                <a class="nav-item" data-section="withdrawals">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Withdrawals</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <div class="settings-content">
+            <!-- Profile Section -->
+            <section id="profile" class="settings-section active">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-user"></i>
+                            Profile Settings
+                        </h2>
+                        <p class="section-description">Update your personal information and public profile</p>
+                    </div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-input" name="display_name" value="{{ profile.display_name }}" placeholder="Your display name">
+                        <span class="form-help">This is how others will see your name on DeltaCrown</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Bio</label>
+                        <textarea class="form-input form-textarea" name="bio" placeholder="Tell us about yourself...">{{ profile.bio }}</textarea>
+                        <span class="form-help">Max 500 characters</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Avatar</label>
+                        <div class="file-upload">
+                            <label for="avatar-upload" class="file-upload-label">
+                                <i class="fas fa-cloud-upload-alt file-upload-icon"></i>
+                                <span style="font-weight: 600; color: var(--text-primary);">Click to upload avatar</span>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">PNG, JPG up to 5MB</span>
+                            </label>
+                            <input type="file" id="avatar-upload" name="avatar" accept="image/*">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Region</label>
+                        <select class="form-input" name="region">
+                            <option value="">Select region...</option>
+                            <option value="north_america">North America</option>
+                            <option value="europe">Europe</option>
+                            <option value="asia">Asia</option>
+                            <option value="south_america">South America</option>
+                            <option value="africa">Africa</option>
+                            <option value="oceania">Oceania</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Privacy Section -->
+            <section id="privacy" class="settings-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-lock"></i>
+                            Privacy Settings
+                        </h2>
+                        <p class="section-description">Control who can see your information</p>
+                    </div>
+                </div>
+
+                <form method="post" action="{% url 'user_profile:privacy_settings' %}">
+                    {% csrf_token %}
+                    
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">Profile Visibility</h3>
+                    
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <span class="toggle-label">Show Email Address</span>
+                            <span class="toggle-description">Display your email on your public profile</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="show_email" {% if privacy_settings.show_email %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <span class="toggle-label">Show Phone Number</span>
+                            <span class="toggle-description">Display your phone number on your profile</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="show_phone" {% if privacy_settings.show_phone %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 2rem 0 1rem;">Gaming & Stats</h3>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <span class="toggle-label">Show Level & XP</span>
+                            <span class="toggle-description">Display your current level and XP progress</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="show_level_xp" {% if privacy_settings.show_level_xp %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <span class="toggle-label">Show Badges & Achievements</span>
+                            <span class="toggle-description">Display your earned badges on your profile</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="show_achievements" {% if privacy_settings.show_achievements %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <span class="toggle-label">Show Teams</span>
+                            <span class="toggle-description">Display your team memberships publicly</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="show_teams" {% if privacy_settings.show_teams %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin: 2rem 0 1rem;">Economy & Wallet</h3>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <span class="toggle-label">Show Wallet Balance</span>
+                            <span class="toggle-description">Display your DeltaCoin balance on your profile</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="show_inventory_value" {% if privacy_settings.show_inventory_value %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="toggle-group">
+                        <div class="toggle-info">
+                            <span class="toggle-label">Show Transaction History</span>
+                            <span class="toggle-description">Display recent transactions on your profile</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="show_transaction_history" {% if privacy_settings.show_transaction_history %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="margin-top: 2rem;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Privacy Settings
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- KYC Section -->
+            <section id="kyc" class="settings-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-id-card"></i>
+                            KYC Verification
+                        </h2>
+                        <p class="section-description">Verify your identity to unlock premium features</p>
+                    </div>
+                    {% if verification_record %}
+                    <span class="kyc-status-badge {{ verification_record.status }}">
+                        <i class="fas {% if verification_record.status == 'verified' %}fa-check-circle{% elif verification_record.status == 'pending' %}fa-clock{% else %}fa-times-circle{% endif %}"></i>
+                        {{ verification_record.get_status_display }}
+                    </span>
+                    {% endif %}
+                </div>
+
+                {% if not verification_record or verification_record.status == 'rejected' %}
+                <div class="form-group">
+                    <label class="form-label">National ID / Passport</label>
+                    <div class="file-upload">
+                        <label for="nid-upload" class="file-upload-label">
+                            <i class="fas fa-id-card file-upload-icon"></i>
+                            <span style="font-weight: 600; color: var(--text-primary);">Upload ID Document</span>
+                            <span style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem;">PDF, PNG, JPG up to 10MB</span>
+                        </label>
+                        <input type="file" id="nid-upload" accept=".pdf,image/*">
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <a href="{% url 'user_profile:kyc_upload' %}" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Submit for Verification
+                    </a>
+                </div>
+                {% elif verification_record.status == 'pending' %}
+                <div style="text-align: center; padding: 3rem 2rem;">
+                    <i class="fas fa-clock" style="font-size: 4rem; color: var(--warning-color); margin-bottom: 1rem;"></i>
+                    <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">Verification in Progress</h3>
+                    <p style="color: var(--text-secondary);">Your documents are being reviewed. This usually takes 24-48 hours.</p>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 1rem;">Submitted: {{ verification_record.submitted_at|date:"M j, Y g:i A" }}</p>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 3rem 2rem;">
+                    <i class="fas fa-check-circle" style="font-size: 4rem; color: var(--success-color); margin-bottom: 1rem;"></i>
+                    <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">Verified Account</h3>
+                    <p style="color: var(--text-secondary);">Your account has been successfully verified!</p>
+                    <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 1rem;">Verified on: {{ verification_record.verified_at|date:"M j, Y" }}</p>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- Game Accounts Section -->
+            <section id="game-accounts" class="settings-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-gamepad"></i>
+                            Game Accounts
+                        </h2>
+                        <p class="section-description">Link your gaming accounts to your profile</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Riot ID (Valorant, League of Legends)</label>
+                    <input type="text" class="form-input" name="riot_id" value="{{ profile.riot_id }}" placeholder="PlayerName#TAG">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Steam ID</label>
+                    <input type="text" class="form-input" name="steam_id" value="{{ profile.steam_id }}" placeholder="Your Steam ID">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mobile Legends ID</label>
+                    <input type="text" class="form-input" name="mlbb_id" value="{{ profile.mlbb_id }}" placeholder="Your MLBB ID">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Free Fire ID</label>
+                    <input type="text" class="form-input" name="free_fire_id" value="{{ profile.free_fire_id }}" placeholder="Your Free Fire ID">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">PUBG ID</label>
+                    <input type="text" class="form-input" name="pubg_id" value="{{ profile.pubg_id }}" placeholder="Your PUBG ID">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Discord ID</label>
+                    <input type="text" class="form-input" name="discord_id" value="{{ profile.discord_id }}" placeholder="username#0000">
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Game Accounts
+                    </button>
+                </div>
+            </section>
+
+            <!-- Payment Methods Section -->
+            <section id="payment" class="settings-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-wallet"></i>
+                            Payment Methods
+                        </h2>
+                        <p class="section-description">Manage your withdrawal payment methods</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">bKash Number</label>
+                    <input type="text" class="form-input" name="bkash_number" placeholder="+880 1XXX-XXXXXX">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nagad Number</label>
+                    <input type="text" class="form-input" name="nagad_number" placeholder="+880 1XXX-XXXXXX">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Rocket Number</label>
+                    <input type="text" class="form-input" name="rocket_number" placeholder="+880 1XXX-XXXXXX">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Bank Account Number</label>
+                    <input type="text" class="form-input" name="bank_account" placeholder="Account number">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Set Withdrawal PIN</label>
+                    <input type="password" class="form-input" name="withdrawal_pin" placeholder="4-digit PIN">
+                    <span class="form-help">Required for withdrawal requests</span>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Payment Methods
+                    </button>
+                </div>
+            </section>
+
+            <!-- Security Section -->
+            <section id="security" class="settings-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-shield-alt"></i>
+                            Security Settings
+                        </h2>
+                        <p class="section-description">Manage your account security</p>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" class="form-input" name="current_password" placeholder="Enter current password">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" class="form-input" name="new_password" placeholder="Enter new password">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password</label>
+                    <input type="password" class="form-input" name="confirm_password" placeholder="Confirm new password">
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-key"></i> Update Password
+                    </button>
+                </div>
+
+                <hr style="border-color: var(--border-color); margin: 3rem 0;">
+
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem;">Two-Factor Authentication</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Add an extra layer of security to your account</p>
+
+                <button class="btn btn-secondary">
+                    <i class="fas fa-mobile-alt"></i> Enable 2FA (Coming Soon)
+                </button>
+            </section>
+
+            <!-- Notifications Section -->
+            <section id="notifications" class="settings-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-bell"></i>
+                            Notification Preferences
+                        </h2>
+                        <p class="section-description">Choose what notifications you receive</p>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 1rem;">Email Notifications</h3>
+
+                <div class="toggle-group">
+                    <div class="toggle-info">
+                        <span class="toggle-label">Tournament Updates</span>
+                        <span class="toggle-description">Receive updates about your tournament registrations</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-group">
+                    <div class="toggle-info">
+                        <span class="toggle-label">Team Invitations</span>
+                        <span class="toggle-description">Get notified when you receive team invitations</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-group">
+                    <div class="toggle-info">
+                        <span class="toggle-label">Withdrawal Status</span>
+                        <span class="toggle-description">Updates on your withdrawal requests</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div class="toggle-group">
+                    <div class="toggle-info">
+                        <span class="toggle-label">Marketing Emails</span>
+                        <span class="toggle-description">Receive news, updates, and promotions</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Preferences
+                    </button>
+                </div>
+            </section>
+
+            <!-- Withdrawals Section -->
+            <section id="withdrawals" class="settings-section">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Withdrawal History
+                        </h2>
+                        <p class="section-description">View and manage your withdrawal requests</p>
+                    </div>
+                    <a href="{% url 'economy:withdrawal_request' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> New Withdrawal
+                    </a>
+                </div>
+
+                <div style="text-align: center; padding: 3rem 2rem;">
+                    <i class="fas fa-money-bill-wave" style="font-size: 4rem; color: var(--text-secondary); opacity: 0.3; margin-bottom: 1rem;"></i>
+                    <h3 style="color: var(--text-secondary);">No withdrawal history yet</h3>
+                    <p style="color: var(--text-muted); margin-top: 0.5rem;">Your withdrawal requests will appear here</p>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Navigation handling
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.settings-section');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetSection = this.getAttribute('data-section');
+
+            // Update nav active state
+            navItems.forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
+
+            // Update section visibility
+            sections.forEach(section => section.classList.remove('active'));
+            document.getElementById(targetSection).classList.add('active');
+
+            // Smooth scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    });
+
+    // File upload preview
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    fileInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                const label = this.previousElementSibling || this.parentElement.querySelector('label');
+                if (label) {
+                    const textElement = label.querySelector('span');
+                    if (textElement) {
+                        textElement.textContent = fileName;
+                    }
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

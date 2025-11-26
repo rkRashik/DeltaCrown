@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}KYC Status - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">KYC Verification Status</h1>
+        </div>
+
+        {% if verification_record %}
+            <!-- Status Display -->
+            <div class="mb-6">
+                {% if verification_record.status == 'verified' %}
+                <div class="bg-green-100 border-l-4 border-green-500 p-6">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-12 h-12 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="ml-4">
+                            <h2 class="text-2xl font-bold text-green-800">✓ Verified</h2>
+                            <p class="text-green-700">Your account is KYC verified</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 text-green-800">
+                        <p><strong>Verified Name:</strong> {{ verification_record.verified_name }}</p>
+                        {% if verification_record.verified_dob %}
+                        <p><strong>Date of Birth:</strong> {{ verification_record.verified_dob }}</p>
+                        {% endif %}
+                        <p><strong>Nationality:</strong> {{ verification_record.verified_nationality }}</p>
+                        <p><strong>Verified On:</strong> {{ verification_record.reviewed_at|date:"F d, Y" }}</p>
+                        {% if verification_record.reviewed_by %}
+                        <p><strong>Reviewed By:</strong> {{ verification_record.reviewed_by.username }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-4 p-4 bg-white rounded">
+                        <h3 class="font-bold text-green-900 mb-2">✅ Benefits:</h3>
+                        <ul class="list-disc list-inside text-green-800 space-y-1">
+                            <li>Access to all high-value tournaments</li>
+                            <li>Faster prize withdrawals</li>
+                            <li>Verified badge on your profile</li>
+                            <li>Increased trust from team captains</li>
+                        </ul>
+                    </div>
+                </div>
+
+                {% elif verification_record.status == 'pending' %}
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 p-6">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-12 h-12 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="ml-4">
+                            <h2 class="text-2xl font-bold text-yellow-800">⏳ Under Review</h2>
+                            <p class="text-yellow-700">Your KYC documents are being reviewed</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 text-yellow-800">
+                        <p><strong>Submitted On:</strong> {{ verification_record.submitted_at|date:"F d, Y at g:i A" }}</p>
+                        <p><strong>Expected Review:</strong> Within 24-48 hours</p>
+                    </div>
+
+                    <div class="mt-4 p-4 bg-white rounded">
+                        <h3 class="font-bold text-yellow-900 mb-2">⏰ What's Next:</h3>
+                        <ul class="list-disc list-inside text-yellow-800 space-y-1">
+                            <li>Our team is reviewing your documents</li>
+                            <li>You'll receive an email notification when review is complete</li>
+                            <li>Average review time: 24-48 hours</li>
+                            <li>Check back here for status updates</li>
+                        </ul>
+                    </div>
+                </div>
+
+                {% elif verification_record.status == 'rejected' %}
+                <div class="bg-red-100 border-l-4 border-red-500 p-6">
+                    <div class="flex items-center mb-4">
+                        <svg class="w-12 h-12 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="ml-4">
+                            <h2 class="text-2xl font-bold text-red-800">✗ Rejected</h2>
+                            <p class="text-red-700">Your KYC verification was not approved</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 text-red-800">
+                        <p><strong>Reviewed On:</strong> {{ verification_record.reviewed_at|date:"F d, Y" }}</p>
+                        {% if verification_record.reviewed_by %}
+                        <p><strong>Reviewed By:</strong> {{ verification_record.reviewed_by.username }}</p>
+                        {% endif %}
+                        {% if verification_record.rejection_reason %}
+                        <div class="mt-4 p-4 bg-white rounded">
+                            <p class="font-bold text-red-900 mb-2">Reason for Rejection:</p>
+                            <p class="text-red-800">{{ verification_record.rejection_reason }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-6">
+                        <a href="{% url 'user_profile:kyc_upload' %}" class="bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition inline-block">
+                            Resubmit Documents
+                        </a>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="bg-gray-100 border-l-4 border-gray-500 p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">Not Verified</h2>
+                    <p class="text-gray-700 mb-4">You haven't submitted KYC documents yet.</p>
+                    <a href="{% url 'user_profile:kyc_upload' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition inline-block">
+                        Start Verification
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+        {% else %}
+            <!-- No Verification Record -->
+            <div class="bg-gray-100 border-l-4 border-gray-500 p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Not Verified</h2>
+                <p class="text-gray-700 mb-4">You haven't submitted KYC documents yet.</p>
+                
+                <div class="mt-4 mb-6">
+                    <h3 class="font-bold text-gray-900 mb-2">Why verify?</h3>
+                    <ul class="list-disc list-inside text-gray-700 space-y-1">
+                        <li>Required for tournaments with prizes over ৳5,000</li>
+                        <li>Faster prize withdrawals to your bKash/Nagad account</li>
+                        <li>Get a verified badge on your profile</li>
+                        <li>Build trust with team captains and organizers</li>
+                    </ul>
+                </div>
+
+                <a href="{% url 'user_profile:kyc_upload' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition inline-block">
+                    Start Verification Now
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- Back Button -->
+        <div class="mt-6 text-center">
+            <a href="{% url 'user_profile:profile' %}" class="text-blue-600 hover:text-blue-800 font-medium">
+                ← Back to Profile
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

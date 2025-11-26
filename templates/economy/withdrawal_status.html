@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Withdrawal Status - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'economy:withdrawal_history' %}" class="text-sm text-blue-600 hover:text-blue-700 mb-2 inline-block">
+                ← Back to History
+            </a>
+            <h1 class="text-3xl font-bold text-gray-900">Withdrawal Request #{{ withdrawal.id }}</h1>
+            <p class="mt-2 text-gray-600">Track the status of your withdrawal request</p>
+        </div>
+
+        <!-- Status Card -->
+        <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+            <!-- Status Badge -->
+            <div class="flex justify-center mb-8">
+                {% if withdrawal.status == 'pending' %}
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-yellow-100 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-yellow-600">Pending Review</h2>
+                    <p class="text-sm text-gray-600 mt-2">Your withdrawal is being reviewed by our team</p>
+                </div>
+                {% elif withdrawal.status == 'approved' %}
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-blue-100 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-blue-600">Approved</h2>
+                    <p class="text-sm text-gray-600 mt-2">Your withdrawal has been approved and is being processed</p>
+                </div>
+                {% elif withdrawal.status == 'completed' %}
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-green-600">Completed</h2>
+                    <p class="text-sm text-gray-600 mt-2">Your withdrawal has been successfully completed</p>
+                </div>
+                {% elif withdrawal.status == 'rejected' %}
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-red-600">Rejected</h2>
+                    <p class="text-sm text-gray-600 mt-2">Your withdrawal request was not approved</p>
+                </div>
+                {% elif withdrawal.status == 'cancelled' %}
+                <div class="text-center">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-600">Cancelled</h2>
+                    <p class="text-sm text-gray-600 mt-2">This withdrawal request was cancelled</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Amount -->
+            <div class="border-t border-b border-gray-200 py-6 mb-6">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">Withdrawal Amount</span>
+                    <span class="text-3xl font-bold text-gray-900">{{ withdrawal.amount }} DC</span>
+                </div>
+                {% if withdrawal.processing_fee > 0 %}
+                <div class="flex justify-between items-center mt-2 text-sm">
+                    <span class="text-gray-600">Processing Fee</span>
+                    <span class="text-gray-900">-{{ withdrawal.processing_fee }} DC</span>
+                </div>
+                <div class="flex justify-between items-center mt-2 text-sm">
+                    <span class="font-medium text-gray-700">Net Amount</span>
+                    <span class="font-semibold text-gray-900">{{ withdrawal.net_amount }} DC</span>
+                </div>
+                {% endif %}
+                <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+                    <span class="text-sm font-medium text-gray-700">BDT Equivalent</span>
+                    <span class="text-lg font-semibold text-green-600">৳{{ withdrawal.bdt_amount }}</span>
+                </div>
+            </div>
+
+            <!-- Payment Details -->
+            <div class="space-y-4 mb-6">
+                <div class="flex justify-between">
+                    <span class="text-sm font-medium text-gray-700">Payment Method</span>
+                    <span class="text-sm text-gray-900">{{ withdrawal.get_payment_method_display }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm font-medium text-gray-700">Payment Number</span>
+                    <span class="text-sm text-gray-900">{{ withdrawal.payment_number }}</span>
+                </div>
+                {% if withdrawal.payment_details %}
+                    {% if withdrawal.payment_details.bank_name %}
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-700">Bank Name</span>
+                        <span class="text-sm text-gray-900">{{ withdrawal.payment_details.bank_name }}</span>
+                    </div>
+                    {% endif %}
+                    {% if withdrawal.payment_details.bank_branch %}
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-700">Branch</span>
+                        <span class="text-sm text-gray-900">{{ withdrawal.payment_details.bank_branch }}</span>
+                    </div>
+                    {% endif %}
+                    {% if withdrawal.payment_details.account_name %}
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-700">Account Name</span>
+                        <span class="text-sm text-gray-900">{{ withdrawal.payment_details.account_name }}</span>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Timeline -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Timeline</h3>
+                <div class="space-y-4">
+                    <!-- Requested -->
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-900">Request Submitted</p>
+                            <p class="text-xs text-gray-500">{{ withdrawal.requested_at|date:"F d, Y at g:i A" }}</p>
+                            {% if withdrawal.user_note %}
+                            <p class="text-xs text-gray-600 mt-1 italic">"{{ withdrawal.user_note }}"</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Reviewed -->
+                    {% if withdrawal.reviewed_at %}
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 {% if withdrawal.status == 'rejected' %}bg-red-500{% else %}bg-green-500{% endif %} rounded-full flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-900">
+                                {% if withdrawal.status == 'rejected' %}Rejected{% else %}Reviewed & Approved{% endif %}
+                            </p>
+                            <p class="text-xs text-gray-500">{{ withdrawal.reviewed_at|date:"F d, Y at g:i A" }}</p>
+                            {% if withdrawal.reviewed_by %}
+                            <p class="text-xs text-gray-500">By: {{ withdrawal.reviewed_by.username }}</p>
+                            {% endif %}
+                            {% if withdrawal.admin_note %}
+                            <p class="text-xs text-gray-600 mt-1 italic">"{{ withdrawal.admin_note }}"</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Completed -->
+                    {% if withdrawal.completed_at %}
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-900">Payment Completed</p>
+                            <p class="text-xs text-gray-500">{{ withdrawal.completed_at|date:"F d, Y at g:i A" }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Rejection Reason -->
+            {% if withdrawal.status == 'rejected' and withdrawal.rejection_reason %}
+            <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 class="text-sm font-semibold text-red-900 mb-2">Rejection Reason</h4>
+                <p class="text-sm text-red-700">{{ withdrawal.rejection_reason }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="mt-8 flex justify-between items-center">
+                <a href="{% url 'economy:withdrawal_history' %}" class="text-sm text-blue-600 hover:text-blue-700">
+                    ← View All Withdrawals
+                </a>
+                {% if withdrawal.can_cancel %}
+                <form method="post" onsubmit="return confirm('Are you sure you want to cancel this withdrawal request?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="cancel">
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition">
+                        Cancel Request
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Transaction Details (if completed) -->
+        {% if withdrawal.transaction %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Transaction Details</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Transaction ID</span>
+                    <span class="font-mono text-gray-900">#{{ withdrawal.transaction.id }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Type</span>
+                    <span class="text-gray-900">{{ withdrawal.transaction.get_reason_display }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Created At</span>
+                    <span class="text-gray-900">{{ withdrawal.transaction.created_at|date:"F d, Y at g:i A" }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

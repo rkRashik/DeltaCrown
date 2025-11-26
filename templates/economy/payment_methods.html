@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Payment Methods - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Payment Methods</h1>
+            <p class="mt-2 text-gray-600">Manage your withdrawal payment methods</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Form -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Mobile Wallets Section -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                </svg>
+                                Mobile Wallets
+                            </h3>
+
+                            <!-- bKash -->
+                            <div class="mb-6 p-4 border-2 border-pink-200 bg-pink-50 rounded-lg">
+                                <label for="{{ form.bkash_number.id_for_label }}" class="block text-sm font-medium text-pink-900 mb-2">
+                                    bKash Number
+                                </label>
+                                {{ form.bkash_number }}
+                                {% if form.bkash_number.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.bkash_number.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-pink-700">{{ form.bkash_number.help_text }}</p>
+                            </div>
+
+                            <!-- Nagad -->
+                            <div class="mb-6 p-4 border-2 border-orange-200 bg-orange-50 rounded-lg">
+                                <label for="{{ form.nagad_number.id_for_label }}" class="block text-sm font-medium text-orange-900 mb-2">
+                                    Nagad Number
+                                </label>
+                                {{ form.nagad_number }}
+                                {% if form.nagad_number.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.nagad_number.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-orange-700">{{ form.nagad_number.help_text }}</p>
+                            </div>
+
+                            <!-- Rocket -->
+                            <div class="mb-6 p-4 border-2 border-purple-200 bg-purple-50 rounded-lg">
+                                <label for="{{ form.rocket_number.id_for_label }}" class="block text-sm font-medium text-purple-900 mb-2">
+                                    Rocket Number
+                                </label>
+                                {{ form.rocket_number }}
+                                {% if form.rocket_number.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.rocket_number.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-purple-700">{{ form.rocket_number.help_text }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Bank Details Section -->
+                        <div class="mb-8 pt-8 border-t border-gray-200">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                Bank Account
+                            </h3>
+
+                            <div class="space-y-6 p-4 border-2 border-blue-200 bg-blue-50 rounded-lg">
+                                <!-- Bank Name -->
+                                <div>
+                                    <label for="{{ form.bank_name.id_for_label }}" class="block text-sm font-medium text-blue-900 mb-2">
+                                        Bank Name
+                                    </label>
+                                    {{ form.bank_name }}
+                                    {% if form.bank_name.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.bank_name.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-xs text-blue-700">{{ form.bank_name.help_text }}</p>
+                                </div>
+
+                                <!-- Account Name -->
+                                <div>
+                                    <label for="{{ form.bank_account_name.id_for_label }}" class="block text-sm font-medium text-blue-900 mb-2">
+                                        Account Holder Name
+                                    </label>
+                                    {{ form.bank_account_name }}
+                                    {% if form.bank_account_name.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.bank_account_name.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-xs text-blue-700">{{ form.bank_account_name.help_text }}</p>
+                                </div>
+
+                                <!-- Account Number -->
+                                <div>
+                                    <label for="{{ form.bank_account_number.id_for_label }}" class="block text-sm font-medium text-blue-900 mb-2">
+                                        Account Number
+                                    </label>
+                                    {{ form.bank_account_number }}
+                                    {% if form.bank_account_number.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.bank_account_number.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-xs text-blue-700">{{ form.bank_account_number.help_text }}</p>
+                                </div>
+
+                                <!-- Branch -->
+                                <div>
+                                    <label for="{{ form.bank_branch.id_for_label }}" class="block text-sm font-medium text-blue-900 mb-2">
+                                        Branch Name
+                                    </label>
+                                    {{ form.bank_branch }}
+                                    {% if form.bank_branch.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.bank_branch.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-xs text-blue-700">{{ form.bank_branch.help_text }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form-level errors -->
+                        {% if form.non_field_errors %}
+                        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            {% for error in form.non_field_errors %}
+                            <p class="text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Submit Button -->
+                        <div class="flex items-center justify-between">
+                            <a href="{% url 'economy:wallet_dashboard' %}" class="text-sm text-gray-600 hover:text-gray-900">
+                                ← Back to Wallet
+                            </a>
+                            <button type="submit" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition">
+                                Save Payment Methods
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-1">
+                <!-- Current Methods -->
+                <div class="bg-white rounded-lg shadow p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Active Methods</h3>
+                    <div class="space-y-3">
+                        {% if wallet.bkash_number %}
+                        <div class="flex items-center justify-between p-3 bg-pink-50 border border-pink-200 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-pink-900">bKash</p>
+                                <p class="text-xs text-pink-700">{{ wallet.get_masked_bkash }}</p>
+                            </div>
+                            <svg class="h-5 w-5 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        {% endif %}
+
+                        {% if wallet.nagad_number %}
+                        <div class="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-orange-900">Nagad</p>
+                                <p class="text-xs text-orange-700">{{ wallet.get_masked_nagad }}</p>
+                            </div>
+                            <svg class="h-5 w-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        {% endif %}
+
+                        {% if wallet.rocket_number %}
+                        <div class="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-purple-900">Rocket</p>
+                                <p class="text-xs text-purple-700">{{ wallet.get_masked_rocket }}</p>
+                            </div>
+                            <svg class="h-5 w-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        {% endif %}
+
+                        {% if wallet.bank_account_number %}
+                        <div class="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div>
+                                <p class="text-sm font-medium text-blue-900">{{ wallet.bank_name|default:"Bank" }}</p>
+                                <p class="text-xs text-blue-700">{{ wallet.get_masked_bank_account }}</p>
+                            </div>
+                            <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        {% endif %}
+
+                        {% if not wallet.has_payment_method %}
+                        <div class="text-center py-6">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-500">No payment methods added</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-blue-900 mb-2">Important Information</h4>
+                    <ul class="text-xs text-blue-700 space-y-2">
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            Ensure all details are accurate before saving
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            Mobile numbers must be 11 digits starting with 01
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            You can add multiple payment methods
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            Your first added method will be used by default
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

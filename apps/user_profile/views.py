@@ -91,6 +91,9 @@ def profile_view(request, username=None):
         user = get_object_or_404(User, username=username)
     profile = getattr(user, "userprofile", None) or getattr(user, "profile", None)
 
+    # Check if viewing own profile
+    is_own_profile = request.user.is_authenticated and request.user == user
+
     # Try showing user's upcoming matches widget on their private dashboard/profile page
     upcoming = _get_upcoming_matches_for_user(user, limit=5)
     
@@ -168,6 +171,62 @@ def profile_view(request, username=None):
         print(f"Error loading ecommerce data: {e}")
         recent_orders = []
         total_orders = 0
+    
+    # Get badges and gamification data
+    earned_badges = []
+    pinned_badges = []
+    total_badges = 0
+    badge_stats = {}
+    
+    try:
+        if profile:
+            from apps.user_profile.models import UserBadge, Badge
+            
+            # Get all earned badges
+            earned_badges = UserBadge.objects.filter(
+                user=user
+            ).select_related('badge').order_by('-earned_at')
+            
+            total_badges = earned_badges.count()
+            
+            # Get pinned badges
+            pinned_badges = profile.get_pinned_badges()
+            
+            # Calculate badge statistics
+            badge_stats = {
+                'total': total_badges,
+                'common': earned_badges.filter(badge__rarity='common').count(),
+                'rare': earned_badges.filter(badge__rarity='rare').count(),
+                'epic': earned_badges.filter(badge__rarity='epic').count(),
+                'legendary': earned_badges.filter(badge__rarity='legendary').count(),
+            }
+            
+    except Exception as e:
+        print(f"Error loading badge data: {e}")
+        earned_badges = []
+        pinned_badges = []
+        total_badges = 0
+        badge_stats = {}
+    
+    # Get privacy settings
+    privacy_settings = None
+    try:
+        if profile:
+            from apps.user_profile.models import PrivacySettings
+            privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
+    except Exception as e:
+        print(f"Error loading privacy settings: {e}")
+        privacy_settings = None
+    
+    # Get verification status
+    verification_record = None
+    try:
+        if profile:
+            from apps.user_profile.models import VerificationRecord
+            verification_record = VerificationRecord.objects.filter(user_profile=profile).first()
+    except Exception as e:
+        print(f"Error loading verification data: {e}")
+        verification_record = None
 
     return render(
         request,
@@ -175,6 +234,7 @@ def profile_view(request, username=None):
         {
             "profile_user": user,
             "profile": profile,
+            "is_own_profile": is_own_profile,
             "upcoming_matches": upcoming,
             "teams": teams,
             "current_teams": current_teams,
@@ -182,6 +242,12 @@ def profile_view(request, username=None):
             "recent_transactions": recent_transactions,
             "recent_orders": recent_orders,
             "total_orders": total_orders,
+            "earned_badges": earned_badges,
+            "pinned_badges": pinned_badges,
+            "total_badges": total_badges,
+            "badge_stats": badge_stats,
+            "privacy_settings": privacy_settings,
+            "verification_record": verification_record,
         },
     )
 
@@ -242,3 +308,151 @@ def _recent_notifications_for_user(user, limit=10):
             return []
     except Exception:
         return []
+
+
+# ============================================================================
+# KYC VERIFICATION VIEWS
+# ============================================================================
+
+@login_required
+def kyc_upload_view(request):
+    """
+    View for users to upload KYC verification documents.
+    Users can submit ID documents and a selfie for verification.
+    """
+    from .forms import KYCUploadForm
+    from .models import VerificationRecord
+    
+    profile = request.user.profile
+    
+    # Get or create verification record
+    verification_record, created = VerificationRecord.objects.get_or_create(
+        user_profile=profile,
+        defaults={'status': 'unverified'}
+    )
+    
+    # Don't allow resubmission if already verified
+    if verification_record.status == 'verified':
+        messages.info(request, 'Your KYC verification is already approved.')
+        return redirect('user_profile:profile')
+    
+    # Don't allow resubmission while pending
+    if verification_record.status == 'pending':
+        messages.info(request, 'Your KYC verification is currently under review. Please wait for admin approval.')
+        return redirect('user_profile:kyc_status')
+    
+    if request.method == 'POST':
+        form = KYCUploadForm(request.POST, request.FILES, instance=verification_record)
+        if form.is_valid():
+            verification_record = form.save(commit=False)
+            # Submit for review
+            try:
+                verification_record.submit_for_review()
+                messages.success(
+                    request, 
+                    'KYC documents submitted successfully! Our team will review your submission within 24-48 hours.'
+                )
+                return redirect('user_profile:kyc_status')
+            except ValueError as e:
+                messages.error(request, str(e))
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = KYCUploadForm(instance=verification_record)
+    
+    context = {
+        'form': form,
+        'verification_record': verification_record,
+        'profile': profile,
+    }
+    return render(request, 'user_profile/kyc_upload.html', context)
+
+
+@login_required
+def kyc_status_view(request):
+    """
+    View to display current KYC verification status.
+    Shows pending/approved/rejected status with details.
+    """
+    from .models import VerificationRecord
+    
+    profile = request.user.profile
+    
+    try:
+        verification_record = VerificationRecord.objects.get(user_profile=profile)
+    except VerificationRecord.DoesNotExist:
+        verification_record = None
+    
+    context = {
+        'verification_record': verification_record,
+        'profile': profile,
+    }
+    return render(request, 'user_profile/kyc_status.html', context)
+
+
+# ============================================================================
+# PRIVACY SETTINGS VIEWS
+# ============================================================================
+
+@login_required
+def privacy_settings_view(request):
+    """
+    View for users to manage their privacy settings.
+    Controls what information is visible to other users.
+    """
+    from .forms import PrivacySettingsForm
+    from .models import PrivacySettings
+    
+    profile = request.user.profile
+    
+    # Get or create privacy settings
+    privacy_settings, created = PrivacySettings.objects.get_or_create(
+        user_profile=profile
+    )
+    
+    if request.method == 'POST':
+        form = PrivacySettingsForm(request.POST, instance=privacy_settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Privacy settings updated successfully!')
+            return redirect('user_profile:privacy_settings')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = PrivacySettingsForm(instance=privacy_settings)
+    
+    context = {
+        'form': form,
+        'privacy_settings': privacy_settings,
+        'profile': profile,
+    }
+    return render(request, 'user_profile/privacy_settings.html', context)
+
+
+@login_required
+def settings_view(request):
+    """
+    Modular settings page with all settings sections in one place.
+    Provides a unified interface for Profile, Privacy, KYC, Payment, Security, and Game Accounts.
+    """
+    from .models import PrivacySettings, VerificationRecord
+    
+    profile = request.user.profile
+    
+    # Get or create privacy settings
+    privacy_settings, _ = PrivacySettings.objects.get_or_create(
+        user_profile=profile
+    )
+    
+    # Get verification record if exists
+    verification_record = VerificationRecord.objects.filter(user_profile=profile).first()
+    
+    context = {
+        'profile': profile,
+        'privacy_settings': privacy_settings,
+        'verification_record': verification_record,
+    }
+    
+    return render(request, 'user_profile/settings_modular.html', context)
+
+

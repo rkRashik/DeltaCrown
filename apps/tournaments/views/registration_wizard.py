@@ -359,30 +359,51 @@ class RegistrationWizardView(LoginRequiredMixin, View):
             from apps.user_profile.models import UserProfile
             profile = UserProfile.objects.get(user=user)
             
+            # Basic contact & location (FIXED: now using new fields)
             auto_filled.update({
                 'phone': profile.phone or '',
                 'country': profile.country or '',
-                'discord': profile.discord_username or '',
+                'discord': profile.discord_id or '',
+            })
+            
+            # Use real_full_name if available, otherwise fallback to User model
+            if profile.real_full_name:
+                auto_filled['full_name'] = profile.real_full_name
+            
+            # Calculate age from date_of_birth if available
+            if profile.date_of_birth:
+                from datetime import date
+                today = date.today()
+                age = today.year - profile.date_of_birth.year
+                if today.month < profile.date_of_birth.month or (today.month == profile.date_of_birth.month and today.day < profile.date_of_birth.day):
+                    age -= 1
+                auto_filled['age'] = str(age)
+            
+            # Legacy game IDs (still supported for backward compatibility)
+            auto_filled.update({
                 'riot_id': profile.riot_id or '',
                 'pubg_mobile_id': profile.pubg_mobile_id or '',
-                'mobile_legends_id': profile.mobile_legends_id or '',
+                'mobile_legends_id': profile.mlbb_id or '',
                 'free_fire_id': profile.free_fire_id or '',
-                'cod_mobile_id': profile.cod_mobile_id or '',
-                'valorant_id': profile.valorant_id or '',
+                'cod_mobile_id': profile.codm_uid or '',
             })
             
             # Map game-specific ID based on tournament game
             game_slug = tournament.game.slug if tournament.game else ''
             if game_slug == 'valorant':
-                auto_filled['riot_id'] = profile.valorant_id or profile.riot_id or ''
+                auto_filled['game_id'] = profile.riot_id or ''
             elif game_slug == 'pubg-mobile':
-                auto_filled['riot_id'] = profile.pubg_mobile_id or ''
+                auto_filled['game_id'] = profile.pubg_mobile_id or ''
             elif game_slug == 'mobile-legends':
-                auto_filled['riot_id'] = profile.mobile_legends_id or ''
+                auto_filled['game_id'] = profile.mlbb_id or ''
             elif game_slug == 'free-fire':
-                auto_filled['riot_id'] = profile.free_fire_id or ''
+                auto_filled['game_id'] = profile.free_fire_id or ''
             elif game_slug == 'cod-mobile':
-                auto_filled['riot_id'] = profile.cod_mobile_id or ''
+                auto_filled['game_id'] = profile.codm_uid or ''
+            elif game_slug == 'dota-2' or game_slug == 'cs2':
+                auto_filled['game_id'] = profile.steam_id or ''
+            elif game_slug == 'efootball' or game_slug == 'ea-fc':
+                auto_filled['game_id'] = profile.efootball_id or profile.ea_id or ''
                 
         except Exception:
             # UserProfile not found or error - use defaults

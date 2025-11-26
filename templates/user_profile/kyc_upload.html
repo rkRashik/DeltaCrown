@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}KYC Verification Upload - DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">KYC Verification</h1>
+            <p class="text-gray-600">
+                Upload your identification documents to verify your account. 
+                KYC verification is required for high-value tournaments and prize withdrawals.
+            </p>
+        </div>
+
+        <!-- Status Alert -->
+        {% if verification_record.status == 'verified' %}
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+            <p class="font-bold">✓ Verified</p>
+            <p>Your account is KYC verified. You can participate in all tournaments.</p>
+        </div>
+        {% elif verification_record.status == 'pending' %}
+        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
+            <p class="font-bold">⏳ Pending Review</p>
+            <p>Your KYC documents are under review. We'll notify you within 24-48 hours.</p>
+        </div>
+        {% elif verification_record.status == 'rejected' %}
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+            <p class="font-bold">✗ Rejected</p>
+            <p>{{ verification_record.rejection_reason }}</p>
+            <p class="mt-2">Please upload clearer documents and resubmit.</p>
+        </div>
+        {% endif %}
+
+        <!-- Requirements -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+            <h3 class="font-bold text-blue-900 mb-2">📋 Requirements:</h3>
+            <ul class="list-disc list-inside text-blue-800 space-y-1">
+                <li>National ID or Passport (both front and back sides)</li>
+                <li>Clear, readable photos or scans</li>
+                <li>A selfie holding your ID next to your face</li>
+                <li>All text and photos must be clearly visible</li>
+                <li>File size limit: 5MB per document</li>
+                <li>Accepted formats: JPG, PNG, PDF</li>
+            </ul>
+        </div>
+
+        <!-- Upload Form -->
+        {% if verification_record.status != 'verified' and verification_record.status != 'pending' %}
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- ID Document Front -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.id_document_front.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1">
+                    {{ form.id_document_front }}
+                </div>
+                {% if form.id_document_front.help_text %}
+                <p class="mt-1 text-sm text-gray-500">{{ form.id_document_front.help_text }}</p>
+                {% endif %}
+                {% if form.id_document_front.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.id_document_front.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- ID Document Back -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.id_document_back.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1">
+                    {{ form.id_document_back }}
+                </div>
+                {% if form.id_document_back.help_text %}
+                <p class="mt-1 text-sm text-gray-500">{{ form.id_document_back.help_text }}</p>
+                {% endif %}
+                {% if form.id_document_back.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.id_document_back.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Selfie with ID -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    {{ form.selfie_with_id.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1">
+                    {{ form.selfie_with_id }}
+                </div>
+                {% if form.selfie_with_id.help_text %}
+                <p class="mt-1 text-sm text-gray-500">{{ form.selfie_with_id.help_text }}</p>
+                {% endif %}
+                {% if form.selfie_with_id.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.selfie_with_id.errors }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Privacy Notice -->
+            <div class="bg-gray-50 border border-gray-200 rounded p-4">
+                <h4 class="font-medium text-gray-900 mb-2">🔒 Privacy & Security</h4>
+                <p class="text-sm text-gray-700">
+                    Your documents are securely stored and only accessible to authorized DeltaCrown staff. 
+                    We will never share your personal information with third parties without your consent.
+                    Documents are used solely for identity verification purposes.
+                </p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex gap-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                    Submit for Verification
+                </button>
+                <a href="{% url 'user_profile:profile' %}" class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-400 transition">
+                    Cancel
+                </a>
+            </div>
+        </form>
+        {% else %}
+        <div class="text-center py-8">
+            <a href="{% url 'user_profile:kyc_status' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition inline-block">
+                View KYC Status
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
