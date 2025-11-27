@@ -1,0 +1,656 @@
+{% extends 'tournaments/team_registration/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .gradient-border {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+    }
+
+    .review-section {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .edit-btn {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .edit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-item {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+
+    .info-label {
+        font-size: 0.875rem;
+        color: #94a3b8;
+        margin-bottom: 0.25rem;
+    }
+
+    .info-value {
+        color: #e2e8f0;
+        font-weight: 600;
+    }
+
+    .roster-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .player-card {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-left: 4px solid;
+    }
+
+    .player-card.captain {
+        border-left-color: #eab308;
+    }
+
+    .player-card.player {
+        border-left-color: #3b82f6;
+    }
+
+    .player-card.substitute {
+        border-left-color: #22c55e;
+    }
+
+    .player-role {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .captain-badge {
+        background: linear-gradient(135deg, #eab308, #f59e0b);
+        color: #000;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .player-badge {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .substitute-badge {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .player-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .player-details {
+        flex: 1;
+    }
+
+    .player-name {
+        color: #e2e8f0;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .player-ign {
+        color: #94a3b8;
+        font-size: 0.875rem;
+        font-family: monospace;
+    }
+
+    .player-full-name {
+        color: #64748b;
+        font-size: 0.75rem;
+    }
+
+    .rules-section {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(249, 115, 22, 0.1));
+        border: 1px solid rgba(234, 179, 8, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .rules-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #eab308;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .rules-content {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+        font-size: 0.875rem;
+        color: #cbd5e1;
+    }
+
+    .rules-content h4 {
+        color: #e2e8f0;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .rules-content h4:first-child {
+        margin-top: 0;
+    }
+
+    .rules-content ul {
+        margin-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .rules-content li {
+        margin-bottom: 0.25rem;
+    }
+
+    .checkbox-group {
+        margin-bottom: 1rem;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        cursor: pointer;
+        color: #e2e8f0;
+        gap: 0.75rem;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        margin-top: 0.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .checkbox-label:hover {
+        color: #f1f5f9;
+    }
+
+    .required-indicator {
+        color: #ef4444;
+    }
+
+    .disabled-btn {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .continue-btn {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .continue-btn:hover:not(.disabled-btn) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .back-btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .back-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .fee-notice {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1));
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .fee-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #22c55e;
+        margin-bottom: 0.5rem;
+    }
+
+    .fee-description {
+        color: #94a3b8;
+        font-size: 0.875rem;
+    }
+
+    .team-logo-preview {
+        max-width: 150px;
+        max-height: 150px;
+        border-radius: 0.5rem;
+        border: 2px solid rgba(59, 130, 246, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="reviewForm">
+    {% csrf_token %}
+    <input type="hidden" name="step" value="2">
+
+    <!-- Step Header -->
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-white mb-2">
+            <span class="text-4xl mr-2">✅</span>
+            Review Team Details
+        </h2>
+        <p class="text-gray-400">Verify all information before proceeding</p>
+    </div>
+
+    <!-- Team Information Review -->
+    <div class="review-section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <span>🏆</span>
+                Team Details
+            </h3>
+            <a href="?step=1" class="edit-btn">
+                <i class="fas fa-edit"></i>
+                Edit
+            </a>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Team Name</div>
+                <div class="info-value">{{ registration_data.team_name|default:"N/A" }}</div>
+            </div>
+
+            <div class="info-item">
+                <div class="info-label">Team Tag</div>
+                <div class="info-value">[{{ registration_data.team_tag|default:"N/A" }}]</div>
+            </div>
+
+            {% if form_config.enable_team_region_field %}
+            <div class="info-item">
+                <div class="info-label">Region</div>
+                <div class="info-value">{{ registration_data.team_region|default:"N/A" }}</div>
+            </div>
+            {% endif %}
+
+            {% if form_config.enable_team_country_field %}
+            <div class="info-item">
+                <div class="info-label">Country</div>
+                <div class="info-value">{{ registration_data.team_country|default:"N/A" }}</div>
+            </div>
+            {% endif %}
+
+            {% if form_config.enable_team_logo_field and registration_data.team_logo %}
+            <div class="info-item">
+                <div class="info-label">Team Logo</div>
+                <div class="info-value">
+                    <img src="{{ registration_data.team_logo.url }}" alt="Team Logo" class="team-logo-preview">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Captain Information Review -->
+    <div class="review-section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <span>⭐</span>
+                Team Captain
+            </h3>
+            <a href="?step=1" class="edit-btn">
+                <i class="fas fa-edit"></i>
+                Edit
+            </a>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-item">
+                <div class="info-label">Full Name</div>
+                <div class="info-value">{{ registration_data.captain_full_name|default:"N/A" }}</div>
+            </div>
+
+            {% if form_config.enable_captain_display_name_field %}
+            <div class="info-item">
+                <div class="info-label">Display Name / IGN</div>
+                <div class="info-value">{{ registration_data.captain_display_name|default:"N/A" }}</div>
+            </div>
+            {% endif %}
+
+            <div class="info-item">
+                <div class="info-label">Email</div>
+                <div class="info-value">{{ registration_data.captain_email|default:"N/A" }}</div>
+            </div>
+
+            {% if form_config.enable_captain_phone_field %}
+            <div class="info-item">
+                <div class="info-label">Phone</div>
+                <div class="info-value">{{ registration_data.captain_phone|default:"N/A" }}</div>
+            </div>
+            {% endif %}
+
+            {% if form_config.enable_captain_whatsapp_field %}
+            <div class="info-item">
+                <div class="info-label">WhatsApp</div>
+                <div class="info-value">{{ registration_data.captain_whatsapp|default:"N/A" }}</div>
+            </div>
+            {% endif %}
+
+            {% if form_config.enable_captain_discord_field %}
+            <div class="info-item">
+                <div class="info-label">Discord</div>
+                <div class="info-value">{{ registration_data.captain_discord|default:"N/A" }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Team Roster Review -->
+    <div class="review-section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <span>👥</span>
+                Team Roster
+            </h3>
+            <a href="?step=1" class="edit-btn">
+                <i class="fas fa-edit"></i>
+                Edit
+            </a>
+        </div>
+
+        <div class="roster-section">
+            {% for player in registration_data.roster %}
+                {% if forloop.first %}
+                    <!-- Captain -->
+                    <div class="player-card captain">
+                        <div class="player-role">
+                            <span class="captain-badge">⭐ CAPTAIN</span>
+                        </div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <div class="player-name">{{ player.display_name|default:player.full_name }}</div>
+                                {% if player.display_name and player.display_name != player.full_name %}
+                                    <div class="player-ign">{{ player.display_name }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="player-full-name">{{ player.full_name }}</div>
+                        </div>
+                    </div>
+                {% elif forloop.last and registration_data.roster|length > 5 %}
+                    <!-- Substitute -->
+                    <div class="player-card substitute">
+                        <div class="player-role">
+                            <span class="substitute-badge">🔄 SUBSTITUTE</span>
+                        </div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <div class="player-name">{{ player.display_name|default:player.full_name }}</div>
+                                {% if player.display_name and player.display_name != player.full_name %}
+                                    <div class="player-ign">{{ player.display_name }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="player-full-name">{{ player.full_name }}</div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Regular Player -->
+                    <div class="player-card player">
+                        <div class="player-role">
+                            <span class="player-badge">PLAYER {{ forloop.counter }}</span>
+                        </div>
+                        <div class="player-info">
+                            <div class="player-details">
+                                <div class="player-name">{{ player.display_name|default:player.full_name }}</div>
+                                {% if player.display_name and player.display_name != player.full_name %}
+                                    <div class="player-ign">{{ player.display_name }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="player-full-name">{{ player.full_name }}</div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% empty %}
+                <div class="text-center text-gray-400 py-4">
+                    No roster members added
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-sm text-gray-400">
+            <i class="fas fa-info-circle mr-1"></i>
+            Total: {{ registration_data.roster|length }} players
+            {% if registration_data.roster|length >= 5 %}
+                ({{ registration_data.roster|length|add:"-1" }} main + 1 substitute)
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Entry Fee Notice (if applicable) -->
+    {% if tournament.entry_fee and tournament.entry_fee > 0 %}
+    <div class="fee-notice">
+        <div class="fee-amount">
+            {% if tournament.entry_fee_currency == 'DC' %}
+                <i class="fas fa-coins mr-2"></i>{{ tournament.entry_fee }} DeltaCoins
+            {% else %}
+                ৳{{ tournament.entry_fee }}
+            {% endif %}
+        </div>
+        <div class="fee-description">
+            Entry fee per team - Payment will be collected in the next step
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Tournament Rules Agreement -->
+    <div class="rules-section">
+        <div class="rules-title">
+            <span>📜</span>
+            Team Registration Rules
+        </div>
+
+        <div class="rules-content">
+            <h4>Team Requirements:</h4>
+            <ul>
+                <li>All team members must be registered with valid information</li>
+                <li>Team name and tag must be unique and appropriate</li>
+                <li>Minimum roster size requirements must be met</li>
+                <li>Captain is responsible for team communication</li>
+                <li>All players must be available during tournament dates</li>
+            </ul>
+
+            <h4>Match Rules:</h4>
+            <ul>
+                <li>Teams must check-in before match time</li>
+                <li>Captain must confirm team readiness before each match</li>
+                <li>All team members must join designated communication channels</li>
+                <li>Match results must be submitted by captain</li>
+            </ul>
+
+            <h4>Code of Conduct:</h4>
+            <ul>
+                <li>Zero tolerance for cheating or exploitation</li>
+                <li>Respect all teams, staff, and tournament organizers</li>
+                <li>Follow all community guidelines</li>
+                <li>Captain is responsible for team member behavior</li>
+                <li>Rule violations may result in team disqualification</li>
+            </ul>
+        </div>
+
+        <div class="space-y-3">
+            <label class="checkbox-label">
+                <input type="checkbox" name="accept_rules" id="acceptRules" required>
+                <span>
+                    I confirm that all team information is accurate and all players have agreed to participate
+                    <span class="required-indicator">*</span>
+                </span>
+            </label>
+
+            <label class="checkbox-label">
+                <input type="checkbox" name="accept_conduct" id="acceptConduct" required>
+                <span>
+                    As team captain, I agree to abide by all tournament rules and take responsibility for team conduct
+                    <span class="required-indicator">*</span>
+                </span>
+            </label>
+
+            <label class="checkbox-label">
+                <input type="checkbox" name="accept_contact" id="acceptContact" required>
+                <span>
+                    I agree to receive tournament updates and ensure my team is informed
+                    <span class="required-indicator">*</span>
+                </span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="flex justify-between items-center mt-8">
+        <a href="?step=1" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            Back
+        </a>
+
+        <button type="submit" id="continueBtn" class="continue-btn disabled-btn">
+            {% if tournament.entry_fee and tournament.entry_fee > 0 %}
+                Continue to Payment
+                <i class="fas fa-arrow-right"></i>
+            {% else %}
+                Complete Registration
+                <i class="fas fa-check"></i>
+            {% endif %}
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enable continue button only when all checkboxes are checked
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    const continueBtn = document.getElementById('continueBtn');
+    
+    function updateContinueButton() {
+        const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        continueBtn.disabled = !allChecked;
+        
+        if (allChecked) {
+            continueBtn.classList.remove('disabled-btn');
+        } else {
+            continueBtn.classList.add('disabled-btn');
+        }
+    }
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateContinueButton);
+    });
+    
+    // Form submission
+    document.getElementById('reviewForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate all checkboxes
+        if (!Array.from(checkboxes).every(cb => cb.checked)) {
+            alert('Please accept all terms and conditions to continue.');
+            return;
+        }
+        
+        // Proceed to next step
+        {% if tournament.entry_fee and tournament.entry_fee > 0 %}
+            window.location.href = '?step=3';
+        {% else %}
+            // Submit registration directly (no payment needed)
+            this.submit();
+        {% endif %}
+    });
+</script>
+{% endblock %}

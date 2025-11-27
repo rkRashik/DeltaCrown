@@ -20,8 +20,8 @@ from apps.tournaments.views.registration import (
     TournamentRegistrationSuccessView,
 )
 
-from apps.tournaments.views.registration_demo import (
-    RegistrationDemoSuccessView,
+from apps.tournaments.views.tournament_team_registration import (
+    RegistrationSuccessView,
 )
 
 __all__ = [
@@ -35,6 +35,6 @@ __all__ = [
     'TournamentRegistrationSuccessView',
     
     # Demo registration views
-    'RegistrationDemoSuccessView',
+    'RegistrationSuccessView',
 ]
 

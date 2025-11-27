@@ -1,4 +1,4 @@
-{% extends "tournaments/registration_demo/base_demo.html" %}
+{% extends "tournaments/team_registration/base.html" %}
 
 {% block content %}
 <div class="space-y-8">
@@ -53,6 +53,7 @@
                 </div>
 
                 <!-- Team Logo -->
+                {% if form_config.enable_team_logo_field %}
                 <div>
                     <label for="team_logo" class="block text-sm font-medium text-gray-300 mb-2">
                         Team Logo (Optional)
@@ -73,9 +74,11 @@
                         Supported formats: JPG, PNG (Max 2MB)
                     </div>
                 </div>
+                {% endif %}
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Region -->
+                    {% if form_config.enable_team_region_field %}
                     <div>
                         <label for="region" class="block text-sm font-medium text-gray-300 mb-2">
                             Region <span class="text-red-500">*</span>
@@ -87,6 +90,7 @@
                             <option value="APAC">🌏 Asia-Pacific</option>
                         </select>
                     </div>
+                    {% endif %}
 
                     <!-- Country -->
                     <div>
@@ -125,6 +129,7 @@
                     </div>
 
                     <!-- Captain Display Name -->
+                    {% if form_config.enable_captain_display_name_field %}
                     <div>
                         <label for="captain_display_name" class="block text-sm font-medium text-gray-300 mb-2">
                             In-Game Name <span class="text-red-500">*</span>
@@ -133,6 +138,7 @@
                             placeholder="CaptainRazor"
                             class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Captain Riot ID -->
@@ -162,6 +168,7 @@
                     </div>
 
                     <!-- Captain Phone -->
+                    {% if form_config.enable_captain_phone_field or form_config.enable_captain_whatsapp_field %}
                     <div>
                         <label for="captain_phone" class="block text-sm font-medium text-gray-300 mb-2">
                             WhatsApp Number <span class="text-red-500">*</span>
@@ -170,9 +177,11 @@
                             placeholder="01700000000"
                             class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
                     </div>
+                    {% endif %}
                 </div>
 
                 <!-- Captain Discord -->
+                {% if form_config.enable_captain_discord_field %}
                 <div>
                     <label for="captain_discord" class="block text-sm font-medium text-gray-300 mb-2">
                         Discord Username <span class="text-red-500">*</span>
@@ -181,6 +190,7 @@
                         placeholder="CaptainRazor#1234"
                         class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
                 </div>
+                {% endif %}
             </div>
         </div>
 

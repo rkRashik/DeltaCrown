@@ -71,7 +71,11 @@
                 {% endif %}
               </div>
               <div class="flex-1 min-w-0">
-                <a href="{% url 'teams:detail' team.slug %}" class="link-nav font-medium block truncate">{{ team.name }}</a>
+                {% if team.slug %}
+                  <a href="{% url 'teams:detail' team.slug %}" class="link-nav font-medium block truncate">{{ team.name }}</a>
+                {% else %}
+                  <span class="font-medium block truncate opacity-60" title="Team pending setup">{{ team.name }}</span>
+                {% endif %}
                 <p class="text-xs text-muted">{{ team.game|default:"Multi-game" }}</p>
               </div>
               <span class="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
@@ -105,7 +109,11 @@
           {% for invite in pending_invites %}
             <li class="p-3 rounded-lg border border-accent/20 bg-accent/5">
               <div class="flex items-center justify-between mb-2">
-                <a href="{% url 'teams:detail' invite.team.slug %}" class="link-nav font-medium">{{ invite.team.name }}</a>
+                {% if invite.team.slug %}
+                  <a href="{% url 'teams:detail' invite.team.slug %}" class="link-nav font-medium">{{ invite.team.name }}</a>
+                {% else %}
+                  <span class="font-medium opacity-60" title="Team pending setup">{{ invite.team.name }}</span>
+                {% endif %}
                 <span class="text-xs text-muted">{{ invite.role|default:"Player" }}</span>
               </div>
               <p class="text-xs text-muted mb-2">

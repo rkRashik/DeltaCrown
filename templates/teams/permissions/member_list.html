@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Team Members - {{ team.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Team Members</h1>
+            <p class="text-gray-400 mt-1">Manage team roster and permissions</p>
+        </div>
+        {% if can_manage_permissions %}
+        <a href="{% url 'teams:invite' team.slug %}" 
+           class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg transition-colors">
+            <i class="fas fa-user-plus mr-2"></i>Invite Member
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Members List -->
+    <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-900 border-b border-gray-700">
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Member</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Role</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">In-Game Role</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Permissions</th>
+                    <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">Joined</th>
+                    {% if can_manage_permissions %}
+                    <th class="px-6 py-4 text-center text-sm font-semibold text-gray-300">Actions</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-700">
+                {% for member in members %}
+                <tr class="hover:bg-gray-750 transition-colors">
+                    <!-- Member Info -->
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-3">
+                            {% if member.profile.avatar %}
+                            <img src="{{ member.profile.avatar.url }}" 
+                                 alt="{{ member.profile.user.username }}"
+                                 class="w-10 h-10 rounded-full object-cover">
+                            {% else %}
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold">
+                                {{ member.profile.user.username|slice:":1"|upper }}
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-white font-medium">
+                                        {{ member.profile.user.get_full_name|default:member.profile.user.username }}
+                                    </span>
+                                    {% if member.is_captain %}
+                                    <span class="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-semibold">
+                                        ⭐ Captain
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <span class="text-sm text-gray-400">@{{ member.profile.user.username }}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Organization Role -->
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-sm font-medium
+                            {% if member.role == 'OWNER' %}bg-purple-500/20 text-purple-400
+                            {% elif member.role == 'MANAGER' %}bg-blue-500/20 text-blue-400
+                            {% elif member.role == 'COACH' %}bg-green-500/20 text-green-400
+                            {% elif member.role == 'CAPTAIN' %}bg-yellow-500/20 text-yellow-400
+                            {% else %}bg-gray-500/20 text-gray-400{% endif %}">
+                            {{ member.get_role_display }}
+                        </span>
+                    </td>
+
+                    <!-- In-Game Role -->
+                    <td class="px-6 py-4">
+                        {% if member.player_role %}
+                        <span class="text-gray-300">{{ member.player_role }}</span>
+                        {% else %}
+                        <span class="text-gray-500 text-sm italic">Not set</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Permissions Summary -->
+                    <td class="px-6 py-4">
+                        {% if member.role == 'OWNER' %}
+                        <span class="text-purple-400 text-sm font-medium">
+                            <i class="fas fa-crown mr-1"></i>Full Access
+                        </span>
+                        {% else %}
+                        <span class="text-gray-400 text-sm">
+                            {{ member.permission_count }} permission{{ member.permission_count|pluralize }}
+                        </span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Joined Date -->
+                    <td class="px-6 py-4">
+                        <span class="text-gray-400 text-sm">
+                            {{ member.joined_at|date:"M d, Y" }}
+                        </span>
+                    </td>
+
+                    <!-- Actions -->
+                    {% if can_manage_permissions %}
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-center space-x-2">
+                            {% if member.role != 'OWNER' %}
+                            <a href="{% url 'teams:manage_permissions' team.slug member.id %}"
+                               class="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded text-sm transition-colors"
+                               title="Manage Permissions">
+                                <i class="fas fa-key"></i>
+                            </a>
+                            <button onclick="confirmRemoveMember({{ member.id }}, '{{ member.profile.user.username }}')"
+                                    class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-sm transition-colors"
+                                    title="Remove Member">
+                                <i class="fas fa-user-times"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-gray-600 text-sm italic">Owner</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if can_manage_permissions %}6{% else %}5{% endif %}" 
+                        class="px-6 py-12 text-center">
+                        <div class="text-gray-500">
+                            <i class="fas fa-users text-4xl mb-3 opacity-50"></i>
+                            <p>No team members found</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Legend -->
+    <div class="bg-gray-800 rounded-lg border border-gray-700 p-4">
+        <h3 class="text-white font-semibold mb-3">Role Hierarchy</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+            <div>
+                <span class="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-sm font-medium">Owner</span>
+                <p class="text-gray-400 mt-1 text-xs">Full control, all permissions</p>
+            </div>
+            <div>
+                <span class="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-sm font-medium">Manager</span>
+                <p class="text-gray-400 mt-1 text-xs">Custom permissions</p>
+            </div>
+            <div>
+                <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm font-medium">Coach</span>
+                <p class="text-gray-400 mt-1 text-xs">Training & strategy</p>
+            </div>
+            <div>
+                <span class="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-medium">Captain</span>
+                <p class="text-gray-400 mt-1 text-xs">In-game leader (legacy)</p>
+            </div>
+            <div>
+                <span class="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-medium">Player</span>
+                <p class="text-gray-400 mt-1 text-xs">Core roster member</p>
+            </div>
+            <div>
+                <span class="px-3 py-1 rounded-full bg-gray-500/20 text-gray-400 text-sm font-medium">Substitute</span>
+                <p class="text-gray-400 mt-1 text-xs">Backup player</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmRemoveMember(memberId, username) {
+    if (confirm(`Are you sure you want to remove ${username} from the team?`)) {
+        // Implement removal logic
+        // You can use AJAX to call the remove endpoint
+        console.log(`Removing member ${memberId}`);
+    }
+}
+</script>
+{% endblock %}

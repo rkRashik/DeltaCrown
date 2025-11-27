@@ -257,6 +257,18 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             game_spec = get_game(canonical_slug)
             game_display_name = game_spec.display_name if game_spec else tournament.game.name
             custom_field_values = wizard_data.get('custom_fields', {})
+            
+            # Auto-fill from user profile if not already filled
+            auto_filled_value = ''
+            if not custom_field_values.get('in_game_id'):
+                try:
+                    profile = user.profile
+                    auto_filled_value = profile.get_game_id(tournament.game.slug)
+                    if auto_filled_value:
+                        custom_field_values['in_game_id'] = auto_filled_value
+                except Exception:
+                    pass  # No profile or game ID not set
+            
             context['custom_fields'] = [
                 {
                     'name': 'in_game_id',
@@ -265,13 +277,50 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                     'required': True,
                     'help_text': 'Your player ID or username in the game',
                     'current_value': custom_field_values.get('in_game_id', ''),
+                    'auto_filled': bool(auto_filled_value),
                 }
             ]
         
         elif tournament.has_entry_fee:
             # Step 4: Payment (conditional)
-            context['step_title'] = 'Payment Information'
-            context['step_description'] = f'Entry fee: ৳{tournament.entry_fee_amount}'
+            
+            # Check fee waiver eligibility first
+            from decimal import Decimal
+            fee_waived = False
+            waive_reason = ''
+            
+            # Check if user has a pending registration to check eligibility
+            if 'registration_id' in wizard_data:
+                eligible, reason = RegistrationService.check_auto_waive_eligibility(wizard_data['registration_id'])
+                if eligible:
+                    fee_waived = True
+                    waive_reason = reason
+            
+            if fee_waived:
+                context['step_title'] = 'Fee Waived!'
+                context['step_description'] = f'Entry fee waived: {waive_reason}'
+                context['fee_waived'] = True
+                context['waive_reason'] = waive_reason
+                context['original_fee'] = tournament.entry_fee_amount
+            else:
+                context['step_title'] = 'Payment Information'
+                context['step_description'] = f'Entry fee: ৳{tournament.entry_fee_amount}'
+                context['fee_waived'] = False
+                
+                # Get DeltaCoin balance for user
+                deltacoin_balance = Decimal('0.00')
+                deltacoin_can_afford = False
+                try:
+                    from apps.economy.models import DeltaCrownWallet
+                    wallet = DeltaCrownWallet.objects.get(user=user)
+                    deltacoin_balance = wallet.cached_balance
+                    deltacoin_can_afford = deltacoin_balance >= tournament.entry_fee_amount
+                except DeltaCrownWallet.DoesNotExist:
+                    pass
+                
+                context['deltacoin_balance'] = deltacoin_balance
+                context['deltacoin_can_afford'] = deltacoin_can_afford
+                context['deltacoin_shortfall'] = max(Decimal('0.00'), tournament.entry_fee_amount - deltacoin_balance)
             
             # Load configured payment methods from tournament
             from apps.tournaments.models import TournamentPaymentMethod
@@ -281,6 +330,18 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             ).order_by('display_order')
             
             payment_methods = []
+            
+            # Add DeltaCoin as first option if not fee waived
+            if not fee_waived:
+                payment_methods.append({
+                    'value': 'deltacoin',
+                    'label': 'DeltaCoin',
+                    'logo': None,
+                    'account': 'Your Wallet',
+                    'instructions': 'Instant verification - payment deducted from your DeltaCoin balance',
+                    'is_instant': True,
+                })
+            
             for method in configured_methods:
                 method_info = {
                     'value': method.method_type,
@@ -389,13 +450,35 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
         
         # Payment step (only if has_entry_fee, comes after custom fields)
         if tournament.has_entry_fee and step == custom_fields_step + 1:
-            # Payment method selection
-            payment_method = post_data.get('payment_method')
-            if not payment_method:
-                result['valid'] = False
-                result['errors']['payment_method'] = 'Please select a payment method'
+            # Check if fee is waived first
+            fee_waived = post_data.get('fee_waived') == 'true'
+            
+            if fee_waived:
+                # Skip payment method validation if fee is waived
+                result['data']['payment_method'] = 'waived'
+                result['data']['fee_waived'] = True
             else:
-                result['data']['payment_method'] = payment_method
+                # Payment method selection
+                payment_method = post_data.get('payment_method')
+                if not payment_method:
+                    result['valid'] = False
+                    result['errors']['payment_method'] = 'Please select a payment method'
+                else:
+                    # Validate DeltaCoin balance if selected
+                    if payment_method == 'deltacoin':
+                        from apps.economy.models import DeltaCrownWallet
+                        from decimal import Decimal
+                        try:
+                            wallet = DeltaCrownWallet.objects.get(user=user)
+                            if wallet.cached_balance < tournament.entry_fee_amount:
+                                result['valid'] = False
+                                result['errors']['payment_method'] = f'Insufficient DeltaCoin balance. You have {wallet.cached_balance} DC but need {tournament.entry_fee_amount} DC.'
+                        except DeltaCrownWallet.DoesNotExist:
+                            result['valid'] = False
+                            result['errors']['payment_method'] = 'DeltaCoin wallet not found. Please choose another payment method.'
+                    
+                    if result['valid']:  # Only set if no errors
+                        result['data']['payment_method'] = payment_method
         
         # Final step: Review & confirm (always the last step)
         if step == self._calculate_total_steps(tournament):
@@ -424,20 +507,51 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
                 registration_data=registration_data
             )
             
+            # Handle payment based on selected method
+            payment_method = wizard_data.get('payment_method')
+            fee_waived = wizard_data.get('fee_waived', False)
+            
+            if tournament.has_entry_fee:
+                if fee_waived:
+                    # Auto-waive fee
+                    try:
+                        RegistrationService.waive_fee(
+                            registration_id=registration.id,
+                            waived_by=user,  # System waiver based on eligibility
+                            reason=wizard_data.get('waive_reason', 'Automatic eligibility-based waiver')
+                        )
+                        messages.success(request, "Registration confirmed! Entry fee has been waived.")
+                    except Exception as e:
+                        messages.warning(request, f"Registration created but fee waiver failed: {str(e)}")
+                
+                elif payment_method == 'deltacoin':
+                    # Process DeltaCoin payment
+                    try:
+                        payment, transaction = RegistrationService.pay_with_deltacoin(
+                            registration_id=registration.id,
+                            user=user
+                        )
+                        messages.success(request, "Payment successful! Your registration is confirmed.")
+                    except ValidationError as e:
+                        messages.error(request, f"DeltaCoin payment failed: {str(e)}")
+                        # Registration exists but payment failed - user needs to retry
+                        return redirect('tournaments:payment_retry', registration_id=registration.id)
+                
+                else:
+                    # Manual payment method (bKash, Nagad, etc.) - needs proof upload
+                    messages.success(request, "Registration submitted! Please upload payment proof to complete.")
+                    # Redirect to payment proof upload page
+                    return redirect('tournaments:payment_upload', registration_id=registration.id)
+            else:
+                # Free tournament
+                messages.success(request, "You're registered! Good luck in the tournament!")
+            
             # Clear wizard session data
             wizard_key = f'registration_wizard_{tournament.id}'
             if wizard_key in request.session:
                 del request.session[wizard_key]
             
-            # Handle payment redirect if needed
-            if tournament.has_entry_fee:
-                messages.success(request, "Registration submitted! Please complete payment.")
-                # TODO: Redirect to payment gateway (Module 3.1)
-                # Payment integration will be completed in future sprint
-                return redirect('tournaments:register_success', slug=tournament.slug)
-            else:
-                messages.success(request, "You're registered! Good luck in the tournament!")
-                return redirect('tournaments:register_success', slug=tournament.slug)
+            return redirect('tournaments:register_success', slug=tournament.slug)
         
         except ValidationError as e:
             # RegistrationService raises ValidationError for business rule violations
@@ -479,3 +593,152 @@ class TournamentRegistrationSuccessView(LoginRequiredMixin, View):
         }
         
         return render(request, self.template_name, context)
+
+
+class PaymentProofUploadView(LoginRequiredMixin, View):
+    """
+    Payment proof upload for manual payment methods (bKash, Nagad, Rocket, Bank).
+    """
+    
+    template_name = 'tournaments/public/registration/payment_upload.html'
+    
+    def get(self, request, registration_id):
+        """Render payment proof upload form."""
+        registration = get_object_or_404(
+            Registration,
+            id=registration_id,
+            user=request.user,
+            is_deleted=False
+        )
+        
+        tournament = registration.tournament
+        
+        # Check if registration is in a state that needs payment
+        if registration.status not in [Registration.PENDING, Registration.PAYMENT_SUBMITTED]:
+            messages.info(request, "This registration does not need payment proof.")
+            return redirect('tournaments:detail', slug=tournament.slug)
+        
+        # Get existing payment if any
+        payment = getattr(registration, 'payment', None)
+        
+        context = {
+            'tournament': tournament,
+            'registration': registration,
+            'payment': payment,
+            'entry_fee': tournament.entry_fee_amount,
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request, registration_id):
+        """Handle payment proof upload."""
+        registration = get_object_or_404(
+            Registration,
+            id=registration_id,
+            user=request.user,
+            is_deleted=False
+        )
+        
+        tournament = registration.tournament
+        
+        try:
+            # Get uploaded file
+            payment_proof_file = request.FILES.get('payment_proof')
+            if not payment_proof_file:
+                messages.error(request, "Please upload a payment proof file.")
+                return redirect('tournaments:payment_upload', registration_id=registration_id)
+            
+            # Get transaction details
+            reference_number = request.POST.get('reference_number', '').strip()
+            notes = request.POST.get('notes', '').strip()
+            
+            # Submit payment proof using service
+            payment = RegistrationService.submit_payment_proof(
+                registration_id=registration.id,
+                payment_proof_file=payment_proof_file,
+                reference_number=reference_number,
+                notes=notes
+            )
+            
+            messages.success(
+                request,
+                "Payment proof submitted! We'll verify it within 1-6 hours."
+            )
+            return redirect('tournaments:detail', slug=tournament.slug)
+        
+        except ValidationError as e:
+            messages.error(request, f"Upload failed: {str(e)}")
+            return redirect('tournaments:payment_upload', registration_id=registration_id)
+        except Exception as e:
+            messages.error(request, f"Upload failed: {str(e)}")
+            return redirect('tournaments:payment_upload', registration_id=registration_id)
+
+
+class PaymentRetryView(LoginRequiredMixin, View):
+    """
+    Payment retry page when DeltaCoin payment fails.
+    """
+    
+    template_name = 'tournaments/public/registration/payment_retry.html'
+    
+    def get(self, request, registration_id):
+        """Render payment retry options."""
+        registration = get_object_or_404(
+            Registration,
+            id=registration_id,
+            user=request.user,
+            is_deleted=False
+        )
+        
+        tournament = registration.tournament
+        
+        # Get DeltaCoin balance
+        from decimal import Decimal
+        from apps.economy.models import DeltaCrownWallet
+        
+        deltacoin_balance = Decimal('0.00')
+        deltacoin_can_afford = False
+        try:
+            wallet = DeltaCrownWallet.objects.get(user=request.user)
+            deltacoin_balance = wallet.cached_balance
+            deltacoin_can_afford = deltacoin_balance >= tournament.entry_fee_amount
+        except DeltaCrownWallet.DoesNotExist:
+            pass
+        
+        context = {
+            'tournament': tournament,
+            'registration': registration,
+            'entry_fee': tournament.entry_fee_amount,
+            'deltacoin_balance': deltacoin_balance,
+            'deltacoin_can_afford': deltacoin_can_afford,
+            'deltacoin_shortfall': max(Decimal('0.00'), tournament.entry_fee_amount - deltacoin_balance),
+        }
+        
+        return render(request, self.template_name, context)
+    
+    def post(self, request, registration_id):
+        """Handle payment retry with DeltaCoin or redirect to manual upload."""
+        registration = get_object_or_404(
+            Registration,
+            id=registration_id,
+            user=request.user,
+            is_deleted=False
+        )
+        
+        tournament = registration.tournament
+        payment_method = request.POST.get('payment_method')
+        
+        if payment_method == 'deltacoin':
+            try:
+                payment, transaction = RegistrationService.pay_with_deltacoin(
+                    registration_id=registration.id,
+                    user=request.user
+                )
+                messages.success(request, "Payment successful! Your registration is confirmed.")
+                return redirect('tournaments:detail', slug=tournament.slug)
+            except ValidationError as e:
+                messages.error(request, f"Payment failed: {str(e)}")
+                return redirect('tournaments:payment_retry', registration_id=registration_id)
+        else:
+            # Redirect to manual payment proof upload
+            return redirect('tournaments:payment_upload', registration_id=registration_id)

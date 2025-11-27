@@ -12,6 +12,8 @@ from django.urls import reverse
 
 from apps.tournaments.models import Tournament, TournamentRegistrationForm, FormResponse
 from apps.tournaments.services.form_render_service import FormRenderService
+from apps.tournaments.services.registration_autofill import RegistrationAutoFillService
+from apps.tournaments.services.registration_eligibility import RegistrationEligibilityService
 
 
 class DynamicRegistrationView(LoginRequiredMixin, View):
@@ -25,10 +27,18 @@ class DynamicRegistrationView(LoginRequiredMixin, View):
         """Display registration form step"""
         tournament = get_object_or_404(Tournament, slug=tournament_slug)
         
-        # Check if registrations are open
-        if not tournament.is_registration_open:
-            messages.error(request, "Registration is not currently open for this tournament.")
-            return redirect('tournaments:detail', slug=tournament_slug)
+        # Check eligibility first
+        eligibility_result = RegistrationEligibilityService.check_eligibility(
+            tournament, request.user
+        )
+        
+        if not eligibility_result.is_eligible:
+            # Render ineligibility page with glassmorphism UI
+            context = {
+                'tournament': tournament,
+                'eligibility_result': eligibility_result
+            }
+            return render(request, 'tournaments/registration_ineligible.html', context)
         
         # Check if already registered
         existing_response = FormResponse.objects.filter(
@@ -41,8 +51,28 @@ class DynamicRegistrationView(LoginRequiredMixin, View):
             messages.info(request, "You have already registered for this tournament.")
             return redirect('tournaments:detail', slug=tournament_slug)
         
+        # Get team if team tournament
+        team = None
+        if tournament.participation_type in ['team', 'both']:
+            team_id = request.GET.get('team_id')
+            if team_id:
+                from apps.teams.models import Team
+                team = Team.objects.filter(id=team_id).first()
+        
         # Initialize form service
         form_service = FormRenderService(tournament)
+        
+        # Get auto-fill data
+        autofill_data = RegistrationAutoFillService.get_autofill_data(
+            user=request.user,
+            tournament=tournament,
+            team=team
+        )
+        
+        # Calculate completion metrics
+        completion_percentage = RegistrationAutoFillService.get_completion_percentage(autofill_data)
+        missing_fields = RegistrationAutoFillService.get_missing_fields(autofill_data)
+        update_prompts = RegistrationAutoFillService.get_update_prompts(autofill_data)
         
         # Track view (only first time)
         if 'registration_viewed' not in request.session:
@@ -61,6 +91,14 @@ class DynamicRegistrationView(LoginRequiredMixin, View):
         session_key = f'registration_data_{tournament.id}'
         response_data = request.session.get(session_key, {})
         
+        # Apply auto-fill data to response_data if empty
+        if not response_data and step == 1:
+            response_data = {}
+            for field_name, field_data in autofill_data.items():
+                if not field_data.missing and field_data.value:
+                    response_data[field_name] = field_data.value
+            request.session[session_key] = response_data
+        
         # Track start (first step only)
         if step == 1 and not response_data:
             form_service.track_start()
@@ -75,7 +113,13 @@ class DynamicRegistrationView(LoginRequiredMixin, View):
             'total_steps': total_steps,
             'progress_percentage': int((step / total_steps) * 100),
             'enable_autosave': form_service.form_config.enable_autosave,
-            'form_title': f"Step {step}" if total_steps > 1 else "Registration Form"
+            'form_title': f"Step {step}" if total_steps > 1 else "Registration Form",
+            # Auto-fill context
+            'autofill_data': autofill_data,
+            'completion_percentage': completion_percentage,
+            'missing_count': len(missing_fields),
+            'update_prompts': update_prompts,
+            'team': team
         }
         
         return render(request, self.template_name, context)

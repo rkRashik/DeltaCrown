@@ -29,6 +29,7 @@ from apps.tournaments.models import (
     TournamentResult, PrizeTransaction, TournamentPaymentMethod,
     TournamentStaffRole, TournamentStaff, TournamentAnnouncement,
     RegistrationFormTemplate, TournamentRegistrationForm, FormResponse,
+    TournamentFormConfiguration,
 )
 from apps.common.game_registry import get_all_games, normalize_slug
 from apps.tournaments.utils import import_rules_from_pdf
@@ -66,6 +67,53 @@ class TournamentVersionInline(admin.TabularInline):
     def has_add_permission(self, request, obj=None):
         """Versions are created automatically, not manually"""
         return False
+
+
+class TournamentFormConfigurationInline(admin.StackedInline):
+    """
+    Inline editor for registration form configuration.
+    Allows organizers to customize which fields appear in the registration form.
+    """
+    model = TournamentFormConfiguration
+    extra = 0
+    can_delete = False
+    max_num = 1
+    
+    fieldsets = (
+        ('Form Type Selection', {
+            'fields': ('form_type', 'custom_form'),
+            'description': 'Choose between default solo/team forms or create a custom form'
+        }),
+        ('Solo Registration Fields', {
+            'fields': (
+                'enable_age_field', 'enable_country_field',
+                'enable_platform_field', 'enable_rank_field',
+                'enable_phone_field', 'enable_discord_field',
+                'enable_preferred_contact_field'
+            ),
+            'classes': ('collapse',),
+            'description': 'Toggle optional fields for solo player registration'
+        }),
+        ('Team Registration Fields', {
+            'fields': (
+                'enable_team_logo_field', 'enable_team_region_field',
+                'enable_captain_display_name_field', 'enable_captain_whatsapp_field',
+                'enable_captain_phone_field', 'enable_captain_discord_field',
+                'enable_roster_display_names', 'enable_roster_emails'
+            ),
+            'classes': ('collapse',),
+            'description': 'Toggle optional fields for team registration'
+        }),
+        ('Payment Fields', {
+            'fields': (
+                'enable_payment_mobile_number_field',
+                'enable_payment_screenshot_field',
+                'enable_payment_notes_field'
+            ),
+            'classes': ('collapse',),
+            'description': 'Toggle optional payment-related fields'
+        }),
+    )
 
 
 class TournamentPaymentMethodInline(admin.StackedInline):
@@ -321,7 +369,7 @@ class TournamentAdmin(admin.ModelAdmin):
         'deleted_at', 'deleted_by'
     ]
     prepopulated_fields = {'slug': ('name',)}
-    inlines = [TournamentPaymentMethodInline, TournamentStaffInline, CustomFieldInline, TournamentVersionInline]
+    inlines = [TournamentFormConfigurationInline, TournamentPaymentMethodInline, TournamentStaffInline, CustomFieldInline, TournamentVersionInline]
     ordering = ['-created_at']
     date_hierarchy = 'tournament_start'
     
@@ -353,6 +401,10 @@ class TournamentAdmin(admin.ModelAdmin):
                 'terms_and_conditions', 'terms_pdf', 'require_terms_acceptance'
             ),
             'description': 'Tournament rules, terms & conditions, and legal requirements'
+        }),
+        ('📋 Registration Form Configuration', {
+            'description': 'Customize registration form fields and auto-fill settings (configured in inline below)',
+            'fields': ()
         }),
         ('👥 Staff & Permissions', {
             'description': 'Tournament staff roles and permissions (configured in inline below)',
@@ -1131,7 +1183,7 @@ class TournamentRegistrationFormAdmin(admin.ModelAdmin):
             'fields': ('success_message', 'redirect_url', 'send_confirmation_email')
         }),
         ('Advanced', {
-            'fields': ('conditional_logic_rules', 'validation_rules'),
+            'fields': ('conditional_rules', 'validation_rules'),
             'classes': ('collapse',)
         }),
         ('Analytics', {
@@ -1215,7 +1267,7 @@ class FormResponseAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Metadata', {
-            'fields': ('ip_address', 'user_agent', 'metadata'),
+            'fields': ('ip_address', 'user_agent'),
             'classes': ('collapse',)
         }),
     )
@@ -1288,11 +1340,10 @@ class FormResponseAdmin(admin.ModelAdmin):
 
 
 # ============================================================================
-# WEBHOOK & RATING ADMIN
+# WEBHOOK ADMIN
 # ============================================================================
 
 from apps.tournaments.models.webhooks import FormWebhook, WebhookDelivery
-from apps.tournaments.models.template_rating import TemplateRating, RatingHelpful
 
 
 @admin.register(FormWebhook)
@@ -1362,87 +1413,9 @@ class WebhookDeliveryAdmin(admin.ModelAdmin):
         return False  # Deliveries are created automatically
 
 
-@admin.register(TemplateRating)
-class TemplateRatingAdmin(admin.ModelAdmin):
-    """Admin for template ratings"""
-    
-    list_display = ['id', 'template', 'user', 'rating_stars', 'aspects_avg', 
-                    'helpful_count', 'verified_badge', 'tournament_link', 'created_at']
-    list_filter = ['rating', 'verified_usage', 'would_recommend', 'created_at']
-    search_fields = ['template__name', 'user__username', 'title', 'review']
-    readonly_fields = ['helpful_count', 'created_at', 'updated_at']
-    
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('template', 'user', 'tournament')
-        }),
-        ('Rating', {
-            'fields': ('rating', 'title', 'review', 'would_recommend')
-        }),
-        ('Aspect Ratings', {
-            'fields': ('ease_of_use', 'participant_experience', 'data_quality')
-        }),
-        ('Engagement', {
-            'fields': ('helpful_count', 'verified_usage')
-        }),
-        ('Metadata', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
-    
-    def rating_stars(self, obj):
-        stars = '⭐' * obj.rating
-        return format_html('<span style="color:#ffc107;">{}</span>', stars)
-    rating_stars.short_description = 'Rating'
-    
-    def aspects_avg(self, obj):
-        avg = obj.average_aspect_rating
-        color = '#28a745' if avg >= 4 else '#ffc107' if avg >= 3 else '#dc3545'
-        return format_html('<span style="color:{};">{:.1f}</span>', color, avg)
-    aspects_avg.short_description = 'Aspects Avg'
-    
-    def verified_badge(self, obj):
-        if obj.verified_usage:
-            return format_html('<span style="color:#28a745;">✓ Verified</span>')
-        return '-'
-    verified_badge.short_description = 'Verified'
-    
-    def tournament_link(self, obj):
-        if obj.tournament:
-            url = reverse('admin:tournaments_tournament_change', args=[obj.tournament.id])
-            return format_html('<a href="{}">{}</a>', url, obj.tournament.name[:30])
-        return '-'
-    tournament_link.short_description = 'Tournament'
-    
-    @admin.action(description="✓ Mark as verified usage")
-    def verify_ratings(self, request, queryset):
-        updated = queryset.update(verified_usage=True)
-        self.message_user(request, f"{updated} rating(s) marked as verified.", messages.SUCCESS)
-    
-    @admin.action(description="⭐ Auto-feature high-rated templates")
-    def feature_high_rated(self, request, queryset):
-        """Mark templates with 4+ average rating as featured"""
-        count = 0
-        for rating in queryset.filter(rating__gte=4):
-            template = rating.template
-            if not template.is_featured:
-                template.is_featured = True
-                template.save()
-                count += 1
-        self.message_user(request, f"{count} template(s) featured based on ratings.", messages.SUCCESS)
-    
-    actions = ['verify_ratings', 'feature_high_rated']
-
-
-@admin.register(RatingHelpful)
-class RatingHelpfulAdmin(admin.ModelAdmin):
-    """Admin for rating helpful votes"""
-    
-    list_display = ['id', 'rating', 'user', 'created_at']
-    list_filter = ['created_at']
-    search_fields = ['rating__title', 'user__username']
-    readonly_fields = ['rating', 'user', 'created_at']
-    
-    def has_add_permission(self, request):
-        return False  # Created via UI only
+# ============================================================================
+# TEMPLATE RATING ADMIN - REMOVED (Deprecated Marketplace Feature)
+# ============================================================================
+# TemplateRating and RatingHelpful models have been removed as part of
+# marketplace cleanup. These were only used for the template marketplace
+# which is now an admin-only feature without public ratings.

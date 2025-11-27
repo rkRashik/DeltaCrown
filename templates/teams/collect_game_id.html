@@ -278,7 +278,7 @@
           Save & Continue
         </button>
         
-        <a href="{% url 'user_profile:profile' %}" class="btn-cancel">
+        <a href="{% url 'user_profile:profile' user.username %}" class="btn-cancel">
           <i class="fas fa-times"></i>
           Cancel
         </a>

@@ -163,6 +163,14 @@ from .views.sponsorship import (
     SponsorshipAPIView,
     SponsorDashboardView,
 )
+
+# Import permission management views
+from .views.permissions import (
+    TeamPermissionManagementView,
+    TeamPermissionBulkUpdateView,
+    TeamMemberListView,
+)
+
 from .views.ajax import (
     my_teams_data,
     my_invites_data,
@@ -345,6 +353,11 @@ urlpatterns = [
     path("hub/featured/", TeamHubFeaturedView.as_view(), name="hub_featured"),
     path("promotion/<int:promotion_id>/click/", PromotionClickTrackingView.as_view(), name="promotion_click"),
     path("sponsorship/api/", SponsorshipAPIView.as_view(), name="sponsorship_api"),
+    
+    # Permission Management
+    path("<slug:slug>/members/", TeamMemberListView.as_view(), name="member_list"),
+    path("<slug:slug>/permissions/<int:member_id>/", TeamPermissionManagementView.as_view(), name="manage_permissions"),
+    path("<slug:slug>/permissions/bulk-update/", TeamPermissionBulkUpdateView.as_view(), name="bulk_update_permissions"),
     
     # Social features namespace
     path("", include("apps.teams.urls_social", namespace="teams_social")),

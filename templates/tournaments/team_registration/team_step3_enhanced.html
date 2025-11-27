@@ -1,0 +1,417 @@
+{% extends "tournaments/team_registration/base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Step Header -->
+    <div class="text-center">
+        <h2 class="text-3xl font-bold text-white mb-2">
+            <span class="text-4xl mr-2">💳</span>
+            Team Payment
+        </h2>
+        <p class="text-gray-400">Complete your team registration payment</p>
+    </div>
+
+    <!-- Split-Screen Layout -->
+    <form method="POST" enctype="multipart/form-data" id="paymentForm" class="space-y-6">
+        {% csrf_token %}
+        <input type="hidden" name="step" value="3">
+        <input type="hidden" name="type" value="team">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- LEFT: Payment Details -->
+            <div class="space-y-6">
+                <!-- Tournament Price Card -->
+                <div class="gradient-border rounded-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-white flex items-center">
+                            <span class="text-2xl mr-2">🏆</span>
+                            {{ tournament.title }}
+                        </h3>
+                        <div class="text-right">
+                            <div class="text-sm text-gray-400">Team Entry Fee</div>
+                            <div class="text-3xl font-bold text-primary">৳{{ team_entry_fee|floatformat:0 }}</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-800 rounded-lg p-4 space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Team: {{ step_data.team_name }}</span>
+                            <span class="text-white font-medium">[{{ step_data.team_tag }}]</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Team Registration</span>
+                            <span class="text-white">৳{{ team_entry_fee|floatformat:0 }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Processing Fee</span>
+                            <span class="text-white">৳0</span>
+                        </div>
+                        <div class="border-t border-gray-700 pt-2 mt-2 flex justify-between font-bold">
+                            <span class="text-white">Total Amount</span>
+                            <span class="text-primary text-lg">৳{{ team_entry_fee|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Method Selection -->
+                <div class="gradient-border rounded-lg p-6">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                        <span class="text-2xl mr-2">💰</span>
+                        Select Payment Method
+                    </h3>
+
+                    <div class="space-y-3" id="paymentMethods">
+                        <!-- bKash -->
+                        <label class="payment-method-option flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent">
+                            <input type="radio" name="payment_method" value="bkash" required 
+                                data-account="01700000000" data-name="DeltaCrown Gaming"
+                                class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
+                            <div class="ml-4 flex items-center">
+                                <span class="text-2xl mr-3">📱</span>
+                                <div>
+                                    <div class="text-white font-medium">bKash</div>
+                                    <div class="text-xs text-gray-400">Send Money / Payment</div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Nagad -->
+                        <label class="payment-method-option flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent">
+                            <input type="radio" name="payment_method" value="nagad"
+                                data-account="01700000001" data-name="DeltaCrown Gaming"
+                                class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
+                            <div class="ml-4 flex items-center">
+                                <span class="text-2xl mr-3">📲</span>
+                                <div>
+                                    <div class="text-white font-medium">Nagad</div>
+                                    <div class="text-xs text-gray-400">Send Money</div>
+                                </div>
+                            </div>
+                        </label>
+
+                        <!-- Rocket -->
+                        <label class="payment-method-option flex items-center p-4 bg-gray-800 rounded-lg cursor-pointer hover:bg-gray-750 transition-colors border-2 border-transparent">
+                            <input type="radio" name="payment_method" value="rocket"
+                                data-account="017000000025" data-name="DeltaCrown Gaming"
+                                class="w-5 h-5 text-primary bg-gray-700 border-gray-600">
+                            <div class="ml-4 flex items-center">
+                                <span class="text-2xl mr-3">🚀</span>
+                                <div>
+                                    <div class="text-white font-medium">Rocket</div>
+                                    <div class="text-xs text-gray-400">Cash Out</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Payment Instructions (Dynamic) -->
+                <div id="paymentInstructions" class="gradient-border rounded-lg p-6 hidden">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                        <span class="text-2xl mr-2">📋</span>
+                        Payment Instructions
+                    </h3>
+
+                    <div class="bg-gradient-to-br from-primary/10 to-secondary/10 border border-primary/20 rounded-lg p-4 mb-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-primary text-xl mr-3 mt-1"></i>
+                            <div class="text-sm text-gray-300">
+                                <p class="font-bold text-white mb-2">How to pay:</p>
+                                <ol class="list-decimal list-inside space-y-1">
+                                    <li>Send <strong class="text-primary">৳{{ team_entry_fee|floatformat:0 }}</strong> to the account below</li>
+                                    <li>Copy the Transaction ID from your payment app</li>
+                                    <li>Upload a screenshot (drag & drop or click)</li>
+                                    <li>Paste the Transaction ID</li>
+                                    <li>Submit your team registration</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Account Details -->
+                    <div class="bg-gray-800 rounded-lg p-4 mb-4">
+                        <div class="text-sm space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Payment Method:</span>
+                                <span id="selectedMethod" class="text-white font-medium">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Account Number:</span>
+                                <div class="flex items-center">
+                                    <span id="accountNumber" class="text-white font-mono font-bold mr-2">-</span>
+                                    <button type="button" onclick="copyAccount()" 
+                                        class="text-primary hover:text-secondary text-xs">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Account Name:</span>
+                                <span id="accountName" class="text-white font-medium">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Amount to Send:</span>
+                                <span class="text-primary font-bold text-lg">৳{{ team_entry_fee|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction ID -->
+                    <div>
+                        <label for="transaction_id" class="block text-sm font-medium text-gray-300 mb-2">
+                            Transaction ID <span class="text-red-500">*</span>
+                        </label>
+                        <div class="text-xs text-gray-400 mb-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Copy this from your payment app (e.g., BKC4H8K2LM)
+                        </div>
+                        <input type="text" id="transaction_id" name="transaction_id" required
+                            placeholder="Enter your Transaction ID"
+                            class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 font-mono focus:border-primary focus:ring-1 focus:ring-primary">
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Payment Proof Upload -->
+            <div class="space-y-6">
+                <!-- Drag & Drop Upload Area -->
+                <div class="gradient-border rounded-lg p-6">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                        <span class="text-2xl mr-2">📸</span>
+                        Payment Proof
+                    </h3>
+
+                    <!-- Upload Drop Zone -->
+                    <div id="dropZone" class="relative border-2 border-dashed border-gray-600 rounded-lg p-8 text-center bg-gray-800/50 hover:border-primary hover:bg-gray-800 transition-all cursor-pointer">
+                        <input type="file" id="payment_proof" name="payment_proof" required accept="image/jpeg,image/jpg,image/png,application/pdf"
+                            class="hidden" onchange="handleFileSelect(event)">
+                        
+                        <div id="uploadPrompt" class="space-y-4">
+                            <div class="text-6xl">📤</div>
+                            <div>
+                                <p class="text-white font-medium mb-1">Drop your screenshot here</p>
+                                <p class="text-sm text-gray-400">or click to browse</p>
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                Supported: JPG, PNG, PDF (Max 5MB)
+                            </div>
+                        </div>
+
+                        <!-- Preview Area (Hidden Initially) -->
+                        <div id="previewArea" class="hidden">
+                            <div class="relative">
+                                <img id="imagePreview" src="" alt="Payment Proof Preview" 
+                                    class="max-w-full max-h-96 mx-auto rounded-lg border-2 border-primary">
+                                <button type="button" onclick="removeFile()" 
+                                    class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div id="fileInfo" class="mt-4 text-sm">
+                                <div class="flex items-center justify-center text-gray-400">
+                                    <i class="fas fa-file-image mr-2"></i>
+                                    <span id="fileName">-</span>
+                                    <span class="mx-2">•</span>
+                                    <span id="fileSize">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Tips -->
+                    <div class="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                        <div class="flex items-start">
+                            <i class="fas fa-lightbulb text-blue-400 text-sm mr-2 mt-0.5"></i>
+                            <div class="text-xs text-gray-300">
+                                <p class="font-bold text-blue-400 mb-1">Tips for a clear screenshot:</p>
+                                <ul class="list-disc list-inside space-y-0.5">
+                                    <li>Include Transaction ID and amount clearly</li>
+                                    <li>Make sure text is readable</li>
+                                    <li>Crop out sensitive information</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Notes -->
+                <div class="gradient-border rounded-lg p-6">
+                    <label for="payment_notes" class="block text-sm font-medium text-gray-300 mb-2">
+                        <span class="text-lg mr-2">📝</span>
+                        Additional Notes (Optional)
+                    </label>
+                    <textarea id="payment_notes" name="payment_notes" rows="4"
+                        placeholder="Any additional information about your payment..."
+                        class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary"></textarea>
+                </div>
+
+                <!-- Important Notice -->
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-lg mr-3 mt-1"></i>
+                        <div class="text-sm text-gray-300">
+                            <p class="font-bold text-yellow-500 mb-2">Important:</p>
+                            <ul class="list-disc list-inside space-y-1 text-xs">
+                                <li>Payment verification takes 1-2 hours</li>
+                                <li>Team captain will receive email confirmation</li>
+                                <li>Keep screenshot for your records</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex items-center justify-between pt-6">
+            <a href="?type=team&step=2" 
+                class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Back
+            </a>
+            
+            <button type="submit" id="submitBtn" disabled
+                class="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-bold rounded-lg glow-button disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-check-circle mr-2"></i>
+                Complete Team Registration
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Payment method selection
+document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Update UI
+        document.querySelectorAll('.payment-method-option').forEach(opt => {
+            opt.classList.remove('border-primary', 'bg-gray-750');
+            opt.classList.add('border-transparent');
+        });
+        this.closest('.payment-method-option').classList.add('border-primary', 'bg-gray-750');
+        
+        // Show instructions
+        const instructions = document.getElementById('paymentInstructions');
+        instructions.classList.remove('hidden');
+        
+        // Update account details
+        document.getElementById('selectedMethod').textContent = this.nextElementSibling.querySelector('.font-medium').textContent;
+        document.getElementById('accountNumber').textContent = this.dataset.account;
+        document.getElementById('accountName').textContent = this.dataset.name;
+        
+        // Enable submit if file uploaded
+        checkFormComplete();
+    });
+});
+
+// Copy account number
+function copyAccount() {
+    const account = document.getElementById('accountNumber').textContent;
+    navigator.clipboard.writeText(account);
+    
+    // Show feedback
+    const btn = event.target.closest('button');
+    const icon = btn.querySelector('i');
+    icon.classList.remove('fa-copy');
+    icon.classList.add('fa-check');
+    btn.classList.add('text-green-500');
+    
+    setTimeout(() => {
+        icon.classList.remove('fa-check');
+        icon.classList.add('fa-copy');
+        btn.classList.remove('text-green-500');
+        btn.classList.add('text-primary');
+    }, 2000);
+}
+
+// Drag & Drop functionality
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('payment_proof');
+
+dropZone.addEventListener('click', () => fileInput.click());
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-primary', 'bg-gray-750');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-primary', 'bg-gray-750');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-primary', 'bg-gray-750');
+    
+    if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect({ target: fileInput });
+    }
+});
+
+// File selection handler
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!validTypes.includes(file.type)) {
+        alert('Only JPG, PNG, and PDF files are allowed');
+        fileInput.value = '';
+        return;
+    }
+    
+    // Show preview for images
+    if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('imagePreview').src = e.target.result;
+            document.getElementById('uploadPrompt').classList.add('hidden');
+            document.getElementById('previewArea').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // PDF - show file info only
+        document.getElementById('uploadPrompt').classList.add('hidden');
+        document.getElementById('previewArea').classList.remove('hidden');
+        document.getElementById('imagePreview').classList.add('hidden');
+    }
+    
+    // Update file info
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    
+    checkFormComplete();
+}
+
+// Remove file
+function removeFile() {
+    fileInput.value = '';
+    document.getElementById('uploadPrompt').classList.remove('hidden');
+    document.getElementById('previewArea').classList.add('hidden');
+    document.getElementById('imagePreview').src = '';
+    checkFormComplete();
+}
+
+// Check if form is complete
+function checkFormComplete() {
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+    const transactionId = document.getElementById('transaction_id').value;
+    const file = fileInput.files.length > 0;
+    
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = !(paymentMethod && file);
+}
+
+// Monitor transaction ID input
+document.getElementById('transaction_id').addEventListener('input', checkFormComplete);
+</script>
+{% endblock %}

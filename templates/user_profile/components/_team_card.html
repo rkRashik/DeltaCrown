@@ -21,8 +21,8 @@
     <!-- Teams Grid -->
     <div class="space-y-5">
     {% for team_membership in current_teams %}
-    <a href="{% url 'teams:detail' team_membership.team.slug %}" 
-       class="block group hover:scale-[1.02] transition-transform duration-200">
+     <a {% if team_membership.team.slug %}href="{% url 'teams:detail' team_membership.team.slug %}"{% else %}href="#"{% endif %} 
+         class="block group hover:scale-[1.02] transition-transform duration-200">
         
         <!-- Team Banner/Background -->
         <div class="relative h-28 rounded-xl overflow-hidden mb-3 bg-gradient-to-br from-indigo-900 to-slate-900 shadow-lg">

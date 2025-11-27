@@ -450,19 +450,88 @@ class TeamMembership(models.Model):
     )
     
     # ═══════════════════════════════════════════════════════════════════════
-    # NEW: PERMISSION CACHE (for performance optimization)
+    # GRANULAR PERMISSION SYSTEM
+    # Owner has all permissions automatically. Managers/Captains can be granted specific permissions.
     # ═══════════════════════════════════════════════════════════════════════
-    can_manage_roster = models.BooleanField(
-        default=False,
-        help_text="Cached permission: Can invite/kick members"
-    )
-    can_edit_team = models.BooleanField(
-        default=False,
-        help_text="Cached permission: Can edit team profile"
-    )
+    
+    # Tournament & Competition Permissions
     can_register_tournaments = models.BooleanField(
         default=False,
-        help_text="Cached permission: Can register team for tournaments"
+        help_text="Can register team for tournaments and competitions"
+    )
+    can_withdraw_tournaments = models.BooleanField(
+        default=False,
+        help_text="Can withdraw team from tournaments"
+    )
+    can_submit_match_results = models.BooleanField(
+        default=False,
+        help_text="Can submit match results and scores"
+    )
+    
+    # Roster Management Permissions
+    can_invite_members = models.BooleanField(
+        default=False,
+        help_text="Can send invitations to new members"
+    )
+    can_remove_members = models.BooleanField(
+        default=False,
+        help_text="Can remove/kick members from team"
+    )
+    can_manage_roles = models.BooleanField(
+        default=False,
+        help_text="Can change member roles (except Owner)"
+    )
+    can_manage_permissions = models.BooleanField(
+        default=False,
+        help_text="Can grant/revoke permissions to other members"
+    )
+    
+    # Team Profile & Settings Permissions
+    can_edit_team_profile = models.BooleanField(
+        default=False,
+        help_text="Can edit team name, description, logo, etc."
+    )
+    can_edit_team_settings = models.BooleanField(
+        default=False,
+        help_text="Can modify team privacy and settings"
+    )
+    can_manage_social_links = models.BooleanField(
+        default=False,
+        help_text="Can update team social media links"
+    )
+    
+    # Content & Community Permissions
+    can_create_posts = models.BooleanField(
+        default=False,
+        help_text="Can create posts on team page"
+    )
+    can_manage_posts = models.BooleanField(
+        default=False,
+        help_text="Can edit/delete team posts (including others' posts)"
+    )
+    can_manage_announcements = models.BooleanField(
+        default=False,
+        help_text="Can create and manage team announcements"
+    )
+    
+    # Financial Permissions
+    can_manage_finances = models.BooleanField(
+        default=False,
+        help_text="Can manage team finances and entry fees"
+    )
+    can_view_financial_reports = models.BooleanField(
+        default=False,
+        help_text="Can view team financial reports and transactions"
+    )
+    
+    # Schedule & Practice Permissions
+    can_schedule_practice = models.BooleanField(
+        default=False,
+        help_text="Can schedule team practice sessions"
+    )
+    can_manage_schedule = models.BooleanField(
+        default=False,
+        help_text="Can manage team schedule and calendar"
     )
 
     class Meta:
@@ -499,19 +568,107 @@ class TeamMembership(models.Model):
         return f"{captain_badge}{self.profile} @ {self.team} ({self.get_role_display()})"
     
     def update_permission_cache(self):
-        """Update cached permissions based on role"""
-        if self.role in [self.Role.OWNER, self.Role.MANAGER]:
-            self.can_manage_roster = True
-            self.can_edit_team = True
+        """
+        Update permissions based on role.
+        OWNER: All permissions automatically
+        MANAGER/CAPTAIN: Permissions can be granted individually
+        COACH/PLAYER/SUBSTITUTE: No permissions by default (can be granted individually)
+        """
+        if self.role == self.Role.OWNER:
+            # Owner has ALL permissions automatically
             self.can_register_tournaments = True
-        elif self.role == self.Role.COACH:
-            self.can_manage_roster = False
-            self.can_edit_team = False
-            self.can_register_tournaments = False
-        else:  # PLAYER, SUBSTITUTE
-            self.can_manage_roster = False
-            self.can_edit_team = False
-            self.can_register_tournaments = False
+            self.can_withdraw_tournaments = True
+            self.can_submit_match_results = True
+            self.can_invite_members = True
+            self.can_remove_members = True
+            self.can_manage_roles = True
+            self.can_manage_permissions = True
+            self.can_edit_team_profile = True
+            self.can_edit_team_settings = True
+            self.can_manage_social_links = True
+            self.can_create_posts = True
+            self.can_manage_posts = True
+            self.can_manage_announcements = True
+            self.can_manage_finances = True
+            self.can_view_financial_reports = True
+            self.can_schedule_practice = True
+            self.can_manage_schedule = True
+        elif self.role in [self.Role.MANAGER, self.Role.CAPTAIN]:
+            # Managers and Captains: Keep existing permissions (can be customized)
+            # Default to some basic permissions if this is a new member
+            if not self.pk:  # New member
+                self.can_create_posts = True
+                self.can_schedule_practice = True
+                self.can_view_financial_reports = True
+        else:
+            # COACH, PLAYER, SUBSTITUTE: No default permissions
+            # Keep any explicitly granted permissions
+            pass
+    
+    def has_permission(self, permission_name: str) -> bool:
+        """
+        Check if member has a specific permission.
+        Owner always returns True for any permission.
+        
+        Args:
+            permission_name: Name of the permission field (e.g., 'can_register_tournaments')
+        
+        Returns:
+            bool: True if member has permission
+        """
+        # Owner has all permissions
+        if self.role == self.Role.OWNER:
+            return True
+        
+        # Check if the permission field exists and is True
+        return getattr(self, permission_name, False)
+    
+    def grant_permission(self, permission_name: str, save: bool = True):
+        """Grant a specific permission to this member."""
+        if self.role == self.Role.OWNER:
+            return  # Owner already has all permissions
+        
+        if hasattr(self, permission_name):
+            setattr(self, permission_name, True)
+            if save:
+                self.save(update_fields=[permission_name])
+    
+    def revoke_permission(self, permission_name: str, save: bool = True):
+        """Revoke a specific permission from this member."""
+        if self.role == self.Role.OWNER:
+            return  # Cannot revoke permissions from Owner
+        
+        if hasattr(self, permission_name):
+            setattr(self, permission_name, False)
+            if save:
+                self.save(update_fields=[permission_name])
+    
+    def get_all_permissions(self) -> dict:
+        """Get dictionary of all permissions and their status."""
+        permission_fields = [
+            'can_register_tournaments', 'can_withdraw_tournaments', 'can_submit_match_results',
+            'can_invite_members', 'can_remove_members', 'can_manage_roles', 'can_manage_permissions',
+            'can_edit_team_profile', 'can_edit_team_settings', 'can_manage_social_links',
+            'can_create_posts', 'can_manage_posts', 'can_manage_announcements',
+            'can_manage_finances', 'can_view_financial_reports',
+            'can_schedule_practice', 'can_manage_schedule'
+        ]
+        
+        return {perm: self.has_permission(perm) for perm in permission_fields}
+    
+    @property
+    def permission_summary(self) -> str:
+        """Get a human-readable summary of permissions."""
+        if self.role == self.Role.OWNER:
+            return "Full Access (Owner)"
+        
+        granted = [k.replace('can_', '').replace('_', ' ').title() 
+                   for k, v in self.get_all_permissions().items() if v]
+        
+        if not granted:
+            return "No special permissions"
+        
+        return f"{len(granted)} permission(s): {', '.join(granted[:3])}{'...' if len(granted) > 3 else ''}"
 
     def clean(self):
         # Owner/Captain membership must be ACTIVE

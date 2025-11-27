@@ -1498,10 +1498,18 @@ def team_settings_view(request, slug: str):
             messages.success(request, "Team settings updated successfully!")
         return redirect("teams:settings", slug=team.slug)
     
+    # Get current user's membership to check if they can manage permissions
+    can_manage_permissions = membership.role == TeamMembership.Role.OWNER
+    
+    # Get all members with their permissions
+    all_members = team.memberships.filter(status="ACTIVE").select_related("profile__user").order_by('role', '-joined_at')
+    
     context = {
         "team": team,
-        "members": team.memberships.filter(status="ACTIVE").select_related("profile__user"),
+        "members": all_members,
         "pending_invites": team.invites.filter(status="PENDING").select_related("invited_user__user"),
+        "can_manage_permissions": can_manage_permissions,
+        "user_membership": membership,
     }
     
     return render(request, "teams/settings_enhanced.html", context)

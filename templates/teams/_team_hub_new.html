@@ -210,7 +210,7 @@
             <span>Update Game ID</span>
           </a>
           
-          <a href="{% url 'user_profile:profile' %}" class="dashboard-action-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-purple-500/10 transition-colors">
+          <a href="{% url 'user_profile:profile' user.username %}" class="dashboard-action-btn w-full flex items-center gap-3 p-3 rounded-lg hover:bg-purple-500/10 transition-colors">
             <i class="fas fa-user-circle text-blue-400"></i>
             <span>View My Profile</span>
           </a>

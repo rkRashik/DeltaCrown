@@ -321,7 +321,7 @@
                             
                             <div class="dc-card-actions">
                                 {% if tournament.status == 'registration_open' %}
-                                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:registration_demo_team' slug=tournament.slug %}{% else %}{% url 'tournaments:registration_demo_solo' slug=tournament.slug %}{% endif %}" class="dc-btn dc-btn-primary neon">
+                                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" class="dc-btn dc-btn-primary neon">
                                         <i class="fas fa-plus"></i>
                                         <span>Register Now</span>
                                     </a>

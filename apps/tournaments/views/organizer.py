@@ -828,10 +828,24 @@ def create_tournament(request):
     if request.method == 'POST':
         form = TournamentCreateForm(request.POST)
         if form.is_valid():
+            # Check if we need to redirect to form builder
+            if form.cleaned_data.get('redirect_to_form_builder'):
+                # Save tournament first
+                tournament = form.save(commit=False)
+                tournament.organizer = request.user
+                tournament.status = 'draft'
+                tournament.save()
+                
+                messages.info(request, f'Tournament "{tournament.name}" created! Now let\'s build your custom registration form.')
+                return redirect('tournaments:form_builder', slug=tournament.slug)
+            
+            # Normal save with form configuration
             tournament = form.save(commit=False)
             tournament.organizer = request.user
             tournament.status = 'draft'  # Start as draft
             tournament.save()
+            
+            # Form configuration is created in form.save()
             
             messages.success(request, f'Tournament "{tournament.name}" created successfully!')
             return redirect('tournaments:organizer_tournament_detail', slug=tournament.slug)

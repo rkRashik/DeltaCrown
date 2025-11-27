@@ -17,9 +17,20 @@ class PlayerProfileModal {
   async show(profileId, rosterData = null) {
     try {
       // Fetch player data from correct API endpoint
-      const response = await fetch(`/user/api/profile/${profileId}/`);
+      // Root-level mount of user_profile URLs means API lives at /api/profile/<id>/
+      const apiUrl = `/api/profile/${profileId}/`;
+      const response = await fetch(apiUrl, { headers: { 'Accept': 'application/json' }});
       
       if (!response.ok) {
+        // If endpoint not found (404) fall back to rosterData (graceful degradation)
+        if (response.status === 404) {
+          console.warn(`[PlayerProfileModal] 404 for ${apiUrl} – falling back to roster data only`);
+          if (rosterData) {
+            this.currentPlayer = this.buildFallbackPlayer(profileId, rosterData);
+            this.createModal(this.currentPlayer);
+            return;
+          }
+        }
         throw new Error('Failed to load player profile');
       }
       
@@ -54,8 +65,40 @@ class PlayerProfileModal {
       
     } catch (error) {
       console.error('Error loading player profile:', error);
-      this.showError('Unable to load player profile. Please try again.');
+      // Graceful fallback: use rosterData if available instead of error modal
+      if (rosterData) {
+        const fallback = this.buildFallbackPlayer(profileId, rosterData);
+        this.currentPlayer = fallback;
+        this.createModal(fallback);
+      } else {
+        this.showError('Unable to load player profile. Please try again.');
+      }
     }
+  }
+
+  /**
+   * Build a minimal player object from roster data when API fails
+   */
+  buildFallbackPlayer(profileId, rosterData) {
+    return {
+      display_name: rosterData.display_name || rosterData.username || `Player${profileId}`,
+      username: rosterData.username || `player${profileId}`,
+      avatar_url: rosterData.avatar || null,
+      game_id: rosterData.game_id || '',
+      game_id_label: rosterData.game_id_label || 'IGN',
+      mlbb_server_id: rosterData.mlbb_server_id || '',
+      is_captain: rosterData.is_captain || false,
+      role: rosterData.role || 'Player',
+      player_role: rosterData.player_role || '',
+      bio: 'Esports Player',
+      matches_played: rosterData.matches_played || 0,
+      wins: rosterData.wins || 0,
+      rating: rosterData.rating || 0,
+      win_rate: rosterData.win_rate || '0%',
+      region: rosterData.region || 'Global',
+      teams: [],
+      joined_date: '2025',
+    };
   }
 
   /**

@@ -47,19 +47,33 @@ from apps.tournaments.views import (
     TournamentRegistrationView,
     TournamentRegistrationSuccessView,
 )
+from apps.tournaments.views.registration import (
+    PaymentProofUploadView,
+    PaymentRetryView,
+)
 # Form Builder - Dynamic Registration (Sprint 1)
 from apps.tournaments.views.dynamic_registration import (
     DynamicRegistrationView,
     RegistrationSuccessView,
     RegistrationDashboardView,
 )
-from apps.tournaments.views.template_marketplace import (
-    TemplateMarketplaceView,
-    TemplateDetailView,
-    CloneTemplateView,
-    RateTemplateView,
-    MarkRatingHelpfulView,
+# Permission Requests (Team Registration Permission Workflow)
+from apps.tournaments.views.permission_requests import (
+    request_permission,
+    approve_permission,
+    reject_permission,
+    cancel_permission,
+    my_permission_requests,
+    team_permission_requests,
 )
+# Marketplace removed - admin-only feature now
+# from apps.tournaments.views.template_marketplace import (
+#     TemplateMarketplaceView,
+#     TemplateDetailView,
+#     CloneTemplateView,
+#     RateTemplateView,
+#     MarkRatingHelpfulView,
+# )
 from apps.tournaments.views.form_analytics_view import (
     FormAnalyticsDashboardView,
     FormAnalyticsAPIView,
@@ -125,9 +139,10 @@ from apps.tournaments.views.organizer_results import (
     reject_match_result,
     override_match_result,
 )
-from apps.tournaments.views.registration_demo import (
+from apps.tournaments.views.tournament_team_registration import (
     SoloRegistrationDemoView,
-    TeamRegistrationDemoView,
+    TeamRegistrationView,
+    RegistrationSuccessView,
 )
 from apps.tournaments.views.registration_wizard import (
     RegistrationWizardView,
@@ -235,13 +250,19 @@ urlpatterns = [
     path('my/', TournamentPlayerDashboardView.as_view(), name='my_tournaments'),
     path('my/matches/', TournamentPlayerMatchesView.as_view(), name='my_matches'),
     path('my/registrations/', RegistrationDashboardView.as_view(), name='registration_dashboard'),
+    path('my/permissions/', my_permission_requests, name='my_permissions'),
     
-    # === Template Library (MUST be before <slug> pattern) ===
-    path('marketplace/', TemplateMarketplaceView.as_view(), name='marketplace'),
-    path('marketplace/<slug:slug>/', TemplateDetailView.as_view(), name='template_detail'),
-    path('marketplace/<slug:slug>/clone/', CloneTemplateView.as_view(), name='clone_template'),
-    path('marketplace/<slug:slug>/rate/', RateTemplateView.as_view(), name='rate_template'),
-    path('ratings/<int:pk>/helpful/', MarkRatingHelpfulView.as_view(), name='rating_helpful'),
+    # Permission Request Workflows (Team Registration)
+    path('permissions/<int:request_id>/approve/', approve_permission, name='approve_permission'),
+    path('permissions/<int:request_id>/reject/', reject_permission, name='reject_permission'),
+    path('permissions/<int:request_id>/cancel/', cancel_permission, name='cancel_permission'),
+    
+    # === Template Marketplace - REMOVED (admin-only feature) ===
+    # path('marketplace/', TemplateMarketplaceView.as_view(), name='marketplace'),
+    # path('marketplace/<slug:slug>/', TemplateDetailView.as_view(), name='template_detail'),
+    # path('marketplace/<slug:slug>/clone/', CloneTemplateView.as_view(), name='clone_template'),
+    # path('marketplace/<slug:slug>/rate/', RateTemplateView.as_view(), name='rate_template'),
+    # path('ratings/<int:pk>/helpful/', MarkRatingHelpfulView.as_view(), name='rating_helpful'),
     
     # FE-T-002: Tournament Detail Page (includes FE-T-003: CTA states)
     path('<slug:slug>/', views.TournamentDetailView.as_view(), name='detail'),
@@ -253,28 +274,31 @@ urlpatterns = [
     path('<slug:slug>/register/wizard/', RegistrationWizardView.as_view(), name='registration_wizard'),
     path('<slug:slug>/register/wizard/success/', WizardSuccessView.as_view(), name='registration_wizard_success'),
     
-    # Registration Permission Request
-    path('<slug:slug>/request-permission/', RequestRegistrationPermissionView.as_view(), name='request_registration_permission'),
+    # Registration Permission Request (Team Members)
+    path('<slug:slug>/request-permission/', request_permission, name='request_permission'),
     
     # Payment Status & Management
     path('<slug:slug>/registration/<int:registration_id>/status/', RegistrationStatusView.as_view(), name='registration_status'),
     path('<slug:slug>/registration/<int:registration_id>/resubmit/', PaymentResubmitView.as_view(), name='payment_resubmit'),
     path('<slug:slug>/payment/<int:payment_id>/download/', DownloadPaymentProofView.as_view(), name='download_payment_proof'),
     
-    # Demo Registration Forms (Legacy - kept for reference)
-    path('<slug:slug>/register/demo/solo/', SoloRegistrationDemoView.as_view(), name='registration_demo_solo'),
-    path('<slug:slug>/register/demo/solo/<int:step>/', SoloRegistrationDemoView.as_view(), name='registration_demo_solo_step'),
-    path('<slug:slug>/register/demo/team/', TeamRegistrationDemoView.as_view(), name='registration_demo_team'),
-    path('<slug:slug>/register/demo/team/<int:step>/', TeamRegistrationDemoView.as_view(), name='registration_demo_team_step'),
-    path('<slug:slug>/register/demo/success/', views.RegistrationDemoSuccessView.as_view(), name='registration_demo_success'),
+    # Tournament Team Registration (Professional)
+    path('<slug:slug>/register/team/', TeamRegistrationView.as_view(), name='team_registration'),
+    path('<slug:slug>/register/team/<int:step>/', TeamRegistrationView.as_view(), name='team_registration_step'),
+    path('<slug:slug>/register/success/', RegistrationSuccessView.as_view(), name='registration_success'),
     
     # FE-T-004: Dynamic Registration System (Form Builder - Marketplace System)
     path('<slug:tournament_slug>/register/', DynamicRegistrationView.as_view(), name='register'),
     path('<slug:tournament_slug>/register/success/<int:response_id>/', RegistrationSuccessView.as_view(), name='registration_success'),
     
+    # Payment handling for tournament registration
+    path('registration/<int:registration_id>/payment/upload/', PaymentProofUploadView.as_view(), name='payment_upload'),
+    path('registration/<int:registration_id>/payment/retry/', PaymentRetryView.as_view(), name='payment_retry'),
+    
     # Legacy Registration (Deprecated - kept for backward compatibility)
     # path('<slug:slug>/register/', TournamentRegistrationView.as_view(), name='register_legacy'),
     # path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success_legacy'),
+    path('<slug:slug>/register/success/', TournamentRegistrationSuccessView.as_view(), name='register_success'),
     
     # Sprint 3: Public Live Tournament Experience
     # FE-T-008: Live Bracket View

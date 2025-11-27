@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Registration Not Available - {{ tournament.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Tournament Header -->
+        <div class="mb-8">
+            <a href="{% url 'tournaments:detail' tournament.slug %}" 
+               class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Tournament
+            </a>
+            
+            <div class="flex items-center gap-6">
+                {% if tournament.banner %}
+                <img src="{{ tournament.banner.url }}" 
+                     alt="{{ tournament.name }}"
+                     class="w-24 h-24 object-cover rounded-xl border-2 border-gray-700 shadow-lg">
+                {% endif %}
+                
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-2">{{ tournament.name }}</h1>
+                    <p class="text-gray-400">Registration Status</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ineligibility Card (Glassmorphism) -->
+        {% include 'tournaments/components/ineligibility_card.html' with eligibility_result=eligibility_result %}
+        
+        <!-- Additional Information -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Tournament Details -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Tournament Details
+                </h3>
+                
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Game</span>
+                        <span class="text-white font-medium">{{ tournament.game.name }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Type</span>
+                        <span class="text-white font-medium capitalize">{{ tournament.participation_type }}</span>
+                    </div>
+                    
+                    {% if tournament.registration_start_date %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Registration Opens</span>
+                        <span class="text-white font-medium">{{ tournament.registration_start_date|date:"M d, Y" }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if tournament.registration_end_date %}
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Registration Closes</span>
+                        <span class="text-white font-medium">{{ tournament.registration_end_date|date:"M d, Y" }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Slots</span>
+                        <span class="text-white font-medium">{{ tournament.current_participants }}/{{ tournament.max_participants }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Help & Support -->
+            <div class="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    Need Help?
+                </h3>
+                
+                <div class="space-y-4 text-sm">
+                    <p class="text-gray-300">
+                        If you're having trouble registering or have questions about eligibility, we're here to help.
+                    </p>
+                    
+                    <div class="space-y-2">
+                        <a href="{% url 'support:contact' %}" 
+                           class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            Contact Support
+                        </a>
+                        
+                        <a href="/help/registration" 
+                           class="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            Registration Guide
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Browse Other Tournaments -->
+        <div class="mt-8 text-center">
+            <a href="{% url 'tournaments:list' %}" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                Browse Other Tournaments
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

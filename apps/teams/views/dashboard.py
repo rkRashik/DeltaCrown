@@ -39,17 +39,27 @@ def team_dashboard_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug)
     profile = _get_user_profile(request.user)
     
-    # Permission check - only captain and managers can access dashboard
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    # Permission check - only owner, captain and managers can access dashboard
     membership = TeamMembership.objects.filter(
         team=team, 
         profile=profile, 
         status="ACTIVE"
     ).first()
     
+    # Check if user has dashboard access
+    has_dashboard_access = False
+    is_captain = (team.captain_id == getattr(profile, "id", None))
     is_manager = membership and membership.role in ["MANAGER", "CO_CAPTAIN"]
     
-    if not (is_captain or is_manager):
+    if membership:
+        # Owner, Manager, Captain (legacy) always have access
+        if membership.role in ["OWNER", "MANAGER", "CAPTAIN", "CO_CAPTAIN"]:
+            has_dashboard_access = True
+        # Also check if captain_id matches (legacy support)
+        elif is_captain:
+            has_dashboard_access = True
+    
+    if not has_dashboard_access:
         messages.error(request, "You don't have permission to access this team's dashboard.")
         return redirect("teams:detail", slug=slug)
     

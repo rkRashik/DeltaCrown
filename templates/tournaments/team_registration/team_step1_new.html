@@ -1,0 +1,383 @@
+{% extends "tournaments/team_registration/base.html" %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Step Header -->
+    <div class="text-center">
+        <h2 class="text-3xl font-bold text-white mb-2">
+            <span class="text-4xl mr-2">👥</span>
+            Team Information
+        </h2>
+        <p class="text-gray-400">Register your team for {{ tournament.name }}</p>
+    </div>
+
+    <!-- Form -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-8">
+        {% csrf_token %}
+        <input type="hidden" name="step" value="1">
+
+        <!-- Team Details Section -->
+        <div class="gradient-border rounded-lg p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <span class="text-2xl mr-2">🏆</span>
+                Team Details
+                <span class="ml-auto text-xs bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full">From Your Team</span>
+            </h3>
+            
+            <div class="bg-gray-800/30 border border-gray-700 rounded-lg p-4 mb-4">
+                <p class="text-sm text-gray-400">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Team information is locked and loaded from your existing team. You cannot modify team details during registration.
+                </p>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Team Name - LOCKED -->
+                <div>
+                    <label for="team_name" class="block text-sm font-medium text-gray-300 mb-2">
+                        Team Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="team_name" name="team_name" required readonly
+                        value="{{ user_team.name }}"
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed">
+                    <input type="hidden" name="team_id" value="{{ user_team.id }}">
+                </div>
+
+                <!-- Team Tag - LOCKED -->
+                <div>
+                    <label for="team_tag" class="block text-sm font-medium text-gray-300 mb-2">
+                        Team Tag <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="team_tag" name="team_tag" required readonly
+                        value="{{ user_team.tag }}"
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed uppercase">
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Captain Section -->
+        <div class="gradient-border rounded-lg p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <span class="text-2xl mr-2">⭐</span>
+                Team Captain (You)
+            </h3>
+            
+            <div class="space-y-4">
+                <!-- Captain Full Name - ALWAYS REQUIRED -->
+                <div>
+                    <label for="captain_full_name" class="block text-sm font-medium text-gray-300 mb-2">
+                        Captain Full Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="captain_full_name" name="captain_full_name" required
+                        value="{% if user.first_name or user.last_name %}{{ user.get_full_name }}{% endif %}"
+                        placeholder="Captain's full name"
+                        class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
+                </div>
+
+                <!-- Captain Display Name / IGN - CONDITIONAL -->
+                {% if form_config.enable_captain_display_name_field %}
+                <div>
+                    <label for="captain_display_name" class="block text-sm font-medium text-gray-300 mb-2">
+                        In-Game Name (IGN) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="text-xs text-gray-400 mb-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Your in-game display name or username
+                    </div>
+                    <input type="text" id="captain_display_name" name="captain_display_name" required
+                        value="{% if user_profile and tournament.game.slug == 'valorant' %}{{ user_profile.riot_id }}{% elif user_profile %}{{ user_profile.display_name }}{% endif %}"
+                        placeholder="CaptainRazor"
+                        class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
+                </div>
+                {% endif %}
+
+                <!-- Captain Email - ALWAYS REQUIRED -->
+                <div>
+                    <label for="captain_email" class="block text-sm font-medium text-gray-300 mb-2">
+                        Captain Email <span class="text-red-500">*</span>
+                    </label>
+                    <input type="email" id="captain_email" name="captain_email" required readonly
+                        value="{{ user.email }}"
+                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed">
+                    <p class="text-xs text-gray-500 mt-1">Email cannot be changed during registration</p>
+                </div>
+
+                <div class="grid grid-cols-1 {% if form_config.enable_captain_phone_field or form_config.enable_captain_whatsapp_field %}md:grid-cols-2{% endif %} gap-4">
+                    <!-- Captain Phone/WhatsApp - CONDITIONAL -->
+                    {% if form_config.enable_captain_phone_field or form_config.enable_captain_whatsapp_field %}
+                    <div>
+                        <label for="captain_phone" class="block text-sm font-medium text-gray-300 mb-2">
+                            {% if form_config.enable_captain_whatsapp_field %}WhatsApp Number{% else %}Phone Number{% endif %} <span class="text-red-500">*</span>
+                        </label>
+                        <input type="tel" id="captain_phone" name="captain_phone" required
+                            value="{% if user_profile %}{{ user_profile.phone }}{% endif %}"
+                            placeholder="01700000000"
+                            class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
+                    </div>
+                    {% endif %}
+
+                    <!-- Captain Discord - CONDITIONAL -->
+                    {% if form_config.enable_captain_discord_field %}
+                    <div>
+                        <label for="captain_discord" class="block text-sm font-medium text-gray-300 mb-2">
+                            Discord Username <span class="text-red-500">*</span>
+                        </label>
+                        <div class="text-xs text-gray-400 mb-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Format: username#1234 or new username format
+                        </div>
+                        <input type="text" id="captain_discord" name="captain_discord" required
+                            value="{% if user_profile %}{{ user_profile.discord_id }}{% endif %}"
+                            placeholder="CaptainRazor#1234"
+                            class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Roster Section -->
+        <div class="gradient-border rounded-lg p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center">
+                <span class="text-2xl mr-2">👥</span>
+                Team Roster
+                <span class="ml-auto text-xs bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full">Auto-loaded from Team</span>
+            </h3>
+            
+            <div class="bg-gray-800/30 border border-gray-700 rounded-lg p-4 mb-6">
+                <p class="text-sm text-gray-400">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Your team roster is automatically loaded. Member names are locked, but you can update Game IDs as needed.
+                </p>
+            </div>
+
+            <!-- Roster Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse" id="roster-table">
+                    <thead>
+                        <tr class="bg-gray-800 border-b border-gray-700">
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">#</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Player Name</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Game ID / IGN</th>
+                            {% if form_config.enable_roster_emails_field %}
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-300">Email</th>
+                            {% endif %}
+                            <th class="px-4 py-3 text-center text-sm font-semibold text-gray-300">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roster-tbody" class="divide-y divide-gray-700">
+                        <!-- Captain Row (Always first) -->
+                        {% for member in team_members %}
+                            {% if member.role == 'OWNER' or member.role == 'CAPTAIN' %}
+                        <tr class="bg-gray-800/30">
+                            <td class="px-4 py-3 text-sm text-gray-400">1</td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center">
+                                    <span class="text-white font-medium">{{ member.profile.user.get_full_name|default:member.profile.user.username }}</span>
+                                    <span class="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-semibold">Captain</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <input type="text" name="captain_game_id" 
+                                    value="{% if tournament.game.slug == 'valorant' and member.profile.riot_id %}{{ member.profile.riot_id }}{% else %}{{ member.profile.display_name|default:member.profile.user.username }}{% endif %}"
+                                    placeholder="CaptainName#TAG" 
+                                    class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm"
+                                    required>
+                            </td>
+                            {% if form_config.enable_roster_emails_field %}
+                            <td class="px-4 py-3 text-sm text-gray-400">{{ member.profile.user.email }}</td>
+                            {% endif %}
+                            <td class="px-4 py-3 text-center">
+                                <span class="text-green-400 text-sm">✔</span>
+                            </td>
+                        </tr>
+                            {% endif %}
+                        {% endfor %}
+                        <!-- Team members will be added here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center">
+                <div class="text-sm text-gray-400">
+                    <i class="fas fa-lock mr-2"></i>
+                    Roster is locked from your team
+                </div>
+                <div id="roster-status" class="text-sm text-gray-400">
+                    <span id="roster-count">0</span> / {{ tournament.game.min_team_size|default:5 }} players
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-between items-center pt-6">
+            <a href="{{ tournament.get_absolute_url }}" 
+               class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Cancel
+            </a>
+            <button type="submit" 
+                    class="px-8 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-semibold transition-colors">
+                Next: Review & Agreements
+                <i class="fas fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Team roster management with table format
+let playerCount = 1; // Start at 1 because captain is already there
+const maxRoster = {{ tournament.game.max_team_size|default:6 }};
+const minRoster = {{ tournament.game.min_team_size|default:5 }};
+
+const enableRosterDisplayNames = {{ form_config.enable_roster_display_names_field|yesno:"true,false" }};
+const enableRosterEmails = {{ form_config.enable_roster_emails_field|yesno:"true,false" }};
+
+const rosterTbody = document.getElementById('roster-tbody');
+const rosterCountSpan = document.getElementById('roster-count');
+
+function updateRosterCount() {
+    const currentCount = rosterTbody.querySelectorAll('tr').length;
+    rosterCountSpan.textContent = currentCount;
+}
+
+function addPlayerRow(name = '', ign = '', email = '', isLocked = false) {
+    if (playerCount >= maxRoster) {
+        alert(`Maximum roster size is ${maxRoster} players`);
+        return;
+    }
+    
+    playerCount++;
+    const rowNumber = playerCount;
+    
+    const tr = document.createElement('tr');
+    tr.className = 'bg-gray-800/10 hover:bg-gray-800/30 transition-colors';
+    tr.dataset.playerIndex = rowNumber;
+    
+    // If name is provided, it's from existing team - lock it
+    const nameLocked = name !== '';
+    const nameFieldClass = nameLocked 
+        ? 'w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-400 text-sm cursor-not-allowed'
+        : 'w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm';
+    
+    let emailCell = '';
+    if (enableRosterEmails) {
+        const emailLocked = email !== '';
+        const emailFieldClass = emailLocked
+            ? 'w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-gray-400 text-sm cursor-not-allowed'
+            : 'w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm';
+        
+        emailCell = `
+            <td class="px-4 py-3">
+                <input type="email" name="player_${rowNumber}_email" 
+                    value="${email}" 
+                    placeholder="player@example.com" 
+                    class="${emailFieldClass}"
+                    ${emailLocked ? 'readonly' : 'required'}>
+            </td>
+        `;
+    }
+    
+    tr.innerHTML = `
+        <td class="px-4 py-3 text-sm text-gray-400">${rowNumber}</td>
+        <td class="px-4 py-3">
+            <input type="text" name="player_${rowNumber}_name" 
+                value="${name}" 
+                placeholder="Full Name" 
+                class="${nameFieldClass}"
+                ${nameLocked ? 'readonly' : 'required'}>
+        </td>
+        <td class="px-4 py-3">
+            <input type="text" name="player_${rowNumber}_ign" 
+                value="${ign}" 
+                placeholder="${enableRosterDisplayNames ? 'PlayerName#TAG' : 'Not required'}" 
+                class="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm"
+                ${enableRosterDisplayNames ? 'required' : ''}>
+        </td>
+        ${emailCell}
+        <td class="px-4 py-3 text-center">
+            ${nameLocked ? '<span class="text-green-400">✔</span>' : `
+            <button type="button" onclick="removePlayerRow(this)" 
+                class="text-red-400 hover:text-red-300 transition-colors" 
+                title="Remove player">
+                <i class="fas fa-times"></i>
+            </button>
+            `}
+        </td>
+    `;
+    
+    rosterTbody.appendChild(tr);
+    updateRosterCount();
+}
+
+function removePlayerRow(btn) {
+    const tr = btn.closest('tr');
+    tr.remove();
+    playerCount--;
+    
+    // Renumber all rows
+    const rows = rosterTbody.querySelectorAll('tr');
+    rows.forEach((row, index) => {
+        const rowNum = index + 1;
+        const numberCell = row.querySelector('td:first-child');
+        if (numberCell) {
+            numberCell.textContent = rowNum;
+        }
+        
+        // Update input names
+        const inputs = row.querySelectorAll('input[name^="player_"]');
+        inputs.forEach(input => {
+            const fieldType = input.name.split('_').pop(); // name, ign, or email
+            input.name = `player_${rowNum}_${fieldType}`;
+        });
+    });
+    
+    updateRosterCount();
+}
+
+// Initialize roster on page load
+window.addEventListener('DOMContentLoaded', function() {
+    // Auto-fill team roster from backend data
+    console.log('Loading team roster...');
+    
+    const currentUserId = {{ user.id|default:0 }};
+    const teamMembersData = [
+        {% for member in team_members %}
+            {% if member.role != 'OWNER' and member.role != 'CAPTAIN' %}
+        {
+            name: '{{ member.profile.user.get_full_name|default:member.profile.user.username|escapejs }}',
+            ign: '{{ member.profile.display_name|default:member.profile.user.username|escapejs }}',
+            email: '{{ member.profile.user.email|escapejs }}',
+            userId: {{ member.profile.user.id|default:0 }},
+            role: '{{ member.role }}',
+            isCaptain: false
+        }{% if not forloop.last and not forloop.parentloop.last %},{% endif %}
+            {% endif %}
+        {% endfor %}
+    ];
+    
+    console.log(`Found ${teamMembersData.length} team members (excluding captain)`);
+    console.log('Team members:', teamMembersData);
+    
+    // Add all team members to roster (captain row is already in HTML)
+    teamMembersData.forEach(member => {
+        console.log(`Adding member: ${member.name}`);
+        addPlayerRow(member.name, member.ign, member.email, true);
+    });
+    
+    // Fill remaining slots to meet minimum roster (only if needed)
+    const currentCount = rosterTbody.querySelectorAll('tr').length;
+    const rowsNeeded = minRoster - currentCount;
+    
+    if (rowsNeeded > 0) {
+        console.log(`Adding ${rowsNeeded} empty slots to meet minimum roster requirement`);
+        for (let i = 0; i < rowsNeeded; i++) {
+            addPlayerRow('', '', '', false);
+        }
+    }
+    
+    updateRosterCount();
+    console.log(`Team roster initialization complete. Total rows: ${currentCount}`);
+});
+</script>
+{% endblock %}

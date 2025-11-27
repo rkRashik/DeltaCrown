@@ -1,0 +1,362 @@
+{% extends "tournaments/team_registration/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .review-card {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .review-section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #3b82f6;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .review-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .review-field:last-child {
+        border-bottom: none;
+    }
+    
+    .review-label {
+        font-weight: 600;
+        color: #94a3b8;
+        flex: 0 0 40%;
+    }
+    
+    .review-value {
+        color: #e2e8f0;
+        flex: 1;
+        text-align: right;
+        word-break: break-word;
+    }
+    
+    .edit-btn {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .edit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+    
+    .terms-section {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(249, 115, 22, 0.1));
+        border: 1px solid rgba(234, 179, 8, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .terms-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #eab308;
+        margin-bottom: 1rem;
+    }
+    
+    .checkbox-group {
+        margin-bottom: 1rem;
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: start;
+        cursor: pointer;
+        color: #e2e8f0;
+        gap: 0.75rem;
+    }
+    
+    .checkbox-label input[type="checkbox"] {
+        margin-top: 0.25rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    
+    .fee-notice {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1));
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .fee-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #22c55e;
+        margin-bottom: 0.5rem;
+    }
+    
+    .fee-description {
+        color: #94a3b8;
+        font-size: 0.875rem;
+    }
+    
+    .disabled-btn {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="reviewForm">
+    {% csrf_token %}
+    <input type="hidden" name="step" value="2">
+    
+    <!-- Personal Information Review -->
+    <div class="review-card">
+        <div class="review-section-title">
+            <span><i class="fas fa-user mr-2"></i>Personal Information</span>
+            <a href="?step=1" class="edit-btn">
+                <i class="fas fa-edit mr-1"></i>Edit
+            </a>
+        </div>
+        
+        <div class="review-field">
+            <div class="review-label">Full Name</div>
+            <div class="review-value">{{ registration_data.full_name|default:"N/A" }}</div>
+        </div>
+        
+        <div class="review-field">
+            <div class="review-label">Display Name / IGN</div>
+            <div class="review-value">{{ registration_data.display_name|default:"N/A" }}</div>
+        </div>
+        
+        {% if form_config.enable_age_field %}
+        <div class="review-field">
+            <div class="review-label">Age</div>
+            <div class="review-value">{{ registration_data.age|default:"N/A" }}</div>
+        </div>
+        {% endif %}
+        
+        {% if form_config.enable_country_field %}
+        <div class="review-field">
+            <div class="review-label">Country</div>
+            <div class="review-value">{{ registration_data.country|default:"N/A" }}</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Game Information Review -->
+    <div class="review-card">
+        <div class="review-section-title">
+            <span><i class="fas fa-gamepad mr-2"></i>Game Information</span>
+            <a href="?step=1" class="edit-btn">
+                <i class="fas fa-edit mr-1"></i>Edit
+            </a>
+        </div>
+        
+        <div class="review-field">
+            <div class="review-label">Game</div>
+            <div class="review-value">{{ tournament.game.name }}</div>
+        </div>
+        
+        <div class="review-field">
+            <div class="review-label">Game ID</div>
+            <div class="review-value">{{ registration_data.game_id|default:"N/A" }}</div>
+        </div>
+        
+        {% if form_config.enable_platform_field %}
+        <div class="review-field">
+            <div class="review-label">Platform</div>
+            <div class="review-value">{{ registration_data.platform|default:"N/A" }}</div>
+        </div>
+        {% endif %}
+        
+        {% if form_config.enable_rank_field %}
+        <div class="review-field">
+            <div class="review-label">Current Rank</div>
+            <div class="review-value">{{ registration_data.rank|default:"N/A" }}</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Contact Information Review -->
+    <div class="review-card">
+        <div class="review-section-title">
+            <span><i class="fas fa-envelope mr-2"></i>Contact Information</span>
+            <a href="?step=1" class="edit-btn">
+                <i class="fas fa-edit mr-1"></i>Edit
+            </a>
+        </div>
+        
+        <div class="review-field">
+            <div class="review-label">Email</div>
+            <div class="review-value">{{ registration_data.email|default:"N/A" }}</div>
+        </div>
+        
+        {% if form_config.enable_phone_field %}
+        <div class="review-field">
+            <div class="review-label">Phone</div>
+            <div class="review-value">{{ registration_data.phone|default:"N/A" }}</div>
+        </div>
+        {% endif %}
+        
+        {% if form_config.enable_discord_field %}
+        <div class="review-field">
+            <div class="review-label">Discord</div>
+            <div class="review-value">{{ registration_data.discord|default:"N/A" }}</div>
+        </div>
+        {% endif %}
+        
+        {% if form_config.enable_preferred_contact_field %}
+        <div class="review-field">
+            <div class="review-label">Preferred Contact</div>
+            <div class="review-value">{{ registration_data.preferred_contact|default:"N/A" }}</div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Entry Fee Notice (if applicable) -->
+    {% if tournament.entry_fee and tournament.entry_fee > 0 %}
+    <div class="fee-notice">
+        <div class="fee-amount">
+            {% if tournament.entry_fee_currency == 'DC' %}
+                <i class="fas fa-coins mr-2"></i>{{ tournament.entry_fee }} DeltaCoins
+            {% else %}
+                ৳{{ tournament.entry_fee }}
+            {% endif %}
+        </div>
+        <div class="fee-description">
+            Entry fee will be collected in the next step
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Terms and Conditions -->
+    <div class="terms-section">
+        <div class="terms-title">
+            <i class="fas fa-file-contract mr-2"></i>Terms & Agreements
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="accept_rules" id="acceptRules" required>
+                <span>
+                    I have read and agree to abide by the 
+                    <a href="{% url 'tournaments:detail' tournament.slug %}#rules" target="_blank" class="text-blue-400 hover:text-blue-300 underline">
+                        tournament rules and regulations
+                    </a>
+                </span>
+            </label>
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="accept_code_of_conduct" id="acceptConduct" required>
+                <span>
+                    I agree to follow the 
+                    <a href="/code-of-conduct/" target="_blank" class="text-blue-400 hover:text-blue-300 underline">
+                        DeltaCrown Code of Conduct
+                    </a>
+                </span>
+            </label>
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="acknowledge_schedule" id="acknowledgeSchedule" required>
+                <span>
+                    I acknowledge the tournament schedule and commit to participating in all scheduled matches
+                </span>
+            </label>
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="confirm_accuracy" id="confirmAccuracy" required>
+                <span>
+                    I confirm that all information provided is accurate and truthful
+                </span>
+            </label>
+        </div>
+    </div>
+    
+    <!-- Navigation Buttons -->
+    <div class="flex justify-between items-center mt-8">
+        <a href="?step=1" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all duration-300">
+            <i class="fas fa-arrow-left mr-2"></i>Back
+        </a>
+        
+        <button type="submit" id="continueBtn" class="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled-btn" disabled>
+            {% if tournament.entry_fee and tournament.entry_fee > 0 %}
+                Continue to Payment<i class="fas fa-arrow-right ml-2"></i>
+            {% else %}
+                Complete Registration<i class="fas fa-check ml-2"></i>
+            {% endif %}
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enable continue button only when all checkboxes are checked
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    const continueBtn = document.getElementById('continueBtn');
+    
+    function updateContinueButton() {
+        const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        continueBtn.disabled = !allChecked;
+        
+        if (allChecked) {
+            continueBtn.classList.remove('disabled-btn');
+        } else {
+            continueBtn.classList.add('disabled-btn');
+        }
+    }
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateContinueButton);
+    });
+    
+    // Form submission
+    document.getElementById('reviewForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate all checkboxes
+        if (!Array.from(checkboxes).every(cb => cb.checked)) {
+            alert('Please accept all terms and conditions to continue.');
+            return;
+        }
+        
+        // Proceed to next step
+        {% if tournament.entry_fee and tournament.entry_fee > 0 %}
+            window.location.href = '?step=3';
+        {% else %}
+            // Submit registration directly (no payment needed)
+            this.submit();
+        {% endif %}
+    });
+</script>
+{% endblock %}

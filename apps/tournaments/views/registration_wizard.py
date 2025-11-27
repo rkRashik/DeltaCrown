@@ -27,6 +27,8 @@ from decimal import Decimal
 from apps.tournaments.models import Tournament, Registration, Payment
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.payment_service import PaymentService
+from apps.tournaments.services.registration_autofill import RegistrationAutoFillService
+from apps.tournaments.services.registration_eligibility import RegistrationEligibilityService
 
 
 class RegistrationWizardView(LoginRequiredMixin, View):
@@ -138,6 +140,17 @@ class RegistrationWizardView(LoginRequiredMixin, View):
     
     def _handle_solo_registration_get(self, request, tournament):
         """Handle GET requests for solo registration"""
+        # Check eligibility first
+        eligibility_result = RegistrationEligibilityService.check_eligibility(
+            tournament, request.user
+        )
+        
+        if not eligibility_result.is_eligible:
+            return render(request, 'tournaments/registration_ineligible.html', {
+                'tournament': tournament,
+                'eligibility_result': eligibility_result
+            })
+        
         step = request.GET.get('step', '1')
         
         if step not in ['1', '2', '3']:
@@ -146,11 +159,24 @@ class RegistrationWizardView(LoginRequiredMixin, View):
         # Get wizard data
         wizard_data = self.get_wizard_data(request, tournament.id, 'solo')
         
+        # Get auto-fill data
+        autofill_data = RegistrationAutoFillService.get_autofill_data(
+            user=request.user,
+            tournament=tournament,
+            team=None
+        )
+        
+        completion_percentage = RegistrationAutoFillService.get_completion_percentage(autofill_data)
+        missing_fields = RegistrationAutoFillService.get_missing_fields(autofill_data)
+        
         context = {
             'tournament': tournament,
             'current_step': int(step),
             'total_steps': 3,
             'registration_type': 'solo',
+            'autofill_data': autofill_data,
+            'completion_percentage': completion_percentage,
+            'missing_count': len(missing_fields),
         }
         
         if step == '1':
@@ -160,16 +186,14 @@ class RegistrationWizardView(LoginRequiredMixin, View):
             
             # Auto-fill from user profile if not already in session
             if not wizard_data:
-                try:
-                    auto_filled = self._auto_fill_solo_data(request.user, tournament)
-                    wizard_data = auto_filled
-                    self.save_wizard_data(request, tournament.id, 'solo', wizard_data)
-                except Exception as e:
-                    messages.warning(request, f"Could not auto-fill profile data: {e}")
-                    wizard_data = {}
+                wizard_data = {}
+                for field_name, field_data in autofill_data.items():
+                    if not field_data.missing and field_data.value:
+                        wizard_data[field_name] = field_data.value
+                self.save_wizard_data(request, tournament.id, 'solo', wizard_data)
             
             context['player_data'] = wizard_data
-            template = 'tournaments/registration_demo/solo_step1.html'
+            template = 'tournaments/registration_demo/solo_step1_enhanced.html'
             
         elif step == '2':
             # Step 2: Review & Accept Terms
@@ -253,6 +277,31 @@ class RegistrationWizardView(LoginRequiredMixin, View):
     
     def _handle_team_registration_get(self, request, tournament):
         """Handle GET requests for team registration"""
+        # Get user's team
+        team_id = request.GET.get('team_id')
+        team = None
+        
+        if team_id:
+            from apps.teams.models import Team
+            team = Team.objects.filter(id=team_id).first()
+        
+        # Check eligibility
+        eligibility_result = RegistrationEligibilityService.check_eligibility(
+            tournament, request.user
+        )
+        
+        if not eligibility_result.is_eligible:
+            # Get eligible teams for permission request modal
+            eligible_teams = RegistrationEligibilityService.get_eligible_teams(
+                tournament, request.user
+            )
+            
+            return render(request, 'tournaments/registration_ineligible.html', {
+                'tournament': tournament,
+                'eligibility_result': eligibility_result,
+                'teams': eligible_teams
+            })
+        
         step = request.GET.get('step', '1')
         
         if step not in ['1', '2', '3']:
@@ -260,18 +309,41 @@ class RegistrationWizardView(LoginRequiredMixin, View):
         
         wizard_data = self.get_wizard_data(request, tournament.id, 'team')
         
+        # Get auto-fill data for team
+        autofill_data = RegistrationAutoFillService.get_autofill_data(
+            user=request.user,
+            tournament=tournament,
+            team=team
+        )
+        
+        completion_percentage = RegistrationAutoFillService.get_completion_percentage(autofill_data)
+        missing_fields = RegistrationAutoFillService.get_missing_fields(autofill_data)
+        
         context = {
             'tournament': tournament,
             'current_step': int(step),
             'total_steps': 3,
             'registration_type': 'team',
+            'team': team,
+            'autofill_data': autofill_data,
+            'completion_percentage': completion_percentage,
+            'missing_count': len(missing_fields),
         }
         
         if step == '1':
             context['step_title'] = 'Team Information'
             context['step_description'] = 'Enter your team details'
+            
+            # Auto-fill team data if not in session
+            if not wizard_data and team:
+                wizard_data = {}
+                for field_name, field_data in autofill_data.items():
+                    if not field_data.missing and field_data.value:
+                        wizard_data[field_name] = field_data.value
+                self.save_wizard_data(request, tournament.id, 'team', wizard_data)
+            
             context['team_data'] = wizard_data
-            template = 'tournaments/registration_demo/team_step1.html'
+            template = 'tournaments/registration_demo/team_step1_enhanced.html'
             
         elif step == '2':
             context['step_title'] = 'Review & Agreements'

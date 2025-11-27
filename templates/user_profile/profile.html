@@ -23,6 +23,7 @@
         
         // State Management
         isFollowing: {{ is_following|yesno:"true,false" }},
+    followLoading: false,
         walletBlurred: true,
         
         // Toast Notification System
@@ -58,9 +59,15 @@
         },
         
         toggleFollow() {
-            this.isFollowing = !this.isFollowing;
-            this.showToast(this.isFollowing ? 'Following!' : 'Unfollowed', this.isFollowing ? '✓' : 'ℹ');
-            // TODO: Implement AJAX call to backend
+            if (this.followLoading) return;
+            this.followLoading = true;
+            // Simulate async request
+            setTimeout(() => {
+                this.isFollowing = !this.isFollowing;
+                this.showToast(this.isFollowing ? 'Followed' : 'Unfollowed', this.isFollowing ? '✓' : 'ℹ');
+                this.followLoading = false;
+            }, 650);
+            // TODO: Replace with real AJAX POST to follow/unfollow endpoint
         }
      }">
 

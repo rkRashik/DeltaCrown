@@ -66,12 +66,8 @@ urlpatterns = [
     # Phase G: Spectator Live Views (public read-only tournament/match pages)
     path("spectator/", include(("apps.spectator.urls", "spectator"), namespace="spectator")),
 
-    # CRITICAL FIX: User profile URLs at ROOT level (no prefix) to support @username/ pattern
-    # Phase 4: Modern profile system with @ prefix requires root-level mounting
-    path("", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
-    # Backwards-compatibility routes: legacy URLs should redirect to modern routes
-    path("user/u/<str:username>/", RedirectView.as_view(pattern_name="user_profile:public_profile", permanent=True)),
-    path("user/me/settings/", RedirectView.as_view(pattern_name="user_profile:settings", permanent=True)),
+    # NOTE: Mount user_profile AFTER other root-level apps to avoid catch-all conflicts (e.g. /dashboard/)
+    # Backwards-compatibility legacy redirects kept below.
 
     # Optional extras mounted if present
     path("notifications/", include("apps.notifications.urls")) if import_module else None,
@@ -85,6 +81,10 @@ urlpatterns = [
     path("terms/", site_views.terms, name="terms"),
     path("help/", support_views.faq_view, name="faq"),
     path("contact/", support_views.contact_view, name="contact"),
+    # User profile system mounted last to prevent interference with other root paths
+    path("", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
+    path("user/u/<str:username>/", RedirectView.as_view(pattern_name="user_profile:public_profile", permanent=True)),
+    path("user/me/settings/", RedirectView.as_view(pattern_name="user_profile:settings", permanent=True)),
 ]
 
 # Optional allauth routing

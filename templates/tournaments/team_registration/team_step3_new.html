@@ -1,0 +1,731 @@
+{% extends "tournaments/team_registration/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .payment-section {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .fee-display {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1));
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .fee-amount {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #22c55e;
+        margin-bottom: 0.5rem;
+    }
+
+    .fee-label {
+        color: #94a3b8;
+        font-size: 0.875rem;
+    }
+
+    .payment-methods {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .method-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .method-card:hover {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.05);
+    }
+
+    .method-card.selected {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+        border-color: #3b82f6;
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .method-card.deltacoin {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(249, 115, 22, 0.1));
+    }
+
+    .method-card.deltacoin.selected {
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.2), rgba(249, 115, 22, 0.2));
+        border-color: #eab308;
+        box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+    }
+
+    .method-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .method-name {
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 0.25rem;
+    }
+
+    .method-balance {
+        font-size: 0.75rem;
+        color: #22c55e;
+    }
+
+    .method-balance.insufficient {
+        color: #ef4444;
+    }
+
+    .payment-details {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .detail-item:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #94a3b8;
+    }
+
+    .detail-value {
+        color: #e2e8f0;
+        font-family: monospace;
+    }
+
+    .copy-btn {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+        background: rgba(59, 130, 246, 0.3);
+    }
+
+    .form-section {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-field {
+        margin-bottom: 1.5rem;
+    }
+
+    .field-label {
+        display: block;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 0.5rem;
+    }
+
+    .field-label .required {
+        color: #ef4444;
+    }
+
+    .field-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 0.5rem;
+        color: #e2e8f0;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .field-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .field-help {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 0.5rem;
+    }
+
+    .upload-area {
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 0.75rem;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .upload-area:hover {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.05);
+    }
+
+    .upload-area.dragover {
+        border-color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .upload-icon {
+        font-size: 3rem;
+        color: #3b82f6;
+        margin-bottom: 1rem;
+    }
+
+    .image-preview {
+        margin-top: 1rem;
+        max-width: 100%;
+        border-radius: 0.5rem;
+        display: none;
+    }
+
+    .image-preview.show {
+        display: block;
+    }
+
+    .countdown-timer {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(249, 115, 22, 0.2));
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .timer-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #f87171;
+        margin: 0.5rem 0;
+        font-family: monospace;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    .continue-btn {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: white;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .continue-btn:hover:not(.disabled-btn) {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(34, 197, 94, 0.3);
+    }
+
+    .back-btn {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        padding: 0.75rem 2rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .back-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .disabled-btn {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="paymentForm" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="step" value="3">
+
+    <!-- Step Header -->
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-white mb-2">
+            <span class="text-4xl mr-2">💳</span>
+            Complete Team Payment
+        </h2>
+        <p class="text-gray-400">Choose your payment method and submit proof</p>
+    </div>
+
+    <!-- Entry Fee Display -->
+    <div class="fee-display">
+        <div class="fee-amount">
+            {% if tournament.entry_fee_currency == 'DC' %}
+                <i class="fas fa-coins mr-2"></i>{{ tournament.entry_fee }} DeltaCoins
+            {% else %}
+                ৳{{ tournament.entry_fee }}
+            {% endif %}
+        </div>
+        <div class="fee-label">Tournament Entry Fee per Team</div>
+    </div>
+
+    <!-- Payment Method Selection -->
+    <div class="payment-section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <span>💰</span>
+                Choose Payment Method
+            </h3>
+        </div>
+
+        <div class="payment-methods">
+            <div class="method-card deltacoin selected" data-method="DC">
+                <i class="fas fa-coins method-icon text-yellow-400"></i>
+                <div class="method-name">DeltaCoin</div>
+                <div class="method-balance">Balance: 1,250 DC</div>
+                <input type="radio" name="payment_method" value="DC" checked style="display: none;">
+            </div>
+
+            <div class="method-card" data-method="bKash">
+                <span class="method-icon text-pink-400 text-2xl">bK</span>
+                <div class="method-name">bKash</div>
+                <input type="radio" name="payment_method" value="bKash" style="display: none;">
+            </div>
+
+            <div class="method-card" data-method="Nagad">
+                <span class="method-icon text-orange-400 text-2xl">N</span>
+                <div class="method-name">Nagad</div>
+                <input type="radio" name="payment_method" value="Nagad" style="display: none;">
+            </div>
+
+            <div class="method-card" data-method="Rocket">
+                <span class="method-icon text-purple-400 text-2xl">R</span>
+                <div class="method-name">Rocket</div>
+                <input type="radio" name="payment_method" value="Rocket" style="display: none;">
+            </div>
+
+            <div class="method-card" data-method="Bank Transfer">
+                <i class="fas fa-university method-icon text-blue-400"></i>
+                <div class="method-name">Bank Transfer</div>
+                <input type="radio" name="payment_method" value="Bank Transfer" style="display: none;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Details (shown for cash methods) -->
+    <div id="paymentDetails" class="payment-section hidden">
+        <div class="section-header">
+            <h3 class="section-title">
+                <span>📋</span>
+                Payment Instructions
+            </h3>
+        </div>
+
+        <div class="payment-details">
+            <div class="detail-item">
+                <div>
+                    <div class="detail-label">bKash Personal</div>
+                    <div class="detail-value">01712345678</div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('01712345678')">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+
+            <div class="detail-item">
+                <div>
+                    <div class="detail-label">Nagad</div>
+                    <div class="detail-value">01812345678</div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('01812345678')">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+
+            <div class="detail-item">
+                <div>
+                    <div class="detail-label">Rocket</div>
+                    <div class="detail-value">01912345678</div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('01912345678')">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+
+            <div class="detail-item">
+                <div>
+                    <div class="detail-label">Bank Transfer</div>
+                    <div class="detail-value">Dutch-Bangla Bank<br>1234567890123</div>
+                </div>
+                <button class="copy-btn" onclick="copyToClipboard('1234567890123')">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Form -->
+    <div class="form-section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <span>📝</span>
+                Payment Information
+            </h3>
+        </div>
+
+        <!-- Transaction ID (for cash payments) -->
+        <div class="form-field cash-only hidden">
+            <label class="field-label">
+                Transaction ID / Reference Number <span class="required">*</span>
+            </label>
+            <input
+                type="text"
+                name="transaction_id"
+                class="field-input"
+                placeholder="Enter transaction/reference ID from receipt"
+                minlength="6"
+            >
+            <div class="field-help">
+                Found on your mobile banking app receipt or SMS
+            </div>
+        </div>
+
+        <!-- Mobile Number (conditional) -->
+        {% if form_config.enable_payment_mobile_number_field %}
+        <div class="form-field cash-only hidden">
+            <label class="field-label">
+                Mobile Number Used for Payment <span class="required">*</span>
+            </label>
+            <input
+                type="tel"
+                name="mobile_number"
+                class="field-input"
+                placeholder="01XXXXXXXXX"
+                pattern="01[0-9]{9}"
+            >
+            <div class="field-help">
+                Enter the phone number you used to make the payment
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Payment Screenshot (conditional) -->
+        {% if form_config.enable_payment_screenshot_field %}
+        <div class="form-field cash-only hidden">
+            <label class="field-label">
+                Payment Screenshot <span class="required">*</span>
+            </label>
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                <div class="text-gray-300 mb-2">
+                    <strong>Click to upload</strong> or drag and drop
+                </div>
+                <div class="text-sm text-gray-400">
+                    JPG, PNG, or PDF (max 5MB)
+                </div>
+                <div class="text-xs text-gray-500 mt-2">
+                    Must show: Transaction ID, Amount, Date/Time
+                </div>
+            </div>
+            <input
+                type="file"
+                id="screenshot"
+                name="screenshot"
+                accept="image/jpeg,image/png,application/pdf"
+                class="hidden"
+            >
+            <img id="imagePreview" class="image-preview" alt="Preview">
+        </div>
+        {% endif %}
+
+        <!-- Additional Notes (conditional) -->
+        {% if form_config.enable_payment_notes_field %}
+        <div class="form-field">
+            <label class="field-label">
+                Additional Notes (Optional)
+            </label>
+            <textarea
+                name="notes"
+                rows="3"
+                class="field-input"
+                placeholder="Any additional information..."
+                maxlength="500"
+            ></textarea>
+            <div class="field-help">
+                <span id="noteCount">0</span>/500 characters
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Countdown Timer -->
+    <div class="countdown-timer">
+        <div class="text-sm text-gray-300 mb-1">
+            <i class="fas fa-clock mr-2"></i>Complete payment within:
+        </div>
+        <div class="timer-value" id="countdownTimer">47:59:32</div>
+        <div class="text-xs text-gray-400">
+            After 48 hours: Registration may be cancelled
+        </div>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="flex justify-between items-center mt-8">
+        <a href="?step=2" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            Back
+        </a>
+
+        <button type="submit" id="submitBtn" class="continue-btn">
+            {% if tournament.entry_fee_currency == 'DC' %}
+                Confirm Payment ({{ tournament.entry_fee }} DC)
+            {% else %}
+                Submit Payment Proof
+            {% endif %}
+            <i class="fas fa-check"></i>
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Payment method selection
+    const methodCards = document.querySelectorAll('.method-card');
+    const paymentDetails = document.getElementById('paymentDetails');
+    const cashOnlyFields = document.querySelectorAll('.cash-only');
+    const submitBtn = document.getElementById('submitBtn');
+
+    methodCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove selected class from all cards
+            methodCards.forEach(c => c.classList.remove('selected'));
+            // Add selected class to clicked card
+            this.classList.add('selected');
+
+            // Update radio button
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+            }
+
+            // Show/hide payment details and form fields
+            const method = this.dataset.method;
+            const isDeltaCoin = method === 'DC';
+
+            if (isDeltaCoin) {
+                paymentDetails.classList.add('hidden');
+                cashOnlyFields.forEach(field => {
+                    field.classList.add('hidden');
+                    field.querySelectorAll('input, textarea').forEach(input => {
+                        input.removeAttribute('required');
+                    });
+                });
+                submitBtn.innerHTML = 'Confirm Payment ({{ tournament.entry_fee }} DC) <i class="fas fa-check"></i>';
+            } else {
+                paymentDetails.classList.remove('hidden');
+                cashOnlyFields.forEach(field => {
+                    field.classList.remove('hidden');
+                    field.querySelectorAll('input, textarea').forEach(input => {
+                        if (input.name !== 'notes') {
+                            input.setAttribute('required', 'required');
+                        }
+                    });
+                });
+                submitBtn.innerHTML = 'Submit Payment Proof <i class="fas fa-check"></i>';
+            }
+        });
+    });
+
+    // File upload handling
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('screenshot');
+    const imagePreview = document.getElementById('imagePreview');
+
+    if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+    }
+
+    function handleFileSelect(file) {
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        const validTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+        if (!validTypes.includes(file.type)) {
+            alert(`File type .${file.name.split('.').pop()} not supported. Please upload JPG, PNG, or PDF.`);
+            return;
+        }
+
+        if (file.size > maxSize) {
+            const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+            alert(`File size is ${sizeMB}MB. Maximum is 5MB. Try compressing the image.`);
+            return;
+        }
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreview.classList.add('show');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Character count for notes
+    const notesField = document.querySelector('textarea[name="notes"]');
+    const noteCount = document.getElementById('noteCount');
+
+    if (notesField && noteCount) {
+        notesField.addEventListener('input', function() {
+            noteCount.textContent = this.value.length;
+        });
+    }
+
+    // Copy to clipboard
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Show toast notification
+            const toast = document.createElement('div');
+            toast.textContent = 'Copied to clipboard!';
+            toast.style.cssText = 'position:fixed;top:20px;right:20px;background:#22c55e;color:white;padding:1rem 1.5rem;border-radius:0.5rem;z-index:9999;';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        });
+    }
+
+    // Countdown timer
+    function startCountdown() {
+        const timerElement = document.getElementById('countdownTimer');
+        let totalSeconds = 48 * 60 * 60; // 48 hours
+
+        setInterval(() => {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            if (totalSeconds > 0) {
+                totalSeconds--;
+            }
+        }, 1000);
+    }
+
+    startCountdown();
+
+    // Form submission
+    document.getElementById('paymentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+
+        if (paymentMethod === 'DC') {
+            // DeltaCoin payment - submit directly
+            this.submit();
+        } else {
+            // Cash payment - validate all required fields
+            const transactionId = document.querySelector('input[name="transaction_id"]');
+            const screenshot = document.querySelector('input[name="screenshot"]');
+
+            let isValid = true;
+
+            if (transactionId && transactionId.value.length < 6) {
+                alert('Transaction ID must be at least 6 characters.');
+                isValid = false;
+            }
+
+            if (screenshot && screenshot.files.length === 0) {
+                alert('Please upload a payment screenshot.');
+                isValid = false;
+            }
+
+            if (isValid) {
+                this.submit();
+            }
+        }
+    });
+</script>
+{% endblock %}

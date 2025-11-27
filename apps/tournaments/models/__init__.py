@@ -70,13 +70,16 @@ from .form_template import (
     TournamentRegistrationForm,  # Per-tournament form config
     FormResponse,  # Registration submissions
 )
-from .template_rating import (
-    TemplateRating,  # Template ratings and reviews
-    RatingHelpful,  # Helpful vote tracking
-)
+# NOTE: TemplateRating removed - deprecated marketplace feature
 from .webhooks import (
     FormWebhook,  # Webhook configurations
     WebhookDelivery,  # Webhook delivery tracking
+)
+from .form_configuration import (
+    TournamentFormConfiguration,  # Tournament registration form configuration
+)
+from .permission_request import (
+    TeamRegistrationPermissionRequest,  # Team registration permission requests
 )
 
 __all__ = [
@@ -109,8 +112,8 @@ __all__ = [
     'RegistrationFormTemplate',
     'TournamentRegistrationForm',
     'FormResponse',
-    'TemplateRating',
-    'RatingHelpful',
     'FormWebhook',
     'WebhookDelivery',
+    'TournamentFormConfiguration',
+    'TeamRegistrationPermissionRequest',
 ]

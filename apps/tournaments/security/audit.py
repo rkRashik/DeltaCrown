@@ -63,6 +63,7 @@ class AuditAction(str, Enum):
     PAYMENT_REJECT = 'payment_reject'
     PAYMENT_REFUND = 'payment_refund'
     PAYMENT_FORCE_REFUND = 'payment_force_refund'
+    FEE_WAIVED = 'fee_waived'
     
     # Bracket operations
     BRACKET_GENERATE = 'bracket_generate'

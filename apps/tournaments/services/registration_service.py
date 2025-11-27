@@ -59,7 +59,7 @@ Usage:
 from typing import Dict, Optional, Any
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, models
 from django.utils import timezone
 from django.db.models import Count, Q
 from apps.tournaments.models import Registration, Payment, Tournament
@@ -440,6 +440,161 @@ class RegistrationService:
     
     @staticmethod
     @transaction.atomic
+    def pay_with_deltacoin(
+        registration_id: int,
+        user
+    ) -> tuple[Payment, 'DeltaCrownTransaction']:
+        """
+        Pay tournament entry fee using DeltaCoin wallet balance.
+        
+        This method handles instant payment verification for DeltaCoin transactions:
+        1. Validates user has sufficient balance
+        2. Debits wallet with tournament entry fee
+        3. Creates verified payment record
+        4. Auto-confirms registration
+        
+        Args:
+            registration_id: ID of registration to pay for
+            user: User making the payment (must own the registration)
+        
+        Returns:
+            tuple: (Payment instance, DeltaCrownTransaction instance)
+        
+        Raises:
+            Registration.DoesNotExist: If registration not found
+            ValidationError: If payment validation fails
+            InsufficientFunds: If user doesn't have enough DeltaCoin
+        
+        Example:
+            >>> from apps.tournaments.services import RegistrationService
+            >>> payment, transaction = RegistrationService.pay_with_deltacoin(
+            ...     registration_id=123,
+            ...     user=request.user
+            ... )
+            >>> # Registration is now CONFIRMED, no manual verification needed
+        """
+        from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+        from apps.economy.exceptions import InsufficientFunds
+        
+        # Get registration
+        try:
+            registration = Registration.objects.select_related('tournament').get(id=registration_id)
+        except Registration.DoesNotExist:
+            raise ValidationError(f"Registration with ID {registration_id} not found")
+        
+        # Validate registration belongs to user
+        if registration.user_id != user.id:
+            raise ValidationError("You can only pay for your own registrations")
+        
+        # Validate registration status
+        if registration.status not in [Registration.PENDING, Registration.PAYMENT_SUBMITTED]:
+            raise ValidationError(
+                f"Cannot pay for registration with status '{registration.get_status_display()}'"
+            )
+        
+        # Check if payment already exists and is verified
+        if hasattr(registration, 'payment') and registration.payment.status == Payment.VERIFIED:
+            raise ValidationError("Payment has already been verified for this registration")
+        
+        # Validate tournament requires entry fee
+        if not registration.tournament.has_entry_fee:
+            raise ValidationError("This tournament does not require an entry fee")
+        
+        # Validate DeltaCoin is accepted payment method
+        if 'deltacoin' not in registration.tournament.payment_methods:
+            raise ValidationError(
+                "DeltaCoin payments are not accepted for this tournament"
+            )
+        
+        # Get entry fee amount
+        entry_fee = registration.tournament.entry_fee_amount
+        if entry_fee <= 0:
+            raise ValidationError("Invalid entry fee amount")
+        
+        # Convert to integer (DeltaCoin uses integer amounts)
+        entry_fee_dc = int(entry_fee)
+        
+        # Get or create user's wallet
+        try:
+            wallet = DeltaCrownWallet.objects.select_for_update().get(profile=user.profile)
+        except DeltaCrownWallet.DoesNotExist:
+            # Auto-create wallet if doesn't exist
+            wallet = DeltaCrownWallet.objects.create(profile=user.profile, cached_balance=0)
+        
+        # Check sufficient balance
+        if wallet.cached_balance < entry_fee_dc:
+            raise InsufficientFunds(
+                f"Insufficient DeltaCoin balance. Required: {entry_fee_dc} DC, "
+                f"Available: {wallet.cached_balance} DC"
+            )
+        
+        # Create debit transaction
+        idempotency_key = f"tournament_entry_{registration.tournament_id}_reg_{registration_id}"
+        
+        try:
+            dc_transaction = DeltaCrownTransaction.objects.create(
+                wallet=wallet,
+                amount=-entry_fee_dc,  # Negative for debit
+                reason=DeltaCrownTransaction.Reason.ENTRY_FEE_DEBIT,
+                tournament_id=registration.tournament_id,
+                registration_id=registration_id,
+                note=f"Tournament entry fee: {registration.tournament.name}",
+                created_by=user,
+                idempotency_key=idempotency_key
+            )
+        except Exception as e:
+            # Handle duplicate transaction (idempotency)
+            if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                # Transaction already exists - fetch and return existing payment
+                existing_tx = DeltaCrownTransaction.objects.get(idempotency_key=idempotency_key)
+                existing_payment = registration.payment
+                return existing_payment, existing_tx
+            raise
+        
+        # Update wallet balance
+        wallet.cached_balance -= entry_fee_dc
+        wallet.save(update_fields=['cached_balance', 'updated_at'])
+        
+        # Create or update payment record (auto-verified for DeltaCoin)
+        if hasattr(registration, 'payment'):
+            payment = registration.payment
+            payment.payment_method = 'deltacoin'
+            payment.amount = entry_fee
+            payment.transaction_id = f"DC-{dc_transaction.id}"
+            payment.status = Payment.VERIFIED
+            payment.verified_by = user
+            payment.verified_at = timezone.now()
+            payment.admin_notes = "Auto-verified DeltaCoin payment"
+            payment.save()
+        else:
+            payment = Payment.objects.create(
+                registration=registration,
+                payment_method='deltacoin',
+                amount=entry_fee,
+                transaction_id=f"DC-{dc_transaction.id}",
+                status=Payment.VERIFIED,
+                verified_by=user,
+                verified_at=timezone.now(),
+                admin_notes="Auto-verified DeltaCoin payment"
+            )
+        
+        # Auto-confirm registration
+        registration.status = Registration.CONFIRMED
+        registration.save(update_fields=['status', 'updated_at'])
+        
+        # Send confirmation notification
+        from apps.tournaments.services.notification_service import TournamentNotificationService
+        try:
+            TournamentNotificationService.notify_registration_confirmed(registration)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send registration confirmation: {e}")
+        
+        return payment, dc_transaction
+    
+    @staticmethod
+    @transaction.atomic
     def submit_payment_proof(
         registration_id: int,
         payment_proof_file,
@@ -526,6 +681,15 @@ class RegistrationService:
             registration.status = Registration.PAYMENT_SUBMITTED
             registration.save(update_fields=['status'])
         
+        # Send payment pending notification
+        from apps.tournaments.services.notification_service import TournamentNotificationService
+        try:
+            TournamentNotificationService.notify_payment_pending(registration)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send payment pending notification: {e}")
+        
         # TODO: Module 3.2 - Future integration points
         # - Send notification to organizer (apps.notifications)
         # - Celery task: send_proof_uploaded_email(payment.id)
@@ -598,8 +762,16 @@ class RegistrationService:
             }
         )
         
+        # Send confirmation notification
+        from apps.tournaments.services.notification_service import TournamentNotificationService
+        try:
+            TournamentNotificationService.notify_registration_confirmed(registration)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send registration confirmation: {e}")
+        
         # TODO: Future integration points
-        # - Send confirmation notification to participant (apps.notifications)
         # - Award DeltaCoin if applicable (apps.economy)
         # - Update tournament analytics
         
@@ -806,6 +978,355 @@ class RegistrationService:
         # - Send refund notification (apps.notifications)
         
         return payment
+    
+    @staticmethod
+    @transaction.atomic
+    def waive_fee(
+        registration_id: int,
+        waived_by,
+        reason: str
+    ) -> Payment:
+        """
+        Waive tournament entry fee for a registration.
+        
+        Creates a payment record with WAIVED status. Used for:
+        - Top-ranked teams/players
+        - Sponsored participants
+        - Special invitations
+        - Organizer discretion
+        
+        Module 2.4: Security Hardening - Audit logging included
+        
+        Args:
+            registration_id: ID of registration to waive fee for
+            waived_by: User granting the waiver (organizer/admin)
+            reason: Reason for waiving fee (required for audit trail)
+        
+        Returns:
+            Payment: Payment instance with WAIVED status
+        
+        Raises:
+            Registration.DoesNotExist: If registration not found
+            ValidationError: If registration already has payment or invalid state
+        
+        Example:
+            >>> payment = RegistrationService.waive_fee(
+            ...     registration_id=123,
+            ...     waived_by=request.user,
+            ...     reason='Top-ranked team in previous season'
+            ... )
+        """
+        # Validate inputs
+        if not reason or not reason.strip():
+            raise ValidationError("Fee waiver reason is required")
+        
+        # Get registration
+        try:
+            registration = Registration.objects.select_related('tournament').get(id=registration_id)
+        except Registration.DoesNotExist:
+            raise ValidationError(f"Registration with ID {registration_id} not found")
+        
+        # Check if payment already exists
+        if hasattr(registration, 'payment'):
+            existing_payment = registration.payment
+            if existing_payment.status == Payment.WAIVED:
+                raise ValidationError("Fee already waived for this registration")
+            elif existing_payment.status == Payment.VERIFIED:
+                raise ValidationError(
+                    "Cannot waive fee - payment already verified. "
+                    "Consider issuing a refund instead."
+                )
+            else:
+                # Update existing payment to waived
+                existing_payment.status = Payment.WAIVED
+                existing_payment.waived = True
+                existing_payment.waive_reason = reason.strip()
+                existing_payment.verified_by = waived_by
+                existing_payment.verified_at = timezone.now()
+                existing_payment.save(update_fields=[
+                    'status', 'waived', 'waive_reason', 
+                    'verified_by', 'verified_at', 'updated_at'
+                ])
+                payment = existing_payment
+        else:
+            # Create new payment with waived status
+            payment = Payment.objects.create(
+                registration=registration,
+                payment_method=Payment.DELTACOIN,  # Use generic method for waived fees
+                amount=registration.tournament.entry_fee or Decimal('0.00'),
+                status=Payment.WAIVED,
+                waived=True,
+                waive_reason=reason.strip(),
+                verified_by=waived_by,
+                verified_at=timezone.now()
+            )
+        
+        # Auto-confirm registration
+        registration.status = Registration.CONFIRMED
+        registration.save(update_fields=['status', 'updated_at'])
+        
+        # =====================================================================
+        # MODULE 2.4: Audit Logging
+        # =====================================================================
+        from apps.tournaments.security.audit import audit_event, AuditAction
+        
+        audit_event(
+            user=waived_by,
+            action=AuditAction.FEE_WAIVED,
+            meta={
+                'registration_id': registration_id,
+                'tournament_id': registration.tournament_id,
+                'tournament_name': registration.tournament.name,
+                'participant': registration.participant_identifier,
+                'amount': str(payment.amount),
+                'reason': reason.strip(),
+            }
+        )
+        
+        # Send fee waiver confirmation notification
+        from apps.tournaments.services.notification_service import TournamentNotificationService
+        try:
+            TournamentNotificationService.notify_registration_confirmed(registration)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send fee waiver confirmation: {e}")
+        
+        # TODO: Future integration points
+        # - Update tournament revenue analytics
+        
+        return payment
+    
+    @staticmethod
+    def check_auto_waive_eligibility(registration_id: int) -> tuple[bool, str]:
+        """
+        Check if a registration is eligible for automatic fee waiver.
+        
+        Checks for:
+        - Sponsored teams (from apps.teams if team_id present)
+        - Top-ranked participants (from apps.leaderboards)
+        - Special tournament settings (free_entry, sponsor_waives_fee)
+        
+        Args:
+            registration_id: Registration to check
+        
+        Returns:
+            tuple: (is_eligible, reason) where reason explains eligibility
+        
+        Example:
+            >>> eligible, reason = RegistrationService.check_auto_waive_eligibility(123)
+            >>> if eligible:
+            ...     RegistrationService.waive_fee(123, system_user, reason)
+        """
+        try:
+            registration = Registration.objects.select_related('tournament').get(id=registration_id)
+        except Registration.DoesNotExist:
+            return (False, "Registration not found")
+        
+        tournament = registration.tournament
+        
+        # Check tournament-level settings
+        if getattr(tournament, 'free_entry', False):
+            return (True, "Tournament has free entry enabled")
+        
+        # Check if team is sponsored (requires apps.teams integration)
+        if registration.team_id:
+            # TODO: Check team sponsorship status
+            # from apps.teams.models import Team
+            # team = Team.objects.get(id=registration.team_id)
+            # if team.is_sponsored or team.sponsor_covers_fees:
+            #     return (True, f"Team sponsored by {team.sponsor_name}")
+            pass
+        
+        # Check top-ranked status (requires apps.leaderboards integration)
+        if registration.user:
+            # TODO: Check user ranking
+            # from apps.leaderboards.services import LeaderboardService
+            # rank = LeaderboardService.get_user_rank(registration.user, tournament.game)
+            # if rank and rank <= 10:  # Top 10 players get free entry
+            #     return (True, f"Top-ranked player (Rank #{rank})")
+            pass
+        
+        return (False, "No auto-waive criteria met")
+    
+    @staticmethod
+    @transaction.atomic
+    def promote_from_waitlist(
+        tournament_id: int,
+        promoted_by=None
+    ) -> list[Registration]:
+        """
+        Automatically promote waitlisted participants to confirmed when spots become available.
+        
+        This method is called when:
+        - A confirmed registration is cancelled
+        - Tournament capacity is increased
+        - Admin manually triggers promotion
+        
+        Promotion Logic:
+        1. Check available spots (capacity - confirmed registrations)
+        2. Get waitlisted registrations ordered by waitlist_position (FIFO)
+        3. Promote participants until capacity is filled
+        4. Send notification emails to promoted participants
+        5. Update waitlist positions for remaining participants
+        
+        Args:
+            tournament_id: ID of tournament to process waitlist for
+            promoted_by: User triggering promotion (optional, for audit)
+        
+        Returns:
+            list[Registration]: List of promoted registrations
+        
+        Example:
+            >>> from apps.tournaments.services import RegistrationService
+            >>> promoted = RegistrationService.promote_from_waitlist(tournament_id=42)
+            >>> print(f"Promoted {len(promoted)} participants from waitlist")
+        """
+        from apps.tournaments.models import Tournament
+        from datetime import timedelta
+        
+        # Get tournament
+        try:
+            tournament = Tournament.objects.select_for_update().get(id=tournament_id)
+        except Tournament.DoesNotExist:
+            raise ValidationError(f"Tournament with ID {tournament_id} not found")
+        
+        # Check if tournament has capacity limit
+        if not tournament.max_participants:
+            return []  # Unlimited capacity, no waitlist needed
+        
+        # Count confirmed registrations (excluding soft-deleted)
+        confirmed_count = Registration.objects.filter(
+            tournament=tournament,
+            status=Registration.CONFIRMED,
+            is_deleted=False
+        ).count()
+        
+        # Calculate available spots
+        available_spots = tournament.max_participants - confirmed_count
+        
+        if available_spots <= 0:
+            return []  # No spots available
+        
+        # Get waitlisted registrations ordered by position (FIFO)
+        waitlisted = Registration.objects.filter(
+            tournament=tournament,
+            status=Registration.WAITLISTED,
+            is_deleted=False
+        ).order_by('waitlist_position', 'created_at')[:available_spots]
+        
+        promoted_registrations = []
+        
+        for registration in waitlisted:
+            # Move from waitlist to pending payment status
+            registration.status = Registration.PENDING
+            registration.waitlist_position = None
+            registration.save(update_fields=['status', 'waitlist_position', 'updated_at'])
+            
+            promoted_registrations.append(registration)
+            
+            # Send promotion notification
+            try:
+                from apps.tournaments.services.notification_service import TournamentNotificationService
+                
+                # Calculate payment deadline (24 hours from promotion)
+                payment_deadline = timezone.now() + timedelta(hours=24)
+                
+                TournamentNotificationService.notify_waitlist_promotion(
+                    registration=registration,
+                    payment_deadline=payment_deadline
+                )
+            except Exception as e:
+                # Don't fail promotion if notification fails
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to send waitlist promotion notification: {e}")
+        
+        # Reorder remaining waitlist positions
+        remaining_waitlisted = Registration.objects.filter(
+            tournament=tournament,
+            status=Registration.WAITLISTED,
+            is_deleted=False
+        ).order_by('waitlist_position', 'created_at')
+        
+        for idx, reg in enumerate(remaining_waitlisted, start=1):
+            if reg.waitlist_position != idx:
+                reg.waitlist_position = idx
+                reg.save(update_fields=['waitlist_position'])
+        
+        return promoted_registrations
+    
+    @staticmethod
+    @transaction.atomic
+    def add_to_waitlist(
+        registration_id: int
+    ) -> Registration:
+        """
+        Add a registration to the waitlist when tournament is at capacity.
+        
+        This method is called during registration when:
+        - Tournament has reached max_participants capacity
+        - All confirmed slots are filled
+        
+        Args:
+            registration_id: ID of registration to add to waitlist
+        
+        Returns:
+            Registration: Waitlisted registration with assigned position
+        
+        Example:
+            >>> registration = RegistrationService.add_to_waitlist(registration_id=123)
+            >>> print(f"Added to waitlist at position {registration.waitlist_position}")
+        """
+        # Get registration
+        try:
+            registration = Registration.objects.select_related('tournament').get(id=registration_id)
+        except Registration.DoesNotExist:
+            raise ValidationError(f"Registration with ID {registration_id} not found")
+        
+        # Get next waitlist position
+        max_position = Registration.objects.filter(
+            tournament=registration.tournament,
+            status=Registration.WAITLISTED,
+            is_deleted=False
+        ).aggregate(max_pos=models.Max('waitlist_position'))['max_pos']
+        
+        next_position = (max_position or 0) + 1
+        
+        # Update registration
+        registration.status = Registration.WAITLISTED
+        registration.waitlist_position = next_position
+        registration.save(update_fields=['status', 'waitlist_position', 'updated_at'])
+        
+        # Send waitlist notification
+        try:
+            from apps.tournaments.services.notification_service import TournamentNotificationService
+            TournamentNotificationService.notify_added_to_waitlist(registration)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to send waitlist notification: {e}")
+        
+        return registration
+    
+    @staticmethod
+    def check_and_promote_waitlist(tournament_id: int):
+        """
+        Check if waitlist promotion is needed and trigger it.
+        
+        This is a helper method that should be called after:
+        - Registration cancellation
+        - Payment rejection resulting in cancelled registration
+        - Tournament capacity increase
+        
+        Args:
+            tournament_id: ID of tournament to check
+        
+        Returns:
+            int: Number of participants promoted from waitlist
+        """
+        promoted = RegistrationService.promote_from_waitlist(tournament_id=tournament_id)
+        return len(promoted)
     
     @staticmethod
     @transaction.atomic

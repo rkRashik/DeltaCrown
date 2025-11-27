@@ -140,7 +140,7 @@ States: login_required, open, closed, full, registered, upcoming, not_eligible, 
     </div>
   {% elif cta_state == 'open' and can_register %}
     <a 
-      href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:registration_demo_team' slug=tournament.slug %}{% else %}{% url 'tournaments:registration_demo_solo' slug=tournament.slug %}{% endif %}" 
+      href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" 
       class="block w-full px-6 py-4 bg-gradient-to-r from-primary to-accent text-white rounded-xl font-bold text-center hover:shadow-2xl hover:scale-105 transition-all duration-300 relative overflow-hidden group"
     >
       <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
