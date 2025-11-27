@@ -621,7 +621,16 @@
                             {% endif %}
                             
                             <div class="dc-card-actions">
-                                {% if tournament.status == 'registration_open' %}
+                                {% if user.is_authenticated and tournament.id in user_registered_tournaments %}
+                                    <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="dc-btn dc-btn-primary neon">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>View Lobby</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>Details</span>
+                                    </a>
+                                {% elif tournament.status == 'registration_open' %}
                                     <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" class="dc-btn dc-btn-primary neon">
                                         <i class="fas fa-plus"></i>
                                         <span>Register Now</span>

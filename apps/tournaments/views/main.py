@@ -110,6 +110,20 @@ class TournamentListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        # Add user registration status for each tournament
+        if self.request.user.is_authenticated:
+            from apps.tournaments.models import Registration
+            user_registrations = Registration.objects.filter(
+                user=self.request.user,
+                tournament__in=context['tournament_list'],
+                is_deleted=False
+            ).exclude(
+                status__in=[Registration.CANCELLED, Registration.REJECTED]
+            ).values_list('tournament_id', flat=True)
+            context['user_registered_tournaments'] = set(user_registrations)
+        else:
+            context['user_registered_tournaments'] = set()
+        
         # Add games for filter dropdown using Game Registry (unified game data)
         # Provides: display_name, icon, logo, banner, card, colors, category
         from apps.common.game_registry import get_all_games

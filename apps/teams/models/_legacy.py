@@ -533,6 +533,26 @@ class TeamMembership(models.Model):
         default=False,
         help_text="Can manage team schedule and calendar"
     )
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # TOURNAMENT ROSTER LOCK SYSTEM (Esports Industry Standard)
+    # ═══════════════════════════════════════════════════════════════════════
+    locked_for_tournament_id = models.IntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Tournament ID this member is locked for (prevents team changes)"
+    )
+    locked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the member was locked for tournament"
+    )
+    locked_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the lock expires (tournament end date)"
+    )
 
     class Meta:
         ordering = ("team", "role", "-joined_at")
@@ -541,6 +561,7 @@ class TeamMembership(models.Model):
             models.Index(fields=['team', 'status'], name='teams_member_lookup_idx'),
             models.Index(fields=['profile', 'status'], name='teams_user_teams_idx'),
             models.Index(fields=['team', 'role'], name='teams_role_lookup_idx'),
+            models.Index(fields=['locked_for_tournament_id', 'locked_until'], name='teams_tournament_lock_idx'),
         ]
         constraints = [
             # Only one OWNER per team
@@ -566,6 +587,26 @@ class TeamMembership(models.Model):
     def __str__(self) -> str:
         captain_badge = "⭐" if self.is_captain else ""
         return f"{captain_badge}{self.profile} @ {self.team} ({self.get_role_display()})"
+    
+    def is_locked_for_tournament(self) -> bool:
+        """Check if member is currently locked for a tournament."""
+        if not self.locked_for_tournament_id or not self.locked_until:
+            return False
+        return timezone.now() < self.locked_until
+    
+    def lock_for_tournament(self, tournament_id: int, tournament_end_date) -> None:
+        """Lock this member for a specific tournament."""
+        self.locked_for_tournament_id = tournament_id
+        self.locked_at = timezone.now()
+        self.locked_until = tournament_end_date
+        self.save(update_fields=['locked_for_tournament_id', 'locked_at', 'locked_until'])
+    
+    def unlock_from_tournament(self) -> None:
+        """Remove tournament lock from this member."""
+        self.locked_for_tournament_id = None
+        self.locked_at = None
+        self.locked_until = None
+        self.save(update_fields=['locked_for_tournament_id', 'locked_at', 'locked_until'])
     
     def update_permission_cache(self):
         """

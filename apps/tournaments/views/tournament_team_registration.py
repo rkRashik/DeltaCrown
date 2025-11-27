@@ -122,6 +122,18 @@ class TeamRegistrationView(LoginRequiredMixin, View):
         # Get or create form configuration
         form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
         
+        # CHECK: Already registered for this tournament?
+        from apps.tournaments.models.registration import Registration
+        existing_registration = Registration.objects.filter(
+            tournament=tournament,
+            user=request.user,
+            is_deleted=False
+        ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+        
+        if existing_registration:
+            messages.warning(request, 'You have already registered for this tournament!')
+            return redirect('tournaments:detail', slug=tournament.slug)
+        
         # ELIGIBILITY CHECK: User must have a team for this game
         user_team = None
         team_members = []
@@ -310,22 +322,87 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                 'total': len(roster)
             }
             
+            # Lock all selected members for this tournament
+            from apps.teams.models import TeamMembership
+            for player in roster:
+                try:
+                    membership = TeamMembership.objects.get(id=player['member_id'])
+                    membership.lock_for_tournament(tournament.id, tournament.tournament_end or tournament.tournament_start)
+                except TeamMembership.DoesNotExist:
+                    pass
+            
             request.session[f'team_registration_{tournament.id}'] = team_data
             return redirect(f'{request.path}?step=2')
         
         elif step == '2':
-            return redirect(f'{request.path}?step=3')
+            # Check if tournament has entry fee
+            if tournament.has_entry_fee and tournament.entry_fee_amount > 0:
+                # Redirect to payment step
+                return redirect(f'{request.path}?step=3')
+            else:
+                # No payment needed, complete registration directly
+                # Store registration type before clearing session
+                request.session['registration_type'] = 'team'
+                request.session['registration_step_data'] = request.session.get(f'team_registration_{tournament.id}', {})
+                
+                # Create registration record
+                from apps.tournaments.models.registration import Registration
+                team_data = request.session.get(f'team_registration_{tournament.id}', {})
+                
+                Registration.objects.create(
+                    tournament=tournament,
+                    user=request.user,
+                    team_id=team_data.get('team_id'),  # Get from session data
+                    registration_data=team_data,
+                    status=Registration.CONFIRMED  # Auto-confirm if no payment needed
+                )
+                
+                # Clear registration session
+                if f'team_registration_{tournament.id}' in request.session:
+                    del request.session[f'team_registration_{tournament.id}']
+                
+                messages.success(request, 'Team registration completed successfully!')
+                return redirect('tournaments:registration_success', slug=tournament.slug)
         
         elif step == '3':
+            # Process payment and create registration
+            from apps.tournaments.models.registration import Registration, Payment
+            from decimal import Decimal
+            
+            team_data = request.session.get(f'team_registration_{tournament.id}', {})
+            
+            # Create registration record
+            registration = Registration.objects.create(
+                tournament=tournament,
+                user=request.user,
+                team_id=team_data.get('team_id'),  # Get from session data
+                registration_data=team_data,
+                status=Registration.PAYMENT_SUBMITTED
+            )
+            
+            # Create payment record
+            payment_method = request.POST.get('payment_method', 'bkash')
+            payment_proof = request.FILES.get('payment_proof')
+            
+            Payment.objects.create(
+                registration=registration,
+                payment_method=payment_method,
+                amount=Decimal(str(tournament.entry_fee_amount)),
+                transaction_id=request.POST.get('transaction_id', ''),
+                payment_proof=payment_proof,
+                reference_number=request.POST.get('reference_number', ''),
+                status='submitted'
+            )
+            
             # Store registration type before clearing session
             request.session['registration_type'] = 'team'
-            request.session['registration_step_data'] = request.session.get(f'registration_demo_{tournament.id}_team', {})
+            request.session['registration_step_data'] = team_data
             
             # Clear registration session
             if f'team_registration_{tournament.id}' in request.session:
                 del request.session[f'team_registration_{tournament.id}']
             
-            messages.success(request, 'Team registration submitted successfully!')
+            messages.success(request, 'Team registration submitted successfully! Payment is pending verification.')
             return redirect('tournaments:registration_success', slug=tournament.slug)
         
         return redirect(f'{request.path}?step=1')
