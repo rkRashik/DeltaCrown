@@ -440,7 +440,8 @@
         <div class="section-header">
             <h3 class="section-title">
                 <span>👥</span>
-                Team Roster
+                Selected Tournament Roster
+                <span class="ml-2 text-sm text-gray-400">({{ registration_data.roster|length }} players)</span>
             </h3>
             <a href="?step=1" class="edit-btn">
                 <i class="fas fa-edit"></i>
@@ -448,71 +449,127 @@
             </a>
         </div>
 
-        <div class="roster-section">
-            {% for player in registration_data.roster %}
-                {% if forloop.first %}
-                    <!-- Captain -->
-                    <div class="player-card captain">
+        {% if registration_data.roster %}
+        <!-- Starting Lineup -->
+        <div class="mb-6">
+            <h4 class="text-lg font-semibold text-white mb-3 flex items-center">
+                <i class="fas fa-gamepad mr-2 text-blue-400"></i>
+                Starting Lineup
+                <span class="ml-2 text-sm bg-blue-600/20 text-blue-400 px-2 py-1 rounded">
+                    {{ registration_data.roster_count.starting|default:0 }} players
+                </span>
+            </h4>
+            
+            <div class="roster-section">
+                {% for player in registration_data.roster %}
+                    {% if player.position == 'starting' %}
+                    <div class="player-card player border-l-4 border-blue-500">
                         <div class="player-role">
-                            <span class="captain-badge">⭐ CAPTAIN</span>
+                            <div class="flex items-center justify-between">
+                                <span class="player-badge bg-gradient-to-r from-blue-600 to-blue-800">
+                                    <i class="fas fa-user-shield mr-1"></i>
+                                    {{ player.role|upper }}
+                                </span>
+                                <span class="text-sm text-gray-400">Position #{{ player.position_number }}</span>
+                            </div>
                         </div>
-                        <div class="player-info">
+                        <div class="player-info mt-2">
                             <div class="player-details">
-                                <div class="player-name">{{ player.display_name|default:player.full_name }}</div>
-                                {% if player.display_name and player.display_name != player.full_name %}
-                                    <div class="player-ign">{{ player.display_name }}</div>
+                                <div class="player-name flex items-center gap-2">
+                                    {{ player.full_name }}
+                                    {% if player.role == 'Captain' %}
+                                    <i class="fas fa-star text-yellow-400"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="player-ign">
+                                    <i class="fas fa-gamepad mr-1 text-gray-500"></i>
+                                    {{ player.display_name }}
+                                </div>
+                                {% if player.email %}
+                                <div class="player-full-name">
+                                    <i class="fas fa-envelope mr-1 text-gray-600"></i>
+                                    {{ player.email }}
+                                </div>
                                 {% endif %}
                             </div>
-                            <div class="player-full-name">{{ player.full_name }}</div>
                         </div>
                     </div>
-                {% elif forloop.last and registration_data.roster|length > 5 %}
-                    <!-- Substitute -->
-                    <div class="player-card substitute">
-                        <div class="player-role">
-                            <span class="substitute-badge">🔄 SUBSTITUTE</span>
-                        </div>
-                        <div class="player-info">
-                            <div class="player-details">
-                                <div class="player-name">{{ player.display_name|default:player.full_name }}</div>
-                                {% if player.display_name and player.display_name != player.full_name %}
-                                    <div class="player-ign">{{ player.display_name }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="player-full-name">{{ player.full_name }}</div>
-                        </div>
-                    </div>
-                {% else %}
-                    <!-- Regular Player -->
-                    <div class="player-card player">
-                        <div class="player-role">
-                            <span class="player-badge">PLAYER {{ forloop.counter }}</span>
-                        </div>
-                        <div class="player-info">
-                            <div class="player-details">
-                                <div class="player-name">{{ player.display_name|default:player.full_name }}</div>
-                                {% if player.display_name and player.display_name != player.full_name %}
-                                    <div class="player-ign">{{ player.display_name }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="player-full-name">{{ player.full_name }}</div>
-                        </div>
-                    </div>
-                {% endif %}
-            {% empty %}
-                <div class="text-center text-gray-400 py-4">
-                    No roster members added
-                </div>
-            {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            </div>
         </div>
 
-        <div class="text-sm text-gray-400">
-            <i class="fas fa-info-circle mr-1"></i>
-            Total: {{ registration_data.roster|length }} players
-            {% if registration_data.roster|length >= 5 %}
-                ({{ registration_data.roster|length|add:"-1" }} main + 1 substitute)
-            {% endif %}
+        <!-- Substitutes -->
+        {% if registration_data.roster_count.substitutes > 0 %}
+        <div class="mb-6">
+            <h4 class="text-lg font-semibold text-white mb-3 flex items-center">
+                <i class="fas fa-exchange-alt mr-2 text-green-400"></i>
+                Substitutes
+                <span class="ml-2 text-sm bg-green-600/20 text-green-400 px-2 py-1 rounded">
+                    {{ registration_data.roster_count.substitutes }} player{{ registration_data.roster_count.substitutes|pluralize }}
+                </span>
+            </h4>
+            
+            <div class="roster-section">
+                {% for player in registration_data.roster %}
+                    {% if player.position == 'substitute' %}
+                    <div class="player-card substitute border-l-4 border-green-500">
+                        <div class="player-role">
+                            <div class="flex items-center justify-between">
+                                <span class="substitute-badge bg-gradient-to-r from-green-600 to-green-800">
+                                    <i class="fas fa-user-plus mr-1"></i>
+                                    SUBSTITUTE
+                                </span>
+                                <span class="text-sm text-gray-400">Sub #{{ player.position_number }}</span>
+                            </div>
+                        </div>
+                        <div class="player-info mt-2">
+                            <div class="player-details">
+                                <div class="player-name">{{ player.full_name }}</div>
+                                <div class="player-ign">
+                                    <i class="fas fa-gamepad mr-1 text-gray-500"></i>
+                                    {{ player.display_name }}
+                                </div>
+                                {% if player.email %}
+                                <div class="player-full-name">
+                                    <i class="fas fa-envelope mr-1 text-gray-600"></i>
+                                    {{ player.email }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
         </div>
+        {% endif %}
+
+        <!-- Roster Lock Notice -->
+        <div class="bg-yellow-900/20 border border-yellow-700/50 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-lock text-yellow-400 text-xl mt-0.5"></i>
+                <div class="flex-1">
+                    <h5 class="text-yellow-400 font-semibold mb-2">Roster Lock Policy</h5>
+                    <ul class="text-sm text-gray-300 space-y-1">
+                        <li>• Selected players are <strong>locked</strong> and cannot join other teams for this tournament</li>
+                        <li>• Locked until tournament ends or team withdraws from tournament</li>
+                        <li>• Players can still participate in other teams' non-tournament activities</li>
+                        <li>• Team captain can request roster changes through tournament organizers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="text-center text-gray-400 py-8 bg-gray-800/30 rounded-lg">
+            <i class="fas fa-users-slash text-4xl mb-3"></i>
+            <p>No roster members selected</p>
+            <a href="?step=1" class="mt-3 inline-block px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg">
+                Go Back and Select Players
+            </a>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Entry Fee Notice (if applicable) -->

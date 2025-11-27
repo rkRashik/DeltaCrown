@@ -253,34 +253,63 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             if form_config.enable_captain_display_name_field:
                 team_data['captain_display_name'] = request.POST.get('captain_display_name', '')
             
-            # Collect roster data
-            roster = []
-            player_index = 1
+            # Add team conditional fields
+            if form_config.enable_team_region_field:
+                team_data['team_region'] = request.POST.get('team_region', '')
             
+            if form_config.enable_team_logo_field and 'team_logo' in request.FILES:
+                team_data['team_logo'] = request.FILES['team_logo']
+            
+            # Collect SELECTED roster data for tournament (esports-style selection)
+            roster = []
+            
+            # Collect starting lineup
+            starting_index = 1
             while True:
-                player_name = request.POST.get(f'player_{player_index}_name')
-                if player_name is None:
+                player_id = request.POST.get(f'starting_{starting_index}_id')
+                if not player_id:
                     break
                 
                 player_data = {
-                    'full_name': player_name,
-                    'display_name': request.POST.get(f'player_{player_index}_ign', ''),
+                    'member_id': player_id,
+                    'full_name': request.POST.get(f'starting_{starting_index}_name', ''),
+                    'display_name': request.POST.get(f'starting_{starting_index}_ign', ''),
+                    'email': request.POST.get(f'starting_{starting_index}_email', ''),
+                    'role': request.POST.get(f'starting_{starting_index}_role', 'Player'),
+                    'position': 'starting',
+                    'position_number': starting_index
                 }
                 
-                if form_config.enable_roster_emails_field:
-                    player_data['email'] = request.POST.get(f'player_{player_index}_email', '')
+                roster.append(player_data)
+                starting_index += 1
+            
+            # Collect substitutes
+            substitute_index = 1
+            while True:
+                player_id = request.POST.get(f'substitute_{substitute_index}_id')
+                if not player_id:
+                    break
+                
+                player_data = {
+                    'member_id': player_id,
+                    'full_name': request.POST.get(f'substitute_{substitute_index}_name', ''),
+                    'display_name': request.POST.get(f'substitute_{substitute_index}_ign', ''),
+                    'email': request.POST.get(f'substitute_{substitute_index}_email', ''),
+                    'role': 'Substitute',
+                    'position': 'substitute',
+                    'position_number': substitute_index
+                }
                 
                 roster.append(player_data)
-                player_index += 1
+                substitute_index += 1
             
             team_data['roster'] = roster
-            # If roster is empty, add dummy data for testing
-            if not roster:
-                roster = [
-                    {'full_name': 'Test Player 1', 'display_name': 'TestPlayer1#VAL', 'email': 'test1@example.com'},
-                    {'full_name': 'Test Player 2', 'display_name': 'TestPlayer2#VAL', 'email': 'test2@example.com'},
-                ]
-                team_data['roster'] = roster
+            team_data['roster_count'] = {
+                'starting': starting_index - 1,
+                'substitutes': substitute_index - 1,
+                'total': len(roster)
+            }
+            
             request.session[f'team_registration_{tournament.id}'] = team_data
             return redirect(f'{request.path}?step=2')
         
