@@ -230,7 +230,7 @@ class TeamPermissions:
     @staticmethod
     def can_leave_team(membership: Optional[TeamMembership]) -> bool:
         """
-        All members except OWNER can leave team.
+        All members except OWNER can leave team, unless locked for tournament.
         OWNER must transfer ownership before leaving.
         
         Args:
@@ -241,7 +241,16 @@ class TeamPermissions:
         """
         if not membership:
             return False
-        return membership.role != TeamMembership.Role.OWNER
+        
+        # Owners cannot leave (must transfer first)
+        if membership.role == TeamMembership.Role.OWNER:
+            return False
+        
+        # Check if member is locked for tournament
+        if membership.is_locked_for_tournament():
+            return False
+        
+        return True
     
     @staticmethod
     def can_ready_up_match(membership: Optional[TeamMembership]) -> bool:

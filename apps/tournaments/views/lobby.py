@@ -37,15 +37,25 @@ class TournamentLobbyView(LoginRequiredMixin, View):
         """Render lobby page."""
         tournament = get_object_or_404(Tournament, slug=slug)
         
-        # Check if user is registered
-        is_registered = tournament.registrations.filter(
+        # Check if user is registered (allow pending, payment_submitted, confirmed)
+        from apps.tournaments.models import Registration
+        registration = Registration.objects.filter(
             user=request.user,
-            status='confirmed',
-            is_deleted=False
-        ).exists()
+            tournament=tournament,
+            is_deleted=False,
+            status__in=[
+                Registration.PENDING,
+                Registration.PAYMENT_SUBMITTED,
+                Registration.CONFIRMED
+            ]
+        ).first()
         
-        if not is_registered:
-            messages.warning(request, "You must be registered to access the tournament lobby")
+        if not registration:
+            messages.warning(
+                request,
+                "You must be registered for this tournament to access the lobby. "
+                "Please complete your registration first."
+            )
             return redirect('tournaments:detail', slug=slug)
         
         # Get or create lobby
@@ -71,6 +81,7 @@ class TournamentLobbyView(LoginRequiredMixin, View):
         context = {
             'tournament': tournament,
             'lobby': lobby,
+            'registration': registration,  # Pass registration for status display
             'check_in': check_in,
             'roster_data': roster_data,
             'announcements': announcements,

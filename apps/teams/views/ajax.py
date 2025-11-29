@@ -285,6 +285,14 @@ def leave_team(request, slug: str) -> JsonResponse:
     try:
         membership = get_object_or_404(TeamMembership, team=team, profile=profile)
         
+        # Check if member is locked for tournament
+        if membership.is_locked_for_tournament():
+            locked_until = membership.locked_until.strftime("%B %d, %Y") if membership.locked_until else "tournament ends"
+            return JsonResponse({
+                "error": f"Cannot leave team - you are locked for a tournament registration until {locked_until}. "
+                         f"Please wait for the tournament to finish or contact the organizers."
+            }, status=400)
+        
         if membership.role == 'captain' and team.members.count() > 1:
             return JsonResponse({"error": "Transfer captaincy before leaving the team."}, status=400)
         elif membership.role == 'captain' and team.members.count() == 1:

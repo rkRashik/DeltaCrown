@@ -5,61 +5,137 @@
     <!-- Error Header -->
     <div class="text-center mb-8">
         <div class="text-6xl mb-4">⚠️</div>
-        <h2 class="text-3xl font-bold text-white mb-2">Team Registration Not Available</h2>
-        <p class="text-gray-400">{{ tournament.name }}</p>
+        <h2 class="text-3xl font-bold text-white mb-2">Cannot Register for Tournament</h2>
+        <p class="text-xl text-gray-400 font-semibold">{{ tournament.name }}</p>
+        <p class="text-sm text-gray-500 mt-1">
+            <i class="fas fa-gamepad mr-1"></i>{{ tournament.game.name }} • 
+            <i class="fas fa-users ml-2 mr-1"></i>Team Tournament
+        </p>
     </div>
 
     <!-- Error Message -->
     <div class="gradient-border rounded-lg p-8 mb-6">
         <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-6 mb-6">
             <div class="flex items-start">
-                <i class="fas fa-exclamation-circle text-red-400 text-2xl mr-4 mt-1"></i>
-                <div>
-                    <h3 class="text-xl font-bold text-red-400 mb-2">Registration Requirements Not Met</h3>
-                    <p class="text-gray-300">{{ error_message }}</p>
+                <i class="fas fa-exclamation-triangle text-red-400 text-3xl mr-4 mt-1"></i>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-red-400 mb-3">{{ error_title|default:"Registration Not Available" }}</h3>
+                    <p class="text-gray-200 text-lg leading-relaxed">{{ error_message }}</p>
                 </div>
             </div>
         </div>
 
+        <!-- Context-Specific Requirements -->
         <div class="space-y-4 text-gray-300">
-            <h4 class="font-semibold text-white">To register for this team tournament, you need:</h4>
-            <ul class="space-y-2 ml-6">
-                <li class="flex items-start">
-                    <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
-                    <span>Be the captain of an active {{ tournament.game }} team</span>
-                </li>
-                <li class="flex items-start">
-                    <i class="fas fa-check-circle {% if user_team %}text-green-400{% else %}text-gray-600{% endif %} mr-3 mt-1"></i>
-                    <span>Your team must have the minimum required members (usually 5)</span>
-                </li>
-                <li class="flex items-start">
-                    <i class="fas fa-check-circle text-green-400 mr-3 mt-1"></i>
-                    <span>All team members must have active profiles</span>
-                </li>
-            </ul>
+            {% if error_type == 'no_profile' %}
+                <h4 class="font-semibold text-white text-lg mb-3">
+                    <i class="fas fa-user-circle mr-2"></i>You Need to Complete Your Profile
+                </h4>
+                <p class="text-gray-300 mb-4">Before you can register for tournaments, please complete your user profile.</p>
+                <a href="{% url 'user_profile:edit' %}" 
+                   class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors">
+                    <i class="fas fa-user-edit mr-2"></i>Complete Profile
+                </a>
+            
+            {% elif error_type == 'no_team' %}
+                <h4 class="font-semibold text-white text-lg mb-3">
+                    <i class="fas fa-users mr-2"></i>You Need to Join a {{ tournament.game.name }} Team
+                </h4>
+                <p class="text-gray-300 mb-4">This is a team tournament. You must be part of an active {{ tournament.game.name }} team to register.</p>
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-blue-300">
+                        <i class="fas fa-lightbulb mr-2"></i>
+                        <strong>Tip:</strong> You can create your own team or ask an existing team captain to invite you.
+                    </p>
+                </div>
+            
+            {% elif error_type == 'no_permission' %}
+                <h4 class="font-semibold text-white text-lg mb-3">
+                    <i class="fas fa-user-shield mr-2"></i>You Don't Have Permission to Register
+                </h4>
+                <p class="text-gray-300 mb-4">Only team captains, managers, or members with tournament registration permission can register teams.</p>
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-yellow-300">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>What to do:</strong> Contact your team captain ({{ captain_name|default:"team leader" }}) and ask them to register the team, or request tournament registration permission.
+                    </p>
+                </div>
+            
+            {% elif error_type == 'roster_too_small' %}
+                <h4 class="font-semibold text-white text-lg mb-3">
+                    <i class="fas fa-users-slash mr-2"></i>Your Team Doesn't Have Enough Members
+                </h4>
+                <div class="flex items-center justify-center space-x-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-red-400">{{ current_members }}</div>
+                        <div class="text-sm text-gray-400">Current Members</div>
+                    </div>
+                    <div class="text-2xl text-gray-500">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-4xl font-bold text-green-400">{{ required_members }}</div>
+                        <div class="text-sm text-gray-400">Required Members</div>
+                    </div>
+                </div>
+                <p class="text-gray-300 mb-4">You need {{ members_needed }} more active {{ members_needed|pluralize:"member,members" }} to meet the minimum roster size.</p>
+            
+            {% else %}
+                <!-- Generic Requirements -->
+                <h4 class="font-semibold text-white text-lg mb-3">
+                    <i class="fas fa-clipboard-check mr-2"></i>Team Tournament Requirements
+                </h4>
+                <ul class="space-y-3">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 text-lg mr-3 mt-1"></i>
+                        <span>Must be a member of an active {{ tournament.game.name }} team</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 text-lg mr-3 mt-1"></i>
+                        <span>Must have captain, manager, or tournament registration permission</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 text-lg mr-3 mt-1"></i>
+                        <span>Team must meet minimum roster size requirements</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-green-400 text-lg mr-3 mt-1"></i>
+                        <span>All team members must have complete profiles</span>
+                    </li>
+                </ul>
+            {% endif %}
         </div>
     </div>
 
     <!-- Action Buttons -->
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        {% if not user_team %}
-        <a href="{% url 'teams:create' %}" 
-           class="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-semibold text-center transition-colors">
-            <i class="fas fa-users mr-2"></i>Create a Team
-        </a>
-        {% elif user_team.slug %}
-        <a href="{% url 'teams:detail' user_team.slug %}" 
-           class="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-semibold text-center transition-colors">
-            <i class="fas fa-users-cog mr-2"></i>Manage Your Team
-        </a>
+        {% if error_type == 'no_profile' %}
+            <a href="{% url 'user_profile:edit' %}" 
+               class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-center transition-colors">
+                <i class="fas fa-user-edit mr-2"></i>Complete Your Profile
+            </a>
+        {% elif error_type == 'no_team' %}
+            <a href="{% url 'teams:create' %}" 
+               class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-center transition-colors">
+                <i class="fas fa-plus-circle mr-2"></i>Create a Team
+            </a>
+            <a href="{% url 'teams:list' %}" 
+               class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-center transition-colors">
+                <i class="fas fa-users mr-2"></i>Browse Teams
+            </a>
+        {% elif error_type == 'roster_too_small' or user_team %}
+            <a href="{% url 'teams:detail' user_team.slug %}" 
+               class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-center transition-colors">
+                <i class="fas fa-users-cog mr-2"></i>Manage Team Roster
+            </a>
         {% else %}
-        <a href="{% url 'teams:list' %}" 
-           class="px-6 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-semibold text-center transition-colors">
-            <i class="fas fa-users mr-2"></i>View Your Teams
-        </a>
+            <a href="{% url 'teams:list' %}" 
+               class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-center transition-colors">
+                <i class="fas fa-users mr-2"></i>View Your Teams
+            </a>
         {% endif %}
         
-        <a href="{{ tournament.get_absolute_url }}" 
+        <a href="{% url 'tournaments:detail' tournament.slug %}" 
            class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold text-center transition-colors">
             <i class="fas fa-arrow-left mr-2"></i>Back to Tournament
         </a>

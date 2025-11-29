@@ -131,13 +131,20 @@ class TeamRegistrationView(LoginRequiredMixin, View):
         ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
         
         if existing_registration:
-            messages.warning(request, 'You have already registered for this tournament!')
-            return redirect('tournaments:detail', slug=tournament.slug)
+            # Show already registered page with lobby access and verification status
+            return render(request, 'tournaments/team_registration/already_registered.html', {
+                'tournament': tournament,
+                'registration': existing_registration,
+                'form_config': form_config,
+                'needs_verification': existing_registration.status in [Registration.PENDING, Registration.PAYMENT_SUBMITTED],
+            })
         
         # ELIGIBILITY CHECK: User must have a team for this game
         user_team = None
         team_members = []
         eligibility_error = None
+        error_type = None
+        error_context = {}
         
         try:
             from apps.teams.models import Team, TeamMembership
@@ -145,7 +152,11 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             
             user_profile = UserProfile.objects.filter(user=request.user).first()
             if not user_profile:
-                eligibility_error = "You need to create a profile first."
+                eligibility_error = "You need to complete your user profile before registering for tournaments."
+                error_type = 'no_profile'
+                error_context = {
+                    'error_title': 'Profile Required',
+                }
             else:
                 # Get user's teams for this game
                 user_teams = Team.objects.filter(
@@ -156,11 +167,16 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                 ).distinct()
                 
                 if not user_teams.exists():
-                    eligibility_error = f"You need to join a {tournament.game.name} team to register for this tournament."
+                    eligibility_error = f"You are not a member of any active {tournament.game.name} team. Please join or create a team to participate in this tournament."
+                    error_type = 'no_team'
+                    error_context = {
+                        'error_title': 'No Team Found',
+                    }
                 else:
                     # Find first team where user has registration permission
                     user_team = None
                     user_membership = None
+                    captain_name = None
                     
                     for team in user_teams:
                         membership = TeamMembership.objects.filter(
@@ -177,10 +193,42 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                             user_team = team
                             user_membership = membership
                             break
+                        
+                        # Track captain for error message
+                        if not captain_name:
+                            captain_membership = TeamMembership.objects.filter(
+                                team=team,
+                                role__in=[TeamMembership.Role.OWNER, TeamMembership.Role.CAPTAIN],
+                                status=TeamMembership.Status.ACTIVE
+                            ).first()
+                            if captain_membership:
+                                captain_name = captain_membership.profile.user.username
                     
                     if not user_team:
-                        eligibility_error = "You don't have permission to register any of your teams for tournaments. Contact your team captain or manager."
+                        eligibility_error = "You don't have permission to register any of your teams for tournaments. Only team captains, managers, or members with explicit tournament registration permission can register."
+                        error_type = 'no_permission'
+                        error_context = {
+                            'error_title': 'No Registration Permission',
+                            'captain_name': captain_name,
+                        }
                     else:
+                        # CHECK: Team already registered by another member?
+                        team_registration = Registration.objects.filter(
+                            tournament=tournament,
+                            team_id=user_team.id,
+                            is_deleted=False
+                        ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+                        
+                        if team_registration:
+                            # Team already registered - show who registered it
+                            return render(request, 'tournaments/team_registration/team_already_registered.html', {
+                                'tournament': tournament,
+                                'team': user_team,
+                                'registration': team_registration,
+                                'registered_by': team_registration.user,
+                                'form_config': form_config,
+                            })
+                        
                         # Get active team members
                         team_members = TeamMembership.objects.filter(
                             team=user_team,
@@ -189,20 +237,35 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                         
                         # Check minimum roster size
                         min_team_size = getattr(tournament.game, 'min_team_size', 5)
-                        if team_members.count() < min_team_size:
-                            eligibility_error = f"Your team needs at least {min_team_size} active members to register. Current: {team_members.count()}"
+                        current_count = team_members.count()
+                        if current_count < min_team_size:
+                            members_needed = min_team_size - current_count
+                            eligibility_error = f"Your team '{user_team.name}' only has {current_count} active member{'s' if current_count != 1 else ''}, but this tournament requires a minimum of {min_team_size}. Please recruit {members_needed} more member{'s' if members_needed != 1 else ''} before registering."
+                            error_type = 'roster_too_small'
+                            error_context = {
+                                'error_title': 'Roster Too Small',
+                                'current_members': current_count,
+                                'required_members': min_team_size,
+                                'members_needed': members_needed,
+                            }
         except Exception as e:
             import traceback
             print(f"Error loading team data: {e}")
             print(traceback.format_exc())
-            eligibility_error = "Error checking team eligibility. Please try again."
+            eligibility_error = "An unexpected error occurred while checking your team eligibility. Please try again or contact support if the problem persists."
+            error_type = 'system_error'
+            error_context = {
+                'error_title': 'System Error',
+            }
         
-        # If not eligible, show error page
-        if eligibility_error and step == '1':
+        # If not eligible, show error page (regardless of step)
+        if eligibility_error:
             return render(request, 'tournaments/team_registration/team_eligibility_error.html', {
                 'tournament': tournament,
                 'error_message': eligibility_error,
+                'error_type': error_type,
                 'user_team': user_team,
+                **error_context,
             })
         
         if step not in ['1', '2', '3']:
@@ -349,12 +412,26 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                 from apps.tournaments.models.registration import Registration
                 team_data = request.session.get(f'team_registration_{tournament.id}', {})
                 
+                # CHECK: Already registered for this tournament?
+                existing_registration = Registration.objects.filter(
+                    tournament=tournament,
+                    user=request.user,
+                    is_deleted=False
+                ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+                
+                if existing_registration:
+                    # User already registered - redirect to already registered page
+                    messages.warning(request, 'You are already registered for this tournament.')
+                    return redirect('tournaments:detail', slug=tournament.slug)
+                
                 Registration.objects.create(
                     tournament=tournament,
                     user=request.user,
                     team_id=team_data.get('team_id'),  # Get from session data
                     registration_data=team_data,
-                    status=Registration.CONFIRMED  # Auto-confirm if no payment needed
+                    status=Registration.CONFIRMED,  # Auto-confirm if no payment needed
+                    current_step=2,  # Review step completed
+                    time_spent_seconds=0  # TODO: Track actual time spent in wizard
                 )
                 
                 # Clear registration session
@@ -371,18 +448,32 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             
             team_data = request.session.get(f'team_registration_{tournament.id}', {})
             
+            # CHECK: Already registered for this tournament?
+            existing_registration = Registration.objects.filter(
+                tournament=tournament,
+                user=request.user,
+                is_deleted=False
+            ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+            
+            if existing_registration:
+                # User already registered - redirect to already registered page
+                messages.warning(request, 'You are already registered for this tournament.')
+                return redirect('tournaments:detail', slug=tournament.slug)
+            
             # Create registration record
             registration = Registration.objects.create(
                 tournament=tournament,
                 user=request.user,
                 team_id=team_data.get('team_id'),  # Get from session data
                 registration_data=team_data,
-                status=Registration.PAYMENT_SUBMITTED
+                status=Registration.PAYMENT_SUBMITTED,
+                current_step=3,  # Payment step completed
+                time_spent_seconds=0  # TODO: Track actual time spent in wizard
             )
             
             # Create payment record
             payment_method = request.POST.get('payment_method', 'bkash')
-            payment_proof = request.FILES.get('payment_proof')
+            payment_proof = request.FILES.get('screenshot')
             
             Payment.objects.create(
                 registration=registration,

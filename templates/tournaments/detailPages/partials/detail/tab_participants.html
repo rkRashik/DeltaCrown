@@ -74,14 +74,14 @@
                        data-participant-id="{{ participant.id }}"
                        data-status="{{ participant.status }}"
                        data-checked-in="{{ participant.checked_in|yesno:'true,false' }}"
-                       data-region="{{ participant.region|default_if_none:'' }}"
+                       data-region="{{ participant.region|default:'' }}"
                        data-name="{{ participant.name|lower }}">
                     {% else %}
                     <div class="td-participant-card td-participant-card--team {% if participant.is_current_user %}is-current-user{% endif %}" 
                        data-participant-id="{{ participant.id }}"
                        data-status="{{ participant.status }}"
                        data-checked-in="{{ participant.checked_in|yesno:'true,false' }}"
-                       data-region="{{ participant.region|default_if_none:'' }}"
+                       data-region="{{ participant.region|default:'' }}"
                        data-name="{{ participant.name|lower }}">
                     {% endif %}
                 {% else %}
@@ -89,7 +89,7 @@
                          data-participant-id="{{ participant.id }}"
                          data-status="{{ participant.status }}"
                          data-checked-in="{{ participant.checked_in|yesno:'true,false' }}"
-                         data-region="{{ participant.region|default_if_none:'' }}"
+                         data-region="{{ participant.region|default:'' }}"
                          data-name="{{ participant.name|lower }}">
                 {% endif %}
                         

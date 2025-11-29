@@ -320,41 +320,62 @@
                             {% endif %}
                             
                             <div class="dc-card-actions">
-                                {% if tournament.status == 'registration_open' %}
-                                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" class="dc-btn dc-btn-primary neon">
-                                        <i class="fas fa-plus"></i>
-                                        <span>Register Now</span>
+                                {% if tournament.id in user_registered_tournaments %}
+                                    <!-- User Already Registered - Show Lobby Button -->
+                                    <a href="{% url 'tournaments:lobby' slug=tournament.slug %}" class="dc-btn dc-btn-success neon">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Registered - Enter Lobby</span>
                                     </a>
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
                                         <i class="fas fa-circle-info"></i>
                                         <span>View Details</span>
                                     </a>
-                                {% elif tournament.status == 'live' %}
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
-                                        <i class="fas fa-trophy"></i>
-                                        <span>View Tournament</span>
-                                    </a>
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-sitemap"></i>
-                                        <span>Bracket</span>
-                                    </a>
                                 {% elif tournament.status == 'completed' %}
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-trophy"></i>
+                                    <!-- Tournament Completed - Show Results -->
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline" style="border-color: rgb(251, 191, 36); color: rgb(251, 191, 36);">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
                                         <span>View Results</span>
                                     </a>
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
                                         <i class="fas fa-medal"></i>
                                         <span>Standings</span>
                                     </a>
-                                {% else %}
-                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary">
-                                        <i class="fas fa-circle-info"></i>
-                                        <span>View Details</span>
+                                {% elif tournament.status == 'live' %}
+                                    <!-- Tournament is Live - Show Watch Button -->
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-primary" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border-color: #ef4444; position: relative; overflow: hidden;">
+                                        <span style="position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%); animation: pulse 2s ease-in-out infinite;"></span>
+                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px; position: relative; z-index: 1;">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <span style="position: relative; z-index: 1;">Watch Live</span>
                                     </a>
                                     <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
-                                        <i class="fas fa-calendar"></i>
-                                        <span>Schedule</span>
+                                        <i class="fas fa-sitemap"></i>
+                                        <span>Bracket</span>
+                                    </a>
+                                {% elif tournament.status == 'registration_closed' %}
+                                    <!-- Registration Closed but Not Live Yet - Show Schedule -->
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline" style="border-color: rgb(148, 163, 184); color: rgb(148, 163, 184);">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px; margin-right: 8px;">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>View Schedule</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-secondary">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>Details</span>
+                                    </a>
+                                {% else %}
+                                    <!-- Default: Always Show Registration Button (for draft, published, registration_open, etc.) -->
+                                    <a href="{% if tournament.participation_type == 'team' %}{% url 'tournaments:team_registration' slug=tournament.slug %}{% else %}{% url 'tournaments:register' tournament_slug=tournament.slug %}{% endif %}" class="dc-btn dc-btn-primary neon">
+                                        <i class="fas fa-user-plus"></i>
+                                        <span>Register Now</span>
+                                    </a>
+                                    <a href="{% url 'tournaments:detail' slug=tournament.slug %}" class="dc-btn dc-btn-outline">
+                                        <i class="fas fa-circle-info"></i>
+                                        <span>View Details</span>
                                     </a>
                                 {% endif %}
                             </div>

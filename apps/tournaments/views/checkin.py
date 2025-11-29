@@ -27,7 +27,7 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
     Access: Registered participants only (redirects non-participants to detail page)
     
     URL: /tournaments/<slug>/lobby/
-    Template: tournaments/lobby/index.html
+    Template: tournaments/lobby/hub.html
     Context:
         - tournament: Tournament object
         - registration: User's registration
@@ -37,7 +37,7 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
         - next_match: User's next scheduled match (if bracket generated)
     """
     model = Tournament
-    template_name = 'tournaments/lobby/index.html'
+    template_name = 'tournaments/lobby/hub.html'
     context_object_name = 'tournament'
     login_url = '/accounts/login/'
     
@@ -47,8 +47,7 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
             is_deleted=False
         ).select_related(
             'game',
-            'organizer',
-            'bracket'
+            'organizer'
         )
     
     def dispatch(self, request, *args, **kwargs):
@@ -56,16 +55,23 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
         tournament = self.get_object()
         
         # Check if user is registered participant
+        # Allow access for pending, payment_submitted, and confirmed registrations
         try:
             registration = Registration.objects.get(
                 tournament=tournament,
                 user=request.user,
-                is_deleted=False
+                is_deleted=False,
+                status__in=[
+                    Registration.PENDING,
+                    Registration.PAYMENT_SUBMITTED,
+                    Registration.CONFIRMED
+                ]
             )
         except Registration.DoesNotExist:
             messages.warning(
                 request,
-                "You must be registered to access the tournament lobby."
+                "You must be registered for this tournament to access the lobby. "
+                "Please complete your registration first."
             )
             return redirect('tournaments:detail', slug=tournament.slug)
         
@@ -96,7 +102,7 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
         # Check-in stats
         total_participants = context['roster'].count()
         checked_in_count = context['roster'].filter(
-            check_in_status='checked_in'
+            checked_in=True
         ).count()
         context['check_in_stats'] = {
             'total': total_participants,
@@ -127,7 +133,7 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
             'team'
         ).order_by(
             # Checked-in participants first, then by registration date
-            '-check_in_status',
+            '-checked_in',
             'created_at'
         )
     
@@ -137,7 +143,9 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
         
         Returns Match object or None.
         """
-        if not tournament.bracket:
+        try:
+            bracket = tournament.bracket
+        except Tournament.bracket.RelatedObjectDoesNotExist:
             return None
         
         # Find user's registration
@@ -245,7 +253,7 @@ class CheckInActionView(LoginRequiredMixin, View):
             return "You must be registered to check in."
         
         # Check if already checked in
-        if registration.check_in_status == 'checked_in':
+        if registration.checked_in:
             return "You're already checked in!"
         
         # Check if check-in window is open
@@ -347,7 +355,7 @@ class RosterView(View):
             'user__userprofile',
             'team'
         ).order_by(
-            '-check_in_status',
+            '-checked_in',
             'created_at'
         )
         
@@ -367,7 +375,7 @@ class RosterView(View):
                     'id': reg.id,
                     'name': reg.team.name if reg.team else reg.user.username,
                     'avatar': reg.user.userprofile.avatar.url if reg.user and hasattr(reg.user, 'userprofile') and reg.user.userprofile.avatar else None,
-                    'check_in_status': reg.check_in_status,
+                    'check_in_status': reg.checked_in,
                     'checked_in_at': reg.checked_in_at.isoformat() if reg.checked_in_at else None,
                     'is_current_user': reg.id == user_registration_id,
                 }

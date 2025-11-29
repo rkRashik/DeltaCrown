@@ -270,6 +270,72 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         help_text='Whether teams or individuals participate'
     )
     
+    # Platform choices
+    PC = 'pc'
+    MOBILE = 'mobile'
+    PS5 = 'ps5'
+    XBOX = 'xbox'
+    SWITCH = 'switch'
+    
+    PLATFORM_CHOICES = [
+        (PC, 'PC'),
+        (MOBILE, 'Mobile'),
+        (PS5, 'PlayStation 5'),
+        (XBOX, 'Xbox Series X/S'),
+        (SWITCH, 'Nintendo Switch'),
+    ]
+    
+    # Mode choices
+    ONLINE = 'online'
+    LAN = 'lan'
+    HYBRID = 'hybrid'
+    
+    MODE_CHOICES = [
+        (ONLINE, 'Online'),
+        (LAN, 'LAN'),
+        (HYBRID, 'Hybrid (Online + LAN Finals)'),
+    ]
+    
+    # Platform & Mode
+    platform = models.CharField(
+        max_length=20,
+        choices=PLATFORM_CHOICES,
+        default=PC,
+        db_index=True,
+        help_text='Gaming platform for this tournament'
+    )
+    mode = models.CharField(
+        max_length=10,
+        choices=MODE_CHOICES,
+        default=ONLINE,
+        db_index=True,
+        help_text='Tournament mode - affects location requirements'
+    )
+    
+    # Venue information (for LAN/Hybrid tournaments)
+    venue_name = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text='Venue name for LAN tournaments'
+    )
+    venue_address = models.TextField(
+        blank=True,
+        default='',
+        help_text='Complete venue address for LAN tournaments'
+    )
+    venue_city = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text='City where LAN event is held'
+    )
+    venue_map_url = models.URLField(
+        blank=True,
+        default='',
+        help_text='Google Maps link to venue'
+    )
+    
     # Capacity
     max_participants = models.PositiveIntegerField(
         validators=[MinValueValidator(2), MaxValueValidator(256)],
@@ -519,6 +585,47 @@ class Tournament(SoftDeleteModel, TimestampedModel):
             ),
         ]
     
+    # Platform & Mode Helper Methods
+    def is_online(self) -> bool:
+        """Check if tournament is online only."""
+        return self.mode == self.ONLINE
+    
+    def is_lan(self) -> bool:
+        """Check if tournament has LAN component."""
+        return self.mode in [self.LAN, self.HYBRID]
+    
+    def requires_venue(self) -> bool:
+        """Check if tournament requires venue information."""
+        return self.is_lan()
+    
+    def get_platform_display_name(self) -> str:
+        """Get human-readable platform name."""
+        return dict(self.PLATFORM_CHOICES).get(self.platform, self.platform)
+    
+    def get_mode_display_name(self) -> str:
+        """Get human-readable mode name."""
+        return dict(self.MODE_CHOICES).get(self.mode, self.mode)
+    
+    def get_platform_icon(self) -> str:
+        """Get FontAwesome icon class for platform."""
+        icons = {
+            self.PC: 'fa-desktop',
+            self.MOBILE: 'fa-mobile-alt',
+            self.PS5: 'fa-playstation',
+            self.XBOX: 'fa-xbox',
+            self.SWITCH: 'fa-gamepad',
+        }
+        return icons.get(self.platform, 'fa-gamepad')
+    
+    def get_mode_icon(self) -> str:
+        """Get FontAwesome icon class for mode."""
+        icons = {
+            self.ONLINE: 'fa-wifi',
+            self.LAN: 'fa-map-marker-alt',
+            self.HYBRID: 'fa-globe',
+        }
+        return icons.get(self.mode, 'fa-globe')
+    
     def __str__(self) -> str:
         return f"{self.name} ({self.game.name})"
     
@@ -558,6 +665,39 @@ class Tournament(SoftDeleteModel, TimestampedModel):
             self.organizer = official_user
         
         super().save(*args, **kwargs)
+    
+    def clean(self):
+        """
+        Validate tournament data.
+        
+        Ensures:
+        - LAN/Hybrid tournaments have venue information
+        - Dates are in correct order
+        - Min/max participants are valid
+        """
+        from django.core.exceptions import ValidationError
+        errors = {}
+        
+        # Validate venue for LAN tournaments
+        if self.requires_venue() and not self.venue_name:
+            errors['venue_name'] = 'Venue name is required for LAN and Hybrid tournaments.'
+        
+        if self.requires_venue() and not self.venue_address:
+            errors['venue_address'] = 'Venue address is required for LAN and Hybrid tournaments.'
+        
+        # Validate dates
+        if self.registration_start and self.registration_end:
+            if self.registration_end <= self.registration_start:
+                errors['registration_end'] = 'Registration end must be after registration start.'
+        
+        if self.registration_end and self.tournament_start:
+            if self.tournament_start < self.registration_end:
+                errors['tournament_start'] = 'Tournament start must be after registration closes.'
+        
+        if errors:
+            raise ValidationError(errors)
+        
+        super().clean()
     
     def is_registration_open(self) -> bool:
         """

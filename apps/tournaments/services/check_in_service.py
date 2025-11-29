@@ -99,11 +99,11 @@ class CheckInService:
             return False
         
         # Check if already checked in
-        if registration.check_in_status == 'checked_in':
+        if registration.checked_in:
             return False
         
         # Check if registration is confirmed
-        if hasattr(registration, 'state') and registration.state != 'confirmed':
+        if registration.status != 'confirmed':
             return False
         
         # Check if check-in window is open
@@ -143,13 +143,13 @@ class CheckInService:
             raise ValidationError("Registration not found.")
         
         # Check if already checked in (race condition protection)
-        if registration.check_in_status == 'checked_in':
+        if registration.checked_in:
             return registration  # Idempotent: return existing check-in
         
         # Update check-in status
-        registration.check_in_status = 'checked_in'
+        registration.checked_in = True
         registration.checked_in_at = timezone.now()
-        registration.save(update_fields=['check_in_status', 'checked_in_at', 'updated_at'])
+        registration.save(update_fields=['checked_in', 'checked_in_at', 'updated_at'])
         
         return registration
     
@@ -172,7 +172,7 @@ class CheckInService:
             'user__userprofile',
             'team'
         ).order_by(
-            '-check_in_status',  # Checked-in first
+            '-checked_in',  # Checked-in first
             'created_at'
         )
     

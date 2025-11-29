@@ -113,10 +113,10 @@ class RegistrationAutoFillService:
         )
         
         # Phone Number
-        if profile and profile.phone_number:
+        if profile and profile.phone:
             data['phone'] = AutoFillField(
                 field_name='phone',
-                value=profile.phone_number,
+                value=profile.phone,
                 source='profile',
                 confidence='high'
             )

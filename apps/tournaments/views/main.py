@@ -110,9 +110,22 @@ class TournamentListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Add user registration status for each tournament
+        # Add user registration status for each tournament (for dynamic buttons)
+        from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
+        
+        # Add eligibility check for each tournament (for both authenticated and non-authenticated users)
+        tournament_eligibility = {}
+        for tournament in context['tournament_list']:
+            eligibility = RegistrationEligibilityService.check_eligibility(
+                tournament, self.request.user if self.request.user.is_authenticated else None
+            )
+            tournament_eligibility[tournament.id] = eligibility
+        context['tournament_eligibility'] = tournament_eligibility
+        
         if self.request.user.is_authenticated:
             from apps.tournaments.models import Registration
+            
+            # Get user's registrations
             user_registrations = Registration.objects.filter(
                 user=self.request.user,
                 tournament__in=context['tournament_list'],
@@ -203,20 +216,30 @@ class TournamentDetailView(DetailView):
         game_spec = get_game(canonical_slug)
         context['game_spec'] = game_spec
         
-        # FE-T-003: Registration CTA state logic with backend eligibility checks (Enhanced Sprint 5)
-        # Source: FRONTEND_TOURNAMENT_BACKLOG.md Section 1.3 + 1.4
-        # Sprint 5 Enhancement: Add payment, approval, check-in validation states
-        # States: login_required, open, closed, full, registered, payment_pending, approval_pending, 
-        #         check_in_required, checked_in, upcoming, not_eligible, no_team_permission
+        # Use centralized eligibility service (consistent with list page and registration form)
+        from apps.tournaments.services.eligibility_service import RegistrationEligibilityService
+        eligibility = RegistrationEligibilityService.check_eligibility(tournament, user)
         
-        # Default state: Login required (for non-authenticated users)
-        context['cta_state'] = 'login_required'
-        context['cta_label'] = 'Login to Register'
-        context['cta_disabled'] = False
-        context['cta_reason'] = 'You must be logged in to register'
-        context['is_registered'] = False
-        context['can_register'] = False
-        context['registration_status'] = None
+        # Add eligibility data to context
+        context['can_register'] = eligibility['can_register']
+        context['registration_status_reason'] = eligibility['reason']
+        context['is_registered'] = eligibility['registration'] is not None
+        context['user_registration'] = eligibility['registration']
+        context['eligibility_status'] = eligibility['status']
+        
+        # ALWAYS provide registration URL - let the registration form handle eligibility checks
+        # This ensures users can always click "Register" and get proper feedback
+        if tournament.participation_type == Tournament.TEAM:
+            context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/team/'
+            context['registration_action_label'] = 'Register Team'
+        else:
+            context['registration_action_url'] = f'/tournaments/{tournament.slug}/register/'
+            context['registration_action_label'] = 'Register Now'
+        
+        # Override with specific action if already registered
+        if eligibility['registration'] is not None:
+            context['registration_action_url'] = f'/tournaments/{tournament.slug}/lobby/'
+            context['registration_action_label'] = 'Enter Lobby'
         
         # Calculate slots info (always visible)
         from apps.tournaments.models import Registration
@@ -228,112 +251,6 @@ class TournamentDetailView(DetailView):
         context['slots_filled'] = slots_filled
         context['slots_total'] = tournament.max_participants
         context['slots_percentage'] = (slots_filled / tournament.max_participants * 100) if tournament.max_participants > 0 else 0
-        
-        if user.is_authenticated:
-            # Check if user is already registered
-            try:
-                is_registered = Registration.objects.filter(
-                    tournament=tournament,
-                    user=user,
-                    is_deleted=False
-                ).exclude(
-                    status__in=[Registration.CANCELLED, Registration.REJECTED]
-                ).exists()
-                context['is_registered'] = is_registered
-                
-                if is_registered:
-                    # Sprint 5: Enhanced validation states for registered users
-                    registration_status = self._get_registration_status(tournament, user)
-                    context['registration_status'] = registration_status
-                    
-                    # Determine CTA state based on registration sub-state
-                    if registration_status['state'] == 'payment_pending':
-                        context['cta_state'] = 'payment_pending'
-                        context['cta_label'] = 'Payment Required'
-                        context['cta_disabled'] = False
-                        context['cta_reason'] = registration_status['reason']
-                    elif registration_status['state'] == 'approval_pending':
-                        context['cta_state'] = 'approval_pending'
-                        context['cta_label'] = 'Awaiting Approval'
-                        context['cta_disabled'] = True
-                        context['cta_reason'] = registration_status['reason']
-                    elif registration_status['state'] == 'check_in_required':
-                        context['cta_state'] = 'check_in_required'
-                        context['cta_label'] = 'Check-In Required'
-                        context['cta_disabled'] = False
-                        context['cta_reason'] = registration_status['reason']
-                    elif registration_status['state'] == 'checked_in':
-                        context['cta_state'] = 'checked_in'
-                        context['cta_label'] = "You're Checked In ✓"
-                        context['cta_disabled'] = True
-                        context['cta_reason'] = 'You are checked in and ready for the tournament'
-                    else:
-                        # Default registered state (payment confirmed, approved, no check-in yet)
-                        context['cta_state'] = 'registered'
-                        context['cta_label'] = "You're Registered"
-                        context['cta_disabled'] = False
-                        context['cta_reason'] = 'You have successfully registered for this tournament'
-                    context['can_register'] = False
-                else:
-                    # Use RegistrationService to check eligibility
-                    # This handles: capacity, registration window, participation type, team permissions
-                    try:
-                        RegistrationService.check_eligibility(
-                            tournament=tournament,
-                            user=user,
-                            team_id=None  # TODO: Get selected team from session/form state
-                        )
-                        # Eligibility check passed - user can register
-                        context['cta_state'] = 'open'
-                        context['cta_label'] = 'Register Now'
-                        context['cta_disabled'] = False
-                        context['cta_reason'] = 'Registration is open'
-                        context['can_register'] = True
-                        
-                    except ValidationError as e:
-                        # Eligibility check failed - determine specific reason
-                        error_message = str(e.message) if hasattr(e, 'message') else str(e)
-                        context['cta_reason'] = error_message
-                        context['can_register'] = False
-                        
-                        # Map backend errors to specific CTA states
-                        if 'full' in error_message.lower():
-                            context['cta_state'] = 'full'
-                            context['cta_label'] = 'Tournament Full'
-                            context['cta_disabled'] = True
-                        elif 'closed' in error_message.lower() or 'ended' in error_message.lower():
-                            context['cta_state'] = 'closed'
-                            context['cta_label'] = 'Registration Closed'
-                            context['cta_disabled'] = True
-                        elif 'not started' in error_message.lower() or 'not open' in error_message.lower():
-                            context['cta_state'] = 'upcoming'
-                            context['cta_label'] = 'Coming Soon'
-                            context['cta_disabled'] = True
-                        elif 'permission' in error_message.lower():
-                            context['cta_state'] = 'no_team_permission'
-                            context['cta_label'] = 'No Permission'
-                            context['cta_disabled'] = True
-                        elif 'requires team' in error_message.lower():
-                            context['cta_state'] = 'not_eligible'
-                            context['cta_label'] = 'Team Required'
-                            context['cta_disabled'] = True
-                        elif 'solo participants' in error_message.lower():
-                            context['cta_state'] = 'not_eligible'
-                            context['cta_label'] = 'Solo Only'
-                            context['cta_disabled'] = True
-                        else:
-                            # Generic not eligible state
-                            context['cta_state'] = 'not_eligible'
-                            context['cta_label'] = 'Not Eligible'
-                            context['cta_disabled'] = True
-            
-            except Exception as e:
-                # Fallback for unexpected errors
-                context['cta_state'] = 'closed'
-                context['cta_label'] = 'Registration Closed'
-                context['cta_disabled'] = True
-                context['cta_reason'] = 'Unable to check registration status'
-                context['can_register'] = False
         
         # Add announcements for this tournament
         announcements = TournamentAnnouncement.objects.filter(
@@ -444,22 +361,21 @@ class TournamentDetailView(DetailView):
                     }
         
         # Check 3: Check-in status (if check-in window open or closed)
-        if hasattr(registration, 'check_in_status'):
-            check_in_window = {
-                'opens_at': CheckInService.get_check_in_opens_at(tournament),
-                'closes_at': CheckInService.get_check_in_closes_at(tournament),
-                'is_open': CheckInService.is_check_in_window_open(tournament),
+        check_in_window = {
+            'opens_at': CheckInService.get_check_in_opens_at(tournament),
+            'closes_at': CheckInService.get_check_in_closes_at(tournament),
+            'is_open': CheckInService.is_check_in_window_open(tournament),
+        }
+        
+        now = timezone.now()
+        
+        # Already checked in
+        if registration.checked_in:
+            return {
+                'state': 'checked_in',
+                'reason': f'Checked in at {registration.checked_in_at.strftime("%b %d, %H:%M")}',
+                'check_in_window': check_in_window,
             }
-            
-            now = timezone.now()
-            
-            # Already checked in
-            if registration.check_in_status == 'checked_in':
-                return {
-                    'state': 'checked_in',
-                    'reason': f'Checked in at {registration.checked_in_at.strftime("%b %d, %H:%M")}',
-                    'check_in_window': check_in_window,
-                }
             
             # Check-in window is open, but not checked in yet
             if check_in_window['is_open']:

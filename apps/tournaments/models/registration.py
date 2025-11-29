@@ -95,6 +95,23 @@ class Registration(SoftDeleteModel, TimestampedModel):
         help_text="Current registration status"
     )
     
+    completion_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Registration form completion progress (0-100%)"
+    )
+    
+    current_step = models.PositiveIntegerField(
+        default=1,
+        help_text="Current step in the registration wizard (1-3)"
+    )
+    
+    time_spent_seconds = models.IntegerField(
+        default=0,
+        help_text="Time spent on registration process in seconds"
+    )
+    
     registered_at = models.DateTimeField(
         auto_now_add=True,
         null=True,  # Allow null for existing rows during migration

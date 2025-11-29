@@ -2,14 +2,14 @@
 {% with variant_local=variant|default:"primary" %}
   {% if href %}
     <a href="{{ href }}"
-       id="{{ id|default_if_none:'' }}"
+       id="{{ id|default:'' }}"
        class="btn {% if variant_local == 'primary' %}btn-primary{% elif variant_local == 'outline' %}border-line{% else %}border-transparent{% endif %} {% if size == 'sm' %}text-sm py-2{% endif %}"
        aria-label="{{ aria_label|default:'' }}">
        {{ label }}
     </a>
   {% else %}
     <button type="{{ type|default:'button' }}"
-       id="{{ id|default_if_none:'' }}"
+       id="{{ id|default:'' }}"
        class="btn {% if variant_local == 'primary' %}btn-primary{% elif variant_local == 'outline' %}border-line{% else %}border-transparent{% endif %} {% if size == 'sm' %}text-sm py-2{% endif %}"
        aria-label="{{ aria_label|default:'' }}">
        {{ label }}

@@ -148,6 +148,9 @@ from apps.tournaments.views.registration_wizard import (
     RegistrationWizardView,
     RegistrationSuccessView as WizardSuccessView,
 )
+from apps.tournaments.views.withdrawal import (
+    withdraw_registration_view,
+)
 from apps.tournaments.views.payment_status import (
     RegistrationStatusView,
     PaymentResubmitView,
@@ -281,6 +284,9 @@ urlpatterns = [
     path('<slug:slug>/registration/<int:registration_id>/status/', RegistrationStatusView.as_view(), name='registration_status'),
     path('<slug:slug>/registration/<int:registration_id>/resubmit/', PaymentResubmitView.as_view(), name='payment_resubmit'),
     path('<slug:slug>/payment/<int:payment_id>/download/', DownloadPaymentProofView.as_view(), name='download_payment_proof'),
+    
+    # Registration Withdrawal
+    path('<slug:slug>/withdraw/', withdraw_registration_view, name='withdraw_registration'),
     
     # Tournament Team Registration (Professional)
     path('<slug:slug>/register/team/', TeamRegistrationView.as_view(), name='team_registration'),

@@ -375,7 +375,7 @@ class TournamentAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('🎮 Basic Information', {
-            'fields': ('name', 'slug', 'game', 'description', 'organizer', 'is_official', 'organizer_console_button'),
+            'fields': ('name', 'slug', 'game', 'platform', 'mode', 'venue_name', 'venue_address', 'venue_city', 'venue_map_url', 'description', 'organizer', 'is_official', 'organizer_console_button'),
             'description': 'Core tournament identity and description'
         }),
         ('📅 Schedule & Timeline', {

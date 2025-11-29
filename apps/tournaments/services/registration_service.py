@@ -1487,3 +1487,212 @@ class RegistrationService:
         )
         
         return stats
+    
+    @staticmethod
+    def can_withdraw(registration: Registration) -> tuple[bool, str]:
+        """
+        Check if a registration can be withdrawn.
+        
+        Returns:
+            (can_withdraw, reason)
+        """
+        tournament = registration.tournament
+        
+        # Check if tournament has started
+        if tournament.tournament_start and timezone.now() >= tournament.tournament_start:
+            return False, "Cannot withdraw after tournament has started"
+        
+        # Check withdrawal deadline (24 hours before tournament start)
+        if tournament.tournament_start:
+            withdrawal_deadline = tournament.tournament_start - timezone.timedelta(hours=24)
+            if timezone.now() >= withdrawal_deadline:
+                return False, "Withdrawal deadline has passed (24 hours before tournament)"
+        
+        # Check if already cancelled
+        if registration.status in [Registration.CANCELLED, Registration.REJECTED]:
+            return False, "Registration is already cancelled or rejected"
+        
+        # Check if checked in
+        if hasattr(registration, 'checkin') and registration.checkin and registration.checkin.checked_in_at:
+            return False, "Cannot withdraw after checking in"
+        
+        return True, "Withdrawal allowed"
+    
+    @staticmethod
+    @transaction.atomic
+    def withdraw_registration(registration: Registration, reason: str = "") -> dict:
+        """
+        Withdraw a registration and handle cleanup.
+        
+        Returns:
+            {
+                'success': bool,
+                'message': str,
+                'refund_eligible': bool,
+                'refund_amount': Decimal,
+                'roster_unlocked': bool
+            }
+        """
+        can_withdraw, withdrawal_reason = RegistrationService.can_withdraw(registration)
+        
+        if not can_withdraw:
+            raise ValidationError(withdrawal_reason)
+        
+        tournament = registration.tournament
+        refund_info = {
+            'refund_eligible': False,
+            'refund_amount': Decimal('0.00'),
+            'refund_percentage': 0
+        }
+        
+        # Calculate refund eligibility
+        if tournament.has_entry_fee and registration.status == Registration.CONFIRMED:
+            time_until_start = tournament.tournament_start - timezone.now()
+            hours_until = time_until_start.total_seconds() / 3600
+            
+            # Refund policy: 
+            # - 100% if >7 days before
+            # - 50% if 3-7 days before
+            # - 25% if 1-3 days before
+            # - 0% if <24 hours
+            if hours_until > 168:  # 7 days
+                refund_info['refund_eligible'] = True
+                refund_info['refund_amount'] = tournament.entry_fee_amount
+                refund_info['refund_percentage'] = 100
+            elif hours_until > 72:  # 3 days
+                refund_info['refund_eligible'] = True
+                refund_info['refund_amount'] = tournament.entry_fee_amount * Decimal('0.50')
+                refund_info['refund_percentage'] = 50
+            elif hours_until > 24:  # 1 day
+                refund_info['refund_eligible'] = True
+                refund_info['refund_amount'] = tournament.entry_fee_amount * Decimal('0.25')
+                refund_info['refund_percentage'] = 25
+        
+        # Update registration status
+        old_status = registration.status
+        registration.status = Registration.CANCELLED
+        
+        # Add cancellation tracking fields if they don't exist
+        if not hasattr(registration, 'cancelled_at'):
+            registration.registration_data['cancelled_at'] = timezone.now().isoformat()
+            registration.registration_data['cancellation_reason'] = reason or "User withdrawal"
+            registration.registration_data['refund_info'] = refund_info
+        
+        registration.save()
+        
+        # Unlock roster members if team tournament
+        roster_unlocked = False
+        if registration.team_id and registration.registration_data.get('roster'):
+            from apps.teams.models import TeamMembership
+            roster = registration.registration_data.get('roster', [])
+            for player in roster:
+                try:
+                    membership = TeamMembership.objects.get(id=player.get('member_id'))
+                    if membership.locked_for_tournament_id == tournament.id:
+                        membership.unlock_from_tournament()
+                        roster_unlocked = True
+                except TeamMembership.DoesNotExist:
+                    pass
+        
+        # Promote from waitlist if space available
+        RegistrationService._promote_from_waitlist(tournament)
+        
+        return {
+            'success': True,
+            'message': 'Registration withdrawn successfully',
+            'refund_eligible': refund_info['refund_eligible'],
+            'refund_amount': refund_info['refund_amount'],
+            'refund_percentage': refund_info.get('refund_percentage', 0),
+            'roster_unlocked': roster_unlocked,
+            'previous_status': old_status
+        }
+    
+    @staticmethod
+    def _promote_from_waitlist(tournament: Tournament):
+        """Promote next waitlisted registration if space available"""
+        # Count active registrations
+        active_count = Registration.objects.filter(
+            tournament=tournament,
+            status__in=[Registration.PENDING, Registration.PAYMENT_SUBMITTED, Registration.CONFIRMED],
+            is_deleted=False
+        ).count()
+        
+        # Check if space available
+        if active_count < tournament.max_participants:
+            # Get next waitlisted registration
+            next_waitlist = Registration.objects.filter(
+                tournament=tournament,
+                status=Registration.WAITLISTED,
+                is_deleted=False
+            ).order_by('registered_at').first()
+            
+            if next_waitlist:
+                next_waitlist.status = Registration.PENDING
+                if not hasattr(next_waitlist, 'promoted_from_waitlist_at'):
+                    next_waitlist.registration_data['promoted_from_waitlist_at'] = timezone.now().isoformat()
+                next_waitlist.save()
+                
+                # TODO: Send email notification about promotion
+                # from apps.notifications.services import send_waitlist_promotion_email
+                # send_waitlist_promotion_email(next_waitlist)
+    
+    @staticmethod
+    @transaction.atomic
+    def disqualify_registration(registration: Registration, reason: str, disqualified_by) -> dict:
+        """
+        Disqualify a registration (organizer action).
+        
+        This is different from withdrawal - no refund, locks remain until tournament ends.
+        """
+        if registration.status == Registration.CANCELLED:
+            raise ValidationError("Registration is already cancelled")
+        
+        # Update status
+        old_status = registration.status
+        registration.status = Registration.REJECTED
+        
+        # Add disqualification tracking
+        registration.registration_data['disqualified_at'] = timezone.now().isoformat()
+        registration.registration_data['disqualified_by'] = disqualified_by.username if hasattr(disqualified_by, 'username') else str(disqualified_by)
+        registration.registration_data['disqualification_reason'] = reason
+        registration.save()
+        
+        # Keep roster locked (they're still disqualified from this tournament)
+        # Unlock will happen after tournament ends
+        
+        # TODO: Send disqualification email
+        # from apps.notifications.services import send_disqualification_email
+        # send_disqualification_email(registration, reason)
+        
+        return {
+            'success': True,
+            'message': 'Registration disqualified',
+            'reason': reason,
+            'previous_status': old_status
+        }
+    
+    @staticmethod
+    @transaction.atomic
+    def auto_unlock_tournament_rosters(tournament: Tournament):
+        """
+        Unlock all roster members after tournament ends.
+        Called by post-tournament cleanup task.
+        """
+        from apps.teams.models import TeamMembership
+        
+        # Find all locked memberships for this tournament
+        locked_members = TeamMembership.objects.filter(
+            locked_for_tournament_id=tournament.id
+        )
+        
+        unlocked_count = 0
+        for membership in locked_members:
+            membership.unlock_from_tournament()
+            unlocked_count += 1
+        
+        return {
+            'success': True,
+            'unlocked_count': unlocked_count,
+            'message': f'Unlocked {unlocked_count} roster members'
+        }
+
