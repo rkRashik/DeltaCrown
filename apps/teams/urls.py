@@ -78,6 +78,7 @@ from .views.public import (
     team_settings_view,
     delete_team_view,
     cancel_invite_view,
+    about_teams,  # New about teams info page
     # New professional management views
     update_team_info_view,
     update_privacy_view,
@@ -219,6 +220,9 @@ urlpatterns = [
     # Backwards-compatibility alias: 'teams:browse' used across multiple templates
     path('browse/', team_list, name='browse'),
     path("rankings/", team_ranking_view, name="rankings"),  # Updated to use ranking view
+    
+    # About Teams Information Page
+    path("about/", about_teams, name="about"),
     
     path("test/", lambda request: render(request, "teams/test_page.html"), name="test"),  # TEST PAGE
     path("create/", team_create_view, name="create"),

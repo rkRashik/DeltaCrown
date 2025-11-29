@@ -2026,3 +2026,24 @@ def create_team_resume_view(request):
         return redirect('teams:create')
 
 
+# -------------------------
+# About Teams Information Page
+# -------------------------
+
+def about_teams(request):
+    """Comprehensive information page about the Teams system."""
+    from apps.tournaments.models import Game
+    
+    total_teams = Team.objects.filter(is_active=True).count()
+    games = Game.objects.filter(is_active=True).order_by('name')
+    
+    context = {
+        'total_teams': total_teams,
+        'total_games': games.count(),
+        'games': games,
+    }
+    
+    return render(request, 'teams/about_teams.html', context)
+
+
+

@@ -1,0 +1,1055 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Teams Guide — Master Competitive Esports | DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+    * { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+    
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    @keyframes shimmer { 0% { background-position: -1000px 0; } 100% { background-position: 1000px 0; } }
+    
+    .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    
+    .expandable { max-height: 0; overflow: hidden; transition: max-height 0.6s ease, opacity 0.4s ease; opacity: 0; }
+    .expandable.show { max-height: 3000px; opacity: 1; }
+    
+    .game-card { transition: all 0.3s ease; position: relative; overflow: hidden; }
+    .game-card:hover { transform: translateY(-8px); box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4); }
+    .game-card img { transition: transform 0.3s ease; }
+    .game-card:hover img { transform: scale(1.05); }
+    
+    .role-diagram { position: relative; }
+    .role-diagram::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.5), transparent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white overflow-x-hidden">
+    
+    <!-- Cinematic Story Opener -->
+    <section class="relative overflow-hidden pt-20 pb-24">
+        <div class="absolute inset-0">
+            <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNnoiIHN0cm9rZT0iIzY2N2VlYSIgc3Ryb2tlLXdpZHRoPSIuNSIgb3BhY2l0eT0iLjIiLz48L2c+PC9zdmc+')] opacity-20"></div>
+            <div class="absolute top-20 right-20 w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
+            <div class="absolute bottom-20 left-20 w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 1s;"></div>
+        </div>
+
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="max-w-5xl mx-auto text-center">
+                <div class="inline-flex items-center gap-2 px-5 py-2 glass rounded-full mb-8">
+                    <i class="fas fa-users text-sm"></i>
+                    <span class="font-semibold text-sm uppercase tracking-wider">Complete Team System Guide</span>
+                </div>
+                
+                <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
+                    From Solo to
+                    <span class="block mt-2 bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">Championship Squad</span>
+                </h1>
+                
+                <p class="text-lg sm:text-xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+                    Everything you need to know about teams, roles, rosters, and competing at the highest level.
+                </p>
+
+                <!-- Visual Journey Diagram -->
+                <div class="max-w-4xl mx-auto glass rounded-3xl p-6 sm:p-8">
+                    <h3 class="text-xl font-bold mb-6">Your Path to Glory</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl flex items-center justify-center mb-3 shadow-xl">
+                                <i class="fas fa-user text-2xl text-gray-400"></i>
+                            </div>
+                            <div class="text-sm font-bold">Solo Player</div>
+                            <div class="text-xs text-gray-500 mt-1">Playing alone</div>
+                        </div>
+
+                        <div class="hidden md:flex justify-center">
+                            <i class="fas fa-arrow-right text-2xl text-purple-500 animate-pulse"></i>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center mb-3 shadow-xl">
+                                <i class="fas fa-users text-2xl"></i>
+                            </div>
+                            <div class="text-sm font-bold">Build Team</div>
+                            <div class="text-xs text-gray-500 mt-1">5-min setup</div>
+                        </div>
+
+                        <div class="hidden md:flex justify-center">
+                            <i class="fas fa-arrow-right text-2xl text-blue-500 animate-pulse"></i>
+                        </div>
+
+                        <div class="text-center">
+                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-600 to-orange-600 rounded-2xl flex items-center justify-center mb-3 shadow-xl">
+                                <i class="fas fa-trophy text-2xl"></i>
+                            </div>
+                            <div class="text-sm font-bold">Win Tournaments</div>
+                            <div class="text-xs text-gray-500 mt-1">Earn rewards</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Nav -->
+    <section class="sticky top-0 z-50 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800 py-3">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto scrollbar-hide">
+                <a href="#why" class="flex-shrink-0 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-full text-xs sm:text-sm font-semibold transition-all">
+                    <i class="fas fa-question-circle mr-1"></i>Why Teams?
+                </a>
+                <a href="#games" class="flex-shrink-0 px-4 py-2 glass hover:bg-white/10 rounded-full text-xs sm:text-sm font-semibold transition-all">
+                    <i class="fas fa-gamepad mr-1"></i>Games
+                </a>
+                <a href="#roles" class="flex-shrink-0 px-4 py-2 glass hover:bg-white/10 rounded-full text-xs sm:text-sm font-semibold transition-all">
+                    <i class="fas fa-users-cog mr-1"></i>Roles
+                </a>
+                <a href="#rewards" class="flex-shrink-0 px-4 py-2 glass hover:bg-white/10 rounded-full text-xs sm:text-sm font-semibold transition-all">
+                    <i class="fas fa-trophy mr-1"></i>Rewards
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Teams Matter -->
+    <section id="why" class="py-16 sm:py-20">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">Why Join a Team?</h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto">Level up your competitive gaming. Here's what teams unlock.</p>
+            </div>
+            
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                    <div class="w-14 h-14 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-trophy text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Bigger Tournaments</h3>
+                    <p class="text-sm text-gray-400">Access team-only events with way bigger prize pools than solo matches.</p>
+                </div>
+
+                <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                    <div class="w-14 h-14 bg-gradient-to-br from-pink-600 to-red-600 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-coins text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">More Money</h3>
+                    <p class="text-sm text-gray-400">Team tournaments pay 5-10x more. Share big wins with your squad.</p>
+                </div>
+
+                <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                    <div class="w-14 h-14 bg-gradient-to-br from-green-600 to-teal-600 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-line text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Build Your Brand</h3>
+                    <p class="text-sm text-gray-400">Create a team identity, get sponsors, and make your mark.</p>
+                </div>
+
+                <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                    <div class="w-14 h-14 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-handshake text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Network with Pros</h3>
+                    <p class="text-sm text-gray-400">Connect with top players, coaches, and industry people.</p>
+                </div>
+
+                <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                    <div class="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-graduation-cap text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Level Up Faster</h3>
+                    <p class="text-sm text-gray-400">Practice with a squad, get coaching, improve way quicker.</p>
+                </div>
+
+                <div class="glass rounded-2xl p-6 hover:scale-105 transition-transform">
+                    <div class="w-14 h-14 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center mb-4">
+                        <i class="fas fa-shield-alt text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Pro Protection</h3>
+                    <p class="text-sm text-gray-400">Roster locks, official disputes, verified status — real pro stuff.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Games Section with Real Images -->
+    <section id="games" class="py-16 sm:py-20 bg-gradient-to-b from-transparent to-gray-900/50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">Supported Games</h2>
+                <p class="text-lg text-gray-400 max-w-3xl mx-auto">Every game has different team sizes. Check the roster limits below.</p>
+            </div>
+
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+                {% for game in games %}
+                <div class="game-card glass rounded-2xl overflow-hidden">
+                    <!-- Game Image/Banner -->
+                    <div class="h-48 bg-gradient-to-br from-purple-900/30 to-blue-900/30 relative overflow-hidden">
+                        {% if game.card_image %}
+                            <img src="{{ game.card_image.url }}" alt="{{ game.name }}" class="w-full h-full object-cover">
+                        {% elif game.banner %}
+                            <img src="{{ game.banner.url }}" alt="{{ game.name }}" class="w-full h-full object-cover">
+                        {% elif game.logo %}
+                            <div class="absolute inset-0 flex items-center justify-center p-6 bg-gradient-to-br from-purple-900/50 to-blue-900/50">
+                                <img src="{{ game.logo.url }}" alt="{{ game.name }}" class="max-h-full max-w-full object-contain">
+                            </div>
+                        {% else %}
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-gamepad text-6xl text-white/30"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Overlay Gradient -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold mb-3">{{ game.name }}</h3>
+                        
+                        <div class="text-center my-4 p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-xl border border-purple-500/30">
+                            <div class="text-4xl font-black gradient-text">{{ game.default_team_size|default:"5" }}</div>
+                            <div class="text-sm text-gray-400 mt-1">Players per Team</div>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
+                                <i class="fas fa-users text-purple-400"></i>
+                                <span>Main roster + subs allowed</span>
+                            </div>
+                            {% if game.category %}
+                            <div class="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
+                                <i class="fas fa-tag text-blue-400"></i>
+                                <span>{{ game.category }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-full text-center py-12 text-gray-400">
+                    <i class="fas fa-gamepad text-6xl mb-4 opacity-30"></i>
+                    <p>Games will appear here</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Roles Explained (Visual Hierarchy) -->
+    <section id="roles" class="py-16 sm:py-20">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">Team Roles Explained</h2>
+                <p class="text-lg text-gray-400 max-w-3xl mx-auto">Who does what? Simple breakdown of each role.</p>
+            </div>
+
+            <!-- Visual Hierarchy Diagram -->
+            <div class="max-w-5xl mx-auto mb-12">
+                <div class="glass rounded-3xl p-8">
+                    <h3 class="text-xl font-bold mb-6 text-center">Team Power Structure</h3>
+                    <div class="space-y-4">
+                        <!-- Owner -->
+                        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-red-900/30 to-pink-900/30 rounded-xl border-l-4 border-red-500">
+                            <div class="w-12 h-12 bg-gradient-to-br from-red-600 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-crown text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold">Owner</div>
+                                <div class="text-sm text-gray-400">Full control • Can do everything</div>
+                            </div>
+                            <div class="hidden sm:block text-xs bg-red-600 px-3 py-1 rounded-full">BOSS</div>
+                        </div>
+
+                        <!-- Manager -->
+                        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl border-l-4 border-blue-500 ml-8">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-user-tie text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold">Manager</div>
+                                <div class="text-sm text-gray-400">Handles daily tasks • Invites players • Registers tournaments</div>
+                            </div>
+                        </div>
+
+                        <!-- Coach -->
+                        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-green-900/30 to-teal-900/30 rounded-xl border-l-4 border-green-500 ml-8">
+                            <div class="w-12 h-12 bg-gradient-to-br from-green-600 to-teal-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-chalkboard-teacher text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold">Coach</div>
+                                <div class="text-sm text-gray-400">Creates strategy • Studies opponents • Trains team</div>
+                            </div>
+                        </div>
+
+                        <!-- Captain -->
+                        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-xl border-l-4 border-yellow-500 ml-8">
+                            <div class="w-12 h-12 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-star text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold">Captain (Title)</div>
+                                <div class="text-sm text-gray-400">In-game leader • Makes calls during matches</div>
+                            </div>
+                            <div class="hidden sm:block text-xs bg-yellow-600 px-3 py-1 rounded-full">TITLE</div>
+                        </div>
+
+                        <!-- Players -->
+                        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-900/30 to-indigo-900/30 rounded-xl border-l-4 border-purple-500 ml-16">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-gamepad text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold">Main Players</div>
+                                <div class="text-sm text-gray-400">Starting lineup • Play in all matches</div>
+                            </div>
+                        </div>
+
+                        <!-- Subs -->
+                        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-pink-900/30 to-rose-900/30 rounded-xl border-l-4 border-pink-500 ml-16">
+                            <div class="w-12 h-12 bg-gradient-to-br from-pink-600 to-rose-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-user-plus text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-bold">Substitutes</div>
+                                <div class="text-sm text-gray-400">Backup players • Fill in when needed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expandable Details -->
+            <div class="max-w-4xl mx-auto space-y-3">
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('owner-detail')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-crown text-red-400"></i>
+                            <span class="font-bold">What can Owners do?</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-owner-detail"></i>
+                    </button>
+                    <div id="owner-detail" class="expandable">
+                        <div class="p-5 border-t border-gray-800 text-sm text-gray-300">
+                            <p class="mb-3">Owners have total control:</p>
+                            <ul class="space-y-2">
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Add/remove anyone from the team</li>
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Change team settings and branding</li>
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Register for tournaments</li>
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Handle tournament fees</li>
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Transfer ownership or disband team</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('captain-detail')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-info-circle text-yellow-400"></i>
+                            <span class="font-bold">Captain vs Other Roles?</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-captain-detail"></i>
+                    </button>
+                    <div id="captain-detail" class="expandable">
+                        <div class="p-5 border-t border-gray-800 text-sm text-gray-300">
+                            <p class="mb-3 p-3 bg-yellow-900/20 border border-yellow-700 rounded-lg">
+                                <i class="fas fa-lightbulb mr-2 text-yellow-400"></i><strong>Important:</strong> Captain is a <strong>title</strong>, not a separate role!
+                            </p>
+                            <p>The Owner, Manager, or any Player can be Captain. They keep their original permissions plus the Captain title for in-game leadership.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('subs-detail')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-user-plus text-pink-400"></i>
+                            <span class="font-bold">Why do I need Substitutes?</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-subs-detail"></i>
+                    </button>
+                    <div id="subs-detail" class="expandable">
+                        <div class="p-5 border-t border-gray-800 text-sm text-gray-300">
+                            <p class="mb-3">Subs are super important:</p>
+                            <ul class="space-y-2">
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Required by most tournaments</li>
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Cover when main players can't make it</li>
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Let you make tactical swaps mid-tournament</li>
+                                <li><i class="fas fa-check text-green-400 mr-2"></i>Practice with the team regularly</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rewards & Rankings -->
+    <section id="rewards" class="py-16 sm:py-20 bg-gradient-to-b from-transparent to-gray-900/50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">Rankings & Rewards</h2>
+                <p class="text-lg text-gray-400 max-w-2xl mx-auto">Win tournaments, climb ranks, earn rewards.</p>
+            </div>
+
+            <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
+                <!-- Ranking Tiers -->
+                <div class="glass rounded-2xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 text-center">
+                        <i class="fas fa-trophy text-yellow-400 mr-2"></i>Team Tiers
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-xl border border-yellow-700">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="text-3xl">🏆</div>
+                                <div>
+                                    <div class="font-bold text-yellow-300">Elite Tier</div>
+                                    <div class="text-sm text-gray-400">Top 10% teams</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-300">Premium tournaments • Best rewards</div>
+                        </div>
+
+                        <div class="p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-xl border border-purple-700">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="text-3xl">💎</div>
+                                <div>
+                                    <div class="font-bold text-purple-300">Diamond Tier</div>
+                                    <div class="text-sm text-gray-400">Top 25% teams</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-300">Major events • Great prizes</div>
+                        </div>
+
+                        <div class="p-4 bg-gradient-to-r from-blue-900/30 to-cyan-900/30 rounded-xl border border-blue-700">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="text-3xl">⚡</div>
+                                <div>
+                                    <div class="font-bold text-blue-300">Platinum Tier</div>
+                                    <div class="text-sm text-gray-400">Top 50% teams</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-300">Regular tournaments</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- How to Earn -->
+                <div class="glass rounded-2xl p-8">
+                    <h3 class="text-2xl font-bold mb-6 text-center">
+                        <i class="fas fa-coins text-green-400 mr-2"></i>Earn Points
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="text-2xl">🎯</div>
+                            <div class="flex-1">
+                                <div class="font-bold">Win Tournaments</div>
+                                <div class="text-sm text-gray-400">500-5000 points</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="text-2xl">🥈</div>
+                            <div class="flex-1">
+                                <div class="font-bold">Top Placements</div>
+                                <div class="text-sm text-gray-400">100-1000 points</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
+                            <div class="text-2xl">📅</div>
+                            <div class="flex-1">
+                                <div class="font-bold">Regular Play</div>
+                                <div class="text-sm text-gray-400">50 points per event</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-gradient-to-r from-green-900/20 to-teal-900/20 border border-green-700 rounded-xl">
+                        <div class="font-bold text-green-300 mb-2">Rewards Include:</div>
+                        <ul class="text-sm text-gray-300 space-y-1">
+                            <li><i class="fas fa-ticket-alt text-green-400 mr-2"></i>Free tournament entries</li>
+                            <li><i class="fas fa-crown text-yellow-400 mr-2"></i>Premium badges</li>
+                            <li><i class="fas fa-gift text-pink-400 mr-2"></i>Gaming gear</li>
+                            <li><i class="fas fa-handshake text-blue-400 mr-2"></i>Sponsor deals</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pro Features (Detailed) -->
+    <section class="py-16 sm:py-20">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">Professional Team Features</h2>
+                <p class="text-lg text-gray-400 max-w-3xl mx-auto">Industry-standard tools that give you complete control over your competitive team. These features are used by top esports organizations worldwide.</p>
+            </div>
+
+            <div class="max-w-6xl mx-auto space-y-4">
+                <!-- Game ID Management -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('feature-ids')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-id-card text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-lg">Automatic Game ID Collection</div>
+                                <div class="text-sm text-gray-400">Streamline tournament registration</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-feature-ids"></i>
+                    </button>
+                    <div id="feature-ids" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300">
+                            <p class="mb-4">When you register for tournaments, organizers need each player's game-specific ID (Riot ID, Steam ID, etc.). Our system automatically collects these from player profiles.</p>
+                            <div class="grid sm:grid-cols-2 gap-4">
+                                <div class="p-4 bg-white/5 rounded-lg">
+                                    <div class="font-bold text-purple-400 mb-2">What It Does:</div>
+                                    <ul class="text-sm space-y-1">
+                                        <li>• Pulls IDs from player profiles automatically</li>
+                                        <li>• Validates format before submission</li>
+                                        <li>• Shows missing IDs with alerts</li>
+                                        <li>• One-click tournament registration</li>
+                                    </ul>
+                                </div>
+                                <div class="p-4 bg-white/5 rounded-lg">
+                                    <div class="font-bold text-blue-400 mb-2">Why It Matters:</div>
+                                    <ul class="text-sm space-y-1">
+                                        <li>• Saves hours during registration</li>
+                                        <li>• Prevents typos and errors</li>
+                                        <li>• Meets tournament requirements instantly</li>
+                                        <li>• Professional appearance to organizers</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Roster Lock System -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('feature-lock')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-red-600 to-orange-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-lock text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-lg">Tournament Roster Lock</div>
+                                <div class="text-sm text-gray-400">Prevent unauthorized roster changes</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-feature-lock"></i>
+                    </button>
+                    <div id="feature-lock" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300">
+                            <p class="mb-4">During active tournaments, roster locks prevent any changes to your lineup. This is a mandatory esports standard that ensures fair competition.</p>
+                            <div class="p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg mb-4">
+                                <div class="font-bold text-yellow-300 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>Important Rule:</div>
+                                <p class="text-sm">Once a tournament starts, your roster is frozen. You cannot add, remove, or swap players until the tournament ends. Plan your roster carefully!</p>
+                            </div>
+                            <div class="grid sm:grid-cols-3 gap-4">
+                                <div class="p-3 bg-white/5 rounded-lg text-center">
+                                    <div class="text-2xl mb-2">🔒</div>
+                                    <div class="text-sm font-bold">Lock Activates</div>
+                                    <div class="text-xs text-gray-400">When tournament starts</div>
+                                </div>
+                                <div class="p-3 bg-white/5 rounded-lg text-center">
+                                    <div class="text-2xl mb-2">⏳</div>
+                                    <div class="text-sm font-bold">Lock Duration</div>
+                                    <div class="text-xs text-gray-400">Until tournament ends</div>
+                                </div>
+                                <div class="p-3 bg-white/5 rounded-lg text-center">
+                                    <div class="text-2xl mb-2">🔓</div>
+                                    <div class="text-sm font-bold">Auto Unlock</div>
+                                    <div class="text-xs text-gray-400">Tournament completion</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permission System -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('feature-perms')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-green-600 to-teal-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-shield-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-lg">Role-Based Permissions</div>
+                                <div class="text-sm text-gray-400">Control who can do what</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-feature-perms"></i>
+                    </button>
+                    <div id="feature-perms" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300">
+                            <p class="mb-4">Different roles have different powers. This prevents conflicts and keeps your team organized with clear responsibilities.</p>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-red-900/20 border-l-4 border-red-500 rounded">
+                                    <div class="font-bold text-red-300">Owner Permissions:</div>
+                                    <div class="text-sm mt-1">Full control • Add/remove anyone • Change all settings • Handle payments • Disband team</div>
+                                </div>
+                                <div class="p-3 bg-blue-900/20 border-l-4 border-blue-500 rounded">
+                                    <div class="font-bold text-blue-300">Manager Permissions:</div>
+                                    <div class="text-sm mt-1">Invite players • Register tournaments • Edit roster • Manage schedule • No financial access</div>
+                                </div>
+                                <div class="p-3 bg-green-900/20 border-l-4 border-green-500 rounded">
+                                    <div class="font-bold text-green-300">Coach Permissions:</div>
+                                    <div class="text-sm mt-1">View analytics • Access strategy tools • View roster • No edit permissions</div>
+                                </div>
+                                <div class="p-3 bg-purple-900/20 border-l-4 border-purple-500 rounded">
+                                    <div class="font-bold text-purple-300">Player Permissions:</div>
+                                    <div class="text-sm mt-1">View team info • Update own game IDs • Participate in tournaments • No management access</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Trail -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('feature-audit')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-history text-xl"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-lg">Complete Audit Trail</div>
+                                <div class="text-sm text-gray-400">Track every action and change</div>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-feature-audit"></i>
+                    </button>
+                    <div id="feature-audit" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300">
+                            <p class="mb-4">Every roster change, permission update, and team action is logged with timestamps. Perfect for resolving disputes and maintaining transparency.</p>
+                            <div class="p-4 bg-white/5 rounded-lg">
+                                <div class="font-bold mb-3">What Gets Tracked:</div>
+                                <div class="grid sm:grid-cols-2 gap-3 text-sm">
+                                    <div><i class="fas fa-check text-green-400 mr-2"></i>Player joins/leaves</div>
+                                    <div><i class="fas fa-check text-green-400 mr-2"></i>Role changes</div>
+                                    <div><i class="fas fa-check text-green-400 mr-2"></i>Tournament registrations</div>
+                                    <div><i class="fas fa-check text-green-400 mr-2"></i>Settings modifications</div>
+                                    <div><i class="fas fa-check text-green-400 mr-2"></i>Ownership transfers</div>
+                                    <div><i class="fas fa-check text-green-400 mr-2"></i>Who made each change</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Terms & Definitions -->
+    <section class="py-16 sm:py-20 bg-gradient-to-b from-transparent to-gray-900/50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">Terms You Should Know</h2>
+                <p class="text-lg text-gray-400 max-w-3xl mx-auto">Understanding esports terminology helps you navigate the competitive scene better.</p>
+            </div>
+
+            <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-4">
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Roster</div>
+                            <div class="text-sm text-gray-400">Your complete team lineup including all players, substitutes, coach, and staff. Think of it as your official squad list.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Substitute (Sub)</div>
+                            <div class="text-sm text-gray-400">Backup players who can replace starters. Most tournaments require at least 1-2 subs registered.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Roster Lock</div>
+                            <div class="text-sm text-gray-400">Period when you cannot change your lineup, typically during active tournaments. Protects competitive integrity.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Seeding</div>
+                            <div class="text-sm text-gray-400">Tournament bracket placement based on team ranking. Higher-ranked teams get better starting positions.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-ban"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Fair Play Rules</div>
+                            <div class="text-sm text-gray-400">Code of conduct for competitive integrity: no cheating, smurfing, collusion, or throwing matches.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-id-badge"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Game ID</div>
+                            <div class="text-sm text-gray-400">Your in-game username or identifier (Riot ID, Steam ID, etc.) required for tournament participation.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-pink-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Check-In</div>
+                            <div class="text-sm text-gray-400">Pre-match confirmation (usually 15-30 min before) proving your team is ready to play. Miss it = disqualification.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-lg mb-1">Verified Team</div>
+                            <div class="text-sm text-gray-400">Official badge showing your team is legitimate, follows rules, and has tournament history.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rules & Regulations -->
+    <section class="py-16 sm:py-20">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">Rules & Regulations</h2>
+                <p class="text-lg text-gray-400 max-w-3xl mx-auto">Follow these rules to maintain good standing and avoid penalties. These standards apply to all teams on our platform.</p>
+            </div>
+
+            <div class="max-w-4xl mx-auto space-y-4">
+                <!-- Roster Rules -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('rules-roster')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-users text-purple-400 text-xl"></i>
+                            <span class="font-bold text-lg">Roster Management Rules</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-rules-roster"></i>
+                    </button>
+                    <div id="rules-roster" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300 space-y-3">
+                            <div class="p-3 bg-white/5 rounded-lg">
+                                <div class="font-bold mb-1"><i class="fas fa-check-circle text-green-400 mr-2"></i>Minimum Requirements:</div>
+                                <div class="text-sm">• Must meet game-specific roster size (e.g., 5 players for VALORANT)</div>
+                                <div class="text-sm">• All players must have verified accounts</div>
+                                <div class="text-sm">• Game IDs must be accurate and match profiles</div>
+                            </div>
+                            <div class="p-3 bg-white/5 rounded-lg">
+                                <div class="font-bold mb-1"><i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>Roster Lock Rules:</div>
+                                <div class="text-sm">• Cannot change roster during active tournaments</div>
+                                <div class="text-sm">• Substitutions only allowed if tournament rules permit</div>
+                                <div class="text-sm">• Lock activates automatically when tournament starts</div>
+                            </div>
+                            <div class="p-3 bg-white/5 rounded-lg">
+                                <div class="font-bold mb-1"><i class="fas fa-ban text-red-400 mr-2"></i>Prohibited Actions:</div>
+                                <div class="text-sm">• No "roster sharing" between multiple teams</div>
+                                <div class="text-sm">• No fake or duplicate accounts</div>
+                                <div class="text-sm">• No adding unregistered players mid-tournament</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fair Play -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('rules-fairplay')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-handshake text-green-400 text-xl"></i>
+                            <span class="font-bold text-lg">Fair Play & Conduct</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-rules-fairplay"></i>
+                    </button>
+                    <div id="rules-fairplay" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300">
+                            <div class="mb-4 p-4 bg-green-900/20 border border-green-700 rounded-lg">
+                                <div class="font-bold text-green-300 mb-2">Required Behavior:</div>
+                                <ul class="text-sm space-y-1">
+                                    <li>✓ Respect opponents, officials, and organizers</li>
+                                    <li>✓ Follow game-specific rules and tournament regulations</li>
+                                    <li>✓ Communicate honestly about technical issues</li>
+                                    <li>✓ Show up on time for matches and check-ins</li>
+                                </ul>
+                            </div>
+                            <div class="p-4 bg-red-900/20 border border-red-700 rounded-lg">
+                                <div class="font-bold text-red-300 mb-2">Zero Tolerance for:</div>
+                                <ul class="text-sm space-y-1">
+                                    <li>✗ Cheating, hacking, or exploit abuse</li>
+                                    <li>✗ Match fixing or intentional throwing</li>
+                                    <li>✗ Smurfing (using lower-ranked accounts)</li>
+                                    <li>✗ Toxic behavior, harassment, or hate speech</li>
+                                    <li>✗ DDos attacks or any cyber attacks</li>
+                                    <li>✗ Collusion with other teams</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tournament Participation -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('rules-tournament')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-trophy text-yellow-400 text-xl"></i>
+                            <span class="font-bold text-lg">Tournament Participation</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-rules-tournament"></i>
+                    </button>
+                    <div id="rules-tournament" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300 space-y-3">
+                            <div class="text-sm">
+                                <strong>Eligibility:</strong> Your team must meet the tournament's specific requirements (rank limits, region, roster size, etc.)
+                            </div>
+                            <div class="text-sm">
+                                <strong>Registration:</strong> Complete registration before deadline. Provide all required information accurately.
+                            </div>
+                            <div class="text-sm">
+                                <strong>Check-In:</strong> Mandatory check-in 15-30 minutes before match time. Missing check-in = automatic disqualification.
+                            </div>
+                            <div class="text-sm">
+                                <strong>Payment:</strong> Tournament fees must be paid by owner before registration deadline. No refunds for no-shows.
+                            </div>
+                            <div class="text-sm">
+                                <strong>Withdrawals:</strong> Notify organizers at least 24 hours before if withdrawing. Late withdrawals may result in penalties.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Penalties -->
+                <div class="glass rounded-xl overflow-hidden">
+                    <button onclick="toggle('rules-penalties')" class="w-full p-5 flex items-center justify-between hover:bg-white/5 text-left">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-gavel text-red-400 text-xl"></i>
+                            <span class="font-bold text-lg">Violations & Penalties</span>
+                        </div>
+                        <i class="fas fa-chevron-down transition-transform" id="icon-rules-penalties"></i>
+                    </button>
+                    <div id="rules-penalties" class="expandable">
+                        <div class="p-6 border-t border-gray-800 text-gray-300">
+                            <div class="space-y-3">
+                                <div class="p-3 bg-yellow-900/20 border-l-4 border-yellow-600 rounded">
+                                    <div class="font-bold text-yellow-300">Minor Violations:</div>
+                                    <div class="text-sm mt-1">Late check-ins, minor conduct issues</div>
+                                    <div class="text-xs text-gray-400 mt-1">Penalty: Warning, temporary suspension from tournaments</div>
+                                </div>
+                                <div class="p-3 bg-orange-900/20 border-l-4 border-orange-600 rounded">
+                                    <div class="font-bold text-orange-300">Serious Violations:</div>
+                                    <div class="text-sm mt-1">Repeated no-shows, toxic behavior, roster violations</div>
+                                    <div class="text-xs text-gray-400 mt-1">Penalty: Tournament ban (30-90 days), ranking reset</div>
+                                </div>
+                                <div class="p-3 bg-red-900/20 border-l-4 border-red-600 rounded">
+                                    <div class="font-bold text-red-300">Severe Violations:</div>
+                                    <div class="text-sm mt-1">Cheating, match fixing, harassment, fraud</div>
+                                    <div class="text-xs text-gray-400 mt-1">Penalty: Permanent ban, team dissolution, prize forfeiture</div>
+                                </div>
+                            </div>
+                            <div class="mt-4 p-3 bg-blue-900/20 border border-blue-700 rounded-lg text-sm">
+                                <i class="fas fa-info-circle text-blue-400 mr-2"></i>All penalties can be appealed through our support system within 7 days of notification.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How Teams Work (Process) -->
+    <section class="py-16 sm:py-20 bg-gradient-to-b from-transparent to-gray-900/50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl sm:text-5xl font-black mb-4">How Teams Work</h2>
+                <p class="text-lg text-gray-400 max-w-3xl mx-auto">Step-by-step guide to creating, managing, and competing with your team.</p>
+            </div>
+
+            <div class="max-w-5xl mx-auto">
+                <div class="grid md:grid-cols-3 gap-6">
+                    <!-- Step 1 -->
+                    <div class="glass rounded-2xl p-6">
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center mb-4 text-2xl font-black">1</div>
+                        <h3 class="text-xl font-bold mb-3">Create Your Team</h3>
+                        <ul class="text-sm text-gray-400 space-y-2">
+                            <li>• Choose team name and tag</li>
+                            <li>• Select primary game</li>
+                            <li>• Upload logo (optional)</li>
+                            <li>• Set team description</li>
+                            <li>• Takes ~5 minutes</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="glass rounded-2xl p-6">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4 text-2xl font-black">2</div>
+                        <h3 class="text-xl font-bold mb-3">Build Your Roster</h3>
+                        <ul class="text-sm text-gray-400 space-y-2">
+                            <li>• Invite players via username</li>
+                            <li>• Assign roles (Player/Sub/Coach)</li>
+                            <li>• Verify game IDs are correct</li>
+                            <li>• Choose your Captain</li>
+                            <li>• Meet minimum roster size</li>
+                        </ul>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="glass rounded-2xl p-6">
+                        <div class="w-12 h-12 bg-gradient-to-br from-cyan-600 to-green-600 rounded-xl flex items-center justify-center mb-4 text-2xl font-black">3</div>
+                        <h3 class="text-xl font-bold mb-3">Compete & Earn</h3>
+                        <ul class="text-sm text-gray-400 space-y-2">
+                            <li>• Browse available tournaments</li>
+                            <li>• Register your team</li>
+                            <li>• Complete check-in on time</li>
+                            <li>• Play matches, win prizes</li>
+                            <li>• Climb the rankings!</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-8 glass rounded-2xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-center">After Each Tournament</h3>
+                    <div class="grid sm:grid-cols-4 gap-4 text-center text-sm">
+                        <div>
+                            <div class="text-3xl mb-2">📊</div>
+                            <div class="font-bold">Get Stats</div>
+                            <div class="text-xs text-gray-400">View performance</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl mb-2">⭐</div>
+                            <div class="font-bold">Earn Points</div>
+                            <div class="text-xs text-gray-400">Based on placement</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl mb-2">🏆</div>
+                            <div class="font-bold">Climb Ranks</div>
+                            <div class="text-xs text-gray-400">Move up tiers</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl mb-2">💰</div>
+                            <div class="font-bold">Collect Prizes</div>
+                            <div class="text-xs text-gray-400">If you placed</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-20 sm:py-32">
+        <div class="container mx-auto px-4 text-center">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-4xl sm:text-6xl font-black mb-6">Ready to Compete?</h2>
+                <p class="text-xl text-gray-300 mb-10">Build your team in 5 minutes. It's completely free.</p>
+                
+                <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+                    <a href="{% url 'teams:create' %}" class="px-10 py-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full text-xl font-bold hover:scale-105 transition-transform shadow-2xl">
+                        <i class="fas fa-plus-circle mr-2"></i>Create Team Now
+                    </a>
+                    <a href="{% url 'teams:list' %}" class="px-10 py-4 glass rounded-full text-xl font-bold hover:bg-white/10 transition">
+                        <i class="fas fa-search mr-2"></i>Browse Teams
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                    <div>
+                        <div class="text-4xl font-black gradient-text">FREE</div>
+                        <div class="text-sm text-gray-400 mt-1">100% Free</div>
+                    </div>
+                    <div>
+                        <div class="text-4xl font-black gradient-text">5min</div>
+                        <div class="text-sm text-gray-400 mt-1">Quick Setup</div>
+                    </div>
+                    <div>
+                        <div class="text-4xl font-black gradient-text">24/7</div>
+                        <div class="text-sm text-gray-400 mt-1">Support</div>
+                    </div>
+                    <div>
+                        <div class="text-4xl font-black gradient-text">Pro</div>
+                        <div class="text-sm text-gray-400 mt-1">Grade Tools</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+function toggle(id) {
+    const el = document.getElementById(id);
+    const icon = document.getElementById('icon-' + id);
+    
+    document.querySelectorAll('.expandable').forEach(e => {
+        if (e.id !== id && e.classList.contains('show')) {
+            e.classList.remove('show');
+            const otherIcon = document.getElementById('icon-' + e.id);
+            if (otherIcon) otherIcon.classList.remove('rotate-180');
+        }
+    });
+    
+    el.classList.toggle('show');
+    if (icon) icon.classList.toggle('rotate-180');
+}
+
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });
+        }
+    });
+});
+</script>
+{% endblock %}
