@@ -39,6 +39,9 @@ class TournamentLobbyView(LoginRequiredMixin, View):
         
         # Check if user is registered (allow pending, payment_submitted, confirmed)
         from apps.tournaments.models import Registration
+        from apps.teams.models import TeamMembership
+        
+        # First check for individual registration
         registration = Registration.objects.filter(
             user=request.user,
             tournament=tournament,
@@ -49,6 +52,29 @@ class TournamentLobbyView(LoginRequiredMixin, View):
                 Registration.CONFIRMED
             ]
         ).first()
+        
+        # If no individual registration, check if user is in a registered team
+        if not registration:
+            # Get team IDs where user is an active member
+            user_team_ids = TeamMembership.objects.filter(
+                profile__user=request.user,
+                status=TeamMembership.Status.ACTIVE
+            ).values_list('team_id', flat=True)
+            
+            # Check if any of those teams have a registration for this tournament
+            team_registration = Registration.objects.filter(
+                tournament=tournament,
+                team_id__in=user_team_ids,
+                is_deleted=False,
+                status__in=[
+                    Registration.PENDING,
+                    Registration.PAYMENT_SUBMITTED,
+                    Registration.CONFIRMED
+                ]
+            ).first()
+            
+            if team_registration:
+                registration = team_registration
         
         if not registration:
             messages.warning(

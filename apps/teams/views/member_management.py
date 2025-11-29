@@ -10,6 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.teams.models import Team, TeamMembership
+from apps.teams.permissions import TeamPermissions
 from apps.user_profile.models import UserProfile
 
 
@@ -20,7 +21,7 @@ def _get_profile(user):
 
 def _is_captain(profile, team):
     """Check if profile is team captain."""
-    return team.captain == profile
+    return team.is_captain(profile)
 
 
 @login_required
@@ -49,7 +50,7 @@ def get_team_members(request, slug):
             "avatar_url": membership.profile.avatar.url if membership.profile.avatar else None,
             "role": membership.role,
             "status": membership.status,
-            "is_captain": membership.profile == team.captain,
+            "is_captain": team.is_captain(membership.profile),
             "is_starter": getattr(membership, 'is_starter', True),
             "in_game_name": getattr(membership, 'in_game_name', ''),
             "jersey_number": getattr(membership, 'jersey_number', None),
@@ -70,25 +71,56 @@ def get_team_members(request, slug):
 def update_member_role(request, slug, membership_id):
     """
     Update a team member's role and status.
-    Captain-only endpoint.
+    Requires appropriate permissions based on role being assigned.
     """
     team = get_object_or_404(Team, slug=slug)
     profile = _get_profile(request.user)
     
-    if not _is_captain(profile, team):
-        return JsonResponse({"error": "Only captains can update member roles"}, status=403)
+    # Get user's membership to check permissions
+    try:
+        user_membership = TeamMembership.objects.get(team=team, profile=profile, status=TeamMembership.Status.ACTIVE)
+    except TeamMembership.DoesNotExist:
+        return JsonResponse({"error": "You are not an active member of this team"}, status=403)
     
     membership = get_object_or_404(TeamMembership, id=membership_id, team=team)
     
-    # Prevent captain from modifying their own membership
-    if membership.profile == team.captain:
-        return JsonResponse({"error": "Cannot modify captain's role"}, status=400)
+    # Prevent users from modifying their own membership
+    if membership.profile == profile:
+        return JsonResponse({"error": "Cannot modify your own role"}, status=400)
     
     # Get new values from request
     new_role = request.POST.get('role', membership.role)
     is_starter = request.POST.get('is_starter', 'true').lower() == 'true'
     in_game_name = request.POST.get('in_game_name', '')
     jersey_number = request.POST.get('jersey_number')
+    
+    # Validate role assignment permissions
+    if new_role != membership.role:  # Only check if role is actually changing
+        if new_role == TeamMembership.Role.OWNER:
+            # Only owners can transfer ownership
+            if not TeamPermissions.can_transfer_ownership(user_membership):
+                return JsonResponse({"error": "Only team owners can transfer ownership"}, status=403)
+        elif new_role == TeamMembership.Role.MANAGER:
+            # Only owners can assign manager roles
+            if not TeamPermissions.can_assign_managers(user_membership):
+                return JsonResponse({"error": "Only team owners can assign manager roles"}, status=403)
+        elif new_role == TeamMembership.Role.COACH:
+            # Owners and managers can assign coach roles
+            if not TeamPermissions.can_assign_coach(user_membership):
+                return JsonResponse({"error": "Insufficient permissions to assign coach role"}, status=403)
+        elif new_role in [TeamMembership.Role.PLAYER, TeamMembership.Role.SUBSTITUTE]:
+            # Owners and managers can change player roles
+            if not TeamPermissions.can_change_player_role(user_membership):
+                return JsonResponse({"error": "Insufficient permissions to change player roles"}, status=403)
+    
+    # Handle captain title assignment/removal
+    assign_captain = request.POST.get('assign_captain')
+    if assign_captain is not None:
+        assign_captain = assign_captain.lower() == 'true'
+        if assign_captain != membership.is_captain:
+            if not TeamPermissions.can_assign_captain_title(user_membership):
+                return JsonResponse({"error": "Insufficient permissions to assign captain title"}, status=403)
+            membership.is_captain = assign_captain
     
     # Update membership
     membership.role = new_role
@@ -133,7 +165,7 @@ def remove_member(request, slug, membership_id):
     membership = get_object_or_404(TeamMembership, id=membership_id, team=team)
     
     # Prevent captain from removing themselves
-    if membership.profile == team.captain:
+    if team.is_captain(membership.profile):
         return JsonResponse({"error": "Captain cannot remove themselves. Transfer captaincy first."}, status=400)
     
     # Get confirmation token
@@ -272,7 +304,7 @@ def bulk_remove_members(request, slug):
             membership = team.memberships.get(id=membership_id)
             
             # Skip captain
-            if membership.profile == team.captain:
+            if team.is_captain(membership.profile):
                 errors.append(f"Cannot remove captain")
                 continue
             

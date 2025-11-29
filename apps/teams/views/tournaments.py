@@ -141,7 +141,7 @@ def tournament_registration_status_view(request, team_slug, registration_id):
     
     # Check if user is team member
     is_member = team.has_member(profile)
-    is_captain = profile == team.captain
+    is_captain = team.is_captain(profile)
     
     if not is_member and not request.user.is_staff:
         messages.error(request, "You don't have permission to view this registration")
@@ -315,39 +315,43 @@ def team_tournaments_view(request, team_slug):
     Shows past, current, and upcoming tournaments.
     """
     Team = apps.get_model('teams', 'Team')
+    Registration = apps.get_model('tournaments', 'Registration')
+    Tournament = apps.get_model('tournaments', 'Tournament')
     
     team = get_object_or_404(Team, slug=team_slug)
     
     profile = _get_user_profile(request.user)
     
     # Check if user is team member
-    is_member = team.has_member(profile)
-    is_captain = profile == team.captain
+    is_member = team.has_member(profile) if profile else False
+    is_captain = team.is_captain(profile) if profile else False
     
-    if not is_member and not request.user.is_staff:
-        messages.error(request, "You don't have permission to view team tournaments")
-        return redirect('teams:detail', slug=team_slug)
+    # Allow public viewing for now (can restrict later if needed)
+    # if not is_member and not request.user.is_staff:
+    #     messages.error(request, "You don't have permission to view team tournaments")
+    #     return redirect('teams:detail', slug=team_slug)
     
-    # Get registrations
-    service = TournamentRegistrationService(team, None)
-    registrations = service.get_team_registrations(team)
-    
-    # Separate by status
-    pending_registrations = [r for r in registrations if r['status'] == 'pending']
-    confirmed_registrations = [r for r in registrations if r['status'] in ['approved', 'confirmed']]
-    cancelled_registrations = [r for r in registrations if r['status'] in ['cancelled', 'rejected']]
-    
-    # Get available tournaments for registration
-    Tournament = apps.get_model('tournaments', 'Tournament')
+    # Get all registrations for this team (using new Registration model)
     from django.utils import timezone
     
+    registrations = Registration.objects.filter(
+        team_id=team.id,
+        is_deleted=False
+    ).select_related('tournament', 'user').order_by('-registered_at')
+    
+    # Separate by status
+    pending_registrations = registrations.filter(status__in=['pending', 'payment_submitted'])
+    confirmed_registrations = registrations.filter(status='confirmed')
+    cancelled_registrations = registrations.filter(status__in=['cancelled', 'rejected'])
+    
+    # Get available tournaments for registration (game-specific, registration open)
     available_tournaments = Tournament.objects.filter(
-        game=team.game,
-        status__in=['PUBLISHED', 'RUNNING'],
-        reg_close_at__gt=timezone.now()
+        game__slug=team.game,
+        status__in=['published', 'registration_open'],
+        registration_end__gt=timezone.now()
     ).exclude(
-        id__in=[r['tournament']['id'] for r in registrations]
-    )
+        id__in=registrations.values_list('tournament_id', flat=True)
+    )[:10]  # Limit to 10 for performance
     
     context = {
         'team': team,
@@ -357,9 +361,10 @@ def team_tournaments_view(request, team_slug):
         'available_tournaments': available_tournaments,
         'is_captain': is_captain,
         'is_member': is_member,
+        'total_tournaments': registrations.count(),
     }
     
-    return render(request, 'teams/tournaments_list.html', context)
+    return render(request, 'teams/tournament_history.html', context)
 
 
 @require_POST

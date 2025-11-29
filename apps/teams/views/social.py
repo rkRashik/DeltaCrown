@@ -64,6 +64,18 @@ def team_social_detail(request, team_slug):
     follow_form = TeamFollowForm(team=team, user_profile=user_profile)
     banner_form = TeamBannerForm(team=team) if is_captain else None
     
+    # Get tournament registrations for the team
+    try:
+        from apps.tournaments.models import Registration
+        team_registrations = Registration.objects.filter(
+            team_id=team.id,
+            is_deleted=False
+        ).exclude(
+            status__in=['cancelled', 'rejected']
+        ).select_related('tournament').order_by('-registered_at')[:5]
+    except Exception:
+        team_registrations = []
+    
     context = {
         'team': team,
         'posts': posts,
@@ -77,6 +89,8 @@ def team_social_detail(request, team_slug):
         'banner_form': banner_form,
         'user_profile': user_profile,
         'follower_count': team.get_follower_count(),
+        'team_registrations': team_registrations,
+        'tournaments_count': team_registrations.count() if team_registrations else 0,
         'already_in_team_for_game': False,  # TODO: implement game-specific team check
     }
     

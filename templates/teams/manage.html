@@ -542,6 +542,180 @@
         grid-template-columns: 1fr;
     }
 }
+
+.captain-badge {
+    color: #ffd700;
+    margin-left: 4px;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #161b22;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.professional-manage-team.light-theme .modal-content {
+    background: white;
+    border: 1px solid #d0d7de;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #30363d;
+}
+
+.professional-manage-team.light-theme .modal-header {
+    border-bottom: 1px solid #d0d7de;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #e6edf3;
+}
+
+.professional-manage-team.light-theme .modal-header h3 {
+    color: #24292f;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #7d8590;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    color: #e6edf3;
+    font-weight: 500;
+}
+
+.professional-manage-team.light-theme .form-group label {
+    color: #24292f;
+}
+
+.form-group input[type="text"],
+.form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    color: #e6edf3;
+    font-size: 14px;
+}
+
+.professional-manage-team.light-theme .form-group input[type="text"],
+.professional-manage-team.light-theme .form-group select {
+    background: white;
+    border: 1px solid #d0d7de;
+    color: #24292f;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    margin: 0;
+}
+
+.form-help {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #7d8590;
+}
+
+.professional-manage-team.light-theme .form-help {
+    color: #656d76;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+.btn-secondary,
+.btn-primary {
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-secondary {
+    background: #30363d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+}
+
+.professional-manage-team.light-theme .btn-secondary {
+    background: #f6f8fa;
+    color: #24292f;
+    border: 1px solid #d0d7de;
+}
+
+.btn-primary {
+    background: #1f6feb;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #21262d;
+}
+
+.professional-manage-team.light-theme .btn-secondary:hover {
+    background: #e6edf3;
+}
+
+.btn-primary:hover {
+    background: #388bfd;
+}
 </style>
 {% endblock %}
 
@@ -693,19 +867,28 @@
         </div>
         
         <div class="members-grid">
-          {% for member in team.members.all %}
-            <div class="member-item">
+          {% for membership in members %}
+            <div class="member-item" 
+                 data-membership-id="{{ membership.id }}"
+                 data-role="{{ membership.role }}"
+                 data-is-captain="{{ membership.is_captain|lower }}"
+                 data-in-game-name="{{ membership.in_game_name }}">
               <div class="member-info">
-                {% if member.user.profile.avatar %}
-                  <img src="{{ member.user.profile.avatar.url }}" alt="{{ member.user.username }}" class="member-avatar">
+                {% if membership.profile.avatar %}
+                  <img src="{{ membership.profile.avatar.url }}" alt="{{ membership.profile.user.username }}" class="member-avatar">
                 {% else %}
                   <div class="member-avatar" style="background: #1f6feb; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px;">
-                    {{ member.user.username|first|upper }}
+                    {{ membership.profile.user.username|first|upper }}
                   </div>
                 {% endif %}
                 <div>
-                  <div class="member-name">{{ member.user.username }}</div>
-                  <div class="member-role">{{ member.role|default:"Member" }}</div>
+                  <div class="member-name">{{ membership.profile.user.username }}</div>
+                  <div class="member-role">
+                    {{ membership.get_role_display }}
+                    {% if membership.is_captain %}
+                      <span class="captain-badge">⭐</span>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
               
@@ -713,7 +896,7 @@
                 <button class="action-btn" title="Edit Role">
                   <i class="fas fa-edit"></i>
                 </button>
-                {% if member.user != user %}
+                {% if membership.profile.user != user %}
                   <button class="action-btn danger" title="Remove Member">
                     <i class="fas fa-times"></i>
                   </button>
@@ -763,6 +946,59 @@
   </div>
 </div>
 
+<!-- Role Edit Modal -->
+<div id="roleEditModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Member Role</h3>
+      <button class="modal-close" onclick="closeRoleModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="roleEditForm">
+        {% csrf_token %}
+        <input type="hidden" id="memberId" name="membership_id">
+        
+        <div class="form-group">
+          <label for="memberRole">Role</label>
+          <select id="memberRole" name="role" required>
+            <option value="PLAYER">Player</option>
+            <option value="SUBSTITUTE">Substitute</option>
+            {% if can_assign_coach %}
+            <option value="COACH">Coach</option>
+            {% endif %}
+            {% if can_assign_managers %}
+            <option value="MANAGER">Manager</option>
+            {% endif %}
+            {% if is_owner %}
+            <option value="OWNER">Owner (Transfer Ownership)</option>
+            {% endif %}
+          </select>
+        </div>
+        
+        {% if can_assign_captain_title %}
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="assignCaptain" name="assign_captain">
+            Assign Captain Title
+          </label>
+          <small class="form-help">In-game team leader badge</small>
+        </div>
+        {% endif %}
+        
+        <div class="form-group">
+          <label for="inGameName">In-Game Name</label>
+          <input type="text" id="inGameName" name="in_game_name" placeholder="Optional">
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="closeRoleModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Update Role</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle edit forms
@@ -777,19 +1013,102 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const action = this.title;
-            const memberName = this.closest('.member-item').querySelector('.member-name').textContent;
+            const memberItem = this.closest('.member-item');
+            const memberName = memberItem.querySelector('.member-name').textContent;
+            const memberId = memberItem.dataset.membershipId;
             
             if (action === 'Remove Member') {
                 if (confirm(`Are you sure you want to remove ${memberName} from the team?`)) {
-                    // Implementation for removing member
-                    dcLog('Remove member:', memberName);
+                    removeMember(memberId, memberName);
                 }
             } else if (action === 'Edit Role') {
-                // Implementation for editing member role
-                dcLog('Edit role for:', memberName);
+                openRoleEditModal(memberItem);
             }
         });
     });
+    
+    // Role edit form submission
+    document.getElementById('roleEditForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateMemberRole();
+    });
 });
+
+// Modal functions
+function openRoleEditModal(memberItem) {
+    const memberId = memberItem.dataset.membershipId;
+    const memberName = memberItem.querySelector('.member-name').textContent;
+    const currentRole = memberItem.dataset.role || 'PLAYER';
+    const isCaptain = memberItem.dataset.isCaptain === 'true';
+    const inGameName = memberItem.dataset.inGameName || '';
+    
+    // Populate form
+    document.getElementById('memberId').value = memberId;
+    document.getElementById('memberRole').value = currentRole;
+    document.getElementById('assignCaptain').checked = isCaptain;
+    document.getElementById('inGameName').value = inGameName;
+    
+    // Update modal title
+    document.querySelector('#roleEditModal .modal-header h3').textContent = `Edit Role: ${memberName}`;
+    
+    // Show modal
+    document.getElementById('roleEditModal').style.display = 'block';
+}
+
+function closeRoleModal() {
+    document.getElementById('roleEditModal').style.display = 'none';
+}
+
+// API functions
+function updateMemberRole() {
+    const formData = new FormData(document.getElementById('roleEditForm'));
+    const memberId = formData.get('membership_id');
+    
+    fetch(`/teams/{{ team.slug }}/api/members/${memberId}/update-role/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeRoleModal();
+            location.reload(); // Refresh to show updated roles
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error occurred'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the role');
+    });
+}
+
+function removeMember(memberId, memberName) {
+    const formData = new FormData();
+    formData.append('membership_id', memberId);
+    
+    fetch(`/teams/{{ team.slug }}/api/members/${memberId}/remove/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload(); // Refresh to show updated member list
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error occurred'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while removing the member');
+    });
+}
 </script>
 {% endblock %}

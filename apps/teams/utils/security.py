@@ -21,7 +21,7 @@ class TeamPermissions:
         if not user or not user.is_authenticated:
             return False
         
-        return team.captain and team.captain.user == user
+        return team.is_captain(user.userprofile)
     
     @staticmethod
     def is_team_member(user, team):

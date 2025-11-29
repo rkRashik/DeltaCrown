@@ -218,7 +218,7 @@ class ExportTeamStatsView(LoginRequiredMixin, TemplateView):
         if not user.is_authenticated:
             return False
         # Captain or staff
-        if team.captain_id == user.userprofile.id or user.is_staff:
+        if team.is_captain(user.userprofile) or user.is_staff:
             return True
         return False
 

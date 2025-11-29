@@ -31,7 +31,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.conf import settings
 
-from apps.tournaments.models import PaymentVerification, Match, Tournament
+from apps.tournaments.models import PaymentVerification, Match, Tournament, FormResponse
 from apps.notifications.services import notify
 
 logger = logging.getLogger(__name__)
@@ -512,3 +512,62 @@ def sync_match_to_profile_history(sender, instance, created, **kwargs):
         
     except ImportError:
         logger.debug("Achievement service not available for match completion")
+
+
+# ===========================
+# Form Response to Registration Conversion
+# ===========================
+
+@receiver(post_save, sender=FormResponse)
+def convert_form_response_to_registration(sender, instance, created, **kwargs):
+    """
+    Convert FormResponse to Registration record for solo tournaments.
+    
+    When a FormResponse is marked as 'submitted', create a corresponding
+    Registration record for solo tournaments to integrate with the existing
+    tournament management system.
+    """
+    # Only process submitted responses
+    if instance.status != 'submitted':
+        return
+    
+    # Skip if already converted (check if registration exists)
+    from apps.tournaments.models.registration import Registration
+    existing_registration = Registration.objects.filter(
+        tournament=instance.tournament,
+        user=instance.user,
+        is_deleted=False
+    ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+    
+    if existing_registration:
+        logger.debug(f"Registration already exists for FormResponse {instance.id}")
+        return
+    
+    # Only convert for solo tournaments (team tournaments should use different flow)
+    if instance.tournament.participation_type != 'solo':
+        logger.debug(f"Skipping FormResponse conversion for non-solo tournament: {instance.tournament.participation_type}")
+        return
+    
+    try:
+        # Create registration record
+        registration = Registration.objects.create(
+            tournament=instance.tournament,
+            user=instance.user,
+            registration_data=instance.response_data,
+            status=Registration.CONFIRMED,  # Auto-confirm solo registrations
+            current_step=100,  # Mark as completed
+            time_spent_seconds=instance.submission_duration or 0,
+            completion_percentage=100.0
+        )
+        
+        logger.info(
+            f"Converted FormResponse to Registration: form_response_id={instance.id}, "
+            f"registration_id={registration.id}, tournament='{instance.tournament.name}', "
+            f"user_id={instance.user.id}"
+        )
+        
+    except Exception as e:
+        logger.error(
+            f"Failed to convert FormResponse to Registration: form_response_id={instance.id}, "
+            f"error='{str(e)}'"
+        )

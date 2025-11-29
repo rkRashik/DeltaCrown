@@ -290,6 +290,22 @@ class Team(models.Model):
         ).select_related('profile__user')
         return [membership.profile for membership in captain_memberships]
     
+    @property
+    def effective_captain(self):
+        """Get the effective captain - returns captain field if set, otherwise the team owner"""
+        if self.captain:
+            return self.captain
+        
+        # If no captain set, default to the owner
+        try:
+            owner_membership = self.memberships.filter(
+                status=TeamMembership.Status.ACTIVE,
+                role=TeamMembership.Role.OWNER
+            ).first()
+            return owner_membership.profile if owner_membership else None
+        except:
+            return None
+    
     def get_absolute_url(self):
         """Get team detail URL"""
         return f"/teams/{self.slug}/" if self.slug else f"/teams/{self.pk}/"
@@ -307,8 +323,8 @@ class Team(models.Model):
             return self.game.replace('_', ' ').replace('-', ' ').title()
     
     def is_captain(self, profile):
-        """Check if profile is team captain"""
-        return self.captain == profile
+        """Check if profile is team captain (uses effective captain logic)"""
+        return self.effective_captain == profile
     
     def is_member(self, profile):
         """Check if profile is an active team member"""

@@ -56,18 +56,41 @@ class TournamentLobbyView(LoginRequiredMixin, DetailView):
         
         # Check if user is registered participant
         # Allow access for pending, payment_submitted, and confirmed registrations
-        try:
-            registration = Registration.objects.get(
+        from apps.teams.models import TeamMembership
+        
+        # First check for individual registration
+        registration = Registration.objects.filter(
+            tournament=tournament,
+            user=request.user,
+            is_deleted=False,
+            status__in=[
+                Registration.PENDING,
+                Registration.PAYMENT_SUBMITTED,
+                Registration.CONFIRMED
+            ]
+        ).first()
+        
+        # If no individual registration, check if user is in a registered team
+        if not registration:
+            # Get team IDs where user is an active member
+            user_team_ids = TeamMembership.objects.filter(
+                profile__user=request.user,
+                status=TeamMembership.Status.ACTIVE
+            ).values_list('team_id', flat=True)
+            
+            # Check if any of those teams have a registration for this tournament
+            registration = Registration.objects.filter(
                 tournament=tournament,
-                user=request.user,
+                team_id__in=user_team_ids,
                 is_deleted=False,
                 status__in=[
                     Registration.PENDING,
                     Registration.PAYMENT_SUBMITTED,
                     Registration.CONFIRMED
                 ]
-            )
-        except Registration.DoesNotExist:
+            ).first()
+        
+        if not registration:
             messages.warning(
                 request,
                 "You must be registered for this tournament to access the lobby. "

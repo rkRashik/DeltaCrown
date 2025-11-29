@@ -482,9 +482,20 @@ class RegistrationService:
         except Registration.DoesNotExist:
             raise ValidationError(f"Registration with ID {registration_id} not found")
         
-        # Validate registration belongs to user
-        if registration.user_id != user.id:
-            raise ValidationError("You can only pay for your own registrations")
+        # Validate registration belongs to user (solo) or user is team captain (team)
+        if registration.user_id is not None:
+            # Solo registration - user must own it
+            if registration.user_id != user.id:
+                raise ValidationError("You can only pay for your own registrations")
+        else:
+            # Team registration - user must be team captain
+            from apps.teams.models import Team
+            try:
+                team = Team.objects.get(id=registration.team_id)
+                if team.captain.user_id != user.id:
+                    raise ValidationError("Only the team captain can pay for team registrations")
+            except Team.DoesNotExist:
+                raise ValidationError("Team not found for this registration")
         
         # Validate registration status
         if registration.status not in [Registration.PENDING, Registration.PAYMENT_SUBMITTED]:

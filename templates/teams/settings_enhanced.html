@@ -275,14 +275,12 @@
                             <h3 class="text-lg font-semibold text-blue-400 flex items-center">
                                 <span class="text-xl mr-2">📋</span> Team Managers
                             </h3>
-                            {% for membership in members %}
-                                {% if membership.role == 'OWNER' and user.profile == membership.profile %}
-                                <button type="button" onclick="openAssignManagerModal()"
-                                        class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm">
-                                    + Assign Manager
-                                </button>
-                                {% endif %}
-                            {% endfor %}
+                            {% if can_assign_managers %}
+                            <button type="button" onclick="openAssignManagerModal()"
+                                    class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm">
+                                + Assign Manager
+                            </button>
+                            {% endif %}
                         </div>
                         
                         {% with managers=members|dictsort:"role" %}
@@ -306,15 +304,13 @@
                                             <p class="text-xs text-blue-400">Admin Powers • Roster Management</p>
                                         </div>
                                     </div>
-                                    {% for owner_check in members %}
-                                        {% if owner_check.role == 'OWNER' and user.profile == owner_check.profile %}
-                                        <button type="button" 
-                                                onclick="removeManager('{{ membership.profile.id }}', '{{ membership.profile.display_name }}')"
-                                                class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs">
-                                            Remove Manager
-                                        </button>
-                                        {% endif %}
-                                    {% endfor %}
+                                    {% if can_assign_managers %}
+                                    <button type="button" 
+                                            onclick="removeManager('{{ membership.profile.id }}', '{{ membership.profile.display_name }}')"
+                                            class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs">
+                                        Remove Manager
+                                    </button>
+                                    {% endif %}
                                 </div>
                                 {% endif %}
                             {% endfor %}
@@ -340,16 +336,12 @@
                             <h3 class="text-lg font-semibold text-purple-400 flex items-center">
                                 <span class="text-xl mr-2">⭐</span> In-Game Captain
                             </h3>
-                            {% for membership in members %}
-                                {% if membership.role == 'OWNER' or membership.role == 'MANAGER' %}
-                                    {% if user.profile == membership.profile %}
-                                    <button type="button" onclick="openAssignCaptainModal()"
-                                            class="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm">
-                                        Change Captain
-                                    </button>
-                                    {% endif %}
-                                {% endif %}
-                            {% endfor %}
+                            {% if can_assign_captain_title %}
+                            <button type="button" onclick="openAssignCaptainModal()"
+                                    class="px-3 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors text-sm">
+                                Change Captain
+                            </button>
+                            {% endif %}
                         </div>
                         
                         {% for membership in members %}
@@ -373,17 +365,13 @@
                                         </p>
                                     </div>
                                 </div>
-                                {% for check in members %}
-                                    {% if check.role == 'OWNER' or check.role == 'MANAGER' %}
-                                        {% if user.profile == check.profile %}
-                                        <button type="button" 
-                                                onclick="removeCaptainTitle('{{ membership.profile.id }}')"
-                                                class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs">
-                                            Remove Title
-                                        </button>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
+                                {% if can_assign_captain_title %}
+                                <button type="button" 
+                                        onclick="removeCaptainTitle('{{ membership.profile.id }}')"
+                                        class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-xs">
+                                    Remove Title
+                                </button>
+                                {% endif %}
                             </div>
                             {% endif %}
                         {% endfor %}
@@ -407,16 +395,12 @@
                             <h3 class="text-lg font-semibold text-green-400 flex items-center">
                                 <span class="text-xl mr-2">🎓</span> Coaches
                             </h3>
-                            {% for membership in members %}
-                                {% if membership.role == 'OWNER' or membership.role == 'MANAGER' %}
-                                    {% if user.profile == membership.profile %}
-                                    <button type="button" onclick="openAssignCoachModal()"
-                                            class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm">
-                                        + Assign Coach
-                                    </button>
-                                    {% endif %}
-                                {% endif %}
-                            {% endfor %}
+                            {% if can_assign_coach %}
+                            <button type="button" onclick="openAssignCoachModal()"
+                                    class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm">
+                                + Assign Coach
+                            </button>
+                            {% endif %}
                         </div>
                         
                         <div class="space-y-2">
@@ -558,35 +542,30 @@
                                         </p>
                                     </div>
                                 </div>
-                                
-                                {% for check in members %}
-                                    {% if check.role == 'OWNER' or check.role == 'MANAGER' %}
-                                        {% if user.profile == check.profile %}
-                                        <div class="flex space-x-2">
-                                            <select onchange="changePlayerRole(this, '{{ membership.profile.id }}')"
-                                                    class="px-2 py-1 text-xs bg-purple-500 hover:bg-purple-600 text-white rounded transition-colors">
-                                                <option value="">{% if membership.player_role %}Change{% else %}Set{% endif %} Role</option>
-                                                {% for role in team.game|get_player_roles %}
-                                                <option value="{{ role.value }}" {% if membership.player_role == role.value %}selected{% endif %}>{{ role.label }}</option>
-                                                {% endfor %}
-                                            </select>
-                                            <select onchange="changeOrganizationalRole(this, '{{ membership.profile.id }}')"
-                                                    class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors">
-                                                <option value="">Change Status</option>
-                                                <option value="PLAYER">Active Player</option>
-                                                <option value="SUBSTITUTE">Substitute</option>
-                                            </select>
-                                            {% if membership.role != 'OWNER' %}
-                                            <button type="button" 
-                                                    class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
-                                                    onclick="kickMember('{{ membership.profile.id }}', '{{ membership.profile.user.username }}')">
-                                                Kick
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                        {% endif %}
+                                {% if can_change_player_role or can_assign_managers %}
+                                <div class="flex space-x-2">
+                                    <select onchange="changePlayerRole(this, '{{ membership.profile.id }}')"
+                                            class="px-2 py-1 text-xs bg-purple-500 hover:bg-purple-600 text-white rounded transition-colors">
+                                        <option value="">{% if membership.player_role %}Change{% else %}Set{% endif %} Role</option>
+                                        {% for role in team.game|get_player_roles %}
+                                        <option value="{{ role.value }}" {% if membership.player_role == role.value %}selected{% endif %}>{{ role.label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <select onchange="changeOrganizationalRole(this, '{{ membership.profile.id }}')"
+                                            class="px-2 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors">
+                                        <option value="">Change Status</option>
+                                        <option value="PLAYER">Active Player</option>
+                                        <option value="SUBSTITUTE">Substitute</option>
+                                    </select>
+                                    {% if membership.role != 'OWNER' %}
+                                    <button type="button" 
+                                            class="px-3 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                                            onclick="kickMember('{{ membership.profile.id }}', '{{ membership.profile.user.username }}')">
+                                        Kick
+                                    </button>
                                     {% endif %}
-                                {% endfor %}
+                                </div>
+                                {% endif %}
                             </div>
                             {% endif %}
                         {% endfor %}

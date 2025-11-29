@@ -1124,6 +1124,15 @@ def manage_team_view(request, slug: str):
         "settings_form": settings_form,
         "pending_invites": pending_invites,
         "members": members,
+        # Permission flags for frontend
+        "user_membership": membership,
+        "can_assign_managers": TeamPermissions.can_assign_managers(membership),
+        "can_assign_captain_title": TeamPermissions.can_assign_captain_title(membership),
+        "can_assign_coach": TeamPermissions.can_assign_coach(membership),
+        "can_change_player_role": TeamPermissions.can_change_player_role(membership),
+        "can_manage_roster": TeamPermissions.can_manage_roster(membership),
+        "is_owner": membership.role == TeamMembership.Role.OWNER,
+        "is_manager": membership.role == TeamMembership.Role.MANAGER,
     }
 
     return render(request, "teams/manage.html", context)
@@ -1510,6 +1519,13 @@ def team_settings_view(request, slug: str):
         "pending_invites": team.invites.filter(status="PENDING").select_related("invited_user__user"),
         "can_manage_permissions": can_manage_permissions,
         "user_membership": membership,
+        # Permission flags for role management
+        "can_assign_managers": TeamPermissions.can_assign_managers(membership),
+        "can_assign_captain_title": TeamPermissions.can_assign_captain_title(membership),
+        "can_assign_coach": TeamPermissions.can_assign_coach(membership),
+        "can_change_player_role": TeamPermissions.can_change_player_role(membership),
+        "is_owner": membership.role == TeamMembership.Role.OWNER,
+        "is_manager": membership.role == TeamMembership.Role.MANAGER,
     }
     
     return render(request, "teams/settings_enhanced.html", context)

@@ -28,7 +28,7 @@ def get_pending_items(request, slug: str):
     profile = _get_user_profile(request.user)
     
     # Permission check
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    is_captain = team.is_captain(profile)
     if not is_captain:
         return JsonResponse({"error": "Permission denied"}, status=403)
     
@@ -72,7 +72,7 @@ def get_recent_activity(request, slug: str):
     profile = _get_user_profile(request.user)
     
     # Permission check
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    is_captain = team.is_captain(profile)
     if not is_captain:
         return JsonResponse({"error": "Permission denied"}, status=403)
     
@@ -138,7 +138,7 @@ def approve_join_request(request, request_id: int):
         profile = _get_user_profile(request.user)
         
         # Permission check
-        is_captain = (team.captain_id == getattr(profile, "id", None))
+        is_captain = team.is_captain(profile)
         if not is_captain:
             return JsonResponse({"error": "Permission denied"}, status=403)
         
@@ -189,7 +189,7 @@ def reject_join_request(request, request_id: int):
         profile = _get_user_profile(request.user)
         
         # Permission check
-        is_captain = (team.captain_id == getattr(profile, "id", None))
+        is_captain = team.is_captain(profile)
         if not is_captain:
             return JsonResponse({"error": "Permission denied"}, status=403)
         
@@ -222,7 +222,7 @@ def resend_team_invite(request, invite_id: int):
     profile = _get_user_profile(request.user)
     
     # Permission check
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    is_captain = team.is_captain(profile)
     if not is_captain:
         return JsonResponse({"error": "Permission denied"}, status=403)
     
@@ -253,7 +253,7 @@ def cancel_team_invite(request, invite_id: int):
     profile = _get_user_profile(request.user)
     
     # Permission check
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    is_captain = team.is_captain(profile)
     if not is_captain:
         return JsonResponse({"error": "Permission denied"}, status=403)
     

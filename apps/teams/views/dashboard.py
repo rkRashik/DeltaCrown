@@ -48,7 +48,7 @@ def team_dashboard_view(request, slug: str):
     
     # Check if user has dashboard access
     has_dashboard_access = False
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    is_captain = team.is_captain(profile)
     is_manager = membership and membership.role in ["MANAGER", "CO_CAPTAIN"]
     
     if membership:
@@ -358,7 +358,7 @@ def team_profile_view(request, slug: str):
                 status=TeamMembership.Status.ACTIVE
             )
             is_member = True
-            is_captain = (team.captain_id == getattr(profile, "id", None))
+            is_captain = team.is_captain(profile)
             
             # Set role flags using TeamMembership.Role enum
             from apps.teams.permissions import TeamPermissions
@@ -729,7 +729,7 @@ def update_roster_order(request, slug: str):
     profile = _get_user_profile(request.user)
     
     # Permission check
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    is_captain = team.is_captain(profile)
     if not is_captain:
         return JsonResponse({"error": "Only captain can reorder roster"}, status=403)
     
@@ -763,7 +763,7 @@ def resend_invite(request, slug: str, invite_id: int):
     profile = _get_user_profile(request.user)
     
     # Permission check
-    is_captain = (team.captain_id == getattr(profile, "id", None))
+    is_captain = team.is_captain(profile)
     if not is_captain:
         return JsonResponse({"error": "Only captain can resend invites"}, status=403)
     

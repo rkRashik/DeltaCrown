@@ -124,8 +124,10 @@ class TournamentListView(ListView):
         
         if self.request.user.is_authenticated:
             from apps.tournaments.models import Registration
+            from apps.user_profile.models import UserProfile
+            from apps.teams.models import TeamMembership
             
-            # Get user's registrations
+            # Get user's direct registrations
             user_registrations = Registration.objects.filter(
                 user=self.request.user,
                 tournament__in=context['tournament_list'],
@@ -133,7 +135,30 @@ class TournamentListView(ListView):
             ).exclude(
                 status__in=[Registration.CANCELLED, Registration.REJECTED]
             ).values_list('tournament_id', flat=True)
-            context['user_registered_tournaments'] = set(user_registrations)
+            
+            # Also get team registrations (where user is a team member)
+            team_registrations = set()
+            try:
+                user_profile = UserProfile.objects.filter(user=self.request.user).first()
+                if user_profile:
+                    user_team_ids = TeamMembership.objects.filter(
+                        profile=user_profile,
+                        status=TeamMembership.Status.ACTIVE
+                    ).values_list('team_id', flat=True)
+                    
+                    team_registrations = set(Registration.objects.filter(
+                        team_id__in=user_team_ids,
+                        tournament__in=context['tournament_list'],
+                        tournament__participation_type=Tournament.TEAM,  # Only for team tournaments
+                        is_deleted=False
+                    ).exclude(
+                        status__in=[Registration.CANCELLED, Registration.REJECTED]
+                    ).values_list('tournament_id', flat=True))
+            except Exception:
+                pass
+            
+            # Combine both sets of registrations
+            context['user_registered_tournaments'] = set(user_registrations) | team_registrations
         else:
             context['user_registered_tournaments'] = set()
         

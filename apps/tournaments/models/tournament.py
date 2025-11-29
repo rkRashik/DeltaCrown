@@ -350,6 +350,10 @@ class Tournament(SoftDeleteModel, TimestampedModel):
     # Dates
     registration_start = models.DateTimeField(help_text='When registration opens')
     registration_end = models.DateTimeField(help_text='When registration closes')
+    registration_form_overrides = models.JSONField(
+        default=dict,
+        help_text='Form configuration overrides for this tournament (JSONB)'
+    )
     tournament_start = models.DateTimeField(help_text='When tournament begins')
     tournament_end = models.DateTimeField(
         null=True,

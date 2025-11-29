@@ -124,11 +124,35 @@ class TeamRegistrationView(LoginRequiredMixin, View):
         
         # CHECK: Already registered for this tournament?
         from apps.tournaments.models.registration import Registration
+        
+        # Check both user-level and team-level registrations
         existing_registration = Registration.objects.filter(
             tournament=tournament,
             user=request.user,
             is_deleted=False
         ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+        
+        # Also check if user's teams are registered
+        if not existing_registration:
+            try:
+                from apps.user_profile.models import UserProfile
+                user_profile = UserProfile.objects.filter(user=request.user).first()
+                if user_profile:
+                    from apps.teams.models import TeamMembership
+                    user_team_ids = TeamMembership.objects.filter(
+                        profile=user_profile,
+                        status=TeamMembership.Status.ACTIVE
+                    ).values_list('team_id', flat=True)
+                    
+                    existing_registration = Registration.objects.filter(
+                        tournament=tournament,
+                        team_id__in=user_team_ids,
+                        is_deleted=False
+                    ).exclude(status__in=[Registration.CANCELLED, Registration.REJECTED]).first()
+            except Exception as e:
+                import traceback
+                print(f"Error checking team registrations: {e}")
+                print(traceback.format_exc())
         
         if existing_registration:
             # Show already registered page with lobby access and verification status
@@ -313,8 +337,41 @@ class TeamRegistrationView(LoginRequiredMixin, View):
         form_config = TournamentFormConfiguration.get_or_create_for_tournament(tournament)
         
         if step == '1':
+            # Find user's team (same logic as GET method)
+            from apps.teams.models import Team, TeamMembership
+            from apps.user_profile.models import UserProfile
+            
+            user_profile = UserProfile.objects.filter(user=request.user).first()
+            user_team = None
+            
+            if user_profile:
+                # Get user's teams for this game
+                user_teams = Team.objects.filter(
+                    game=tournament.game.slug,
+                    memberships__profile=user_profile,
+                    memberships__status=TeamMembership.Status.ACTIVE,
+                    is_active=True
+                ).distinct()
+                
+                # Find first team where user has registration permission
+                for team in user_teams:
+                    membership = TeamMembership.objects.filter(
+                        team=team, 
+                        profile=user_profile,
+                        status=TeamMembership.Status.ACTIVE
+                    ).first()
+                    
+                    if membership and (membership.role in [
+                        TeamMembership.Role.OWNER,
+                        TeamMembership.Role.MANAGER, 
+                        TeamMembership.Role.CAPTAIN
+                    ] or membership.can_register_tournaments):
+                        user_team = team
+                        break
+            
             # Save team info to session
             team_data = {
+                'team_id': user_team.id if user_team else None,
                 'team_name': request.POST.get('team_name', ''),
                 'team_tag': request.POST.get('team_tag', ''),
                 'captain_full_name': request.POST.get('captain_full_name', ''),
@@ -406,7 +463,38 @@ class TeamRegistrationView(LoginRequiredMixin, View):
                 # No payment needed, complete registration directly
                 # Store registration type before clearing session
                 request.session['registration_type'] = 'team'
-                request.session['registration_step_data'] = request.session.get(f'team_registration_{tournament.id}', {})
+                
+                # Add payment info for success page (no payment required)
+                team_data['payment_method'] = 'No payment required'
+                team_data['transaction_id'] = 'N/A'
+                
+                # Transform roster data for template compatibility
+                roster = team_data.get('roster', [])
+                
+                # Map roster to individual player fields for template
+                for player in roster:
+                    if player.get('position') == 'starting':
+                        position_num = player.get('position_number', 1)
+                        if position_num == 1:
+                            # Captain is already handled separately
+                            continue
+                        elif position_num == 2:
+                            team_data['player2_ign'] = player.get('display_name', '')
+                            team_data['player2_riot_id'] = player.get('full_name', '')  # Using full_name as riot_id equivalent
+                        elif position_num == 3:
+                            team_data['player3_ign'] = player.get('display_name', '')
+                            team_data['player3_riot_id'] = player.get('full_name', '')
+                        elif position_num == 4:
+                            team_data['player4_ign'] = player.get('display_name', '')
+                            team_data['player4_riot_id'] = player.get('full_name', '')
+                        elif position_num == 5:
+                            team_data['player5_ign'] = player.get('display_name', '')
+                            team_data['player5_riot_id'] = player.get('full_name', '')
+                    elif player.get('position') == 'substitute':
+                        team_data['substitute_ign'] = player.get('display_name', '')
+                        team_data['substitute_riot_id'] = player.get('full_name', '')
+                
+                request.session['registration_step_data'] = team_data
                 
                 # Create registration record
                 from apps.tournaments.models.registration import Registration
@@ -463,7 +551,7 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             # Create registration record
             registration = Registration.objects.create(
                 tournament=tournament,
-                user=request.user,
+                user=None,  # Team registrations don't have a user - only team_id
                 team_id=team_data.get('team_id'),  # Get from session data
                 registration_data=team_data,
                 status=Registration.PAYMENT_SUBMITTED,
@@ -473,17 +561,60 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             
             # Create payment record
             payment_method = request.POST.get('payment_method', 'bkash')
-            payment_proof = request.FILES.get('screenshot')
             
-            Payment.objects.create(
-                registration=registration,
-                payment_method=payment_method,
-                amount=Decimal(str(tournament.entry_fee_amount)),
-                transaction_id=request.POST.get('transaction_id', ''),
-                payment_proof=payment_proof,
-                reference_number=request.POST.get('reference_number', ''),
-                status='submitted'
-            )
+            if payment_method == 'deltacoin':
+                # Handle DeltaCoin payment - auto-verify and debit wallet
+                from apps.tournaments.services.registration_service import RegistrationService
+                try:
+                    payment, dc_transaction = RegistrationService.pay_with_deltacoin(
+                        registration_id=registration.id,
+                        user=request.user
+                    )
+                    # Update registration status to confirmed (already done in pay_with_deltacoin)
+                    registration.refresh_from_db()
+                except Exception as e:
+                    messages.error(request, f'Payment failed: {str(e)}')
+                    return redirect(f'{request.path}?step=3')
+            else:
+                # Handle manual payment methods (bKash, Nagad, etc.)
+                Payment.objects.create(
+                    registration=registration,
+                    payment_method=payment_method,
+                    amount=Decimal(str(tournament.entry_fee_amount)),
+                    transaction_id=request.POST.get('transaction_id', ''),
+                    payment_proof=payment_proof,
+                    status='submitted'
+                )
+            
+            # Add payment info to team_data for success page display
+            team_data['payment_method'] = payment_method
+            team_data['transaction_id'] = request.POST.get('transaction_id', '')
+            
+            # Transform roster data for template compatibility
+            roster = team_data.get('roster', [])
+            
+            # Map roster to individual player fields for template
+            for player in roster:
+                if player.get('position') == 'starting':
+                    position_num = player.get('position_number', 1)
+                    if position_num == 1:
+                        # Captain is already handled separately
+                        continue
+                    elif position_num == 2:
+                        team_data['player2_ign'] = player.get('display_name', '')
+                        team_data['player2_riot_id'] = player.get('full_name', '')  # Using full_name as riot_id equivalent
+                    elif position_num == 3:
+                        team_data['player3_ign'] = player.get('display_name', '')
+                        team_data['player3_riot_id'] = player.get('full_name', '')
+                    elif position_num == 4:
+                        team_data['player4_ign'] = player.get('display_name', '')
+                        team_data['player4_riot_id'] = player.get('full_name', '')
+                    elif position_num == 5:
+                        team_data['player5_ign'] = player.get('display_name', '')
+                        team_data['player5_riot_id'] = player.get('full_name', '')
+                elif player.get('position') == 'substitute':
+                    team_data['substitute_ign'] = player.get('display_name', '')
+                    team_data['substitute_riot_id'] = player.get('full_name', '')
             
             # Store registration type before clearing session
             request.session['registration_type'] = 'team'
@@ -493,7 +624,12 @@ class TeamRegistrationView(LoginRequiredMixin, View):
             if f'team_registration_{tournament.id}' in request.session:
                 del request.session[f'team_registration_{tournament.id}']
             
-            messages.success(request, 'Team registration submitted successfully! Payment is pending verification.')
+            # Success message based on payment method
+            if payment_method == 'deltacoin':
+                messages.success(request, 'Team registration completed successfully! Your DeltaCoin payment has been processed and your team is now registered.')
+            else:
+                messages.success(request, 'Team registration submitted successfully! Payment is pending verification.')
+            
             return redirect('tournaments:registration_success', slug=tournament.slug)
         
         return redirect(f'{request.path}?step=1')

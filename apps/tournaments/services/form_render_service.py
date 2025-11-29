@@ -49,6 +49,11 @@ class FormRenderService:
             defaults={'form_schema': self._get_default_schema()}
         )
         
+        # If schema is empty (newly created or existing), generate from configuration
+        if not self.form_config.form_schema.get('sections'):
+            self.form_config.form_schema = self._generate_schema_from_configuration()
+            self.form_config.save(update_fields=['form_schema'])
+        
         self.schema = self.form_config.form_schema
         self.validator = FormValidator(self.schema)
     
@@ -65,6 +70,237 @@ class FormRenderService:
             },
             'sections': []
         }
+    
+    def _generate_schema_from_configuration(self) -> Dict[str, Any]:
+        """
+        Generate form schema from TournamentFormConfiguration.
+        
+        Creates a proper form schema with sections and fields based on
+        the tournament's form configuration settings.
+        """
+        from apps.tournaments.models.form_configuration import TournamentFormConfiguration
+        
+        # Get form configuration
+        form_config = TournamentFormConfiguration.get_or_create_for_tournament(self.tournament)
+        
+        sections = []
+        
+        if self.tournament.participation_type == 'solo':
+            sections = self._generate_solo_registration_schema(form_config)
+        elif self.tournament.participation_type == 'team':
+            sections = self._generate_team_registration_schema(form_config)
+        else:
+            # Default/fallback
+            sections = self._generate_solo_registration_schema(form_config)
+        
+        return {
+            'version': '2.0',
+            'form_id': f'{self.tournament.slug}_registration',
+            'form_name': f'{self.tournament.name} Registration',
+            'settings': {
+                'theme': 'dark',
+                'primary_color': '#FF4655',
+                'show_section_numbers': True,
+            },
+            'sections': sections
+        }
+    
+    def _generate_solo_registration_schema(self, form_config) -> List[Dict]:
+        """Generate form sections for solo registration"""
+        sections = []
+        
+        # Section 1: Player Information
+        player_fields = [
+            {
+                'id': 'player_name',
+                'type': 'text',
+                'label': 'Full Name',
+                'required': True,
+                'placeholder': 'Enter your full name',
+                'help_text': 'Your real name as it appears on official documents'
+            }
+        ]
+        
+        # Add optional fields based on configuration
+        if form_config.enable_age_field:
+            player_fields.append({
+                'id': 'age',
+                'type': 'number',
+                'label': 'Age',
+                'required': False,
+                'min': 13,
+                'max': 100,
+                'help_text': 'You must be 13+ to participate'
+            })
+        
+        if form_config.enable_country_field:
+            player_fields.append({
+                'id': 'country',
+                'type': 'select',
+                'label': 'Country',
+                'required': False,
+                'options': [
+                    {'value': 'BD', 'label': 'Bangladesh'},
+                    {'value': 'IN', 'label': 'India'},
+                    {'value': 'PK', 'label': 'Pakistan'},
+                    {'value': 'LK', 'label': 'Sri Lanka'},
+                    {'value': 'NP', 'label': 'Nepal'},
+                    {'value': 'US', 'label': 'United States'},
+                    {'value': 'GB', 'label': 'United Kingdom'},
+                    {'value': 'CA', 'label': 'Canada'},
+                    {'value': 'AU', 'label': 'Australia'},
+                    {'value': 'other', 'label': 'Other'}
+                ]
+            })
+        
+        sections.append({
+            'id': 'player_info',
+            'title': 'Player Information',
+            'description': 'Basic information about you',
+            'fields': player_fields
+        })
+        
+        # Section 2: Game Details
+        game_fields = []
+        
+        if form_config.enable_platform_field:
+            game_fields.append({
+                'id': 'platform',
+                'type': 'select',
+                'label': 'Platform/Server',
+                'required': False,
+                'options': [
+                    {'value': 'pc', 'label': 'PC'},
+                    {'value': 'mobile', 'label': 'Mobile'},
+                    {'value': 'ps5', 'label': 'PlayStation 5'},
+                    {'value': 'xbox', 'label': 'Xbox Series X/S'}
+                ]
+            })
+        
+        if form_config.enable_rank_field:
+            game_fields.append({
+                'id': 'rank',
+                'type': 'text',
+                'label': 'Current Rank',
+                'required': False,
+                'placeholder': 'e.g., Gold III, Immortal 2'
+            })
+        
+        if game_fields:
+            sections.append({
+                'id': 'game_details',
+                'title': 'Game Details',
+                'description': 'Your gaming information',
+                'fields': game_fields
+            })
+        
+        # Section 3: Contact Information
+        contact_fields = []
+        
+        if form_config.enable_phone_field:
+            contact_fields.append({
+                'id': 'phone',
+                'type': 'tel',
+                'label': 'Phone/WhatsApp',
+                'required': False,
+                'placeholder': '+880 1XX XXX XXXX'
+            })
+        
+        if form_config.enable_discord_field:
+            contact_fields.append({
+                'id': 'discord',
+                'type': 'text',
+                'label': 'Discord Username',
+                'required': False,
+                'placeholder': 'username#1234'
+            })
+        
+        if form_config.enable_preferred_contact_field:
+            contact_fields.append({
+                'id': 'preferred_contact',
+                'type': 'select',
+                'label': 'Preferred Contact Method',
+                'required': False,
+                'options': [
+                    {'value': 'whatsapp', 'label': 'WhatsApp'},
+                    {'value': 'discord', 'label': 'Discord'},
+                    {'value': 'email', 'label': 'Email'}
+                ]
+            })
+        
+        if contact_fields:
+            sections.append({
+                'id': 'contact_info',
+                'title': 'Contact Information',
+                'description': 'How we can reach you during the tournament',
+                'fields': contact_fields
+            })
+        
+        # Section 4: Payment (if tournament has entry fee)
+        if self.tournament.has_entry_fee and self.tournament.entry_fee_amount > 0:
+            payment_fields = []
+            
+            if form_config.enable_payment_mobile_number_field:
+                payment_fields.append({
+                    'id': 'payment_mobile',
+                    'type': 'tel',
+                    'label': 'Payment Mobile Number',
+                    'required': True,
+                    'placeholder': '+880 1XX XXX XXXX',
+                    'help_text': 'Mobile number used for payment'
+                })
+            
+            if form_config.enable_payment_screenshot_field:
+                payment_fields.append({
+                    'id': 'payment_screenshot',
+                    'type': 'file',
+                    'label': 'Payment Screenshot',
+                    'required': True,
+                    'accept': 'image/*',
+                    'help_text': 'Upload a screenshot of your payment'
+                })
+            
+            if form_config.enable_payment_notes_field:
+                payment_fields.append({
+                    'id': 'payment_notes',
+                    'type': 'textarea',
+                    'label': 'Payment Notes',
+                    'required': False,
+                    'placeholder': 'Any additional payment information'
+                })
+            
+            if payment_fields:
+                sections.append({
+                    'id': 'payment',
+                    'title': 'Payment Information',
+                    'description': f'Entry fee: {self.tournament.entry_fee_amount} {self.tournament.entry_fee_currency}',
+                    'fields': payment_fields
+                })
+        
+        return sections
+    
+    def _generate_team_registration_schema(self, form_config) -> List[Dict]:
+        """Generate form sections for team registration"""
+        # For now, return basic team schema
+        # This would be expanded with team-specific fields
+        sections = [
+            {
+                'id': 'team_info',
+                'title': 'Team Information',
+                'description': 'Information about your team',
+                'fields': [
+                    {
+                        'id': 'team_name',
+                        'type': 'text',
+                        'label': 'Team Name',
+                        'required': True,
+                        'placeholder': 'Enter your team name'
+                    }
+                ]
+            }
+        ]
+        
+        return sections
     
     # ==================== RENDERING ====================
     

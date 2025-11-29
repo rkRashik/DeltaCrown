@@ -63,7 +63,7 @@ class RegistrationEligibilityService:
             })
             return result
         
-        # Check for existing registration (user-level)
+        # Check for existing registration (user-level for solo, or team-level for team tournaments)
         registration = Registration.objects.filter(
             tournament=tournament,
             user=user,
@@ -81,6 +81,39 @@ class RegistrationEligibilityService:
                 'action_label': 'Enter Lobby',
             })
             return result
+        
+        # For team tournaments, also check if user's team is registered (even if another member registered it)
+        if tournament.participation_type == Tournament.TEAM:
+            try:
+                user_profile = UserProfile.objects.filter(user=user).first()
+                if user_profile:
+                    # Get all user's teams for this game
+                    from apps.teams.models import Team, TeamMembership
+                    user_team_ids = TeamMembership.objects.filter(
+                        profile=user_profile,
+                        status=TeamMembership.Status.ACTIVE
+                    ).values_list('team_id', flat=True)
+                    
+                    # Check if any of user's teams are registered
+                    team_registration = Registration.objects.filter(
+                        tournament=tournament,
+                        team_id__in=user_team_ids,
+                        is_deleted=False
+                    ).exclude(
+                        status__in=[Registration.CANCELLED, Registration.REJECTED]
+                    ).first()
+                    
+                    if team_registration:
+                        result.update({
+                            'reason': 'Your team is already registered for this tournament.',
+                            'status': 'team_already_registered',
+                            'registration': team_registration,
+                            'action_url': f'/tournaments/{tournament.slug}/lobby/',
+                            'action_label': 'Enter Lobby',
+                        })
+                        return result
+            except Exception:
+                pass  # Continue with other checks if team check fails
         
         # Check tournament status
         if tournament.status == Tournament.COMPLETED:

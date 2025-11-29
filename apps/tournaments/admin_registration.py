@@ -80,8 +80,8 @@ class RegistrationAdmin(admin.ModelAdmin):
     Comprehensive registration management with filtering, search, and payment inline.
     """
     list_display = [
-        'id', 'participant_display', 'tournament', 'status', 'registered_at',
-        'has_payment', 'payment_status_display', 'checked_in', 'slot_number', 'seed'
+        'id', 'team_name_display', 'captain_display', 'status', 'tournament', 'registered_at',
+        'has_payment', 'payment_status_display', 'transaction_id_display', 'slot_number', 'seed'
     ]
     list_filter = [
         'status', 'checked_in', 'tournament__status', 'tournament__game',
@@ -145,6 +145,32 @@ class RegistrationAdmin(admin.ModelAdmin):
     participant_display.short_description = "Participant"
     participant_display.admin_order_field = 'user__username'
     
+    def team_name_display(self, obj):
+        """Display team name if it's a team registration."""
+        if obj.team_id:
+            try:
+                from apps.teams.models import Team
+                team = Team.objects.get(id=obj.team_id)
+                return team.name
+            except Team.DoesNotExist:
+                return f"Team {obj.team_id} (Not Found)"
+        return "-"
+    team_name_display.short_description = "Team Name"
+    
+    def captain_display(self, obj):
+        """Display captain name if it's a team registration."""
+        if obj.team_id:
+            try:
+                from apps.teams.models import Team
+                team = Team.objects.get(id=obj.team_id)
+                if team.captain:
+                    return team.captain.display_name or team.captain.user.username
+                return "No Captain"
+            except Team.DoesNotExist:
+                return f"Team {obj.team_id} (Not Found)"
+        return "-"
+    captain_display.short_description = "Captain"
+    
     def payment_status_display(self, obj):
         """Display payment status with color coding."""
         if not obj.has_payment:
@@ -167,6 +193,13 @@ class RegistrationAdmin(admin.ModelAdmin):
             payment.get_status_display()
         )
     payment_status_display.short_description = "Payment Status"
+    
+    def transaction_id_display(self, obj):
+        """Display transaction ID if payment exists."""
+        if obj.has_payment:
+            return obj.payment.transaction_id or "-"
+        return "-"
+    transaction_id_display.short_description = "Trnx ID"
     
     def bulk_confirm_registrations(self, request, queryset):
         """
