@@ -264,8 +264,65 @@ class Team(models.Model):
     
     @property
     def can_accept_members(self):
-        """Check if team can accept more members"""
-        return self.members_count < TEAM_MAX_ROSTER
+        """Check if team can accept more members based on game-specific limits"""
+        return self.members_count < self.max_roster_size
+    
+    @property
+    def max_roster_size(self):
+        """Get maximum roster size based on game specification"""
+        if not self.game:
+            return TEAM_MAX_ROSTER  # Fallback to legacy limit
+        
+        try:
+            from apps.common.game_registry.loaders import ROSTER_CONFIGS
+            config = ROSTER_CONFIGS.get(self.game, {})
+            return config.get('total_max_roster', TEAM_MAX_ROSTER)
+        except Exception:
+            return TEAM_MAX_ROSTER
+    
+    @property
+    def min_roster_size(self):
+        """Get minimum roster size required for tournament registration"""
+        if not self.game:
+            return 5  # Default minimum
+        
+        try:
+            from apps.common.game_registry.loaders import ROSTER_CONFIGS
+            config = ROSTER_CONFIGS.get(self.game, {})
+            return config.get('min_starters', 5)
+        except Exception:
+            return 5
+    
+    @property
+    def roster_limits(self):
+        """Get detailed roster limits for this team's game"""
+        if not self.game:
+            return {
+                'max_starters': 5,
+                'max_substitutes': 2,
+                'max_coach': 1,
+                'max_analyst': 0,
+                'total_max': TEAM_MAX_ROSTER
+            }
+        
+        try:
+            from apps.common.game_registry.loaders import ROSTER_CONFIGS
+            config = ROSTER_CONFIGS.get(self.game, {})
+            return {
+                'max_starters': config.get('max_starters', 5),
+                'max_substitutes': config.get('max_substitutes', 2),
+                'max_coach': config.get('max_coach', 1),
+                'max_analyst': config.get('max_analyst', 0),
+                'total_max': config.get('total_max_roster', TEAM_MAX_ROSTER)
+            }
+        except Exception:
+            return {
+                'max_starters': 5,
+                'max_substitutes': 2,
+                'max_coach': 1,
+                'max_analyst': 0,
+                'total_max': TEAM_MAX_ROSTER
+            }
     
     @property
     def display_name(self):
@@ -446,6 +503,25 @@ class TeamMembership(models.Model):
     joined_at = models.DateTimeField(default=timezone.now)
     
     # ═══════════════════════════════════════════════════════════════════════
+    # ROSTER SLOT SYSTEM: Separate from organizational role
+    # Defines the member's position in the active roster (game-specific)
+    # ═══════════════════════════════════════════════════════════════════════
+    class RosterSlot(models.TextChoices):
+        STARTER = "STARTER", "Starting Player"
+        SUBSTITUTE = "SUBSTITUTE", "Substitute Player"
+        COACH = "COACH", "Coach"
+        ANALYST = "ANALYST", "Analyst"
+    
+    roster_slot = models.CharField(
+        max_length=16,
+        choices=RosterSlot.choices,
+        blank=True,
+        null=True,
+        help_text="Roster position for tournaments (STARTER, SUBSTITUTE, COACH, ANALYST). Enforces game-specific limits.",
+        verbose_name="Roster Slot"
+    )
+    
+    # ═══════════════════════════════════════════════════════════════════════
     # DUAL-ROLE SYSTEM: In-Game Role (game-specific tactical role)
     # ═══════════════════════════════════════════════════════════════════════
     player_role = models.CharField(
@@ -461,7 +537,7 @@ class TeamMembership(models.Model):
     # ═══════════════════════════════════════════════════════════════════════
     is_captain = models.BooleanField(
         default=False,
-        help_text="In-game leader badge. Can only be true for PLAYER or SUBSTITUTE roles.",
+        help_text="Team captain for administrative duties (Ban/Pick, check-in). Can be OWNER, MANAGER, PLAYER, or SUBSTITUTE.",
         verbose_name="Captain Title"
     )
     
@@ -732,10 +808,11 @@ class TeamMembership(models.Model):
         if self.role in [self.Role.OWNER, self.Role.CAPTAIN] and self.status != self.Status.ACTIVE:
             raise ValidationError({"status": f"{self.get_role_display()} membership must be ACTIVE."})
         
-        # is_captain can only be True for PLAYER or SUBSTITUTE
-        if self.is_captain and self.role not in [self.Role.PLAYER, self.Role.SUBSTITUTE]:
+        # is_captain can be True for OWNER, MANAGER, PLAYER, or SUBSTITUTE
+        # Removed restriction - OWNER can now be team captain
+        if self.is_captain and self.role not in [self.Role.OWNER, self.Role.MANAGER, self.Role.PLAYER, self.Role.SUBSTITUTE]:
             raise ValidationError({
-                "is_captain": "Captain title can only be assigned to Players or Substitutes."
+                "is_captain": "Captain title can only be assigned to Owner, Manager, Players, or Substitutes."
             })
 
         # Enforce: one ACTIVE team per GAME per profile (Part A)
@@ -763,6 +840,45 @@ class TeamMembership(models.Model):
         except Exception:
             # Fail-soft on unexpected issues
             pass
+        
+        # ═══════════════════════════════════════════════════════════════════
+        # ROSTER SLOT VALIDATION: Enforce game-specific limits
+        # ═══════════════════════════════════════════════════════════════════
+        if self.roster_slot and self.status == self.Status.ACTIVE and self.team:
+            from apps.common.game_registry.loaders import ROSTER_CONFIGS
+            
+            # Get game-specific limits
+            game_config = ROSTER_CONFIGS.get(self.team.game, {})
+            
+            # Count existing members in this roster slot (exclude self if updating)
+            existing_count = TeamMembership.objects.filter(
+                team=self.team,
+                roster_slot=self.roster_slot,
+                status=self.Status.ACTIVE
+            ).exclude(pk=self.pk if self.pk else None).count()
+            
+            # Check against game-specific limits
+            limit_exceeded = False
+            limit_value = 0
+            
+            if self.roster_slot == self.RosterSlot.STARTER:
+                limit_value = game_config.get('max_starters', 5)
+                limit_exceeded = existing_count >= limit_value
+            elif self.roster_slot == self.RosterSlot.SUBSTITUTE:
+                limit_value = game_config.get('max_substitutes', 2)
+                limit_exceeded = existing_count >= limit_value
+            elif self.roster_slot == self.RosterSlot.COACH:
+                limit_value = game_config.get('max_coach', 1)
+                limit_exceeded = existing_count >= limit_value
+            elif self.roster_slot == self.RosterSlot.ANALYST:
+                limit_value = game_config.get('max_analyst', 0)
+                limit_exceeded = existing_count >= limit_value
+            
+            if limit_exceeded:
+                raise ValidationError({
+                    "roster_slot": f"Team already has maximum {self.get_roster_slot_display()}s "
+                                   f"({limit_value}) for {self.team.game}."
+                })
     
     def save(self, *args, **kwargs):
         # Update permission cache before saving
@@ -969,12 +1085,13 @@ class TeamInvite(models.Model):
         pending = self.team.invites.filter(status="PENDING").exclude(pk=self.pk).count()
 
         # 1) If there is exactly one slot left, do NOT allow creating a new pending invite.
-        if active >= TEAM_MAX_ROSTER - 1:
-            raise ValidationError("Roster has only one slot left; cannot create a new invite.")
+        max_roster = self.team.max_roster_size
+        if active >= max_roster - 1:
+            raise ValidationError(f"Roster has only one slot left; cannot create a new invite (max {max_roster} for {self.team.game}).")
 
         # 2) If active + pending already fills or exceeds capacity, block too.
-        if active + pending >= TEAM_MAX_ROSTER:
-            raise ValidationError("Roster capacity already reserved by existing invites.")
+        if active + pending >= max_roster:
+            raise ValidationError(f"Roster capacity already reserved by existing invites (max {max_roster} for {self.team.game}).")
 
     def accept(self, profile=None):
         """

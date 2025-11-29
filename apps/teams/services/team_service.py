@@ -190,9 +190,10 @@ class TeamService:
         active_members = TeamMembership.objects.filter(team=team, status="ACTIVE").count()
         pending_invites = TeamInvite.objects.filter(team=team, status=TEAM_INVITE_STATUS_PENDING).count()
         
-        if (active_members + pending_invites) >= TEAM_MAX_ROSTER:
+        max_roster = team.max_roster_size
+        if (active_members + pending_invites) >= max_roster:
             raise ValidationError(
-                f"Team roster full. Max {TEAM_MAX_ROSTER} members "
+                f"Team roster full. Max {max_roster} members for {team.game} "
                 f"(current: {active_members} active + {pending_invites} pending)"
             )
         
@@ -262,8 +263,9 @@ class TeamService:
         
         # Check roster capacity (final check before adding)
         active_members = TeamMembership.objects.filter(team=invite.team, status="ACTIVE").count()
-        if active_members >= TEAM_MAX_ROSTER:
-            raise ValidationError(f"Team roster is full (max {TEAM_MAX_ROSTER} members)")
+        max_roster = invite.team.max_roster_size
+        if active_members >= max_roster:
+            raise ValidationError(f"Team roster is full (max {max_roster} members for {invite.team.game})")
         
         # Create membership
         membership = TeamMembership.objects.create(

@@ -27,8 +27,11 @@ ROSTER_CONFIGS = {
     'valorant': {
         'min_starters': 5,
         'max_starters': 5,
-        'max_substitutes': 2,
-        'roles': ['Duelist', 'Controller', 'Initiator', 'Sentinel', 'IGL', 'Flex'],
+        'max_substitutes': 3,
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 9,
+        'roles': ['Duelist', 'Controller', 'Initiator', 'Sentinel', 'Flex'],
         'role_descriptions': {
             'Duelist': 'Entry fragger, aggressive playmaker',
             'Controller': 'Smoke specialist, map control',
@@ -52,7 +55,10 @@ ROSTER_CONFIGS = {
         'min_starters': 5,
         'max_starters': 5,
         'max_substitutes': 2,
-        'roles': ['IGL', 'Entry Fragger', 'AWPer', 'Lurker', 'Support', 'Rifler'],
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 8,
+        'roles': ['Entry Fragger', 'AWPer', 'Lurker', 'Support', 'Rifler'],
         'role_descriptions': {
             'IGL': 'In-game leader, strategist',
             'Entry Fragger': 'First contact, opens sites',
@@ -78,6 +84,9 @@ ROSTER_CONFIGS = {
         'min_starters': 5,
         'max_starters': 5,
         'max_substitutes': 2,
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 8,
         'roles': ['Position 1 (Carry)', 'Position 2 (Mid)', 'Position 3 (Offlane)', 
                   'Position 4 (Soft Support)', 'Position 5 (Hard Support)'],
         'role_descriptions': {
@@ -104,6 +113,9 @@ ROSTER_CONFIGS = {
         'min_starters': 5,
         'max_starters': 5,
         'max_substitutes': 2,
+        'max_coach': 1,
+        'max_analyst': 1,
+        'total_max_roster': 9,
         'roles': ['Gold Laner', 'EXP Laner', 'Mid Laner', 'Jungler', 'Roamer'],
         'role_descriptions': {
             'Gold Laner': 'Bot lane farmer, marksman',
@@ -125,7 +137,10 @@ ROSTER_CONFIGS = {
         'min_starters': 4,
         'max_starters': 4,
         'max_substitutes': 2,
-        'roles': ['IGL/Shot Caller', 'Assaulter/Fragger', 'Support', 'Sniper/Scout'],
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 7,
+        'roles': ['Assaulter/Fragger', 'Support', 'Sniper/Scout', 'Flex'],
         'role_descriptions': {
             'IGL/Shot Caller': 'Team leader, strategy caller',
             'Assaulter/Fragger': 'Aggressive pusher, entry',
@@ -143,7 +158,10 @@ ROSTER_CONFIGS = {
         'min_starters': 4,
         'max_starters': 4,
         'max_substitutes': 2,
-        'roles': ['Rusher', 'Flanker', 'Support', 'Shot Caller'],
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 7,
+        'roles': ['Rusher', 'Flanker', 'Support', 'Defender'],
         'role_descriptions': {
             'Rusher': 'Aggressive entry, first contact',
             'Flanker': 'Side attacker, rotator',
@@ -161,6 +179,9 @@ ROSTER_CONFIGS = {
         'min_starters': 1,
         'max_starters': 2,
         'max_substitutes': 1,
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 4,
         'roles': ['Player', 'Co-op Partner'],
         'role_descriptions': {
             'Player': 'Main player',
@@ -175,8 +196,11 @@ ROSTER_CONFIGS = {
     },
     'fc26': {
         'min_starters': 1,
-        'max_starters': 1,
+        'max_starters': 2,
         'max_substitutes': 1,
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 4,
         'roles': ['Player'],
         'role_descriptions': {
             'Player': 'Individual player',
@@ -191,8 +215,11 @@ ROSTER_CONFIGS = {
     'codm': {
         'min_starters': 5,
         'max_starters': 5,
-        'max_substitutes': 2,
-        'roles': ['IGL', 'Slayer', 'Anchor', 'Support', 'Objective Player'],
+        'max_substitutes': 1,
+        'max_coach': 1,
+        'max_analyst': 0,
+        'total_max_roster': 7,
+        'roles': ['Slayer', 'Anchor', 'Support', 'Objective Player', 'Flex'],
         'role_descriptions': {
             'IGL': 'In-game leader',
             'Slayer': 'High-kill fragger',

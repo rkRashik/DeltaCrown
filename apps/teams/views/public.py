@@ -1133,6 +1133,12 @@ def manage_team_view(request, slug: str):
         "can_manage_roster": TeamPermissions.can_manage_roster(membership),
         "is_owner": membership.role == TeamMembership.Role.OWNER,
         "is_manager": membership.role == TeamMembership.Role.MANAGER,
+        # Roster limits (game-specific)
+        "roster_limits": team.roster_limits,
+        "max_roster_size": team.max_roster_size,
+        "min_roster_size": team.min_roster_size,
+        "current_roster_size": members.count(),
+        "can_accept_members": team.can_accept_members,
     }
 
     return render(request, "teams/manage.html", context)

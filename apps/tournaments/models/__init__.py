@@ -22,6 +22,9 @@ from .registration import (
     Registration,  # Full implementation (Module 1.3)
     Payment,       # Full implementation (Module 1.3)
 )
+from .team_invitation import (
+    TournamentTeamInvitation,  # Tournament organizer invites teams
+)
 from .payment_verification import (
     PaymentVerification,  # Payment proof submission (Module 3.x)
 )
@@ -90,6 +93,7 @@ __all__ = [
     'TournamentTemplate',
     'Registration',
     'Payment',
+    'TournamentTeamInvitation',
     'PaymentVerification',
     'Bracket',
     'BracketNode',
