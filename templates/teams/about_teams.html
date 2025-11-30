@@ -17,6 +17,8 @@
     
     .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .glass-card { background: rgba(17, 24, 39, 0.5); backdrop-filter: blur(12px); }
+    .glass-inner { background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); }
     
     .expandable { max-height: 0; overflow: hidden; transition: max-height 0.6s ease, opacity 0.4s ease; opacity: 0; }
     .expandable.show { max-height: 3000px; opacity: 1; }
@@ -115,44 +117,140 @@
                     </div>
                 </div>
 
-                <!-- The Journey -->
-                <div class="glass rounded-2xl p-6 sm:p-8">
-                    <div class="text-center mb-6">
-                        <h3 class="text-xl font-bold">Your Journey: Solo → Squad → Success</h3>
-                        <p class="text-sm text-gray-400 mt-2">Here's how teams transform your competitive gaming experience</p>
-                    </div>
+                <!-- The Journey - Redesigned -->
+                <div class="relative glass rounded-3xl p-8 sm:p-12 overflow-hidden">
+                    <!-- Background Effects -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse"></div>
+                    <div class="absolute bottom-0 left-0 w-64 h-64 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-pulse" style="animation-delay: 1s;"></div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                        <div class="text-center p-4 bg-white/5 rounded-xl">
-                            <div class="w-12 h-12 mx-auto bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center mb-3">
-                                <i class="fas fa-user text-xl text-gray-400"></i>
+                    <div class="relative z-10">
+                        <div class="text-center mb-10">
+                            <h3 class="text-2xl sm:text-3xl font-black mb-3">
+                                Your Journey: <span class="gradient-text">Solo → Squad → Success</span>
+                            </h3>
+                            <p class="text-sm text-gray-400">Watch how your competitive gaming transforms in just 3 steps</p>
+                        </div>
+                        
+                        <div class="relative">
+                            <!-- Progress Line -->
+                            <div class="hidden lg:block absolute top-24 left-0 right-0 h-1 bg-gradient-to-r from-gray-700 via-purple-600 to-yellow-500 mx-32"></div>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+                                <!-- Step 1: Solo Grind -->
+                                <div class="relative group">
+                                    <div class="glass-card rounded-2xl p-6 hover:scale-105 transition-all duration-500 border-2 border-gray-700 hover:border-gray-600">
+                                        <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-gray-700 to-gray-900 rounded-2xl flex items-center justify-center shadow-2xl border-4 border-gray-800">
+                                                <i class="fas fa-user text-2xl text-gray-400"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-center mt-8">
+                                            <div class="inline-block px-3 py-1 bg-gray-700 rounded-full text-xs font-bold mb-4">BEFORE</div>
+                                            <h4 class="text-xl font-black mb-4">Solo Grind</h4>
+                                            
+                                            <div class="space-y-3 text-sm text-left">
+                                                <div class="flex items-center gap-3 text-red-400">
+                                                    <i class="fas fa-times-circle flex-shrink-0"></i>
+                                                    <span>Limited to solo/duo tournaments</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-red-400">
+                                                    <i class="fas fa-times-circle flex-shrink-0"></i>
+                                                    <span>Small prize pools (৳500-2K)</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-red-400">
+                                                    <i class="fas fa-times-circle flex-shrink-0"></i>
+                                                    <span>No team rankings or reputation</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-red-400">
+                                                    <i class="fas fa-times-circle flex-shrink-0"></i>
+                                                    <span>Playing completely alone</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Arrow for mobile -->
+                                    <div class="lg:hidden flex justify-center my-4">
+                                        <i class="fas fa-arrow-down text-3xl text-purple-500 animate-bounce"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Step 2: Create Team -->
+                                <div class="relative group">
+                                    <div class="glass-card rounded-2xl p-6 hover:scale-105 transition-all duration-500 border-2 border-purple-600 hover:border-purple-500 bg-gradient-to-br from-purple-900/20 to-blue-900/20">
+                                        <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-500/50 border-4 border-gray-900 animate-pulse">
+                                                <i class="fas fa-users text-2xl"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-center mt-8">
+                                            <div class="inline-block px-3 py-1 bg-purple-600 rounded-full text-xs font-bold mb-4">THE SHIFT</div>
+                                            <h4 class="text-xl font-black mb-4 text-purple-400">Create Your Team</h4>
+                                            
+                                            <div class="space-y-3 text-sm text-left">
+                                                <div class="flex items-center gap-3 text-purple-300">
+                                                    <i class="fas fa-bolt flex-shrink-0"></i>
+                                                    <span>5-minute quick setup</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-purple-300">
+                                                    <i class="fas fa-bolt flex-shrink-0"></i>
+                                                    <span>Invite your best teammates</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-purple-300">
+                                                    <i class="fas fa-bolt flex-shrink-0"></i>
+                                                    <span>Assign roles & permissions</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-purple-300">
+                                                    <i class="fas fa-bolt flex-shrink-0"></i>
+                                                    <span>Upload logo, build identity</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Arrow for mobile -->
+                                    <div class="lg:hidden flex justify-center my-4">
+                                        <i class="fas fa-arrow-down text-3xl text-yellow-500 animate-bounce"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Step 3: Win Big -->
+                                <div class="relative group">
+                                    <div class="glass-card rounded-2xl p-6 hover:scale-105 transition-all duration-500 border-2 border-yellow-600 hover:border-yellow-500 bg-gradient-to-br from-yellow-900/20 to-orange-900/20">
+                                        <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-yellow-500/50 border-4 border-gray-900">
+                                                <i class="fas fa-trophy text-2xl"></i>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="text-center mt-8">
+                                            <div class="inline-block px-3 py-1 bg-yellow-600 rounded-full text-xs font-bold mb-4">AFTER</div>
+                                            <h4 class="text-xl font-black mb-4 text-yellow-400">Dominate & Win</h4>
+                                            
+                                            <div class="space-y-3 text-sm text-left">
+                                                <div class="flex items-center gap-3 text-green-400">
+                                                    <i class="fas fa-check-circle flex-shrink-0"></i>
+                                                    <span>Elite team tournaments access</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-green-400">
+                                                    <i class="fas fa-check-circle flex-shrink-0"></i>
+                                                    <span>10x bigger prizes (৳10K-100K+)</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-green-400">
+                                                    <i class="fas fa-check-circle flex-shrink-0"></i>
+                                                    <span>National rankings & reputation</span>
+                                                </div>
+                                                <div class="flex items-center gap-3 text-green-400">
+                                                    <i class="fas fa-check-circle flex-shrink-0"></i>
+                                                    <span>Compete with your squad</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-sm font-bold mb-1">Solo Grind</div>
-                            <div class="text-xs text-gray-500">Limited tournaments<br>Lower prizes<br>Alone</div>
-                        </div>
-
-                        <div class="hidden md:flex justify-center">
-                            <i class="fas fa-long-arrow-alt-right text-3xl text-purple-500"></i>
-                        </div>
-
-                        <div class="text-center p-4 bg-gradient-to-br from-purple-900/30 to-blue-900/30 rounded-xl border border-purple-500/30">
-                            <div class="w-12 h-12 mx-auto bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center mb-3">
-                                <i class="fas fa-users text-xl"></i>
-                            </div>
-                            <div class="text-sm font-bold mb-1">Create Team</div>
-                            <div class="text-xs text-gray-400">5 minutes setup<br>Invite your squad<br>Set roles</div>
-                        </div>
-
-                        <div class="hidden md:flex justify-center">
-                            <i class="fas fa-long-arrow-alt-right text-3xl text-yellow-500"></i>
-                        </div>
-
-                        <div class="text-center p-4 bg-gradient-to-br from-yellow-900/30 to-orange-900/30 rounded-xl border border-yellow-500/30">
-                            <div class="w-12 h-12 mx-auto bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl flex items-center justify-center mb-3">
-                                <i class="fas fa-trophy text-xl"></i>
-                            </div>
-                            <div class="text-sm font-bold mb-1">Win Big</div>
-                            <div class="text-xs text-gray-400">Bigger tournaments<br>10x prizes<br>Ranked squad</div>
                         </div>
                     </div>
                 </div>
@@ -259,7 +357,7 @@
                 {% if games %}
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {% for game in games %}
-                    <div class="group glass rounded-2xl overflow-hidden hover:scale-105 hover:-translate-y-2 transition-all duration-500 cursor-pointer hover:shadow-2xl hover:shadow-purple-500/20">
+                    <div class="game-card-expandable group glass rounded-2xl overflow-hidden hover:scale-105 hover:-translate-y-2 transition-all duration-500 cursor-pointer hover:shadow-2xl hover:shadow-purple-500/20" onclick="toggleGameInfo('game-{{ forloop.counter }}')">
                         <!-- Game Image -->
                         <div class="relative h-48 overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
                             {% if game.card_image %}
@@ -285,6 +383,13 @@
                             <!-- Overlay -->
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                             
+                            <!-- Click to Expand Hint -->
+                            <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <div class="bg-purple-600 px-4 py-2 rounded-full text-sm font-bold shadow-xl">
+                                    <i class="fas fa-info-circle mr-2"></i>Click for Details
+                                </div>
+                            </div>
+                            
                             <!-- Category Badge -->
                             {% if game.category %}
                             <div class="absolute top-3 right-3">
@@ -295,7 +400,7 @@
                             {% endif %}
                         </div>
 
-                        <!-- Game Details -->
+                        <!-- Game Basic Info -->
                         <div class="p-5">
                             <div class="flex items-start justify-between mb-3">
                                 <h3 class="text-xl font-black group-hover:text-purple-400 transition-colors">{{ game.name }}</h3>
@@ -323,7 +428,102 @@
                                 <div class="flex items-center gap-4">
                                     <span><i class="fas fa-trophy text-yellow-500 mr-1"></i> Active Tournaments</span>
                                 </div>
-                                <i class="fas fa-arrow-right text-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                <i class="fas fa-chevron-down text-purple-500 group-hover:animate-bounce"></i>
+                            </div>
+                        </div>
+
+                        <!-- Expandable Team Info Section (Hidden by default) -->
+                        <div id="game-{{ forloop.counter }}" class="hidden border-t border-white/10 p-5 bg-gradient-to-br from-purple-900/20 to-blue-900/20" onclick="event.stopPropagation()">
+                            <h4 class="text-lg font-bold mb-4 text-purple-400">
+                                <i class="fas fa-users-cog mr-2"></i>Team Requirements for {{ game.name }}
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <!-- Roster Size -->
+                                <div class="glass-inner rounded-xl p-4">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <i class="fas fa-users text-purple-400"></i>
+                                        <h5 class="font-bold text-sm">Roster Requirements</h5>
+                                    </div>
+                                    <div class="text-sm text-gray-400 space-y-1">
+                                        <div>• <strong class="text-white">{{ game.default_team_size|default:"5" }}</strong> players in main roster</div>
+                                        <div>• Up to <strong class="text-white">{{ game.default_team_size|default:"5"|add:2 }}</strong> total (including substitutes)</div>
+                                        <div>• Minimum <strong class="text-white">{{ game.default_team_size|default:"5" }}</strong> players required to register</div>
+                                    </div>
+                                </div>
+
+                                <!-- Game IDs Required -->
+                                <div class="glass-inner rounded-xl p-4">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <i class="fas fa-id-card text-blue-400"></i>
+                                        <h5 class="font-bold text-sm">Game ID Collection</h5>
+                                    </div>
+                                    <div class="text-sm text-gray-400">
+                                        Every player must provide their {{ game.name }} ID before tournaments. System auto-validates and checks for duplicates.
+                                    </div>
+                                </div>
+
+                                <!-- Tournament Structure -->
+                                <div class="glass-inner rounded-xl p-4">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <i class="fas fa-trophy text-yellow-400"></i>
+                                        <h5 class="font-bold text-sm">Tournament Format</h5>
+                                    </div>
+                                    <div class="text-sm text-gray-400">
+                                        {% if game.category == "Battle Royale" %}
+                                            Squad-based tournaments with multiple rounds. Teams compete for placement points and eliminations.
+                                        {% elif game.category == "MOBA" %}
+                                            Best-of-3 or Best-of-5 matches. Draft phase requires strategic role assignments.
+                                        {% elif game.category == "FPS" %}
+                                            Round-based tactical matches. Team coordination and communication are key.
+                                        {% elif game.category == "Sports" %}
+                                            Head-to-head matches. Formation and player positioning matter most.
+                                        {% else %}
+                                            Team vs Team competitive format with official rules and referee support.
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Team Features -->
+                                <div class="glass-inner rounded-xl p-4">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <i class="fas fa-star text-green-400"></i>
+                                        <h5 class="font-bold text-sm">Team Features Available</h5>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-xs">
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-check text-green-400"></i>
+                                            <span>Roster Lock System</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-check text-green-400"></i>
+                                            <span>Auto Check-in</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-check text-green-400"></i>
+                                            <span>Team Rankings</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-check text-green-400"></i>
+                                            <span>Match History</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-check text-green-400"></i>
+                                            <span>Stats Tracking</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <i class="fas fa-check text-green-400"></i>
+                                            <span>Prize Distribution</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CTA -->
+                                <div class="text-center pt-2">
+                                    <button class="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg font-bold text-sm transition-all duration-300 shadow-lg hover:shadow-purple-500/50">
+                                        <i class="fas fa-users-cog mr-2"></i>Create {{ game.name }} Team
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1149,6 +1349,29 @@ function toggle(id) {
     
     el.classList.toggle('show');
     if (icon) icon.classList.toggle('rotate-180');
+}
+
+function toggleGameInfo(id) {
+    const element = document.getElementById(id);
+    const allGameInfos = document.querySelectorAll('[id^="game-"]');
+    
+    // Close all other game info sections
+    allGameInfos.forEach(el => {
+        if (el.id !== id && !el.classList.contains('hidden')) {
+            el.classList.add('hidden');
+        }
+    });
+    
+    // Toggle current section with smooth animation
+    if (element.classList.contains('hidden')) {
+        element.classList.remove('hidden');
+        // Smooth scroll to make expanded content visible
+        setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    } else {
+        element.classList.add('hidden');
+    }
 }
 
 document.querySelectorAll('a[href^="#"]').forEach(a => {
