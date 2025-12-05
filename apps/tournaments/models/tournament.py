@@ -716,6 +716,16 @@ class Tournament(SoftDeleteModel, TimestampedModel):
             and self.registration_start <= now <= self.registration_end
         )
     
+    def has_registration_started(self) -> bool:
+        """
+        Check if registration has started (past the start date).
+        
+        Returns:
+            True if registration start date has passed
+        """
+        now = timezone.now()
+        return now >= self.registration_start
+    
     def spots_remaining(self) -> int:
         """
         Calculate number of spots remaining.
