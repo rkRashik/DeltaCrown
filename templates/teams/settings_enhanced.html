@@ -194,15 +194,11 @@
                                 <label class="block text-sm font-medium text-white mb-2">Primary Game</label>
                                 <select name="game" class="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:border-purple-400 focus:outline-none">
                                     <option value="">Select Game</option>
-                                    <option value="valorant" {% if team.game == 'valorant' %}selected{% endif %}>VALORANT</option>
-                                    <option value="cs2" {% if team.game == 'cs2' %}selected{% endif %}>Counter-Strike 2</option>
-                                    <option value="dota2" {% if team.game == 'dota2' %}selected{% endif %}>Dota 2</option>
-                                    <option value="efootball" {% if team.game == 'efootball' %}selected{% endif %}>eFootball</option>
-                                    <option value="fc26" {% if team.game == 'fc26' %}selected{% endif %}>EA SPORTS FC</option>
-                                    <option value="mlbb" {% if team.game == 'mlbb' %}selected{% endif %}>Mobile Legends: Bang Bang</option>
-                                    <option value="codm" {% if team.game == 'codm' %}selected{% endif %}>Call of Duty: Mobile</option>
-                                    <option value="pubg" {% if team.game == 'pubg' %}selected{% endif %}>PUBG Mobile</option>
-                                    <option value="freefire" {% if team.game == 'freefire' %}selected{% endif %}>Free Fire</option>
+                                    {% for game in available_games %}
+                                        <option value="{{ game.slug }}" {% if team.game == game.slug %}selected{% endif %}>
+                                            {{ game.display_name }}
+                                        </option>
+                                    {% endfor %}
                                 </select>
                             </div>
                         </div>
@@ -1342,15 +1338,27 @@ document.getElementById('privacyForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const formData = new FormData(this);
     
+    // CRITICAL: Add CSRF token manually
+    const csrfToken = getCookie('csrftoken');
+    
     fetch("{% url 'teams:update_privacy' team.slug %}", {
         method: 'POST',
-        body: formData
-    }).then(response => {
-        if (response.ok) {
-            showToast('Privacy settings updated successfully!');
-        } else {
-            showToast('Error updating privacy settings', 'error');
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken
         }
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Privacy settings updated successfully!');
+            // Reload after 1 second to reflect changes
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Error updating privacy settings', 'error');
+        }
+    }).catch(error => {
+        console.error('Privacy update error:', error);
+        showToast('Network error updating privacy settings', 'error');
     });
 });
 </script>

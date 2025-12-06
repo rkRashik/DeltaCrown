@@ -88,19 +88,19 @@
             <!-- Dynamic Games -->
             {% for game in games %}
             <a href="?game={{ game.slug }}" class="dc-game-card {% if current_game == game.slug %}active{% endif %}">
-                {% if game.card %}
+                {% if game.card_image %}
                 <div class="dc-game-bg">
-                    <img src="{{ game.card }}" alt="{{ game.name }}">
+                    <img src="{{ game.card_image.url }}" alt="{{ game.display_name }}" onerror="this.style.display='none'">
                 </div>
                 {% endif %}
                 <div class="dc-game-overlay"></div>
                 <div class="dc-game-content">
                     {% if game.icon %}
-                        <img src="{{ game.icon }}" alt="{{ game.name }}" class="dc-game-icon">
+                        <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="dc-game-icon" onerror="this.src='/static/img/game_logos/{{ game.slug }}.png'; this.onerror=function(){this.style.display='none'; this.parentElement.innerHTML='<i class=\"fas fa-gamepad dc-game-icon\" style=\"font-size: 48px;\"></i>'};">
                     {% else %}
                         <i class="fas fa-gamepad dc-game-icon" style="font-size: 48px;"></i>
                     {% endif %}
-                    <div class="dc-game-name">{{ game.name }}</div>
+                    <div class="dc-game-name">{{ game.display_name }}</div>
                     <div class="dc-game-count">View Tournaments</div>
                 </div>
             </a>

@@ -44,6 +44,12 @@ from .views.player_views import (
     team_room_view,
 )
 
+# Rankings views
+from .views.rankings import (
+    game_leaderboard_view,
+    global_leaderboard_view,
+)
+
 # Dashboard API
 from .views.dashboard_api import (
     get_pending_items,
@@ -219,7 +225,11 @@ urlpatterns = [
     path("list/", team_list, name="list"),
     # Backwards-compatibility alias: 'teams:browse' used across multiple templates
     path('browse/', team_list, name='browse'),
-    path("rankings/", team_ranking_view, name="rankings"),  # Updated to use ranking view
+    
+    # Rankings and leaderboards
+    path("rankings/", global_leaderboard_view, name="rankings"),  # Global leaderboard
+    path("rankings/", global_leaderboard_view, name="global_rankings"),  # Alias
+    path("rankings/<slug:game_slug>/", game_leaderboard_view, name="game_rankings"),  # Per-game
     
     # About Teams Information Page
     path("about/", about_teams, name="about"),

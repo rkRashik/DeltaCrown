@@ -228,7 +228,7 @@ def get_win_rate_chart(request, slug: str):
         return JsonResponse({"error": "Statistics are private"}, status=403)
     
     # Get matches from last 90 days
-    ninety_days_ago = timezone.now() - timedelta(days=90)
+    ninety_days_ago = timezone.now() - timedelta(days=INACTIVE_THRESHOLD_DAYS)
     matches = MatchRecord.objects.filter(
         team=team,
         match_date__gte=ninety_days_ago

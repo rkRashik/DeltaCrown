@@ -75,8 +75,8 @@ class PublicSpectatorView(TemplateView):
                 
                 # Get game-specific columns for standings
                 if context['has_groups'] and tournament.game:
-                    from apps.common.game_registry import normalize_slug
-                    canonical_slug = normalize_slug(tournament.game.slug)
+                    from apps.games.services import game_service
+                    canonical_slug = game_service.normalize_slug(tournament.game.slug)
                     context['game_columns'] = GroupStageService._get_game_columns(canonical_slug)
             except Exception:
                 context['has_groups'] = False

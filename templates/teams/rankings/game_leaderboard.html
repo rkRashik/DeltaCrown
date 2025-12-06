@@ -1,0 +1,501 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ game.display_name }} Leaderboard - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Game-Specific Rankings Stylesheet */
+.game-rankings-hero {
+    background: linear-gradient(135deg, {{ game.primary_color|default:'#667eea' }} 0%, {{ game.secondary_color|default:'#764ba2' }} 100%);
+    padding: 3rem 1rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-rankings-hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.1) 0%, transparent 50%);
+}
+
+.rankings-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.game-branding {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.game-icon-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 1rem;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,0.3);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
+
+.game-title {
+    color: white;
+    font-size: 3rem;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin: 0;
+}
+
+.game-subtitle {
+    color: rgba(255,255,255,0.9);
+    text-align: center;
+    font-size: 1.125rem;
+    margin-top: 0.5rem;
+}
+
+.nav-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.nav-link {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 0.5rem;
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background: rgba(255,255,255,0.3);
+    transform: translateY(-2px);
+}
+
+.rankings-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-box {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: {{ game.primary_color|default:'#667eea' }};
+}
+
+.stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
+}
+
+.rankings-table-card {
+    background: white;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rankings-table thead {
+    background: linear-gradient(135deg, {{ game.primary_color|default:'#667eea' }} 0%, {{ game.secondary_color|default:'#764ba2' }} 100%);
+    color: white;
+}
+
+.rankings-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.rankings-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.rankings-table tbody tr:hover {
+    background: linear-gradient(90deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+}
+
+.rank-cell {
+    font-weight: 800;
+    font-size: 1.5rem;
+    width: 100px;
+    text-align: center;
+}
+
+.rank-1 { 
+    color: #f59e0b;
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+.rank-2 { 
+    color: #9ca3af;
+    text-shadow: 0 0 10px rgba(156, 163, 175, 0.3);
+}
+.rank-3 { 
+    color: #cd7f32;
+    text-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+}
+
+.medal-icon {
+    font-size: 2rem;
+    margin-left: 0.5rem;
+}
+
+.team-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.team-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    border: 2px solid #e5e7eb;
+}
+
+.team-logo-placeholder {
+    width: 56px;
+    height: 56px;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, {{ game.primary_color|default:'#667eea' }} 0%, {{ game.secondary_color|default:'#764ba2' }} 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.team-info h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.team-link {
+    color: #111827;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.team-link:hover {
+    color: {{ game.primary_color|default:'#667eea' }};
+}
+
+.team-tag {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.division-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+}
+
+.division-bronze { background: linear-gradient(135deg, #cd7f32 0%, #b36b28 100%); color: white; }
+.division-silver { background: linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%); color: #1f2937; }
+.division-gold { background: linear-gradient(135deg, #ffd700 0%, #f0c800 100%); color: #1f2937; }
+.division-platinum { background: linear-gradient(135deg, #e5e4e2 0%, #b8b8b8 100%); color: #1f2937; }
+.division-diamond { background: linear-gradient(135deg, #b9f2ff 0%, #00d4ff 100%); color: #1f2937; }
+
+.elo-score {
+    font-size: 1.75rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, {{ game.primary_color|default:'#667eea' }} 0%, {{ game.secondary_color|default:'#764ba2' }} 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.points-value {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.record-stats {
+    font-size: 1rem;
+}
+
+.wins {
+    color: #059669;
+    font-weight: 700;
+}
+
+.losses {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.streak-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+}
+
+.streak-win {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.streak-loss {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 0;
+}
+
+.page-link {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 2px solid {{ game.primary_color|default:'#667eea' }};
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: {{ game.primary_color|default:'#667eea' }};
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.page-link:hover {
+    background: {{ game.primary_color|default:'#667eea' }};
+    color: white;
+}
+
+.page-info {
+    padding: 0.5rem 1rem;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 2rem;
+    }
+    
+    .rankings-stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .rankings-table {
+        font-size: 0.875rem;
+    }
+    
+    .rank-cell {
+        font-size: 1.25rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="game-rankings-hero">
+    <div class="rankings-container">
+        <div class="game-branding">
+            {% if game.icon %}
+                <img src="{{ game.icon.url }}" alt="{{ game.display_name }}" class="game-icon-large">
+            {% endif %}
+            <div>
+                <h1 class="game-title">{{ game.display_name }}</h1>
+                <p class="game-subtitle">🏆 Competitive Leaderboard</p>
+            </div>
+        </div>
+        
+        <div class="nav-links">
+            <a href="{% url 'teams:global_rankings' %}" class="nav-link">
+                🌐 Global Rankings
+            </a>
+            <a href="{% url 'teams:index' %}" class="nav-link">
+                🏠 All Teams
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="rankings-container">
+    <!-- Stats Bar -->
+    <div class="rankings-stats-bar">
+        <div class="stat-box">
+            <div class="stat-value">{{ total_teams|default:0 }}</div>
+            <div class="stat-label">Total Teams</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">{{ rankings.first.elo_rating|default:0|floatformat:0 }}</div>
+            <div class="stat-label">Top ELO</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value">{{ total_matches|default:0 }}</div>
+            <div class="stat-label">Matches Played</div>
+        </div>
+    </div>
+
+    <!-- Rankings Table -->
+    <div class="rankings-table-card">
+        <table class="rankings-table">
+            <thead>
+                <tr>
+                    <th style="text-align: center;">Rank</th>
+                    <th>Team</th>
+                    <th>Division</th>
+                    <th>ELO Rating</th>
+                    <th>Points</th>
+                    <th>W/L Record</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ranking in rankings %}
+                    <tr>
+                        <td class="rank-cell rank-{{ forloop.counter }}">
+                            #{{ forloop.counter }}
+                            {% if forloop.counter == 1 %}
+                                <span class="medal-icon">🥇</span>
+                            {% elif forloop.counter == 2 %}
+                                <span class="medal-icon">🥈</span>
+                            {% elif forloop.counter == 3 %}
+                                <span class="medal-icon">🥉</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="team-cell">
+                                {% if ranking.team.logo %}
+                                    <img src="{{ ranking.team.logo.url }}" alt="{{ ranking.team.name }}" class="team-logo">
+                                {% else %}
+                                    <div class="team-logo-placeholder">
+                                        {{ ranking.team.name|slice:":2"|upper }}
+                                    </div>
+                                {% endif %}
+                                <div class="team-info">
+                                    <h3>
+                                        <a href="{% url 'teams:detail' slug=ranking.team.slug %}" class="team-link">
+                                            {{ ranking.team.name }}
+                                        </a>
+                                    </h3>
+                                    {% if ranking.team.tagline %}
+                                        <div class="team-tag">{{ ranking.team.tagline|truncatewords:10 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="division-badge division-{{ ranking.division|lower|default:'bronze' }}">
+                                {{ ranking.division|default:"Bronze" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="elo-score">{{ ranking.elo_rating|default:1000|floatformat:0 }}</span>
+                        </td>
+                        <td>
+                            <span class="points-value">{{ ranking.points|default:0|intcomma }}</span>
+                        </td>
+                        <td>
+                            <div class="record-stats">
+                                <span class="wins">{{ ranking.wins|default:0 }}W</span>
+                                <span> / </span>
+                                <span class="losses">{{ ranking.losses|default:0 }}L</span>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-icon">🏆</div>
+                            <p style="font-size: 1.5rem; font-weight: 700; color: #6b7280; margin-bottom: 0.5rem;">
+                                No rankings yet for {{ game.display_name }}
+                            </p>
+                            <p style="color: #9ca3af;">
+                                Be the first to compete and claim the top spot!
+                            </p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-link">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        
+        <span class="page-info">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

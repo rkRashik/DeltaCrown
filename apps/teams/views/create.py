@@ -30,7 +30,8 @@ from django.views.decorators.csrf import csrf_exempt
 
 from apps.teams.models import Team, TeamMembership
 from apps.teams.forms import TeamCreationForm
-from apps.common.game_assets import GAMES, get_all_games, get_game_data
+from apps.teams.services.team_service import TeamService
+from apps.games.services.game_service import GameService
 from apps.common.region_config import get_regions_for_game
 from apps.user_profile.models import UserProfile
 
@@ -69,20 +70,31 @@ def _handle_team_creation_get(request, profile):
     # Check for existing draft
     draft_data = _load_draft_from_cache(request.user.id)
     
-    # Prepare game configurations for JavaScript
+    # Prepare game configurations for JavaScript using NEW GameService
     game_configs = {}
-    for code, data in GAMES.items():
-        game_configs[code] = {
-            'name': data['display_name'],
-            'slug': data['slug'],
-            'platform': data['platform'],
-            'team_size': data['team_size'],
-            'roster_size': data['roster_size'],
-            'player_id_label': data['player_id_label'],
-            'player_id_format': data['player_id_format'],
-            'color_primary': data['color_primary'],
-            'color_secondary': data['color_secondary'],
-            'card_image': data.get('card', f"img/game_cards/{code}.jpg"),
+    games = GameService.list_active_games()
+    
+    for game in games:
+        # Get roster config for team size info
+        roster_config = GameService.get_roster_config(game)
+        default_team_size = roster_config.min_team_size if roster_config else 5
+        
+        # Get identity configuration for player ID field
+        identity_configs = GameService.get_identity_validation_rules(game)
+        player_id_label = identity_configs[0].display_name if identity_configs else "Game ID"
+        player_id_placeholder = identity_configs[0].placeholder if identity_configs else ""
+        
+        game_configs[game.slug] = {
+            'name': game.display_name,
+            'slug': game.slug,
+            'platform': 'pc',  # Default, can be extended in Game model if needed
+            'team_size': default_team_size,
+            'roster_size': (roster_config.max_team_size + 2) if roster_config else (default_team_size + 2),
+            'player_id_label': player_id_label,
+            'player_id_format': player_id_placeholder,
+            'color_primary': game.primary_color or '#00d9ff',
+            'color_secondary': game.secondary_color or '#7000ff',
+            'card_image': f"img/game_cards/{game.slug}.jpg",
         }
     
     # Check which games user already has teams for
@@ -156,13 +168,27 @@ def _handle_team_creation_post(request, profile):
     if form.is_valid():
         try:
             with transaction.atomic():
-                # Create team
-                team = form.save()
+                # Create team via service layer (SINGLE SOURCE OF TRUTH)
+                team = TeamService.create_team(
+                    name=form.cleaned_data['name'],
+                    captain_profile=profile,
+                    game=form.cleaned_data['game'],
+                    tag=form.cleaned_data.get('tag'),
+                    tagline=form.cleaned_data.get('tagline', ''),
+                    description=form.cleaned_data.get('description', ''),
+                    logo=form.cleaned_data.get('logo'),
+                    banner_image=form.cleaned_data.get('banner_image'),
+                    region=form.cleaned_data.get('region', ''),
+                    twitter=form.cleaned_data.get('twitter', ''),
+                    instagram=form.cleaned_data.get('instagram', ''),
+                    discord=form.cleaned_data.get('discord', ''),
+                    youtube=form.cleaned_data.get('youtube', ''),
+                    twitch=form.cleaned_data.get('twitch', ''),
+                )
                 
                 # Save game ID to user profile if provided
                 game_id = request.POST.get('game_id', '').strip()
                 if game_id:
-                    profile = request.user.profile
                     game_code = team.game
                     
                     # Map game codes to profile fields
@@ -234,8 +260,10 @@ def _handle_team_creation_post(request, profile):
         # Non-AJAX: render form with errors
         messages.error(request, "Please correct the errors below.")
     
-    # Re-render form with errors
-    game_configs = {code: get_game_data(code) for code in GAMES.keys()}
+    # Re-render form with errors - get game configs from GameService
+    from apps.common.game_assets import get_game_data
+    active_games = GameService.list_active_games()
+    game_configs = {game.slug: get_game_data(game.slug) for game in active_games}
     
     context = {
         'form': form,
@@ -284,6 +312,9 @@ def validate_team_name(request):
     Returns:
         JSON: {valid: bool, message: str, suggestions: [str]}
     """
+    from apps.teams.validators import validate_team_name as canonical_validate_name
+    from django.core.exceptions import ValidationError
+    
     name = request.GET.get('name', '').strip()
     
     if not name:
@@ -292,40 +323,32 @@ def validate_team_name(request):
             'message': 'Team name is required.'
         })
     
-    if len(name) < 3:
+    try:
+        # Use canonical validator
+        canonical_validate_name(name, check_uniqueness=True)
         return JsonResponse({
-            'valid': False,
-            'message': 'Team name must be at least 3 characters.'
+            'valid': True,
+            'message': 'Perfect! This name is available.'
         })
-    
-    if len(name) > 50:
-        return JsonResponse({
-            'valid': False,
-            'message': 'Team name must be 50 characters or less.'
-        })
-    
-    # Check uniqueness (case-insensitive)
-    exists = Team.objects.filter(name__iexact=name).exists()
-    
-    if exists:
-        # Generate suggestions
-        suggestions = [
-            f"{name} Gaming",
-            f"{name} Esports",
-            f"{name} Squad",
-            f"{name} Team",
-        ]
-        
-        return JsonResponse({
-            'valid': False,
-            'message': 'This team name is already taken. Try a variation!',
-            'suggestions': suggestions
-        })
-    
-    return JsonResponse({
-        'valid': True,
-        'message': 'Perfect! This name is available.'
-    })
+    except ValidationError as e:
+        # Generate suggestions if name is taken
+        if 'already taken' in str(e).lower() or 'exists' in str(e).lower():
+            suggestions = [
+                f"{name} Gaming",
+                f"{name} Esports",
+                f"{name} Squad",
+                f"{name} Team",
+            ]
+            return JsonResponse({
+                'valid': False,
+                'message': str(e),
+                'suggestions': suggestions
+            })
+        else:
+            return JsonResponse({
+                'valid': False,
+                'message': str(e)
+            })
 
 
 @login_required
@@ -340,6 +363,9 @@ def validate_team_tag(request):
     Returns:
         JSON: {valid: bool, message: str, suggestions: [str]}
     """
+    from apps.teams.validators import validate_team_tag as canonical_validate_tag
+    from django.core.exceptions import ValidationError
+    
     tag = request.GET.get('tag', '').strip().upper()
     
     if not tag:
@@ -348,48 +374,33 @@ def validate_team_tag(request):
             'message': 'Team tag is required.'
         })
     
-    if len(tag) < 2:
+    try:
+        # Use canonical validator
+        canonical_validate_tag(tag, check_uniqueness=True)
         return JsonResponse({
-            'valid': False,
-            'message': 'Tag must be at least 2 characters.'
+            'valid': True,
+            'message': 'Nice! This tag is available.'
         })
-    
-    if len(tag) > 10:
-        return JsonResponse({
-            'valid': False,
-            'message': 'Tag must be 10 characters or less.'
-        })
-    
-    # Validate format (alphanumeric only)
-    if not tag.isalnum():
-        return JsonResponse({
-            'valid': False,
-            'message': 'Tag can only contain letters and numbers.'
-        })
-    
-    # Check uniqueness (case-insensitive)
-    exists = Team.objects.filter(tag__iexact=tag).exists()
-    
-    if exists:
-        # Generate suggestions
-        suggestions = [
-            f"{tag}E",
-            f"{tag}GG",
-            f"{tag}X",
-            f"{tag}PH",
-            f"{tag}BD",
-        ]
-        
-        return JsonResponse({
-            'valid': False,
-            'message': 'That tag is already in use. Try a variation!',
-            'suggestions': suggestions
-        })
-    
-    return JsonResponse({
-        'valid': True,
-        'message': 'Nice! This tag is available.'
-    })
+    except ValidationError as e:
+        # Generate suggestions if tag is taken
+        if 'already in use' in str(e).lower() or 'exists' in str(e).lower():
+            suggestions = [
+                f"{tag}E",
+                f"{tag}GG",
+                f"{tag}X",
+                f"{tag}PH",
+                f"{tag}BD",
+            ]
+            return JsonResponse({
+                'valid': False,
+                'message': str(e),
+                'suggestions': suggestions
+            })
+        else:
+            return JsonResponse({
+                'valid': False,
+                'message': str(e)
+            })
 
 
 @login_required
@@ -428,7 +439,8 @@ def check_existing_team(request):
     
     if existing:
         team = existing.team
-        game_name = GAMES.get(game_code, {}).get('display_name', game_code)
+        game = GameService.get_game(game_code)
+        game_name = game.display_name if game else game_code
         
         return JsonResponse({
             'has_team': True,
@@ -467,7 +479,9 @@ def get_game_regions_api(request, game_code):
     """
     game_code = game_code.upper()
     
-    if game_code not in GAMES:
+    # Validate game exists
+    game = GameService.get_game(game_code.lower())
+    if not game:
         return JsonResponse({
             'success': False,
             'error': f'Invalid game code: {game_code}'
@@ -478,7 +492,7 @@ def get_game_regions_api(request, game_code):
     return JsonResponse({
         'success': True,
         'game': game_code,
-        'game_name': GAMES[game_code]['display_name'],
+        'game_name': game.display_name,
         'regions': regions
     })
 

@@ -5,6 +5,9 @@ Team Management Service Layer (Module 3.3)
 Implements team lifecycle operations following ADR-001 (Service Layer Architecture).
 Integrates Module 2.4 audit logging for all privileged actions.
 
+ENHANCED: Phase 1 refactoring to be single source of truth for team creation.
+Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.1
+
 Planning Reference: Documents/ExecutionPlan/Modules/MODULE_3.3_IMPLEMENTATION_PLAN.md
 
 Traceability:
@@ -28,18 +31,37 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.teams.models._legacy import Team, TeamMembership, TeamInvite, TEAM_MAX_ROSTER
+from apps.teams.constants import (
+    ROLE_OWNER,
+    ROLE_PLAYER,
+    INVITE_STATUS_PENDING,
+    INVITE_STATUS_ACCEPTED,
+    INVITE_STATUS_DECLINED,
+    INVITE_STATUS_EXPIRED,
+    MEMBERSHIP_STATUS_ACTIVE,
+    INVITE_EXPIRY_HOURS,
+    SUCCESS_TEAM_CREATED,
+    ERROR_TEAM_NAME_EXISTS,
+    ERROR_ALREADY_IN_TEAM,
+    ERROR_ROSTER_FULL,
+)
+from apps.teams.validators import (
+    validate_team_name,
+    validate_team_tag,
+    validate_roster_capacity,
+)
 from apps.user_profile.models import UserProfile
 
 logger = logging.getLogger(__name__)
 
-# Constants from planning doc
-INVITE_EXPIRATION_HOURS = 72
-TEAM_ROLE_CAPTAIN = "OWNER"  # Captain is stored as OWNER role
-TEAM_ROLE_PLAYER = "PLAYER"
-TEAM_INVITE_STATUS_PENDING = "PENDING"
-TEAM_INVITE_STATUS_ACCEPTED = "ACCEPTED"
-TEAM_INVITE_STATUS_DECLINED = "DECLINED"
-TEAM_INVITE_STATUS_EXPIRED = "EXPIRED"
+# Legacy constants (to be deprecated)
+INVITE_EXPIRATION_HOURS = INVITE_EXPIRY_HOURS
+TEAM_ROLE_CAPTAIN = ROLE_OWNER  # Captain is stored as OWNER role
+TEAM_ROLE_PLAYER = ROLE_PLAYER
+TEAM_INVITE_STATUS_PENDING = INVITE_STATUS_PENDING
+TEAM_INVITE_STATUS_ACCEPTED = INVITE_STATUS_ACCEPTED
+TEAM_INVITE_STATUS_DECLINED = INVITE_STATUS_DECLINED
+TEAM_INVITE_STATUS_EXPIRED = INVITE_STATUS_EXPIRED
 
 
 class TeamService:
@@ -61,42 +83,40 @@ class TeamService:
         **kwargs
     ) -> Team:
         """
-        Create team with captain as first member.
+        THE CANONICAL team creation function - single source of truth.
+        
+        All team creation (web UI, API, admin) MUST use this function.
         
         Business Rules:
-        - Name must be unique
+        - Name validated using canonical validators
         - Slug auto-generated from name
-        - Captain automatically added as first member with role='captain'
+        - Tag auto-generated if not provided, validated if provided
+        - Captain automatically added as first member with role=OWNER
         - Team starts with is_active=True
+        - Full transaction handling for atomicity
         
         Args:
-            name: Team name (must be unique)
-            captain_profile: UserProfile who becomes captain
+            name: Team name (will be validated)
+            captain_profile: UserProfile who becomes captain/owner
             game: Game identifier (from GAME_CHOICES)
-            tag: Optional team tag/abbreviation (auto-generated if not provided)
+            tag: Optional team tag (auto-generated if not provided)
             description: Optional team description
             **kwargs: Additional Team model fields (logo, region, etc.)
         
         Returns:
-            Team: Created team instance
+            Team: Created team instance with captain membership
         
         Raises:
-            ValidationError: If name already exists or validation fails
+            ValidationError: If validation fails (name format, uniqueness, tag, etc.)
         
         Traceability:
         - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#team-creation
-        """
-        # Validate name uniqueness
-        if Team.objects.filter(name=name).exists():
-            raise ValidationError(f"Team with name '{name}' already exists")
+        - MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.1 (consolidation)
         
-        # Generate slug from name
-        base_slug = slugify(name)
-        slug = base_slug
-        counter = 1
-        while Team.objects.filter(slug=slug, game=game).exists():
-            slug = f"{base_slug}-{counter}"
-            counter += 1
+        Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.1
+        """
+        # Validate name using canonical validator (format + uniqueness)
+        validate_team_name(name, check_uniqueness=True)
         
         # Auto-generate tag if not provided
         if not tag:
@@ -108,11 +128,22 @@ class TeamService:
             while Team.objects.filter(tag=tag).exists():
                 tag = f"{original_tag}{counter}"
                 counter += 1
+        else:
+            # Validate provided tag using canonical validator
+            validate_team_tag(tag, check_uniqueness=True)
+        
+        # Generate slug from name
+        base_slug = slugify(name)
+        slug = base_slug
+        counter = 1
+        while Team.objects.filter(slug=slug, game=game).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
         
         # Create team (Note: Team.save() automatically creates captain membership via ensure_captain_membership())
         team = Team.objects.create(
-            name=name,
-            tag=tag,
+            name=name.strip(),
+            tag=tag.upper(),
             slug=slug,
             game=game,
             captain=captain_profile,
@@ -141,24 +172,23 @@ class TeamService:
         team: Team,
         invited_profile: UserProfile,
         invited_by_profile: UserProfile,
-        role: str = TEAM_ROLE_PLAYER
+        role: str = ROLE_PLAYER
     ) -> TeamInvite:
         """
         Send team invitation.
         
         Business Rules:
         - Only captain can invite
-        - Team must not be full (active members + pending invites < TEAM_MAX_ROSTER)
+        - Team must not be full (active members + pending invites < max_roster)
         - Cannot invite user with existing pending invite
         - Cannot invite current team member
-        - Invite expires after 72 hours
+        - Invite expires after INVITE_EXPIRY_HOURS hours
         
         Args:
             team: Team to invite player to
             invited_profile: UserProfile being invited
             invited_by_profile: UserProfile sending invitation (must be captain)
-            role: Role for invitee (default: 'player')
-            message: Optional invitation message
+            role: Role for invitee (default: ROLE_PLAYER)
         
         Returns:
             TeamInvite: Created invitation
@@ -171,31 +201,26 @@ class TeamService:
         - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#invitations
         """
         # Validate captain permission
-        if team.captain_id != invited_by_profile.id:
+        if team.captain != invited_by_profile:
             raise PermissionDenied("Only team captain can invite players")
         
         # Check if user is already a member
-        if TeamMembership.objects.filter(team=team, profile=invited_profile, status="ACTIVE").exists():
+        if TeamMembership.objects.filter(team=team, profile=invited_profile, status=MEMBERSHIP_STATUS_ACTIVE).exists():
             raise ValidationError(f"{invited_profile.user.username} is already a team member")
         
         # Check for existing pending invite
         if TeamInvite.objects.filter(
             team=team,
             invited_user=invited_profile,
-            status=TEAM_INVITE_STATUS_PENDING
+            status=INVITE_STATUS_PENDING
         ).exists():
             raise ValidationError(f"{invited_profile.user.username} already has a pending invite from this team")
         
-        # Check roster capacity
-        active_members = TeamMembership.objects.filter(team=team, status="ACTIVE").count()
-        pending_invites = TeamInvite.objects.filter(team=team, status=TEAM_INVITE_STATUS_PENDING).count()
-        
-        max_roster = team.max_roster_size
-        if (active_members + pending_invites) >= max_roster:
-            raise ValidationError(
-                f"Team roster full. Max {max_roster} members for {team.game} "
-                f"(current: {active_members} active + {pending_invites} pending)"
-            )
+        # Check roster capacity using canonical validator
+        try:
+            validate_roster_capacity(team, adding_count=1, include_pending=True)
+        except ValidationError as e:
+            raise ValidationError(f"Cannot send invite: {str(e)}")
         
         # Create invite
         expires_at = timezone.now() + timedelta(hours=INVITE_EXPIRATION_HOURS)
@@ -360,11 +385,11 @@ class TeamService:
         - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#roster-management
         """
         # Validate captain permission
-        if team.captain_id != removed_by_profile.id:
+        if team.captain != removed_by_profile:
             raise PermissionDenied("Only team captain can remove members")
         
         # Check if trying to remove captain
-        if member_profile.id == team.captain_id:
+        if member_profile == team.captain:
             raise ValidationError("Cannot remove team captain. Transfer captain role first.")
         
         # Find active membership
@@ -463,7 +488,7 @@ class TeamService:
         - Documents/Planning/PART_4.5_TEAM_MANAGEMENT_FLOW.md#captain-transfer
         """
         # Validate current captain
-        if team.captain_id != current_captain_profile.id:
+        if team.captain != current_captain_profile:
             raise PermissionDenied("Only current captain can transfer captain role")
         
         # Validate new captain is active member
@@ -502,9 +527,7 @@ class TeamService:
         new_captain_membership.role = TEAM_ROLE_CAPTAIN
         new_captain_membership.save(update_fields=["role"])
         
-        # Update team captain
-        team.captain = new_captain_profile
-        team.save(update_fields=["captain"])
+        # No need to update team.captain field (removed - it's now a property from OWNER role)
         
         # Audit log
         logger.info(

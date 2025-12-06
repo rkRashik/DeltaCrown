@@ -18,6 +18,19 @@
     'use strict';
 
     /**
+     * Logging utility
+     */
+    function dcLog(message, data) {
+        if (console && console.log) {
+            if (data) {
+                console.log('[TeamCreate]', message, data);
+            } else {
+                console.log('[TeamCreate]', message);
+            }
+        }
+    }
+
+    /**
      * Main TeamCreateWizard class
      */
     class TeamCreateWizard {
@@ -516,6 +529,7 @@
                 suggestionsContainer.style.display = 'none';
                 this.validationState.name = false;
                 nextBtn.disabled = true;
+                dcLog('❌ Name too short');
                 return;
             }
 
@@ -526,6 +540,7 @@
                 suggestionsContainer.style.display = 'none';
                 this.validationState.name = false;
                 nextBtn.disabled = true;
+                dcLog('❌ Name too long');
                 return;
             }
 
@@ -537,6 +552,8 @@
                 });
                 
                 const data = await response.json();
+                
+                dcLog(`🔍 Name validation result:`, data);
 
                 if (data.valid) {
                     nameValidation.className = 'validation-icon valid';
@@ -544,6 +561,7 @@
                     nameFeedback.className = 'validation-message success';
                     suggestionsContainer.style.display = 'none';
                     this.validationState.name = true;
+                    dcLog('✅ Name is valid and available');
                 } else {
                     nameValidation.className = 'validation-icon invalid';
                     nameFeedback.textContent = data.message || 'This name is already taken.';
@@ -555,6 +573,7 @@
                     }
                     
                     this.validationState.name = false;
+                    dcLog('❌ Name is NOT available:', data.message);
                 }
             } catch (error) {
                 console.error('Name validation error:', error);
@@ -562,6 +581,7 @@
                 nameFeedback.textContent = 'Network error. Please try again.';
                 nameFeedback.className = 'validation-message error';
                 this.validationState.name = false;
+                dcLog('❌ Network error during name validation');
             }
 
             // Update next button state
@@ -1468,6 +1488,16 @@
         async submitForm() {
             const loadingOverlay = document.getElementById('loadingOverlay');
             const loadingMessage = document.getElementById('loadingMessage');
+            
+            // CRITICAL: Re-validate name and tag before submission
+            const name = this.formData.name;
+            const tag = this.formData.tag;
+            
+            if (!this.validationState.name || !this.validationState.tag) {
+                this.showToast('Please ensure team name and tag are valid and available.', 'error');
+                this.goToStep(1);
+                return;
+            }
             
             // Show loading overlay
             loadingOverlay.classList.add('active');

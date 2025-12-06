@@ -87,9 +87,7 @@ def transfer_ownership_view(request, slug: str):
             new_owner_membership.update_permission_cache()
             new_owner_membership.save()
             
-            # Update team captain field (legacy)
-            team.captain = new_owner_membership.profile
-            team.save(update_fields=['captain'])
+            # No need to update team.captain field (removed - it's now a property)
         
         return JsonResponse({
             "success": True,

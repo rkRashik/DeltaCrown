@@ -5,10 +5,121 @@
 {% block title %}Teams Hub — DeltaCrown Esports{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'teams/css/team-list-premium-complete.css' %}?v=7.0">
+<link rel="stylesheet" href="{% static 'teams/css/team-list-premium-complete.css' %}?v=8.1">
 <link rel="stylesheet" href="{% static 'teams/css/team-list-modern-redesign.css' %}?v=1.0">
 <link rel="stylesheet" href="{% static 'teams/css/team-join-modern.css' %}?v=1.0">
 <style>
+    /* Critical CSS for Game Cards - Loaded Inline for Immediate Rendering */
+    .game-cards-grid-modern {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+        gap: 1rem !important;
+        max-width: 100% !important;
+    }
+    
+    .game-card-modern {
+        position: relative !important;
+        display: block !important;
+        background: #1a1a24 !important;
+        border: 2px solid transparent !important;
+        border-radius: 16px !important;
+        text-decoration: none !important;
+        color: white !important;
+        overflow: hidden !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        aspect-ratio: 1.5 / 1 !important;
+        min-height: 140px !important;
+    }
+    
+    .game-card-bg {
+        position: absolute !important;
+        inset: 0 !important;
+        overflow: hidden !important;
+    }
+    
+    .game-bg-image {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        filter: brightness(0.5) saturate(1.2) !important;
+    }
+    
+    .game-card-gradient {
+        position: absolute !important;
+        inset: 0 !important;
+        background: linear-gradient(135deg, rgba(20, 20, 35, 0.95) 0%, rgba(20, 20, 35, 0.85) 50%, rgba(0, 240, 255, 0.15) 100%) !important;
+    }
+    
+    .game-card-content {
+        position: relative !important;
+        z-index: 2 !important;
+        padding: 1rem !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+    }
+    
+    .game-icon-img {
+        width: 56px !important;
+        height: 56px !important;
+        object-fit: contain !important;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3)) !important;
+    }
+    
+    .game-icon-circle {
+        width: 56px !important;
+        height: 56px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(138, 43, 226, 0.1)) !important;
+        border: 2px solid rgba(0, 240, 255, 0.3) !important;
+        border-radius: 50% !important;
+        font-size: 1.5rem !important;
+        color: #00f0ff !important;
+    }
+    
+    .game-visual.all-games .game-icon-circle {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        border-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    .game-title {
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+        color: white !important;
+        margin: 0 !important;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    .game-meta .team-count {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.375rem !important;
+        padding: 0.375rem 0.75rem !important;
+        background: rgba(0, 0, 0, 0.4) !important;
+        backdrop-filter: blur(8px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 999px !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        color: rgba(255, 255, 255, 0.8) !important;
+    }
+    
+    .game-card-modern:hover {
+        transform: translateY(-6px) !important;
+        border-color: #00f0ff !important;
+        box-shadow: 0 12px 32px rgba(0, 240, 255, 0.25), 0 0 0 1px rgba(0, 240, 255, 0.1) !important;
+    }
+    
+    .game-card-modern.active {
+        border-color: #00f0ff !important;
+        background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%) !important;
+        box-shadow: 0 0 40px rgba(0, 240, 255, 0.4), 0 12px 32px rgba(0, 240, 255, 0.3), inset 0 0 0 1px rgba(0, 240, 255, 0.2) !important;
+    }
+    
     /* Hero CTA Button Hover Effects */
     .hero-cta-btn.learn-more:hover {
         background: rgba(255, 255, 255, 0.15) !important;
@@ -192,44 +303,77 @@
                 </div>
             </div>
 
-            <div class="game-cards-grid">
+            <div class="game-cards-grid-modern">
                 <!-- All Games Card -->
                 <a href="?{% if query %}q={{ query }}&{% endif %}{% if sort %}sort={{ sort }}{% endif %}" 
-                   class="game-card-compact {% if not active_game %}active{% endif %}">
-                    <div class="game-card-inner">
-                        <div class="game-icon-wrapper all-games">
-                            <i class="fas fa-globe"></i>
+                   class="game-card-modern {% if not active_game %}active{% endif %}">
+                    <div class="game-card-bg">
+                        <div class="game-card-gradient"></div>
+                    </div>
+                    <div class="game-card-content">
+                        <div class="game-visual all-games">
+                            <div class="game-icon-circle">
+                                <i class="fas fa-globe"></i>
+                            </div>
                         </div>
-                        <div class="game-info">
-                            <span class="game-name">All Games</span>
-                            <span class="team-count">{{ total_teams|default:"0" }}</span>
+                        <div class="game-details">
+                            <h3 class="game-title">All Games</h3>
+                            <div class="game-meta">
+                                <span class="team-count">
+                                    <i class="fas fa-users"></i>
+                                    {{ total_teams|default:"0" }} teams
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div class="active-indicator"></div>
+                    <div class="game-card-shine"></div>
                 </a>
 
                 <!-- Individual Game Cards -->
-                {% for game_info in games_list %}
-                <a href="?game={{ game_info.code }}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
-                   class="game-card-compact {% if active_game == game_info.code %}active{% endif %}">
-                    <div class="game-card-inner">
-                        <div class="game-icon-wrapper">
-                            {% if game_info.code %}
-                                {% load game_assets %}
-                                <img src="{% game_logo game_info.code|upper %}" 
-                                     alt="{{ game_info.name }}"
+                {% for game in games_list %}
+                <a href="{{ game.url }}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}" 
+                   class="game-card-modern {% if active_game == game.slug %}active{% endif %}">
+                    <div class="game-card-bg">
+                        {% if game.card_image %}
+                            <img src="{{ game.card_image.url }}" 
+                                 alt="{{ game.display_name }}"
+                                 class="game-bg-image"
+                                 onerror="this.style.display='none';"
+                                 loading="lazy">
+                        {% elif game.banner %}
+                            <img src="{{ game.banner.url }}" 
+                                 alt="{{ game.display_name }}"
+                                 class="game-bg-image"
+                                 onerror="this.style.display='none';"
+                                 loading="lazy">
+                        {% endif %}
+                        <div class="game-card-gradient"></div>
+                    </div>
+                    <div class="game-card-content">
+                        <div class="game-visual">
+                            {% if game.icon %}
+                                <img src="{{ game.icon.url }}" 
+                                     alt="{{ game.display_name }}"
+                                     class="game-icon-img"
                                      onerror="this.onerror=null; this.src='{% static 'img/game_logos/default_game_logo.jpg' %}';"
                                      loading="lazy">
                             {% else %}
-                                <i class="fas fa-gamepad"></i>
+                                <div class="game-icon-circle">
+                                    <i class="fas fa-gamepad"></i>
+                                </div>
                             {% endif %}
                         </div>
-                        <div class="game-info">
-                            <span class="game-name">{{ game_info.name }}</span>
-                            <span class="team-count">{{ game_info.team_count|default:"0" }}</span>
+                        <div class="game-details">
+                            <h3 class="game-title">{{ game.display_name }}</h3>
+                            <div class="game-meta">
+                                <span class="team-count">
+                                    <i class="fas fa-users"></i>
+                                    {{ game.team_count|default:"0" }} teams
+                                </span>
+                            </div>
                         </div>
                     </div>
-                    <div class="active-indicator"></div>
+                    <div class="game-card-shine"></div>
                 </a>
                 {% endfor %}
             </div>

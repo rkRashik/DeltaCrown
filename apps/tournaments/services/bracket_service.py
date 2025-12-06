@@ -255,68 +255,54 @@ class BracketService:
                 else:
                     advancer["name"] = "Unknown Participant"
                 
-                # Add game-specific tie-breaking stats
+                # Add game-specific tie-breaking stats from GameTournamentConfig
                 game_slug = tournament.game.slug
-                if game_slug in ['efootball', 'fc-mobile', 'fifa']:
-                    advancer["goal_difference"] = standing.goal_difference
-                    advancer["goals_for"] = standing.goals_for
-                elif game_slug in ['valorant', 'cs2']:
-                    advancer["round_difference"] = standing.round_difference
-                    advancer["rounds_won"] = standing.rounds_won
-                elif game_slug in ['pubg-mobile', 'free-fire']:
-                    advancer["placement_points"] = float(standing.placement_points or 0)
-                    advancer["total_kills"] = standing.total_kills
-                elif game_slug == 'mobile-legends':
-                    advancer["kda_ratio"] = float(standing.kda_ratio or 0)
-                    advancer["total_kills"] = standing.total_kills
-                elif game_slug == 'call-of-duty-mobile':
-                    advancer["total_score"] = standing.total_score
-                    advancer["total_kills"] = standing.total_kills
-                    advancer["total_deaths"] = standing.total_deaths
+                tournament_config = game_service.get_tournament_config(tournament.game)
+                
+                # Get tiebreakers from config (all 9 supported games now have configs)
+                if tournament_config and tournament_config.scoring_rules:
+                    tiebreaker_fields = tournament_config.scoring_rules.get('tiebreaker_fields', [])
+                    for field_config in tiebreaker_fields:
+                        field_name = field_config.get('field')
+                        if hasattr(standing, field_name):
+                            advancer[field_name] = getattr(standing, field_name)
+                elif tournament_config:
+                    # Fallback to scoring type detection for games without full scoring_rules
+                    scoring_type = tournament_config.default_scoring_type
+                    if scoring_type == 'GOALS':
+                        advancer["goal_difference"] = getattr(standing, 'goal_difference', 0)
+                        advancer["goals_for"] = getattr(standing, 'goals_for', 0)
+                    elif scoring_type == 'ROUNDS':
+                        advancer["round_difference"] = getattr(standing, 'round_difference', 0)
+                        advancer["rounds_won"] = getattr(standing, 'rounds_won', 0)
+                    elif scoring_type in ['PLACEMENT', 'KILLS']:
+                        advancer["placement_points"] = float(getattr(standing, 'placement_points', 0) or 0)
+                        advancer["total_kills"] = getattr(standing, 'total_kills', 0)
                 
                 advancers.append(advancer)
         
         # Sort advancers by group position first, then by points and game-specific stats
+        # TODO Phase 3.2: Use GameTournamentConfig.default_tiebreakers instead of hardcoded logic
         game_slug = tournament.game.slug
-        if game_slug in ['efootball', 'fc-mobile', 'fifa']:
-            advancers.sort(key=lambda x: (
-                x["group_position"],
-                -x["points"],
-                -x.get("goal_difference", 0),
-                -x.get("goals_for", 0)
-            ))
-        elif game_slug in ['valorant', 'cs2']:
-            advancers.sort(key=lambda x: (
-                x["group_position"],
-                -x["points"],
-                -x.get("round_difference", 0),
-                -x.get("rounds_won", 0)
-            ))
-        elif game_slug in ['pubg-mobile', 'free-fire']:
-            advancers.sort(key=lambda x: (
-                x["group_position"],
-                -x["points"],
-                -x.get("placement_points", 0),
-                -x.get("total_kills", 0)
-            ))
-        elif game_slug == 'mobile-legends':
-            advancers.sort(key=lambda x: (
-                x["group_position"],
-                -x["points"],
-                -x.get("kda_ratio", 0),
-                -x.get("total_kills", 0)
-            ))
-        elif game_slug == 'call-of-duty-mobile':
-            advancers.sort(key=lambda x: (
-                x["group_position"],
-                -x["points"],
-                -x.get("total_score", 0),
-                -x.get("total_kills", 0),
-                x.get("total_deaths", 999)  # Fewer deaths is better
-            ))
-        else:
-            # Default: group position, then points
-            advancers.sort(key=lambda x: (x["group_position"], -x["points"]))
+        tiebreakers = game_service.get_tiebreakers(tournament.game)
+        
+        # Build sort key from tiebreakers config
+        def sort_key(advancer):
+            # Primary sort: group position, then points (descending)
+            key = [advancer["group_position"], -advancer["points"]]
+            
+            # Add tiebreaker fields if available
+            for tiebreaker in tiebreakers:
+                value = advancer.get(tiebreaker, 0)
+                # Negative for descending order (higher is better)
+                if tiebreaker not in ['total_deaths']:  # Deaths: lower is better
+                    key.append(-float(value) if value else 0)
+                else:
+                    key.append(float(value) if value else 999)
+            
+            return tuple(key)
+        
+        advancers.sort(key=sort_key)
         
         # Assign seeds based on sorted order
         for i, advancer in enumerate(advancers, start=1):

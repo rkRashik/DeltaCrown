@@ -1,15 +1,11 @@
 """
 Game code mapping and normalization utilities.
 
-NOW DELEGATES TO apps.common.game_registry for unified game handling.
+NOW DELEGATES TO apps.games.services.game_service for unified game handling.
 Maintains backwards compatibility for existing code.
 """
 
-from apps.common.game_registry import (
-    normalize_slug,
-    get_game,
-    get_choices as get_game_choices_from_registry
-)
+from apps.games.services import game_service
 
 # Legacy game code mappings
 LEGACY_GAME_CODES = {
@@ -37,7 +33,7 @@ def normalize_game_code(game_code):
     """
     Normalize a game code to its canonical form.
     
-    NOW DELEGATES TO GAME REGISTRY for platform-wide consistency.
+    NOW DELEGATES TO GAME SERVICE for platform-wide consistency.
     Maintains backwards compatibility.
     
     Args:
@@ -49,31 +45,31 @@ def normalize_game_code(game_code):
     if not game_code:
         return None
     
-    # Delegate to Game Registry's normalize_slug for consistency
-    return normalize_slug(game_code)
+    # Delegate to GameService's normalize_slug for consistency
+    return game_service.normalize_slug(game_code)
 
 
 def get_game_config(game_code):
     """
     Get game configuration with legacy code support.
     
-    NOW USES GAME REGISTRY for complete game specifications.
+    NOW USES GAME SERVICE for complete game specifications.
     
     Args:
         game_code (str): Game code (may be legacy)
         
     Returns:
-        GameSpec: Complete game specification from Game Registry
+        Game instance or None
     """
     normalized = normalize_game_code(game_code)
-    return get_game(normalized) if normalized else None
+    return game_service.get_game(normalized) if normalized else None
 
 
 def is_valid_game_code(game_code):
     """
     Check if a game code is valid (including legacy codes).
     
-    NOW USES GAME REGISTRY for validation.
+    NOW USES GAME SERVICE for validation.
     
     Args:
         game_code (str): Game code to validate
@@ -86,8 +82,8 @@ def is_valid_game_code(game_code):
     
     try:
         normalized = normalize_game_code(game_code)
-        game_spec = get_game(normalized)
-        return game_spec is not None
+        game = game_service.get_game(normalized)
+        return game is not None
     except:
         return False
 
@@ -96,19 +92,19 @@ def get_all_game_choices():
     """
     Get all game choices for use in forms.
     
-    NOW DELEGATES TO GAME REGISTRY.
+    NOW DELEGATES TO GAME SERVICE.
     
     Returns:
-        list: List of (code, display_name) tuples
+        list: List of (slug, display_name) tuples
     """
-    return get_game_choices_from_registry()
+    return game_service.get_choices()
 
 
 def get_game_display_name(game_code):
     """
     Get display name for a game code (with legacy support).
     
-    NOW USES GAME REGISTRY GameSpec.
+    NOW USES GAME SERVICE Game model.
     
     Args:
         game_code (str): Game code (may be legacy)
@@ -116,7 +112,7 @@ def get_game_display_name(game_code):
     Returns:
         str: Display name for the game
     """
-    game_spec = get_game_config(game_code)
-    if game_spec and hasattr(game_spec, 'display_name'):
-        return game_spec.display_name
+    game = get_game_config(game_code)
+    if game:
+        return game.display_name
     return game_code.upper() if game_code else 'Unknown Game'

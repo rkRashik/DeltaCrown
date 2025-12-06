@@ -108,13 +108,13 @@ def game_color_secondary(game_code):
 
 @register.simple_tag
 def game_display_name(game_code):
-    """Get game display name from Game Registry."""
+    """Get game display name from GameService."""
     if not game_code:
         return ''
     try:
-        from apps.common.game_registry import get_game
-        game = get_game(game_code)
-        return game.display_name
+        from apps.games.services.game_service import game_service
+        game = game_service.get_game(game_code)
+        return game.display_name if game else game_code.title()
     except (KeyError, Exception):
         game_data = get_game_data(game_code)
         if game_data and 'display_name' in game_data:
@@ -131,13 +131,13 @@ def game_category(game_code):
 
 @register.filter
 def game_display_name(game_code):
-    """Get game display name from Game Registry - filter version."""
+    """Get game display name from GameService - filter version."""
     if not game_code:
         return ''
     try:
-        from apps.common.game_registry import get_game
-        game = get_game(game_code)
-        return game.display_name
+        from apps.games.services.game_service import game_service
+        game = game_service.get_game(game_code)
+        return game.display_name if game else game_code.title()
     except (KeyError, Exception):
         game_data = get_game_data(game_code)
         if game_data and 'display_name' in game_data:

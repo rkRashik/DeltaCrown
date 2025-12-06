@@ -10,26 +10,26 @@ from django.contrib import messages
 
 
 @login_required
-def create_team_advanced_view(request):
+def _legacy_create_team_advanced_view(request):
     """
-    Render the advanced team creation form.
+    DEPRECATED: Render the advanced team creation form.
+    Use apps.teams.views.create.team_create_view instead.
     
-    This form provides a modern, step-by-step interface for creating teams
-    with game-specific validation and real-time preview.
+    This function is deprecated and will be removed in Phase 2.
     """
-    
-    # Check if user already has teams in too many games (optional limit)
-    # user_teams = request.user.profile.get_teams()
-    # if user_teams.count() >= 5:
-    #     messages.warning(request, "You already manage 5 teams. Consider leaving one before creating more.")
-    
-    context = {
-        'user_profile_id': request.user.profile.id,
-        'user_username': request.user.username,
-        'user_email': request.user.email,
-    }
-    
-    return render(request, 'teams/create_team_advanced.html', context)
+    import warnings
+    warnings.warn(
+        "create_team_advanced_view is deprecated. Use apps.teams.views.create.team_create_view instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    # Redirect to new implementation
+    from apps.teams.views.create import team_create_view
+    return team_create_view(request)
+
+
+# Old function kept for backward compatibility - DO NOT USE
+create_team_advanced_view = _legacy_create_team_advanced_view
 
 
 @login_required

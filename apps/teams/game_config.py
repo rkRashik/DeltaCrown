@@ -1,13 +1,44 @@
 # apps/teams/game_config.py
 """
-Game-specific configuration for team roster management.
+Game-specific configuration for team roster management. (DEPRECATED)
 
-This module defines the rules, constraints, and roles for each supported game.
-Makes it easy to add new games without changing core model logic.
+⚠️ DEPRECATION NOTICE ⚠️
+This module is DEPRECATED and kept only for backwards compatibility.
 
-NOTE: Game normalization now delegates to apps.common.game_registry for consistency.
+NEW CODE SHOULD USE: apps.games.services.game_service.GameService
+
+All game configuration has been centralized in the Games app:
+- Game models: apps.games.models (Game, GameRosterConfig, GameRole, etc.)
+- Service layer: apps.games.services.game_service.GameService
+
+Migration Guide:
+---------------
+OLD:
+    from apps.teams.game_config import get_game_config, get_available_roles
+    config = get_game_config('valorant')
+    roles = get_available_roles('valorant')
+    
+NEW:
+    from apps.games.services.game_service import game_service
+    from apps.games.models import Game
+    
+    game = Game.objects.get(slug='valorant')
+    roster_config = game_service.get_roster_config(game)
+    roles = [role.role_name for role in game_service.list_roles(game)]
+
+See: Documents/PHASE3_IMPLEMENTATION_SUMMARY.md
 """
+import warnings
 from typing import Dict, List, NamedTuple
+
+# Issue deprecation warning on import
+warnings.warn(
+    "apps.teams.game_config is deprecated. "
+    "Use apps.games.services.game_service.GameService instead. "
+    "See Documents/PHASE3_IMPLEMENTATION_SUMMARY.md for migration guide.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class GameRosterConfig(NamedTuple):
@@ -411,30 +442,73 @@ def normalize_game_code(game_code: str) -> str:
     Returns:
         Normalized game code that matches GAME_CONFIGS keys
     """
-    from apps.common.game_registry import normalize_slug
+    from apps.games.services.game_service import game_service
     
     if not game_code:
         return game_code
     
-    # Use Game Registry's normalization for consistency
-    return normalize_slug(game_code)
+    # Use GameService's normalization for consistency
+    return game_service.normalize_slug(game_code)
 
 
 def get_game_config(game_code: str) -> GameRosterConfig:
     """
+    DEPRECATED: Use game_service.get_roster_config(game) instead.
+    
     Get configuration for a specific game.
-    
-    Args:
-        game_code: Game identifier (e.g., 'valorant', 'cs2', 'pubg-mobile')
-        
-    Returns:
-        GameRosterConfig for the game (returns default for unknown games)
+    Now delegates to Games app for backward compatibility.
     """
-    # Normalize the game code first
-    normalized_code = normalize_game_code(game_code)
+    warnings.warn(
+        "get_game_config() is deprecated. Use game_service.get_roster_config(game)",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    from apps.games.models import Game
+    from apps.games.services.game_service import game_service
     
-    if normalized_code not in GAME_CONFIGS:
-        # Return a default config instead of crashing
+    try:
+        # Normalize the game code first
+        normalized_code = normalize_game_code(game_code)
+        game = Game.objects.get(slug=normalized_code, is_active=True)
+        roster_config = game_service.get_roster_config(game)
+        
+        if not roster_config:
+            # Fallback to legacy config if no DB config
+            if normalized_code in GAME_CONFIGS:
+                return GAME_CONFIGS[normalized_code]
+            # Return default config
+            return GameRosterConfig(
+                name=game_code.upper() if game_code else "Unknown",
+                code=game_code.lower() if game_code else "unknown",
+                min_starters=5,
+                max_starters=5,
+                max_substitutes=2,
+                roles=["Player", "Sub"],
+                role_descriptions={"Player": "Team player", "Sub": "Substitute player"},
+                regions=[("GLOBAL", "Global")],
+                allows_multi_role=True,
+            )
+        
+        # Convert new config to legacy format
+        roles = [role.role_name for role in game_service.list_roles(game)]
+        role_descriptions = {role.role_name: role.description for role in game_service.list_roles(game)}
+        
+        return GameRosterConfig(
+            name=game.display_name,
+            code=game.slug,
+            min_starters=roster_config.min_team_size,
+            max_starters=roster_config.max_team_size,
+            max_substitutes=roster_config.max_substitutes,
+            roles=roles if roles else ["Player"],
+            role_descriptions=role_descriptions if role_descriptions else {"Player": "Team member"},
+            requires_unique_roles=roster_config.require_unique_roles,
+        )
+    except Game.DoesNotExist:
+        # Fallback to legacy config
+        normalized_code = normalize_game_code(game_code)
+        if normalized_code in GAME_CONFIGS:
+            return GAME_CONFIGS[normalized_code]
+        # Return default
         return GameRosterConfig(
             name=game_code.upper() if game_code else "Unknown",
             code=game_code.lower() if game_code else "unknown",
@@ -446,86 +520,100 @@ def get_game_config(game_code: str) -> GameRosterConfig:
             regions=[("GLOBAL", "Global")],
             allows_multi_role=True,
         )
-    return GAME_CONFIGS[normalized_code]
 
 
 def get_max_roster_size(game_code: str) -> int:
     """
-    Get maximum roster size (starters + substitutes) for a game.
-    
-    Args:
-        game_code: Game identifier
-        
-    Returns:
-        Maximum total roster size
+    DEPRECATED: Use game_service.get_roster_limits(game) instead.
     """
+    warnings.warn(
+        "get_max_roster_size() is deprecated. Use game_service.get_roster_limits(game)",
+        DeprecationWarning,
+        stacklevel=2
+    )
     config = get_game_config(game_code)
     return config.max_starters + config.max_substitutes
 
 
 def get_min_roster_size(game_code: str) -> int:
     """
-    Get minimum roster size for a game to be active.
-    
-    Args:
-        game_code: Game identifier
-        
-    Returns:
-        Minimum number of starters required
+    DEPRECATED: Use game_service.get_roster_limits(game) instead.
     """
+    warnings.warn(
+        "get_min_roster_size() is deprecated. Use game_service.get_roster_limits(game)",
+        DeprecationWarning,
+        stacklevel=2
+    )
     config = get_game_config(game_code)
     return config.min_starters
 
 
 def get_available_roles(game_code: str) -> List[str]:
     """
-    Get list of available roles for a game.
-    
-    Args:
-        game_code: Game identifier
-        
-    Returns:
-        List of role names
+    DEPRECATED: Use game_service.list_roles(game) instead.
     """
+    warnings.warn(
+        "get_available_roles() is deprecated. Use game_service.list_roles(game)",
+        DeprecationWarning,
+        stacklevel=2
+    )
     config = get_game_config(game_code)
     return config.roles
 
 
 def validate_role_for_game(game_code: str, role: str) -> bool:
     """
-    Check if a role is valid for a specific game.
-    
-    Args:
-        game_code: Game identifier
-        role: Role name to validate
-        
-    Returns:
-        True if role is valid for the game
+    DEPRECATED: Use game_service.list_roles(game) instead.
     """
+    warnings.warn(
+        "validate_role_for_game() is deprecated. Use game_service.list_roles(game)",
+        DeprecationWarning,
+        stacklevel=2
+    )
     config = get_game_config(game_code)
     return role in config.roles
 
 
 def get_role_description(game_code: str, role: str) -> str:
     """
-    Get description for a role in a specific game.
-    
-    Args:
-        game_code: Game identifier
-        role: Role name
-        
-    Returns:
-        Role description or empty string if not found
+    DEPRECATED: Use GameRole model instead.
     """
+    warnings.warn(
+        "get_role_description() is deprecated. Use GameRole model",
+        DeprecationWarning,
+        stacklevel=2
+    )
     config = get_game_config(game_code)
     return config.role_descriptions.get(role, "")
 
 
 def get_all_game_codes() -> List[str]:
-    """Get list of all supported game codes."""
-    return list(GAME_CONFIGS.keys())
+    """
+    DEPRECATED: Use Game.objects.filter(is_active=True) instead.
+    """
+    warnings.warn(
+        "get_all_game_codes() is deprecated. Use Game.objects.filter(is_active=True)",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    from apps.games.models import Game
+    try:
+        return [g.slug for g in Game.objects.filter(is_active=True)]
+    except:
+        return list(GAME_CONFIGS.keys())
 
 
 def get_all_game_names() -> List[str]:
-    """Get list of all supported game names."""
-    return [config.name for config in GAME_CONFIGS.values()]
+    """
+    DEPRECATED: Use Game.objects.filter(is_active=True) instead.
+    """
+    warnings.warn(
+        "get_all_game_names() is deprecated. Use Game.objects.filter(is_active=True)",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    from apps.games.models import Game
+    try:
+        return [g.display_name for g in Game.objects.filter(is_active=True)]
+    except:
+        return [config.name for config in GAME_CONFIGS.values()]

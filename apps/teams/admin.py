@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.db.models import Count, Q
 from django.contrib import messages
-from apps.common.game_registry import get_choices as get_game_choices
+from apps.games.services import game_service
 
 from .models import (
     Team, TeamMembership, TeamInvite,
@@ -92,14 +92,14 @@ class TeamAdmin(admin.ModelAdmin):
     """Comprehensive team management"""
     
     list_display = [
-        'name', 'tag', 'game_badge', 'captain_link', 
+        'name', 'tag', 'game_badge', 'owner_link', 
         'member_count', 'created_at', 'verification_status', 'featured_badge'
     ]
     list_filter = [
         'game', 'is_verified', 'is_featured', 
         'allow_posts', 'created_at'
     ]
-    search_fields = ['name', 'tag', 'description', 'captain__user__username']
+    search_fields = ['name', 'tag', 'description']
     readonly_fields = [
         'slug', 'created_at', 'updated_at', 'followers_count', 
         'posts_count', 'logo_preview', 'banner_preview'
@@ -111,7 +111,7 @@ class TeamAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'tag', 'slug', 'game', 'description', 'captain')
+            'fields': ('name', 'tag', 'slug', 'game', 'description')
         }),
         ('Media', {
             'fields': ('logo', 'logo_preview', 'banner_image', 'banner_preview', 'roster_image')
@@ -163,13 +163,14 @@ class TeamAdmin(admin.ModelAdmin):
         )
     game_badge.short_description = 'Game'
     
-    def captain_link(self, obj):
-        """Link to captain's user profile"""
-        if obj.captain:
-            url = reverse('admin:user_profile_userprofile_change', args=[obj.captain.pk])
-            return format_html('<a href="{}">{}</a>', url, obj.captain)
+    def owner_link(self, obj):
+        """Link to team owner (captain) via property"""
+        captain = obj.captain  # Uses @property to get OWNER
+        if captain:
+            url = reverse('admin:user_profile_userprofile_change', args=[captain.pk])
+            return format_html('<a href="{}">{}</a>', url, captain)
         return '—'
-    captain_link.short_description = 'Captain'
+    owner_link.short_description = 'Owner'
     
     def member_count(self, obj):
         """Display active member count"""
@@ -208,14 +209,14 @@ class TeamAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related('captain__user')
+        # Note: captain is now a @property, not a ForeignKey - cannot use select_related
         qs = qs.annotate(member_count=Count('memberships', filter=Q(memberships__status='active')))
         return qs
     
     def formfield_for_dbfield(self, db_field, request, **kwargs):
         """Override to use Game Registry choices for game field"""
         if db_field.name == 'game':
-            kwargs['choices'] = get_game_choices()
+            kwargs['choices'] = game_service.get_choices()
         return super().formfield_for_dbfield(db_field, request, **kwargs)
     
     # Actions
@@ -448,7 +449,7 @@ class TeamSponsorAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
+            'fields': ('created_at',),
             'classes': ('collapse',)
         }),
     )

@@ -110,6 +110,12 @@
           
           <!-- Action Buttons -->
           <div class="team-action-buttons">
+        <!-- Rankings Button (visible to all) -->
+        <a href="{% url 'teams:game_rankings' game_slug=team.game %}" class="btn btn-info">
+          <i class="fas fa-trophy"></i>
+          <span>View Rankings</span>
+        </a>
+        
         {% if is_captain %}
           <a href="{% url 'teams:manage' team.slug %}" class="btn btn-primary">
             <i class="fas fa-cogs"></i>

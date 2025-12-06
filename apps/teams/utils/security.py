@@ -1,23 +1,60 @@
 """
 Task 10: Security utilities and permission checkers for Teams app
+
+DEPRECATED: This module contains legacy permission checks.
+Please use apps.teams.permissions.TeamPermissions instead.
+
+Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.2
+Migration: Scheduled for removal after all imports updated (Phase 1, Sprint 1)
 """
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from functools import wraps
 import logging
+import warnings
 
 logger = logging.getLogger(__name__)
 
 
-class TeamPermissions:
+class LegacyTeamPermissions:
     """
-    Centralized permission checking for team operations.
-    Use these methods to ensure consistent security across the app.
+    DEPRECATED: Legacy permission checking for team operations.
+    
+    **DO NOT USE IN NEW CODE**
+    
+    This class is deprecated and will be removed in a future release.
+    Use apps.teams.permissions.TeamPermissions instead, which provides:
+    - Better caching
+    - More efficient database queries
+    - Cleaner API
+    - Consistent behavior
+    
+    Migration Guide:
+        OLD: from apps.teams.utils.security import TeamPermissions
+        NEW: from apps.teams.permissions import TeamPermissions
+    
+    Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.2
     """
+    
+    def __init__(self):
+        warnings.warn(
+            "LegacyTeamPermissions is deprecated. Use apps.teams.permissions.TeamPermissions instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
     
     @staticmethod
     def is_team_captain(user, team):
-        """Check if user is the team captain."""
+        """
+        DEPRECATED: Check if user is the team captain.
+        Use apps.teams.permissions.TeamPermissions instead.
+        """
+        warnings.warn(
+            "LegacyTeamPermissions.is_team_captain is deprecated. "
+            "Use apps.teams.permissions.TeamPermissions.can_edit_team instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
@@ -25,7 +62,12 @@ class TeamPermissions:
     
     @staticmethod
     def is_team_member(user, team):
-        """Check if user is an active team member."""
+        """DEPRECATED: Check if user is an active team member."""
+        warnings.warn(
+            "LegacyTeamPermissions.is_team_member is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
@@ -36,12 +78,17 @@ class TeamPermissions:
     
     @staticmethod
     def is_team_manager(user, team):
-        """Check if user is captain or co-captain/manager."""
+        """DEPRECATED: Check if user is captain or co-captain/manager."""
+        warnings.warn(
+            "LegacyTeamPermissions.is_team_manager is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
         # Captain check
-        if TeamPermissions.is_team_captain(user, team):
+        if LegacyTeamPermissions.is_team_captain(user, team):
             return True
         
         # Manager/Co-captain check
@@ -53,7 +100,12 @@ class TeamPermissions:
     
     @staticmethod
     def can_edit_team(user, team):
-        """Check if user can edit team settings."""
+        """DEPRECATED: Check if user can edit team settings."""
+        warnings.warn(
+            "LegacyTeamPermissions.can_edit_team is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
@@ -61,44 +113,64 @@ class TeamPermissions:
         if user.is_staff or user.is_superuser:
             return True
         
-        return TeamPermissions.is_team_captain(user, team)
+        return LegacyTeamPermissions.is_team_captain(user, team)
     
     @staticmethod
     def can_manage_roster(user, team):
-        """Check if user can add/remove team members."""
+        """DEPRECATED: Check if user can add/remove team members."""
+        warnings.warn(
+            "LegacyTeamPermissions.can_manage_roster is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
         if user.is_staff or user.is_superuser:
             return True
         
-        return TeamPermissions.is_team_manager(user, team)
+        return LegacyTeamPermissions.is_team_manager(user, team)
     
     @staticmethod
     def can_send_invites(user, team):
-        """Check if user can send team invites."""
+        """DEPRECATED: Check if user can send team invites."""
+        warnings.warn(
+            "LegacyTeamPermissions.can_send_invites is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
         if user.is_staff or user.is_superuser:
             return True
         
-        return TeamPermissions.is_team_manager(user, team)
+        return LegacyTeamPermissions.is_team_manager(user, team)
     
     @staticmethod
     def can_manage_sponsors(user, team):
-        """Check if user can manage team sponsors."""
+        """DEPRECATED: Check if user can manage team sponsors."""
+        warnings.warn(
+            "LegacyTeamPermissions.can_manage_sponsors is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
         if user.is_staff or user.is_superuser:
             return True
         
-        return TeamPermissions.is_team_captain(user, team)
+        return LegacyTeamPermissions.is_team_captain(user, team)
     
     @staticmethod
     def can_manage_promotions(user, team):
-        """Check if user can manage team promotions."""
+        """DEPRECATED: Check if user can manage team promotions."""
+        warnings.warn(
+            "LegacyTeamPermissions.can_manage_promotions is deprecated.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if not user or not user.is_authenticated:
             return False
         
@@ -377,13 +449,29 @@ class CSRFValidator:
             return False
         
         return True
-    
-    @staticmethod
-    def validate_origin(request):
-        """
-        Validate request origin matches expected domain.
-        """
-        from django.conf import settings
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# BACKWARD COMPATIBILITY ALIAS
+# ═══════════════════════════════════════════════════════════════════════
+
+# Temporary alias for backward compatibility during migration
+# Will be removed in Phase 1, Sprint 2
+TeamPermissions = LegacyTeamPermissions
+
+warnings.warn(
+    "Importing TeamPermissions from apps.teams.utils.security is deprecated. "
+    "Use 'from apps.teams.permissions import TeamPermissions' instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
+
+@staticmethod
+def validate_origin(request):
+    """
+    Validate request origin matches expected domain.
+    """
+    from django.conf import settings
         
         origin = request.META.get('HTTP_ORIGIN')
         referer = request.META.get('HTTP_REFERER')

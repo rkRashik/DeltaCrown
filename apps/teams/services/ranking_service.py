@@ -374,3 +374,188 @@ class TeamRankingService:
 
 # Global service instance
 ranking_service = TeamRankingService()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PHASE 2 - TASK 7.1: GAME-SPECIFIC RANKING SERVICE
+# ═══════════════════════════════════════════════════════════════════════════
+
+class GameRankingService:
+    """Service for managing game-specific team rankings (Phase 2 - Task 7.1)."""
+    
+    @staticmethod
+    def get_or_create_ranking(team, game: str):
+        """Get or create a ranking record for a team in a specific game."""
+        from apps.teams.models.ranking import TeamGameRanking
+        from apps.teams.constants import RankingConstants
+        
+        ranking, created = TeamGameRanking.objects.get_or_create(
+            team=team,
+            game=game,
+            defaults={
+                'elo_rating': RankingConstants.DEFAULT_ELO,
+                'global_elo': RankingConstants.DEFAULT_ELO,
+                'division': RankingConstants.DIVISION_BRONZE,
+            }
+        )
+        return ranking
+    
+    @staticmethod
+    @transaction.atomic
+    def award_tournament_points(team, tournament, placement: int) -> int:
+        """
+        Award points for tournament placement.
+        
+        Args:
+            team: Team object
+            tournament: Tournament object (must have .game attribute)
+            placement: Final placement (1 = winner, 2 = runner-up, etc.)
+            
+        Returns:
+            Points awarded
+        """
+        from apps.teams.constants import RankingConstants
+        
+        # Get game identifier (handle both FK object and string)
+        game_obj = getattr(tournament, 'game', None)
+        if game_obj:
+            # If it's a model instance, get the slug
+            game = getattr(game_obj, 'slug', None) or str(game_obj)
+        else:
+            # Fallback to game_slug attribute or 'UNKNOWN'
+            game = getattr(tournament, 'game_slug', 'UNKNOWN')
+        
+        ranking = GameRankingService.get_or_create_ranking(team, game)
+        
+        # Calculate points based on placement
+        base_points = 0
+        if placement == 1:
+            base_points = 500
+            ranking.tournaments_won += 1
+            multiplier = RankingConstants.TOURNAMENT_WIN_MULTIPLIER
+        elif placement == 2:
+            base_points = 300
+            multiplier = RankingConstants.TOURNAMENT_RUNNER_UP_MULTIPLIER
+        elif placement == 3:
+            base_points = 200
+            multiplier = RankingConstants.TOURNAMENT_THIRD_PLACE_MULTIPLIER
+        elif placement == 4:
+            base_points = 150
+            multiplier = RankingConstants.TOURNAMENT_FOURTH_PLACE_MULTIPLIER
+        elif placement <= 8:
+            base_points = 100
+            multiplier = 1.0
+        else:
+            base_points = 50  # Participation
+            multiplier = 1.0
+        
+        if placement <= 3:
+            ranking.tournament_podium_finishes += 1
+        
+        points_awarded = int(base_points * multiplier)
+        
+        # Update ranking
+        ranking.points += points_awarded
+        ranking.tournaments_played += 1
+        ranking.last_match_date = timezone.now()
+        
+        # Update ELO (simplified - in real system would depend on opponent strength)
+        if placement == 1:
+            ranking.elo_rating += 50
+        elif placement == 2:
+            ranking.elo_rating += 30
+        elif placement == 3:
+            ranking.elo_rating += 20
+        else:
+            ranking.elo_rating += 10
+        
+        ranking.elo_rating = min(ranking.elo_rating, RankingConstants.MAX_ELO)
+        ranking.update_division()
+        
+        # Update global ELO (average of all games)
+        GameRankingService._update_global_elo(team)
+        
+        ranking.save()
+        
+        logger.info(f"Awarded {points_awarded} points to {team.name} for tournament placement {placement}")
+        return points_awarded
+    
+    @staticmethod
+    @transaction.atomic
+    def record_match_result(team, game: str, won: bool, opponent_elo: Optional[int] = None):
+        """
+        Record a match result and update ELO.
+        
+        Args:
+            team: Team object
+            game: Game slug
+            won: Whether the team won
+            opponent_elo: Opponent's ELO (for proper ELO calculation)
+        """
+        from apps.teams.constants import RankingConstants
+        
+        ranking = GameRankingService.get_or_create_ranking(team, game)
+        
+        ranking.matches_played += 1
+        if won:
+            ranking.matches_won += 1
+            ranking.win_streak += 1
+            ranking.loss_streak = 0
+            elo_change = GameRankingService._calculate_elo_change(
+                ranking.elo_rating,
+                opponent_elo or RankingConstants.DEFAULT_ELO,
+                won=True
+            )
+        else:
+            ranking.matches_lost += 1
+            ranking.loss_streak += 1
+            ranking.win_streak = 0
+            elo_change = GameRankingService._calculate_elo_change(
+                ranking.elo_rating,
+                opponent_elo or RankingConstants.DEFAULT_ELO,
+                won=False
+            )
+        
+        ranking.elo_rating = max(
+            RankingConstants.MIN_ELO,
+            min(ranking.elo_rating + elo_change, RankingConstants.MAX_ELO)
+        )
+        ranking.last_match_date = timezone.now()
+        ranking.update_division()
+        
+        GameRankingService._update_global_elo(team)
+        ranking.save()
+        
+        logger.info(f"Recorded match result for {team.name} in {game}: {'Win' if won else 'Loss'}, ELO change: {elo_change}")
+    
+    @staticmethod
+    def _calculate_elo_change(team_elo: int, opponent_elo: int, won: bool) -> int:
+        """
+        Calculate ELO change using standard ELO formula.
+        
+        Formula: ΔR = K * (S - E)
+        Where:
+        - K = K-factor (32)
+        - S = Actual score (1 for win, 0 for loss)
+        - E = Expected score = 1 / (1 + 10^((opponent_elo - team_elo) / 400))
+        """
+        from apps.teams.constants import RankingConstants
+        
+        expected = 1 / (1 + 10 ** ((opponent_elo - team_elo) / 400))
+        actual = 1 if won else 0
+        change = RankingConstants.K_FACTOR * (actual - expected)
+        return int(change)
+    
+    @staticmethod
+    def _update_global_elo(team):
+        """Update global ELO as average of all game ELOs."""
+        from apps.teams.models.ranking import TeamGameRanking
+        
+        rankings = TeamGameRanking.objects.filter(team=team)
+        if rankings.exists():
+            avg_elo = sum(r.elo_rating for r in rankings) / rankings.count()
+            rankings.update(global_elo=int(avg_elo))
+
+
+# Global service instance
+game_ranking_service = GameRankingService()

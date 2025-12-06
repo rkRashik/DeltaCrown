@@ -6,7 +6,8 @@ from django import forms
 from apps.tournaments.models import Tournament, Game
 from apps.tournaments.models.form_template import RegistrationFormTemplate
 from apps.tournaments.models.form_configuration import TournamentFormConfiguration
-from apps.common.game_registry import get_all_games, get_game, normalize_slug
+from apps.games.services import game_service
+from apps.games.models import Game
 
 
 class TournamentCreateForm(forms.ModelForm):
@@ -77,19 +78,12 @@ class TournamentCreateForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Populate game choices from Game Registry (canonical games only)
+        # Populate game choices from GameService (canonical games only)
         game_choices = [('', 'Select a game...')]
         
-        # Get all canonical games from registry
-        for spec in get_all_games():
-            # Find matching Game model instance (by slug or legacy aliases)
-            matching_games = Game.objects.filter(
-                slug__in=[spec.slug] + list(spec.legacy_aliases),
-                is_active=True
-            )
-            if matching_games.exists():
-                game = matching_games.first()
-                game_choices.append((game.id, spec.display_name))
+        # Get all active games
+        for game in game_service.list_active_games():
+            game_choices.append((game.id, game.display_name))
         
         self.fields['game'].widget = forms.Select(
             choices=game_choices,

@@ -252,9 +252,9 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             
             # TODO: Load dynamic custom fields from tournament.custom_fields JSONField
             # For now, show placeholder in-game ID field
-            from apps.common.game_registry import get_game, normalize_slug
-            canonical_slug = normalize_slug(tournament.game.slug)
-            game_spec = get_game(canonical_slug)
+            from apps.games.services import game_service
+            canonical_slug = game_service.normalize_slug(tournament.game.slug)
+            game_spec = game_service.get_game(canonical_slug)
             game_display_name = game_spec.display_name if game_spec else tournament.game.name
             custom_field_values = wizard_data.get('custom_fields', {})
             
@@ -381,9 +381,9 @@ class TournamentRegistrationView(LoginRequiredMixin, View):
             context['is_final_step'] = True
             
             # Build summary
-            from apps.common.game_registry import get_game, normalize_slug
-            canonical_slug = normalize_slug(tournament.game.slug)
-            game_spec = get_game(canonical_slug)
+            from apps.games.services import game_service
+            canonical_slug = game_service.normalize_slug(tournament.game.slug)
+            game_spec = game_service.get_game(canonical_slug)
             game_display_name = game_spec.display_name if game_spec else tournament.game.name
             context['summary'] = {
                 'tournament_name': tournament.name,

@@ -242,9 +242,7 @@ def transfer_captaincy(request, slug, profile_id):
         new_membership.is_captain = True
     new_membership.save()
     
-    # Update team captain
-    team.captain = new_membership.profile
-    team.save()
+    # No need to update team.captain field (removed - it's now a property)
     
     # Log activity
     try:

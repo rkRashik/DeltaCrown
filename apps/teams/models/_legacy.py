@@ -19,8 +19,8 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-# Import get_choices from Game Registry for unified game configuration
-from apps.common.game_registry import get_choices as get_game_choices
+# Import from GameService for unified game configuration
+from apps.games.services import game_service
 
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -50,21 +50,14 @@ class Team(models.Model):
     name_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     tag_ci = models.CharField(max_length=255, blank=True, null=True, db_index=True)
 
-    # Core
-    captain = models.ForeignKey(
-        "user_profile.UserProfile",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="captain_teams",
-    )
+    # Core (captain removed - now determined by OWNER role in TeamMembership)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     # Game association (Part A) - uses Game Registry for choices
     game = models.CharField(
         max_length=20,
-        choices=get_game_choices,  # Callable from Game Registry
+        choices=[],  # Choices populated dynamically in forms from GameService
         blank=True,
         default="",
         help_text="Which game this team competes in (blank for legacy teams).",
@@ -206,9 +199,33 @@ class Team(models.Model):
         db_table = "teams_team"
         ordering = ("name",)
         indexes = [
+            # Existing indexes
             models.Index(fields=['-total_points', 'name'], name='teams_leaderboard_idx'),
             models.Index(fields=['game', '-total_points'], name='teams_game_leader_idx'),
             models.Index(fields=['-created_at'], name='teams_recent_idx'),
+            
+            # Phase 1 Performance Optimization Indexes
+            # Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 2.2
+            
+            # Team listing queries (most common pattern)
+            models.Index(
+                fields=['game', 'is_public', 'is_active'],
+                name='team_listing_idx',
+                # Covers: WHERE game='X' AND is_public=true AND is_active=true
+            ),
+            
+            # Regional team search
+            models.Index(
+                fields=['game', 'region', 'is_active'],
+                name='team_region_idx',
+                # Covers: WHERE game='X' AND region='Y' AND is_active=true
+            ),
+            
+            # Captain lookup removed - captain is now determined by OWNER role in membership
+            # Use: team.memberships.filter(role='OWNER', status='ACTIVE') instead
+            
+            # Chronological sorting (duplicate check - already exists as teams_recent_idx)
+            # models.Index(fields=['-created_at'], name='team_created_idx'),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -233,22 +250,46 @@ class Team(models.Model):
             profile=profile, status=TeamMembership.Status.ACTIVE
         ).exists()
 
+    @property
+    def captain(self):
+        """
+        Get the team captain (organizational leader).
+        
+        Phase 2: captain is now determined by OWNER role in TeamMembership,
+        not a direct ForeignKey. This property maintains backward compatibility.
+        """
+        try:
+            owner_membership = self.memberships.filter(
+                status=TeamMembership.Status.ACTIVE,
+                role=TeamMembership.Role.OWNER
+            ).select_related('profile').first()
+            return owner_membership.profile if owner_membership else None
+        except:
+            return None
+
     def ensure_captain_membership(self):
-        """Ensure team creator has OWNER membership (replaces old CAPTAIN role)."""
-        if self.captain:
-            membership, created = TeamMembership.objects.get_or_create(
-                team=self,
-                profile=self.captain,
-                defaults={
-                    "role": TeamMembership.Role.OWNER,
-                    "status": TeamMembership.Status.ACTIVE,
-                },
-            )
-            # Update permission cache for owner
-            if created or membership.role != TeamMembership.Role.OWNER:
-                membership.role = TeamMembership.Role.OWNER
-                membership.update_permission_cache()
-                membership.save()
+        """
+        Ensure team has an OWNER membership.
+        
+        Phase 2: OWNER role replaces old CAPTAIN ForeignKey.
+        This method ensures there's always an OWNER for the team.
+        """
+        # Check if team already has an OWNER
+        has_owner = self.memberships.filter(
+            role=TeamMembership.Role.OWNER,
+            status=TeamMembership.Status.ACTIVE
+        ).exists()
+        
+        if not has_owner:
+            # Get the first active member and make them OWNER
+            first_member = self.memberships.filter(
+                status=TeamMembership.Status.ACTIVE
+            ).first()
+            
+            if first_member:
+                first_member.role = TeamMembership.Role.OWNER
+                first_member.update_permission_cache()
+                first_member.save()
     
     @property
     def logo_url(self):
@@ -274,11 +315,13 @@ class Team(models.Model):
             return TEAM_MAX_ROSTER  # Fallback to legacy limit
         
         try:
-            from apps.common.game_registry.loaders import ROSTER_CONFIGS
-            config = ROSTER_CONFIGS.get(self.game, {})
-            return config.get('total_max_roster', TEAM_MAX_ROSTER)
+            game_obj = game_service.get_game(self.game)
+            if game_obj:
+                limits = game_service.get_roster_limits(game_obj)
+                return limits.get('max_roster_size', TEAM_MAX_ROSTER)
         except Exception:
-            return TEAM_MAX_ROSTER
+            pass
+        return TEAM_MAX_ROSTER
     
     @property
     def min_roster_size(self):
@@ -287,11 +330,13 @@ class Team(models.Model):
             return 5  # Default minimum
         
         try:
-            from apps.common.game_registry.loaders import ROSTER_CONFIGS
-            config = ROSTER_CONFIGS.get(self.game, {})
-            return config.get('min_starters', 5)
+            game_obj = game_service.get_game(self.game)
+            if game_obj:
+                limits = game_service.get_roster_limits(game_obj)
+                return limits.get('min_roster_size', 5)
         except Exception:
-            return 5
+            pass
+        return 5
     
     @property
     def roster_limits(self):
@@ -306,16 +351,18 @@ class Team(models.Model):
             }
         
         try:
-            from apps.common.game_registry.loaders import ROSTER_CONFIGS
-            config = ROSTER_CONFIGS.get(self.game, {})
-            return {
-                'max_starters': config.get('max_starters', 5),
-                'max_substitutes': config.get('max_substitutes', 2),
-                'max_coach': config.get('max_coach', 1),
-                'max_analyst': config.get('max_analyst', 0),
-                'total_max': config.get('total_max_roster', TEAM_MAX_ROSTER)
-            }
+            game_obj = game_service.get_game(self.game)
+            if game_obj:
+                limits = game_service.get_roster_limits(game_obj)
+                return {
+                    'max_starters': limits.get('max_team_size', 5),
+                    'max_substitutes': limits.get('max_substitutes', 2),
+                    'max_coach': limits.get('max_coaches', 1),
+                    'max_analyst': limits.get('max_analysts', 0),
+                    'total_max': limits.get('max_roster_size', TEAM_MAX_ROSTER)
+                }
         except Exception:
+            pass
             return {
                 'max_starters': 5,
                 'max_substitutes': 2,
@@ -363,21 +410,66 @@ class Team(models.Model):
         except:
             return None
     
+    def get_owner(self):
+        """
+        Get the team owner (organizational leader).
+        
+        Task 6.1: OWNER is the team's organizational leader with full permissions.
+        There must be exactly one active OWNER per team.
+        """
+        try:
+            owner_membership = self.memberships.filter(
+                status='ACTIVE',
+                role='OWNER'
+            ).select_related('profile__user').first()
+            return owner_membership.profile if owner_membership else None
+        except:
+            return None
+    
+    def get_tournament_captain(self, tournament=None):
+        """
+        Get the designated tournament captain.
+        
+        Task 6.1: Tournament captain is a playing role designation (is_captain=True),
+        separate from organizational ownership. Used for official match rosters.
+        
+        Args:
+            tournament: Optional tournament object for future game-specific captain logic
+            
+        Returns:
+            UserProfile of the tournament captain, or owner if no captain designated
+        """
+        try:
+            # First, try to find a player with is_captain=True
+            captain_membership = self.memberships.filter(
+                status='ACTIVE',
+                is_captain=True
+            ).select_related('profile__user').first()
+            
+            if captain_membership:
+                return captain_membership.profile
+            
+            # Fallback: return the owner as captain
+            return self.get_owner()
+        except:
+            return None
+    
     def get_absolute_url(self):
         """Get team detail URL"""
         return f"/teams/{self.slug}/" if self.slug else f"/teams/{self.pk}/"
     
     def get_game_display(self):
-        """Get canonical game display name from Game Registry"""
+        """Get canonical game display name from GameService"""
         if not self.game:
             return ""
         try:
-            from apps.common.game_registry import get_game
-            game = get_game(self.game)
-            return game.display_name
-        except (KeyError, Exception):
-            # Fallback to title case
-            return self.game.replace('_', ' ').replace('-', ' ').title()
+            game = game_service.get_game(self.game)
+            if game:
+                return game.display_name
+        except Exception:
+            pass
+        # Fallback to title case
+        return self.game.replace('_', ' ').replace('-', ' ').title()
     
     def is_captain(self, profile):
         """Check if profile is team captain (uses effective captain logic)"""
@@ -477,12 +569,33 @@ class Team(models.Model):
 
 class TeamMembership(models.Model):
     class Role(models.TextChoices):
+        # === OWNERSHIP & MANAGEMENT ===
         OWNER = "OWNER", "Team Owner"
-        MANAGER = "MANAGER", "Manager"
-        COACH = "COACH", "Coach"
+        GENERAL_MANAGER = "GENERAL_MANAGER", "General Manager"
+        TEAM_MANAGER = "TEAM_MANAGER", "Team Manager"
+        
+        # === COACHING STAFF ===
+        HEAD_COACH = "HEAD_COACH", "Head Coach"
+        ASSISTANT_COACH = "ASSISTANT_COACH", "Assistant Coach"
+        PERFORMANCE_COACH = "PERFORMANCE_COACH", "Performance Coach"
+        
+        # === ANALYSIS & STRATEGY ===
+        ANALYST = "ANALYST", "Analyst"
+        STRATEGIST = "STRATEGIST", "Strategist"
+        DATA_ANALYST = "DATA_ANALYST", "Data Analyst"
+        
+        # === PLAYERS ===
         PLAYER = "PLAYER", "Player"
         SUBSTITUTE = "SUBSTITUTE", "Substitute"
-        # Legacy support for migration
+        
+        # === SUPPORT & CONTENT ===
+        CONTENT_CREATOR = "CONTENT_CREATOR", "Content Creator"
+        SOCIAL_MEDIA_MANAGER = "SOCIAL_MEDIA_MANAGER", "Social Media Manager"
+        COMMUNITY_MANAGER = "COMMUNITY_MANAGER", "Community Manager"
+        
+        # === LEGACY (Deprecated) ===
+        MANAGER = "MANAGER", "Manager (Legacy)"
+        COACH = "COACH", "Coach (Legacy)"
         CAPTAIN = "CAPTAIN", "Captain (Legacy)"
         SUB = "SUB", "Substitute (Legacy)"
 
@@ -498,7 +611,7 @@ class TeamMembership(models.Model):
         related_name="team_memberships",
     )
     # Team membership role (organizational)
-    role = models.CharField(max_length=16, choices=Role.choices, default=Role.PLAYER)
+    role = models.CharField(max_length=30, choices=Role.choices, default=Role.PLAYER)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     joined_at = models.DateTimeField(default=timezone.now)
     
@@ -519,6 +632,16 @@ class TeamMembership(models.Model):
         null=True,
         help_text="Roster position for tournaments (STARTER, SUBSTITUTE, COACH, ANALYST). Enforces game-specific limits.",
         verbose_name="Roster Slot"
+    )
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # TOURNAMENT CAPTAIN DESIGNATION (Task 6.1)
+    # Separate from organizational ownership - purely for tournament roster
+    # ═══════════════════════════════════════════════════════════════════════
+    is_captain = models.BooleanField(
+        default=False,
+        help_text="Tournament captain designation. One player can be marked as captain for official matches. "
+                  "This is separate from team ownership/management role."
     )
     
     # ═══════════════════════════════════════════════════════════════════════
@@ -650,10 +773,28 @@ class TeamMembership(models.Model):
         ordering = ("team", "role", "-joined_at")
         unique_together = (("team", "profile"),)
         indexes = [
+            # Existing indexes
             models.Index(fields=['team', 'status'], name='teams_member_lookup_idx'),
             models.Index(fields=['profile', 'status'], name='teams_user_teams_idx'),
             models.Index(fields=['team', 'role'], name='teams_role_lookup_idx'),
             models.Index(fields=['locked_for_tournament_id', 'locked_until'], name='teams_tournament_lock_idx'),
+            
+            # Phase 1 Performance Optimization Indexes
+            # Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 2.2
+            
+            # Active members lookup (most common query for roster display)
+            models.Index(
+                fields=['team', 'status', 'role'],
+                name='membership_active_idx',
+                # Covers: WHERE team_id=X AND status='ACTIVE' ORDER BY role
+            ),
+            
+            # User's teams lookup (for navigation, "My Teams" page)
+            models.Index(
+                fields=['profile', 'status'],
+                name='membership_user_idx',  
+                # NOTE: Duplicate of teams_user_teams_idx above - can remove one during cleanup
+            ),
         ]
         constraints = [
             # Only one OWNER per team
@@ -845,10 +986,12 @@ class TeamMembership(models.Model):
         # ROSTER SLOT VALIDATION: Enforce game-specific limits
         # ═══════════════════════════════════════════════════════════════════
         if self.roster_slot and self.status == self.Status.ACTIVE and self.team:
-            from apps.common.game_registry.loaders import ROSTER_CONFIGS
-            
-            # Get game-specific limits
-            game_config = ROSTER_CONFIGS.get(self.team.game, {})
+            # Get game-specific limits from GameService
+            game_obj = game_service.get_game(self.team.game)
+            if game_obj:
+                limits = game_service.get_roster_limits(game_obj)
+            else:
+                limits = {}
             
             # Count existing members in this roster slot (exclude self if updating)
             existing_count = TeamMembership.objects.filter(
@@ -862,16 +1005,16 @@ class TeamMembership(models.Model):
             limit_value = 0
             
             if self.roster_slot == self.RosterSlot.STARTER:
-                limit_value = game_config.get('max_starters', 5)
+                limit_value = limits.get('max_team_size', 5)
                 limit_exceeded = existing_count >= limit_value
             elif self.roster_slot == self.RosterSlot.SUBSTITUTE:
-                limit_value = game_config.get('max_substitutes', 2)
+                limit_value = limits.get('max_substitutes', 2)
                 limit_exceeded = existing_count >= limit_value
             elif self.roster_slot == self.RosterSlot.COACH:
-                limit_value = game_config.get('max_coach', 1)
+                limit_value = limits.get('max_coaches', 1)
                 limit_exceeded = existing_count >= limit_value
             elif self.roster_slot == self.RosterSlot.ANALYST:
-                limit_value = game_config.get('max_analyst', 0)
+                limit_value = limits.get('max_analysts', 0)
                 limit_exceeded = existing_count >= limit_value
             
             if limit_exceeded:
@@ -1028,7 +1171,7 @@ class TeamInvite(models.Model):
     invited_email = models.EmailField(blank=True)
 
     role = models.CharField(
-        max_length=16,
+        max_length=30,
         choices=TeamMembership.Role.choices,
         default=TeamMembership.Role.PLAYER,
     )

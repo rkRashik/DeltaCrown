@@ -29,8 +29,24 @@ from apps.user_profile.models import UserProfile
 
 @login_required
 def team_social_detail(request, team_slug):
-    """Enhanced team detail page with social features."""
-    team = get_object_or_404(Team, slug=team_slug)
+    """
+    Enhanced team detail page with social features.
+    
+    OPTIMIZED: Phase 1 Performance - Uses select_related/prefetch_related
+    to minimize database queries.
+    
+    Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 2.1 (N+1 Query Fix)
+    """
+    # Phase 1 Optimization: Add select_related for captain and memberships
+    team = get_object_or_404(
+        Team.objects.select_related('captain', 'captain__user')
+        .prefetch_related(
+            'memberships',
+            'memberships__profile',
+            'memberships__profile__user',
+        ),
+        slug=team_slug
+    )
     user_profile = get_object_or_404(UserProfile, user=request.user)
     
     # Check if user is following this team
@@ -40,10 +56,11 @@ def team_social_detail(request, team_slug):
     can_post = team.can_user_post(user_profile)
     
     # Get posts with pagination
+    # Phase 1 Optimization: select_related for author, prefetch_related for media/likes
     posts_list = TeamPost.objects.filter(
         team=team,
         published_at__isnull=False
-    ).select_related('author__user').prefetch_related('media', 'likes')
+    ).select_related('author', 'author__user').prefetch_related('media', 'likes')
     
     # Filter posts based on visibility and user permissions
     if not is_member:
@@ -65,6 +82,7 @@ def team_social_detail(request, team_slug):
     banner_form = TeamBannerForm(team=team) if is_captain else None
     
     # Get tournament registrations for the team
+    # Phase 1 Optimization: select_related for tournament
     try:
         from apps.tournaments.models import Registration
         team_registrations = Registration.objects.filter(

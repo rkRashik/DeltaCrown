@@ -28,6 +28,7 @@ from apps.tournaments.models import Tournament, Registration, Payment
 from apps.tournaments.services.registration_service import RegistrationService
 from apps.tournaments.services.payment_service import PaymentService
 from apps.tournaments.services.registration_autofill import RegistrationAutoFillService
+from apps.games.services import game_service
 from apps.tournaments.services.registration_eligibility import RegistrationEligibilityService
 
 
@@ -461,21 +462,34 @@ class RegistrationWizardView(LoginRequiredMixin, View):
             })
             
             # Map game-specific ID based on tournament game
+            # TODO Phase 3.2: Replace with GamePlayerIdentityConfig-based lookup
             game_slug = tournament.game.slug if tournament.game else ''
-            if game_slug == 'valorant':
-                auto_filled['game_id'] = profile.riot_id or ''
-            elif game_slug == 'pubg-mobile':
-                auto_filled['game_id'] = profile.pubg_mobile_id or ''
-            elif game_slug == 'mobile-legends':
-                auto_filled['game_id'] = profile.mlbb_id or ''
-            elif game_slug == 'free-fire':
-                auto_filled['game_id'] = profile.free_fire_id or ''
-            elif game_slug == 'cod-mobile':
-                auto_filled['game_id'] = profile.codm_uid or ''
-            elif game_slug == 'dota-2' or game_slug == 'cs2':
-                auto_filled['game_id'] = profile.steam_id or ''
-            elif game_slug == 'efootball' or game_slug == 'ea-fc':
-                auto_filled['game_id'] = profile.efootball_id or profile.ea_id or ''
+            
+            # Try to get identity configs from Game app
+            identity_configs = game_service.get_identity_validation_rules(tournament.game)
+            if identity_configs:
+                # New approach: use configured identity fields
+                for config in identity_configs:
+                    if hasattr(profile, config.field_name):
+                        auto_filled['game_id'] = getattr(profile, config.field_name, '') or ''
+                        if auto_filled['game_id']:  # Use first non-empty value
+                            break
+            else:
+                # Legacy hardcoded mapping (backward compatibility)
+                if game_slug == 'valorant':
+                    auto_filled['game_id'] = profile.riot_id or ''
+                elif game_slug == 'pubg-mobile':
+                    auto_filled['game_id'] = profile.pubg_mobile_id or ''
+                elif game_slug == 'mobile-legends':
+                    auto_filled['game_id'] = profile.mlbb_id or ''
+                elif game_slug == 'free-fire':
+                    auto_filled['game_id'] = profile.free_fire_id or ''
+                elif game_slug == 'cod-mobile':
+                    auto_filled['game_id'] = profile.codm_uid or ''
+                elif game_slug == 'dota-2' or game_slug == 'cs2':
+                    auto_filled['game_id'] = profile.steam_id or ''
+                elif game_slug == 'efootball' or game_slug == 'ea-fc':
+                    auto_filled['game_id'] = profile.efootball_id or profile.ea_id or ''
                 
         except Exception:
             # UserProfile not found or error - use defaults

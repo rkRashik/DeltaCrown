@@ -270,8 +270,8 @@ class GroupStandingsView(View):
         for group in groups:
             # Recalculate standings
             try:
-                from apps.common.game_registry import normalize_slug
-                canonical_slug = normalize_slug(tournament.game.slug)
+                from apps.games.services import game_service
+                canonical_slug = game_service.normalize_slug(tournament.game.slug)
                 standings = GroupStageService.calculate_standings(
                     group_id=group.id,
                     game_slug=canonical_slug
@@ -288,28 +288,31 @@ class GroupStandingsView(View):
             })
         
         # Determine which stat columns to show based on game
-        from apps.common.game_registry import normalize_slug
-        game_slug = normalize_slug(tournament.game.slug)
+        from apps.games.services import game_service
+        game_slug = tournament.game.slug
         
-        if game_slug in ['efootball', 'fc26']:
-            stat_columns = ['goals_for', 'goals_against', 'goal_difference']
-            stat_labels = ['GF', 'GA', 'GD']
-        elif game_slug in ['valorant', 'cs2']:
-            stat_columns = ['rounds_won', 'rounds_lost', 'round_difference']
-            stat_labels = ['RW', 'RL', 'RD']
-        elif game_slug in ['pubg', 'freefire']:
-            stat_columns = ['total_kills', 'placement_points', 'average_placement']
-            stat_labels = ['Kills', 'Placement Pts', 'Avg Place']
-        elif game_slug == 'mlbb':
-            stat_columns = ['total_kills', 'total_deaths', 'total_assists', 'kda_ratio']
-            stat_labels = ['K', 'D', 'A', 'KDA']
-        elif game_slug == 'codm':
-            stat_columns = ['total_kills', 'total_deaths', 'total_score']
-            stat_labels = ['Eliminations', 'Deaths', 'Score']
+        # Get stat columns from GameTournamentConfig
+        tournament_config = game_service.get_tournament_config(tournament.game)
+        if tournament_config and tournament_config.scoring_rules:
+            # Use configured stat columns from scoring_rules JSON
+            stat_config = tournament_config.scoring_rules.get('display_columns', {})
+            stat_columns = stat_config.get('columns', ['matches_won', 'matches_lost'])
+            stat_labels = stat_config.get('labels', ['W', 'L'])
         else:
-            # Default columns
-            stat_columns = ['matches_won', 'matches_lost']
-            stat_labels = ['W', 'L']
+            # Fallback based on scoring type
+            scoring_type = tournament_config.default_scoring_type if tournament_config else 'WIN_LOSS'
+            if scoring_type == 'GOALS':
+                stat_columns = ['goals_for', 'goals_against', 'goal_difference']
+                stat_labels = ['GF', 'GA', 'GD']
+            elif scoring_type == 'ROUNDS':
+                stat_columns = ['rounds_won', 'rounds_lost', 'round_difference']
+                stat_labels = ['RW', 'RL', 'RD']
+            elif scoring_type in ['PLACEMENT', 'KILLS']:
+                stat_columns = ['total_kills', 'placement_points', 'average_placement']
+                stat_labels = ['Kills', 'Placement Pts', 'Avg Place']
+            else:
+                stat_columns = ['matches_won', 'matches_lost']
+                stat_labels = ['W', 'L']
         
         context = {
             'tournament': tournament,

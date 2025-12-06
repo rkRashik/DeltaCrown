@@ -132,70 +132,32 @@ def game_roles_list(request, game_code):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Team Creation Endpoint
+# Team Creation Endpoint (DEPRECATED)
 # ═══════════════════════════════════════════════════════════════════════════
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def create_team_with_roster(request):
+def _legacy_create_team_with_roster(request):
     """
-    Create a new team with full roster in one transaction.
+    DEPRECATED: Create a new team with full roster in one transaction.
+    Use apps.teams.api.views.TeamViewSet.create() instead.
     
-    Request body should include:
-    - game_code
-    - Team info (name, tag, logo, etc.)
-    - captain_id
-    - roster (array of player data)
-    
-    Example:
-    {
-        "game_code": "valorant",
-        "name": "Team Alpha",
-        "tag": "ALPHA",
-        "region": "North America",
-        "captain_id": 1,
-        "roster": [
-            {
-                "profile_id": 1,
-                "role": "Duelist",
-                "is_starter": true,
-                "ign": "AlphaJett",
-                "competitive_rank": "Immortal 2",
-                "agent_pool": ["Jett", "Raze"]
-            },
-            ...
-        ]
-    }
+    This function is deprecated and will be removed in Phase 2.
     """
-    serializer = TeamCreationSerializer(data=request.data)
-    
-    if serializer.is_valid():
-        try:
-            team = serializer.save()
-            
-            # Get appropriate team serializer for response
-            game_code = request.data.get('game_code')
-            team_serializer_class = get_team_serializer_for_game(game_code)
-            
-            if team_serializer_class:
-                response_serializer = team_serializer_class(team)
-                return Response(
-                    response_serializer.data,
-                    status=status.HTTP_201_CREATED
-                )
-            
-            return Response(
-                {'id': team.id, 'name': team.name, 'slug': team.slug},
-                status=status.HTTP_201_CREATED
-            )
-            
-        except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-    
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    import warnings
+    warnings.warn(
+        "create_team_with_roster is deprecated. Use apps.teams.api.views.TeamViewSet.create() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return Response(
+        {"error": "This endpoint is deprecated. Use /api/teams/ instead."},
+        status=status.HTTP_410_GONE
+    )
+
+
+# Old function kept for backward compatibility - DO NOT USE
+create_team_with_roster = _legacy_create_team_with_roster
 
 
 # ═══════════════════════════════════════════════════════════════════════════

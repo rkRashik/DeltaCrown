@@ -1,59 +1,72 @@
 """
 Game helper template tags for teams app.
-Now uses Game Registry for canonical game data.
+Now uses GameService for canonical game data.
 """
 from django import template
-from apps.common.game_registry import get_game, normalize_slug
+from apps.games.services import game_service
 
 register = template.Library()
 
 
 @register.simple_tag
 def get_team_game_logo(game_code):
-    """Get team game logo URL from Game Registry."""
+    """Get team game logo URL from GameService."""
     if not game_code:
         return ''
     try:
-        game = get_game(game_code)
-        return game.logo
-    except (KeyError, Exception):
-        # Fallback to legacy
+        # Normalize and get game
+        slug = game_service.normalize_slug(game_code)
+        game = game_service.get_game(slug)
+        if game and game.logo:
+            return game.logo.url if hasattr(game.logo, 'url') else str(game.logo)
+    except Exception:
+        pass
+    # Fallback to legacy
+    try:
         from apps.common.game_assets import get_game_logo
         return get_game_logo(game_code)
+    except:
+        return ''
 
 
 @register.simple_tag
 def get_team_game_name(game_code):
-    """Get team game display name from Game Registry (canonical)."""
+    """Get team game display name from GameService (canonical)."""
     if not game_code:
         return ''
     try:
-        game = get_game(game_code)
-        return game.display_name
-    except (KeyError, Exception):
-        # Fallback to title case
-        return game_code.title()
+        slug = game_service.normalize_slug(game_code)
+        game = game_service.get_game(slug)
+        if game:
+            return game.display_name
+    except Exception:
+        pass
+    # Fallback to title case
+    return game_code.title()
 
 
 @register.simple_tag 
 def get_team_game_color(game_code, color_type='primary'):
-    """Get team game color from Game Registry."""
+    """Get team game color from GameService."""
     if not game_code:
         return '#7c3aed'  # default color
     try:
-        game = get_game(game_code)
-        return game.colors.get(color_type, '#7c3aed')
-    except (KeyError, Exception):
-        return '#7c3aed'
+        slug = game_service.normalize_slug(game_code)
+        game = game_service.get_game(slug)
+        if game:
+            return game.color or '#7c3aed'
+    except Exception:
+        pass
+    return '#7c3aed'
 
 
 @register.simple_tag
 def get_team_game_slug(game_code):
-    """Get canonical game slug from Game Registry."""
+    """Get canonical game slug from GameService."""
     if not game_code:
         return ''
     try:
-        return normalize_slug(game_code)
+        return game_service.normalize_slug(game_code)
     except Exception:
         return game_code.lower()
 

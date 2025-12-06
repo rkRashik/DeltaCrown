@@ -281,6 +281,17 @@ class Registration(SoftDeleteModel, TimestampedModel):
     def is_pending_payment(self) -> bool:
         """Check if registration is pending payment verification"""
         return self.status in [self.PENDING, self.PAYMENT_SUBMITTED]
+    
+    @property
+    def team(self):
+        """Get the Team object if this is a team registration."""
+        if self.team_id:
+            from apps.teams.models import Team
+            try:
+                return Team.objects.get(id=self.team_id)
+            except Team.DoesNotExist:
+                return None
+        return None
 
 
 class Payment(models.Model):

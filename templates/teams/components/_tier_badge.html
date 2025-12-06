@@ -1,0 +1,89 @@
+{% load static %}
+{# Tier badge component for team rankings #}
+{% comment %}
+Usage:
+  {% include 'teams/components/_tier_badge.html' with division=ranking.division elo=ranking.elo_rating %}
+{% endcomment %}
+
+{% with tier_info=division|default:"BRONZE" %}
+<span class="tier-badge tier-{{ tier_info|lower }}" title="{{ elo }} ELO">
+    {% if tier_info == "GRANDMASTER" %}
+        <span class="tier-icon">⭐</span>
+        <span class="tier-name">Grandmaster</span>
+    {% elif tier_info == "MASTER" %}
+        <span class="tier-icon">👑</span>
+        <span class="tier-name">Master</span>
+    {% elif tier_info == "DIAMOND" %}
+        <span class="tier-icon">💠</span>
+        <span class="tier-name">Diamond</span>
+    {% elif tier_info == "PLATINUM" %}
+        <span class="tier-icon">💎</span>
+        <span class="tier-name">Platinum</span>
+    {% elif tier_info == "GOLD" %}
+        <span class="tier-icon">🥇</span>
+        <span class="tier-name">Gold</span>
+    {% elif tier_info == "SILVER" %}
+        <span class="tier-icon">🥈</span>
+        <span class="tier-name">Silver</span>
+    {% else %}
+        <span class="tier-icon">🥉</span>
+        <span class="tier-name">Bronze</span>
+    {% endif %}
+</span>
+{% endwith %}
+
+<style>
+.tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.tier-grandmaster {
+    background: linear-gradient(135deg, #ff4500, #ff6347);
+    color: white;
+}
+
+.tier-master {
+    background: linear-gradient(135deg, #9966cc, #b19cd9);
+    color: white;
+}
+
+.tier-diamond {
+    background: linear-gradient(135deg, #b9f2ff, #87ceeb);
+    color: #1e3a8a;
+}
+
+.tier-platinum {
+    background: linear-gradient(135deg, #e5e4e2, #c0c0c0);
+    color: #1f2937;
+}
+
+.tier-gold {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #78350f;
+}
+
+.tier-silver {
+    background: linear-gradient(135deg, #c0c0c0, #d3d3d3);
+    color: #374151;
+}
+
+.tier-bronze {
+    background: linear-gradient(135deg, #cd7f32, #b87333);
+    color: white;
+}
+
+.tier-icon {
+    font-size: 1.125rem;
+}
+
+.tier-name {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+</style>

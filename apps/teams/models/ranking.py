@@ -348,3 +348,109 @@ class TeamRankingBreakdown(models.Model):
         if hasattr(self, 'team') and self.team:
             self.team.total_points = self.final_total
             self.team.save(update_fields=['total_points'])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PHASE 2 - TASK 7.1: GAME-SPECIFIC RANKINGS
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TeamGameRanking(models.Model):
+    """
+    Per-game ranking for teams (Phase 2 - Task 7.1).
+    
+    Each team has one ranking record per game they compete in.
+    Tracks division, points, ELO, and game-specific stats.
+    """
+    
+    team = models.ForeignKey(
+        'teams.Team',
+        on_delete=models.CASCADE,
+        related_name='game_rankings'
+    )
+    game = models.CharField(
+        max_length=50,
+        db_index=True,
+        help_text="Game slug/identifier (e.g., 'VALORANT', 'CS2', 'MLBB')"
+    )
+    
+    # === RANKING METRICS ===
+    points = models.IntegerField(
+        default=0,
+        help_text="Total ranking points earned in this game"
+    )
+    division = models.CharField(
+        max_length=20,
+        default='BRONZE',
+        help_text="Current division based on ELO"
+    )
+    elo_rating = models.IntegerField(
+        default=1500,  # RankingConstants.DEFAULT_ELO
+        help_text="ELO rating for this game"
+    )
+    
+    # === STREAKS & PERFORMANCE ===
+    win_streak = models.IntegerField(default=0)
+    loss_streak = models.IntegerField(default=0)
+    matches_played = models.IntegerField(default=0)
+    matches_won = models.IntegerField(default=0)
+    matches_lost = models.IntegerField(default=0)
+    
+    # === TOURNAMENT PERFORMANCE ===
+    tournaments_played = models.IntegerField(default=0)
+    tournaments_won = models.IntegerField(default=0)
+    tournament_podium_finishes = models.IntegerField(
+        default=0,
+        help_text="Top 3 finishes"
+    )
+    
+    # === GLOBAL CROSS-GAME RATING ===
+    global_elo = models.IntegerField(
+        default=1500,
+        help_text="Cross-game ELO (contributes to overall team ranking)"
+    )
+    
+    # === TIMESTAMPS ===
+    last_match_date = models.DateTimeField(null=True, blank=True)
+    last_decay_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = [('team', 'game')]
+        indexes = [
+            # Leaderboard queries
+            models.Index(fields=['game', '-elo_rating'], name='ranking_game_elo_idx'),
+            models.Index(fields=['game', '-points'], name='ranking_game_points_idx'),
+            models.Index(fields=['-global_elo'], name='ranking_global_elo_idx'),
+            
+            # Division queries
+            models.Index(fields=['game', 'division', '-elo_rating'], name='ranking_division_idx'),
+            
+            # Team lookup
+            models.Index(fields=['team', 'game'], name='ranking_team_game_idx'),
+        ]
+        ordering = ['-elo_rating']
+    
+    def __str__(self):
+        return f"{self.team.name} - {self.game} ({self.division} - {self.elo_rating} ELO)"
+    
+    def update_division(self):
+        """Update division based on current ELO rating."""
+        from apps.teams.constants import RankingConstants
+        for division, (min_elo, max_elo) in RankingConstants.DIVISION_THRESHOLDS.items():
+            if min_elo <= self.elo_rating <= max_elo:
+                self.division = division
+                break
+        self.save(update_fields=['division'])
+    
+    @property
+    def win_rate(self):
+        """Calculate win rate percentage."""
+        if self.matches_played == 0:
+            return 0.0
+        return round((self.matches_won / self.matches_played) * 100, 1)
+    
+    @property
+    def rank_display(self):
+        """Get formatted rank display."""
+        return f"{self.division} ({self.elo_rating} ELO)"

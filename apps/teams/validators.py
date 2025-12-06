@@ -4,10 +4,39 @@ Validators for team and player management.
 
 Provides comprehensive validation for roster management, role assignments,
 and game-specific constraints.
+
+CANONICAL VALIDATORS - Single source of truth for validation.
+All forms, models, serializers, and views MUST use these validators.
+
+Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.3
 """
 from django.core.exceptions import ValidationError
 from typing import Optional, TYPE_CHECKING
 
+from .constants import (
+    # Name/Tag validation
+    TEAM_NAME_MIN_LENGTH,
+    TEAM_NAME_MAX_LENGTH,
+    TEAM_NAME_PATTERN,
+    TEAM_TAG_MIN_LENGTH,
+    TEAM_TAG_MAX_LENGTH,
+    TEAM_TAG_PATTERN,
+    # Error messages
+    ERROR_TEAM_NAME_REQUIRED,
+    ERROR_TEAM_NAME_TOO_SHORT,
+    ERROR_TEAM_NAME_TOO_LONG,
+    ERROR_TEAM_NAME_INVALID_CHARS,
+    ERROR_TEAM_NAME_EXISTS,
+    ERROR_TEAM_TAG_REQUIRED,
+    ERROR_TEAM_TAG_TOO_SHORT,
+    ERROR_TEAM_TAG_TOO_LONG,
+    ERROR_TEAM_TAG_INVALID_FORMAT,
+    ERROR_TEAM_TAG_EXISTS,
+    ERROR_ROSTER_FULL,
+    # Status constants
+    MEMBERSHIP_STATUS_ACTIVE,
+    INVITE_STATUS_PENDING,
+)
 from .game_config import (
     get_game_config,
     get_max_roster_size,
@@ -19,57 +48,84 @@ if TYPE_CHECKING:
     from .models.base import BaseTeam, BasePlayerMembership
 
 
-def validate_team_name(name: str) -> None:
+def validate_team_name(name: str, check_uniqueness: bool = False, exclude_id: Optional[int] = None) -> None:
     """
-    Validate team name format and length.
+    THE canonical team name validator - use everywhere.
+    
+    Validates format, length, and optionally uniqueness.
     
     Args:
         name: Team name to validate
+        check_uniqueness: Whether to check if name already exists
+        exclude_id: Team ID to exclude from uniqueness check (for updates)
         
     Raises:
         ValidationError: If name is invalid
+        
+    Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.3
     """
     if not name or not name.strip():
-        raise ValidationError("Team name is required.")
+        raise ValidationError(ERROR_TEAM_NAME_REQUIRED)
     
     name = name.strip()
     
-    if len(name) < 3:
-        raise ValidationError("Team name must be at least 3 characters long.")
+    if len(name) < TEAM_NAME_MIN_LENGTH:
+        raise ValidationError(ERROR_TEAM_NAME_TOO_SHORT)
     
-    if len(name) > 100:
-        raise ValidationError("Team name cannot exceed 100 characters.")
+    if len(name) > TEAM_NAME_MAX_LENGTH:
+        raise ValidationError(ERROR_TEAM_NAME_TOO_LONG)
     
-    # Check for inappropriate characters
-    if any(char in name for char in ['<', '>', '{', '}', '[', ']']):
-        raise ValidationError("Team name contains invalid characters.")
+    if not TEAM_NAME_PATTERN.match(name):
+        raise ValidationError(ERROR_TEAM_NAME_INVALID_CHARS)
+    
+    # Optional uniqueness check
+    if check_uniqueness:
+        from .models._legacy import Team
+        qs = Team.objects.filter(name__iexact=name)
+        if exclude_id:
+            qs = qs.exclude(pk=exclude_id)
+        if qs.exists():
+            raise ValidationError(ERROR_TEAM_NAME_EXISTS)
 
 
-def validate_team_tag(tag: str) -> None:
+def validate_team_tag(tag: str, check_uniqueness: bool = False, exclude_id: Optional[int] = None) -> None:
     """
-    Validate team tag format.
+    THE canonical team tag validator - use everywhere.
+    
+    Validates format, length, and optionally uniqueness.
     
     Args:
         tag: Team tag to validate
+        check_uniqueness: Whether to check if tag already exists
+        exclude_id: Team ID to exclude from uniqueness check (for updates)
         
     Raises:
         ValidationError: If tag is invalid
+        
+    Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 1.3
     """
     if not tag or not tag.strip():
-        raise ValidationError("Team tag is required.")
+        raise ValidationError(ERROR_TEAM_TAG_REQUIRED)
     
     tag = tag.strip().upper()
     
-    if len(tag) < 2:
-        raise ValidationError("Team tag must be at least 2 characters long.")
+    if len(tag) < TEAM_TAG_MIN_LENGTH:
+        raise ValidationError(ERROR_TEAM_TAG_TOO_SHORT)
     
-    if len(tag) > 10:
-        raise ValidationError("Team tag cannot exceed 10 characters.")
+    if len(tag) > TEAM_TAG_MAX_LENGTH:
+        raise ValidationError(ERROR_TEAM_TAG_TOO_LONG)
     
-    # Only alphanumeric
-    import re
-    if not re.match(r'^[A-Z0-9]+$', tag):
-        raise ValidationError("Team tag can only contain letters and numbers.")
+    if not TEAM_TAG_PATTERN.match(tag):
+        raise ValidationError(ERROR_TEAM_TAG_INVALID_FORMAT)
+    
+    # Optional uniqueness check
+    if check_uniqueness:
+        from .models._legacy import Team
+        qs = Team.objects.filter(tag__iexact=tag)
+        if exclude_id:
+            qs = qs.exclude(pk=exclude_id)
+        if qs.exists():
+            raise ValidationError(ERROR_TEAM_TAG_EXISTS)
 
 
 def validate_roster_capacity(
@@ -89,13 +145,13 @@ def validate_roster_capacity(
         ValidationError: If adding would exceed capacity
     """
     max_size = get_max_roster_size(team.game)
-    current_count = team.get_memberships().filter(status='ACTIVE').count()
+    current_count = team.get_memberships().filter(status=MEMBERSHIP_STATUS_ACTIVE).count()
     
     if include_pending:
         from .models._legacy import TeamInvite
         pending_count = TeamInvite.objects.filter(
             team=team,
-            status='PENDING'
+            status=INVITE_STATUS_PENDING
         ).count()
         current_count += pending_count
     
@@ -117,7 +173,7 @@ def validate_minimum_roster(team: 'BaseTeam') -> None:
         ValidationError: If team doesn't have enough members
     """
     min_size = get_min_roster_size(team.game)
-    active_count = team.get_memberships().filter(status='ACTIVE').count()
+    active_count = team.get_memberships().filter(status=MEMBERSHIP_STATUS_ACTIVE).count()
     
     if active_count < min_size:
         raise ValidationError(
@@ -154,7 +210,7 @@ def validate_role_for_team(
     if config.requires_unique_roles:
         query = team.get_memberships().filter(
             role=role,
-            status='ACTIVE',
+            status=MEMBERSHIP_STATUS_ACTIVE,
             is_starter=True
         )
         
@@ -189,7 +245,7 @@ def validate_starters_count(
     
     config = get_game_config(team.game)
     query = team.get_memberships().filter(
-        status='ACTIVE',
+        status=MEMBERSHIP_STATUS_ACTIVE,
         is_starter=True
     )
     
@@ -226,7 +282,7 @@ def validate_substitutes_count(
     
     config = get_game_config(team.game)
     query = team.get_memberships().filter(
-        status='ACTIVE',
+        status=MEMBERSHIP_STATUS_ACTIVE,
         is_starter=False
     )
     
@@ -289,7 +345,7 @@ def validate_captain_is_member(team: 'BaseTeam', captain_profile) -> None:
     
     is_member = team.get_memberships().filter(
         profile=captain_profile,
-        status='ACTIVE'
+        status=MEMBERSHIP_STATUS_ACTIVE
     ).exists()
     
     if not is_member:
@@ -318,7 +374,7 @@ def validate_player_not_in_game_team(profile, game_code: str) -> None:
     
     existing = membership_model.objects.filter(
         profile=profile,
-        status='ACTIVE'
+        status=MEMBERSHIP_STATUS_ACTIVE
     ).exists()
     
     if existing:
@@ -393,16 +449,16 @@ def validate_membership_data(
         validate_unique_ign_in_team(team, membership.in_game_name, membership.pk)
     
     # Validate roster capacity
-    if membership.status == 'ACTIVE' and not membership.pk:
+    if membership.status == MEMBERSHIP_STATUS_ACTIVE and not membership.pk:
         validate_roster_capacity(team, adding_count=1, include_pending=False)
     
     # Validate starters/subs count
-    if membership.status == 'ACTIVE':
+    if membership.status == MEMBERSHIP_STATUS_ACTIVE:
         if membership.is_starter:
             validate_starters_count(team, True, membership.pk)
         else:
             validate_substitutes_count(team, False, membership.pk)
     
     # Validate player not in another team for same game
-    if membership.status == 'ACTIVE' and not membership.pk:
+    if membership.status == MEMBERSHIP_STATUS_ACTIVE and not membership.pk:
         validate_player_not_in_game_team(membership.profile, team.game)

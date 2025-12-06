@@ -24,7 +24,7 @@ from typing import Dict, Any
 from apps.tournaments.models import Tournament, TournamentAnnouncement
 from apps.tournaments.services.registration_service import RegistrationService
 from django.core.exceptions import ValidationError
-from apps.common.game_registry import get_game, normalize_slug
+from apps.games.services import game_service
 import requests
 
 
@@ -162,18 +162,17 @@ class TournamentListView(ListView):
         else:
             context['user_registered_tournaments'] = set()
         
-        # Add games for filter dropdown using Game Registry (unified game data)
-        # Provides: display_name, icon, logo, banner, card, colors, category
-        from apps.common.game_registry import get_all_games
-        all_games = get_all_games()
+        # Add games for filter dropdown using GameService (unified game data)
+        # Provides: display_name, icon, logo, banner, card_image, colors, category
+        all_games = game_service.list_active_games()
         
-        # Convert Game Registry specs to format expected by template
+        # Convert Game models to format expected by template
         context['games'] = [
             {
                 'slug': game.slug,
                 'name': game.display_name,
-                'icon': game.icon,
-                'card': game.card,
+                'icon': game.icon.url if game.icon else None,
+                'card': game.card_image.url if game.card_image else None,
             }
             for game in all_games
         ]
@@ -235,10 +234,10 @@ class TournamentDetailView(DetailView):
         tournament = self.object
         user = self.request.user
         
-        # Add Game Registry integration - unified game data
-        # Provides: display_name, icon, logo, banner, colors, theme, roster config
-        canonical_slug = normalize_slug(tournament.game.slug)
-        game_spec = get_game(canonical_slug)
+        # Add GameService integration - unified game data
+        # Provides: display_name, icon, logo, banner, colors, roster config
+        canonical_slug = game_service.normalize_slug(tournament.game.slug)
+        game_spec = game_service.get_game(canonical_slug)
         context['game_spec'] = game_spec
         
         # Use centralized eligibility service (consistent with list page and registration form)
@@ -458,7 +457,7 @@ class TournamentDetailView(DetailView):
                 
                 # Get team data (Team model uses IntegerField for team_id)
                 try:
-                    team = Team.objects.select_related('captain').prefetch_related(
+                    team = Team.objects.prefetch_related(
                         'memberships__profile'
                     ).get(id=reg.team_id)
                 except Team.DoesNotExist:

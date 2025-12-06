@@ -251,6 +251,50 @@ class TournamentResult(TimestampedModel, SoftDeleteModel):
             })
     
     def save(self, *args, **kwargs):
-        """Override save to run validation."""
+        """
+        Override save to run validation and update rankings.
+        
+        When results are finalized, awards ranking points to participating teams.
+        """
         self.full_clean()
+        is_new = not self.pk
         super().save(*args, **kwargs)
+        
+        # Award ranking points when results are first created
+        if is_new and self.tournament:
+            self._award_ranking_points()
+    
+    def _award_ranking_points(self):
+        """Award ranking points to teams based on tournament results."""
+        try:
+            from apps.teams.services.game_ranking_service import game_ranking_service
+            
+            # Award points for winner
+            if self.winner and hasattr(self.winner, 'team'):
+                game_ranking_service.award_tournament_points(
+                    team=self.winner.team,
+                    tournament=self.tournament,
+                    placement=1
+                )
+            
+            # Award points for runner-up
+            if self.runner_up and hasattr(self.runner_up, 'team'):
+                game_ranking_service.award_tournament_points(
+                    team=self.runner_up.team,
+                    tournament=self.tournament,
+                    placement=2
+                )
+            
+            # Award points for third place
+            if self.third_place and hasattr(self.third_place, 'team'):
+                game_ranking_service.award_tournament_points(
+                    team=self.third_place.team,
+                    tournament=self.tournament,
+                    placement=3
+                )
+        except Exception as e:
+            # Log error but don't fail result creation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to award ranking points for tournament {self.tournament.id}: {e}")
+

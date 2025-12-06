@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from apps.user_profile.models import UserProfile
-from apps.common.game_registry import get_choices as get_game_choices
+from apps.games.services import game_service
 from .models import Team, TeamMembership, TeamInvite
 import re
 
@@ -106,8 +106,10 @@ class TeamCreationForm(forms.ModelForm):
         self.fields['region'].choices = REGION_CHOICES
         self.fields['region'].required = True  # Make region required
         
-        # Set game choices from Game Registry
-        self.fields['game'].choices = get_game_choices()
+        # Set game choices from GameService (Phase 3+)
+        from apps.games.services.game_service import GameService
+        games = GameService.list_active_games()
+        self.fields['game'].choices = [('', 'Select Game')] + [(g.slug, g.display_name) for g in games]
 
     def clean_banner_image(self):
         """Validate banner image file size (max 10MB)"""
@@ -150,39 +152,35 @@ class TeamCreationForm(forms.ModelForm):
         return team
 
     def clean_name(self):
+        """Validate team name using canonical validator."""
+        from apps.teams.validators import validate_team_name
+        
         name = self.cleaned_data.get('name')
         if name:
             name = name.strip()
-            if len(name) < 3:
-                raise ValidationError("Team names need at least 3 characters to be unique and memorable.")
-            if len(name) > 50:
-                raise ValidationError("Team name is too long. Please keep it under 50 characters.")
-            
-            # Check for uniqueness
-            if Team.objects.filter(name__iexact=name).exclude(pk=self.instance.pk if self.instance else None).exists():
-                raise ValidationError(
-                    "This team name is already taken. Try adding your region or a variation to make it unique!"
-                )
+            # Use canonical validator with uniqueness check
+            # Exclude current instance if editing
+            exclude_id = self.instance.pk if self.instance else None
+            try:
+                validate_team_name(name, check_uniqueness=True, exclude_id=exclude_id)
+            except ValidationError:
+                raise  # Re-raise the validation error from canonical validator
         return name
 
     def clean_tag(self):
+        """Validate team tag using canonical validator."""
+        from apps.teams.validators import validate_team_tag
+        
         tag = self.cleaned_data.get('tag')
         if tag:
             tag = tag.strip().upper()
-            if len(tag) < 2:
-                raise ValidationError("Team tags need at least 2 characters.")
-            if len(tag) > 10:
-                raise ValidationError("Team tag is too long. Keep it short and memorable (max 10 characters).")
-            
-            # Only allow alphanumeric characters
-            if not re.match(r'^[A-Z0-9]+$', tag):
-                raise ValidationError("Team tags can only contain letters and numbers (no spaces or special characters).")
-            
-            # Check for uniqueness
-            if Team.objects.filter(tag__iexact=tag).exclude(pk=self.instance.pk if self.instance else None).exists():
-                raise ValidationError(
-                    "This tag is already in use by another team. Try a different combination!"
-                )
+            # Use canonical validator with uniqueness check
+            # Exclude current instance if editing
+            exclude_id = self.instance.pk if self.instance else None
+            try:
+                validate_team_tag(tag, check_uniqueness=True, exclude_id=exclude_id)
+            except ValidationError:
+                raise  # Re-raise the validation error from canonical validator
         return tag
 
     def clean_logo(self):
@@ -214,7 +212,7 @@ class TeamCreationForm(forms.ModelForm):
                     team = existing_teams.first().team
                     team_name = team.name
                     team_tag = team.tag
-                    game_display = dict(get_game_choices()).get(game, game)
+                    game_display = dict(game_service.get_choices()).get(game, game)
                     # Friendly, supportive message explaining the one-team-per-game rule
                     raise ValidationError(
                         f"You already belong to {team_name} [{team_tag}] for {game_display}. "
@@ -241,7 +239,7 @@ class TeamCreationForm(forms.ModelForm):
                     field_name = game_id_field_map.get(game)
                     if field_name and not getattr(profile, field_name, None):
                         # Store game code in session for redirect (handled by view)
-                        game_display = dict(get_game_choices()).get(game, game)
+                        game_display = dict(game_service.get_choices()).get(game, game)
                         game_id_label = game_id_label_map.get(game, 'game ID')
                         # Friendly message explaining why game ID is needed
                         raise ValidationError(

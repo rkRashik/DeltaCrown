@@ -358,14 +358,14 @@ class TournamentService:
         # Special handling for game change
         if 'game_id' in data:
             try:
-                from apps.common.game_registry import get_game, normalize_slug
+                from apps.games.services import game_service
                 new_game = Game.objects.get(id=data['game_id'], is_active=True)
                 if tournament.game != new_game:
-                    # Use Game Registry display names if available
-                    old_slug = normalize_slug(tournament.game.slug)
-                    new_slug = normalize_slug(new_game.slug)
-                    old_spec = get_game(old_slug)
-                    new_spec = get_game(new_slug)
+                    # Use GameService display names if available
+                    old_slug = game_service.normalize_slug(tournament.game.slug)
+                    new_slug = game_service.normalize_slug(new_game.slug)
+                    old_spec = game_service.get_game(old_slug)
+                    new_spec = game_service.get_game(new_slug)
                     old_name = old_spec.display_name if old_spec else tournament.game.name
                     new_name = new_spec.display_name if new_spec else new_game.name
                     changes.append(f"game: {old_name} → {new_name}")

@@ -441,11 +441,17 @@ class GroupStageService:
             standing1.points += Decimal(str(group.points_for_draw))
             standing2.points += Decimal(str(group.points_for_draw))
         
-        # Game-specific stat updates
+        # Game-specific stat updates using config-driven approach
+        from apps.games.services import game_service
         match_data = match.result_data or {}
         
-        if game_slug in ['efootball', 'fc-mobile', 'fifa']:
-            # Goals-based games
+        # Get game tournament config for stat field mapping
+        tournament_config = game_service.get_tournament_config(match.tournament.game)
+        scoring_type = tournament_config.default_scoring_type if tournament_config else 'WIN_LOSS'
+        
+        # Update stats based on scoring type
+        if scoring_type == 'GOALS':
+            # Goals-based games (eFootball, FC Mobile, FIFA)
             standing1.goals_for += match_data.get('participant1_score', 0)
             standing1.goals_against += match_data.get('participant2_score', 0)
             standing1.goal_difference = standing1.goals_for - standing1.goals_against
@@ -454,8 +460,8 @@ class GroupStageService:
             standing2.goals_against += match_data.get('participant1_score', 0)
             standing2.goal_difference = standing2.goals_for - standing2.goals_against
         
-        elif game_slug in ['valorant', 'cs2']:
-            # Rounds-based games
+        elif scoring_type == 'ROUNDS':
+            # Rounds-based games (Valorant, CS2, COD Mobile)
             standing1.rounds_won += match_data.get('participant1_rounds', 0)
             standing1.rounds_lost += match_data.get('participant2_rounds', 0)
             standing1.round_difference = standing1.rounds_won - standing1.rounds_lost
@@ -463,17 +469,23 @@ class GroupStageService:
             standing2.rounds_won += match_data.get('participant2_rounds', 0)
             standing2.rounds_lost += match_data.get('participant1_rounds', 0)
             standing2.round_difference = standing2.rounds_won - standing2.rounds_lost
+            
+            # Also track kills/deaths for FPS games
+            standing1.total_kills += match_data.get('participant1_kills', 0)
+            standing1.total_deaths += match_data.get('participant1_deaths', 0)
+            standing2.total_kills += match_data.get('participant2_kills', 0)
+            standing2.total_deaths += match_data.get('participant2_deaths', 0)
         
-        elif game_slug in ['pubg-mobile', 'free-fire']:
-            # Battle Royale games
+        elif scoring_type in ['PLACEMENT', 'KILLS']:
+            # Battle Royale games (PUBG Mobile, Free Fire)
             standing1.total_kills += match_data.get('participant1_kills', 0)
             standing1.placement_points += Decimal(str(match_data.get('participant1_placement_points', 0)))
             
             standing2.total_kills += match_data.get('participant2_kills', 0)
             standing2.placement_points += Decimal(str(match_data.get('participant2_placement_points', 0)))
         
-        elif game_slug == 'mobile-legends':
-            # MOBA game
+        elif scoring_type == 'WIN_LOSS' and match.tournament.game.category == 'MOBA':
+            # MOBA games (Mobile Legends)
             standing1.total_kills += match_data.get('participant1_kills', 0)
             standing1.total_deaths += match_data.get('participant1_deaths', 0)
             standing1.total_assists += match_data.get('participant1_assists', 0)
@@ -483,11 +495,6 @@ class GroupStageService:
             standing2.total_deaths += match_data.get('participant2_deaths', 0)
             standing2.total_assists += match_data.get('participant2_assists', 0)
             standing2.kda_ratio = standing2.calculate_kda()
-        
-        elif game_slug == 'call-of-duty-mobile':
-            # COD Mobile
-            standing1.total_kills += match_data.get('participant1_eliminations', 0)
-            standing1.total_deaths += match_data.get('participant1_deaths', 0)
             standing1.total_score += match_data.get('participant1_score', 0)
             
             standing2.total_kills += match_data.get('participant2_eliminations', 0)

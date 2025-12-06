@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Global Team Rankings - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Modern Rankings Stylesheet */
+.rankings-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 3rem 1rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.rankings-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,138.7C960,139,1056,117,1152,101.3C1248,85,1344,75,1392,69.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+    opacity: 0.3;
+}
+
+.rankings-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.rankings-title {
+    color: white;
+    font-size: 3rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.rankings-subtitle {
+    color: rgba(255,255,255,0.9);
+    text-align: center;
+    font-size: 1.125rem;
+}
+
+.game-filter-section {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.game-filter-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 1rem;
+}
+
+.game-badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
+
+.game-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.game-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.rankings-table-card {
+    background: white;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.rankings-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.rankings-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.rankings-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.rankings-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.rank-cell {
+    font-weight: 800;
+    font-size: 1.25rem;
+    width: 80px;
+}
+
+.rank-1 { color: #f59e0b; } /* Gold */
+.rank-2 { color: #9ca3af; } /* Silver */
+.rank-3 { color: #cd7f32; } /* Bronze */
+
+.team-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.team-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    border: 2px solid #e5e7eb;
+}
+
+.team-logo-placeholder {
+    width: 48px;
+    height: 48px;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.team-info {
+    flex: 1;
+}
+
+.team-name {
+    font-weight: 700;
+    color: #111827;
+    font-size: 1.125rem;
+    text-decoration: none;
+}
+
+.team-name:hover {
+    color: #667eea;
+}
+
+.team-game-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: #f3f4f6;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+}
+
+.division-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.division-bronze { background: linear-gradient(135deg, #cd7f32 0%, #b36b28 100%); color: white; }
+.division-silver { background: linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%); color: #1f2937; }
+.division-gold { background: linear-gradient(135deg, #ffd700 0%, #f0c800 100%); color: #1f2937; }
+.division-platinum { background: linear-gradient(135deg, #e5e4e2 0%, #b8b8b8 100%); color: #1f2937; }
+.division-diamond { background: linear-gradient(135deg, #b9f2ff 0%, #00d4ff 100%); color: #1f2937; }
+
+.elo-score {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #667eea;
+}
+
+.points-badge {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+}
+
+.record-stats {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.wins {
+    color: #059669;
+    font-weight: 600;
+}
+
+.losses {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-message {
+    font-size: 1.25rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+.empty-submessage {
+    color: #9ca3af;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 0;
+}
+
+.page-link {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: #667eea;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.page-link:hover {
+    background: #667eea;
+    color: white;
+}
+
+.page-info {
+    padding: 0.5rem 1rem;
+    color: #6b7280;
+}
+
+@media (max-width: 768px) {
+    .rankings-title {
+        font-size: 2rem;
+    }
+    
+    .game-badges-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+    
+    .rankings-table {
+        font-size: 0.875rem;
+    }
+    
+    .rankings-table th,
+    .rankings-table td {
+        padding: 0.75rem 0.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="rankings-hero">
+    <div class="rankings-container">
+        <div style="text-align: center; font-size: 4rem; margin-bottom: 1rem;">🏆</div>
+        <h1 class="rankings-title">Global Team Rankings</h1>
+        <p class="rankings-subtitle">{{ total_teams|default:0 }} elite esports teams competing worldwide</p>
+    </div>
+</div>
+
+<div class="rankings-container">
+    <!-- Game Filter Section -->
+    <div class="game-filter-section">
+        <h2 class="game-filter-title">🎮 Filter by Game</h2>
+        <div class="game-badges-grid">
+            {% for game in games %}
+                <a href="{% url 'teams:game_rankings' game_slug=game.slug %}" class="game-badge">
+                    {{ game.display_name }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Rankings Table -->
+    <div class="rankings-table-card">
+        <table class="rankings-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Team</th>
+                    <th>Division</th>
+                    <th>Global ELO</th>
+                    <th>Points</th>
+                    <th>W/L</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ranking in rankings %}
+                    <tr>
+                        <td class="rank-cell rank-{{ forloop.counter }}">
+                            #{{ forloop.counter }}
+                        </td>
+                        <td>
+                            <div class="team-cell">
+                                {% if ranking.team.logo %}
+                                    <img src="{{ ranking.team.logo.url }}" alt="{{ ranking.team.name }}" class="team-logo">
+                                {% else %}
+                                    <div class="team-logo-placeholder">
+                                        {{ ranking.team.name|slice:":2"|upper }}
+                                    </div>
+                                {% endif %}
+                                <div class="team-info">
+                                    <a href="{% url 'teams:detail' slug=ranking.team.slug %}" class="team-name">
+                                        {{ ranking.team.name }}
+                                    </a>
+                                    <div class="team-game-badge">{{ ranking.game|title }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="division-badge division-{{ ranking.division|lower|default:'bronze' }}">
+                                {{ ranking.division|default:"Bronze" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="elo-score">{{ ranking.global_elo|default:1000|floatformat:0 }}</span>
+                        </td>
+                        <td>
+                            <span class="points-badge">{{ ranking.points|default:0|intcomma }}</span>
+                        </td>
+                        <td>
+                            <div class="record-stats">
+                                <span class="wins">{{ ranking.wins|default:0 }}W</span>
+                                <span>/</span>
+                                <span class="losses">{{ ranking.losses|default:0 }}L</span>
+                            </div>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-icon">🏆</div>
+                            <p class="empty-message">No rankings available yet</p>
+                            <p class="empty-submessage">Teams will appear here as they compete in tournaments!</p>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1" class="page-link">First</a>
+            <a href="?page={{ page_obj.previous_page_number }}" class="page-link">Previous</a>
+        {% endif %}
+        
+        <span class="page-info">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="page-link">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" class="page-link">Last</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

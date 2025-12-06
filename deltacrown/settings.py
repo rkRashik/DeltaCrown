@@ -116,6 +116,7 @@ INSTALLED_APPS = [
     # Local apps
     "apps.common",
     "apps.corelib",
+    "apps.games",  # Phase 3: Centralized game configuration
     "apps.teams",
     # Legacy tournament system moved to legacy_backup/ (November 2, 2025)
     # New Tournament Engine being built (Phase 1, Module 1.2 - November 2025)

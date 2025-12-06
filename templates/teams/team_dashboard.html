@@ -225,12 +225,11 @@
                                     <div class="player-name">{{ member.profile.display_name|default:member.profile.user.username }}</div>
                                     <div class="player-ign">{{ member.in_game_name|default:"—" }}</div>
                                     <div class="player-role">
-                                        {% if game_config %}
                                         <span class="role-badge role-{{ member.role|lower }}">
                                             {{ member.get_role_display|default:member.role }}
                                         </span>
-                                        {% else %}
-                                        <span class="role-badge">{{ member.get_role_display|default:"Member" }}</span>
+                                        {% if member.is_captain %}
+                                        <span class="role-badge role-captain">Captain</span>
                                         {% endif %}
                                     </div>
                                     {% if not member.is_starter %}

@@ -26,20 +26,33 @@ For template tags, use the game_registry template tags instead of game_assets.
 
 from django.conf import settings
 from django.templatetags.static import static
-from apps.common.game_registry import get_game, get_all_games, normalize_slug
+from apps.games.services.game_service import game_service
 
 # ============================================================================
 # BACKWARDS COMPATIBILITY LAYER
 # ============================================================================
-# These functions and constants delegate to the new game registry.
-# They are kept to avoid breaking existing code.
+# These functions delegate to GameService (migrated from game_registry).
+# Kept for backwards compatibility with existing templates.
 
 def _build_legacy_games_dict():
-    """Build GAMES dict from registry for backwards compatibility."""
-    from apps.common.game_registry.assets import GAME_ASSETS
-    return GAME_ASSETS
+    """Build GAMES dict from GameService for backwards compatibility."""
+    games = {}
+    for game in game_service.list_active_games():
+        games[game.slug] = {
+            'name': game.name,
+            'display_name': game.name,
+            'slug': game.slug,
+            'logo': game.logo.url if game.logo else '',
+            'card': game.card_image.url if game.card_image else '',
+            'icon': game.icon.url if game.icon else '',
+            'banner': game.banner.url if game.banner else '',
+            'color_primary': game.primary_color or '#7c3aed',
+            'color_secondary': game.secondary_color or '#1a1a1a',
+            'category': game.category,
+        }
+    return games
 
-# Legacy GAMES constant (lazy-loaded)
+# Legacy GAMES constant (lazy-loaded from GameService)
 GAMES = _build_legacy_games_dict()
 
 # Recreate old GAMES structure for complete backwards compatibility
@@ -260,8 +273,8 @@ def get_game_data(game_code):
         dict: Complete game data dictionary
     """
     try:
-        # Try registry first (handles normalization)
-        game = get_game(game_code)
+        # Try GameService first (handles normalization)
+        game = game_service.get_game(game_code)
         return {
             'name': game.name,
             'display_name': game.display_name,
@@ -299,8 +312,11 @@ def get_game_logo(game_code, use_static=True):
         str: Logo URL or path
     """
     try:
-        game = get_game(game_code)
-        logo_path = game.logo
+        game = game_service.get_game(game_code)
+        if game and game.logo:
+            logo_path = game.logo.url
+        else:
+            logo_path = ''
     except (KeyError, Exception):
         game_data = get_game_data(game_code)
         logo_path = game_data.get('logo', '')
@@ -330,8 +346,11 @@ def get_game_card(game_code, use_static=True):
         str: Card image URL or path
     """
     try:
-        game = get_game(game_code)
-        card_path = game.card
+        game = game_service.get_game(game_code)
+        if game and game.card_image:
+            card_path = game.card_image.url
+        else:
+            card_path = ''
     except (KeyError, Exception):
         game_data = get_game_data(game_code)
         card_path = game_data.get('card', '')
@@ -361,8 +380,11 @@ def get_game_icon(game_code, use_static=True):
         str: Icon URL or path
     """
     try:
-        game = get_game(game_code)
-        icon_path = game.icon
+        game = game_service.get_game(game_code)
+        if game and game.icon:
+            icon_path = game.icon.url
+        else:
+            icon_path = ''
     except (KeyError, Exception):
         game_data = get_game_data(game_code)
         icon_path = game_data.get('icon', '')
@@ -392,8 +414,11 @@ def get_game_banner(game_code, use_static=True):
         str: Banner URL or path
     """
     try:
-        game = get_game(game_code)
-        banner_path = game.banner
+        game = game_service.get_game(game_code)
+        if game and game.banner:
+            banner_path = game.banner.url
+        else:
+            banner_path = ''
     except (KeyError, Exception):
         game_data = get_game_data(game_code)
         banner_path = game_data.get('banner', '')
@@ -422,29 +447,41 @@ def get_game_colors(game_code):
         dict: Dictionary with 'primary' and 'secondary' color keys
     """
     try:
-        game = get_game(game_code)
-        return {
-            'primary': game.colors.get('primary', '#7c3aed'),
-            'secondary': game.colors.get('secondary', '#1a1a1a')
-        }
+        game = game_service.get_game(game_code)
+        if game:
+            return {
+                'primary': game.primary_color or '#7c3aed',
+                'secondary': game.secondary_color or '#1a1a1a'
+            }
     except (KeyError, Exception):
-        game_data = get_game_data(game_code)
-        return {
-            'primary': game_data.get('color_primary', '#7c3aed'),
-            'secondary': game_data.get('color_secondary', '#1a1a1a')
-        }
+        pass
+    
+    # Fallback to legacy game_data
+    game_data = get_game_data(game_code)
+    return {
+        'primary': game_data.get('color_primary', '#7c3aed'),
+        'secondary': game_data.get('color_secondary', '#1a1a1a')
+    }
 
 def get_all_games():
     """
     Get all available games.
     
-    ⚠️ DEPRECATED: Use game_registry.get_all_games() instead
+    ⚠️ DEPRECATED: Use game_service.list_active_games() instead
     
     Returns:
         dict: Dictionary of all games with their data
     """
-    # Return legacy GAMES dict for backwards compatibility
-    return GAMES.copy()
+    # Delegate to GameService for active games
+    games = {}
+    for game in game_service.list_active_games():
+        games[game.slug] = {
+            'name': game.name,
+            'slug': game.slug,
+            'category': game.category,
+            'platform': game.platform,
+        }
+    return games
 
 def get_games_by_category(category):
     """

@@ -233,12 +233,31 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
 
-            // Append new teams to existing container
-            const newTeams = doc.querySelectorAll('.team-card-premium');
-            if (newTeams.length > 0 && elements.teamsContainer) {
-                newTeams.forEach(team => {
-                    elements.teamsContainer.appendChild(team);
-                });
+            console.log('Load More - Current View:', state.currentView);
+            console.log('Load More - Container exists:', !!elements.teamsContainer);
+            console.log('Load More - Table exists:', !!elements.teamsTableList);
+
+            // Append new teams to existing container based on current view
+            if (state.currentView === 'grid') {
+                // Grid view - append team cards
+                const newTeams = doc.querySelectorAll('.team-card-premium');
+                console.log('Grid view - Found new teams:', newTeams.length);
+                if (newTeams.length > 0 && elements.teamsContainer) {
+                    newTeams.forEach(team => {
+                        elements.teamsContainer.appendChild(team);
+                    });
+                }
+            } else {
+                // List view - append table rows (using .team-row-compact)
+                const newRows = doc.querySelectorAll('.team-row-compact');
+                console.log('List view - Found new rows:', newRows.length);
+                console.log('List view - Table container:', elements.teamsTableList);
+                if (newRows.length > 0 && elements.teamsTableList) {
+                    newRows.forEach(row => {
+                        elements.teamsTableList.appendChild(row);
+                    });
+                    console.log('List view - Appended', newRows.length, 'rows');
+                }
             }
 
             // Update or remove load more button
@@ -509,6 +528,7 @@
     // ========================================
     function switchView(view) {
         state.currentView = view;
+        console.log('Switching to view:', view);
 
         // Update buttons
         elements.viewBtns.forEach(btn => {
@@ -523,12 +543,14 @@
                 elements.teamsTableList.style.display = 'block';
                 elements.teamsContainer.classList.remove('grid-view');
                 elements.teamsContainer.classList.add('list-view');
+                console.log('List view activated - Table display:', elements.teamsTableList.style.display);
             } else {
                 // Show grid view, hide list
                 elements.teamsContainer.style.display = 'grid';
                 elements.teamsTableList.style.display = 'none';
                 elements.teamsContainer.classList.remove('list-view');
                 elements.teamsContainer.classList.add('grid-view');
+                console.log('Grid view activated - Container display:', elements.teamsContainer.style.display);
             }
         }
 

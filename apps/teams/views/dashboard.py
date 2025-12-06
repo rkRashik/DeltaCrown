@@ -770,7 +770,7 @@ def resend_invite(request, slug: str, invite_id: int):
     invite = get_object_or_404(TeamInvite, id=invite_id, team=team)
     
     # Extend expiry
-    invite.expires_at = timezone.now() + timedelta(days=7)
+    invite.expires_at = timezone.now() + timedelta(days=INVITE_EXPIRY_DAYS)
     invite.status = "PENDING"
     invite.save(update_fields=['expires_at', 'status'])
     

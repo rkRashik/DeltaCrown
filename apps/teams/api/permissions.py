@@ -39,7 +39,7 @@ class IsTeamCaptain(permissions.BasePermission):
         # Get or create user profile
         try:
             profile, _ = UserProfile.objects.get_or_create(user=request.user)
-            return team.captain_id == profile.id
+            return team.captain == profile
         except Exception:
             return False
 

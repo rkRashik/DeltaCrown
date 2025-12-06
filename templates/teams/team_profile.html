@@ -299,14 +299,11 @@
                                         <div class="player-ign">IGN: {{ member.in_game_name|default:"Not set" }}</div>
                                         
                                         <div class="player-role-section">
-                                            {% if game_config %}
                                             <span class="role-badge role-{{ member.role|lower }}">
                                                 {{ member.get_role_display|default:member.role }}
                                             </span>
-                                            {% else %}
-                                            <span class="role-badge">
-                                                {% if member.is_captain %}Captain{% else %}{{ member.get_role_display|default:"Member" }}{% endif %}
-                                            </span>
+                                            {% if member.is_captain %}
+                                            <span class="role-badge role-captain">Captain</span>
                                             {% endif %}
                                             
                                             {% if not member.is_starter %}
