@@ -63,8 +63,8 @@ def leave_team_view(request, tag):
     # regular member → simply remove membership
     membership.delete()
     messages.success(request, "You left the team.")
-    # notify (best effort)
-    if getattr(team, "captain_id", None):
+    # notify captain (best effort)
+    if team.captain:
         _notify(team.captain, f"{me.display_name} left team {team.tag}", url=f"/teams/{team.id}/")
     # CHANGED
     return redirect("teams:team_detail", team_id=team.id)
@@ -102,10 +102,6 @@ def transfer_captain_view(request, tag):
         new_mem.role = "captain"
         my_mem.save(update_fields=["role"])
         new_mem.save(update_fields=["role"])
-
-        if hasattr(team, "captain_id"):
-            team.captain = new_mem.user
-            team.save(update_fields=["captain"])
 
         messages.success(request, f"Captaincy transferred.")
         _notify(new_mem.user, f"You are now captain of {team.tag}", url=f"/teams/{team.id}/")

@@ -7,10 +7,15 @@ sponsorships, and all team-related content.
 
 from django.contrib import admin
 from django.utils.html import format_html
-from django.urls import reverse
+from django.urls import reverse, path
 from django.utils.safestring import mark_safe
 from django.db.models import Count, Q
 from django.contrib import messages
+from django import forms
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+import json
 from apps.games.services import game_service
 
 from .models import (
@@ -21,6 +26,58 @@ from .models import (
     TeamRankingHistory, TeamRankingBreakdown, TeamRankingSettings,
     TeamTournamentRegistration, MatchRecord, MatchParticipation
 )
+from .models.ranking import TeamGameRanking
+
+# Region choices for teams
+REGION_CHOICES = [
+    ('', 'Select Region'),
+    ('NA', 'North America'),
+    ('SA', 'South America'),
+    ('EU', 'Europe'),
+    ('SEA', 'Southeast Asia'),
+    ('EA', 'East Asia'),
+    ('OCE', 'Oceania'),
+    ('ME', 'Middle East'),
+    ('AF', 'Africa'),
+    ('SA-BD', 'Bangladesh'),
+    ('SA-IN', 'India'),
+    ('SA-PK', 'Pakistan'),
+]
+
+
+class TeamAdminForm(forms.ModelForm):
+    """Custom form for Team admin with proper Game and Region handling."""
+    
+    # Explicitly override game field to provide proper widget and validation
+    game = forms.CharField(
+        max_length=50,
+        required=False,
+        help_text="Which game this team competes in (blank for legacy teams).",
+    )
+    
+    class Meta:
+        model = Team
+        fields = '__all__'
+        widgets = {
+            'region': forms.Select(choices=REGION_CHOICES),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Convert game CharField to Select widget with dynamic choices
+        game_choices = [('', '---------')] + list(game_service.get_choices())
+        self.fields['game'].widget = forms.Select(choices=game_choices)
+        self.fields['region'].widget = forms.Select(choices=REGION_CHOICES)
+    
+    def clean_game(self):
+        """Validate game choice against database."""
+        game_value = self.cleaned_data.get('game')
+        if game_value:
+            # Check if the game slug exists in the database
+            valid_slugs = [slug for slug, name in game_service.get_choices()]
+            if game_value not in valid_slugs:
+                raise forms.ValidationError(f"'{game_value}' is not a valid game choice.")
+        return game_value
 
 
 # ============================================================================
@@ -91,12 +148,18 @@ class TeamAchievementInline(admin.StackedInline):
 class TeamAdmin(admin.ModelAdmin):
     """Comprehensive team management"""
     
+    form = TeamAdminForm
+    change_form_template = 'admin/teams/team/change_form.html'
+    
+    # Ranking controls are implemented inline in change_form.html template
+    # No additional JS files needed
+    
     list_display = [
         'name', 'tag', 'game_badge', 'owner_link', 
         'member_count', 'created_at', 'verification_status', 'featured_badge'
     ]
     list_filter = [
-        'game', 'is_verified', 'is_featured', 
+        'game', 'region', 'is_verified', 'is_featured', 
         'allow_posts', 'created_at'
     ]
     search_fields = ['name', 'tag', 'description']
@@ -207,18 +270,151 @@ class TeamAdmin(admin.ModelAdmin):
         return '—'
     banner_preview.short_description = 'Banner Preview'
     
+    def save_model(self, request, obj, form, change):
+        """Save team and initialize ranking if newly created."""
+        is_new = obj.pk is None
+        super().save_model(request, obj, form, change)
+        
+        if is_new and obj.game:
+            # Initialize TeamGameRanking for the team's game
+            try:
+                from apps.teams.models.ranking import TeamGameRanking
+                from apps.teams.constants import RankingConstants
+                
+                TeamGameRanking.objects.get_or_create(
+                    team=obj,
+                    game=obj.game,
+                    defaults={
+                        'elo_rating': RankingConstants.DEFAULT_ELO,
+                        'global_elo': RankingConstants.DEFAULT_ELO,
+                        'division': RankingConstants.DIVISION_BRONZE,
+                    }
+                )
+                self.message_user(request, f'Ranking initialized for {obj.name} in {obj.game}', messages.SUCCESS)
+            except Exception as e:
+                self.message_user(request, f'Warning: Could not initialize ranking: {e}', messages.WARNING)
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         # Note: captain is now a @property, not a ForeignKey - cannot use select_related
         qs = qs.annotate(member_count=Count('memberships', filter=Q(memberships__status='active')))
         return qs
     
-    def formfield_for_dbfield(self, db_field, request, **kwargs):
-        """Override to use Game Registry choices for game field"""
-        if db_field.name == 'game':
-            kwargs['choices'] = game_service.get_choices()
-        return super().formfield_for_dbfield(db_field, request, **kwargs)
+    def get_urls(self):
+        """Add custom URLs for ranking management."""
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                '<int:team_id>/adjust-points/',
+                self.admin_site.admin_view(self.adjust_points_view),
+                name='teams_team_adjust_points',
+            ),
+            path(
+                '<int:team_id>/recalculate-points/',
+                self.admin_site.admin_view(self.recalculate_points_view),
+                name='teams_team_recalculate_points',
+            ),
+            path(
+                '<int:team_id>/get-points/',
+                self.admin_site.admin_view(self.get_points_view),
+                name='teams_team_get_points',
+            ),
+        ]
+        return custom_urls + urls
     
+    def adjust_points_view(self, request, team_id):
+        """Handle point adjustment requests."""
+        if request.method != 'POST':
+            return JsonResponse({'success': False, 'error': 'Only POST allowed'}, status=405)
+        
+        try:
+            team = Team.objects.get(pk=team_id)
+            data = json.loads(request.body)
+            points_adjustment = int(data.get('points_adjustment', 0))
+            reason = data.get('reason', 'Manual admin adjustment')
+            
+            if points_adjustment == 0:
+                return JsonResponse({'success': False, 'error': 'Point adjustment cannot be zero'})
+            
+            # Use ranking service to adjust points
+            from apps.teams.services.ranking_service import ranking_service
+            
+            result = ranking_service.adjust_team_points(
+                team=team,
+                points_adjustment=points_adjustment,
+                reason=reason,
+                admin_user=request.user
+            )
+            
+            if result['success']:
+                return JsonResponse({
+                    'success': True,
+                    'new_total': result['new_total'],
+                    'old_total': result['old_total'],
+                    'points_change': result['points_change']
+                })
+            else:
+                return JsonResponse({'success': False, 'error': result.get('error', 'Unknown error')})
+                
+        except Team.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Team not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    def recalculate_points_view(self, request, team_id):
+        """Handle point recalculation requests."""
+        if request.method != 'POST':
+            return JsonResponse({'success': False, 'error': 'Only POST allowed'}, status=405)
+        
+        try:
+            team = Team.objects.get(pk=team_id)
+            
+            # Use ranking service to recalculate points
+            from apps.teams.services.ranking_service import ranking_service
+            
+            result = ranking_service.recalculate_team_points(
+                team=team,
+                reason='Manual recalculation via admin'
+            )
+            
+            if result['success']:
+                return JsonResponse({
+                    'success': True,
+                    'new_total': result['new_total'],
+                    'old_total': result['old_total'],
+                    'points_change': result['points_change']
+                })
+            else:
+                return JsonResponse({'success': False, 'error': result.get('error', 'Unknown error')})
+                
+        except Team.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Team not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    def get_points_view(self, request, team_id):
+        """Get current team points."""
+        try:
+            team = Team.objects.get(pk=team_id)
+            
+            # Get team breakdown for current points
+            from apps.teams.models.ranking import TeamRankingBreakdown
+            try:
+                breakdown = TeamRankingBreakdown.objects.get(team=team)
+                points = breakdown.final_total
+            except TeamRankingBreakdown.DoesNotExist:
+                points = team.total_points
+            
+            return JsonResponse({
+                'success': True,
+                'points': points
+            })
+                
+        except Team.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Team not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    # Actions
     # Actions
     def verify_teams(self, request, queryset):
         count = queryset.update(is_verified=True, verification_status='approved')
@@ -602,6 +798,58 @@ class TeamTournamentRegistrationAdmin(admin.ModelAdmin):
     list_filter = ['status', 'validation_passed', 'registered_at']
     search_fields = ['team__name']
     readonly_fields = ['registered_at', 'updated_at', 'locked_at', 'roster_snapshot', 'tournament_id']
+
+
+@admin.register(TeamGameRanking)
+class TeamGameRankingAdmin(admin.ModelAdmin):
+    """Per-game ranking management for teams."""
+    list_display = [
+        'team_link', 'game', 'division', 'elo_rating', 'points', 
+        'matches_played', 'win_rate_display', 'tournaments_won', 'updated_at'
+    ]
+    list_filter = ['game', 'division', 'updated_at']
+    search_fields = ['team__name', 'team__tag', 'game']
+    readonly_fields = [
+        'created_at', 'updated_at', 'last_match_date', 'last_decay_date',
+        'win_rate_display', 'rank_display'
+    ]
+    
+    fieldsets = (
+        ('Team & Game', {
+            'fields': ('team', 'game')
+        }),
+        ('Ranking Metrics', {
+            'fields': ('division', 'elo_rating', 'points', 'global_elo')
+        }),
+        ('Match Statistics', {
+            'fields': (
+                'matches_played', 'matches_won', 'matches_lost',
+                'win_streak', 'loss_streak', 'win_rate_display'
+            )
+        }),
+        ('Tournament Performance', {
+            'fields': (
+                'tournaments_played', 'tournaments_won', 'tournament_podium_finishes'
+            )
+        }),
+        ('Timestamps', {
+            'fields': ('last_match_date', 'last_decay_date', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def team_link(self, obj):
+        url = reverse('admin:teams_team_change', args=[obj.team.pk])
+        return format_html('<a href="{}">{}</a>', url, obj.team.name)
+    team_link.short_description = 'Team'
+    
+    def win_rate_display(self, obj):
+        return f"{obj.win_rate}%"
+    win_rate_display.short_description = 'Win Rate'
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('team')
 
 
 @admin.register(TeamRankingHistory)

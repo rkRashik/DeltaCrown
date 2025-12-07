@@ -443,7 +443,7 @@ class TeamRankingCalculator:
         teams = Team.objects.filter(
             is_active=True,
             total_points__gt=0
-        ).select_related('captain')
+        )
         
         if game:
             teams = teams.filter(game=game)

@@ -42,6 +42,31 @@ def get_ranking_service():
         return None
 
 
+@receiver(post_save, sender='teams.Team')
+def initialize_team_ranking(sender, instance, created, **kwargs):
+    """Initialize TeamGameRanking when a new team is created."""
+    if not created or not instance.game:
+        return
+    
+    try:
+        from .models.ranking import TeamGameRanking
+        from .constants import RankingConstants
+        
+        # Create TeamGameRanking for the team's game
+        TeamGameRanking.objects.get_or_create(
+            team=instance,
+            game=instance.game,
+            defaults={
+                'elo_rating': RankingConstants.DEFAULT_ELO,
+                'global_elo': RankingConstants.DEFAULT_ELO,
+                'division': RankingConstants.DIVISION_BRONZE,
+            }
+        )
+        logger.info(f"Initialized ranking for team {instance.name} in game {instance.game}")
+    except Exception as e:
+        logger.error(f"Failed to initialize ranking for team {instance.id}: {e}")
+
+
 @receiver(post_save, sender='teams.TeamMembership')
 def update_team_points_on_membership_change(sender, instance, created, **kwargs):
     """Update team points when membership changes (add/remove members)."""

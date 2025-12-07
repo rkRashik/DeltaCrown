@@ -192,12 +192,13 @@ class RespondInviteSerializer(serializers.Serializer):
 
 class TransferCaptainSerializer(serializers.Serializer):
     """Serializer for POST /api/teams/{id}/transfer-captain/."""
-    new_captain_id = serializers.IntegerField(required=True)
+    new_captain_membership_id = serializers.IntegerField(required=True)
     
-    def validate_new_captain_id(self, value):
-        """Validate new captain user exists."""
+    def validate_new_captain_membership_id(self, value):
+        """Validate new captain membership exists."""
+        TeamMembership = apps.get_model("teams", "TeamMembership")
         try:
-            User.objects.get(id=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(f"User with ID {value} does not exist")
+            membership = TeamMembership.objects.get(id=value, status="ACTIVE")
+        except TeamMembership.DoesNotExist:
+            raise serializers.ValidationError(f"Active membership with ID {value} does not exist")
         return value

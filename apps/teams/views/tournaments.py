@@ -102,9 +102,13 @@ def tournament_registration_view(request, team_slug, tournament_slug):
     # Get pending invites
     pending_invites = team.invites.filter(status='PENDING').count()
     
-    # Get game requirements
-    from apps.teams.game_config import GAME_CONFIGS
-    game_config = GAME_CONFIGS.get(team.game, {})
+    # Get game requirements via GameService
+    from apps.games.services import game_service
+    game_obj = game_service.get_game(team.game) if team.game else None
+    roster_limits = game_service.get_roster_limits(game_obj) if game_obj else {}
+    
+    min_roster_size = roster_limits.get('min_roster_size', 5)
+    max_roster_size = roster_limits.get('max_roster_size', 8)
     
     context = {
         'team': team,
@@ -114,9 +118,10 @@ def tournament_registration_view(request, team_slug, tournament_slug):
         'roster': roster,
         'roster_count': roster.count(),
         'pending_invites_count': pending_invites,
-        'game_config': game_config,
-        'min_roster_size': game_config.get('team_size', 5),
-        'max_roster_size': game_config.get('team_size', 5) + game_config.get('max_substitutes', 3),
+        'game_obj': game_obj,
+        'roster_limits': roster_limits,
+        'min_roster_size': min_roster_size,
+        'max_roster_size': max_roster_size,
     }
     
     return render(request, 'teams/tournament_registration.html', context)

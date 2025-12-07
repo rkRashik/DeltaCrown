@@ -140,20 +140,25 @@ class TeamService:
             slug = f"{base_slug}-{counter}"
             counter += 1
         
-        # Create team (Note: Team.save() automatically creates captain membership via ensure_captain_membership())
+        # Create team (NO captain FK - captain is determined by OWNER role in TeamMembership)
         team = Team.objects.create(
             name=name.strip(),
             tag=tag.upper(),
             slug=slug,
             game=game,
-            captain=captain_profile,
             description=description,
             is_active=True,
             **kwargs
         )
         
-        # Captain membership is auto-created by Team.save() -> ensure_captain_membership()
-        # with role=OWNER, status=ACTIVE
+        # Create captain membership with OWNER role
+        # This must happen BEFORE Team.save() to ensure ensure_captain_membership() finds it
+        TeamMembership.objects.create(
+            team=team,
+            profile=captain_profile,
+            role=TeamMembership.Role.OWNER,
+            status=TeamMembership.Status.ACTIVE
+        )
         
         # Audit log
         logger.info(

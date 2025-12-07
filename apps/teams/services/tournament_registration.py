@@ -66,10 +66,11 @@ class TournamentRegistrationService:
                 warnings.append("Team's previous registration was rejected")
         
         # Check team has enough active members
-        from apps.teams.game_config import GAME_CONFIGS
+        from apps.games.services import game_service
         
-        game_config = GAME_CONFIGS.get(self.team.game, {})
-        min_size = game_config.get('team_size', 5)
+        game_obj = game_service.get_game(self.team.game) if self.team.game else None
+        roster_limits = game_service.get_roster_limits(game_obj) if game_obj else {}
+        min_size = roster_limits.get('min_roster_size', 5)
         
         TeamMembership = apps.get_model('teams', 'TeamMembership')
         active_count = TeamMembership.objects.filter(

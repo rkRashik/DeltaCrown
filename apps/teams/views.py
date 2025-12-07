@@ -22,10 +22,7 @@ from apps.teams.serializers import (
     get_team_serializer_for_game,
     get_membership_serializer_for_game
 )
-from apps.teams.game_config import (
-    GAME_CONFIGS, get_game_config, get_available_roles,
-    get_role_description, get_max_roster_size
-)
+from apps.games.services import game_service
 from apps.teams.roster_manager import get_roster_manager
 from apps.user_profile.models import UserProfile
 
@@ -42,20 +39,26 @@ def game_configs_list(request):
     
     Returns roster rules, roles, and constraints for all supported games.
     """
+    from apps.games.models import Game
+    
+    games = Game.objects.filter(is_active=True)
     configs = []
     
-    for game_code, config in GAME_CONFIGS.items():
+    for game in games:
+        roster_limits = game_service.get_roster_limits(game)
+        roles = game_service.get_roles(game)
+        
         configs.append({
-            'game_code': config.game_code,
-            'display_name': config.display_name,
-            'min_starters': config.min_starters,
-            'max_starters': config.max_starters,
-            'min_substitutes': config.min_substitutes,
-            'max_substitutes': config.max_substitutes,
-            'max_roster_size': get_max_roster_size(game_code),
-            'roles': config.roles,
-            'requires_unique_roles': config.requires_unique_roles,
-            'role_descriptions': config.role_descriptions,
+            'game_code': game.slug,
+            'display_name': game.name,
+            'min_starters': roster_limits.get('min_starters', 0),
+            'max_starters': roster_limits.get('max_starters', 0),
+            'min_substitutes': roster_limits.get('min_substitutes', 0),
+            'max_substitutes': roster_limits.get('max_substitutes', 0),
+            'max_roster_size': roster_limits.get('max_roster_size', 8),
+            'roles': [role.name for role in roles],
+            'requires_unique_roles': roster_limits.get('requires_unique_roles', False),
+            'role_descriptions': {role.name: role.description for role in roles},
         })
     
     return Response({
@@ -73,25 +76,28 @@ def game_config_detail(request, game_code):
     Args:
         game_code: The game identifier (valorant, cs2, etc.)
     """
-    config = get_game_config(game_code)
+    game = game_service.get_game(game_code)
     
-    if not config:
+    if not game:
         return Response(
             {'error': f'Invalid game code: {game_code}'},
             status=status.HTTP_404_NOT_FOUND
         )
     
+    roster_limits = game_service.get_roster_limits(game)
+    roles = game_service.get_roles(game)
+    
     return Response({
-        'game_code': config.game_code,
-        'display_name': config.display_name,
-        'min_starters': config.min_starters,
-        'max_starters': config.max_starters,
-        'min_substitutes': config.min_substitutes,
-        'max_substitutes': config.max_substitutes,
-        'max_roster_size': get_max_roster_size(game_code),
-        'roles': config.roles,
-        'requires_unique_roles': config.requires_unique_roles,
-        'role_descriptions': config.role_descriptions,
+        'game_code': game.slug,
+        'display_name': game.name,
+        'min_starters': roster_limits.get('min_starters', 0),
+        'max_starters': roster_limits.get('max_starters', 0),
+        'min_substitutes': roster_limits.get('min_substitutes', 0),
+        'max_substitutes': roster_limits.get('max_substitutes', 0),
+        'max_roster_size': roster_limits.get('max_roster_size', 8),
+        'roles': [role.name for role in roles],
+        'requires_unique_roles': roster_limits.get('requires_unique_roles', False),
+        'role_descriptions': {role.name: role.description for role in roles},
     })
 
 
@@ -112,22 +118,29 @@ def game_roles_list(request, game_code):
             status=status.HTTP_404_NOT_FOUND
         )
     
-    # Include role descriptions
-    role_details = []
-    config = get_game_config(game_code)
+    # Get roles from GameService
+    game = game_service.get_game(game_code)
+    if not game:
+        return Response(
+            {'error': f'Invalid game code: {game_code}'},
+            status=status.HTTP_404_NOT_FOUND
+        )
     
+    roles = game_service.get_roles(game)
+    roster_limits = game_service.get_roster_limits(game)
+    
+    role_details = []
     for role in roles:
-        description = get_role_description(game_code, role)
         role_details.append({
-            'name': role,
-            'description': description
+            'name': role.name,
+            'description': role.description
         })
     
     return Response({
-        'game_code': game_code,
-        'game_name': config.display_name,
+        'game_code': game.slug,
+        'game_name': game.name,
         'roles': role_details,
-        'requires_unique_roles': config.requires_unique_roles
+        'requires_unique_roles': roster_limits.get('requires_unique_roles', False)
     })
 
 
@@ -279,12 +292,16 @@ def validate_roster_composition(request):
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    config = get_game_config(game_code)
-    if not config:
+    game = game_service.get_game(game_code)
+    if not game:
         return Response(
             {'error': f'Invalid game code: {game_code}'},
-            status=status.HTTP_400_BAD_REQUEST
+            status=status.HTTP_404_NOT_FOUND
         )
+    
+    roster_limits = game_service.get_roster_limits(game)
+    roles = game_service.get_roles(game)
+    valid_role_names = [role.name for role in roles]
     
     errors = []
     warnings = []
@@ -294,38 +311,42 @@ def validate_roster_composition(request):
     subs = [p for p in roster if not p.get('is_starter', True)]
     
     # Validate roster size
-    if len(starters) < config.min_starters:
+    min_starters = roster_limits.get('min_starters', 5)
+    max_starters = roster_limits.get('max_starters', 5)
+    max_substitutes = roster_limits.get('max_substitutes', 3)
+    requires_unique_roles = roster_limits.get('requires_unique_roles', False)
+    
+    if len(starters) < min_starters:
         errors.append(
-            f"Requires at least {config.min_starters} starters (currently {len(starters)})"
+            f"Requires at least {min_starters} starters (currently {len(starters)})"
         )
     
-    if len(starters) > config.max_starters:
+    if len(starters) > max_starters:
         errors.append(
-            f"Maximum {config.max_starters} starters allowed (currently {len(starters)})"
+            f"Maximum {max_starters} starters allowed (currently {len(starters)})"
         )
     
-    if len(subs) > config.max_substitutes:
+    if len(subs) > max_substitutes:
         errors.append(
-            f"Maximum {config.max_substitutes} substitutes allowed (currently {len(subs)})"
+            f"Maximum {max_substitutes} substitutes allowed (currently {len(subs)})"
         )
     
     # Validate roles
-    valid_roles = config.roles
     for i, player in enumerate(roster):
         role = player.get('role')
-        if role and role not in valid_roles:
+        if role and role not in valid_role_names:
             errors.append(
                 f"Player {i+1} ({player.get('ign', 'Unknown')}): Invalid role '{role}'"
             )
     
-    # Check unique positions for Dota2
-    if config.requires_unique_roles:
+    # Check unique positions if required
+    if requires_unique_roles:
         starter_roles = [p.get('role') for p in starters if p.get('role')]
         if len(starter_roles) != len(set(starter_roles)):
             errors.append("All starter positions must be unique")
     
     # Warnings
-    if len(subs) == 0 and config.max_substitutes > 0:
+    if len(subs) == 0 and max_substitutes > 0:
         warnings.append("No substitutes added. Consider adding backup players.")
     
     return Response({
@@ -336,8 +357,8 @@ def validate_roster_composition(request):
             'total': len(roster),
             'starters': len(starters),
             'substitutes': len(subs),
-            'max_starters': config.max_starters,
-            'max_substitutes': config.max_substitutes,
+            'max_starters': max_starters,
+            'max_substitutes': max_substitutes,
         }
     })
 

@@ -37,10 +37,9 @@ def team_social_detail(request, team_slug):
     
     Reference: MASTER_IMPLEMENTATION_BACKLOG.md - Task 2.1 (N+1 Query Fix)
     """
-    # Phase 1 Optimization: Add select_related for captain and memberships
+    # Phase 1 Optimization: Prefetch memberships (captain is a property, not FK)
     team = get_object_or_404(
-        Team.objects.select_related('captain', 'captain__user')
-        .prefetch_related(
+        Team.objects.prefetch_related(
             'memberships',
             'memberships__profile',
             'memberships__profile__user',

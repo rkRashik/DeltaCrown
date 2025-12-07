@@ -84,6 +84,15 @@ def _handle_team_creation_get(request, profile):
         player_id_label = identity_configs[0].display_name if identity_configs else "Game ID"
         player_id_placeholder = identity_configs[0].placeholder if identity_configs else ""
         
+        # Use actual game image URLs or fallback
+        image_url = ''
+        if game.card_image:
+            image_url = game.card_image.url
+        elif game.icon:
+            image_url = game.icon.url
+        else:
+            image_url = f"/static/img/game_cards/default.jpg"
+        
         game_configs[game.slug] = {
             'name': game.display_name,
             'slug': game.slug,
@@ -94,7 +103,7 @@ def _handle_team_creation_get(request, profile):
             'player_id_format': player_id_placeholder,
             'color_primary': game.primary_color or '#00d9ff',
             'color_secondary': game.secondary_color or '#7000ff',
-            'card_image': f"img/game_cards/{game.slug}.jpg",
+            'card_image': image_url,
         }
     
     # Check which games user already has teams for
@@ -191,17 +200,17 @@ def _handle_team_creation_post(request, profile):
                 if game_id:
                     game_code = team.game
                     
-                    # Map game codes to profile fields
+                    # Map game slugs to profile fields (using actual slugs from Game model)
                     game_id_fields = {
-                        'VALORANT': 'riot_id',
-                        'CS2': 'steam_id',
-                        'DOTA2': 'steam_id',
-                        'MLBB': 'mlbb_id',
-                        'PUBG': 'pubg_mobile_id',
-                        'FREEFIRE': 'free_fire_id',
-                        'CODM': 'codm_uid',
-                        'EFOOTBALL': 'efootball_id',
-                        'FC26': 'ea_id',
+                        'valorant': 'riot_id',
+                        'counter-strike-2': 'steam_id',
+                        'dota-2': 'steam_id',
+                        'mobile-legends': 'mlbb_id',
+                        'pubg-mobile': 'pubg_mobile_id',
+                        'free-fire': 'free_fire_id',
+                        'call-of-duty-mobile': 'codm_uid',
+                        'efootball': 'efootball_id',
+                        'ea-sports-fc-26': 'ea_id',
                     }
                     
                     field_name = game_id_fields.get(game_code)
@@ -233,13 +242,20 @@ def _handle_team_creation_post(request, profile):
                 return redirect('teams:setup', slug=team.slug)
                 
         except Exception as e:
-            logger.error(f"Team creation error: {e}", exc_info=True)
-            error_message = "An error occurred while creating your team. Please try again."
+            logger.exception(f"Team creation failed: {type(e).__name__}: {e}")
+            
+            # In development, show actual error; in production, use generic message
+            from django.conf import settings
+            if settings.DEBUG:
+                error_message = f"Team creation failed: {type(e).__name__}: {str(e)}"
+            else:
+                error_message = "An error occurred while creating your team. Please try again."
             
             if is_ajax:
                 return JsonResponse({
                     'success': False,
-                    'error': error_message
+                    'error': error_message,
+                    'exception_type': type(e).__name__ if settings.DEBUG else None,
                 }, status=500)
             
             messages.error(request, error_message)
@@ -260,10 +276,36 @@ def _handle_team_creation_post(request, profile):
         # Non-AJAX: render form with errors
         messages.error(request, "Please correct the errors below.")
     
-    # Re-render form with errors - get game configs from GameService
-    from apps.common.game_assets import get_game_data
+    # Re-render form with errors - reconstruct game configs
     active_games = GameService.list_active_games()
-    game_configs = {game.slug: get_game_data(game.slug) for game in active_games}
+    game_configs = {}
+    for game in active_games:
+        roster_config = GameService.get_roster_config(game)
+        default_team_size = roster_config.min_team_size if roster_config else 5
+        identity_configs = GameService.get_identity_validation_rules(game)
+        player_id_label = identity_configs[0].display_name if identity_configs else "Game ID"
+        player_id_placeholder = identity_configs[0].placeholder if identity_configs else ""
+        
+        image_url = ''
+        if game.card_image:
+            image_url = game.card_image.url
+        elif game.icon:
+            image_url = game.icon.url
+        else:
+            image_url = "/static/img/game_cards/default.jpg"
+        
+        game_configs[game.slug] = {
+            'name': game.display_name,
+            'slug': game.slug,
+            'platform': 'pc',
+            'team_size': default_team_size,
+            'roster_size': (roster_config.max_team_size + 2) if roster_config else (default_team_size + 2),
+            'player_id_label': player_id_label,
+            'player_id_format': player_id_placeholder,
+            'color_primary': game.primary_color or '#00d9ff',
+            'color_secondary': game.secondary_color or '#7000ff',
+            'card_image': image_url,
+        }
     
     context = {
         'form': form,

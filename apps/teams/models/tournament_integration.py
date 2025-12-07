@@ -191,7 +191,7 @@ class TeamTournamentRegistration(models.Model):
         Validate team roster against tournament and game requirements.
         Returns dict with 'valid' (bool) and 'errors' (list) keys.
         """
-        from apps.teams.game_config import GAME_CONFIGS
+        from apps.games.services import game_service
         from apps.teams.models import TeamMembership
         
         errors = []
@@ -205,9 +205,10 @@ class TeamTournamentRegistration(models.Model):
         
         roster_count = active_members.count()
         
-        # Get game config
-        game_config = GAME_CONFIGS.get(self.team.game)
-        if not game_config:
+        # Get game roster limits
+        game_obj = game_service.get_game(self.team.game) if self.team.game else None
+        roster_limits = game_service.get_roster_limits(game_obj) if game_obj else {}
+        if not game_obj:
             errors.append(f"Unknown game: {self.team.game}")
             return {'valid': False, 'errors': errors, 'warnings': warnings}
         

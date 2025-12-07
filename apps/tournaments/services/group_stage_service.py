@@ -507,44 +507,53 @@ class GroupStageService:
         game_slug: str,
         group: Group
     ):
-        """Apply tiebreaker rules and assign ranks."""
-        # Primary sort by points
-        if game_slug in ['efootball', 'fc-mobile', 'fifa']:
-            standings.sort(key=lambda s: (
-                -s.points,
-                -s.goal_difference,
-                -s.goals_for,
-                -s.matches_won
-            ))
-        elif game_slug in ['valorant', 'cs2']:
-            standings.sort(key=lambda s: (
-                -s.points,
-                -s.round_difference,
-                -s.rounds_won,
-                -s.matches_won
-            ))
-        elif game_slug in ['pubg-mobile', 'free-fire']:
-            standings.sort(key=lambda s: (
-                -s.points,
-                -s.placement_points,
-                -s.total_kills
-            ))
-        elif game_slug == 'mobile-legends':
-            standings.sort(key=lambda s: (
-                -s.points,
-                -s.kda_ratio,
-                -s.total_kills
-            ))
-        elif game_slug == 'call-of-duty-mobile':
-            standings.sort(key=lambda s: (
-                -s.points,
-                -s.total_score,
-                -s.total_kills,
-                s.total_deaths  # Fewer deaths better
-            ))
-        else:
-            # Default: points, then wins
-            standings.sort(key=lambda s: (-s.points, -s.matches_won))
+        """
+        Apply tiebreaker rules and assign ranks.
+        Uses GameTournamentConfig.default_tiebreakers instead of hardcoded logic.
+        """
+        from apps.games.services import game_service
+        
+        # Get game and its tournament config
+        game = game_service.get_game(game_slug)
+        if not game:
+            # Fallback: sort by points only
+            standings.sort(key=lambda s: -s.points)
+            for i, standing in enumerate(standings, start=1):
+                standing.rank = i
+                standing.save(update_fields=['rank'])
+            return
+        
+        tournament_config = game_service.get_tournament_config(game)
+        tiebreakers = tournament_config.default_tiebreakers if tournament_config else []
+        
+        # Build dynamic sort key based on tiebreakers
+        def build_sort_key(standing):
+            """Build tuple for sorting based on configured tiebreakers."""
+            key_parts = [-standing.points]  # Always sort by points first
+            
+            for tiebreaker in tiebreakers:
+                if tiebreaker == 'goal_difference':
+                    key_parts.append(-standing.goal_difference)
+                elif tiebreaker == 'goals_for':
+                    key_parts.append(-standing.goals_for)
+                elif tiebreaker == 'matches_won':
+                    key_parts.append(-standing.matches_won)
+                elif tiebreaker == 'round_difference':
+                    key_parts.append(-standing.round_difference)
+                elif tiebreaker == 'rounds_won':
+                    key_parts.append(-standing.rounds_won)
+                elif tiebreaker == 'placement_points':
+                    key_parts.append(-standing.placement_points)
+                elif tiebreaker == 'total_kills':
+                    key_parts.append(-standing.total_kills)
+                elif tiebreaker == 'kda_ratio':
+                    key_parts.append(-standing.kda_ratio)
+                elif tiebreaker == 'total_score':
+                    key_parts.append(-standing.total_score)
+            
+            return tuple(key_parts)
+        
+        standings.sort(key=build_sort_key)
         
         # Assign ranks
         for rank, standing in enumerate(standings, start=1):

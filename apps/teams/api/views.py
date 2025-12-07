@@ -60,7 +60,7 @@ class TeamViewSet(viewsets.ModelViewSet):
     - POST /api/teams/{id}/leave/ - Leave team (member, not captain)
     - DELETE /api/teams/{id}/members/{user_id}/ - Remove member (captain only)
     """
-    queryset = Team.objects.filter(is_active=True).select_related("captain").order_by("-created_at")
+    queryset = Team.objects.filter(is_active=True).order_by("-created_at")
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
@@ -286,7 +286,7 @@ class TeamViewSet(viewsets.ModelViewSet):
         Endpoint 7: Transfer Captain
         - Captain only
         - New captain must be active member
-        - Updates team.captain and memberships
+        - Updates memberships roles (OWNER → MEMBER, MEMBER → OWNER)
         - Broadcasts captain_transferred event
         """
         team = self.get_object()
@@ -294,17 +294,26 @@ class TeamViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         try:
-            # Get new captain's profile
-            new_captain_user = get_object_or_404(User, id=serializer.validated_data["new_captain_id"])
-            new_captain_profile, _ = UserProfile.objects.get_or_create(user=new_captain_user)
+            # Get memberships
+            TeamMembership = apps.get_model("teams", "TeamMembership")
+            new_captain_membership = get_object_or_404(
+                TeamMembership, 
+                id=serializer.validated_data["new_captain_membership_id"],
+                team=team,
+                status="ACTIVE"
+            )
             
-            # Get current captain's profile
             current_captain_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            current_membership = TeamMembership.objects.get(
+                team=team, 
+                profile=current_captain_profile, 
+                status="ACTIVE"
+            )
             
             # Transfer captain via service
             TeamService.transfer_captain(
                 team=team,
-                new_captain_profile=new_captain_profile,
+                new_captain_profile=new_captain_membership.profile,
                 current_captain_profile=current_captain_profile
             )
             
@@ -316,7 +325,7 @@ class TeamViewSet(viewsets.ModelViewSet):
                     "team_id": team.id,
                     "team_name": team.name,
                     "old_captain": request.user.username,
-                    "new_captain": new_captain_user.username,
+                    "new_captain": new_captain_membership.profile.user.username,
                     "timestamp": timezone.now().isoformat(),
                 }
             )

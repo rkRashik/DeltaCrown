@@ -130,19 +130,19 @@ def team_dashboard_view(request, slug: str):
     except:
         upcoming_matches = []
     
-    # 9. Game-specific data
-    game_config = None
+    # 9. Game-specific data via GameService
+    from apps.games.services import game_service
+    game_obj = None
+    roster_limits = None
     if team.game:
-        from apps.teams.game_config import get_game_config
-        try:
-            game_config = get_game_config(team.game)
-        except KeyError:
-            game_config = None
+        game_obj = game_service.get_game(team.game)
+        if game_obj:
+            roster_limits = game_service.get_roster_limits(game_obj)
     
     # 10. Calculate roster capacity
     max_roster = 8  # Default
-    if game_config:
-        max_roster = game_config.max_starters + game_config.max_substitutes
+    if roster_limits:
+        max_roster = roster_limits.get('max_roster_size', 8)
     
     current_roster_size = roster.count()
     pending_invites_count = pending_invites.count()
@@ -165,10 +165,11 @@ def team_dashboard_view(request, slug: str):
         })
     
     # Check for low roster
-    if game_config and current_roster_size < game_config.min_starters:
+    min_roster = roster_limits.get('min_roster_size', 5) if roster_limits else 5
+    if roster_limits and current_roster_size < min_roster:
         alerts.append({
             'type': 'danger',
-            'message': f'Roster below minimum size ({current_roster_size}/{game_config.min_starters}). Recruit more players!'
+            'message': f'Roster below minimum size ({current_roster_size}/{min_roster}). Recruit more players!'
         })
     
     # Check for upcoming tournament deadlines (placeholder)
@@ -295,8 +296,9 @@ def team_dashboard_view(request, slug: str):
         'upcoming_matches': upcoming_matches,
         'matches_count': len(upcoming_matches),
         
-        # Game config
-        'game_config': game_config,
+        # Game data
+        'game_obj': game_obj,
+        'roster_limits': roster_limits,
         
         # Alerts
         'alerts': alerts,
@@ -512,11 +514,14 @@ def team_profile_view(request, slug: str):
     # 7. Social counts
     followers_count = TeamFollower.objects.filter(team=team).count()
     
-    # 8. Game config
-    game_config = None
+    # 8. Game data via GameService
+    from apps.games.services import game_service
+    game_obj = None
+    roster_limits = None
     if team.game:
-        from apps.teams.game_config import get_game_config
-        game_config = get_game_config(team.game)
+        game_obj = game_service.get_game(team.game)
+        if game_obj:
+            roster_limits = game_service.get_roster_limits(game_obj)
     
     # 9. Social links (only if team allows)
     social_links = []
@@ -627,8 +632,9 @@ def team_profile_view(request, slug: str):
         'activities': activities,
         'social_links': social_links,
         
-        # Game
-        'game_config': game_config,
+        # Game data
+        'game_obj': game_obj,
+        'roster_limits': roster_limits,
     }
     
     return render(request, "teams/team_detail_new.html", context)

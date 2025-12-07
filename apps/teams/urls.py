@@ -234,7 +234,7 @@ urlpatterns = [
     # About Teams Information Page
     path("about/", about_teams, name="about"),
     
-    path("test/", lambda request: render(request, "teams/test_page.html"), name="test"),  # TEST PAGE
+    # Team Creation
     path("create/", team_create_view, name="create"),
     path("setup/<slug:slug>/", team_setup_view, name="setup"),  # Post-creation setup
     path("<slug:slug>/update-settings/", update_team_settings, name="update_settings"),  # Settings update

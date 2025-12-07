@@ -214,7 +214,7 @@
                     twitch: this.formData.social.twitch || ''
                 };
 
-                await fetch(this.config.urls.saveDraft, {
+                const response = await fetch(this.config.urls.saveDraft, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -224,9 +224,14 @@
                     body: JSON.stringify(draftData)
                 });
                 
-                dcLog('💾 Draft saved');
+                if (response.ok) {
+                    dcLog('💾 Draft saved');
+                } else {
+                    dcLog('⚠️ Draft save failed (server returned error)');
+                }
             } catch (error) {
-                console.error('Failed to save draft:', error);
+                // Silently fail draft saves - don't spam console or disrupt UX
+                dcLog('⚠️ Draft save skipped (endpoint unavailable)');
             }
         }
 
@@ -784,7 +789,7 @@
             }
             
             card.innerHTML = `
-                <img src="/static/${game.card_image}" alt="${game.name}" class="game-card-image">
+                <img src="${game.card_image}" alt="${game.name}" class="game-card-image" onerror="this.src='/static/img/game_cards/default.jpg'">
                 <div class="game-card-name">${game.name}</div>
                 <div class="game-card-platform">${game.platform}</div>
                 <div class="game-card-meta">${game.team_size} Team Size</div>

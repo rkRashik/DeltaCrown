@@ -56,8 +56,7 @@ class Team(models.Model):
 
     # Game association (Part A) - uses Game Registry for choices
     game = models.CharField(
-        max_length=20,
-        choices=[],  # Choices populated dynamically in forms from GameService
+        max_length=50,  # Increased to accommodate longer slugs
         blank=True,
         default="",
         help_text="Which game this team competes in (blank for legacy teams).",
@@ -612,6 +611,31 @@ class TeamMembership(models.Model):
     )
     # Team membership role (organizational)
     role = models.CharField(max_length=30, choices=Role.choices, default=Role.PLAYER)
+    role_metadata = models.JSONField(
+        default=dict,
+        help_text="Additional metadata about the member's role (e.g., jersey number, position details)"
+    )
+    is_role_custom = models.BooleanField(
+        default=False,
+        help_text="Whether this member has a custom role outside the predefined choices"
+    )
+    role_tier = models.IntegerField(
+        default=0,
+        help_text="Role hierarchy tier for permission calculations (higher = more authority)"
+    )
+    role_changed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the role was last changed"
+    )
+    role_changed_by = models.ForeignKey(
+        "user_profile.UserProfile",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="role_changes_made",
+        help_text="Who last changed this member's role"
+    )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     joined_at = models.DateTimeField(default=timezone.now)
     
