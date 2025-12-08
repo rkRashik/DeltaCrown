@@ -170,41 +170,43 @@ class GameAdapter(BaseAdapter):
         """
         Get player identity field configurations for a game.
         
-        Uses GamePlayerIdentityConfig model to fetch identity requirements.
+        Uses GameService to fetch identity requirements and maps to DTOs.
         
-        TODO: Return List[GamePlayerIdentityConfigDTO] instead of list of dicts.
+        Returns List[GamePlayerIdentityConfigDTO] (currently as dicts for backward compatibility).
         
         Raises:
             GameConfigNotFoundError: If game does not exist
         """
-        from apps.games.models import GamePlayerIdentityConfig
-        from apps.games.services.game_service import GameService
+        from apps.games.services.game_service import game_service
+        from apps.tournament_ops.dtos.game_identity import GamePlayerIdentityConfigDTO
         from apps.tournament_ops.exceptions import GameConfigNotFoundError
         
         try:
-            # Verify game exists
-            game = GameService.get_game(game_slug)
-            if not game:
-                raise GameConfigNotFoundError(f"Game '{game_slug}' not found")
+            # Use GameService Phase 2 method
+            identity_configs = game_service.get_player_identity_config(game_slug)
             
-            # Fetch identity configs
-            identity_configs = GamePlayerIdentityConfig.objects.filter(game=game)
+            # Convert to DTOs
+            config_dtos = [GamePlayerIdentityConfigDTO.from_model(cfg) for cfg in identity_configs]
             
-            # Convert to list of dicts
-            # TODO: Convert to List[GamePlayerIdentityConfigDTO.from_model(cfg)]
+            # Return as dicts for backward compatibility
+            # TODO: Return List[GamePlayerIdentityConfigDTO] directly when consumers updated
             return [
                 {
-                    'field_name': cfg.field_name,
-                    'display_name': cfg.display_name,
-                    'field_type': cfg.field_type,
-                    'is_required': cfg.is_required,
-                    'validation_regex': cfg.validation_regex,
-                    'help_text': cfg.help_text,
+                    'field_name': dto.field_name,
+                    'display_label': dto.display_label,
+                    'validation_pattern': dto.validation_pattern,
+                    'is_required': dto.is_required,
+                    'is_immutable': dto.is_immutable,
+                    'help_text': dto.help_text,
+                    'placeholder': dto.placeholder,
                 }
-                for cfg in identity_configs
+                for dto in config_dtos
             ]
+        except ValueError as e:
+            # GameService raises ValueError for not found
+            raise GameConfigNotFoundError(str(e))
         except Exception as e:
-            if "not found" in str(e).lower() or "does not exist" in str(e).lower():
+            if "not found" in str(e).lower():
                 raise GameConfigNotFoundError(f"Game '{game_slug}' not found")
             raise
     
@@ -216,10 +218,7 @@ class GameAdapter(BaseAdapter):
         """
         Validate game identity data against game's identity field rules.
         
-        TODO: Implement via GameValidationService (Phase 2, Epic 2.2).
-        For now, performs basic validation:
-        - Checks that all required fields are present
-        - Validates against regex patterns if defined
+        Delegates to GameValidationService (Phase 2, Epic 2.2).
         
         Args:
             game_slug: Game identifier
@@ -228,24 +227,18 @@ class GameAdapter(BaseAdapter):
         Returns:
             bool: True if valid, False otherwise
         """
+        from apps.games.services.validation_service import GameValidationService
         from apps.tournament_ops.exceptions import GameConfigNotFoundError
-        import re
         
         try:
-            identity_fields = self.get_identity_fields(game_slug)
-            
-            # Check required fields
-            for field in identity_fields:
-                if field['is_required'] and field['field_name'] not in identity_payload:
-                    return False
-                
-                # Validate regex if field is present
-                if field['field_name'] in identity_payload and field.get('validation_regex'):
-                    value = identity_payload[field['field_name']]
-                    if not re.match(field['validation_regex'], str(value)):
-                        return False
-            
-            return True
+            validator = GameValidationService()
+            result = validator.validate_identity(game_slug, identity_payload)
+            return result.is_valid
+        except ValueError as e:
+            # GameValidationService may raise ValueError for not found
+            if "not found" in str(e).lower():
+                raise GameConfigNotFoundError(str(e))
+            return False
         except GameConfigNotFoundError:
             return False
     
@@ -284,10 +277,9 @@ class GameAdapter(BaseAdapter):
         """
         Get scoring rules configuration for a game.
         
-        TODO: Query GameScoringRule model (Phase 2, Epic 2.1).
-        TODO: Return GameScoringRuleDTO instead of dict.
+        Uses GameService to query GameScoringRule model (Phase 2, Epic 2.1).
         
-        For Phase 1, returns default scoring config.
+        TODO: Return GameScoringRuleDTO instead of dict.
         
         Args:
             game_slug: Game identifier
@@ -295,24 +287,35 @@ class GameAdapter(BaseAdapter):
         Returns:
             Dict containing scoring rule config
         """
-        from apps.games.services.game_service import GameService
+        from apps.games.services.game_service import game_service
         from apps.tournament_ops.exceptions import GameConfigNotFoundError
         
         try:
-            game = GameService.get_game(game_slug)
-            if not game:
-                raise GameConfigNotFoundError(f"Game '{game_slug}' not found")
+            # Use GameService Phase 2 method to get scoring rules
+            scoring_rules = game_service.get_scoring_rules(game_slug)
             
-            # TODO: Query GameScoringRule.objects.get(game=game)
-            # For Phase 1, return default scoring config
+            if not scoring_rules:
+                # No scoring rules configured - return defaults
+                return {
+                    'points_per_win': 3,
+                    'points_per_draw': 1,
+                    'points_per_loss': 0,
+                    'tiebreaker_rules': ['head_to_head', 'game_differential', 'points_scored'],
+                }
+            
+            # Return first active rule (highest priority)
+            rule = scoring_rules[0]
             return {
-                'points_per_win': 3,
-                'points_per_draw': 1,
-                'points_per_loss': 0,
-                'tiebreaker_rules': ['head_to_head', 'game_differential', 'points_scored'],
+                'rule_type': rule.rule_type,
+                'config': rule.config,
+                'description': rule.description,
+                'priority': rule.priority,
             }
+        except ValueError as e:
+            # GameService raises ValueError for not found
+            raise GameConfigNotFoundError(str(e))
         except Exception as e:
-            if "not found" in str(e).lower() or "does not exist" in str(e).lower():
+            if "not found" in str(e).lower():
                 raise GameConfigNotFoundError(f"Game '{game_slug}' not found")
             raise
     

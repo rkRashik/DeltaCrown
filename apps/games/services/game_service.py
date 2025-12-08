@@ -9,7 +9,9 @@ from apps.games.models import (
     GameRosterConfig,
     GamePlayerIdentityConfig,
     GameTournamentConfig,
-    GameRole
+    GameRole,
+    GameMatchResultSchema,
+    GameScoringRule,
 )
 
 
@@ -320,6 +322,104 @@ class GameService:
         """Check if a game has defined roles."""
         config = GameService.get_roster_config(game)
         return config and config.has_roles
+
+    # ========== Phase 2: Configuration Getters ==========
+
+    @staticmethod
+    def get_player_identity_config(game_slug: str) -> List[GamePlayerIdentityConfig]:
+        """
+        Get player identity configuration for a game.
+
+        Args:
+            game_slug: Game slug (e.g., 'valorant')
+
+        Returns:
+            List of GamePlayerIdentityConfig instances
+
+        Raises:
+            ValueError: If game not found
+        """
+        game = GameService.get_game(game_slug)
+        if not game:
+            raise ValueError(f"Game '{game_slug}' not found")
+
+        return list(
+            GamePlayerIdentityConfig.objects.filter(game=game).order_by("order")
+        )
+
+    @staticmethod
+    def get_scoring_rules(game_slug: str) -> List[GameScoringRule]:
+        """
+        Get scoring rules for a game.
+
+        Args:
+            game_slug: Game slug
+
+        Returns:
+            List of GameScoringRule instances, ordered by priority (highest first)
+
+        Raises:
+            ValueError: If game not found
+        """
+        game = GameService.get_game(game_slug)
+        if not game:
+            raise ValueError(f"Game '{game_slug}' not found")
+
+        return list(
+            GameScoringRule.objects.filter(game=game, is_active=True).order_by(
+                "-priority", "rule_type"
+            )
+        )
+
+    @staticmethod
+    def get_tournament_config_by_slug(game_slug: str) -> Optional[GameTournamentConfig]:
+        """
+        Get tournament configuration by game slug.
+
+        Args:
+            game_slug: Game slug
+
+        Returns:
+            GameTournamentConfig instance or None
+
+        Raises:
+            ValueError: If game not found
+        """
+        game = GameService.get_game(game_slug)
+        if not game:
+            raise ValueError(f"Game '{game_slug}' not found")
+
+        return GameService.get_tournament_config(game)
+
+    @staticmethod
+    def get_match_schema(game_slug: str) -> List[GameMatchResultSchema]:
+        """
+        Get match result schema for a game.
+
+        Args:
+            game_slug: Game slug
+
+        Returns:
+            List of GameMatchResultSchema instances
+
+        Raises:
+            ValueError: If game not found
+
+        Example:
+            >>> schemas = game_service.get_match_schema('valorant')
+            >>> for schema in schemas:
+            ...     print(f"{schema.field_name}: {schema.field_type}")
+            rounds_won: integer
+            kills: integer
+            deaths: integer
+            assists: integer
+            acs: integer
+        """
+        game = GameService.get_game(game_slug)
+        if not game:
+            raise ValueError(f"Game '{game_slug}' not found")
+
+        return list(GameMatchResultSchema.objects.filter(game=game).order_by("field_name"))
 
 
 # Singleton instance

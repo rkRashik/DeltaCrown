@@ -50,8 +50,8 @@ class GamePlayerIdentityConfigDTO(DTOBase):
         """
         return cls(
             field_name=getattr(model, "field_name", model.get("field_name") if hasattr(model, "get") else ""),
-            display_label=getattr(model, "display_label", model.get("display_label") if hasattr(model, "get") else ""),
-            validation_pattern=getattr(model, "validation_pattern", model.get("validation_pattern") if hasattr(model, "get") else None),
+            display_label=getattr(model, "display_name", model.get("display_name") if hasattr(model, "get") else ""),
+            validation_pattern=getattr(model, "validation_regex", model.get("validation_regex") if hasattr(model, "get") else None),
             is_required=getattr(model, "is_required", model.get("is_required") if hasattr(model, "get") else False),
             is_immutable=getattr(model, "is_immutable", model.get("is_immutable") if hasattr(model, "get") else False),
             help_text=getattr(model, "help_text", model.get("help_text") if hasattr(model, "get") else ""),

@@ -101,6 +101,33 @@ class GameTournamentConfig(models.Model):
         help_text="Game-specific tournament configuration (JSON)"
     )
     
+    # === REGISTRATION REQUIREMENTS (Phase 2) ===
+    min_team_size = models.IntegerField(
+        default=1,
+        help_text="Minimum number of players per team"
+    )
+    max_team_size = models.IntegerField(
+        default=5,
+        help_text="Maximum number of players per team"
+    )
+    allow_cross_region = models.BooleanField(
+        default=False,
+        help_text="Whether teams can have players from different regions"
+    )
+    require_verified_email = models.BooleanField(
+        default=True,
+        help_text="Whether all players must have verified email addresses"
+    )
+    require_verified_phone = models.BooleanField(
+        default=False,
+        help_text="Whether all players must have verified phone numbers"
+    )
+    identity_requirements = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional identity validation requirements (e.g., {'min_account_level': 30})"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

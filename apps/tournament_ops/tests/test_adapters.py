@@ -560,17 +560,13 @@ class TestGameAdapter:
         with pytest.raises(GameConfigNotFoundError, match="Game 'unknown' not found"):
             self.adapter.get_game_config(game_slug="unknown")
 
-    @patch('apps.games.models.GamePlayerIdentityConfig.objects')
-    @patch('apps.games.services.game_service.GameService')
-    def test_get_identity_fields_returns_list_of_dicts(
-        self, mock_service_class, mock_identity_objects
-    ):
-        """Test get_identity_fields() returns list of identity field configs."""
+    @patch('apps.games.services.game_service.game_service')
+    def test_get_identity_fields_returns_list_of_dtos(self, mock_game_service):
+        """Test get_identity_fields() calls GameService and returns GamePlayerIdentityConfigDTO list."""
         # Arrange
-        mock_game = Mock()
-        mock_game.id = 1
-        mock_game.slug = "valorant"
+        from apps.tournament_ops.dtos.game_identity import GamePlayerIdentityConfigDTO
 
+        # Mock GamePlayerIdentityConfig model instances
         mock_identity_config = Mock()
         mock_identity_config.field_name = "riot_id"
         mock_identity_config.display_name = "Riot ID"
@@ -578,9 +574,10 @@ class TestGameAdapter:
         mock_identity_config.is_required = True
         mock_identity_config.validation_regex = r"^[a-zA-Z0-9]+#[a-zA-Z0-9]+$"
         mock_identity_config.help_text = "Your Riot ID (e.g., Player#NA1)"
+        mock_identity_config.placeholder = "Player#NA1"
+        mock_identity_config.is_immutable = False
 
-        mock_service_class.get_game.return_value = mock_game
-        mock_identity_objects.filter.return_value = [mock_identity_config]
+        mock_game_service.get_player_identity_config.return_value = [mock_identity_config]
 
         # Act
         result = self.adapter.get_identity_fields(game_slug="valorant")
@@ -588,31 +585,25 @@ class TestGameAdapter:
         # Assert
         assert isinstance(result, list)
         assert len(result) == 1
+        # Result is dict for backward compatibility
         assert result[0]['field_name'] == "riot_id"
+        assert result[0]['display_label'] == "Riot ID"
         assert result[0]['is_required'] is True
-        mock_identity_objects.filter.assert_called_once_with(game=mock_game)
+        assert result[0]['is_immutable'] is False
+        mock_game_service.get_player_identity_config.assert_called_once_with("valorant")
 
-    @patch('apps.games.models.GamePlayerIdentityConfig.objects')
-    @patch('apps.games.services.game_service.GameService')
-    def test_validate_game_identity_success(
-        self, mock_service_class, mock_identity_objects
-    ):
-        """Test validate_game_identity() returns True for valid identity data."""
+    @patch('apps.games.services.validation_service.GameValidationService')
+    def test_validate_game_identity_success(self, mock_validation_service_class):
+        """Test validate_game_identity() delegates to GameValidationService and returns True for valid data."""
         # Arrange
-        mock_game = Mock()
-        mock_game.id = 1
-        mock_game.slug = "valorant"
+        from apps.tournament_ops.dtos.common import ValidationResult
 
-        mock_identity_config = Mock()
-        mock_identity_config.field_name = "riot_id"
-        mock_identity_config.display_name = "Riot ID"
-        mock_identity_config.field_type = "text"
-        mock_identity_config.is_required = True
-        mock_identity_config.validation_regex = r"^[a-zA-Z0-9]+#[a-zA-Z0-9]+$"
-        mock_identity_config.help_text = "Your Riot ID"
+        mock_validation_service = Mock()
+        mock_validation_service_class.return_value = mock_validation_service
 
-        mock_service_class.get_game.return_value = mock_game
-        mock_identity_objects.filter.return_value = [mock_identity_config]
+        # Mock successful validation
+        validation_result = ValidationResult(is_valid=True, errors=[])
+        mock_validation_service.validate_identity.return_value = validation_result
 
         identity_payload = {"riot_id": "Player123#NA1"}
 
@@ -624,28 +615,27 @@ class TestGameAdapter:
 
         # Assert
         assert result is True
+        mock_validation_service.validate_identity.assert_called_once_with(
+            "valorant", identity_payload
+        )
 
-    @patch('apps.games.models.GamePlayerIdentityConfig.objects')
-    @patch('apps.games.services.game_service.GameService')
+    @patch('apps.games.services.validation_service.GameValidationService')
     def test_validate_game_identity_fails_on_missing_required_field(
-        self, mock_service_class, mock_identity_objects
+        self, mock_validation_service_class
     ):
         """Test validate_game_identity() returns False when required field missing."""
         # Arrange
-        mock_game = Mock()
-        mock_game.id = 1
-        mock_game.slug = "valorant"
+        from apps.tournament_ops.dtos.common import ValidationResult
 
-        mock_identity_config = Mock()
-        mock_identity_config.field_name = "riot_id"
-        mock_identity_config.display_name = "Riot ID"
-        mock_identity_config.field_type = "text"
-        mock_identity_config.is_required = True
-        mock_identity_config.validation_regex = r"^[a-zA-Z0-9]+#[a-zA-Z0-9]+$"
-        mock_identity_config.help_text = "Your Riot ID"
+        mock_validation_service = Mock()
+        mock_validation_service_class.return_value = mock_validation_service
 
-        mock_service_class.get_game.return_value = mock_game
-        mock_identity_objects.filter.return_value = [mock_identity_config]
+        # Mock validation failure
+        validation_result = ValidationResult(
+            is_valid=False,
+            errors=["Missing required field: riot_id"]
+        )
+        mock_validation_service.validate_identity.return_value = validation_result
 
         identity_payload = {}  # MISSING REQUIRED FIELD
 
@@ -657,28 +647,27 @@ class TestGameAdapter:
 
         # Assert
         assert result is False
+        mock_validation_service.validate_identity.assert_called_once_with(
+            "valorant", identity_payload
+        )
 
-    @patch('apps.games.models.GamePlayerIdentityConfig.objects')
-    @patch('apps.games.services.game_service.GameService')
+    @patch('apps.games.services.validation_service.GameValidationService')
     def test_validate_game_identity_fails_on_regex_mismatch(
-        self, mock_service_class, mock_identity_objects
+        self, mock_validation_service_class
     ):
         """Test validate_game_identity() returns False when regex validation fails."""
         # Arrange
-        mock_game = Mock()
-        mock_game.id = 1
-        mock_game.slug = "valorant"
+        from apps.tournament_ops.dtos.common import ValidationResult
 
-        mock_identity_config = Mock()
-        mock_identity_config.field_name = "riot_id"
-        mock_identity_config.display_name = "Riot ID"
-        mock_identity_config.field_type = "text"
-        mock_identity_config.is_required = True
-        mock_identity_config.validation_regex = r"^[a-zA-Z0-9]+#[a-zA-Z0-9]+$"
-        mock_identity_config.help_text = "Your Riot ID"
+        mock_validation_service = Mock()
+        mock_validation_service_class.return_value = mock_validation_service
 
-        mock_service_class.get_game.return_value = mock_game
-        mock_identity_objects.filter.return_value = [mock_identity_config]
+        # Mock validation failure due to regex mismatch
+        validation_result = ValidationResult(
+            is_valid=False,
+            errors=["Field 'riot_id' does not match required pattern"]
+        )
+        mock_validation_service.validate_identity.return_value = validation_result
 
         identity_payload = {"riot_id": "InvalidFormat"}  # MISSING #TAG
 
@@ -690,7 +679,9 @@ class TestGameAdapter:
 
         # Assert
         assert result is False
-
+        mock_validation_service.validate_identity.assert_called_once_with(
+            "valorant", identity_payload
+        )
     @patch('apps.games.services.game_service.GameService')
     def test_get_supported_formats_returns_list(self, mock_service_class):
         """Test get_supported_formats() returns list of format strings."""
@@ -711,24 +702,74 @@ class TestGameAdapter:
         assert 'double_elimination' in result
         assert len(result) > 0
 
-    @patch('apps.games.services.game_service.GameService')
-    def test_get_scoring_rules_returns_dict(self, mock_service_class):
-        """Test get_scoring_rules() returns scoring config dict."""
+    @patch('apps.games.services.game_service.game_service')
+    def test_get_scoring_rules_returns_dict_from_service(self, mock_game_service):
+        """Test get_scoring_rules() delegates to GameService and returns scoring config dict."""
         # Arrange
-        mock_game = Mock()
-        mock_game.id = 1
-        mock_game.slug = "valorant"
-
-        mock_service_class.get_game.return_value = mock_game
+        mock_rule = Mock()
+        mock_rule.rule_type = "win_loss"
+        mock_rule.config = {'points_per_win': 3, 'points_per_draw': 1, 'points_per_loss': 0}
+        mock_rule.description = "Standard 3-1-0 scoring"
+        mock_rule.priority = 1
+        
+        mock_game_service.get_scoring_rules.return_value = [mock_rule]
 
         # Act
         result = self.adapter.get_scoring_rules(game_slug="valorant")
 
         # Assert
         assert isinstance(result, dict)
-        assert 'points_per_win' in result
-        assert 'points_per_draw' in result
-        assert 'tiebreaker_rules' in result
+        assert result['rule_type'] == "win_loss"
+        assert result['config'] == {'points_per_win': 3, 'points_per_draw': 1, 'points_per_loss': 0}
+        assert result['priority'] == 1
+        mock_game_service.get_scoring_rules.assert_called_once_with("valorant")
+
+    @patch('apps.games.services.game_service.game_service')
+    def test_get_identity_fields_raises_game_config_not_found(self, mock_game_service):
+        """Test get_identity_fields() raises GameConfigNotFoundError when game doesn't exist."""
+        # Arrange
+        from apps.tournament_ops.exceptions import GameConfigNotFoundError
+
+        mock_game_service.get_player_identity_config.side_effect = GameConfigNotFoundError("Game 'unknown' not found")
+
+        # Act & Assert
+        with pytest.raises(GameConfigNotFoundError, match="Game 'unknown' not found"):
+            self.adapter.get_identity_fields(game_slug="unknown")
+
+    @patch('apps.games.services.validation_service.GameValidationService')
+    def test_validate_game_identity_returns_false_on_value_error(
+        self, mock_validation_service_class
+    ):
+        """Test validate_game_identity() returns False when service raises ValueError."""
+        # Arrange
+        mock_validation_service = Mock()
+        mock_validation_service_class.return_value = mock_validation_service
+        mock_validation_service.validate_identity.side_effect = ValueError("Invalid config")
+
+        identity_payload = {"riot_id": "Player123#NA1"}
+
+        # Act
+        result = self.adapter.validate_game_identity(
+            game_slug="valorant",
+            identity_payload=identity_payload
+        )
+
+        # Assert
+        assert result is False
+
+    @patch('apps.games.services.game_service.game_service')
+    def test_get_identity_fields_returns_empty_list_when_no_config(self, mock_game_service):
+        """Test get_identity_fields() returns empty list when game has no identity config."""
+        # Arrange
+        mock_game_service.get_player_identity_config.return_value = []
+
+        # Act
+        result = self.adapter.get_identity_fields(game_slug="valorant")
+
+        # Assert
+        assert isinstance(result, list)
+        assert len(result) == 0
+        mock_game_service.get_player_identity_config.assert_called_once_with("valorant")
 
     @patch('apps.games.models.Game.objects')
     def test_check_health_returns_true_when_accessible(self, mock_game_objects):

@@ -43,6 +43,10 @@ class GamePlayerIdentityConfig(models.Model):
         default=True,
         help_text="Is this field mandatory?"
     )
+    is_immutable = models.BooleanField(
+        default=False,
+        help_text="Can this field be changed after initial setup?"
+    )
     validation_regex = models.CharField(
         max_length=500,
         blank=True,
