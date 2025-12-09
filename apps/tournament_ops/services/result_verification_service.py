@@ -29,7 +29,7 @@ from apps.tournament_ops.adapters import (
 )
 from apps.tournament_ops.services.match_service import MatchService
 from apps.tournament_ops.exceptions import (
-    SubmissionError,
+    ResultSubmissionError,
     InvalidSubmissionStateError,
 )
 
@@ -348,12 +348,12 @@ class ResultVerificationService:
             tournament = match_obj.tournament
             
             if not tournament or not tournament.game:
-                raise SubmissionError(f"Match {submission.match_id} has no associated game")
+                raise ResultSubmissionError(f"Match {submission.match_id} has no associated game")
             
             return tournament.game.slug
         except Exception as e:
             logger.error(f"Error getting game_slug for submission {submission.id}: {e}")
-            raise SubmissionError(f"Could not determine game for submission {submission.id}") from e
+            raise ResultSubmissionError(f"Could not determine game for submission {submission.id}") from e
     
     def _apply_final_scores_to_match(
         self,
@@ -403,7 +403,7 @@ class ResultVerificationService:
             return match_dto
         except Exception as e:
             logger.error(f"Error finalizing match {match_id}: {e}")
-            raise SubmissionError(f"Failed to finalize match {match_id}") from e
+            raise ResultSubmissionError(f"Failed to finalize match {match_id}") from e
     
     def _resolve_any_dispute_for_submission(
         self,

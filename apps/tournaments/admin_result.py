@@ -1,6 +1,17 @@
 """
 Tournament Result Admin
 
+⚠️ LEGACY: This Django admin customization is DEPRECATED as of Phase 7, Epic 7.6.
+The new Results Inbox (Epic 7.1) and Organizer Console provide superior UX for result management.
+
+This file is retained ONLY for:
+1. Emergency administrative access (super admin use only)
+2. Backward compatibility
+3. Winner determination audit trail inspection
+
+SCHEDULED FOR REMOVAL: Phase 8+
+REPLACEMENT: Results Inbox & Queue Management (Epic 7.1)
+
 Admin interface for viewing tournament results and winner determination audit trails.
 
 Related Planning:

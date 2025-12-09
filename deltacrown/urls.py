@@ -60,6 +60,18 @@ urlpatterns = [
     # Module 3.1: Registration Flow & Validation API
     path("api/tournaments/", include("apps.tournaments.api.urls")),
     
+    # Phase 7, Epic 7.3: Staff & Referee Role System API
+    path("api/staffing/", include("apps.api.urls.tournament_staffing_urls")),
+    
+    # Phase 7, Epic 7.4: Match Operations Command Center API
+    path("api/match-ops/", include("apps.api.urls.match_ops_urls")),
+    
+    # Phase 7, Epic 7.5: Audit Log System API
+    path("api/audit-logs/", include("apps.api.urls.audit_log_urls")),
+    
+    # Phase 7, Epic 7.6: Help & Onboarding API
+    path("api/organizer/help/", include("apps.api.urls.help_urls")),
+    
     # Module 3.3: Team Management API
     path("api/teams/", include("apps.teams.api.urls")),
     

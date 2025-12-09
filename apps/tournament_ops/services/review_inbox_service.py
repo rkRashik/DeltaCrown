@@ -25,7 +25,7 @@ from apps.tournament_ops.adapters import (
 )
 from apps.tournament_ops.services.match_service import MatchService
 from apps.tournament_ops.exceptions import (
-    SubmissionError,
+    ResultSubmissionError,
     InvalidSubmissionStateError,
 )
 
@@ -80,10 +80,13 @@ class ReviewInboxService:
     def list_review_items(
         self,
         tournament_id: Optional[int] = None,
+        filters: Optional[Dict[str, Any]] = None,
         sort_by_priority: bool = True,
     ) -> List[OrganizerReviewItemDTO]:
         """
         List all submissions requiring organizer attention.
+        
+        Updated in Epic 7.1: Added filters parameter for multi-tournament support.
         
         Workflow:
         1. Fetch 4 categories:
@@ -91,45 +94,86 @@ class ReviewInboxService:
            - Disputed submissions (opponent disputed result)
            - Overdue auto-confirm (past deadline)
            - Ready for finalization (confirmed but not finalized)
-        2. Create OrganizerReviewItemDTO for each
+        2. Create OrganizerReviewItemDTO for each (with tournament_name)
         3. Compute priority
         4. Sort by priority (desc) and date
         5. Return list
         
         Args:
             tournament_id: Optional tournament filter
+            filters: Optional filter dict (status, date_from, date_to, etc.)
             sort_by_priority: If True, sort by priority (desc) then date
             
         Returns:
             List[OrganizerReviewItemDTO]
             
         Reference: Phase 6, Epic 6.3 - List Review Items
+        Reference: Phase 7, Epic 7.1 - Multi-Tournament Filters
         """
         items = []
         
+        # Extract date filters
+        since = filters.get('date_from') if filters else None
+        
         # Category 1: Pending submissions
-        pending = self.review_inbox_adapter.get_pending_submissions(tournament_id)
+        pending = self.review_inbox_adapter.get_pending_submissions(
+            tournament_id,
+            since=since
+        )
         for submission in pending:
-            item = OrganizerReviewItemDTO.from_submission_and_dispute(submission, None)
+            tournament_name = self._get_tournament_name(submission.tournament_id)
+            item = OrganizerReviewItemDTO.from_submission_and_dispute(
+                submission,
+                None,
+                tournament_name=tournament_name
+            )
             items.append(item)
         
         # Category 2: Disputed submissions
-        disputed = self.review_inbox_adapter.get_disputed_submissions(tournament_id)
+        disputed = self.review_inbox_adapter.get_disputed_submissions(
+            tournament_id,
+            since=since
+        )
         for submission, dispute in disputed:
-            item = OrganizerReviewItemDTO.from_submission_and_dispute(submission, dispute)
+            tournament_name = self._get_tournament_name(submission.tournament_id)
+            item = OrganizerReviewItemDTO.from_submission_and_dispute(
+                submission,
+                dispute,
+                tournament_name=tournament_name
+            )
             items.append(item)
         
         # Category 3: Overdue auto-confirm
         overdue = self.review_inbox_adapter.get_overdue_auto_confirm(tournament_id)
         for submission in overdue:
-            item = OrganizerReviewItemDTO.from_submission_and_dispute(submission, None)
+            tournament_name = self._get_tournament_name(submission.tournament_id)
+            item = OrganizerReviewItemDTO.from_submission_and_dispute(
+                submission,
+                None,
+                tournament_name=tournament_name
+            )
             items.append(item)
         
         # Category 4: Ready for finalization
         ready = self.review_inbox_adapter.get_ready_for_finalization(tournament_id)
         for submission in ready:
-            item = OrganizerReviewItemDTO.from_submission_and_dispute(submission, None)
+            tournament_name = self._get_tournament_name(submission.tournament_id)
+            item = OrganizerReviewItemDTO.from_submission_and_dispute(
+                submission,
+                None,
+                tournament_name=tournament_name
+            )
             items.append(item)
+        
+        # Apply additional filters if provided
+        if filters:
+            if 'status' in filters and filters['status']:
+                items = [item for item in items if item.status in filters['status']]
+            if 'dispute_status' in filters and filters['dispute_status']:
+                items = [
+                    item for item in items
+                    if item.dispute_status and item.dispute_status in filters['dispute_status']
+                ]
         
         # Sort by priority (desc) and auto_confirm_deadline (asc)
         if sort_by_priority:
@@ -555,3 +599,164 @@ class ReviewInboxService:
             resolution_notes=notes,
             custom_result_payload=None,
         )
+    
+    # =========================================================================
+    # Phase 7, Epic 7.1: Multi-Tournament & Bulk Actions
+    # =========================================================================
+    
+    def list_review_items_for_organizer(
+        self,
+        organizer_user_id: int,
+        filters: Optional[Dict[str, Any]] = None,
+        sort_by_priority: bool = True,
+    ) -> List[OrganizerReviewItemDTO]:
+        """
+        List review items for a specific organizer across all tournaments.
+        
+        Args:
+            organizer_user_id: Organizer user ID
+            filters: Optional filter dict (status, date_from, date_to, etc.)
+            sort_by_priority: If True, sort by priority (desc) then age
+            
+        Returns:
+            List[OrganizerReviewItemDTO] across all organizer's tournaments
+            
+        Reference: Phase 7, Epic 7.1 - Multi-Tournament Organizer View
+        """
+        from apps.tournament_ops.dtos import OrganizerInboxFilterDTO
+        
+        # Build filter DTO
+        filter_dto = OrganizerInboxFilterDTO(
+            tournament_id=filters.get('tournament_id') if filters else None,
+            organizer_user_id=organizer_user_id,
+            status=filters.get('status') if filters else None,
+            dispute_status=filters.get('dispute_status') if filters else None,
+            date_from=filters.get('date_from') if filters else None,
+            date_to=filters.get('date_to') if filters else None,
+        )
+        
+        # Get submissions via adapter
+        submissions = self.review_inbox_adapter.get_review_items_by_filters(filter_dto)
+        
+        # Convert to review items with tournament names
+        items = []
+        for submission in submissions:
+            # Get tournament name (simplified for now, real impl would batch this)
+            tournament_name = self._get_tournament_name(submission.tournament_id)
+            
+            # Get dispute if any
+            dispute = None
+            if submission.status == 'disputed':
+                try:
+                    dispute = self.dispute_adapter.get_open_dispute_for_submission(
+                        submission.id
+                    )
+                except Exception:
+                    pass
+            
+            item = OrganizerReviewItemDTO.from_submission_and_dispute(
+                submission,
+                dispute,
+                tournament_name=tournament_name,
+            )
+            items.append(item)
+        
+        # Sort by priority and age
+        if sort_by_priority:
+            items.sort(key=lambda x: (x.priority, -x.age_in_hours()))
+        
+        return items
+    
+    def bulk_finalize_submissions(
+        self,
+        submission_ids: List[int],
+        resolved_by_user_id: int,
+    ) -> Dict[str, Any]:
+        """
+        Bulk finalize multiple submissions.
+        
+        Args:
+            submission_ids: List of submission IDs to finalize
+            resolved_by_user_id: Organizer user ID
+            
+        Returns:
+            Dict with 'processed', 'failed', 'items' keys
+            
+        Reference: Phase 7, Epic 7.1 - Bulk Actions
+        """
+        results = {
+            'processed': 0,
+            'failed': [],
+            'items': [],
+        }
+        
+        for submission_id in submission_ids:
+            try:
+                finalized = self.finalize_submission(submission_id, resolved_by_user_id)
+                results['processed'] += 1
+                results['items'].append(finalized)
+            except Exception as e:
+                results['failed'].append({
+                    'submission_id': submission_id,
+                    'error': str(e),
+                })
+        
+        return results
+    
+    def bulk_reject_submissions(
+        self,
+        submission_ids: List[int],
+        resolved_by_user_id: int,
+        notes: str = "",
+    ) -> Dict[str, Any]:
+        """
+        Bulk reject multiple submissions.
+        
+        Args:
+            submission_ids: List of submission IDs to reject
+            resolved_by_user_id: Organizer user ID
+            notes: Rejection notes
+            
+        Returns:
+            Dict with 'processed', 'failed', 'items' keys
+            
+        Reference: Phase 7, Epic 7.1 - Bulk Actions
+        """
+        results = {
+            'processed': 0,
+            'failed': [],
+            'items': [],
+        }
+        
+        for submission_id in submission_ids:
+            try:
+                rejected = self.reject_submission(submission_id, resolved_by_user_id, notes)
+                results['processed'] += 1
+                results['items'].append(rejected)
+            except Exception as e:
+                results['failed'].append({
+                    'submission_id': submission_id,
+                    'error': str(e),
+                })
+        
+        return results
+    
+    def _get_tournament_name(self, tournament_id: int) -> Optional[str]:
+        """
+        Helper to get tournament name.
+        
+        TODO: Optimize with batch loading or caching for multi-tournament views.
+        
+        Args:
+            tournament_id: Tournament ID
+            
+        Returns:
+            Tournament name or None
+        """
+        try:
+            # Method-level import to avoid ORM coupling
+            from apps.tournaments.models import Tournament
+            tournament = Tournament.objects.get(id=tournament_id)
+            return tournament.name
+        except Exception:
+            return None

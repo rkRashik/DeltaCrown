@@ -1,6 +1,17 @@
 """
 Tournament Staff Management - Django Admin Configuration
 
+⚠️ LEGACY: This Django admin customization is DEPRECATED as of Phase 7, Epic 7.6.
+The new Staffing Management (Epic 7.3) and Organizer Console provide superior UX for staff role/assignment management.
+
+This file is retained ONLY for:
+1. Emergency administrative access (super admin use only)
+2. Backward compatibility
+3. System role management (until fully migrated to Organizer Console)
+
+SCHEDULED FOR REMOVAL: Phase 8+
+REPLACEMENT: Staffing Management UI (Epic 7.3)
+
 Provides admin interfaces for managing tournament staff roles and assignments.
 """
 

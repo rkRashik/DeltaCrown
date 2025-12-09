@@ -64,6 +64,15 @@ from .staff import (
     TournamentStaff,  # Staff assignments to tournaments
     StaffPermissionChecker,  # Utility for permission checking
 )
+from .staffing import (
+    StaffRole,  # Phase 7 Epic 7.3: Capability-based staff roles
+    TournamentStaffAssignment,  # Phase 7 Epic 7.3: Per-tournament staff assignments
+    MatchRefereeAssignment,  # Phase 7 Epic 7.3: Per-match referee assignments
+)
+from .match_ops import (
+    MatchOperationLog,  # Phase 7 Epic 7.4: Match operations audit log
+    MatchModeratorNote,  # Phase 7 Epic 7.4: Staff/referee notes on matches
+)
 from .announcement import (
     TournamentAnnouncement,  # Tournament announcements for participants
 )
@@ -148,4 +157,15 @@ __all__ = [
     'RegistrationDraft',
     'RegistrationAnswer',
     'RegistrationRule',
+    'MatchResultSubmission',
+    'ResultVerificationLog',
+    'DisputeRecord',
+    'DisputeEvidence',
+    # Phase 7 Epic 7.3: Staff & Referee System
+    'StaffRole',
+    'TournamentStaffAssignment',
+    'MatchRefereeAssignment',
+    # Phase 7 Epic 7.4: Match Operations Command Center
+    'MatchOperationLog',
+    'MatchModeratorNote',
 ]

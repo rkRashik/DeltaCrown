@@ -1,6 +1,20 @@
 """
 Django Admin interfaces for Match and Dispute models (Module 1.4)
 
+⚠️ LEGACY: This Django admin customization is DEPRECATED as of Phase 7, Epic 7.6.
+The new Organizer Console (Phase 7, Epics 7.1-7.6) provides a superior UX for:
+- Match Operations Command Center (Epic 7.4): Real-time match control, operations dashboard
+- Results Inbox & Queue Management (Epic 7.1): Result review and approval workflows
+- Dispute Resolution Module (Phase 6, Epic 6.5): Advanced dispute handling
+
+This file is retained ONLY for:
+1. Emergency administrative access (super admin use only)
+2. Backward compatibility during Phase 7 transition
+3. Data inspection/debugging (not end-user workflows)
+
+SCHEDULED FOR REMOVAL: Phase 8+
+REPLACEMENT: Organizer Console (Epics 7.1, 7.4) + Dispute Resolution UI (Epic 6.5)
+
 Source Documents:
 - Documents/Planning/PART_4.3_TOURNAMENT_MANAGEMENT_SCREENS.md (Admin UI requirements)
 - Documents/Planning/PART_2.2_SERVICES_INTEGRATION.md (Admin integration patterns)

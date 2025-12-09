@@ -11,7 +11,7 @@ Architecture:
 """
 
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Protocol, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
 from apps.tournament_ops.dtos import MatchResultSubmissionDTO
 from apps.tournament_ops.exceptions import (

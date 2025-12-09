@@ -23,10 +23,14 @@ class MatchResultSubmissionDTO(DTOBase):
     
     Represents a player/team-submitted match result with proof,
     pending opponent confirmation or auto-confirmation after 24h.
+    
+    Updated in Phase 7, Epic 7.1: Added tournament_id and stage_id for multi-tournament inbox support.
     """
     
     id: int
     match_id: int
+    tournament_id: int  # Phase 7, Epic 7.1: For multi-tournament filtering
+    stage_id: Optional[int]  # Phase 7, Epic 7.1: For stage-specific queries
     submitted_by_user_id: int
     submitted_by_team_id: Optional[int]
     raw_result_payload: Dict[str, Any]
@@ -54,6 +58,8 @@ class MatchResultSubmissionDTO(DTOBase):
         return cls(
             id=model.id,
             match_id=model.match_id,
+            tournament_id=model.tournament_id,
+            stage_id=model.stage_id,
             submitted_by_user_id=model.submitted_by_user_id,
             submitted_by_team_id=model.submitted_by_team_id,
             raw_result_payload=model.raw_result_payload,

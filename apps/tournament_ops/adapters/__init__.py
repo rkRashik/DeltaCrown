@@ -33,6 +33,10 @@ from .schema_validation_adapter import SchemaValidationAdapter, SchemaValidation
 from .dispute_adapter import DisputeAdapter, DisputeAdapterProtocol
 from .review_inbox_adapter import ReviewInboxAdapter, ReviewInboxAdapterProtocol
 from .notification_adapter import NotificationAdapter, NotificationAdapterProtocol
+from .staffing_adapter import StaffingAdapter
+from .match_ops_adapter import MatchOpsAdapter
+from .audit_log_adapter import AuditLogAdapter, AuditLogAdapterProtocol
+from .help_content_adapter import HelpContentAdapter, HelpContentAdapterProtocol
 
 __all__ = [
     'BaseAdapter',
@@ -61,4 +65,10 @@ __all__ = [
     'ReviewInboxAdapterProtocol',
     'NotificationAdapter',
     'NotificationAdapterProtocol',
+    'StaffingAdapter',
+    'MatchOpsAdapter',
+    'AuditLogAdapter',
+    'AuditLogAdapterProtocol',
+    'HelpContentAdapter',
+    'HelpContentAdapterProtocol',
 ]

@@ -16,6 +16,10 @@ from .result_submission_service import ResultSubmissionService
 from .dispute_service import DisputeService
 from .review_inbox_service import ReviewInboxService
 from .result_verification_service import ResultVerificationService, ResultVerificationFailedError
+from .match_ops_service import MatchOpsService
+from .audit_log_service import AuditLogService
+from .help_service import HelpAndOnboardingService
+from .tournament_ops_service import TournamentOpsService
 
 __all__ = [
     "RegistrationService",
@@ -27,4 +31,8 @@ __all__ = [
     "ReviewInboxService",
     "ResultVerificationService",
     "ResultVerificationFailedError",
+    "MatchOpsService",
+    "AuditLogService",
+    "HelpAndOnboardingService",
+    "TournamentOpsService",
 ]

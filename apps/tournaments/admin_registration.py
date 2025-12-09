@@ -1,6 +1,17 @@
 """
 Django admin interfaces for Tournament Registration and Payment models.
 
+⚠️ LEGACY: This Django admin customization is DEPRECATED as of Phase 7, Epic 7.6.
+The new Smart Registration System (Phase 5) and Organizer Console (Phase 7) provide superior UX.
+
+This file is retained ONLY for:
+1. Emergency administrative access (super admin use only)
+2. Backward compatibility
+3. Data inspection/debugging (not end-user workflows)
+
+SCHEDULED FOR REMOVAL: Phase 8+
+REPLACEMENT: Smart Registration UI (Phase 5) + Organizer Console (Phase 7)
+
 Source Documents:
 - Documents/Planning/PART_4.4_REGISTRATION_PAYMENT_FLOW.md (Admin UI for payment verification)
 - Documents/Planning/PART_3.1_DATABASE_DESIGN_ERD.md (Section 4: Registration & Payment Models)
