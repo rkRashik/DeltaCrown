@@ -115,6 +115,45 @@ class AdapterHealthCheckError(TournamentOpsError):
 # ==============================================================================
 
 
+class RegistrationError(TournamentOpsError):
+    """
+    Generic registration error for Phase 4 workflows.
+
+    Raised when a registration operation fails due to business logic violations,
+    validation errors, or invalid state transitions.
+
+    Reference: Phase 4, Epic 4.1 (Registration Orchestration)
+    """
+
+    pass
+
+
+class EligibilityError(TournamentOpsError):
+    """
+    Raised when a team or user fails eligibility checks during registration.
+
+    This indicates that the team/user does not meet the requirements to register
+    for a tournament (e.g., banned, wrong game, team size mismatch).
+
+    Reference: Phase 4, Epic 4.1 (Registration Orchestration)
+    """
+
+    pass
+
+
+class PaymentError(TournamentOpsError):
+    """
+    Raised when a payment operation fails during registration.
+
+    This can occur due to insufficient balance, payment verification failures,
+    or invalid payment parameters.
+
+    Reference: Phase 4, Epic 4.1 (Payment Integration)
+    """
+
+    pass
+
+
 class RegistrationAlreadyExistsError(TournamentOpsError):
     """
     Raised when attempting to create a duplicate registration.
@@ -203,7 +242,7 @@ class MatchNotFoundError(TournamentOpsError):
 
     This indicates that a requested match_id does not exist.
 
-    Reference: Phase 6, Epic 6.1 (Result Submission)
+    Reference: Phase 4, Epic 4.3 (Match Lifecycle Management)
     """
 
     pass
@@ -216,8 +255,25 @@ class InvalidMatchStateError(TournamentOpsError):
     For example:
     - Trying to report results for a completed match
     - Trying to void a pending match
+    - Trying to schedule a match that's already live
 
-    Reference: Phase 6, Epic 6.1 (Result Submission)
+    Reference: Phase 4, Epic 4.3 (Match Lifecycle Management)
+    """
+
+    pass
+
+
+class MatchLifecycleError(TournamentOpsError):
+    """
+    Raised when a match lifecycle operation fails.
+
+    This can occur due to:
+    - Invalid result payload (schema validation failure)
+    - Missing participants in match
+    - Invalid score data
+    - Business logic violations
+
+    Reference: Phase 4, Epic 4.3 (Match Lifecycle Management)
     """
 
     pass

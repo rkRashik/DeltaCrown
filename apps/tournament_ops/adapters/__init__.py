@@ -25,6 +25,8 @@ from .team_adapter import TeamAdapter, TeamAdapterProtocol
 from .user_adapter import UserAdapter, UserAdapterProtocol
 from .game_adapter import GameAdapter, GameAdapterProtocol
 from .economy_adapter import EconomyAdapter, EconomyAdapterProtocol
+from .tournament_adapter import TournamentAdapter, TournamentAdapterProtocol
+from .match_adapter import MatchAdapter, MatchAdapterProtocol
 
 __all__ = [
     'BaseAdapter',
@@ -37,4 +39,8 @@ __all__ = [
     'GameAdapterProtocol',
     'EconomyAdapter',
     'EconomyAdapterProtocol',
+    'TournamentAdapter',
+    'TournamentAdapterProtocol',
+    'MatchAdapter',
+    'MatchAdapterProtocol',
 ]
