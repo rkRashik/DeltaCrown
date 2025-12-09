@@ -27,6 +27,7 @@ from apps.tournament_ops.dtos import RegistrationDTO, PaymentResultDTO, Eligibil
 from apps.tournament_ops.services.registration_service import RegistrationService
 from apps.tournament_ops.services.payment_service import PaymentOrchestrationService
 from apps.tournament_ops.services.tournament_lifecycle_service import TournamentLifecycleService
+from apps.tournament_ops.services.result_submission_service import ResultSubmissionService
 from apps.tournament_ops.exceptions import (
     RegistrationError,
     EligibilityError,
@@ -62,6 +63,7 @@ class TournamentOpsService:
         registration_service: Optional[RegistrationService] = None,
         payment_service: Optional[PaymentOrchestrationService] = None,
         lifecycle_service: Optional[TournamentLifecycleService] = None,
+        result_submission_service: Optional[ResultSubmissionService] = None,
         team_adapter: Optional[TeamAdapter] = None,
         user_adapter: Optional[UserAdapter] = None,
         game_adapter: Optional[GameAdapter] = None,
@@ -75,6 +77,7 @@ class TournamentOpsService:
             registration_service: Registration workflow service (injected for testability).
             payment_service: Payment orchestration service (injected for testability).
             lifecycle_service: Tournament lifecycle service (injected for testability).
+            result_submission_service: Result submission service (injected for testability).
             team_adapter: Team data adapter.
             user_adapter: User data adapter.
             game_adapter: Game rules adapter.
@@ -87,6 +90,7 @@ class TournamentOpsService:
         self._registration_service = registration_service
         self._payment_service = payment_service
         self._lifecycle_service = lifecycle_service
+        self._result_submission_service = result_submission_service
 
         # Adapters (lazy initialization if None)
         self._team_adapter = team_adapter
@@ -132,6 +136,77 @@ class TournamentOpsService:
         return self._lifecycle_service
 
     @property
+    def result_submission_service(self) -> ResultSubmissionService:
+        """Lazy initialization of ResultSubmissionService (Phase 6, Epic 6.1)."""
+        if self._result_submission_service is None:
+            from apps.tournament_ops.adapters import (
+                ResultSubmissionAdapter,
+                SchemaValidationAdapter,
+                MatchAdapter,
+                DisputeAdapter,
+            )
+            self._result_submission_service = ResultSubmissionService(
+                result_submission_adapter=ResultSubmissionAdapter(),
+                schema_validation_adapter=SchemaValidationAdapter(),
+                match_adapter=MatchAdapter(),
+                game_adapter=self.game_adapter,
+                dispute_adapter=DisputeAdapter(),
+            )
+        return self._result_submission_service
+
+    @property
+    def dispute_service(self):
+        """Lazy initialization of DisputeService (Phase 6, Epic 6.2 & 6.5)."""
+        if not hasattr(self, '_dispute_service') or self._dispute_service is None:
+            from apps.tournament_ops.services import DisputeService
+            from apps.tournament_ops.adapters import DisputeAdapter, ResultSubmissionAdapter
+            self._dispute_service = DisputeService(
+                dispute_adapter=DisputeAdapter(),
+                result_submission_adapter=ResultSubmissionAdapter(),
+                result_verification_service=self.result_verification_service,  # Epic 6.4 integration
+                notification_adapter=self.notification_adapter,  # Epic 6.5 integration
+            )
+        return self._dispute_service
+
+    @property
+    def review_inbox_service(self):
+        """Lazy initialization of ReviewInboxService (Phase 6, Epic 6.3, 6.4, 6.5)."""
+        if not hasattr(self, '_review_inbox_service') or self._review_inbox_service is None:
+            from apps.tournament_ops.services import ReviewInboxService
+            from apps.tournament_ops.adapters import (
+                ReviewInboxAdapter,
+                DisputeAdapter,
+                ResultSubmissionAdapter,
+            )
+            self._review_inbox_service = ReviewInboxService(
+                review_inbox_adapter=ReviewInboxAdapter(),
+                dispute_adapter=DisputeAdapter(),
+                result_submission_adapter=ResultSubmissionAdapter(),
+                match_service=self.match_service,
+                result_verification_service=self.result_verification_service,  # Epic 6.4 integration
+                dispute_service=self.dispute_service,  # Epic 6.5 integration
+            )
+        return self._review_inbox_service
+
+    @property
+    def result_verification_service(self):
+        """Lazy initialization of ResultVerificationService (Phase 6, Epic 6.4)."""
+        if not hasattr(self, '_result_verification_service') or self._result_verification_service is None:
+            from apps.tournament_ops.services import ResultVerificationService
+            from apps.tournament_ops.adapters import (
+                ResultSubmissionAdapter,
+                DisputeAdapter,
+                SchemaValidationAdapter,
+            )
+            self._result_verification_service = ResultVerificationService(
+                result_submission_adapter=ResultSubmissionAdapter(),
+                dispute_adapter=DisputeAdapter(),
+                schema_validation_adapter=SchemaValidationAdapter(),
+                match_service=self.match_service,
+            )
+        return self._result_verification_service
+
+    @property
     def team_adapter(self) -> TeamAdapter:
         """Lazy initialization of TeamAdapter."""
         if self._team_adapter is None:
@@ -165,6 +240,14 @@ class TournamentOpsService:
         if self._tournament_adapter is None:
             self._tournament_adapter = TournamentAdapter()
         return self._tournament_adapter
+    
+    @property
+    def notification_adapter(self):
+        """Lazy initialization of NotificationAdapter (Phase 6, Epic 6.5)."""
+        if not hasattr(self, '_notification_adapter') or self._notification_adapter is None:
+            from apps.tournament_ops.adapters import NotificationAdapter
+            self._notification_adapter = NotificationAdapter()
+        return self._notification_adapter
 
     # -------------------------------------------------------------------------
     # Registration Orchestration (Phase 4, Epic 4.1)
@@ -434,3 +517,677 @@ class TournamentOpsService:
         Reference: ROADMAP_AND_EPICS_PART_4.md Phase 4, Epic 4.2
         """
         return self.lifecycle_service.cancel_tournament(tournament_id, reason)
+
+    # -------------------------------------------------------------------------
+    # Smart Registration (Phase 5)
+    # -------------------------------------------------------------------------
+
+    @property
+    def smart_registration_adapter(self):
+        """Lazy initialization of SmartRegistrationAdapter."""
+        if not hasattr(self, '_smart_registration_adapter') or self._smart_registration_adapter is None:
+            from apps.tournament_ops.adapters import SmartRegistrationAdapter
+            self._smart_registration_adapter = SmartRegistrationAdapter()
+        return self._smart_registration_adapter
+
+    @property
+    def smart_registration_service(self):
+        """Lazy initialization of SmartRegistrationService."""
+        if not hasattr(self, '_smart_registration_service') or self._smart_registration_service is None:
+            from apps.tournament_ops.services.smart_registration_service import SmartRegistrationService
+            self._smart_registration_service = SmartRegistrationService(
+                smart_reg_adapter=self.smart_registration_adapter,
+                registration_service=self.registration_service,
+                team_adapter=self.team_adapter,
+                user_adapter=self.user_adapter,
+                game_adapter=self.game_adapter,
+                tournament_adapter=self.tournament_adapter,
+            )
+        return self._smart_registration_service
+
+    def create_draft_registration(
+        self,
+        tournament_id: int,
+        user_id: int,
+        team_id: Optional[int] = None,
+    ):
+        """
+        Create a new registration draft (Phase 5).
+
+        Delegates to SmartRegistrationService.create_draft_registration().
+
+        Args:
+            tournament_id: Tournament ID
+            user_id: User creating registration
+            team_id: Team ID (null for solo tournaments)
+
+        Returns:
+            RegistrationDraftDTO
+
+        Reference: SMART_REG_AND_RULES_PART_3.md Section 3
+        """
+        return self.smart_registration_service.create_draft_registration(
+            tournament_id, user_id, team_id
+        )
+
+    def get_registration_form(
+        self,
+        tournament_id: int,
+        user_id: int,
+        team_id: Optional[int] = None,
+    ) -> dict:
+        """
+        Get registration form configuration (Phase 5).
+
+        Delegates to SmartRegistrationService.get_registration_form().
+
+        Args:
+            tournament_id: Tournament ID
+            user_id: User ID
+            team_id: Team ID (null for solo)
+
+        Returns:
+            {
+                'questions': [RegistrationQuestionDTO, ...],
+                'auto_fill_data': {field_name: value, ...},
+                'locked_fields': [field_name, ...],
+            }
+
+        Reference: SMART_REG_AND_RULES_PART_3.md Section 3
+        """
+        return self.smart_registration_service.get_registration_form(
+            tournament_id, user_id, team_id
+        )
+
+    def submit_registration_answers(
+        self,
+        registration_id: int,
+        answers: dict,
+    ) -> RegistrationDTO:
+        """
+        Submit answers to registration questions (Phase 5).
+
+        Delegates to SmartRegistrationService.submit_answers().
+
+        Args:
+            registration_id: Registration ID
+            answers: {question_slug: answer_value, ...}
+
+        Returns:
+            Updated RegistrationDTO
+
+        Reference: SMART_REG_AND_RULES_PART_3.md Section 3
+        """
+        return self.smart_registration_service.submit_answers(registration_id, answers)
+
+    def evaluate_registration(
+        self,
+        registration_id: int,
+    ) -> RegistrationDTO:
+        """
+        Evaluate registration against auto-approval rules (Phase 5).
+
+        Delegates to SmartRegistrationService.evaluate_registration().
+
+        Args:
+            registration_id: Registration ID
+
+        Returns:
+            Updated RegistrationDTO (status: auto_approved, rejected, or needs_review)
+
+        Reference: SMART_REG_AND_RULES_PART_3.md Section 3
+        """
+        return self.smart_registration_service.evaluate_registration(registration_id)
+
+    def auto_process_registration(
+        self,
+        tournament_id: int,
+        user_id: int,
+        team_id: Optional[int],
+        answers: dict,
+    ) -> tuple:
+        """
+        One-shot registration processing (Phase 5).
+
+        Delegates to SmartRegistrationService.auto_process_registration().
+
+        Args:
+            tournament_id: Tournament ID
+            user_id: User ID
+            team_id: Team ID (null for solo)
+            answers: {question_slug: answer_value, ...}
+
+        Returns:
+            (RegistrationDTO, decision: 'auto_approved'|'auto_rejected'|'needs_review')
+
+        Reference: SMART_REG_AND_RULES_PART_3.md Section 3
+        """
+        return self.smart_registration_service.auto_process_registration(
+            tournament_id, user_id, team_id, answers
+        )
+
+    # -------------------------------------------------------------------------
+    # Result Submission (Phase 6, Epic 6.1)
+    # -------------------------------------------------------------------------
+
+    def submit_match_result(
+        self,
+        match_id: int,
+        submitted_by_user_id: int,
+        submitted_by_team_id: Optional[int],
+        raw_result_payload: dict,
+        proof_screenshot_url: Optional[str] = None,
+        submitter_notes: str = "",
+    ):
+        """
+        Submit match result with proof (Phase 6, Epic 6.1).
+
+        Delegates to ResultSubmissionService.submit_result().
+
+        Args:
+            match_id: Match ID
+            submitted_by_user_id: User ID of submitter
+            submitted_by_team_id: Team ID if team tournament
+            raw_result_payload: Game-specific result data
+            proof_screenshot_url: URL to proof screenshot
+            submitter_notes: Optional notes from submitter
+
+        Returns:
+            MatchResultSubmissionDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.1
+        """
+        return self.result_submission_service.submit_result(
+            match_id=match_id,
+            submitted_by_user_id=submitted_by_user_id,
+            submitted_by_team_id=submitted_by_team_id,
+            raw_result_payload=raw_result_payload,
+            proof_screenshot_url=proof_screenshot_url,
+            submitter_notes=submitter_notes,
+        )
+
+    def confirm_match_result(
+        self,
+        submission_id: int,
+        confirmed_by_user_id: int,
+    ):
+        """
+        Confirm submitted match result (Phase 6, Epic 6.1).
+
+        Delegates to ResultSubmissionService.confirm_result().
+
+        Args:
+            submission_id: Submission ID
+            confirmed_by_user_id: User ID confirming result
+
+        Returns:
+            MatchResultSubmissionDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.1
+        """
+        return self.result_submission_service.confirm_result(
+            submission_id=submission_id,
+            confirmed_by_user_id=confirmed_by_user_id,
+        )
+
+    def auto_confirm_match_result(self, submission_id: int):
+        """
+        Auto-confirm match result (admin/Celery use).
+
+        Delegates to ResultSubmissionService.auto_confirm_result().
+
+        Args:
+            submission_id: Submission ID
+
+        Returns:
+            MatchResultSubmissionDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.1
+        """
+        return self.result_submission_service.auto_confirm_result(submission_id)
+
+    # -------------------------------------------------------------------------
+    # Opponent Verification & Dispute System (Phase 6, Epic 6.2)
+    # -------------------------------------------------------------------------
+
+    def opponent_respond_to_submission(
+        self,
+        submission_id: int,
+        responding_user_id: int,
+        decision: str,
+        reason_code: Optional[str] = None,
+        notes: str = "",
+        evidence: Optional[list] = None,
+    ):
+        """
+        Opponent responds to match result submission (Phase 6, Epic 6.2).
+
+        Delegates to ResultSubmissionService.opponent_response().
+
+        Args:
+            submission_id: Submission ID
+            responding_user_id: User ID of opponent responding
+            decision: "confirm" or "dispute"
+            reason_code: Dispute reason code (required if decision="dispute")
+            notes: Optional notes from opponent
+            evidence: Optional list of evidence dicts [{type, url, notes}]
+
+        Returns:
+            MatchResultSubmissionDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.2
+        """
+        return self.result_submission_service.opponent_response(
+            submission_id=submission_id,
+            responding_user_id=responding_user_id,
+            decision=decision,
+            reason_code=reason_code,
+            notes=notes,
+            evidence=evidence or [],
+        )
+
+    def resolve_dispute(
+        self,
+        dispute_id: int,
+        resolved_by_user_id: int,
+        resolution: str,
+        resolution_notes: str = "",
+    ):
+        """
+        Resolve a dispute with organizer decision (Phase 6, Epic 6.2).
+
+        Delegates to DisputeService.resolve_dispute().
+
+        Args:
+            dispute_id: Dispute ID
+            resolved_by_user_id: Organizer/admin user ID
+            resolution: "submitter_wins", "opponent_wins", or "cancelled"
+            resolution_notes: Internal notes explaining decision
+
+        Returns:
+            DisputeDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.2
+        """
+        return self.dispute_service.resolve_dispute(
+            dispute_id=dispute_id,
+            resolved_by_user_id=resolved_by_user_id,
+            resolution=resolution,
+            resolution_notes=resolution_notes,
+        )
+
+    def escalate_dispute(self, dispute_id: int, escalated_by_user_id: int):
+        """
+        Escalate dispute to higher-tier support (Phase 6, Epic 6.2).
+
+        Delegates to DisputeService.escalate_dispute().
+
+        Args:
+            dispute_id: Dispute ID
+            escalated_by_user_id: User escalating
+
+        Returns:
+            DisputeDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.2
+        """
+        return self.dispute_service.escalate_dispute(
+            dispute_id=dispute_id,
+            escalated_by_user_id=escalated_by_user_id,
+        )
+
+    def add_dispute_evidence(
+        self,
+        dispute_id: int,
+        uploaded_by_user_id: int,
+        evidence_type: str,
+        url: str,
+        notes: str = "",
+    ):
+        """
+        Add evidence to an open dispute (Phase 6, Epic 6.2).
+
+        Delegates to DisputeService.add_evidence().
+
+        Args:
+            dispute_id: Dispute ID
+            uploaded_by_user_id: User uploading evidence
+            evidence_type: Type (screenshot, video, chat_log, other)
+            url: URL to resource
+            notes: Additional context
+
+        Returns:
+            DisputeEvidenceDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.2
+        """
+        return self.dispute_service.add_evidence(
+            dispute_id=dispute_id,
+            uploaded_by_user_id=uploaded_by_user_id,
+            evidence_type=evidence_type,
+            url=url,
+            notes=notes,
+        )
+
+    # -------------------------------------------------------------------------
+    # Organizer Results Inbox (Phase 6, Epic 6.3)
+    # -------------------------------------------------------------------------
+
+    def list_results_inbox(self, tournament_id=None):
+        """
+        List all submissions requiring organizer attention (Phase 6, Epic 6.3).
+
+        Delegates to ReviewInboxService.list_review_items().
+
+        Args:
+            tournament_id: Optional tournament filter
+
+        Returns:
+            List[OrganizerReviewItemDTO]
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.3
+        """
+        return self.review_inbox_service.list_review_items(
+            tournament_id=tournament_id,
+            sort_by_priority=True,
+        )
+
+    def finalize_submission(self, submission_id: int, resolved_by_user_id: int):
+        """
+        Finalize submission (organizer approval) (Phase 6, Epic 6.3).
+
+        Delegates to ReviewInboxService.finalize_submission().
+
+        Args:
+            submission_id: Submission ID
+            resolved_by_user_id: Organizer user ID
+
+        Returns:
+            MatchResultSubmissionDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.3
+        """
+        return self.review_inbox_service.finalize_submission(
+            submission_id=submission_id,
+            resolved_by_user_id=resolved_by_user_id,
+        )
+
+    def reject_submission(
+        self,
+        submission_id: int,
+        resolved_by_user_id: int,
+        notes: str = "",
+    ):
+        """
+        Reject submission (organizer denial) (Phase 6, Epic 6.3).
+
+        Delegates to ReviewInboxService.reject_submission().
+
+        Args:
+            submission_id: Submission ID
+            resolved_by_user_id: Organizer user ID
+            notes: Rejection notes
+
+        Returns:
+            MatchResultSubmissionDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.3
+        """
+        return self.review_inbox_service.reject_submission(
+            submission_id=submission_id,
+            resolved_by_user_id=resolved_by_user_id,
+            notes=notes,
+        )
+
+    # -------------------------------------------------------------------------
+    # Result Verification & Finalization (Phase 6, Epic 6.4)
+    # -------------------------------------------------------------------------
+
+    def verify_submission(self, submission_id: int):
+        """
+        Verify submission against game schema and business rules (Phase 6, Epic 6.4).
+
+        Delegates to ResultVerificationService.verify_submission().
+
+        This is a read-only verification - does not change state.
+        Useful for previewing verification results before finalization.
+
+        Args:
+            submission_id: Submission ID to verify
+
+        Returns:
+            ResultVerificationResultDTO with is_valid, errors, warnings, calculated_scores
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.4
+        """
+        return self.result_verification_service.verify_submission(submission_id)
+
+    def finalize_submission_with_verification(
+        self,
+        submission_id: int,
+        resolved_by_user_id: int,
+    ):
+        """
+        Finalize submission after full verification pipeline (Phase 6, Epic 6.4).
+
+        Delegates to ResultVerificationService.finalize_submission_after_verification().
+
+        This is the core Epic 6.4 method that:
+        1. Verifies submission schema & scores
+        2. Updates match via MatchService
+        3. Resolves disputes if any
+        4. Publishes events
+
+        Args:
+            submission_id: Submission ID to finalize
+            resolved_by_user_id: Organizer user ID
+
+        Returns:
+            MatchResultSubmissionDTO (finalized)
+
+        Raises:
+            ResultVerificationFailedError: If verification fails
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.4
+        """
+        return self.result_verification_service.finalize_submission_after_verification(
+            submission_id=submission_id,
+            resolved_by_user_id=resolved_by_user_id,
+        )
+
+    def dry_run_submission_verification(self, submission_id: int):
+        """
+        Perform verification without changing state (dry run) (Phase 6, Epic 6.4).
+
+        Delegates to ResultVerificationService.dry_run_verification().
+
+        Useful for:
+        - Frontend preview of verification results
+        - Admin tooling to check submissions before finalizing
+        - Testing verification logic
+
+        Args:
+            submission_id: Submission ID to verify
+
+        Returns:
+            ResultVerificationResultDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.4
+        """
+        return self.result_verification_service.dry_run_verification(submission_id)
+    
+    # ==============================================================================
+    # Epic 6.5: Dispute Resolution Façade Methods
+    # ==============================================================================
+    
+    def resolve_dispute_with_original(
+        self,
+        submission_id: int,
+        dispute_id: int,
+        resolved_by_user_id: int,
+        notes: str = "",
+    ):
+        """
+        Resolve dispute by approving original submission (Epic 6.5).
+        
+        Delegates to ReviewInboxService.resolve_dispute_approve_original().
+        
+        This approves the original submitted result as correct, dismissing the dispute.
+        The submission is finalized via ResultVerificationService.
+        
+        Args:
+            submission_id: Submission ID
+            dispute_id: Dispute ID
+            resolved_by_user_id: Organizer/admin user ID
+            notes: Resolution notes explaining decision
+            
+        Returns:
+            DisputeDTO (resolved for submitter)
+            
+        Raises:
+            DisputeAlreadyResolvedError: If dispute already resolved
+            ResultVerificationFailedError: If verification fails
+            
+        Reference: Phase 6, Epic 6.5 - Approve Original Resolution
+        """
+        return self.review_inbox_service.resolve_dispute_approve_original(
+            submission_id=submission_id,
+            dispute_id=dispute_id,
+            resolved_by_user_id=resolved_by_user_id,
+            notes=notes,
+        )
+    
+    def resolve_dispute_with_disputed_result(
+        self,
+        submission_id: int,
+        dispute_id: int,
+        resolved_by_user_id: int,
+        notes: str = "",
+    ):
+        """
+        Resolve dispute by approving disputed result (Epic 6.5).
+        
+        Delegates to ReviewInboxService.resolve_dispute_approve_dispute().
+        
+        This approves the disputer's version as correct. The submission payload
+        is updated to the disputed payload and finalized via ResultVerificationService.
+        
+        Args:
+            submission_id: Submission ID
+            dispute_id: Dispute ID
+            resolved_by_user_id: Organizer/admin user ID
+            notes: Resolution notes explaining decision
+            
+        Returns:
+            DisputeDTO (resolved for opponent)
+            
+        Raises:
+            DisputeAlreadyResolvedError: If dispute already resolved
+            DisputeError: If dispute has no disputed_result_payload
+            ResultVerificationFailedError: If verification fails
+            
+        Reference: Phase 6, Epic 6.5 - Approve Dispute Resolution
+        """
+        return self.review_inbox_service.resolve_dispute_approve_dispute(
+            submission_id=submission_id,
+            dispute_id=dispute_id,
+            resolved_by_user_id=resolved_by_user_id,
+            notes=notes,
+        )
+    
+    def resolve_dispute_with_custom_result(
+        self,
+        submission_id: int,
+        dispute_id: int,
+        resolved_by_user_id: int,
+        custom_payload: dict,
+        notes: str = "",
+    ):
+        """
+        Resolve dispute with custom organizer result (Epic 6.5).
+        
+        Delegates to ReviewInboxService.resolve_dispute_custom_result().
+        
+        This applies a custom result payload entered by the organizer when neither
+        the original submission nor the dispute is fully correct. The submission
+        payload is updated to the custom payload and finalized via ResultVerificationService.
+        
+        Args:
+            submission_id: Submission ID
+            dispute_id: Dispute ID
+            resolved_by_user_id: Organizer/admin user ID
+            custom_payload: Custom result payload (game-specific JSON)
+            notes: Resolution notes explaining decision
+            
+        Returns:
+            DisputeDTO (resolved custom)
+            
+        Raises:
+            ValueError: If custom_payload is empty/invalid
+            DisputeAlreadyResolvedError: If dispute already resolved
+            ResultVerificationFailedError: If verification fails
+            
+        Reference: Phase 6, Epic 6.5 - Custom Result Resolution
+        """
+        return self.review_inbox_service.resolve_dispute_custom_result(
+            submission_id=submission_id,
+            dispute_id=dispute_id,
+            resolved_by_user_id=resolved_by_user_id,
+            custom_payload=custom_payload,
+            notes=notes,
+        )
+    
+    def dismiss_dispute(
+        self,
+        submission_id: int,
+        dispute_id: int,
+        resolved_by_user_id: int,
+        notes: str = "",
+    ):
+        """
+        Dismiss dispute as invalid, restart 24-hour timer (Epic 6.5).
+        
+        Delegates to ReviewInboxService.resolve_dispute_dismiss().
+        
+        This marks the dispute as invalid/dismissed and restarts the 24-hour
+        auto-confirm timer. The submission is NOT finalized, allowing the
+        opponent another chance to confirm or dispute.
+        
+        Args:
+            submission_id: Submission ID
+            dispute_id: Dispute ID
+            resolved_by_user_id: Organizer/admin user ID
+            notes: Resolution notes explaining dismissal reason
+            
+        Returns:
+            DisputeDTO (dismissed)
+            
+        Raises:
+            DisputeAlreadyResolvedError: If dispute already resolved
+            
+        Reference: Phase 6, Epic 6.5 - Dismiss Dispute Resolution
+        """
+        return self.review_inbox_service.resolve_dispute_dismiss(
+            submission_id=submission_id,
+            dispute_id=dispute_id,
+            resolved_by_user_id=resolved_by_user_id,
+            notes=notes,
+        )
+
+        Delegates to ReviewInboxService.reject_submission().
+
+        Args:
+            submission_id: Submission ID
+            resolved_by_user_id: Organizer user ID
+            notes: Rejection notes
+
+        Returns:
+            MatchResultSubmissionDTO
+
+        Reference: PHASE6_WORKPLAN_DRAFT.md - Epic 6.3
+        """
+        return self.review_inbox_service.reject_submission(
+            submission_id=submission_id,
+            resolved_by_user_id=resolved_by_user_id,
+            notes=notes,
+        )

@@ -12,10 +12,19 @@ from .registration_service import RegistrationService
 from .tournament_lifecycle_service import TournamentLifecycleService
 from .match_service import MatchService
 from .payment_service import PaymentOrchestrationService
+from .result_submission_service import ResultSubmissionService
+from .dispute_service import DisputeService
+from .review_inbox_service import ReviewInboxService
+from .result_verification_service import ResultVerificationService, ResultVerificationFailedError
 
 __all__ = [
     "RegistrationService",
     "TournamentLifecycleService",
     "MatchService",
     "PaymentOrchestrationService",
+    "ResultSubmissionService",
+    "DisputeService",
+    "ReviewInboxService",
+    "ResultVerificationService",
+    "ResultVerificationFailedError",
 ]

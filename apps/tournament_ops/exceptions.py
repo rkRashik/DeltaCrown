@@ -291,3 +291,154 @@ class MatchResultDisputeError(TournamentOpsError):
     """
 
     pass
+
+
+# ==============================================================================
+# Result submission exceptions (Phase 6, Epic 6.1)
+# ==============================================================================
+
+
+class ResultSubmissionError(TournamentOpsError):
+    """
+    Raised when a result submission operation fails.
+
+    This can occur due to:
+    - Invalid submission data
+    - Database errors during submission creation
+    - Failed validation checks
+    - Permission errors
+
+    Reference: Phase 6, Epic 6.1 (Match Result Submission Service)
+    """
+
+    pass
+
+
+class ResultSubmissionNotFoundError(TournamentOpsError):
+    """
+    Raised when a result submission lookup fails.
+
+    This indicates that a requested submission_id does not exist.
+
+    Reference: Phase 6, Epic 6.1 (Match Result Submission Service)
+    """
+
+    pass
+
+
+class InvalidSubmissionStateError(TournamentOpsError):
+    """
+    Raised when attempting an operation on a submission in an invalid state.
+
+    For example:
+    - Trying to confirm a submission that's already confirmed
+    - Trying to dispute a submission that's already finalized
+    - Trying to auto-confirm a submission that's been disputed
+
+    Reference: Phase 6, Epic 6.1 (Match Result Submission Service)
+    """
+
+    pass
+
+
+class PermissionDeniedError(TournamentOpsError):
+    """
+    Raised when a user lacks permission to perform an operation.
+
+    For example:
+    - Non-participant trying to submit match result
+    - Submitter trying to confirm their own submission
+    - Non-organizer trying to finalize result
+
+    Reference: Phase 6, Epic 6.1 (Match Result Submission Service)
+    """
+
+    pass
+
+
+# ==============================================================================
+# Dispute & Opponent Verification exceptions (Phase 6, Epic 6.2)
+# ==============================================================================
+
+
+class DisputeError(TournamentOpsError):
+    """
+    Generic dispute error for Epic 6.2 workflows.
+
+    Raised when a dispute operation fails due to business logic violations,
+    validation errors, or invalid state transitions.
+
+    Reference: Phase 6, Epic 6.2 (Opponent Verification & Dispute System)
+    """
+
+    pass
+
+
+class DisputeNotFoundError(TournamentOpsError):
+    """
+    Raised when a dispute lookup fails.
+
+    This indicates that a requested dispute_id does not exist.
+
+    Reference: Phase 6, Epic 6.2 (Opponent Verification & Dispute System)
+    """
+
+    pass
+
+
+class InvalidDisputeStateError(TournamentOpsError):
+    """
+    Raised when attempting an operation on a dispute in an invalid state.
+
+    For example:
+    - Trying to resolve a dispute that's already resolved
+    - Trying to escalate a cancelled dispute
+    - Trying to add evidence to a closed dispute
+
+    Reference: Phase 6, Epic 6.2 (Opponent Verification & Dispute System)
+    """
+
+    pass
+
+
+class DisputeAlreadyResolvedError(TournamentOpsError):
+    """
+    Raised when attempting to resolve a dispute that's already resolved.
+    
+    This is a more specific exception than InvalidDisputeStateError,
+    used specifically in Epic 6.5 dispute resolution workflows.
+    
+    Reference: Phase 6, Epic 6.5 (Dispute Resolution Module)
+    """
+    
+    pass
+
+
+class OpponentVerificationError(TournamentOpsError):
+    """
+    Raised when opponent verification fails.
+
+    This can occur due to:
+    - Opponent not being a match participant
+    - Invalid verification decision (not "confirm" or "dispute")
+    - Submission not in correct state for verification
+
+    Reference: Phase 6, Epic 6.2 (Opponent Verification & Dispute System)
+    """
+
+    pass
+
+
+class InvalidOpponentDecisionError(TournamentOpsError):
+    """
+    Raised when opponent provides an invalid decision.
+
+    For example:
+    - Decision not "confirm" or "dispute"
+    - Missing required reason_code when disputing
+    - Invalid reason_code value
+
+    Reference: Phase 6, Epic 6.2 (Opponent Verification & Dispute System)
+    """
+
+    pass

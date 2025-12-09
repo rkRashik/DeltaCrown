@@ -48,6 +48,14 @@ from .prize import (
 from .certificate import (
     Certificate,  # Module 5.3: Certificates & Achievement Proofs
 )
+from .result_submission import (
+    MatchResultSubmission,  # Phase 6, Epic 6.1: Match result submissions
+    ResultVerificationLog,  # Phase 6, Epic 6.4: Result verification audit trail
+)
+from .dispute import (
+    DisputeRecord,  # Phase 6, Epic 6.2: Dispute records
+    DisputeEvidence,  # Phase 6, Epic 6.2: Evidence attached to disputes
+)
 from .payment_config import (
     TournamentPaymentMethod,  # Detailed payment method configuration
 )
@@ -91,6 +99,12 @@ from .permission_request import (
 from .bracket_edit_log import (
     BracketEditLog,  # Epic 3.3: Bracket editor audit log
 )
+from .smart_registration import (
+    RegistrationQuestion,  # Phase 5: Dynamic registration questions
+    RegistrationDraft,  # Phase 5: Draft persistence
+    RegistrationAnswer,  # Phase 5: Question answers
+    RegistrationRule,  # Phase 5: Auto-approval rules
+)
 
 __all__ = [
     'Game',
@@ -130,4 +144,8 @@ __all__ = [
     'TournamentFormConfiguration',
     'TeamRegistrationPermissionRequest',
     'BracketEditLog',
+    'RegistrationQuestion',
+    'RegistrationDraft',
+    'RegistrationAnswer',
+    'RegistrationRule',
 ]

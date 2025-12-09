@@ -15,6 +15,30 @@ from .registration import RegistrationDTO
 from .eligibility import EligibilityResultDTO
 from .payment import PaymentResultDTO
 from .stage import StageDTO
+from .smart_registration import (
+    RegistrationQuestionDTO,
+    RegistrationRuleDTO,
+    RegistrationDraftDTO,
+)
+from .result_submission import (
+    MatchResultSubmissionDTO,
+    ResultVerificationResultDTO,
+)
+from .dispute import (
+    DisputeDTO,
+    DisputeEvidenceDTO,
+    OpponentVerificationDTO,
+)
+from .review import (
+    OrganizerReviewItemDTO,
+)
+from .dispute_resolution import (
+    DisputeResolutionDTO,
+    RESOLUTION_TYPE_APPROVE_ORIGINAL,
+    RESOLUTION_TYPE_APPROVE_DISPUTE,
+    RESOLUTION_TYPE_CUSTOM_RESULT,
+    RESOLUTION_TYPE_DISMISS_DISPUTE,
+)
 
 __all__ = [
     "GamePlayerIdentityConfigDTO",
@@ -27,4 +51,18 @@ __all__ = [
     "EligibilityResultDTO",
     "PaymentResultDTO",
     "StageDTO",
+    "RegistrationQuestionDTO",
+    "RegistrationRuleDTO",
+    "RegistrationDraftDTO",
+    "MatchResultSubmissionDTO",
+    "ResultVerificationResultDTO",
+    "DisputeDTO",
+    "DisputeEvidenceDTO",
+    "OpponentVerificationDTO",
+    "OrganizerReviewItemDTO",
+    "DisputeResolutionDTO",
+    "RESOLUTION_TYPE_APPROVE_ORIGINAL",
+    "RESOLUTION_TYPE_APPROVE_DISPUTE",
+    "RESOLUTION_TYPE_CUSTOM_RESULT",
+    "RESOLUTION_TYPE_DISMISS_DISPUTE",
 ]

@@ -27,6 +27,12 @@ from .game_adapter import GameAdapter, GameAdapterProtocol
 from .economy_adapter import EconomyAdapter, EconomyAdapterProtocol
 from .tournament_adapter import TournamentAdapter, TournamentAdapterProtocol
 from .match_adapter import MatchAdapter, MatchAdapterProtocol
+from .smart_registration_adapter import SmartRegistrationAdapter, SmartRegistrationAdapterProtocol
+from .result_submission_adapter import ResultSubmissionAdapter, ResultSubmissionAdapterProtocol
+from .schema_validation_adapter import SchemaValidationAdapter, SchemaValidationAdapterProtocol
+from .dispute_adapter import DisputeAdapter, DisputeAdapterProtocol
+from .review_inbox_adapter import ReviewInboxAdapter, ReviewInboxAdapterProtocol
+from .notification_adapter import NotificationAdapter, NotificationAdapterProtocol
 
 __all__ = [
     'BaseAdapter',
@@ -43,4 +49,16 @@ __all__ = [
     'TournamentAdapterProtocol',
     'MatchAdapter',
     'MatchAdapterProtocol',
+    'SmartRegistrationAdapter',
+    'SmartRegistrationAdapterProtocol',
+    'ResultSubmissionAdapter',
+    'ResultSubmissionAdapterProtocol',
+    'SchemaValidationAdapter',
+    'SchemaValidationAdapterProtocol',
+    'DisputeAdapter',
+    'DisputeAdapterProtocol',
+    'ReviewInboxAdapter',
+    'ReviewInboxAdapterProtocol',
+    'NotificationAdapter',
+    'NotificationAdapterProtocol',
 ]

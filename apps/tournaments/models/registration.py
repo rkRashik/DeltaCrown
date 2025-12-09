@@ -37,7 +37,12 @@ class Registration(SoftDeleteModel, TimestampedModel):
     """
     
     # Status choices (workflow: pending → payment_submitted → confirmed/rejected/cancelled)
+    # Phase 5: Added DRAFT, SUBMITTED, AUTO_APPROVED, NEEDS_REVIEW states
+    DRAFT = 'draft'
+    SUBMITTED = 'submitted'
     PENDING = 'pending'
+    AUTO_APPROVED = 'auto_approved'
+    NEEDS_REVIEW = 'needs_review'
     PAYMENT_SUBMITTED = 'payment_submitted'
     CONFIRMED = 'confirmed'
     REJECTED = 'rejected'
@@ -46,7 +51,11 @@ class Registration(SoftDeleteModel, TimestampedModel):
     NO_SHOW = 'no_show'
     
     STATUS_CHOICES = [
+        (DRAFT, 'Draft'),  # Phase 5
+        (SUBMITTED, 'Submitted'),  # Phase 5
         (PENDING, 'Pending'),
+        (AUTO_APPROVED, 'Auto Approved'),  # Phase 5
+        (NEEDS_REVIEW, 'Needs Review'),  # Phase 5
         (PAYMENT_SUBMITTED, 'Payment Submitted'),
         (CONFIRMED, 'Confirmed'),
         (REJECTED, 'Rejected'),
