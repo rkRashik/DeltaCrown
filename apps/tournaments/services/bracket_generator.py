@@ -306,7 +306,7 @@ class BracketGenerator:
                     bracket=bracket,
                     round_number=round_num,
                     match_number=match_num,
-                    state=Match.PENDING,
+                    state=Match.SCHEDULED,
                     # Participants TBD - filled as previous matches complete
                 )
     

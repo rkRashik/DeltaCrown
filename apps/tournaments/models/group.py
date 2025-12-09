@@ -400,3 +400,137 @@ class GroupStanding(TimestampedModel):
             # Only mark eliminated if group stage is complete
             if self.matches_played == self.group.max_participants - 1:  # Round robin complete
                 self.is_eliminated = True
+
+
+class GroupStage(TimestampedModel):
+    """
+    Represents a complete group stage phase in a tournament.
+    
+    A GroupStage contains multiple Group instances and manages the overall
+    group stage configuration, state, and advancement rules.
+    
+    Epic 3.2: Group Stage Editor & Manager
+    """
+    
+    tournament = models.ForeignKey(
+        'tournaments.Tournament',
+        on_delete=models.CASCADE,
+        related_name='group_stages',
+        verbose_name=_('Tournament'),
+        help_text=_('Tournament this group stage belongs to')
+    )
+    
+    name = models.CharField(
+        max_length=100,
+        default='Group Stage',
+        verbose_name=_('Stage Name'),
+        help_text=_('Name of this group stage phase')
+    )
+    
+    num_groups = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)],
+        verbose_name=_('Number of Groups'),
+        help_text=_('Total number of groups in this stage')
+    )
+    
+    group_size = models.PositiveIntegerField(
+        validators=[MinValueValidator(2)],
+        verbose_name=_('Group Size'),
+        help_text=_('Number of participants per group')
+    )
+    
+    format = models.CharField(
+        max_length=20,
+        choices=[
+            ('round_robin', 'Round Robin'),
+            ('double_round_robin', 'Double Round Robin'),
+        ],
+        default='round_robin',
+        verbose_name=_('Format'),
+        help_text=_('Match format within groups')
+    )
+    
+    state = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('active', 'Active'),
+            ('completed', 'Completed'),
+        ],
+        default='pending',
+        verbose_name=_('State'),
+        help_text=_('Current state of the group stage')
+    )
+    
+    # Advancement configuration
+    advancement_count_per_group = models.PositiveIntegerField(
+        default=2,
+        validators=[MinValueValidator(1)],
+        verbose_name=_('Teams Advancing Per Group'),
+        help_text=_('Number of teams that advance from each group')
+    )
+    
+    # Configuration
+    config = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name=_('Configuration'),
+        help_text=_('JSON config: points_system, tiebreaker_rules, seeding_method')
+    )
+    # Example config:
+    # {
+    #     "points_system": {"win": 3, "draw": 1, "loss": 0},
+    #     "tiebreaker_rules": ["points", "wins", "head_to_head", "goal_difference", "goals_for"],
+    #     "seeding_method": "snake",  # or "round_robin", "manual"
+    #     "auto_advance": True  # Automatically advance top N teams
+    # }
+    
+    class Meta:
+        db_table = 'tournament_group_stages'
+        verbose_name = _('Group Stage')
+        verbose_name_plural = _('Group Stages')
+        ordering = ['tournament', '-created_at']
+        indexes = [
+            models.Index(fields=['tournament', 'state']),
+        ]
+        constraints = [
+            CheckConstraint(
+                check=Q(num_groups__gte=1),
+                name='groupstage_min_groups'
+            ),
+            CheckConstraint(
+                check=Q(group_size__gte=2),
+                name='groupstage_min_group_size'
+            ),
+            CheckConstraint(
+                check=Q(advancement_count_per_group__gte=1),
+                name='groupstage_min_advancement'
+            ),
+        ]
+    
+    def __str__(self):
+        return f"{self.tournament.name} - {self.name}"
+    
+    @property
+    def total_participants(self):
+        """Calculate total participant capacity."""
+        return self.num_groups * self.group_size
+    
+    @property
+    def total_advancing(self):
+        """Calculate total number of participants advancing."""
+        return self.num_groups * self.advancement_count_per_group
+    
+    def validate_configuration(self):
+        """Validate group stage configuration."""
+        if self.advancement_count_per_group >= self.group_size:
+            raise ValidationError(
+                "Advancement count must be less than group size"
+            )
+        
+        # Ensure we have enough groups created
+        if self.pk and self.groups.count() != self.num_groups:
+            raise ValidationError(
+                f"Expected {self.num_groups} groups, found {self.groups.count()}"
+            )
+

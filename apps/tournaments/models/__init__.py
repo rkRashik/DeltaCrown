@@ -62,6 +62,10 @@ from .announcement import (
 from .group import (
     Group,  # Group stage groups
     GroupStanding,  # Group standings tracking
+    GroupStage,  # Epic 3.2: Group stage management
+)
+from .stage import (
+    TournamentStage,  # Epic 3.4: Multi-stage tournament phases
 )
 from .lobby import (
     TournamentLobby,  # Tournament lobby/participant hub
@@ -83,6 +87,9 @@ from .form_configuration import (
 )
 from .permission_request import (
     TeamRegistrationPermissionRequest,  # Team registration permission requests
+)
+from .bracket_edit_log import (
+    BracketEditLog,  # Epic 3.3: Bracket editor audit log
 )
 
 __all__ = [
@@ -110,6 +117,8 @@ __all__ = [
     'TournamentAnnouncement',
     'Group',
     'GroupStanding',
+    'GroupStage',
+    'TournamentStage',
     'TournamentLobby',
     'CheckIn',
     'LobbyAnnouncement',
@@ -120,4 +129,5 @@ __all__ = [
     'WebhookDelivery',
     'TournamentFormConfiguration',
     'TeamRegistrationPermissionRequest',
+    'BracketEditLog',
 ]

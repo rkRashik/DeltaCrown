@@ -61,9 +61,246 @@ class BracketService:
     
     Implements algorithms for single elimination, double elimination, and round robin
     bracket generation with support for multiple seeding strategies.
+    
+    Phase 3, Epic 3.1: Universal Bracket Engine Integration
+    - Legacy methods preserved for backwards compatibility and rollback safety
+    - New universal engine path via generate_bracket_universal_safe()
+    - Feature flag: BRACKETS_USE_UNIVERSAL_ENGINE controls which path is used
+    - Reference: CLEANUP_AND_TESTING_PART_6.md §4.5 (Safe Rollback)
     """
     
     # Participant data structure: {"id": str, "name": str, "seed": int}
+    
+    @staticmethod
+    @transaction.atomic
+    def generate_bracket_universal_safe(
+        tournament_id: int,
+        bracket_format: Optional[str] = None,
+        seeding_method: Optional[str] = None,
+        participants: Optional[List[Dict]] = None
+    ) -> Bracket:
+        """
+        Feature-flagged bracket generation entry point.
+        
+        Routes to either legacy bracket generation or new universal engine based on
+        BRACKETS_USE_UNIVERSAL_ENGINE setting.
+        
+        Args:
+            tournament_id: Tournament ID to generate bracket for
+            bracket_format: Bracket format (single-elimination, double-elimination, round-robin).
+                           If None, uses tournament.format
+            seeding_method: Seeding method (slot-order, random, ranked, manual).
+                           If None, uses default slot-order
+            participants: List of participant dicts with keys: id, name, seed (optional).
+                         If None, fetches from confirmed registrations
+        
+        Returns:
+            Generated Bracket instance
+        
+        Raises:
+            ValidationError: If tournament not found, insufficient participants, or bracket finalized
+        
+        Feature Flag Behavior:
+        - BRACKETS_USE_UNIVERSAL_ENGINE=False (default): Uses legacy generate_bracket()
+        - BRACKETS_USE_UNIVERSAL_ENGINE=True: Uses new BracketEngineService
+        
+        Rollback Safety:
+        - Set flag to False to immediately revert to legacy implementation
+        - No data migration required - flag controls runtime behavior only
+        - Both paths produce compatible Bracket/BracketNode structures
+        
+        TODO (Epic 3.4): Replace direct service calls with TournamentAdapter once available
+        TODO (Epic 3.3): Wire StageTransitionService for match advancement after generation
+        
+        Example:
+            >>> from django.conf import settings
+            >>> # Test with universal engine
+            >>> with override_settings(BRACKETS_USE_UNIVERSAL_ENGINE=True):
+            ...     bracket = BracketService.generate_bracket_universal_safe(
+            ...         tournament_id=123,
+            ...         bracket_format='single-elimination'
+            ...     )
+            >>> # Rollback to legacy
+            >>> with override_settings(BRACKETS_USE_UNIVERSAL_ENGINE=False):
+            ...     bracket = BracketService.generate_bracket_universal_safe(
+            ...         tournament_id=123,
+            ...         bracket_format='single-elimination'
+            ...     )
+        """
+        from django.conf import settings
+        
+        use_universal_engine = getattr(settings, 'BRACKETS_USE_UNIVERSAL_ENGINE', False)
+        
+        logger.info(
+            f"Bracket generation for tournament {tournament_id}: "
+            f"using {'universal engine' if use_universal_engine else 'legacy implementation'}"
+        )
+        
+        if use_universal_engine:
+            # Use new universal bracket engine (Phase 3, Epic 3.1)
+            return BracketService._generate_bracket_using_universal_engine(
+                tournament_id=tournament_id,
+                bracket_format=bracket_format,
+                seeding_method=seeding_method,
+                participants=participants
+            )
+        else:
+            # Use legacy bracket generation (preserves existing behavior)
+            return BracketService.generate_bracket(
+                tournament_id=tournament_id,
+                bracket_format=bracket_format,
+                seeding_method=seeding_method,
+                participants=participants
+            )
+    
+    @staticmethod
+    @transaction.atomic
+    def _generate_bracket_using_universal_engine(
+        tournament_id: int,
+        bracket_format: Optional[str] = None,
+        seeding_method: Optional[str] = None,
+        participants: Optional[List[Dict]] = None
+    ) -> Bracket:
+        """
+        Generate bracket using universal BracketEngineService (Phase 3, Epic 3.1).
+        
+        This method:
+        1. Fetches tournament data (remains in tournaments domain)
+        2. Converts to DTOs for TournamentOps
+        3. Calls BracketEngineService to generate matches
+        4. Persists results back to Bracket/BracketNode models
+        
+        Args:
+            tournament_id: Tournament ID
+            bracket_format: Bracket format override
+            seeding_method: Seeding method
+            participants: Participant list override
+        
+        Returns:
+            Generated Bracket instance
+        
+        Architecture Notes:
+        - This method bridges tournaments domain and TournamentOps
+        - All ORM usage stays in tournaments app
+        - BracketEngineService is DTO-only (no model imports)
+        - TODO (Epic 3.4): Replace with TournamentAdapter.generate_bracket() when available
+        
+        Implementation Status:
+        - Basic integration complete for Epic 3.1
+        - Match advancement wiring: TODO Epic 3.3 (StageTransitionService)
+        - Bracket editing support: TODO Epic 3.4 (BracketEditorService)
+        """
+        from apps.tournament_ops.services.bracket_engine_service import BracketEngineService
+        from apps.tournament_ops.dtos.tournament import TournamentDTO
+        from apps.tournament_ops.dtos.stage import StageDTO
+        from apps.tournament_ops.dtos.team import TeamDTO
+        
+        # TODO (Epic 3.4): Replace with TournamentAdapter.get_tournament() when available
+        # For now, fetch directly (ORM usage acceptable in tournaments domain)
+        try:
+            tournament = Tournament.objects.select_related('game').get(id=tournament_id)
+        except Tournament.DoesNotExist:
+            raise ValidationError(f"Tournament with ID {tournament_id} not found")
+        
+        # Determine bracket format
+        if bracket_format is None:
+            bracket_format = tournament.format or Bracket.SINGLE_ELIMINATION
+        
+        # Determine seeding method
+        if seeding_method is None:
+            seeding_method = Bracket.SLOT_ORDER
+        
+        # Get participants
+        if participants is None:
+            participants = BracketService._get_confirmed_participants(tournament)
+        
+        # Apply seeding
+        seeded_participants = BracketService.apply_seeding(participants, seeding_method, tournament)
+        
+        # Convert to DTOs for TournamentOps
+        tournament_dto = TournamentDTO(
+            id=tournament.id,
+            name=tournament.name,
+            format=bracket_format,
+            game_slug=tournament.game.slug if tournament.game else None,
+            metadata={
+                "seeding_method": seeding_method,
+                "original_format": tournament.format,
+            }
+        )
+        
+        # Create stage DTO (represents single-stage tournament for now)
+        # TODO (Epic 3.3): Support multi-stage tournaments via StageTransitionService
+        stage_dto = StageDTO(
+            id=1,  # Placeholder: actual stage model doesn't exist yet
+            tournament_id=tournament.id,
+            type=bracket_format,
+            third_place_match=False,  # TODO: Read from tournament settings
+            metadata={
+                "is_single_stage": True,
+            }
+        )
+        
+        # Convert participants to TeamDTOs
+        team_dtos = [
+            TeamDTO(
+                id=int(p["id"]),
+                name=p["name"],
+                tag=p.get("tag", ""),
+                metadata={"seed": p.get("seed", idx + 1)}
+            )
+            for idx, p in enumerate(seeded_participants)
+        ]
+        
+        # Generate bracket using universal engine
+        engine = BracketEngineService()
+        match_dtos = engine.generate_bracket_for_stage(
+            tournament=tournament_dto,
+            stage=stage_dto,
+            participants=team_dtos
+        )
+        
+        logger.info(
+            f"Universal engine generated {len(match_dtos)} matches for "
+            f"tournament {tournament_id}, format '{bracket_format}'"
+        )
+        
+        # Create Bracket model
+        bracket = Bracket.objects.create(
+            tournament=tournament,
+            format=bracket_format,
+            participant_count=len(seeded_participants),
+            seeding_method=seeding_method,
+            is_finalized=False,
+        )
+        
+        # Convert MatchDTOs to BracketNode models
+        # TODO (Epic 3.3): Wire match advancement logic via next_match_id
+        # For now, create nodes without advancement wiring
+        for match_dto in match_dtos:
+            BracketNode.objects.create(
+                bracket=bracket,
+                round_number=match_dto.round_number,
+                match_number=match_dto.match_number,
+                team1_id=match_dto.team1_id,
+                team2_id=match_dto.team2_id,
+                # TODO: Wire next_match_id based on bracket structure
+                # This requires StageTransitionService (Epic 3.3)
+                metadata={
+                    "stage_type": match_dto.stage_type,
+                    "generated_by": "universal_engine",
+                    "bracket_type": match_dto.metadata.get("bracket_type") if match_dto.metadata else None,
+                }
+            )
+        
+        logger.info(
+            f"Created {len(match_dtos)} BracketNode instances for bracket {bracket.id}"
+        )
+        
+        # TODO (Epic 3.3): Create Match instances with advancement wiring
+        # For now, bracket structure is complete but matches not yet created
+        
+        return bracket
     
     @staticmethod
     @transaction.atomic
@@ -74,7 +311,11 @@ class BracketService:
         participants: Optional[List[Dict]] = None
     ) -> Bracket:
         """
-        Main entry point for bracket generation.
+        LEGACY: Main entry point for bracket generation.
+        
+        This is the original implementation, preserved for backwards compatibility
+        and rollback safety. New code should use generate_bracket_universal_safe()
+        which routes to either this method or the universal engine based on feature flag.
         
         Args:
             tournament_id: Tournament ID to generate bracket for

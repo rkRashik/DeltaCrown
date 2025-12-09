@@ -750,6 +750,17 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
 MODERATION_OBSERVABILITY_SAMPLE_RATE = float(os.getenv('MODERATION_OBSERVABILITY_SAMPLE_RATE', '0.0'))
 
 # -----------------------------------------------------------------------------
+# Bracket Generation Feature Flags (Phase 3, Epic 3.1)
+# -----------------------------------------------------------------------------
+# Enable universal bracket engine (TournamentOps DTO-based generators)
+# Default: False (use legacy bracket generation logic)
+# When True: Uses BracketEngineService with pluggable generators
+# Rollback: Set to False to revert to legacy implementation
+# Reference: CLEANUP_AND_TESTING_PART_6.md §4.5 (Safe Rollback)
+# TODO (Epic 3.4): Enable by default after bracket editor integration complete
+BRACKETS_USE_UNIVERSAL_ENGINE = os.getenv('BRACKETS_USE_UNIVERSAL_ENGINE', 'False').lower() == 'true'
+
+# -----------------------------------------------------------------------------
 # Leaderboards Feature Flags (Phase E)
 # -----------------------------------------------------------------------------
 # Enable leaderboard computation (Celery tasks, service layer)
