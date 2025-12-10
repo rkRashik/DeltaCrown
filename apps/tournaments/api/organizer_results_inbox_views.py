@@ -25,6 +25,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from django.utils.dateparse import parse_datetime
 from typing import Dict, Any, List, Optional
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 from apps.tournament_ops.services.tournament_ops_service import TournamentOpsService
 from apps.tournaments.api.organizer_results_inbox_serializers import (
@@ -98,6 +99,25 @@ class OrganizerResultsInboxView(APIView):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+    
+    @extend_schema(
+        tags=["Results Inbox"],
+        operation_id="organizer_results_inbox_list",
+        summary="List results inbox items",
+        description="Retrieve paginated list of result submissions requiring organizer review with filtering and sorting options.",
+        parameters=[
+            OpenApiParameter("tournament_id", OpenApiTypes.INT, description="Filter by tournament ID"),
+            OpenApiParameter("status", OpenApiTypes.STR, description="Comma-separated status values (pending,disputed,confirmed,finalized,rejected)"),
+            OpenApiParameter("dispute_status", OpenApiTypes.STR, description="Comma-separated dispute statuses"),
+            OpenApiParameter("date_from", OpenApiTypes.DATE, description="Filter submissions from this date"),
+            OpenApiParameter("date_to", OpenApiTypes.DATE, description="Filter submissions to this date"),
+            OpenApiParameter("ordering", OpenApiTypes.STR, description="Sort by: priority, created_at, age (default: priority)"),
+            OpenApiParameter("page", OpenApiTypes.INT, description="Page number"),
+            OpenApiParameter("page_size", OpenApiTypes.INT, description="Items per page (default: 20, max: 100)"),
+        ],
+        responses={200: OrganizerReviewItemAPISerializer(many=True), 400: None, 403: None},
+    )
+    def get(self, request):
         self.service = TournamentOpsService()
     
     def get(self, request):

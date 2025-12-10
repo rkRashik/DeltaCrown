@@ -15,6 +15,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 
 from apps.api.serializers.organizer_scheduling_serializers import (
     MatchSchedulingItemSerializer,
@@ -41,6 +42,19 @@ class OrganizerSchedulingView(APIView):
     
     permission_classes = [IsAuthenticated]
     
+    @extend_schema(
+        tags=["Scheduling"],
+        operation_id="organizer_scheduling_list",
+        summary="List matches requiring scheduling",
+        description="Retrieve matches that need manual scheduling assignment with optional filters for unscheduled matches and conflicts.",
+        parameters=[
+            OpenApiParameter("tournament_id", OpenApiTypes.INT, description="Filter by tournament ID"),
+            OpenApiParameter("stage_id", OpenApiTypes.INT, description="Filter by stage ID"),
+            OpenApiParameter("unscheduled_only", OpenApiTypes.BOOL, description="Only unscheduled matches (default: false)"),
+            OpenApiParameter("with_conflicts", OpenApiTypes.BOOL, description="Only matches with scheduling conflicts (default: false)"),
+        ],
+        responses={200: MatchSchedulingItemSerializer(many=True), 400: None, 403: None},
+    )
     def get(self, request):
         """
         List matches requiring scheduling.

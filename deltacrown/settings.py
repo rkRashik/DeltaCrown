@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     # Third-party
     "django.contrib.sitemaps",
     "rest_framework",
+    "drf_spectacular",  # OpenAPI 3 schema generation (Phase 9, Epic 9.1)
     "django_ckeditor_5",
     "corsheaders",  # CORS headers for frontend integration
     # allauth is optional; enabled via ENABLE_ALLAUTH=1. See conditional block below.
@@ -281,6 +282,107 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     # Module 9.5: Custom exception handler for consistent error responses
     "EXCEPTION_HANDLER": "deltacrown.exception_handlers.custom_exception_handler",
+    # Phase 9, Epic 9.1: OpenAPI schema generation with drf-spectacular
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# -----------------------------------------------------------------------------
+# drf-spectacular Configuration (Phase 9, Epic 9.1)
+# -----------------------------------------------------------------------------
+# OpenAPI 3.0 schema generation for API documentation
+# Implements: Phase 9, Epic 9.1 - API Documentation Generator
+# Documentation: PHASE9_EPIC91_COMPLETION_SUMMARY.md
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "DeltaCrown Tournament Platform API",
+    "DESCRIPTION": (
+        "Comprehensive REST API for the DeltaCrown esports tournament platform. "
+        "Supports tournament management, team registration, match scheduling, "
+        "results submission, dispute resolution, user/team statistics, analytics, "
+        "and leaderboards across 11+ games."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    
+    # API contact and license
+    "CONTACT": {
+        "name": "DeltaCrown API Support",
+        "email": "api@deltacrown.com",
+    },
+    "LICENSE": {
+        "name": "Proprietary",
+    },
+    
+    # Authentication schemes
+    "SECURITY": [
+        {
+            "bearerAuth": [],  # JWT authentication
+        },
+        {
+            "cookieAuth": [],  # Session authentication
+        },
+    ],
+    "AUTHENTICATION_WHITELIST": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ],
+    
+    # Schema generation settings
+    "COMPONENT_SPLIT_REQUEST": True,
+    "COMPONENT_NO_READ_ONLY_REQUIRED": True,
+    "SWAGGER_UI_SETTINGS": {
+        "deepLinking": True,
+        "persistAuthorization": True,
+        "displayOperationId": True,
+        "filter": True,
+        "tagsSorter": "alpha",
+        "operationsSorter": "alpha",
+    },
+    "SWAGGER_UI_FAVICON_HREF": "/static/favicon.ico",
+    
+    # Schema customization
+    "SCHEMA_PATH_PREFIX": r"/api/",
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "SERVE_AUTHENTICATION": None,
+    
+    # Response wrapping
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+    ],
+    
+    # Tags grouping
+    "TAGS": [
+        {"name": "Registration", "description": "Tournament registration operations"},
+        {"name": "Eligibility", "description": "Registration eligibility checks"},
+        {"name": "Payments", "description": "Entry fee payment processing"},
+        {"name": "Tournaments", "description": "Tournament lifecycle management"},
+        {"name": "Matches", "description": "Match scheduling and management"},
+        {"name": "Results", "description": "Match result submission and approval"},
+        {"name": "Disputes", "description": "Dispute creation and resolution"},
+        {"name": "Scheduling", "description": "Manual match scheduling"},
+        {"name": "Staffing", "description": "Staff assignment and management"},
+        {"name": "MOCC", "description": "Match Organizer Control Center"},
+        {"name": "Audit Logs", "description": "Audit trail and compliance"},
+        {"name": "User Stats", "description": "Individual user statistics"},
+        {"name": "Team Stats", "description": "Team statistics and rankings"},
+        {"name": "Match History", "description": "Historical match records"},
+        {"name": "Analytics", "description": "Advanced analytics and insights"},
+        {"name": "Leaderboards", "description": "Competitive leaderboards"},
+        {"name": "Seasons", "description": "Seasonal ranking management"},
+    ],
+    
+    # Enum generation
+    "ENUM_NAME_OVERRIDES": {
+        "TournamentStatusEnum": "apps.tournaments.models.Tournament.status.field.choices",
+        "MatchStatusEnum": "apps.matches.models.Match.status.field.choices",
+        "DisputeStatusEnum": "apps.disputes.models.Dispute.status.field.choices",
+    },
+    
+    # Extensions for custom serializers
+    "PREPROCESSING_HOOKS": [
+        "apps.api.schema.spectacular_extensions.preprocess_dto_serializers",
+    ],
 }
 
 # -----------------------------------------------------------------------------

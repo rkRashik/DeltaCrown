@@ -1,0 +1,20 @@
+{
+  "name": "@deltacrown/sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for DeltaCrown Tournament Platform API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "generate": "python ../tools/generate_frontend_types.py",
+    "type-check": "tsc --noEmit",
+    "build": "tsc",
+    "test": "echo \"No tests configured yet\" && exit 0"
+  },
+  "keywords": ["deltacrown", "esports", "tournament", "sdk", "typescript"],
+  "author": "DeltaCrown",
+  "license": "Proprietary",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {}
+}

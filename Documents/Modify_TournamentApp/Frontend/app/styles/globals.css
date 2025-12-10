@@ -1,0 +1,626 @@
+/**
+ * DeltaCrown Global Styles
+ * Phase 9, Epic 9.4 - Frontend Boilerplate Scaffolding
+ * 
+ * Integrates:
+ * - Tailwind CSS layers
+ * - Design tokens from design-tokens.json
+ * - Base resets and typography
+ * - Custom utilities
+ * - Accessibility enhancements
+ */
+
+/* ========================================
+   TAILWIND LAYERS
+   ======================================== */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   CSS VARIABLES (Design Tokens)
+   ======================================== */
+
+:root {
+  /* Brand Colors */
+  --color-brand-primary-50: #eff6ff;
+  --color-brand-primary-100: #dbeafe;
+  --color-brand-primary-200: #bfdbfe;
+  --color-brand-primary-300: #93c5fd;
+  --color-brand-primary-400: #60a5fa;
+  --color-brand-primary-500: #3b82f6;
+  --color-brand-primary-600: #2563eb;
+  --color-brand-primary-700: #1d4ed8;
+  --color-brand-primary-800: #1e40af;
+  --color-brand-primary-900: #1e3a8a;
+
+  --color-brand-secondary-500: #8b5cf6;
+  --color-brand-accent-500: #f59e0b;
+
+  /* Semantic Colors */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Neutral Colors */
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Roboto Mono', 'Courier New', monospace;
+  --font-display: 'Poppins', 'Inter', sans-serif;
+
+  /* Spacing (rem) */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  --spacing-24: 6rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* Border Radius */
+  --radius-sm: 0.125rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Layers */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-modal: 1050;
+  --z-tooltip: 1070;
+
+  /* Background */
+  --bg-primary: white;
+  --bg-secondary: var(--color-neutral-50);
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+}
+
+/* Dark Theme Variables */
+[data-theme="dark"] {
+  --bg-primary: var(--color-neutral-900);
+  --bg-secondary: var(--color-neutral-800);
+  --text-primary: var(--color-neutral-50);
+  --text-secondary: var(--color-neutral-300);
+}
+
+/* ========================================
+   BASE LAYER CUSTOMIZATION
+   ======================================== */
+
+@layer base {
+  * {
+    @apply border-neutral-200;
+  }
+
+  html {
+    @apply antialiased;
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-neutral-50 text-neutral-900 transition-colors duration-200;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+
+  /* Typography Reset */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold text-neutral-900;
+    color: var(--text-primary);
+  }
+
+  h1 {
+    @apply text-4xl lg:text-5xl;
+  }
+
+  h2 {
+    @apply text-3xl lg:text-4xl;
+  }
+
+  h3 {
+    @apply text-2xl lg:text-3xl;
+  }
+
+  h4 {
+    @apply text-xl lg:text-2xl;
+  }
+
+  h5 {
+    @apply text-lg;
+  }
+
+  h6 {
+    @apply text-base;
+  }
+
+  p {
+    @apply text-base leading-relaxed;
+  }
+
+  /* Link Defaults */
+  a {
+    @apply text-brand-primary-600 hover:text-brand-primary-700 transition-colors;
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:ring-offset-2;
+  }
+
+  /* Button Reset */
+  button {
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:ring-offset-2;
+  }
+
+  /* Input Defaults */
+  input,
+  textarea,
+  select {
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:border-brand-primary-500;
+  }
+}
+
+/* ========================================
+   COMPONENT LAYER
+   ======================================== */
+
+@layer components {
+  /* Card Component */
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6 border border-neutral-200;
+    @apply transition-shadow duration-200;
+  }
+
+  .card-hoverable {
+    @apply card hover:shadow-lg;
+  }
+
+  /* Button Variants */
+  .btn {
+    @apply px-4 py-2 rounded-md font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 44px; /* WCAG touch target */
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-primary-600 text-white;
+    @apply hover:bg-brand-primary-700;
+    @apply focus:ring-brand-primary-500;
+  }
+
+  .btn-secondary {
+    @apply btn bg-neutral-200 text-neutral-900;
+    @apply hover:bg-neutral-300;
+    @apply focus:ring-neutral-500;
+  }
+
+  .btn-danger {
+    @apply btn bg-error text-white;
+    @apply hover:bg-red-600;
+    @apply focus:ring-error;
+  }
+
+  .btn-success {
+    @apply btn bg-success text-white;
+    @apply hover:bg-green-600;
+    @apply focus:ring-success;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-neutral-700;
+    @apply hover:bg-neutral-100;
+    @apply focus:ring-neutral-500;
+  }
+
+  /* Badge Variants */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-800;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-error {
+    @apply badge bg-red-100 text-red-800;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+
+  /* Input Components */
+  .input {
+    @apply w-full px-4 py-3 rounded-md border border-neutral-300;
+    @apply focus:border-brand-primary-500 focus:ring-2 focus:ring-brand-primary-500;
+    @apply disabled:bg-neutral-100 disabled:cursor-not-allowed;
+    @apply text-base; /* Prevent zoom on iOS */
+    min-height: 44px; /* WCAG touch target */
+  }
+
+  .input-error {
+    @apply input border-error focus:border-error focus:ring-error;
+  }
+
+  /* Select Component */
+  .select {
+    @apply input appearance-none bg-white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+
+  /* Checkbox & Radio */
+  .checkbox,
+  .radio {
+    @apply w-5 h-5 text-brand-primary-600 border-neutral-300 rounded;
+    @apply focus:ring-2 focus:ring-brand-primary-500;
+    min-width: 44px; /* WCAG touch target (with label) */
+    min-height: 44px;
+  }
+
+  .radio {
+    @apply rounded-full;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-modal;
+    @apply flex items-center justify-center p-4;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-lg shadow-xl max-w-md w-full;
+    @apply max-h-[90vh] overflow-y-auto;
+  }
+
+  /* Table */
+  .table {
+    @apply w-full border-collapse;
+  }
+
+  .table th {
+    @apply px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider;
+    @apply bg-neutral-50 border-b border-neutral-200;
+  }
+
+  .table td {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-neutral-900;
+    @apply border-b border-neutral-200;
+  }
+
+  .table tr:hover {
+    @apply bg-neutral-50;
+  }
+
+  /* Empty State */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-12 px-4;
+    @apply text-center text-neutral-500;
+  }
+
+  /* Loading Spinner */
+  .spinner {
+    @apply inline-block w-8 h-8 border-4 border-neutral-200 border-t-brand-primary-600;
+    @apply rounded-full animate-spin;
+  }
+
+  /* Toast Notification */
+  .toast {
+    @apply fixed top-4 right-4 z-tooltip;
+    @apply bg-white shadow-lg rounded-lg p-4 max-w-sm;
+    @apply border-l-4;
+  }
+
+  .toast-success {
+    @apply toast border-success;
+  }
+
+  .toast-error {
+    @apply toast border-error;
+  }
+
+  .toast-info {
+    @apply toast border-info;
+  }
+
+  .toast-warning {
+    @apply toast border-warning;
+  }
+}
+
+/* ========================================
+   UTILITIES LAYER
+   ======================================== */
+
+@layer utilities {
+  /* Screen Reader Only */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .sr-only-focusable:focus {
+    @apply static w-auto h-auto p-inherit m-inherit overflow-visible whitespace-normal;
+    clip: auto;
+  }
+
+  /* Focus Visible (Keyboard Only) */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-primary-500 focus:ring-offset-2;
+  }
+
+  /* Truncate with Tooltip */
+  .truncate-tooltip {
+    @apply truncate;
+    @apply cursor-help;
+  }
+
+  /* Gradient Text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(to right, var(--color-brand-primary-600), var(--color-brand-secondary-500));
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-neutral-400) var(--color-neutral-100);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--color-neutral-100);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-400);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-neutral-500);
+  }
+
+  /* Skeleton Loading */
+  .skeleton {
+    @apply animate-pulse bg-neutral-200 rounded;
+  }
+
+  /* Shimmer Effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      to right,
+      var(--color-neutral-200) 0%,
+      var(--color-neutral-300) 50%,
+      var(--color-neutral-200) 100%
+    );
+    background-size: 2000px 100%;
+    animation: shimmer 2s infinite;
+  }
+}
+
+/* ========================================
+   CUSTOM SCROLLBAR (Global)
+   ======================================== */
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-400) var(--color-neutral-100);
+}
+
+html::-webkit-scrollbar {
+  width: 12px;
+}
+
+html::-webkit-scrollbar-track {
+  background: var(--color-neutral-100);
+}
+
+html::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-400);
+  border-radius: 6px;
+  border: 3px solid var(--color-neutral-100);
+}
+
+html::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-500);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slide-out-right {
+  animation: slideOutRight 0.3s ease-in;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-in;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.2s ease-out;
+}
+
+/* ========================================
+   ACCESSIBILITY ENHANCEMENTS
+   ======================================== */
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  :root {
+    --color-brand-primary-600: #1e40af;
+    --color-neutral-900: #000000;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Focus Visible (Keyboard Navigation) */
+:focus-visible {
+  outline: 2px solid var(--color-brand-primary-500);
+  outline-offset: 2px;
+}
+
+/* Remove default focus for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  body {
+    @apply bg-white text-black;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+
+  .card {
+    @apply border border-neutral-300;
+    box-shadow: none;
+  }
+}
+
+/* ========================================
+   RESPONSIVE UTILITIES
+   ======================================== */
+
+/* Mobile-specific utilities */
+@media (max-width: 639px) {
+  .mobile-full-width {
+    @apply w-full;
+  }
+
+  .mobile-stacked {
+    @apply flex-col;
+  }
+}
+
+/* Tablet-specific utilities */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .tablet-grid-2 {
+    @apply grid-cols-2;
+  }
+}
+
+/* Desktop-specific utilities */
+@media (min-width: 1024px) {
+  .desktop-grid-3 {
+    @apply grid-cols-3;
+  }
+
+  .desktop-grid-4 {
+    @apply grid-cols-4;
+  }
+}

@@ -17,6 +17,11 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView,
 )
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
 
 
 urlpatterns = [
@@ -48,6 +53,16 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
+
+    # -------------------------------------------------------------------------
+    # API Documentation (Phase 9, Epic 9.1: API Documentation Generator)
+    # -------------------------------------------------------------------------
+    # OpenAPI 3.0 schema endpoint (JSON)
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    # Swagger UI (interactive API documentation)
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    # ReDoc UI (alternative API documentation)
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 
 
     # Core apps (explicit)
