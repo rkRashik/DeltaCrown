@@ -2,10 +2,12 @@
 Community and User Social Models
 """
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 from apps.user_profile.models import UserProfile
+
+User = get_user_model()
 
 
 class CommunityPost(models.Model):

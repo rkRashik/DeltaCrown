@@ -283,6 +283,40 @@ class TournamentOpsService:
                 help_content_adapter=HelpContentAdapter(),
             )
         return self._help_and_onboarding_service
+    
+    @property
+    def user_stats_service(self):
+        """Lazy initialization of UserStatsService (Phase 8, Epic 8.2)."""
+        if not hasattr(self, '_user_stats_service') or self._user_stats_service is None:
+            from apps.tournament_ops.services import UserStatsService
+            from apps.tournament_ops.adapters import UserStatsAdapter
+            self._user_stats_service = UserStatsService(
+                adapter=UserStatsAdapter(),
+            )
+        return self._user_stats_service
+
+    @property
+    def team_stats_service(self):
+        """Lazy initialization of TeamStatsService (Phase 8, Epic 8.3)."""
+        if not hasattr(self, '_team_stats_service') or self._team_stats_service is None:
+            from apps.tournament_ops.services import TeamStatsService
+            from apps.tournament_ops.adapters import TeamStatsAdapter, TeamRankingAdapter
+            self._team_stats_service = TeamStatsService(
+                team_stats_adapter=TeamStatsAdapter(),
+                team_ranking_adapter=TeamRankingAdapter(),
+            )
+        return self._team_stats_service
+
+    @property
+    def match_history_service(self):
+        """Lazy initialization of MatchHistoryService (Phase 8, Epic 8.4)."""
+        if not hasattr(self, '_match_history_service') or self._match_history_service is None:
+            from apps.tournament_ops.services import MatchHistoryService
+            from apps.tournament_ops.adapters import DjangoMatchHistoryAdapter
+            self._match_history_service = MatchHistoryService(
+                adapter=DjangoMatchHistoryAdapter(),
+            )
+        return self._match_history_service
 
     # -------------------------------------------------------------------------
     # Registration Orchestration (Phase 4, Epic 4.1)
@@ -2290,4 +2324,707 @@ class TournamentOpsService:
             user_id=user_id,
             tournament_id=tournament_id
         )
+    
+    # -------------------------------------------------------------------------
+    # User Stats Façade Methods (Phase 8, Epic 8.2)
+    # -------------------------------------------------------------------------
+    
+    def get_user_stats(
+        self,
+        user_id: int,
+        game_slug: str
+    ):
+        """
+        Get user statistics for a specific game.
+        
+        Delegates to UserStatsService.get_user_stats().
+        
+        Args:
+            user_id: User ID
+            game_slug: Game identifier (e.g., 'valorant', 'csgo')
+            
+        Returns:
+            UserStatsDTO or None if no stats exist
+            
+        Reference: Phase 8, Epic 8.2 - User Stats Retrieval
+        """
+        return self.user_stats_service.get_user_stats(
+            user_id=user_id,
+            game_slug=game_slug
+        )
+    
+    def get_all_user_stats(self, user_id: int):
+        """
+        Get all statistics for a user across all games.
+        
+        Delegates to UserStatsService.get_all_user_stats().
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            List of UserStatsDTO instances
+            
+        Reference: Phase 8, Epic 8.2 - Multi-Game Stats
+        """
+        return self.user_stats_service.get_all_user_stats(user_id=user_id)
+    
+    def get_user_stats_summary(
+        self,
+        user_id: int,
+        game_slug: Optional[str] = None
+    ):
+        """
+        Get summary statistics for a user.
+        
+        Delegates to UserStatsService.get_user_summary().
+        
+        Args:
+            user_id: User ID
+            game_slug: Optional game filter
+            
+        Returns:
+            Dictionary with summary statistics
+            
+        Reference: Phase 8, Epic 8.2 - Stats Summary API
+        """
+        return self.user_stats_service.get_user_summary(
+            user_id=user_id,
+            game_slug=game_slug
+        )
+    
+    def update_user_stats_from_match(
+        self,
+        match_update
+    ):
+        """
+        Update user stats based on match completion.
+        
+        Delegates to UserStatsService.update_stats_for_match().
+        Called by MatchCompletedEvent handler.
+        
+        Args:
+            match_update: MatchStatsUpdateDTO with match outcome data
+            
+        Returns:
+            Updated UserStatsDTO
+            
+        Reference: Phase 8, Epic 8.2 - Event-Driven Stats
+        """
+        return self.user_stats_service.update_stats_for_match(match_update)
+    
+    def get_top_stats_for_game(
+        self,
+        game_slug: str,
+        limit: int = 100
+    ):
+        """
+        Get top-performing users for a specific game.
+        
+        Delegates to UserStatsService.get_top_stats_for_game().
+        Used for leaderboard generation.
+        
+        Args:
+            game_slug: Game identifier
+            limit: Maximum number of results
+            
+        Returns:
+            List of UserStatsDTO instances
+            
+        Reference: Phase 8, Epic 8.2 - Leaderboard Integration
+        """
+        return self.user_stats_service.get_top_stats_for_game(
+            game_slug=game_slug,
+            limit=limit
+        )
 
+    # -------------------------------------------------------------------------
+    # Team Stats & Ranking Facade (Phase 8, Epic 8.3)
+    # -------------------------------------------------------------------------
+
+    def get_team_stats(self, team_id: int, game_slug: str):
+        """
+        Get statistics for a specific team + game.
+        
+        Delegates to TeamStatsService.get_team_stats().
+        
+        Args:
+            team_id: Team primary key
+            game_slug: Game identifier
+            
+        Returns:
+            TeamStatsDTO or None
+            
+        Reference: Phase 8, Epic 8.3 - Team Stats
+        """
+        return self.team_stats_service.get_team_stats(
+            team_id=team_id,
+            game_slug=game_slug
+        )
+
+    def get_all_team_stats(self, team_id: int):
+        """
+        Get statistics for a team across all games.
+        
+        Delegates to TeamStatsService.get_all_team_stats().
+        
+        Args:
+            team_id: Team primary key
+            
+        Returns:
+            List of TeamStatsDTO instances
+            
+        Reference: Phase 8, Epic 8.3 - Team Stats
+        """
+        return self.team_stats_service.get_all_team_stats(team_id=team_id)
+
+    def get_team_ranking(self, team_id: int, game_slug: str):
+        """
+        Get ELO ranking for a specific team + game.
+        
+        Delegates to TeamStatsService.get_team_ranking().
+        
+        Args:
+            team_id: Team primary key
+            game_slug: Game identifier
+            
+        Returns:
+            TeamRankingDTO or None
+            
+        Reference: Phase 8, Epic 8.3 - Team Ranking
+        """
+        return self.team_stats_service.get_team_ranking(
+            team_id=team_id,
+            game_slug=game_slug
+        )
+
+    def update_team_stats_from_match(self, match_update):
+        """
+        Update team stats and ELO rating after match completion.
+        
+        Delegates to TeamStatsService.update_stats_for_match().
+        Called by event handlers to update team statistics.
+        
+        Args:
+            match_update: TeamMatchStatsUpdateDTO
+            
+        Returns:
+            dict with stats, ranking, and elo_change
+            
+        Reference: Phase 8, Epic 8.3 - Match Stats Update
+        """
+        return self.team_stats_service.update_stats_for_match(match_update)
+
+    def get_top_teams_by_elo(self, game_slug: str, limit: int = 100):
+        """
+        Get top-ranked teams for a specific game by ELO rating.
+        
+        Delegates to TeamStatsService.get_top_teams_by_elo().
+        Used for leaderboard generation.
+        
+        Args:
+            game_slug: Game identifier
+            limit: Maximum number of results
+            
+        Returns:
+            List of TeamRankingDTO instances ordered by ELO
+            
+        Reference: Phase 8, Epic 8.3 - Leaderboard Integration
+        """
+        return self.team_stats_service.get_top_teams_by_elo(
+            game_slug=game_slug,
+            limit=limit
+        )
+
+    def get_team_stats_summary(self, team_id: int, game_slug: Optional[str] = None):
+        """
+        Get comprehensive stats summary for a team.
+        
+        Delegates to TeamStatsService.get_team_summary().
+        
+        Args:
+            team_id: Team primary key
+            game_slug: Optional game identifier (None = all games)
+            
+        Returns:
+            TeamStatsSummaryDTO or List[TeamStatsSummaryDTO]
+            
+        Reference: Phase 8, Epic 8.3 - Team Stats Summary
+        """
+        return self.team_stats_service.get_team_summary(
+            team_id=team_id,
+            game_slug=game_slug
+        )
+
+    # -------------------------------------------------------------------------
+    # Match History (Phase 8, Epic 8.4)
+    # -------------------------------------------------------------------------
+
+    def get_user_match_history(
+        self,
+        user_id: int,
+        game_slug: Optional[str] = None,
+        tournament_id: Optional[int] = None,
+        from_date=None,
+        to_date=None,
+        only_wins: bool = False,
+        only_losses: bool = False,
+        limit: int = 20,
+        offset: int = 0,
+    ):
+        """
+        Get user match history with filters and pagination.
+        
+        Delegates to MatchHistoryService.get_user_match_history().
+        Returns (list of UserMatchHistoryDTO, total count) tuple.
+        
+        Args:
+            user_id: User ID (required)
+            game_slug: Filter by game (optional)
+            tournament_id: Filter by tournament (optional)
+            from_date: Filter by date range start (optional)
+            to_date: Filter by date range end (optional)
+            only_wins: Show only wins (optional)
+            only_losses: Show only losses (optional)
+            limit: Results per page (1-100, default 20)
+            offset: Offset for pagination (default 0)
+            
+        Returns:
+            Tuple of (list of UserMatchHistoryDTO, total count)
+            
+        Reference: Phase 8, Epic 8.4 - Match History Engine
+        """
+        return self.match_history_service.get_user_match_history(
+            user_id=user_id,
+            game_slug=game_slug,
+            tournament_id=tournament_id,
+            from_date=from_date,
+            to_date=to_date,
+            only_wins=only_wins,
+            only_losses=only_losses,
+            limit=limit,
+            offset=offset,
+        )
+
+    def get_team_match_history(
+        self,
+        team_id: int,
+        game_slug: Optional[str] = None,
+        tournament_id: Optional[int] = None,
+        from_date=None,
+        to_date=None,
+        only_wins: bool = False,
+        only_losses: bool = False,
+        limit: int = 20,
+        offset: int = 0,
+    ):
+        """
+        Get team match history with filters and pagination.
+        
+        Delegates to MatchHistoryService.get_team_match_history().
+        Returns (list of TeamMatchHistoryDTO, total count) tuple.
+        
+        Args:
+            team_id: Team ID (required)
+            game_slug: Filter by game (optional)
+            tournament_id: Filter by tournament (optional)
+            from_date: Filter by date range start (optional)
+            to_date: Filter by date range end (optional)
+            only_wins: Show only wins (optional)
+            only_losses: Show only losses (optional)
+            limit: Results per page (1-100, default 20)
+            offset: Offset for pagination (default 0)
+            
+        Returns:
+            Tuple of (list of TeamMatchHistoryDTO, total count)
+            
+        Reference: Phase 8, Epic 8.4 - Match History Engine
+        """
+        return self.match_history_service.get_team_match_history(
+            team_id=team_id,
+            game_slug=game_slug,
+            tournament_id=tournament_id,
+            from_date=from_date,
+            to_date=to_date,
+            only_wins=only_wins,
+            only_losses=only_losses,
+            limit=limit,
+            offset=offset,
+        )
+
+    def record_user_match_history(
+        self,
+        user_id: int,
+        match_id: int,
+        tournament_id: int,
+        game_slug: str,
+        is_winner: bool,
+        is_draw: bool,
+        opponent_user_id: Optional[int],
+        opponent_name: str,
+        score_summary: str,
+        kills: int = 0,
+        deaths: int = 0,
+        assists: int = 0,
+        had_dispute: bool = False,
+        is_forfeit: bool = False,
+        completed_at=None,
+    ):
+        """
+        Record a user match history entry.
+        
+        Delegates to MatchHistoryService.record_user_match_history().
+        Called by event handlers after match completion.
+        
+        Args:
+            user_id: User participating in match
+            match_id: Match ID reference
+            tournament_id: Tournament ID reference
+            game_slug: Game identifier
+            is_winner: Whether user won
+            is_draw: Whether match was a draw
+            opponent_user_id: Opponent user ID (for 1v1)
+            opponent_name: Opponent display name
+            score_summary: Score summary string
+            kills/deaths/assists: Match stats
+            had_dispute: Whether match had dispute
+            is_forfeit: Whether match ended in forfeit
+            completed_at: Match completion timestamp (defaults to now)
+            
+        Returns:
+            UserMatchHistoryDTO of created/updated record
+            
+        Reference: Phase 8, Epic 8.4 - Match History Recording
+        """
+        return self.match_history_service.record_user_match_history(
+            user_id=user_id,
+            match_id=match_id,
+            tournament_id=tournament_id,
+            game_slug=game_slug,
+            is_winner=is_winner,
+            is_draw=is_draw,
+            opponent_user_id=opponent_user_id,
+            opponent_name=opponent_name,
+            score_summary=score_summary,
+            kills=kills,
+            deaths=deaths,
+            assists=assists,
+            had_dispute=had_dispute,
+            is_forfeit=is_forfeit,
+            completed_at=completed_at,
+        )
+
+    def record_team_match_history(
+        self,
+        team_id: int,
+        match_id: int,
+        tournament_id: int,
+        game_slug: str,
+        is_winner: bool,
+        is_draw: bool,
+        opponent_team_id: Optional[int],
+        opponent_team_name: str,
+        score_summary: str,
+        elo_before: Optional[int] = None,
+        elo_after: Optional[int] = None,
+        elo_change: int = 0,
+        had_dispute: bool = False,
+        is_forfeit: bool = False,
+        completed_at=None,
+    ):
+        """
+        Record a team match history entry.
+        
+        Delegates to MatchHistoryService.record_team_match_history().
+        Called by event handlers after team match completion.
+        
+        Args:
+            team_id: Team participating in match
+            match_id: Match ID reference
+            tournament_id: Tournament ID reference
+            game_slug: Game identifier
+            is_winner: Whether team won
+            is_draw: Whether match was a draw
+            opponent_team_id: Opponent team ID
+            opponent_team_name: Opponent team name
+            score_summary: Score summary string
+            elo_before/after/change: ELO rating tracking
+            had_dispute: Whether match had dispute
+            is_forfeit: Whether match ended in forfeit
+            completed_at: Match completion timestamp (defaults to now)
+            
+        Returns:
+            TeamMatchHistoryDTO of created/updated record
+            
+        Reference: Phase 8, Epic 8.4 - Match History Recording
+        """
+        return self.match_history_service.record_team_match_history(
+            team_id=team_id,
+            match_id=match_id,
+            tournament_id=tournament_id,
+            game_slug=game_slug,
+            is_winner=is_winner,
+            is_draw=is_draw,
+            opponent_team_id=opponent_team_id,
+            opponent_team_name=opponent_team_name,
+            score_summary=score_summary,
+            elo_before=elo_before,
+            elo_after=elo_after,
+            elo_change=elo_change,
+            had_dispute=had_dispute,
+            is_forfeit=is_forfeit,
+            completed_at=completed_at,
+        )
+    
+    # ========================================================================
+    # Phase 8, Epic 8.5: Advanced Analytics Methods
+    # ========================================================================
+    
+    def get_user_analytics(
+        self,
+        user_id: int,
+        game_slug: str
+    ):
+        """
+        Get comprehensive analytics for a user in a specific game.
+        
+        Returns rich analytics snapshot with:
+        - MMR/ELO snapshot
+        - Win rates (overall + rolling 7d/30d)
+        - KDA ratio
+        - Match volume metrics
+        - Streak detection
+        - Tier assignment (Bronze/Silver/Gold/Diamond/Crown)
+        - Percentile ranking
+        
+        Args:
+            user_id: User ID
+            game_slug: Game identifier
+        
+        Returns:
+            UserAnalyticsDTO with computed analytics
+        
+        Reference: Phase 8, Epic 8.5 - Advanced Analytics
+        """
+        from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+        from apps.tournament_ops.adapters import (
+            AnalyticsAdapter,
+            DjangoMatchHistoryAdapter,
+        )
+        
+        # Initialize analytics engine
+        analytics_engine = AnalyticsEngineService(
+            analytics_adapter=AnalyticsAdapter(),
+            user_stats_adapter=self.user_stats_service.adapter,
+            team_stats_adapter=self.team_stats_service.adapter,
+            team_ranking_adapter=self.team_stats_service.ranking_adapter,
+            match_history_adapter=DjangoMatchHistoryAdapter(),
+        )
+        
+        # Get or compute analytics snapshot
+        analytics_adapter = AnalyticsAdapter()
+        snapshot = analytics_adapter.get_user_snapshot(user_id, game_slug)
+        
+        if not snapshot:
+            # Compute fresh analytics if not exists
+            snapshot = analytics_engine.compute_user_analytics(user_id, game_slug)
+        
+        return snapshot
+    
+    def get_team_analytics(
+        self,
+        team_id: int,
+        game_slug: str
+    ):
+        """
+        Get comprehensive analytics for a team in a specific game.
+        
+        Returns rich analytics snapshot with:
+        - Team ELO snapshot + volatility
+        - Average member skill
+        - Win rates (overall + rolling 7d/30d)
+        - Synergy score (performance consistency)
+        - Activity score (recent match participation)
+        - Tier assignment
+        - Percentile ranking
+        
+        Args:
+            team_id: Team ID
+            game_slug: Game identifier
+        
+        Returns:
+            TeamAnalyticsDTO with computed analytics
+        
+        Reference: Phase 8, Epic 8.5 - Advanced Analytics
+        """
+        from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+        from apps.tournament_ops.adapters import (
+            AnalyticsAdapter,
+            DjangoMatchHistoryAdapter,
+        )
+        
+        # Initialize analytics engine
+        analytics_engine = AnalyticsEngineService(
+            analytics_adapter=AnalyticsAdapter(),
+            user_stats_adapter=self.user_stats_service.adapter,
+            team_stats_adapter=self.team_stats_service.adapter,
+            team_ranking_adapter=self.team_stats_service.ranking_adapter,
+            match_history_adapter=DjangoMatchHistoryAdapter(),
+        )
+        
+        # Get or compute analytics snapshot
+        analytics_adapter = AnalyticsAdapter()
+        snapshot = analytics_adapter.get_team_snapshot(team_id, game_slug)
+        
+        if not snapshot:
+            # Compute fresh analytics if not exists
+            snapshot = analytics_engine.compute_team_analytics(team_id, game_slug)
+        
+        return snapshot
+    
+    def get_leaderboard(
+        self,
+        leaderboard_type: str,
+        game_slug: Optional[str] = None,
+        season_id: Optional[str] = None,
+        limit: int = 100
+    ):
+        """
+        Get leaderboard entries with filtering.
+        
+        Supported leaderboard types:
+        - "global_user": Global user rankings (all games)
+        - "game_user": Game-specific user rankings
+        - "team": Team rankings
+        - "seasonal": Seasonal user rankings
+        - "mmr"/"elo": MMR/ELO-based rankings
+        - "tier": Tier-based rankings (Crown → Diamond → Gold → Silver → Bronze)
+        
+        Args:
+            leaderboard_type: Type of leaderboard
+            game_slug: Optional game filter
+            season_id: Optional season filter
+            limit: Maximum entries
+        
+        Returns:
+            List[LeaderboardEntryDTO] sorted by rank
+        
+        Reference: Phase 8, Epic 8.5 - Real-Time Leaderboards
+        """
+        from apps.tournament_ops.adapters import AnalyticsAdapter
+        
+        analytics_adapter = AnalyticsAdapter()
+        return analytics_adapter.get_leaderboard(
+            leaderboard_type=leaderboard_type,
+            game_slug=game_slug,
+            season_id=season_id,
+            limit=limit,
+        )
+    
+    def refresh_leaderboards(self):
+        """
+        Refresh all leaderboards (trigger background job).
+        
+        Queues leaderboard refresh job via Celery.
+        Returns immediately with job ID.
+        
+        Returns:
+            dict: {'job_id': str, 'status': 'queued'}
+        
+        Reference: Phase 8, Epic 8.5 - Leaderboard Refresh
+        """
+        from apps.leaderboards.tasks import hourly_leaderboard_refresh
+        
+        # Queue Celery task
+        result = hourly_leaderboard_refresh.delay()
+        
+        return {
+            'job_id': result.id,
+            'status': 'queued',
+        }
+    
+    def refresh_user_analytics(self, user_id: int, game_slug: str):
+        """
+        Refresh analytics for a specific user (synchronous).
+        
+        Computes fresh analytics snapshot and returns result.
+        Use sparingly - prefer batch refresh via Celery jobs.
+        
+        Args:
+            user_id: User ID
+            game_slug: Game identifier
+        
+        Returns:
+            UserAnalyticsDTO with fresh analytics
+        
+        Reference: Phase 8, Epic 8.5 - Analytics Refresh
+        """
+        from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+        from apps.tournament_ops.adapters import (
+            AnalyticsAdapter,
+            DjangoMatchHistoryAdapter,
+        )
+        
+        analytics_engine = AnalyticsEngineService(
+            analytics_adapter=AnalyticsAdapter(),
+            user_stats_adapter=self.user_stats_service.adapter,
+            team_stats_adapter=self.team_stats_service.adapter,
+            team_ranking_adapter=self.team_stats_service.ranking_adapter,
+            match_history_adapter=DjangoMatchHistoryAdapter(),
+        )
+        
+        return analytics_engine.compute_user_analytics(user_id, game_slug)
+    
+    def refresh_team_analytics(self, team_id: int, game_slug: str):
+        """
+        Refresh analytics for a specific team (synchronous).
+        
+        Computes fresh analytics snapshot and returns result.
+        Use sparingly - prefer batch refresh via Celery jobs.
+        
+        Args:
+            team_id: Team ID
+            game_slug: Game identifier
+        
+        Returns:
+            TeamAnalyticsDTO with fresh analytics
+        
+        Reference: Phase 8, Epic 8.5 - Analytics Refresh
+        """
+        from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+        from apps.tournament_ops.adapters import (
+            AnalyticsAdapter,
+            DjangoMatchHistoryAdapter,
+        )
+        
+        analytics_engine = AnalyticsEngineService(
+            analytics_adapter=AnalyticsAdapter(),
+            user_stats_adapter=self.user_stats_service.adapter,
+            team_stats_adapter=self.team_stats_service.adapter,
+            team_ranking_adapter=self.team_stats_service.ranking_adapter,
+            match_history_adapter=DjangoMatchHistoryAdapter(),
+        )
+        
+        return analytics_engine.compute_team_analytics(team_id, game_slug)
+
+
+# ============================================================================
+# Singleton Factory
+# ============================================================================
+
+_service_instance = None
+
+
+def get_tournament_ops_service() -> TournamentOpsService:
+    """
+    Get singleton instance of TournamentOpsService.
+    
+    Used by API views to access the unified service façade.
+    
+    Returns:
+        TournamentOpsService: Singleton service instance
+    """
+    global _service_instance
+    if _service_instance is None:
+        _service_instance = TournamentOpsService()
+    return _service_instance

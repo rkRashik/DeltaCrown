@@ -19,6 +19,9 @@ from .result_verification_service import ResultVerificationService, ResultVerifi
 from .match_ops_service import MatchOpsService
 from .audit_log_service import AuditLogService
 from .help_service import HelpAndOnboardingService
+from .user_stats_service import UserStatsService
+from .team_stats_service import TeamStatsService
+from .match_history_service import MatchHistoryService
 from .tournament_ops_service import TournamentOpsService
 
 __all__ = [
@@ -34,5 +37,8 @@ __all__ = [
     "MatchOpsService",
     "AuditLogService",
     "HelpAndOnboardingService",
+    "UserStatsService",
+    "TeamStatsService",
+    "MatchHistoryService",
     "TournamentOpsService",
 ]

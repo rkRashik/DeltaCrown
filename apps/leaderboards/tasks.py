@@ -621,5 +621,480 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.leaderboards.tasks.mark_inactive_players',
         'schedule': crontab(hour=2, minute=0),  # Daily at 02:00 UTC
     },
+    
+    # ========================================================================
+    # Phase 8, Epic 8.5: Advanced Analytics Background Jobs
+    # ========================================================================
+    
+    'nightly_user_analytics_refresh': {
+        'task': 'apps.leaderboards.tasks.nightly_user_analytics_refresh',
+        'schedule': crontab(hour=1, minute=0),  # Daily at 01:00 UTC
+    },
+    'nightly_team_analytics_refresh': {
+        'task': 'apps.leaderboards.tasks.nightly_team_analytics_refresh',
+        'schedule': crontab(hour=1, minute=30),  # Daily at 01:30 UTC
+    },
+    'hourly_leaderboard_refresh': {
+        'task': 'apps.leaderboards.tasks.hourly_leaderboard_refresh',
+        'schedule': crontab(minute=0),  # Every hour at :00
+    },
+    'seasonal_rollover': {
+        'task': 'apps.leaderboards.tasks.seasonal_rollover',
+        'schedule': crontab(hour=0, minute=0, day_of_month=1),  # First of month at 00:00 UTC
+    },
 }
+
+
+# ============================================================================
+# Phase 8, Epic 8.5: Analytics Background Jobs
+# ============================================================================
+
+@shared_task
+def nightly_user_analytics_refresh() -> dict:
+    """
+    Refresh user analytics snapshots for all users (nightly job).
+    
+    Scheduled: Daily at 01:00 UTC
+    
+    Computes:
+    - MMR/ELO snapshots
+    - Win rates (overall + rolling 7d/30d)
+    - KDA ratios
+    - Match volume metrics
+    - Streak detection
+    - Tier assignment
+    - Percentile ranking
+    
+    Returns:
+        Dict with job metadata:
+        {
+            'users_refreshed': int,
+            'duration_ms': int,
+            'errors': int,
+        }
+    """
+    from apps.common.events.event_bus import EventBus
+    
+    start_time = time.time()
+    event_bus = EventBus()
+    
+    # Emit job started event
+    event_bus.publish(
+        event_type="analytics.job_started",
+        payload={"job_type": "user_analytics_refresh", "timestamp": timezone.now().isoformat()}
+    )
+    
+    try:
+        # Get all games (would use game adapter in real implementation)
+        games = ["valorant", "csgo", "lol"]  # Hardcoded for now
+        
+        users_refreshed = 0
+        errors = 0
+        
+        # Refresh analytics for each game
+        for game_slug in games:
+            try:
+                # Get all users with stats for this game
+                from apps.leaderboards.models import UserStats
+                user_stats_queryset = UserStats.objects.filter(game_slug=game_slug)
+                
+                logger.info(f"Refreshing user analytics for {user_stats_queryset.count()} users in {game_slug}")
+                
+                # Batch process users
+                for user_stats in user_stats_queryset:
+                    try:
+                        # Initialize analytics service
+                        from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+                        from apps.tournament_ops.adapters import (
+                            AnalyticsAdapter,
+                            UserStatsAdapter,
+                            TeamStatsAdapter,
+                            TeamRankingAdapter,
+                            DjangoMatchHistoryAdapter,
+                        )
+                        
+                        analytics_service = AnalyticsEngineService(
+                            analytics_adapter=AnalyticsAdapter(),
+                            user_stats_adapter=UserStatsAdapter(),
+                            team_stats_adapter=TeamStatsAdapter(),
+                            team_ranking_adapter=TeamRankingAdapter(),
+                            match_history_adapter=DjangoMatchHistoryAdapter(),
+                        )
+                        
+                        # Compute and save analytics
+                        analytics_service.compute_user_analytics(user_stats.user_id, game_slug)
+                        users_refreshed += 1
+                        
+                    except Exception as e:
+                        logger.error(f"Error refreshing analytics for user {user_stats.user_id} in {game_slug}: {e}")
+                        errors += 1
+                        
+            except Exception as e:
+                logger.error(f"Error processing game {game_slug}: {e}")
+                errors += 1
+        
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Emit job completed event
+        event_bus.publish(
+            event_type="analytics.job_completed",
+            payload={
+                "job_type": "user_analytics_refresh",
+                "users_refreshed": users_refreshed,
+                "duration_ms": duration_ms,
+                "errors": errors,
+            }
+        )
+        
+        logger.info(f"User analytics refresh completed: {users_refreshed} users, {errors} errors, {duration_ms}ms")
+        
+        return {
+            'users_refreshed': users_refreshed,
+            'duration_ms': duration_ms,
+            'errors': errors,
+        }
+        
+    except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Emit job failed event
+        event_bus.publish(
+            event_type="analytics.job_failed",
+            payload={
+                "job_type": "user_analytics_refresh",
+                "error": str(e),
+                "duration_ms": duration_ms,
+            }
+        )
+        
+        logger.error(f"User analytics refresh failed: {e}")
+        raise
+
+
+@shared_task
+def nightly_team_analytics_refresh() -> dict:
+    """
+    Refresh team analytics snapshots for all teams (nightly job).
+    
+    Scheduled: Daily at 01:30 UTC
+    
+    Computes:
+    - Team ELO snapshots + volatility
+    - Average member skill
+    - Win rates (overall + rolling 7d/30d)
+    - Synergy score
+    - Activity score
+    - Tier assignment
+    - Percentile ranking
+    
+    Returns:
+        Dict with job metadata:
+        {
+            'teams_refreshed': int,
+            'duration_ms': int,
+            'errors': int,
+        }
+    """
+    from apps.common.events.event_bus import EventBus
+    
+    start_time = time.time()
+    event_bus = EventBus()
+    
+    # Emit job started event
+    event_bus.publish(
+        event_type="analytics.job_started",
+        payload={"job_type": "team_analytics_refresh", "timestamp": timezone.now().isoformat()}
+    )
+    
+    try:
+        # Get all games
+        games = ["valorant", "csgo", "lol"]
+        
+        teams_refreshed = 0
+        errors = 0
+        
+        # Refresh analytics for each game
+        for game_slug in games:
+            try:
+                # Get all teams with stats for this game
+                from apps.leaderboards.models import TeamStats
+                team_stats_queryset = TeamStats.objects.filter(game_slug=game_slug)
+                
+                logger.info(f"Refreshing team analytics for {team_stats_queryset.count()} teams in {game_slug}")
+                
+                # Batch process teams
+                for team_stats in team_stats_queryset:
+                    try:
+                        # Initialize analytics service
+                        from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+                        from apps.tournament_ops.adapters import (
+                            AnalyticsAdapter,
+                            UserStatsAdapter,
+                            TeamStatsAdapter,
+                            TeamRankingAdapter,
+                            DjangoMatchHistoryAdapter,
+                        )
+                        
+                        analytics_service = AnalyticsEngineService(
+                            analytics_adapter=AnalyticsAdapter(),
+                            user_stats_adapter=UserStatsAdapter(),
+                            team_stats_adapter=TeamStatsAdapter(),
+                            team_ranking_adapter=TeamRankingAdapter(),
+                            match_history_adapter=DjangoMatchHistoryAdapter(),
+                        )
+                        
+                        # Compute and save analytics
+                        analytics_service.compute_team_analytics(team_stats.team_id, game_slug)
+                        teams_refreshed += 1
+                        
+                    except Exception as e:
+                        logger.error(f"Error refreshing analytics for team {team_stats.team_id} in {game_slug}: {e}")
+                        errors += 1
+                        
+            except Exception as e:
+                logger.error(f"Error processing game {game_slug}: {e}")
+                errors += 1
+        
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Emit job completed event
+        event_bus.publish(
+            event_type="analytics.job_completed",
+            payload={
+                "job_type": "team_analytics_refresh",
+                "teams_refreshed": teams_refreshed,
+                "duration_ms": duration_ms,
+                "errors": errors,
+            }
+        )
+        
+        logger.info(f"Team analytics refresh completed: {teams_refreshed} teams, {errors} errors, {duration_ms}ms")
+        
+        return {
+            'teams_refreshed': teams_refreshed,
+            'duration_ms': duration_ms,
+            'errors': errors,
+        }
+        
+    except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Emit job failed event
+        event_bus.publish(
+            event_type="analytics.job_failed",
+            payload={
+                "job_type": "team_analytics_refresh",
+                "error": str(e),
+                "duration_ms": duration_ms,
+            }
+        )
+        
+        logger.error(f"Team analytics refresh failed: {e}")
+        raise
+
+
+@shared_task
+def hourly_leaderboard_refresh() -> dict:
+    """
+    Refresh all leaderboards (hourly job).
+    
+    Scheduled: Every hour at :00
+    
+    Refreshes:
+    - Game-specific user leaderboards (per game)
+    - Team leaderboards (per game)
+    - Global user leaderboard (cross-game)
+    - MMR/ELO leaderboards
+    - Tier leaderboards
+    
+    Returns:
+        Dict with job metadata:
+        {
+            'leaderboards_refreshed': dict,  # Mapping leaderboard type to entry count
+            'duration_ms': int,
+            'errors': int,
+        }
+    """
+    from apps.common.events.event_bus import EventBus
+    
+    start_time = time.time()
+    event_bus = EventBus()
+    
+    # Emit job started event
+    event_bus.publish(
+        event_type="analytics.job_started",
+        payload={"job_type": "leaderboard_refresh", "timestamp": timezone.now().isoformat()}
+    )
+    
+    try:
+        # Initialize analytics service
+        from apps.tournament_ops.services.analytics_engine_service import AnalyticsEngineService
+        from apps.tournament_ops.adapters import (
+            AnalyticsAdapter,
+            UserStatsAdapter,
+            TeamStatsAdapter,
+            TeamRankingAdapter,
+            DjangoMatchHistoryAdapter,
+        )
+        
+        analytics_service = AnalyticsEngineService(
+            analytics_adapter=AnalyticsAdapter(),
+            user_stats_adapter=UserStatsAdapter(),
+            team_stats_adapter=TeamStatsAdapter(),
+            team_ranking_adapter=TeamRankingAdapter(),
+            match_history_adapter=DjangoMatchHistoryAdapter(),
+        )
+        
+        # Refresh all leaderboards
+        results = analytics_service.refresh_all_leaderboards()
+        
+        duration_ms = int((time.time() - start_time) * 1000)
+        total_entries = sum(results.values())
+        
+        # Emit job completed event
+        event_bus.publish(
+            event_type="analytics.job_completed",
+            payload={
+                "job_type": "leaderboard_refresh",
+                "leaderboards_refreshed": results,
+                "total_entries": total_entries,
+                "duration_ms": duration_ms,
+            }
+        )
+        
+        logger.info(f"Leaderboard refresh completed: {len(results)} leaderboards, {total_entries} total entries, {duration_ms}ms")
+        
+        return {
+            'leaderboards_refreshed': results,
+            'duration_ms': duration_ms,
+            'errors': 0,
+        }
+        
+    except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Emit job failed event
+        event_bus.publish(
+            event_type="analytics.job_failed",
+            payload={
+                "job_type": "leaderboard_refresh",
+                "error": str(e),
+                "duration_ms": duration_ms,
+            }
+        )
+        
+        logger.error(f"Leaderboard refresh failed: {e}")
+        raise
+
+
+@shared_task
+def seasonal_rollover() -> dict:
+    """
+    Perform seasonal rollover (monthly job).
+    
+    Scheduled: First of month at 00:00 UTC
+    
+    Performs:
+    - Deactivate expired seasons
+    - Activate new seasons
+    - Archive previous season leaderboards
+    - Reset seasonal rankings (if configured)
+    
+    Returns:
+        Dict with job metadata:
+        {
+            'seasons_deactivated': int,
+            'seasons_activated': int,
+            'duration_ms': int,
+        }
+    """
+    from apps.common.events.event_bus import EventBus
+    from apps.leaderboards.models import Season
+    
+    start_time = time.time()
+    event_bus = EventBus()
+    
+    # Emit job started event
+    event_bus.publish(
+        event_type="analytics.job_started",
+        payload={"job_type": "seasonal_rollover", "timestamp": timezone.now().isoformat()}
+    )
+    
+    try:
+        now = timezone.now()
+        seasons_deactivated = 0
+        seasons_activated = 0
+        
+        # Deactivate expired seasons
+        expired_seasons = Season.objects.filter(is_active=True, end_date__lt=now)
+        for season in expired_seasons:
+            season.is_active = False
+            season.save(update_fields=['is_active'])
+            seasons_deactivated += 1
+            logger.info(f"Deactivated expired season: {season.season_id}")
+            
+            # Emit season changed event
+            event_bus.publish(
+                event_type="season.changed",
+                payload={
+                    "season_id": season.season_id,
+                    "action": "deactivated",
+                    "timestamp": now.isoformat(),
+                }
+            )
+        
+        # Activate new seasons
+        new_seasons = Season.objects.filter(is_active=False, start_date__lte=now, end_date__gt=now)
+        for season in new_seasons:
+            season.is_active = True
+            season.save(update_fields=['is_active'])
+            seasons_activated += 1
+            logger.info(f"Activated new season: {season.season_id}")
+            
+            # Emit season changed event
+            event_bus.publish(
+                event_type="season.changed",
+                payload={
+                    "season_id": season.season_id,
+                    "action": "activated",
+                    "timestamp": now.isoformat(),
+                }
+            )
+        
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Emit job completed event
+        event_bus.publish(
+            event_type="analytics.job_completed",
+            payload={
+                "job_type": "seasonal_rollover",
+                "seasons_deactivated": seasons_deactivated,
+                "seasons_activated": seasons_activated,
+                "duration_ms": duration_ms,
+            }
+        )
+        
+        logger.info(f"Seasonal rollover completed: {seasons_deactivated} deactivated, {seasons_activated} activated, {duration_ms}ms")
+        
+        return {
+            'seasons_deactivated': seasons_deactivated,
+            'seasons_activated': seasons_activated,
+            'duration_ms': duration_ms,
+        }
+        
+    except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        
+        # Emit job failed event
+        event_bus.publish(
+            event_type="analytics.job_failed",
+            payload={
+                "job_type": "seasonal_rollover",
+                "error": str(e),
+                "duration_ms": duration_ms,
+            }
+        )
+        
+        logger.error(f"Seasonal rollover failed: {e}")
+        raise
 """

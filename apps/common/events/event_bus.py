@@ -172,16 +172,35 @@ class EventBus:
             bus.publish(event)
         """
         # Persist event to EventLog for audit trail and replay capability
+        # Phase 8, Epic 8.1: Set status=PENDING for new events
+        event_log_id = None
         try:
             from apps.common.events.models import EventLog
 
-            EventLog.objects.create(
+            event_log = EventLog.objects.create(
                 name=event.name,
                 payload=event.payload,
                 occurred_at=event.occurred_at,
                 user_id=event.user_id,
                 correlation_id=event.correlation_id,
                 metadata=event.metadata,
+                status=EventLog.STATUS_PENDING,  # Epic 8.1: Track processing status
+                retry_count=0,
+            )
+            event_log_id = event_log.id
+            
+            # Add event_log_id to metadata for tracking in handlers/tasks
+            event.metadata["event_log_id"] = event_log_id
+            
+            # Metrics hook: event_published (Phase 8, Epic 8.1)
+            logger.info(
+                f"Event published: {event.name}",
+                extra={
+                    "event_name": event.name,
+                    "event_log_id": event_log_id,
+                    "correlation_id": event.correlation_id,
+                    "status": "published"
+                }
             )
         except Exception as e:
             # Log persistence failure but don't block event dispatch
@@ -189,7 +208,16 @@ class EventBus:
                 f"Failed to persist event {event.name} to EventLog: {e}",
                 extra={"event_name": event.name, "correlation_id": event.correlation_id}
             )
-            # TODO (Phase 8): Add metrics/alerting for persistence failures
+            # Metrics hook: event_persistence_failed (Phase 8, Epic 8.1)
+            logger.error(
+                f"Event persistence failed: {event.name}",
+                extra={
+                    "event_name": event.name,
+                    "correlation_id": event.correlation_id,
+                    "status": "persistence_failed",
+                    "error": str(e)
+                }
+            )
 
         # Determine dispatch mode from settings
         from django.conf import settings

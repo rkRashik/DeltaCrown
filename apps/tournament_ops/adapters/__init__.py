@@ -37,6 +37,11 @@ from .staffing_adapter import StaffingAdapter
 from .match_ops_adapter import MatchOpsAdapter
 from .audit_log_adapter import AuditLogAdapter, AuditLogAdapterProtocol
 from .help_content_adapter import HelpContentAdapter, HelpContentAdapterProtocol
+from .user_stats_adapter import UserStatsAdapter, UserStatsAdapterProtocol
+from .team_stats_adapter import TeamStatsAdapter, TeamStatsAdapterProtocol
+from .team_ranking_adapter import TeamRankingAdapter, TeamRankingAdapterProtocol
+from .match_history_adapter import MatchHistoryAdapter, DjangoMatchHistoryAdapter
+from .analytics_adapter import AnalyticsAdapter, AnalyticsAdapterProtocol
 
 __all__ = [
     'BaseAdapter',
@@ -71,4 +76,14 @@ __all__ = [
     'AuditLogAdapterProtocol',
     'HelpContentAdapter',
     'HelpContentAdapterProtocol',
+    'UserStatsAdapter',
+    'UserStatsAdapterProtocol',
+    'TeamStatsAdapter',
+    'TeamStatsAdapterProtocol',
+    'TeamRankingAdapter',
+    'TeamRankingAdapterProtocol',
+    'MatchHistoryAdapter',
+    'DjangoMatchHistoryAdapter',
+    'AnalyticsAdapter',
+    'AnalyticsAdapterProtocol',
 ]

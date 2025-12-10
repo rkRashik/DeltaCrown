@@ -65,6 +65,32 @@ from .help import (
     OnboardingStepDTO,
     HelpBundleDTO,
 )
+from .user_stats import (
+    UserStatsDTO,
+    UserStatsSummaryDTO,
+    MatchStatsUpdateDTO,
+)
+from .team_stats import (
+    TeamStatsDTO,
+    TeamRankingDTO,
+    TeamStatsSummaryDTO,
+    TeamMatchStatsUpdateDTO,
+)
+from .match_history import (
+    MatchHistoryEntryDTO,
+    UserMatchHistoryDTO,
+    TeamMatchHistoryDTO,
+    MatchHistoryFilterDTO,
+)
+from .analytics import (
+    AnalyticsSnapshotDTO,
+    UserAnalyticsDTO,
+    TeamAnalyticsDTO,
+    LeaderboardEntryDTO,
+    SeasonDTO,
+    AnalyticsQueryDTO,
+    TierBoundaries,
+)
 
 __all__ = [
     "GamePlayerIdentityConfigDTO",
@@ -109,4 +135,22 @@ __all__ = [
     "HelpOverlayDTO",
     "OnboardingStepDTO",
     "HelpBundleDTO",
+    "UserStatsDTO",
+    "UserStatsSummaryDTO",
+    "MatchStatsUpdateDTO",
+    "TeamStatsDTO",
+    "TeamRankingDTO",
+    "TeamStatsSummaryDTO",
+    "TeamMatchStatsUpdateDTO",
+    "MatchHistoryEntryDTO",
+    "UserMatchHistoryDTO",
+    "TeamMatchHistoryDTO",
+    "MatchHistoryFilterDTO",
+    "AnalyticsSnapshotDTO",
+    "UserAnalyticsDTO",
+    "TeamAnalyticsDTO",
+    "LeaderboardEntryDTO",
+    "SeasonDTO",
+    "AnalyticsQueryDTO",
+    "TierBoundaries",
 ]

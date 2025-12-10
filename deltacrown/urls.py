@@ -72,6 +72,18 @@ urlpatterns = [
     # Phase 7, Epic 7.6: Help & Onboarding API
     path("api/organizer/help/", include("apps.api.urls.help_urls")),
     
+    # Phase 8, Epic 8.2: User Stats Service API
+    path("api/stats/v1/", include("apps.api.urls.user_stats_urls")),
+    
+    # Phase 8, Epic 8.3: Team Stats & Ranking API
+    path("api/stats/v1/", include("apps.api.urls.team_stats_urls")),
+    
+    # Phase 8, Epic 8.4: Match History Engine API
+    path("api/tournaments/v1/history/", include("apps.api.urls.match_history_urls")),
+    
+    # Phase 8, Epic 8.5: Advanced Analytics & Leaderboards API
+    path("api/", include("apps.api.urls.analytics_urls")),
+    
     # Module 3.3: Team Management API
     path("api/teams/", include("apps.teams.api.urls")),
     

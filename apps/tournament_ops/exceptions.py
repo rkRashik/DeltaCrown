@@ -22,6 +22,19 @@ class TournamentOpsError(Exception):
     pass
 
 
+class ValidationError(TournamentOpsError):
+    """
+    Raised when input validation fails in DTOs or services.
+    
+    This indicates that provided data does not meet required constraints
+    (e.g., negative values, missing required fields, invalid state combinations).
+    
+    Reference: Phase 8, Epic 8.2 (User Stats Service - DTO Validation)
+    """
+    
+    pass
+
+
 # ==============================================================================
 # Adapter-related exceptions (Phase 1, Epic 1.1)
 # ==============================================================================
