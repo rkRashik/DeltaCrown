@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import sys
+import dj_database_url
 
 # -----------------------------------------------------------------------------
 # Paths & Core
@@ -201,24 +202,32 @@ CACHES = {
 WSGI_APPLICATION = "deltacrown.wsgi.application"
 
 # -----------------------------------------------------------------------------
-# Database (PostgreSQL)
-#   Uses env vars when present; otherwise defaults match what you created.
+# Database (Smart Config: Cloud first, Local fallback)
 # -----------------------------------------------------------------------------
+
+# 1. Define Local DB settings (Fallback)
 DB_NAME = os.getenv("DB_NAME", "deltacrown")
-DB_USER = os.getenv("DB_USER", "dc_user")          # you created: dc_user
+DB_USER = os.getenv("DB_USER", "dc_user")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "Rashik0001")
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 
+LOCAL_DB_URL = f"postgres://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# 2. Get Configuration (Safe Mode)
+# We call config() without arguments to avoid TypeError on older versions
+db_config = dj_database_url.config(default=os.getenv("DATABASE_URL", LOCAL_DB_URL))
+
+# 3. Manually apply the optimized settings
+db_config['CONN_MAX_AGE'] = 600
+db_config['CONN_HEALTH_CHECKS'] = True
+
+# 4. Force SSL if we are connecting to Neon (Cloud)
+if "neon.tech" in os.getenv("DATABASE_URL", ""):
+    db_config['OPTIONS'] = {'sslmode': 'require'}
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': DB_NAME,
-        'USER': DB_USER,
-        'PASSWORD': DB_PASSWORD,
-        'HOST': DB_HOST,
-        'PORT': DB_PORT,
-    }
+    'default': db_config
 }
 
 # -----------------------------------------------------------------------------

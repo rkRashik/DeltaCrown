@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Q, Count, F, Value, IntegerField, Sum, Avg
 from django.db.models.functions import Now, Coalesce
+from django.db.utils import ProgrammingError, OperationalError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -39,8 +40,12 @@ from apps.games.services.game_service import GameService
 # Generate games list from GameService
 def _get_games_list():
     """Get list of (slug, display_name) tuples from GameService."""
-    games = GameService.list_active_games()
-    return [(game.slug, game.display_name) for game in games]
+    try:
+        games = GameService.list_active_games()
+        return [(game.slug, game.display_name) for game in games]
+    except (ProgrammingError, OperationalError):
+        # Return empty list if database table doesn't exist yet (during migration)
+        return []
 
 GAMES = _get_games_list()
 

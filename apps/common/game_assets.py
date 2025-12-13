@@ -26,6 +26,7 @@ For template tags, use the game_registry template tags instead of game_assets.
 
 from django.conf import settings
 from django.templatetags.static import static
+from django.db.utils import ProgrammingError, OperationalError
 from apps.games.services.game_service import game_service
 
 # ============================================================================
@@ -36,21 +37,25 @@ from apps.games.services.game_service import game_service
 
 def _build_legacy_games_dict():
     """Build GAMES dict from GameService for backwards compatibility."""
-    games = {}
-    for game in game_service.list_active_games():
-        games[game.slug] = {
-            'name': game.name,
-            'display_name': game.name,
-            'slug': game.slug,
-            'logo': game.logo.url if game.logo else '',
-            'card': game.card_image.url if game.card_image else '',
-            'icon': game.icon.url if game.icon else '',
-            'banner': game.banner.url if game.banner else '',
-            'color_primary': game.primary_color or '#7c3aed',
-            'color_secondary': game.secondary_color or '#1a1a1a',
-            'category': game.category,
-        }
-    return games
+    try:
+        games = {}
+        for game in game_service.list_active_games():
+            games[game.slug] = {
+                'name': game.name,
+                'display_name': game.name,
+                'slug': game.slug,
+                'logo': game.logo.url if game.logo else '',
+                'card': game.card_image.url if game.card_image else '',
+                'icon': game.icon.url if game.icon else '',
+                'banner': game.banner.url if game.banner else '',
+                'color_primary': game.primary_color or '#7c3aed',
+                'color_secondary': game.secondary_color or '#1a1a1a',
+                'category': game.category,
+            }
+        return games
+    except (ProgrammingError, OperationalError):
+        # Return empty dict if database table doesn't exist yet (during migration)
+        return {}
 
 # Legacy GAMES constant (lazy-loaded from GameService)
 GAMES = _build_legacy_games_dict()
