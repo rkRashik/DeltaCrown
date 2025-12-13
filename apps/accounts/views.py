@@ -105,7 +105,7 @@ from django.shortcuts import redirect, render
 @login_required
 def profile_view(request: HttpRequest) -> HttpResponse:
     # Redirect to the unified profile page handled by apps.user_profile
-    return redirect('user_profile:profile')
+    return redirect('user_profile:profile', username=request.user.username)
 
 
 # ---------- Email OTP ----------
@@ -114,7 +114,8 @@ def profile_view(request: HttpRequest) -> HttpResponse:
 class VerifyEmailView(FormView):
     template_name = "account/verify_email_otp.html"
     form_class = VerifyEmailForm
-    success_url = reverse_lazy("account:profile")
+    # success_url will be set dynamically in form_valid after login
+    success_url = None
 
     def dispatch(self, request, *args, **kwargs):
         pending_subject = self._get_pending_subject()
@@ -169,7 +170,10 @@ class VerifyEmailView(FormView):
                 login(self.request, auth_user)
             _clear_pending(self.request.session)
             messages.success(self.request, "Email verified - welcome!")
-            return super().form_valid(form)
+            # Redirect to user's profile with username
+            if auth_user:
+                return redirect('user_profile:profile', username=auth_user.username)
+            return redirect('account:login')
 
         if result.locked:
             _clear_pending(self.request.session)

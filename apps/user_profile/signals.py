@@ -257,6 +257,6 @@ def check_achievements_on_team_join(sender, instance, created, **kwargs):
 @receiver(post_save, sender=UserProfile)
 def check_achievements_on_kyc_verification(sender, instance, created, **kwargs):
     """Check profile achievements when KYC is verified"""
-    if not created and instance.kyc_verified:
+    if not created and instance.is_kyc_verified:
         from apps.user_profile.services.achievement_service import check_profile_achievements
         check_profile_achievements(instance.user)

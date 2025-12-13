@@ -1,6 +1,7 @@
 ﻿from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.utils.text import slugify
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 import uuid
@@ -577,6 +578,23 @@ class UserProfile(models.Model):
             return TeamMembership.objects.filter(profile=self)
         except Exception:
             return self.user.objects.none()
+    
+    def save(self, *args, **kwargs):
+        """Auto-generate unique slug from display_name or username."""
+        if not self.slug or self.slug.strip() == "":
+            # Generate base slug from display_name or username
+            base_slug = slugify(self.display_name or getattr(self.user, 'username', 'user'))
+            
+            # Ensure uniqueness by appending number if needed
+            original_slug = base_slug
+            counter = 1
+            while UserProfile.objects.filter(slug=base_slug).exclude(pk=self.pk).exists():
+                base_slug = f"{original_slug}-{counter}"
+                counter += 1
+            
+            self.slug = base_slug
+        
+        super().save(*args, **kwargs)
 
 
 def kyc_document_path(instance, filename):
