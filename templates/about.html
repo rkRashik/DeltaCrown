@@ -1,25 +1,46 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}About DeltaCrown — The Esports Operating System{% endblock %}
+
+{% block title %}About DeltaCrown — From the Delta to the Crown{% endblock %}
+
+{% block og_title %}About DeltaCrown — Where Champions Rise{% endblock %}
+
+{% block extra_head %}
+<!-- SEO Meta Tags -->
+<meta name="description" content="DeltaCrown is building a trusted esports ecosystem for emerging markets. From Bangladesh to South Asia to the world — where geography doesn't define destiny. Tournaments, teams, rankings, DeltaCoin economy, and local payments.">
+<meta name="keywords" content="DeltaCrown, esports, Bangladesh, South Asia, gaming tournaments, esports platform, competitive gaming, DeltaCoin, bKash payments, Nagad, gaming community">
+<meta name="author" content="Redwanul Rashik">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+<meta property="og:title" content="About DeltaCrown — From the Delta to the Crown">
+<meta property="og:description" content="Building a world where geography does not define esports destiny. Trusted tournaments, verified teams, DeltaCoin economy, and local payments for emerging markets.">
+<meta property="og:image" content="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}">
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="{{ request.build_absolute_uri }}">
+<meta property="twitter:title" content="About DeltaCrown — Where Champions Rise">
+<meta property="twitter:description" content="From Bangladesh to the world — DeltaCrown is democratizing esports access through tournaments, teams, and local-first infrastructure.">
+<meta property="twitter:image" content="{% static 'img/deltaCrown_logos/DeltaCrown_Teal-Purple-Gold.svg' %}">
+{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/about_2025.css' %}">
 <style>
-  /* Ecosystem diagram connecting lines */
-  .ecosystem-line {
-    position: absolute;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.3), transparent);
-    transform-origin: left center;
-    pointer-events: none;
-    opacity: 0;
-    animation: fadeInLine 0.8s ease-out forwards;
+  /* Animated gradient background */
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
   }
   
-  @keyframes fadeInLine {
-    to { opacity: 1; }
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 15s ease infinite;
   }
   
-  /* Glass-morphism effect */
+  /* Glass morphism effect */
   .glass-card {
     background: rgba(17, 24, 39, 0.6);
     backdrop-filter: blur(12px);
@@ -30,1439 +51,1147 @@
     background: rgba(17, 24, 39, 0.8);
     border-color: rgba(249, 115, 22, 0.4);
   }
-  
-  /* Glow effects */
-  .glow-orange {
-    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
-  }
-  
-  .glow-orange-hover:hover {
-    box-shadow: 0 0 30px rgba(249, 115, 22, 0.5);
-  }
-  
-  /* Timeline connector */
-  .timeline-step::before {
-    content: '';
-    position: absolute;
-    top: 2rem;
-    left: 2rem;
-    width: 2px;
-    height: calc(100% + 2rem);
-    background: linear-gradient(180deg, rgba(249, 115, 22, 0.5), transparent);
-  }
-  
-  .timeline-step:last-child::before {
-    display: none;
-  }
 </style>
 {% endblock %}
 
-<!--
-  ABOUT PAGE - ENHANCED WITH VISUALS & INTERACTIVITY
-  
-  Files:
-  - templates/about.html (this file)
-  - static/siteui/js/about.js (interactivity)
-  
-  Features:
-  - Esports-themed dark visuals with gradients
-  - Glass-morphism cards with glow effects
-  - Interactive tab system (Who It's For)
-  - Animated count-up numbers
-  - Smooth scroll reveals
-  - Hub-and-spoke ecosystem diagram
--->
-
 {% block content %}
 
-<main id="about-page" class="min-h-screen">
+<main id="about-page" class="min-h-screen bg-gradient-to-b from-gray-900 via-black to-gray-900">
 
   <!-- ========================================
-       SECTION 1: HERO
-       Headline + Mission Statement
+       SECTION 1: HERO - CINEMATIC 2025
        ======================================== -->
-  <section id="hero" class="relative py-24 px-4 overflow-hidden">
-    <!-- Gradient background -->
-    <div class="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black opacity-90"></div>
-    <div class="absolute inset-0 bg-gradient-radial from-orange-900/20 via-transparent to-transparent"></div>
+  <section id="hero" class="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
     
-    <div class="max-w-7xl mx-auto relative z-10">
-      <div class="text-center max-w-4xl mx-auto">
-        <!-- Main heading with glow -->
-        <div class="mb-4 inline-block">
-          <h1 class="text-6xl md:text-7xl font-extrabold mb-2 bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
-            DeltaCrown
+    <!-- Multi-layer background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
+    <div class="absolute inset-0 bg-gradient-to-tr from-orange-900/10 via-purple-900/20 to-cyan-900/10 animate-gradient"></div>
+    <div class="absolute inset-0 hero-grid"></div>
+    
+    <!-- Floating particles -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="hero-particle absolute top-1/4 left-1/4 w-2 h-2 bg-orange-500/30 rounded-full blur-sm"></div>
+      <div class="hero-particle absolute top-1/3 right-1/3 w-3 h-3 bg-purple-500/30 rounded-full blur-sm"></div>
+      <div class="hero-particle absolute bottom-1/3 left-1/2 w-2 h-2 bg-cyan-500/30 rounded-full blur-sm"></div>
+    </div>
+    
+    <!-- Radial glow overlay -->
+    <div class="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>
+    
+    <div class="max-w-7xl mx-auto relative z-10 py-20">
+      <div class="text-center max-w-5xl mx-auto space-y-8">
+        
+        <!-- Logo with enhanced glow -->
+        <div class="mb-12 flex justify-center">
+          <div class="relative">
+            <img src="{% static 'img/deltaCrown_logos/logo_animated.svg' %}" 
+                 alt="DeltaCrown — Competitive Esports Platform" 
+                 class="h-32 md:h-40 lg:h-48 logo-glow transition-transform duration-500 hover:scale-110"
+                 style="filter: drop-shadow(0 0 40px rgba(255,215,0,0.4)) drop-shadow(0 0 80px rgba(108,0,255,0.3));">
+            <!-- Glow ring -->
+            <div class="absolute inset-0 -z-10 blur-3xl opacity-50 bg-gradient-to-r from-yellow-500 via-purple-500 to-cyan-500 rounded-full scale-150" aria-hidden="true"></div>
+          </div>
+        </div>
+        
+        <!-- Main headline with dramatic gradient -->
+        <div class="space-y-4">
+          <h1 class="text-6xl md:text-7xl lg:text-8xl font-black mb-4 leading-tight">
+            <span class="block bg-gradient-to-r from-cyan-400 via-purple-500 to-orange-500 bg-clip-text text-transparent text-glow">
+              From the Delta
+            </span>
+            <span class="block bg-gradient-to-r from-orange-500 via-yellow-400 to-cyan-400 bg-clip-text text-transparent text-glow">
+              to the Crown
+            </span>
           </h1>
-          <div class="h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent rounded-full"></div>
-        </div>
-        
-        <p class="text-2xl md:text-4xl font-bold mb-6 text-gray-100">
-          The Esports Operating System
-        </p>
-        <p class="text-xl md:text-2xl mb-4 text-gray-300 leading-relaxed">
-          A unified competitive ecosystem where players, teams, and organizers thrive together.
-        </p>
-        <p class="text-lg md:text-xl mb-10 text-gray-400 leading-relaxed italic">
-          Not just another platform. A living system designed for the future of competitive gaming.
-        </p>
-        
-        <!-- CTA buttons with glow -->
-        <div class="flex flex-wrap gap-4 justify-center">
-          <a href="/tournaments/" class="px-10 py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 rounded-lg font-bold text-lg transition-all duration-300 glow-orange-hover shadow-lg transform hover:scale-105">
-            Explore Tournaments
-          </a>
-          <a href="/teams/" class="px-10 py-4 border-2 border-orange-500 rounded-lg font-bold text-lg hover:bg-orange-500 hover:bg-opacity-10 transition-all duration-300 backdrop-blur-sm">
-            Join a Team
-          </a>
-          <a href="#" class="px-10 py-4 border-2 border-cyan-500 rounded-lg font-bold text-lg hover:bg-cyan-500 hover:bg-opacity-10 transition-all duration-300 backdrop-blur-sm">
-            View Rankings
-          </a>
-        </div>
-        
-        <!-- Stats row -->
-        <div class="mt-16 grid grid-cols-3 gap-6 max-w-2xl mx-auto">
-          <div class="text-center">
-            <div class="text-4xl font-bold text-orange-400 counter" data-target="9">0</div>
-            <div class="text-sm text-gray-400 mt-1">Games</div>
-          </div>
-          <div class="text-center">
-            <div class="text-4xl font-bold text-cyan-400 counter" data-target="8">0</div>
-            <div class="text-sm text-gray-400 mt-1">Modules</div>
-          </div>
-          <div class="text-center">
-            <div class="text-4xl font-bold text-green-400 counter" data-target="5">0</div>
-            <div class="text-sm text-gray-400 mt-1">Lifecycle Steps</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Mission Statement -->
-  <section class="py-20 px-4 bg-gradient-to-b from-black to-gray-900">
-    <div class="max-w-4xl mx-auto">
-      <div class="glass-card rounded-2xl p-8 md:p-12 transition-all duration-300">
-        <h2 class="text-4xl font-bold mb-8 text-center bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-          The Problem We're Solving
-        </h2>
-        <div class="text-lg leading-relaxed space-y-6 text-gray-300">
-          <p>
-            <strong class="text-gray-100">Esports has exploded in scale</strong> — millions compete globally, communities thrive, and careers are born. 
-            Yet the infrastructure supporting this growth remains <strong class="text-orange-400">fragmented, inconsistent, and improvised.</strong>
-          </p>
-          <p>
-            Players compete on one platform, track stats on another, manage teams through Discord, 
-            and monetize through disconnected payment systems. Organizers struggle to scale events reliably. 
-            Teams lack long-term operational identity. Trust breaks down at scale.
-          </p>
-          <p class="text-xl font-semibold text-gray-100">
-            Most platforms are optimized for <em>events</em>, not <em>ecosystems</em>.
-          </p>
-          <p>
-            They answer "How do we host a tournament?" but fail to ask: <em class="text-cyan-400">What happens before and after? 
-            How do players grow? How do teams persist? How is trust maintained at scale?</em>
-          </p>
-          <blockquote class="text-xl md:text-2xl font-bold border-l-4 border-orange-500 pl-6 py-4 italic bg-gray-900 bg-opacity-50 rounded-r-lg text-gray-100">
-            "We're not building another event platform. We're building the operating system for competitive gaming."
-          </blockquote>
-          <p class="text-lg font-semibold text-orange-400">
-            DeltaCrown exists to fix this — by treating esports as a <strong>living system</strong> where competition, 
-            progression, economy, and community flow naturally together.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================
-       SECTION 2: ECOSYSTEM OVERVIEW
-       Hub-and-spoke diagram with glass cards
-       ======================================== -->
-  <section id="ecosystem" class="py-24 px-4 bg-gradient-to-b from-gray-900 to-black relative overflow-hidden">
-    <!-- Animated background pattern -->
-    <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 40px 40px;"></div>
-    
-    <!-- Floating gradient orbs -->
-    <div class="absolute top-20 left-10 w-96 h-96 bg-orange-600 rounded-full blur-3xl opacity-10 animate-pulse"></div>
-    <div class="absolute bottom-20 right-10 w-96 h-96 bg-cyan-600 rounded-full blur-3xl opacity-10 animate-pulse" style="animation-delay: 1s;"></div>
-    
-    <div class="max-w-7xl mx-auto relative z-10">
-      <!-- Section Header -->
-      <div class="text-center mb-16">
-        <div class="inline-block mb-6">
-          <div class="flex items-center justify-center gap-3 mb-2">
-            <!-- SVG Icon: Connected Network -->
-            <svg class="w-12 h-12 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
-            </svg>
-            <h2 class="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
-              Eight Pillars, One Ecosystem
-            </h2>
-          </div>
-          <div class="h-1.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent rounded-full"></div>
-        </div>
-        
-        <p class="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-4 leading-relaxed">
-          DeltaCrown isn't a collection of isolated features. It's a <strong class="text-orange-400">connected system</strong> 
-          where every domain feeds into and strengthens the others.
-        </p>
-        <p class="text-base md:text-lg text-gray-400 max-w-2xl mx-auto">
-          Tournaments drive rankings. Rankings shape team reputation. Reputation attracts sponsors. 
-          The economy rewards participation. Community amplifies everything. <em class="text-cyan-400">This is how ecosystems work.</em>
-        </p>
-      </div>
-
-      <!-- Ecosystem Diagram Structure -->
-      <div class="relative max-w-6xl mx-auto">
-        
-        <!-- Central Hub -->
-        <div id="ecosystem-hub" class="text-center mb-20">
-          <div class="inline-block relative group">
-            <!-- Pulsing glow effect -->
-            <div class="absolute inset-0 bg-orange-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
-            <div class="absolute inset-0 bg-orange-500 rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
-            
-            <!-- Central platform hub -->
-            <div class="relative p-12 md:p-16 border-4 border-orange-500 rounded-full bg-gradient-to-br from-gray-900 via-black to-gray-900 shadow-2xl">
-              <!-- Inner glow ring -->
-              <div class="absolute inset-3 border-2 border-orange-400 rounded-full opacity-30"></div>
-              
-              <div class="relative">
-                <!-- SVG Icon: Platform Core -->
-                <svg class="w-16 h-16 mx-auto mb-3 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.89-.96-7-5.32-7-9.56V8.58l7-3.5 7 3.5v1.86c0 4.24-3.11 8.6-7 9.56z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-                <div class="text-3xl md:text-4xl font-extrabold text-orange-400 tracking-tight">DeltaCrown</div>
-                <div class="text-sm text-gray-400 mt-2 font-medium">Core Platform</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Ecosystem Modules Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           
-          <!-- Module 1: Tournaments -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/20 hover:-translate-y-2">
-            <!-- Card glow on hover -->
-            <div class="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-500/0 group-hover:from-orange-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <!-- Icon with background -->
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-orange-400 mb-3 text-center group-hover:text-orange-300 transition-colors">Tournaments</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                The competitive engine. Smart registration, automated validation, live brackets, 
-                evidence-based verification, and complete audit trails — tournaments aren't just events, they're credible records.
-              </p>
-            </div>
-          </article>
-
-          <!-- Module 2: Teams -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-cyan-500 hover:shadow-2xl hover:shadow-cyan-500/20 hover:-translate-y-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/0 to-cyan-500/0 group-hover:from-cyan-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-cyan-600 to-cyan-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-cyan-400 mb-3 text-center group-hover:text-cyan-300 transition-colors">Teams</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                Professional organizational structures from day one. Defined roles (players, captains, managers, coaches), 
-                sponsor integration, persistent identity — teams aren't temporary squads, they're long-term competitive brands.
-              </p>
-            </div>
-          </article>
-
-          <!-- Module 3: Rankings -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-green-500 hover:shadow-2xl hover:shadow-green-500/20 hover:-translate-y-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-500/0 group-hover:from-green-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-green-400 mb-3 text-center group-hover:text-green-300 transition-colors">Rankings</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                Multi-dimensional, credible rankings tied to verified match results. Track performance across games, seasons, 
-                and formats — build a competitive history that tells your story, not just a number.
-              </p>
-            </div>
-          </article>
-
-          <!-- Module 4: DeltaCoin -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/20 hover:-translate-y-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/0 to-yellow-500/0 group-hover:from-yellow-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-yellow-400 mb-3 text-center group-hover:text-yellow-300 transition-colors">DeltaCoin</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                A utility-driven currency tied to participation, not speculation. Earn through competition and contribution, 
-                spend on entries and services — a closed-loop economy that rewards engagement and reinvestment.
-              </p>
-            </div>
-          </article>
-
-          <!-- Module 5: Community -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-purple-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:-translate-y-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-purple-500/0 to-purple-500/0 group-hover:from-purple-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-purple-400 mb-3 text-center group-hover:text-purple-300 transition-colors">Community</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                Built-in knowledge hub for blogs, guides, discussions, and storytelling. Safe moderation, 
-                content recognition — community isn't external, it's embedded into the competitive core.
-              </p>
-            </div>
-          </article>
-
-          <!-- Module 6: Commerce -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-pink-500 hover:shadow-2xl hover:shadow-pink-500/20 hover:-translate-y-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-pink-500/0 to-pink-500/0 group-hover:from-pink-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-pink-600 to-pink-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-pink-400 mb-3 text-center group-hover:text-pink-300 transition-colors">Commerce</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                Esports-focused marketplace for team merchandise, gaming gear, digital collectibles, and brand partnerships. 
-                Monetize your competitive brand while supporting the ecosystem.
-              </p>
-            </div>
-          </article>
-
-          <!-- Module 7: Coaching -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-500/0 group-hover:from-blue-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-blue-400 mb-3 text-center group-hover:text-blue-300 transition-colors">Coaching</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                Structured talent development marketplace. Discover coaches, book sessions, track progress — 
-                esports isn't just about competing, it's about learning, growing, and evolving your craft.
-              </p>
-            </div>
-          </article>
-
-          <!-- Module 8: Governance -->
-          <article class="group relative bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 transition-all duration-300 hover:border-red-500 hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-2">
-            <div class="absolute inset-0 bg-gradient-to-br from-red-500/0 to-red-500/0 group-hover:from-red-500/10 group-hover:to-transparent rounded-2xl transition-all duration-300"></div>
-            
-            <div class="relative">
-              <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
-              </div>
-              
-              <h3 class="text-xl font-bold text-red-400 mb-3 text-center group-hover:text-red-300 transition-colors">Governance</h3>
-              <p class="text-sm text-gray-400 leading-relaxed text-center">
-                Trust at scale. Complete audit trails, evidence-based dispute resolution, role-based permissions, 
-                transparent operations — professional standards applied from day one, not just at the elite tier.
-              </p>
-            </div>
-          </article>
-
+          <!-- Tagline -->
+          <p class="text-2xl md:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-300 tracking-wide">
+            Where Champions Rise
+          </p>
         </div>
+        
+        <!-- Vision statement -->
+        <div class="max-w-3xl mx-auto">
+          <p class="text-lg md:text-xl lg:text-2xl text-gray-300 leading-relaxed font-light">
+            Building a world where <span class="text-cyan-400 font-semibold">geography does not define destiny</span>—where a gamer 
+            in Bangladesh has the same <span class="text-purple-400 font-semibold">trusted path to global glory</span> as a pro on the main stage.
+          </p>
+        </div>
+        
+        <!-- CTA Buttons with premium effects -->
+        <div class="flex flex-wrap gap-6 justify-center pt-8">
+          <a href="/tournaments/" 
+             class="group btn-premium px-10 py-5 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 rounded-xl font-bold text-lg md:text-xl transition-all duration-300 shadow-2xl shadow-orange-900/50 hover:shadow-orange-500/50 transform hover:scale-105 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-orange-500/50 focus:ring-offset-2 focus:ring-offset-gray-900">
+            <span class="flex items-center gap-3">
+              <svg class="w-6 h-6 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+              </svg>
+              Explore Tournaments
+            </span>
+          </a>
+          
+          <a href="/teams/" 
+             class="group btn-premium px-10 py-5 border-2 border-purple-500 hover:border-purple-400 rounded-xl font-bold text-lg md:text-xl backdrop-blur-sm bg-purple-500/10 hover:bg-purple-500/20 transition-all duration-300 shadow-xl shadow-purple-900/30 hover:shadow-purple-500/40 transform hover:scale-105 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:ring-offset-2 focus:ring-offset-gray-900">
+            <span class="flex items-center gap-3">
+              <svg class="w-6 h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              Join the Community
+            </span>
+          </a>
+        </div>
+        
+        <!-- Scroll indicator -->
+        <div class="pt-16 flex flex-col items-center gap-3">
+          <p class="text-sm text-gray-500 uppercase tracking-widest font-semibold">Scroll to explore</p>
+          <div class="scroll-indicator">
+            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+            </svg>
+          </div>
+        </div>
+        
       </div>
     </div>
   </section>
 
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-orange-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
   <!-- ========================================
-       SECTION 3: HOW IT WORKS
-       Tournament Lifecycle Timeline
+       SECTION 2: THE STORY
+       Origin & Problem Statement
        ======================================== -->
-  <section id="how-it-works" class="py-24 px-4 bg-gradient-to-b from-black to-gray-900 relative overflow-hidden">
-    <!-- Ambient background effects -->
-    <div class="absolute inset-0 bg-gradient-to-br from-cyan-950/20 via-transparent to-purple-950/20"></div>
-    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
-    
-    <div class="max-w-6xl mx-auto relative z-10">
-      <!-- Section Header -->
-      <div class="text-center mb-16">
-        <div class="inline-block mb-6">
-          <div class="flex items-center justify-center gap-3 mb-2">
-            <!-- SVG Icon: Process Flow -->
-            <svg class="w-12 h-12 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <section id="story" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-black via-gray-900 to-black">
+    <div class="max-w-7xl mx-auto">
+      
+      <div class="text-center mb-20">
+        <p class="text-sm uppercase tracking-widest text-orange-400 font-bold mb-4">Our Origin Story</p>
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-orange-400 via-red-500 to-orange-600 bg-clip-text text-transparent">
+          Why DeltaCrown Exists
+        </h2>
+        <div class="h-1.5 w-40 bg-gradient-to-r from-transparent via-orange-500 to-transparent mx-auto rounded-full mb-8"></div>
+        <p class="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          Founded by <strong class="text-orange-400 font-bold">Redwanul Rashik</strong> in <strong class="text-orange-400 font-bold">2025</strong>, 
+          DeltaCrown was born from a simple observation: <span class="text-red-400 font-semibold">esports infrastructure is broken</span>.
+        </p>
+      </div>
+      
+      <div class="grid md:grid-cols-2 gap-8 lg:gap-12 mb-16">
+        
+        <!-- The Problem -->
+        <div class="group glass-card rounded-3xl p-10 border-l-4 border-red-500 hover:border-red-400 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-900/20">
+          <div class="flex items-center gap-4 mb-8">
+            <div class="p-3 bg-red-500/10 rounded-xl group-hover:bg-red-500/20 transition-colors">
+              <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+            </div>
+            <h3 class="text-3xl font-bold text-red-400">The Problem</h3>
+          </div>
+          <ul class="space-y-4 text-gray-300 text-base md:text-lg">
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-red-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Tournaments disappear after they end</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-red-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Teams lack long-term identity</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-red-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Players grind endlessly without recognition</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-red-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Emerging regions lack accessible systems</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-red-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Fragmented tools across multiple platforms</span>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Our Solution -->
+        <div class="group glass-card rounded-3xl p-10 border-l-4 border-green-500 hover:border-green-400 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-green-900/20">
+          <div class="flex items-center gap-4 mb-8">
+            <div class="p-3 bg-green-500/10 rounded-xl group-hover:bg-green-500/20 transition-colors">
+              <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-3xl font-bold text-green-400">Our Solution</h3>
+          </div>
+          <ul class="space-y-4 text-gray-300 text-base md:text-lg">
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-green-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Persistent competitive history</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-green-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Professional team organizations</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-green-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Verified career progression</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-green-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Local payment support (bKash, Nagad, Rocket)</span>
+            </li>
+            <li class="flex items-start gap-3 group/item">
+              <span class="text-green-400 mt-1.5 text-xl group-hover/item:scale-125 transition-transform">•</span>
+              <span>Unified ecosystem for everything esports</span>
+            </li>
+          </ul>
+        </div>
+        
+      </div>
+      
+      <!-- Core Belief Statement -->
+      <div class="glass-card rounded-3xl p-12 md:p-16 bg-gradient-to-br from-purple-900/30 via-purple-800/20 to-orange-900/30 border-2 border-purple-500 hover:border-purple-400 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-900/40">
+        <div class="max-w-5xl mx-auto text-center">
+          <div class="inline-block p-5 bg-purple-500/10 rounded-2xl mb-8">
+            <svg class="w-20 h-20 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
-            <h2 class="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-              Why Tournaments Are The Core
-            </h2>
           </div>
-          <div class="h-1.5 bg-gradient-to-r from-transparent via-cyan-500 to-transparent rounded-full"></div>
-        </div>
-        
-        <p class="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 leading-relaxed">
-          Tournaments aren't just events in DeltaCrown — they're the <strong class="text-cyan-400">primary engine</strong> that drives activity, 
-          engagement, and progression across the entire ecosystem.
-        </p>
-        <p class="text-base md:text-lg text-gray-400 max-w-3xl mx-auto">
-          Unlike simple bracket generators, DeltaCrown treats tournaments as <em class="text-orange-400">long-lived, auditable processes</em> 
-          with a complete lifecycle. Every match becomes a credible competitive record.
-        </p>
-      </div>
-
-      <!-- Timeline Visualization -->
-      <div class="relative">
-        <!-- Vertical connector line -->
-        <div class="absolute left-10 md:left-14 top-10 bottom-10 w-1 bg-gradient-to-b from-orange-500 via-cyan-500 via-green-500 via-yellow-500 to-purple-500 opacity-30"></div>
-        
-        <!-- Timeline Steps -->
-        <div class="space-y-8 md:space-y-12 relative">
-          
-          <!-- Step 1: Tournament Creation -->
-          <div class="flex gap-4 md:gap-8 items-start relative group">
-            <!-- Step Number Circle -->
-            <div class="flex-shrink-0 relative z-10">
-              <div class="absolute inset-0 bg-orange-600 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-300"></div>
-              <div class="relative w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-600 to-orange-700 rounded-full flex items-center justify-center shadow-2xl border-4 border-orange-400 group-hover:scale-110 transition-transform duration-300">
-                <!-- SVG Icon: Create -->
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-              </div>
-              <!-- Step number badge -->
-              <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-900">
-                1
-              </div>
-            </div>
-            
-            <!-- Step Content Card -->
-            <div class="flex-1 bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 md:p-8 transition-all duration-300 group-hover:border-orange-500 group-hover:shadow-2xl group-hover:shadow-orange-500/20">
-              <div class="flex items-center gap-3 mb-4">
-                <div class="h-8 w-1.5 bg-orange-500 rounded-full"></div>
-                <h3 class="text-2xl md:text-3xl font-bold text-orange-400">Tournament Creation</h3>
-              </div>
-              <p class="text-gray-300 leading-relaxed mb-3 text-base md:text-lg">
-                Organizers configure every detail: game type, format (elimination, round-robin, league-style), rules, 
-                eligibility criteria, prize structure, and staff roles.
-              </p>
-              <div class="flex items-start gap-2 text-sm text-gray-400 italic bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>Smart validation ensures consistency before a single match begins.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 2: Smart Registration -->
-          <div class="flex gap-4 md:gap-8 items-start relative group">
-            <div class="flex-shrink-0 relative z-10">
-              <div class="absolute inset-0 bg-cyan-600 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-300"></div>
-              <div class="relative w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-cyan-600 to-cyan-700 rounded-full flex items-center justify-center shadow-2xl border-4 border-cyan-400 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-              </div>
-              <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-900">
-                2
-              </div>
-            </div>
-            
-            <div class="flex-1 bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 md:p-8 transition-all duration-300 group-hover:border-cyan-500 group-hover:shadow-2xl group-hover:shadow-cyan-500/20">
-              <div class="flex items-center gap-3 mb-4">
-                <div class="h-8 w-1.5 bg-cyan-500 rounded-full"></div>
-                <h3 class="text-2xl md:text-3xl font-bold text-cyan-400">Smart Registration</h3>
-              </div>
-              <p class="text-gray-300 leading-relaxed mb-3 text-base md:text-lg">
-                Players and teams register with <strong>automated eligibility verification</strong>, roster validation, 
-                payment confirmation, and fraud detection mechanisms.
-              </p>
-              <div class="flex items-start gap-2 text-sm text-gray-400 italic bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <svg class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>No manual spreadsheets. No duplicate entries. No confusion.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 3: Match Execution -->
-          <div class="flex gap-4 md:gap-8 items-start relative group">
-            <div class="flex-shrink-0 relative z-10">
-              <div class="absolute inset-0 bg-green-600 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-300"></div>
-              <div class="relative w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-green-600 to-green-700 rounded-full flex items-center justify-center shadow-2xl border-4 border-green-400 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-900">
-                3
-              </div>
-            </div>
-            
-            <div class="flex-1 bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 md:p-8 transition-all duration-300 group-hover:border-green-500 group-hover:shadow-2xl group-hover:shadow-green-500/20">
-              <div class="flex items-center gap-3 mb-4">
-                <div class="h-8 w-1.5 bg-green-500 rounded-full"></div>
-                <h3 class="text-2xl md:text-3xl font-bold text-green-400">Match Execution</h3>
-              </div>
-              <p class="text-gray-300 leading-relaxed mb-3 text-base md:text-lg">
-                Structured scheduling, live bracket updates, role-based match control (players, captains, referees), 
-                evidence submission workflows, and real-time status tracking.
-              </p>
-              <div class="flex items-start gap-2 text-sm text-gray-400 italic bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>Competition flows smoothly, not chaotically.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 4: Verification & Disputes -->
-          <div class="flex gap-4 md:gap-8 items-start relative group">
-            <div class="flex-shrink-0 relative z-10">
-              <div class="absolute inset-0 bg-yellow-600 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-300"></div>
-              <div class="relative w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-full flex items-center justify-center shadow-2xl border-4 border-yellow-400 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
-              </div>
-              <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-900">
-                4
-              </div>
-            </div>
-            
-            <div class="flex-1 bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 md:p-8 transition-all duration-300 group-hover:border-yellow-500 group-hover:shadow-2xl group-hover:shadow-yellow-500/20">
-              <div class="flex items-center gap-3 mb-4">
-                <div class="h-8 w-1.5 bg-yellow-500 rounded-full"></div>
-                <h3 class="text-2xl md:text-3xl font-bold text-yellow-400">Verification & Disputes</h3>
-              </div>
-              <p class="text-gray-300 leading-relaxed mb-3 text-base md:text-lg">
-                Evidence-based verification, structured dispute filing, referee intervention paths, 
-                standardized decision criteria, and <strong>complete audit trails</strong>.
-              </p>
-              <div class="flex items-start gap-2 text-sm text-gray-400 italic bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <svg class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>Transparency isn't optional — it's mandatory. Trust is earned through systems, not promises.</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Step 5: Rankings & Rewards -->
-          <div class="flex gap-4 md:gap-8 items-start relative group">
-            <div class="flex-shrink-0 relative z-10">
-              <div class="absolute inset-0 bg-purple-600 rounded-full blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-300"></div>
-              <div class="relative w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-purple-600 to-purple-700 rounded-full flex items-center justify-center shadow-2xl border-4 border-purple-400 group-hover:scale-110 transition-transform duration-300">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                </svg>
-              </div>
-              <div class="absolute -bottom-2 -right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-sm font-bold border-2 border-gray-900">
-                5
-              </div>
-            </div>
-            
-            <div class="flex-1 bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-2xl p-6 md:p-8 transition-all duration-300 group-hover:border-purple-500 group-hover:shadow-2xl group-hover:shadow-purple-500/20">
-              <div class="flex items-center gap-3 mb-4">
-                <div class="h-8 w-1.5 bg-purple-500 rounded-full"></div>
-                <h3 class="text-2xl md:text-3xl font-bold text-purple-400">Rankings & Rewards</h3>
-              </div>
-              <p class="text-gray-300 leading-relaxed mb-3 text-base md:text-lg">
-                Automatic ranking updates, DeltaCoin distribution, prize payouts, permanent historical records, 
-                and comprehensive analytics — the cycle completes, and the ecosystem evolves.
-              </p>
-              <div class="flex items-start gap-2 text-sm text-gray-400 italic bg-gray-900/50 rounded-lg p-3 border border-gray-800">
-                <svg class="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span>Every tournament feeds data back into the system. Nothing resets. Progression is permanent.</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================
-       SECTION 4: DELTACOIN ECONOMY
-       ======================================== -->
-  <section id="deltacoin" class="py-24 px-4 bg-gradient-to-b from-gray-900 to-black relative overflow-hidden">
-    <!-- Background accent -->
-    <div class="absolute top-0 right-0 w-96 h-96 bg-yellow-500 rounded-full blur-3xl opacity-10"></div>
-    <div class="absolute bottom-0 left-0 w-96 h-96 bg-orange-500 rounded-full blur-3xl opacity-10"></div>
-    
-    <div class="max-w-6xl mx-auto relative z-10">
-      <div class="text-center mb-16">
-        <h2 class="text-5xl font-extrabold mb-6 bg-gradient-to-r from-yellow-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
-          DeltaCoin: The Digital Economy Layer
-        </h2>
-        <p class="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-4">
-          <strong class="text-yellow-400">DeltaCoin is not a speculative crypto asset.</strong> 
-          It's a utility-driven platform currency tightly integrated with participation, progression, and contribution.
-        </p>
-        <p class="text-lg text-gray-400 max-w-2xl mx-auto">
-          By keeping DeltaCoin inside the ecosystem, we create a <em class="text-orange-400">closed-loop economy</em> 
-          that rewards engagement and reinvestment, not extraction.
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-8 mb-16">
-        
-        <!-- How to Earn -->
-        <div class="glass-card rounded-2xl p-8 transition-all duration-300 hover:border-green-500 transform hover:scale-105 group">
-          <div class="text-6xl mb-6 text-center group-hover:scale-110 transition-transform duration-300">📥</div>
-          <h3 class="text-3xl font-extrabold mb-6 text-center text-green-400">How You Earn</h3>
-          <ul class="space-y-3 text-gray-300">
-            <li class="flex items-start gap-2">
-              <span class="text-green-400 font-bold">•</span>
-              <span><strong>Compete</strong> in tournaments (placements, wins)</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-green-400 font-bold">•</span>
-              <span><strong>Contribute</strong> community content (guides, analysis)</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-green-400 font-bold">•</span>
-              <span><strong>Complete</strong> platform milestones</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-green-400 font-bold">•</span>
-              <span><strong>Maintain</strong> fair-play behavior</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-green-400 font-bold">•</span>
-              <span><strong>Participate</strong> in seasonal programs</span>
-            </li>
-          </ul>
-          <p class="text-sm text-gray-400 mt-4 italic">
-            Tied to value creation, not artificial inflation.
+          <h3 class="text-3xl md:text-4xl lg:text-5xl font-black text-purple-300 mb-6">Our Core Belief</h3>
+          <p class="text-xl md:text-2xl lg:text-3xl text-gray-200 leading-relaxed">
+            <strong class="text-purple-400 font-black">Talent is universal, opportunity isn't.</strong> 
+            We're building the infrastructure to change that—turning scattered potential into verified careers, 
+            and isolated matches into a <span class="text-orange-400 font-semibold">sustainable esports future</span>.
           </p>
         </div>
-
-        <!-- How to Spend -->
-        <div class="glass-card rounded-2xl p-8 transition-all duration-300 hover:border-orange-500 transform hover:scale-105 group">
-          <div class="text-6xl mb-6 text-center group-hover:scale-110 transition-transform duration-300">📤</div>
-          <h3 class="text-3xl font-extrabold mb-6 text-center text-orange-400">How You Spend</h3>
-          <ul class="space-y-3 text-gray-300">
-            <li class="flex items-start gap-2">
-              <span class="text-orange-400 font-bold">•</span>
-              <span>Tournament <strong>entry fees</strong></span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-orange-400 font-bold">•</span>
-              <span>Premium <strong>features & tools</strong></span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-orange-400 font-bold">•</span>
-              <span><strong>Coaching</strong> sessions</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-orange-400 font-bold">•</span>
-              <span>Merchandise & <strong>team gear</strong></span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-orange-400 font-bold">•</span>
-              <span>Team-related <strong>services</strong></span>
-            </li>
-          </ul>
-          <p class="text-sm text-gray-400 mt-4 italic">
-            Clear spending paths. Value stays in the ecosystem.
-          </p>
-        </div>
-
-        <!-- Economic Principles -->
-        <div class="glass-card rounded-2xl p-8 transition-all duration-300 hover:border-cyan-500 transform hover:scale-105 group">
-          <div class="text-6xl mb-6 text-center group-hover:scale-110 transition-transform duration-300">⚖️</div>
-          <h3 class="text-3xl font-extrabold mb-6 text-center text-cyan-400">How It's Balanced</h3>
-          <ul class="space-y-3 text-gray-300">
-            <li class="flex items-start gap-2">
-              <span class="text-cyan-400 font-bold">•</span>
-              <span><strong>Controlled</strong> issuance (no unlimited printing)</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-cyan-400 font-bold">•</span>
-              <span><strong>Clear sinks</strong> and spending paths</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-cyan-400 font-bold">•</span>
-              <span><strong>Anti-abuse</strong> safeguards</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-cyan-400 font-bold">•</span>
-              <span><strong>Full auditability</strong> (transparent transactions)</span>
-            </li>
-            <li class="flex items-start gap-2">
-              <span class="text-cyan-400 font-bold">•</span>
-              <span><strong>Not crypto</strong> (utility, not speculation)</span>
-            </li>
-          </ul>
-          <p class="text-sm text-gray-400 mt-4 italic">
-            Economic sustainability, not hype cycles.
-          </p>
-        </div>
-
       </div>
-
-      <!-- Payments Section -->
-      <div class="glass-card rounded-2xl p-10 border-2 border-orange-500 glow-orange">
-        <h3 class="text-3xl font-extrabold mb-8 text-center text-orange-400">Local Payments Supported</h3>
-        <div class="grid md:grid-cols-2 gap-10">
-          <div>
-            <h4 class="text-xl font-bold mb-4 text-green-400 flex items-center gap-2">
-              <span class="text-2xl">✓</span>
-              Currently Available
-            </h4>
-            <ul class="space-y-3 text-gray-300">
-              <li class="flex items-center gap-3">
-                <span class="text-green-400 text-xl">✓</span>
-                <span>bKash (Bangladesh)</span>
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="text-green-400 text-xl">✓</span>
-                <span>Nagad (Bangladesh)</span>
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="text-green-400 text-xl">✓</span>
-                <span>Rocket (Bangladesh)</span>
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="text-green-400 text-xl">✓</span>
-                <span>Direct Bank Transfer</span>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 class="text-xl font-bold mb-4 text-cyan-400 flex items-center gap-2">
-              <span class="text-2xl">○</span>
-              Future Ready
-            </h4>
-            <ul class="space-y-3 text-gray-400">
-              <li class="flex items-center gap-3">
-                <span class="text-cyan-400 text-xl">○</span>
-                <span>International card payments</span>
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="text-cyan-400 text-xl">○</span>
-                <span>Regional payment gateways</span>
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="text-cyan-400 text-xl">○</span>
-                <span>Automated prize payouts</span>
-              </li>
-              <li class="flex items-center gap-3">
-                <span class="text-cyan-400 text-xl">○</span>
-                <span>Cross-border transactions</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================
-       SECTION 5: WHO IT'S FOR
-       Interactive stakeholder tabs
-       ======================================== -->
-  <section id="who-its-for" class="py-24 px-4 bg-gradient-to-b from-black to-gray-900">
-    <div class="max-w-6xl mx-auto">
-      <div class="text-center mb-16">
-        <h2 class="text-5xl font-extrabold mb-6 bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
-          Built For Everyone, Optimized For All
-        </h2>
-        <p class="text-xl md:text-2xl text-gray-300 mb-4">
-          DeltaCrown serves multiple stakeholders simultaneously — <strong class="text-purple-400">without compromise</strong>.
-        </p>
-        <p class="text-lg text-gray-400 max-w-2xl mx-auto">
-          Players, teams, organizers, and sponsors each get professional-grade tools designed specifically for their needs.
-        </p>
-      </div>
-
-      <!-- Tab Navigation -->
-      <div class="mb-10">
-        <div class="flex flex-wrap gap-4 justify-center border-b-2 border-gray-800 pb-4">
-          <button 
-            data-tab="players" 
-            class="stakeholder-tab px-8 py-4 font-bold text-lg rounded-t-lg transition-all duration-300 border-b-4 border-orange-500 bg-gray-800 text-orange-400"
-            aria-selected="true"
-            role="tab">
-            <span class="text-2xl mr-2">🎮</span>
-            Players
-          </button>
-          <button 
-            data-tab="teams" 
-            class="stakeholder-tab px-8 py-4 font-bold text-lg rounded-t-lg transition-all duration-300 border-b-4 border-transparent hover:border-cyan-500 hover:bg-gray-800 text-gray-400 hover:text-cyan-400"
-            aria-selected="false"
-            role="tab">
-            <span class="text-2xl mr-2">👥</span>
-            Teams
-          </button>
-          <button 
-            data-tab="organizers" 
-            class="stakeholder-tab px-8 py-4 font-bold text-lg rounded-t-lg transition-all duration-300 border-b-4 border-transparent hover:border-green-500 hover:bg-gray-800 text-gray-400 hover:text-green-400"
-            aria-selected="false"
-            role="tab">
-            <span class="text-2xl mr-2">🏆</span>
-            Organizers
-          </button>
-          <button 
-            data-tab="sponsors" 
-            class="stakeholder-tab px-8 py-4 font-bold text-lg rounded-t-lg transition-all duration-300 border-b-4 border-transparent hover:border-purple-500 hover:bg-gray-800 text-gray-400 hover:text-purple-400"
-            aria-selected="false"
-            role="tab">
-            <span class="text-2xl mr-2">💼</span>
-            Sponsors
-          </button>
-        </div>
-      </div>
-
-      <!-- Tab Content Panels -->
-      <div class="tab-content">
-        
-        <!-- Players Panel -->
-        <div id="panel-players" class="tab-panel glass-card rounded-2xl p-10 border-2 border-orange-500" role="tabpanel">
-          <h3 class="text-4xl font-extrabold mb-8 text-orange-400">🎮 For Players: Build Your Competitive Legacy</h3>
-          <div class="grid md:grid-cols-2 gap-8">
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">What You Get</h4>
-              <ul class="space-y-3 text-gray-300">
-                <li class="flex items-start gap-3">
-                  <span class="text-orange-400 font-bold text-xl">•</span>
-                  <span><strong>Persistent competitive identity</strong> — your history stays with you</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-orange-400 font-bold text-xl">•</span>
-                  <span><strong>Fair, structured competition</strong> with transparent rules</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-orange-400 font-bold text-xl">•</span>
-                  <span><strong>Match history & statistics</strong> tied to verified results</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-orange-400 font-bold text-xl">•</span>
-                  <span><strong>Rankings that matter</strong> — credible, multi-dimensional</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-orange-400 font-bold text-xl">•</span>
-                  <span><strong>DeltaCoin rewards</strong> for performance and contribution</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-orange-400 font-bold text-xl">•</span>
-                  <span><strong>Access to coaching</strong> and development resources</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">Your Journey</h4>
-              <p class="text-gray-300 leading-relaxed mb-4">
-                Start as a casual player. Compete in tournaments. Build your reputation. 
-                Join or create teams. Evolve into a captain, coach, organizer, or pro.
-              </p>
-              <p class="text-gray-300 leading-relaxed mb-4">
-                <strong class="text-orange-400">Every match contributes to your long-term competitive record.</strong> 
-                No resets. No throwaway games. Progression is permanent.
-              </p>
-              <p class="text-sm text-gray-400 italic">
-                DeltaCrown enables esports careers, not just matches.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Teams Panel -->
-        <div id="panel-teams" class="tab-panel hidden glass-card rounded-2xl p-10 border-2 border-cyan-500" role="tabpanel">
-          <h3 class="text-4xl font-extrabold mb-8 text-cyan-400">👥 For Teams: Build a Competitive Brand</h3>
-          <div class="grid md:grid-cols-2 gap-8">
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">Professional Structure</h4>
-              <ul class="space-y-3 text-gray-300">
-                <li class="flex items-start gap-3">
-                  <span class="text-cyan-400 font-bold text-xl">•</span>
-                  <span><strong>Role-based management</strong> (players, captains, managers, coaches)</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-cyan-400 font-bold text-xl">•</span>
-                  <span><strong>Sponsor integration</strong> with visibility and reporting</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-cyan-400 font-bold text-xl">•</span>
-                  <span><strong>Team branding</strong> and visual identity</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-cyan-400 font-bold text-xl">•</span>
-                  <span><strong>Performance tracking</strong> across multiple games</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-cyan-400 font-bold text-xl">•</span>
-                  <span><strong>Persistent reputation</strong> and competitive history</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">Growth Path</h4>
-              <p class="text-gray-300 leading-relaxed mb-4">
-                <strong class="text-cyan-400">Teams aren't temporary squads — they're persistent competitive entities.</strong> 
-                Build a professional esports organization with proper structure, compete across multiple tournaments, 
-                attract sponsors, and develop a long-term brand.
-              </p>
-              <p class="text-gray-300 leading-relaxed">
-                From grassroots community teams to regional powerhouses, DeltaCrown supports the full spectrum. 
-                Your team's history, achievements, and identity are permanent.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Organizers Panel -->
-        <div id="panel-organizers" class="tab-panel hidden glass-card rounded-2xl p-10 border-2 border-green-500" role="tabpanel">
-          <h3 class="text-4xl font-extrabold mb-8 text-green-400">🏆 For Organizers: Scale With Confidence</h3>
-          <div class="grid md:grid-cols-2 gap-8">
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">Professional Tools</h4>
-              <ul class="space-y-3 text-gray-300">
-                <li class="flex items-start gap-3">
-                  <span class="text-green-400 font-bold text-xl">•</span>
-                  <span><strong>Smart tournament configuration</strong> with validation</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-green-400 font-bold text-xl">•</span>
-                  <span><strong>Automated registration</strong> and eligibility checks</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-green-400 font-bold text-xl">•</span>
-                  <span><strong>Live bracket management</strong> with real-time updates</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-green-400 font-bold text-xl">•</span>
-                  <span><strong>Structured dispute workflows</strong> with referee tools</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-green-400 font-bold text-xl">•</span>
-                  <span><strong>Staff role assignment</strong> (referees, admins, moderators)</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-green-400 font-bold text-xl">•</span>
-                  <span><strong>Analytics and reporting</strong> post-event</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">Trust at Scale</h4>
-              <p class="text-gray-300 leading-relaxed mb-4">
-                Run multiple tournaments simultaneously with professional-grade tools. 
-                <strong class="text-green-400">Every action is auditable, every decision is traceable, and trust is maintained at scale.</strong>
-              </p>
-              <p class="text-gray-300 leading-relaxed mb-4">
-                From small community events to large regional leagues, DeltaCrown provides the infrastructure to operate with confidence.
-              </p>
-              <p class="text-sm text-gray-400 italic">
-                No more spreadsheets. No more manual verification. Professional esports infrastructure for everyone.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sponsors Panel -->
-        <div id="panel-sponsors" class="tab-panel hidden glass-card rounded-2xl p-10 border-2 border-purple-500" role="tabpanel">
-          <h3 class="text-4xl font-extrabold mb-8 text-purple-400">💼 For Sponsors: Measurable Engagement, Real ROI</h3>
-          <div class="grid md:grid-cols-2 gap-8">
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">What You Get</h4>
-              <ul class="space-y-3 text-gray-300">
-                <li class="flex items-start gap-3">
-                  <span class="text-purple-400 font-bold text-xl">•</span>
-                  <span><strong>Partner with teams and tournaments</strong> directly</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-purple-400 font-bold text-xl">•</span>
-                  <span><strong>Analytics-driven visibility reports</strong> (impressions, engagement)</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-purple-400 font-bold text-xl">•</span>
-                  <span><strong>Brand integration</strong> in commerce and content</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-purple-400 font-bold text-xl">•</span>
-                  <span><strong>Featured placements</strong> for branded items</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-purple-400 font-bold text-xl">•</span>
-                  <span><strong>Transparent tracking</strong> of sponsorship impact</span>
-                </li>
-                <li class="flex items-start gap-3">
-                  <span class="text-purple-400 font-bold text-xl">•</span>
-                  <span><strong>Access to engaged audience</strong> (players, teams, fans)</span>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 class="text-2xl font-bold mb-4 text-gray-200">Why It Matters</h4>
-              <p class="text-gray-300 leading-relaxed mb-4">
-                <strong class="text-purple-400">Sponsor with confidence in a platform that takes trust and governance seriously.</strong> 
-                Clear metrics, professional structure, and growing community mean your investment is visible, measurable, and impactful.
-              </p>
-              <p class="text-gray-300 leading-relaxed">
-                From team sponsorships to tournament partnerships to commerce integration — DeltaCrown provides multiple paths 
-                to connect with an engaged esports audience.
-              </p>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ========================================
-       SECTION 6: VISION & ROADMAP
-       ======================================== -->
-  <section id="vision-roadmap" class="py-24 px-4 bg-gradient-to-b from-gray-900 via-black to-gray-900 relative overflow-hidden">
-    <!-- Ambient background effects -->
-    <div class="absolute top-0 right-0 w-96 h-96 bg-blue-600 rounded-full blur-3xl opacity-10 animate-pulse"></div>
-    <div class="absolute bottom-0 left-0 w-96 h-96 bg-purple-600 rounded-full blur-3xl opacity-10 animate-pulse" style="animation-delay: 2s;"></div>
-    <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 60px 60px;"></div>
-    
-    <div class="max-w-6xl mx-auto relative z-10">
       
-      <!-- Vision Statement -->
+    </div>
+  </section>
+
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-teal-500/20 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-gray-900"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-teal-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
+  <!-- ========================================
+       SECTION 3: WHAT IS DELTACROWN
+       Mission & Vision
+       ======================================== -->
+  <section id="mission-vision" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+    <div class="max-w-7xl mx-auto">
+      
       <div class="text-center mb-20">
-        <div class="inline-block mb-8">
-          <div class="flex items-center justify-center gap-3 mb-3">
-            <!-- SVG Icon: Vision/Eye -->
-            <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <p class="text-sm uppercase tracking-widest text-teal-400 font-bold mb-4">Who We Are</p>
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-teal-400 via-cyan-500 to-teal-600 bg-clip-text text-transparent">
+          What Is DeltaCrown?
+        </h2>
+        <div class="h-1.5 w-40 bg-gradient-to-r from-transparent via-teal-500 to-transparent mx-auto rounded-full mb-8"></div>
+      </div>
+      
+      <div class="grid md:grid-cols-2 gap-8 lg:gap-12 mb-16">
+        
+        <!-- Vision -->
+        <div class="group glass-card rounded-3xl p-10 hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-teal-900/30 border border-transparent hover:border-teal-500/30">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="p-3 bg-teal-500/10 rounded-xl group-hover:bg-teal-500/20 transition-colors">
+              <svg class="w-10 h-10 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-            </svg>
-            <h2 class="text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-600 bg-clip-text text-transparent">
-              The Vision
-            </h2>
+              </svg>
+            </div>
+            <h3 class="text-3xl md:text-4xl font-black text-teal-400">Vision</h3>
           </div>
-          <div class="h-1.5 bg-gradient-to-r from-transparent via-purple-500 to-transparent rounded-full"></div>
+          <p class="text-gray-300 text-base md:text-lg leading-relaxed">
+            Building a world where <strong class="text-teal-400">geography does not define esports destiny</strong>. 
+            From Bangladesh to South Asia and beyond—creating trusted pathways where every player, 
+            regardless of location, has a fair shot at competitive glory.
+          </p>
         </div>
         
-        <div class="relative max-w-5xl mx-auto">
-          <!-- Decorative quote marks -->
-          <div class="absolute -top-4 -left-4 text-6xl md:text-8xl text-purple-500 opacity-20 font-serif">"</div>
-          <div class="absolute -bottom-4 -right-4 text-6xl md:text-8xl text-purple-500 opacity-20 font-serif">"</div>
-          
-          <blockquote class="relative text-2xl md:text-4xl font-bold italic leading-relaxed text-gray-200 px-8 py-6">
-            To become the foundational operating system for competitive esports — 
-            where competition, growth, economy, and community coexist seamlessly.
-          </blockquote>
-        </div>
-      </div>
-
-      <!-- Why DeltaCrown Is Different -->
-      <div class="mb-20">
-        <div class="bg-gradient-to-br from-orange-900/20 via-gray-900 to-black border-2 border-orange-500 rounded-3xl p-8 md:p-12 shadow-2xl shadow-orange-500/20">
-          <div class="text-center mb-10">
-            <h3 class="text-4xl md:text-5xl font-extrabold text-orange-400 mb-4">Why DeltaCrown Is Different</h3>
-            <div class="h-1 w-32 bg-orange-500 mx-auto rounded-full"></div>
-          </div>
-          
-          <div class="grid md:grid-cols-2 gap-8 md:gap-12">
-            <!-- What Others Do -->
-            <div class="space-y-6">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </div>
-                <h4 class="text-2xl md:text-3xl font-bold text-red-400">What Others Do</h4>
-              </div>
-              
-              <ul class="space-y-4">
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Focus on isolated events</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Reset after each tournament</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Weak verification and disputes</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">No long-term progression</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Fragmented user experience</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Limited career pathways</span>
-                </li>
-              </ul>
+        <!-- Mission -->
+        <div class="group glass-card rounded-3xl p-10 hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-purple-900/30 border border-transparent hover:border-purple-500/30">
+          <div class="flex items-center gap-4 mb-6">
+            <div class="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors">
+              <svg class="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+              </svg>
             </div>
-            
-            <!-- What DeltaCrown Does -->
-            <div class="space-y-6">
-              <div class="flex items-center gap-4 mb-6">
-                <div class="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                  </svg>
-                </div>
-                <h4 class="text-2xl md:text-3xl font-bold text-green-400">What DeltaCrown Does</h4>
-              </div>
-              
-              <ul class="space-y-4">
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Treats esports as living system</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Persistent identity and history</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Trust and governance at core</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Complete lifecycle support</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Integrated ecosystem approach</span>
-                </li>
-                <li class="flex items-start gap-3 group">
-                  <div class="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0 group-hover:scale-150 transition-transform"></div>
-                  <span class="text-gray-300 text-base md:text-lg">Career pathways built-in</span>
-                </li>
-              </ul>
-            </div>
+            <h3 class="text-3xl md:text-4xl font-black text-purple-400">Mission</h3>
           </div>
-        </div>
-      </div>
-
-      <!-- Roadmap -->
-      <div class="mb-16">
-        <div class="text-center mb-12">
-          <div class="inline-block">
-            <h3 class="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-orange-400 via-cyan-500 to-green-500 bg-clip-text text-transparent mb-3">
-              The Road Ahead
-            </h3>
-            <div class="h-1.5 bg-gradient-to-r from-orange-500 via-cyan-500 to-green-500 rounded-full"></div>
-          </div>
+          <p class="text-gray-300 text-base md:text-lg leading-relaxed">
+            Make esports a <strong class="text-purple-400">respected profession</strong> by providing trusted tournaments, 
+            verified teams, and credible pathways. We empower players to build careers, not just compete in isolated events—from 
+            their first match to their legacy.
+          </p>
         </div>
         
-        <!-- Roadmap Timeline -->
-        <div class="relative">
-          <!-- Connecting line (desktop only) -->
-          <div class="hidden md:block absolute top-20 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-cyan-500 to-green-500 opacity-30"></div>
-          
-          <div class="grid md:grid-cols-3 gap-8 md:gap-6 relative">
-            
-            <!-- Now -->
-            <div class="group relative">
-              <!-- Timeline dot -->
-              <div class="hidden md:flex absolute -top-2 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-orange-500 rounded-full items-center justify-center shadow-2xl border-4 border-gray-900 z-10">
-                <div class="w-4 h-4 bg-white rounded-full animate-pulse"></div>
-              </div>
-              
-              <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black border-2 border-orange-500 rounded-3xl p-8 shadow-2xl shadow-orange-500/30 transition-all duration-300 group-hover:scale-105 group-hover:shadow-orange-500/50 mt-0 md:mt-10">
-                <div class="flex items-center gap-3 mb-6">
-                  <div class="w-3 h-3 bg-orange-500 rounded-full animate-pulse shadow-lg"></div>
-                  <h4 class="text-3xl md:text-4xl font-extrabold text-orange-400">Now</h4>
-                </div>
-                
-                <ul class="space-y-3">
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Tournament MVP with smart registration</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Team management & roles</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Manual payment verification</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Basic rankings & profiles</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <span>Community content</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Next (3-6 months) -->
-            <div class="group relative">
-              <div class="hidden md:flex absolute -top-2 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-cyan-500 rounded-full items-center justify-center shadow-2xl border-4 border-gray-900 z-10">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                </svg>
-              </div>
-              
-              <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black border-2 border-cyan-500 rounded-3xl p-8 shadow-2xl shadow-cyan-500/30 transition-all duration-300 group-hover:scale-105 group-hover:shadow-cyan-500/50 mt-0 md:mt-10">
-                <div class="flex items-center gap-3 mb-6">
-                  <div class="w-3 h-3 bg-cyan-500 rounded-full shadow-lg"></div>
-                  <div>
-                    <h4 class="text-3xl md:text-4xl font-extrabold text-cyan-400">Next</h4>
-                    <span class="text-sm text-gray-400 font-medium">(3-6 months)</span>
-                  </div>
-                </div>
-                
-                <ul class="space-y-3">
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                    </svg>
-                    <span>Seasonal leagues & circuits</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                    </svg>
-                    <span>Coaching marketplace</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                    </svg>
-                    <span>DeltaCoin earn/spend flows</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                    </svg>
-                    <span>Advanced analytics</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                    </svg>
-                    <span>Mobile-optimized experiences</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- Future (6-12 months) -->
-            <div class="group relative">
-              <div class="hidden md:flex absolute -top-2 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-green-500 rounded-full items-center justify-center shadow-2xl border-4 border-gray-900 z-10">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
-                </svg>
-              </div>
-              
-              <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black border-2 border-green-500 rounded-3xl p-8 shadow-2xl shadow-green-500/30 transition-all duration-300 group-hover:scale-105 group-hover:shadow-green-500/50 mt-0 md:mt-10">
-                <div class="flex items-center gap-3 mb-6">
-                  <div class="w-3 h-3 bg-green-500 rounded-full shadow-lg"></div>
-                  <div>
-                    <h4 class="text-3xl md:text-4xl font-extrabold text-green-400">Future</h4>
-                    <span class="text-sm text-gray-400 font-medium">(6-12 months)</span>
-                  </div>
-                </div>
-                
-                <ul class="space-y-3">
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    <span>Commerce marketplace</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    <span>Sponsor reporting & integrations</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    <span>Broadcast & media tools</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    <span>International expansion</span>
-                  </li>
-                  <li class="flex items-start gap-3 text-gray-300">
-                    <svg class="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                    <span>Talent pipelines & careers</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-          </div>
-        </div>
       </div>
-
-      <!-- Games Supported -->
-      <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black border border-gray-700 rounded-3xl p-8 md:p-10 text-center">
-        <div class="mb-8">
-          <h3 class="text-3xl md:text-4xl font-extrabold text-purple-400 mb-3">9 Games Currently Supported</h3>
-          <div class="h-1 w-24 bg-purple-500 mx-auto rounded-full"></div>
-        </div>
-        
-        <div class="flex flex-wrap gap-3 md:gap-4 justify-center">
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">eFootball</span>
+      
+      <!-- What We Are -->
+      <div class="glass-card rounded-3xl p-10 md:p-12 text-center border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-900/20">
+        <h3 class="text-2xl md:text-3xl font-black text-gray-200 mb-8">We Are</h3>
+        <div class="flex flex-wrap gap-4 md:gap-6 justify-center">
+          <span class="px-8 py-4 bg-gradient-to-r from-orange-600 to-orange-500 rounded-full font-bold text-base md:text-lg shadow-lg hover:scale-105 transition-transform cursor-default">
+            Esports Ecosystem
           </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">FC Mobile</span>
+          <span class="px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-500 rounded-full font-bold text-base md:text-lg shadow-lg hover:scale-105 transition-transform cursor-default">
+            Platform Provider
           </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">Valorant</span>
+          <span class="px-8 py-4 bg-gradient-to-r from-teal-600 to-teal-500 rounded-full font-bold text-base md:text-lg shadow-lg hover:scale-105 transition-transform cursor-default">
+            Technology Company
           </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">PUBG Mobile</span>
-          </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">Free Fire</span>
-          </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">CS2</span>
-          </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">FIFA</span>
-          </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">Mobile Legends</span>
-          </span>
-          <span class="group px-5 md:px-6 py-3 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl text-gray-300 font-semibold border border-gray-700 hover:border-purple-500 hover:text-purple-400 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/20">
-            <span class="text-base md:text-lg">Call of Duty Mobile</span>
+          <span class="px-8 py-4 bg-gradient-to-r from-cyan-600 to-cyan-500 rounded-full font-bold text-base md:text-lg shadow-lg hover:scale-105 transition-transform cursor-default">
+            Community-driven Organization
           </span>
         </div>
       </div>
-
+      
     </div>
   </section>
 
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/20 via-purple-500/20 via-teal-500/20 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-orange-500 via-purple-500 via-teal-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
   <!-- ========================================
-       SECTION 7: FINAL CALL-TO-ACTION
+       SECTION 4: ECOSYSTEM PILLARS
+       The 8 Core Domains
        ======================================== -->
-  <section id="final-cta" class="relative py-24 px-4 bg-gradient-to-b from-gray-900 via-black to-gray-900 overflow-hidden">
-    <!-- Background effects -->
-    <div class="absolute inset-0 bg-gradient-radial from-orange-900/10 via-transparent to-transparent"></div>
-    <div class="absolute top-0 left-1/4 w-64 h-64 bg-orange-500 rounded-full blur-3xl opacity-10"></div>
-    <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-cyan-500 rounded-full blur-3xl opacity-10"></div>
-    
-    <div class="max-w-5xl mx-auto relative z-10">
+  <section id="ecosystem-pillars" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-black via-gray-900 to-black">
+    <div class="max-w-7xl mx-auto">
       
-      <div class="text-center mb-12">
-        <h2 class="text-5xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
-          Ready to Compete?
+      <div class="text-center mb-20">
+        <p class="text-sm uppercase tracking-widest text-orange-400 font-bold mb-4">Complete Platform</p>
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-orange-400 via-purple-500 to-teal-500 bg-clip-text text-transparent">
+          The Complete Esports Ecosystem
         </h2>
-        <p class="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-          Join thousands of players, teams, and organizers building the future of competitive esports.
+        <div class="h-1.5 w-40 bg-gradient-to-r from-orange-500 via-purple-500 to-teal-500 mx-auto rounded-full mb-8"></div>
+        <p class="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          Eight integrated domains working together as one unified system—<span class="text-orange-400 font-semibold">not separate tools</span>, but a <span class="text-purple-400 font-semibold">living ecosystem</span>.
         </p>
       </div>
-
-      <!-- CTA Buttons -->
-      <div class="flex flex-wrap gap-6 justify-center mb-16">
-        <a href="/tournaments/" class="px-12 py-5 text-lg bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 rounded-xl font-bold transition-all duration-300 shadow-2xl transform hover:scale-105 glow-orange-hover">
-          Browse Tournaments
-        </a>
-        <a href="/community/" class="px-12 py-5 text-lg border-2 border-cyan-500 rounded-xl font-bold hover:bg-cyan-500 hover:bg-opacity-10 transition-all duration-300">
-          Join Community
-        </a>
-        <a href="/teams/" class="px-12 py-5 text-lg border-2 border-purple-500 rounded-xl font-bold hover:bg-purple-500 hover:bg-opacity-10 transition-all duration-300">
-          Find Teams
-        </a>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        
+        <!-- Pillar 1: Tournaments -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-orange-500/30 hover:shadow-2xl hover:shadow-orange-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-orange-400 text-center mb-4">Tournaments</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Smart registration, automated brackets, live updates, evidence-based verification, and complete audit trails.
+          </p>
+        </div>
+        
+        <!-- Pillar 2: Teams -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-cyan-500/30 hover:shadow-2xl hover:shadow-cyan-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-cyan-600 to-cyan-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-cyan-400 text-center mb-4">Teams</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Professional structures with players, captains, managers, coaches—teams as long-term competitive brands.
+          </p>
+        </div>
+        
+        <!-- Pillar 3: Rankings -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-green-500/30 hover:shadow-2xl hover:shadow-green-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-green-400 text-center mb-4">Rankings</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Multi-dimensional rankings tied to verified results—build a competitive history that tells your story.
+          </p>
+        </div>
+        
+        <!-- Pillar 4: DeltaCoin -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-yellow-500/30 hover:shadow-2xl hover:shadow-yellow-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-yellow-400 text-center mb-4">DeltaCoin</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Reward-based internal currency (NOT speculative)—earn through competition, spend on services.
+          </p>
+        </div>
+        
+        <!-- Pillar 5: Community -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-purple-500/30 hover:shadow-2xl hover:shadow-purple-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-purple-400 text-center mb-4">Community</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Built-in knowledge hub for blogs, guides, and storytelling—community embedded in the competitive core.
+          </p>
+        </div>
+        
+        <!-- Pillar 6: Commerce -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-pink-500/30 hover:shadow-2xl hover:shadow-pink-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-pink-600 to-pink-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-pink-400 text-center mb-4">Commerce</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Esports marketplace for team merchandise, gaming gear, digital collectibles, and brand partnerships.
+          </p>
+        </div>
+        
+        <!-- Pillar 7: Coaching -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-blue-400 text-center mb-4">Coaching</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Talent development marketplace—discover coaches, book sessions, track progress, evolve your craft.
+          </p>
+        </div>
+        
+        <!-- Pillar 8: Governance -->
+        <div class="group glass-card rounded-3xl p-8 hover:scale-105 hover:-translate-y-2 transition-all duration-300 border border-transparent hover:border-red-500/30 hover:shadow-2xl hover:shadow-red-900/30">
+          <div class="w-20 h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl md:text-2xl font-bold text-red-400 text-center mb-4">Governance</h3>
+          <p class="text-sm md:text-base text-gray-400 text-center leading-relaxed">
+            Trust at scale—complete audit trails, evidence-based dispute resolution, transparent operations.
+          </p>
+        </div>
+        
       </div>
+      
+    </div>
+  </section>
 
-      <!-- Contact & Support -->
-      <div class="pt-10 border-t-2 border-gray-800">
-        <p class="text-center text-gray-400 mb-6 text-lg">Questions? Get in touch:</p>
-        <div class="flex flex-wrap gap-8 justify-center text-base">
-          <a href="mailto:info@deltacrown.com" class="text-orange-400 hover:text-orange-300 transition-colors font-semibold">
-            📧 info@deltacrown.com
-          </a>
-          <span class="text-gray-700">•</span>
-          <a href="#" class="text-cyan-400 hover:text-cyan-300 transition-colors font-semibold">
-            💬 Discord Community
-          </a>
-          <span class="text-gray-700">•</span>
-          <a href="#" class="text-purple-400 hover:text-purple-300 transition-colors font-semibold">
-            🎫 Support Portal
-          </a>
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-gray-900"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-cyan-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
+  <!-- ========================================
+       SECTION 5: HOW IT WORKS
+       Tournament Lifecycle
+       ======================================== -->
+  <section id="how-it-works" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+    <div class="max-w-6xl mx-auto">
+      
+      <div class="text-center mb-20">
+        <p class="text-sm uppercase tracking-widest text-cyan-400 font-bold mb-4">The Engine</p>
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-600 bg-clip-text text-transparent">
+          How It Works: The Tournament Lifecycle
+        </h2>
+        <div class="h-1.5 w-40 bg-gradient-to-r from-transparent via-cyan-500 to-transparent mx-auto rounded-full mb-8"></div>
+        <p class="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          Tournaments are <span class="text-cyan-400 font-semibold">the engine that drives everything</span>—from smart registration to verified results, 
+          every match becomes a <span class="text-blue-400 font-semibold">credible competitive record</span>.
+        </p>
+      </div>
+      
+      <div class="space-y-10 md:space-y-12">
+        
+        <!-- Step 1 -->
+        <div class="group flex gap-6 md:gap-8 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+              1
+            </div>
+          </div>
+          <div class="glass-card rounded-2xl p-8 md:p-10 flex-1 border border-orange-500/20 hover:border-orange-500/40 transition-all hover:shadow-xl hover:shadow-orange-900/20">
+            <h3 class="text-2xl md:text-3xl font-bold text-orange-400 mb-4">Creation & Configuration</h3>
+            <p class="text-gray-300 text-base md:text-lg leading-relaxed">
+              Organizers define game, format, rules, eligibility, prize structure—smart validation ensures consistency.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Step 2 -->
+        <div class="group flex gap-6 md:gap-8 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-cyan-600 to-cyan-700 rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+              2
+            </div>
+          </div>
+          <div class="glass-card rounded-2xl p-8 md:p-10 flex-1 border border-cyan-500/20 hover:border-cyan-500/40 transition-all hover:shadow-xl hover:shadow-cyan-900/20">
+            <h3 class="text-2xl md:text-3xl font-bold text-cyan-400 mb-4">Smart Registration</h3>
+            <p class="text-gray-300 text-base md:text-lg leading-relaxed">
+              Automated eligibility verification, roster validation, payment confirmation, and fraud detection.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Step 3 -->
+        <div class="group flex gap-6 md:gap-8 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+              3
+            </div>
+          </div>
+          <div class="glass-card rounded-2xl p-8 md:p-10 flex-1 border border-green-500/20 hover:border-green-500/40 transition-all hover:shadow-xl hover:shadow-green-900/20">
+            <h3 class="text-2xl md:text-3xl font-bold text-green-400 mb-4">Match Execution</h3>
+            <p class="text-gray-300 text-base md:text-lg leading-relaxed">
+              Live bracket updates, role-based match control, evidence submission workflows, real-time tracking.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Step 4 -->
+        <div class="group flex gap-6 md:gap-8 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+              4
+            </div>
+          </div>
+          <div class="glass-card rounded-2xl p-8 md:p-10 flex-1 border border-yellow-500/20 hover:border-yellow-500/40 transition-all hover:shadow-xl hover:shadow-yellow-900/20">
+            <h3 class="text-2xl md:text-3xl font-bold text-yellow-400 mb-4">Verification & Disputes</h3>
+            <p class="text-gray-300 text-base md:text-lg leading-relaxed">
+              Evidence-based verification, structured dispute filing, referee intervention, complete audit trails.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Step 5 -->
+        <div class="group flex gap-6 md:gap-8 items-start">
+          <div class="flex-shrink-0">
+            <div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-purple-600 to-purple-700 rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+              5
+            </div>
+          </div>
+          <div class="glass-card rounded-2xl p-8 md:p-10 flex-1 border border-purple-500/20 hover:border-purple-500/40 transition-all hover:shadow-xl hover:shadow-purple-900/20">
+            <h3 class="text-2xl md:text-3xl font-bold text-purple-400 mb-4">Rankings & Rewards</h3>
+            <p class="text-gray-300 text-base md:text-lg leading-relaxed">
+              Automatic ranking updates, DeltaCoin distribution, prize payouts, permanent historical records.
+            </p>
+          </div>
+        </div>
+        
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-yellow-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
+  <!-- ========================================
+       SECTION 6: DELTACOIN & PAYMENTS
+       Trust & Accessibility
+       ======================================== -->
+  <section id="deltacoin-payments" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-black via-gray-900 to-black">
+    <div class="max-w-7xl mx-auto">
+      
+      <div class="text-center mb-20">
+        <p class="text-sm uppercase tracking-widest text-yellow-400 font-bold mb-4">Economy & Trust</p>
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-600 bg-clip-text text-transparent">
+          DeltaCoin & Payments
+        </h2>
+        <div class="h-1.5 w-40 bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-500 mx-auto rounded-full mb-8"></div>
+        <p class="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          A <span class="text-yellow-400 font-semibold">reward-based currency</span> and <span class="text-teal-400 font-semibold">local-first payment infrastructure</span> designed for <span class="text-teal-400 font-semibold">emerging markets</span>—accessible, transparent, and trusted.
+        </p>
+      </div>
+      
+      <!-- Trust-First Payment Methods -->
+      <div class="mb-20">
+        <div class="text-center mb-12">
+          <h3 class="text-3xl md:text-4xl font-black text-teal-400 mb-4">Local Payment Partners</h3>
+          <p class="text-lg text-gray-400 max-w-3xl mx-auto">
+            <span class="text-teal-300 font-semibold">Bangladesh-first infrastructure</span> — we support the payment methods you already use and trust
+          </p>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-5xl mx-auto mb-12">
+          <!-- bKash Card -->
+          <div class="group glass-card rounded-3xl p-8 border border-pink-500/30 hover:border-pink-500/50 hover:scale-105 hover:-translate-y-2 transition-all duration-300 hover:shadow-2xl hover:shadow-pink-900/50">
+            <div class="w-16 h-16 bg-pink-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h4 class="text-2xl font-black text-pink-400 text-center mb-2">bKash</h4>
+            <p class="text-sm text-gray-400 text-center">Mobile money leader</p>
+          </div>
+          
+          <!-- Nagad Card -->
+          <div class="group glass-card rounded-3xl p-8 border border-orange-500/30 hover:border-orange-500/50 hover:scale-105 hover:-translate-y-2 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-900/50">
+            <div class="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+              </svg>
+            </div>
+            <h4 class="text-2xl font-black text-orange-400 text-center mb-2">Nagad</h4>
+            <p class="text-sm text-gray-400 text-center">Fast & reliable</p>
+          </div>
+          
+          <!-- Rocket Card -->
+          <div class="group glass-card rounded-3xl p-8 border border-purple-500/30 hover:border-purple-500/50 hover:scale-105 hover:-translate-y-2 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-900/50">
+            <div class="w-16 h-16 bg-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+              </svg>
+            </div>
+            <h4 class="text-2xl font-black text-purple-400 text-center mb-2">Rocket</h4>
+            <p class="text-sm text-gray-400 text-center">Dutch-Bangla Bank</p>
+          </div>
+          
+          <!-- Bank Transfer Card -->
+          <div class="group glass-card rounded-3xl p-8 border border-cyan-500/30 hover:border-cyan-500/50 hover:scale-105 hover:-translate-y-2 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-900/50">
+            <div class="w-16 h-16 bg-cyan-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+              <svg class="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+              </svg>
+            </div>
+            <h4 class="text-2xl font-black text-cyan-400 text-center mb-2">Bank Transfer</h4>
+            <p class="text-sm text-gray-400 text-center">Traditional & secure</p>
+          </div>
+        </div>
+        
+        <!-- Trust Infrastructure Message -->
+        <div class="glass-card rounded-2xl p-8 max-w-4xl mx-auto border border-teal-500/20 bg-gradient-to-r from-teal-900/10 to-cyan-900/10">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-12 h-12 bg-teal-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+              <svg class="w-7 h-7 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-xl font-black text-teal-400 mb-1">Local-First Trust Infrastructure</h4>
+              <p class="text-base text-gray-400">
+                We integrate with payment methods <span class="text-teal-300 font-semibold">you already trust</span>. No credit cards required. No barriers to entry. Built for <span class="text-teal-300 font-semibold">South Asian markets</span>.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
+      
+      <div class="grid md:grid-cols-2 gap-8 md:gap-10 mb-20">
+        
+        <!-- DeltaCoin -->
+        <div class="group glass-card rounded-3xl p-10 border border-yellow-500/30 hover:border-yellow-500/50 hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-900/30">
+          <div class="flex items-center gap-4 mb-8">
+            <div class="w-20 h-20 bg-yellow-500/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+              <svg class="w-12 h-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <h3 class="text-3xl md:text-4xl font-black text-yellow-400">DeltaCoin</h3>
+          </div>
+          <p class="text-gray-300 text-lg leading-relaxed mb-8">
+            <strong class="text-yellow-300 font-bold">NOT a speculative crypto asset.</strong> DeltaCoin is a reward-based internal currency 
+            tightly integrated with participation and progression.
+          </p>
+          <div class="space-y-4 mb-10">
+            <p class="text-base text-gray-400 leading-relaxed">
+              <strong class="text-green-400 font-bold">Earn:</strong> Competition, wins, milestones, community contributions
+            </p>
+            <p class="text-base text-gray-400 leading-relaxed">
+              <strong class="text-orange-400 font-bold">Spend:</strong> Tournament entries, premium features, coaching, merchandise
+            </p>
+          </div>
+          
+          <!-- DeltaCoin Loop SVG -->
+          <div class="border-t border-yellow-500/20 pt-8">
+            <h4 class="text-xl font-bold text-yellow-300 mb-6 text-center">The DeltaCoin Cycle</h4>
+            <svg class="w-full h-auto max-w-md mx-auto" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <!-- Glow filter for the cycle -->
+                <filter id="cycle-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                
+                <!-- Arrow markers for each stage -->
+                <marker id="arrow-yellow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+                  <polygon points="0 0, 8 3, 0 6" fill="#facc15" opacity="0.8" />
+                </marker>
+              </defs>
+              
+              <!-- Circular path connecting all nodes -->
+              <circle cx="200" cy="200" r="140" fill="none" stroke="#facc15" stroke-width="2" opacity="0.2" stroke-dasharray="8,4" />
+              
+              <!-- Connection arrows (circular flow) -->
+              <!-- Play to Earn -->
+              <path d="M 200,60 Q 280,100 280,180" stroke="#facc15" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
+              
+              <!-- Earn to Upgrade -->
+              <path d="M 280,220 Q 250,300 180,320" stroke="#4ade80" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
+              
+              <!-- Upgrade to Compete -->
+              <path d="M 140,320 Q 80,280 80,200" stroke="#22d3ee" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
+              
+              <!-- Compete to Legacy -->
+              <path d="M 80,160 Q 100,80 180,60" stroke="#a78bfa" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
+              
+              <!-- Legacy back to Play (completing cycle) -->
+              <path d="M 220,60 L 200,60" stroke="#fb923c" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
+              
+              <!-- Node 1: PLAY (Top) -->
+              <g transform="translate(200, 60)">
+                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#fb923c" stroke-width="3" filter="url(#cycle-glow)" />
+                <text x="0" y="-5" text-anchor="middle" fill="#fb923c" font-size="16" font-weight="bold">PLAY</text>
+                <text x="0" y="10" text-anchor="middle" fill="#fdba74" font-size="10">Compete</text>
+              </g>
+              
+              <!-- Node 2: EARN (Right) -->
+              <g transform="translate(280, 200)">
+                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#4ade80" stroke-width="3" filter="url(#cycle-glow)" />
+                <text x="0" y="-5" text-anchor="middle" fill="#4ade80" font-size="16" font-weight="bold">EARN</text>
+                <text x="0" y="10" text-anchor="middle" fill="#86efac" font-size="10">DeltaCoin</text>
+              </g>
+              
+              <!-- Node 3: UPGRADE (Bottom-Right) -->
+              <g transform="translate(160, 320)">
+                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#22d3ee" stroke-width="3" filter="url(#cycle-glow)" />
+                <text x="0" y="-5" text-anchor="middle" fill="#22d3ee" font-size="16" font-weight="bold">UPGRADE</text>
+                <text x="0" y="10" text-anchor="middle" fill="#67e8f9" font-size="10">Improve</text>
+              </g>
+              
+              <!-- Node 4: COMPETE (Left) -->
+              <g transform="translate(80, 180)">
+                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#a78bfa" stroke-width="3" filter="url(#cycle-glow)" />
+                <text x="0" y="-5" text-anchor="middle" fill="#a78bfa" font-size="16" font-weight="bold">COMPETE</text>
+                <text x="0" y="10" text-anchor="middle" fill="#c4b5fd" font-size="10">Rise</text>
+              </g>
+              
+              <!-- Node 5: LEGACY (Top-Left) -->
+              <g transform="translate(140, 80)">
+                <circle cx="0" cy="0" r="30" fill="#1f2937" stroke="#facc15" stroke-width="2.5" filter="url(#cycle-glow)" />
+                <text x="0" y="-2" text-anchor="middle" fill="#facc15" font-size="14" font-weight="bold">LEGACY</text>
+                <text x="0" y="12" text-anchor="middle" fill="#fde047" font-size="9">Build</text>
+              </g>
+              
+              <!-- Center Icon: DeltaCoin symbol -->
+              <g transform="translate(200, 200)">
+                <circle cx="0" cy="0" r="25" fill="#1f2937" stroke="#facc15" stroke-width="2" opacity="0.5" />
+                <text x="0" y="8" text-anchor="middle" fill="#facc15" font-size="28" font-weight="bold">Δ</text>
+              </g>
+            </svg>
+            
+            <p class="text-center text-sm text-gray-500 mt-6 italic">A virtuous cycle powered by participation</p>
+          </div>
+        </div>
+        
+      </div>
+      
+      <!-- Trust Statement -->
+      <div class="glass-card rounded-3xl p-12 md:p-16 text-center bg-gradient-to-br from-green-900/20 via-teal-900/20 to-green-900/20 border border-green-500/30 hover:border-green-500/50 hover:scale-[1.01] transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/30">
+        <div class="w-24 h-24 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-8 hover:scale-110 transition-transform">
+          <svg class="w-14 h-14 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+        </div>
+        <h3 class="text-3xl md:text-4xl font-black text-green-300 mb-6">Built on Trust</h3>
+        <p class="text-xl md:text-2xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
+          Every transaction is auditable. Every reward is earned. Every payment is transparent. 
+          <strong class="text-green-400 font-bold">Trust isn't optional—it's mandatory.</strong>
+        </p>
+      </div>
+      
+    </div>
+  </section>
 
-      <!-- Trust Indicators -->
-      <div class="mt-12 glass-card rounded-xl p-6">
-        <p class="text-center text-gray-400 mb-6 font-semibold">Built with care. Designed for scale. Grounded in fairness.</p>
-        <div class="flex flex-wrap gap-6 justify-center text-sm text-gray-500">
-          <span class="flex items-center gap-2">
-            <span class="text-green-400">🔒</span>
-            Privacy by Design
-          </span>
-          <span class="flex items-center gap-2">
-            <span class="text-cyan-400">📊</span>
-            Full Audit Trails
-          </span>
-          <span class="flex items-center gap-2">
-            <span class="text-orange-400">⚖️</span>
-            Fair Play Enforced
-          </span>
-          <span class="flex items-center gap-2">
-            <span class="text-purple-400">🌍</span>
-            Bangladesh-First, Global-Ready
-          </span>
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-gray-900"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
+  <!-- ========================================
+       SECTION 7: SUPPORTED GAMES
+       ======================================== -->
+  <section id="games" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+    <div class="max-w-7xl mx-auto">
+      
+      <div class="text-center mb-20">
+        <p class="text-sm uppercase tracking-widest text-purple-400 font-bold mb-4">Multi-Title Arena</p>
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-purple-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+          11 Games, One Platform
+        </h2>
+        <div class="h-1.5 w-40 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto rounded-full mb-8"></div>
+        <p class="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          From <span class="text-purple-400 font-semibold">mobile to PC</span>, from <span class="text-pink-400 font-semibold">tactical shooters to sports</span>—DeltaCrown is <span class="text-purple-400 font-semibold">game-agnostic by design</span>.
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-purple-500/20 hover:border-purple-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-purple-900/30">
+          <p class="font-bold text-base md:text-lg text-purple-400 group-hover:text-purple-300">Call of Duty®: Mobile</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-cyan-500/20 hover:border-cyan-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-900/30">
+          <p class="font-bold text-base md:text-lg text-cyan-400 group-hover:text-cyan-300">Counter-Strike 2</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-red-500/20 hover:border-red-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-red-900/30">
+          <p class="font-bold text-base md:text-lg text-red-400 group-hover:text-red-300">Dota 2</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-green-500/20 hover:border-green-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-green-900/30">
+          <p class="font-bold text-base md:text-lg text-green-400 group-hover:text-green-300">EA SPORTS FC™ 26</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-orange-500/20 hover:border-orange-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-orange-900/30">
+          <p class="font-bold text-base md:text-lg text-orange-400 group-hover:text-orange-300">Free Fire</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-blue-500/20 hover:border-blue-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-blue-900/30">
+          <p class="font-bold text-base md:text-lg text-blue-400 group-hover:text-blue-300">Mobile Legends: Bang Bang</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-yellow-500/20 hover:border-yellow-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-yellow-900/30">
+          <p class="font-bold text-base md:text-lg text-yellow-400 group-hover:text-yellow-300">PUBG MOBILE</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-pink-500/20 hover:border-pink-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-pink-900/30">
+          <p class="font-bold text-base md:text-lg text-pink-400 group-hover:text-pink-300">Rocket League</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-indigo-500/20 hover:border-indigo-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-900/30">
+          <p class="font-bold text-base md:text-lg text-indigo-400 group-hover:text-indigo-300">Tom Clancy's Rainbow Six® Siege</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-teal-500/20 hover:border-teal-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-teal-900/30">
+          <p class="font-bold text-base md:text-lg text-teal-400 group-hover:text-teal-300">VALORANT</p>
+        </div>
+        
+        <div class="group glass-card rounded-2xl p-6 text-center border border-lime-500/20 hover:border-lime-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-lime-900/30">
+          <p class="font-bold text-base md:text-lg text-lime-400 group-hover:text-lime-300">eFootball™ 2026</p>
+        </div>
+        
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-orange-500/20 via-cyan-500/20 to-green-500/20"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-black to-black"></div>
+    <div class="relative h-px bg-gradient-to-r from-orange-500 via-cyan-500 to-green-500 mx-auto max-w-4xl"></div>
+  </div>
+
+  <!-- ========================================
+       SECTION 8: ROADMAP TIMELINE
+       ======================================== -->
+  <section id="roadmap" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-black via-gray-900 to-gray-900">
+    <div class="max-w-7xl mx-auto">
+      
+      <div class="text-center mb-20">
+        <p class="text-sm uppercase tracking-widest text-orange-400 font-bold mb-4">The Journey</p>
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-orange-400 via-cyan-500 to-green-500 bg-clip-text text-transparent">
+          From Bangladesh to the World
+        </h2>
+        <div class="h-1.5 w-40 bg-gradient-to-r from-orange-500 via-cyan-500 to-green-500 mx-auto rounded-full mb-8"></div>
+        <p class="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto leading-relaxed">
+          DeltaCrown's story: <span class="text-orange-400 font-semibold">roots in Bangladesh</span>, expanding across <span class="text-cyan-400 font-semibold">South Asia</span>, reaching the <span class="text-green-400 font-semibold">global stage</span>.
+        </p>
+      </div>
+      
+      <!-- Timeline Container (Horizontal on Desktop, Vertical on Mobile) -->
+      <div class="relative">
+        
+        <!-- Horizontal Timeline Line (Desktop Only) -->
+        <div class="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-cyan-500 to-green-500 transform -translate-y-1/2" style="z-index: 0;"></div>
+        
+        <!-- Timeline Items -->
+        <div class="relative flex flex-col lg:flex-row lg:justify-between gap-12 lg:gap-8">
+          
+          <!-- Phase 1: Bangladesh (Foundation) -->
+          <div class="relative flex-1">
+            <!-- Vertical connector on mobile -->
+            <div class="lg:hidden absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-500 to-cyan-500"></div>
+            
+            <div class="relative flex flex-col items-start lg:items-center">
+              <!-- Timeline Dot -->
+              <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-orange-600 to-orange-700 rounded-full flex items-center justify-center shadow-2xl shadow-orange-900/50 mb-6 lg:mb-8 relative z-10 ring-4 ring-gray-900">
+                <span class="text-2xl lg:text-3xl font-black text-white">1</span>
+              </div>
+              
+              <!-- Card -->
+              <div class="glass-card rounded-3xl p-8 lg:p-10 border border-orange-500/30 hover:border-orange-500/50 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-900/50 w-full">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-3 h-3 bg-orange-500 rounded-full animate-pulse"></div>
+                  <h3 class="text-2xl lg:text-3xl font-black text-orange-400">Bangladesh</h3>
+                </div>
+                <p class="text-sm text-gray-400 font-semibold mb-4 uppercase tracking-wider">Foundation • Now</p>
+                
+                <p class="text-base lg:text-lg text-gray-300 mb-6 leading-relaxed">
+                  <span class="text-orange-300 font-bold">Building the foundation</span> where esports passion meets limited infrastructure. Tournaments, teams, and local payments—all live.
+                </p>
+                
+                <div class="space-y-2">
+                  <div class="flex items-start gap-2">
+                    <span class="text-orange-400 text-lg font-bold mt-0.5">✓</span>
+                    <span class="text-sm text-gray-400">Tournament system operational</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-orange-400 text-lg font-bold mt-0.5">✓</span>
+                    <span class="text-sm text-gray-400">bKash, Nagad, Rocket integrated</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-orange-400 text-lg font-bold mt-0.5">✓</span>
+                    <span class="text-sm text-gray-400">Team management & rankings live</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-orange-400 text-lg font-bold mt-0.5">✓</span>
+                    <span class="text-sm text-gray-400">Community hub active</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Phase 2: South Asia (Expansion) -->
+          <div class="relative flex-1">
+            <!-- Vertical connector on mobile -->
+            <div class="lg:hidden absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-500 to-green-500"></div>
+            
+            <div class="relative flex flex-col items-start lg:items-center">
+              <!-- Timeline Dot -->
+              <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-cyan-600 to-cyan-700 rounded-full flex items-center justify-center shadow-2xl shadow-cyan-900/50 mb-6 lg:mb-8 relative z-10 ring-4 ring-gray-900">
+                <span class="text-2xl lg:text-3xl font-black text-white">2</span>
+              </div>
+              
+              <!-- Card -->
+              <div class="glass-card rounded-3xl p-8 lg:p-10 border border-cyan-500/30 hover:border-cyan-500/50 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-900/50 w-full">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-3 h-3 bg-cyan-500 rounded-full shadow-lg shadow-cyan-500/50"></div>
+                  <h3 class="text-2xl lg:text-3xl font-black text-cyan-400">South Asia</h3>
+                </div>
+                <p class="text-sm text-gray-400 font-semibold mb-4 uppercase tracking-wider">Expansion • 3-9 months</p>
+                
+                <p class="text-base lg:text-lg text-gray-300 mb-6 leading-relaxed">
+                  <span class="text-cyan-300 font-bold">Regional network effect</span>—expanding to India, Pakistan, Nepal, Sri Lanka with localized features and cross-border tournaments.
+                </p>
+                
+                <div class="space-y-2">
+                  <div class="flex items-start gap-2">
+                    <span class="text-cyan-400 text-lg font-bold mt-0.5">→</span>
+                    <span class="text-sm text-gray-400">Multi-country seasonal leagues</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-cyan-400 text-lg font-bold mt-0.5">→</span>
+                    <span class="text-sm text-gray-400">Regional payment gateways (UPI, Paytm, etc.)</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-cyan-400 text-lg font-bold mt-0.5">→</span>
+                    <span class="text-sm text-gray-400">Coaching marketplace launch</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-cyan-400 text-lg font-bold mt-0.5">→</span>
+                    <span class="text-sm text-gray-400">Mobile app (iOS/Android)</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-cyan-400 text-lg font-bold mt-0.5">→</span>
+                    <span class="text-sm text-gray-400">DeltaCoin economy fully operational</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Phase 3: Global (Maturity) -->
+          <div class="relative flex-1">
+            <!-- No connector needed for last item on mobile -->
+            
+            <div class="relative flex flex-col items-start lg:items-center">
+              <!-- Timeline Dot -->
+              <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-green-600 to-green-700 rounded-full flex items-center justify-center shadow-2xl shadow-green-900/50 mb-6 lg:mb-8 relative z-10 ring-4 ring-gray-900">
+                <span class="text-2xl lg:text-3xl font-black text-white">3</span>
+              </div>
+              
+              <!-- Card -->
+              <div class="glass-card rounded-3xl p-8 lg:p-10 border border-green-500/30 hover:border-green-500/50 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/50 w-full">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-3 h-3 bg-green-500 rounded-full shadow-lg shadow-green-500/50"></div>
+                  <h3 class="text-2xl lg:text-3xl font-black text-green-400">Global</h3>
+                </div>
+                <p class="text-sm text-gray-400 font-semibold mb-4 uppercase tracking-wider">Maturity • 9-18 months</p>
+                
+                <p class="text-base lg:text-lg text-gray-300 mb-6 leading-relaxed">
+                  <span class="text-green-300 font-bold">The world stage</span>—proven infrastructure, established brand, global partnerships, and a talent pipeline from emerging markets to pro leagues.
+                </p>
+                
+                <div class="space-y-2">
+                  <div class="flex items-start gap-2">
+                    <span class="text-green-400 text-lg font-bold mt-0.5">★</span>
+                    <span class="text-sm text-gray-400">International tournament circuits</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-green-400 text-lg font-bold mt-0.5">★</span>
+                    <span class="text-sm text-gray-400">Sponsor & brand partnerships</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-green-400 text-lg font-bold mt-0.5">★</span>
+                    <span class="text-sm text-gray-400">Commerce marketplace (merch, gear, collectibles)</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-green-400 text-lg font-bold mt-0.5">★</span>
+                    <span class="text-sm text-gray-400">Broadcast & media tools</span>
+                  </div>
+                  <div class="flex items-start gap-2">
+                    <span class="text-green-400 text-lg font-bold mt-0.5">★</span>
+                    <span class="text-sm text-gray-400">Talent scouting & pro pipelines</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+        
+      </div>
+      
+      <!-- Story Summary -->
+      <div class="mt-16 text-center">
+        <div class="glass-card rounded-2xl p-8 max-w-4xl mx-auto border border-gray-700/50">
+          <p class="text-xl md:text-2xl text-gray-300 leading-relaxed">
+            <span class="text-orange-400 font-bold">Start local.</span> <span class="text-cyan-400 font-bold">Scale regional.</span> <span class="text-green-400 font-bold">Compete globally.</span>
+          </p>
+          <p class="text-base text-gray-500 mt-4 italic">
+            This is not just a platform roadmap—it's the story of esports democratization.
+          </p>
         </div>
       </div>
+      
+    </div>
+  </section>
 
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-800"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
+  <!-- ========================================
+       SECTION 9: COMMUNITY CTA
+       ======================================== -->
+  <section id="community-cta" class="relative py-20 md:py-32 px-4 bg-gradient-to-b from-gray-800 via-gray-900 to-black">
+    <div class="max-w-6xl mx-auto text-center">
+      
+      <div class="glass-card rounded-3xl p-12 md:p-16 bg-gradient-to-br from-purple-900/30 via-orange-900/20 to-purple-900/30 border border-purple-500/30 hover:border-purple-500/50 transition-all hover:shadow-2xl hover:shadow-purple-900/30">
+        <div class="w-24 h-24 bg-purple-500/10 rounded-2xl flex items-center justify-center mx-auto mb-8 hover:scale-110 transition-transform">
+          <svg class="w-16 h-16 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+        </div>
+        
+        <h2 class="text-5xl md:text-6xl lg:text-7xl font-black mb-8 bg-gradient-to-r from-purple-400 via-orange-500 to-purple-600 bg-clip-text text-transparent">
+          Join the Movement
+        </h2>
+        
+        <p class="text-xl md:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed">
+          DeltaCrown is more than a platform—it's a <span class="text-purple-400 font-semibold">community-driven movement</span> to democratize esports. 
+          From <span class="text-orange-400 font-semibold">grassroots players</span> to <span class="text-purple-400 font-semibold">professional teams</span>, everyone has a place here.
+        </p>
+        
+        <div class="flex flex-wrap gap-6 justify-center mb-12">
+          <a href="/tournaments/" class="group px-10 py-5 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 rounded-2xl font-bold text-xl transition-all duration-300 shadow-xl transform hover:scale-110 hover:-translate-y-1 hover:shadow-2xl hover:shadow-orange-900/50">
+            <span class="flex items-center gap-3">
+              <span>Browse Tournaments</span>
+              <svg class="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </span>
+          </a>
+          <a href="/teams/" class="group px-10 py-5 border-2 border-cyan-500 rounded-2xl font-bold text-xl text-cyan-400 hover:bg-cyan-500 hover:bg-opacity-20 hover:text-cyan-300 transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-900/50">
+            Find a Team
+          </a>
+        </div>
+        
+        <!-- Contact Info -->
+        <div class="pt-10 border-t border-gray-700/50">
+          <p class="text-gray-400 text-lg mb-6 font-semibold">Stay Connected</p>
+          <div class="flex flex-wrap gap-8 justify-center items-center">
+            <a href="mailto:deltacrownhq@gmail.com" class="group px-6 py-3 bg-orange-500/10 border border-orange-500/30 rounded-xl text-orange-400 hover:text-orange-300 hover:border-orange-500/50 transition-all font-bold text-base hover:scale-105 hover:shadow-lg hover:shadow-orange-900/30">
+              <span class="flex items-center gap-2">
+                <span>📧</span>
+                <span>deltacrownhq@gmail.com</span>
+              </span>
+            </a>
+            <div class="px-6 py-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400 font-bold text-base">
+              <span class="flex items-center gap-2">
+                <span>💬</span>
+                <span>Discord: <span class="text-gray-400">Coming Soon</span></span>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- Section Divider -->
+  <div class="relative py-16 overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-gray-500/10 to-transparent"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-black via-gray-950 to-black"></div>
+    <div class="relative h-px bg-gradient-to-r from-transparent via-gray-500 to-transparent mx-auto max-w-4xl"></div>
+  </div>
+
+  <!-- ========================================
+       SECTION 10: DISCLAIMER
+       ======================================== -->
+  <section id="disclaimer" class="relative py-20 md:py-32 px-4 bg-black">
+    <div class="max-w-5xl mx-auto">
+      <div class="glass-card rounded-3xl p-10 md:p-12 border border-yellow-500/30 bg-gradient-to-br from-yellow-900/10 via-orange-900/5 to-yellow-900/10 hover:border-yellow-500/50 transition-all">
+        <div class="flex items-start gap-6">
+          <div class="w-16 h-16 flex-shrink-0 bg-yellow-500/10 rounded-2xl flex items-center justify-center">
+            <svg class="w-10 h-10 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-3xl md:text-4xl font-black text-yellow-400 mb-6">Evolving Ecosystem</h3>
+            <p class="text-lg md:text-xl text-gray-300 leading-relaxed">
+              <strong class="text-yellow-300 font-bold">DeltaCrown is an evolving ecosystem currently under active development.</strong> 
+              Features, games, and services are continuously being added and refined. We appreciate your patience and feedback 
+              as we build the future of esports together.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1471,5 +1200,17 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'siteui/js/about.js' %}"></script>
+<!-- Optional: Add smooth scroll behavior or animations if needed -->
+<script>
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
 {% endblock %}
