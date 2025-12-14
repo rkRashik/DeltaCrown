@@ -1,12 +1,27 @@
 # DeltaCrown — Executive Summary
 
+**Founder:** Redwanul Rashik  
+**Founded:** 2025  
+**Tagline:** From the Delta to the Crown — Where Champions Rise.  
+**Contact:** deltacrownhq@gmail.com
+
+---
+
 ## 1. Introduction & Background
 
-DeltaCrown is a full-scale esports platform designed to serve as a **unified competitive ecosystem** for modern gaming.  
-It is not limited to hosting tournaments, managing teams, or displaying rankings. Instead, it is built as a foundational system that connects **competition, progression, economy, and community** into one coherent platform.
+DeltaCrown is a full-scale esports ecosystem and infrastructure provider designed to serve as a **unified competitive platform** for modern gaming. It is not limited to hosting tournaments, managing teams, or displaying rankings. Instead, it is built as a foundational system that connects **competition, progression, economy, and community** into one coherent platform.
 
-The idea for DeltaCrown emerged from observing a fundamental imbalance in the esports industry:  
-the **scale of competitive gaming has exploded**, but the **infrastructure supporting it remains fragmented, inconsistent, and largely improvised**.
+### Our Vision
+
+To build a world where geography does not define destiny—where a gamer playing on a mobile phone in a remote corner of Bangladesh has the same trusted path to global glory as a pro player on the main stage. We are building the bridge that takes talent from the shadows to the spotlight.
+
+### Our Mission
+
+To transform esports from a scattered hobby into a respected profession. We provide the digital foundation—tournaments, team structures, and verified careers—that empowers the next generation to own their journey, from their first match to their legacy.
+
+### The Origin Story
+
+The idea for DeltaCrown emerged from observing a fundamental imbalance in the esports industry: the **scale of competitive gaming has exploded**, but the **infrastructure supporting it remains fragmented, inconsistent, and largely improvised**.
 
 Players compete on one platform, track stats on another, communicate on third-party apps, manage teams through informal channels, and monetize their efforts through disconnected systems. Organizers struggle to scale events reliably. Teams lack long-term operational identity. Communities exist outside the competitive core rather than being integrated into it.
 
@@ -99,7 +114,11 @@ DeltaCrown is built on a simple but powerful principle:
 > **Esports should be structured like a living system, not a sequence of isolated events.**
 
 This philosophy shapes every design decision.
+### Our Core Belief
 
+We believe that **talent is universal, but opportunity is not**. By replacing fragmentation with a unified system, we turn "just a game" into a sustainable future for players, creators, and communities everywhere.
+
+DeltaCrown exists to bridge the gap between grassroots gaming and global esports excellence—particularly for emerging regions where infrastructure gaps are most pronounced.
 ### 4.1 Esports as an Ecosystem, Not a Feature Set
 
 DeltaCrown does not treat tournaments, teams, rankings, payments, or content as separate modules.  
@@ -170,8 +189,7 @@ DeltaCrown is designed to support these transitions naturally within the same ec
 
 The long-term vision of DeltaCrown is clear:
 
-> To become the foundational operating system for competitive esports —  
-> where competition, growth, economy, and community coexist seamlessly.
+> **To build a world where geography does not define destiny—where a gamer playing on a mobile phone in a remote corner of Bangladesh has the same trusted path to global glory as a pro player on the main stage. We are building the bridge that takes talent from the shadows to the spotlight.**
 
 This is not a single product launch.  
 It is a platform designed to grow alongside the esports industry itself.
@@ -179,9 +197,9 @@ It is a platform designed to grow alongside the esports industry itself.
 ---
 
 
-## 5. DeltaCrown as a Unified Ecosystem
+## 5. DeltaCrown as a Unified Ecosystem & Infrastructure Provider
 
-At its core, DeltaCrown is not a single application but a **connected system of domains**, each designed to operate independently yet integrate seamlessly with the others.
+At its core, DeltaCrown is not a single application or website but an **esports infrastructure provider** — a connected system of domains, each designed to operate independently yet integrate seamlessly with the others.
 
 Rather than forcing all functionality into one rigid structure, DeltaCrown is architected as an ecosystem where each domain has a clear responsibility, lifecycle, and interaction model.
 

@@ -1,30 +1,21 @@
-# 🌍 DeltaCrown  
-### Where Competitive Gaming Becomes a Profession
+# 👑 DeltaCrown  
+### From the Delta to the Crown — Where Champions Rise.
 
-> **DeltaCrown is a full-scale esports platform designed to power tournaments, teams, rankings, payments, analytics, communities, and digital economies — all in one unified ecosystem.**
+> **Founded by Redwanul Rashik in 2025, DeltaCrown is a full-scale esports ecosystem designed to power tournaments, teams, rankings, payments, analytics, communities, and digital economies — transforming competitive gaming from a scattered hobby into a respected profession.**
 
 ---
 
-## 📖 The Story Behind DeltaCrown
+## 📖 Our Vision
 
-Esports is no longer just entertainment.  
-It is competition, culture, career, and community.
+To build a world where geography does not define destiny—where a gamer playing on a mobile phone in a remote corner of Bangladesh has the same trusted path to global glory as a pro player on the main stage. We are building the bridge that takes talent from the shadows to the spotlight.
 
-Yet behind the explosive growth of esports, the infrastructure remains broken.
+### Our Mission
 
-- Tournaments disappear after they end  
-- Teams lack long-term identity  
-- Players grind endlessly without recognition  
-- Coaches and sponsors struggle to find talent  
-- Communities are scattered across platforms  
-- Emerging regions lack accessible esports systems  
+To transform esports from a scattered hobby into a respected profession. We provide the digital foundation—tournaments, team structures, and verified careers—that empowers the next generation to own their journey, from their first match to their legacy.
 
-**DeltaCrown was created to change that.**
+### Core Belief
 
-Not as a single-feature app.  
-Not as a short-term platform.  
-
-But as **the foundation of professional esports**.
+We believe that **talent is universal, but opportunity is not**. By replacing fragmentation with a unified system, we turn "just a game" into a sustainable future for players, creators, and communities everywhere.
 
 ---
 
@@ -62,21 +53,21 @@ DeltaCrown solves **the entire esports lifecycle**.
 
 ---
 
-## 🎮 Supported Games (Growing)
+## 🎮 Supported Games
 
-DeltaCrown currently supports **11 competitive games**, including:
+DeltaCrown currently supports **11 competitive games**:
 
-- Valorant  
-- Counter-Strike 2 (CS2)  
-- PUBG Mobile  
-- Mobile Legends: Bang Bang  
+- Call of Duty®: Mobile  
+- Counter-Strike 2  
+- Dota 2  
+- EA SPORTS FC™ 26  
 - Free Fire  
-- Call of Duty Mobile  
-- Apex Legends  
-- League of Legends  
+- Mobile Legends: Bang Bang  
+- PUBG MOBILE  
 - Rocket League  
-- FIFA  
-- Fortnite  
+- Tom Clancy's Rainbow Six® Siege  
+- VALORANT  
+- eFootball™ 2026  
 
 The platform is **game-agnostic by design**, allowing new titles to be added without rebuilding the core system.
 
@@ -326,7 +317,16 @@ DeltaCrown is where:
 
 ---
 
-## 📌 License & Contribution
+## � Contact & Support
+
+- **Founder:** Redwanul Rashik  
+- **Founded:** 2025  
+- **Email:** deltacrownhq@gmail.com  
+- **Tagline:** From the Delta to the Crown — Where Champions Rise.  
+
+---
+
+## �📌 License & Contribution
 
 - License: MIT  
 - Contributions: Welcome  
