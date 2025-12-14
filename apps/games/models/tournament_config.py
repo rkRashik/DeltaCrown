@@ -60,7 +60,8 @@ class GameTournamentConfig(models.Model):
     # === TIEBREAKERS ===
     default_tiebreakers = models.JSONField(
         default=list,
-        help_text="Ordered list of tiebreaker criteria (e.g., ['head_to_head', 'round_diff', 'rounds_won'])"
+        blank=True,
+        help_text="Ordered list of tiebreaker criteria (e.g., ['head_to_head', 'round_diff', 'rounds_won']). Leave empty if not applicable."
     )
     
     # === BRACKET SETTINGS ===
