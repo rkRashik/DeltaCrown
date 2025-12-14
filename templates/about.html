@@ -65,20 +65,25 @@
     
     <!-- Multi-layer background -->
     <div class="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black"></div>
-    <div class="absolute inset-0 bg-gradient-to-tr from-orange-900/10 via-purple-900/20 to-cyan-900/10 animate-gradient"></div>
-    <div class="absolute inset-0 hero-grid"></div>
+    <div class="absolute inset-0 bg-gradient-to-tr from-orange-900/5 via-purple-900/10 to-cyan-900/5 animate-gradient"></div>
+    <div class="absolute inset-0 hero-grid opacity-40"></div>
     
     <!-- Floating particles -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="hero-particle absolute top-1/4 left-1/4 w-2 h-2 bg-orange-500/30 rounded-full blur-sm"></div>
-      <div class="hero-particle absolute top-1/3 right-1/3 w-3 h-3 bg-purple-500/30 rounded-full blur-sm"></div>
-      <div class="hero-particle absolute bottom-1/3 left-1/2 w-2 h-2 bg-cyan-500/30 rounded-full blur-sm"></div>
+      <div class="hero-particle absolute top-1/4 left-1/4 w-2 h-2 bg-orange-500/20 rounded-full blur-sm"></div>
+      <div class="hero-particle absolute top-1/3 right-1/3 w-3 h-3 bg-purple-500/20 rounded-full blur-sm"></div>
+      <div class="hero-particle absolute bottom-1/3 left-1/2 w-2 h-2 bg-cyan-500/20 rounded-full blur-sm"></div>
     </div>
     
-    <!-- Radial glow overlay -->
-    <div class="absolute inset-0 bg-gradient-radial from-purple-900/20 via-transparent to-transparent"></div>
+    <!-- Subtle radial glow - reduced intensity -->
+    <div class="absolute inset-0 bg-gradient-radial from-purple-900/10 via-transparent to-transparent"></div>
     
-    <div class="max-w-7xl mx-auto relative z-10 py-20">
+    <!-- Dark contrast layer behind content only (not full-screen) -->
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div class="w-full max-w-6xl h-[80vh] bg-gradient-radial from-black/70 via-black/40 to-transparent"></div>
+    </div>
+    
+    <div class="max-w-7xl mx-auto relative z-10 py-20" style="text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased;">
       <div class="text-center max-w-5xl mx-auto space-y-8">
         
         <!-- Logo with enhanced glow -->
@@ -93,26 +98,26 @@
           </div>
         </div>
         
-        <!-- Main headline with dramatic gradient -->
+        <!-- Main headline with vivid colors from DeltaCrown logo palette -->
         <div class="space-y-4">
-          <h1 class="text-6xl md:text-7xl lg:text-8xl font-black mb-4 leading-tight">
-            <span class="block bg-gradient-to-r from-cyan-400 via-purple-500 to-orange-500 bg-clip-text text-transparent text-glow">
+          <h1 class="text-6xl md:text-7xl lg:text-8xl font-black mb-4 leading-tight tracking-tight" style="text-rendering: geometricPrecision; letter-spacing: -0.02em; font-family: 'Russo One', 'Orbitron', 'Segoe UI', Arial, sans-serif;">
+            <span class="block bg-gradient-to-r from-cyan-400 via-teal-300 to-purple-500 bg-clip-text text-transparent animate-gradient" style="text-shadow: 0 0 40px rgba(6, 182, 212, 0.4), 0 0 80px rgba(139, 92, 246, 0.3);">
               From the Delta
             </span>
-            <span class="block bg-gradient-to-r from-orange-500 via-yellow-400 to-cyan-400 bg-clip-text text-transparent text-glow">
+            <span class="block bg-gradient-to-r from-purple-500 via-yellow-400 to-cyan-400 bg-clip-text text-transparent animate-gradient" style="text-shadow: 0 0 40px rgba(250, 204, 21, 0.4), 0 0 80px rgba(139, 92, 246, 0.3); animation-delay: 0.5s;">
               to the Crown
             </span>
           </h1>
           
-          <!-- Tagline -->
-          <p class="text-2xl md:text-3xl lg:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-300 tracking-wide">
+          <!-- Tagline with enhanced glow -->
+          <p class="text-2xl md:text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-yellow-300 via-yellow-200 to-yellow-300 bg-clip-text text-transparent tracking-wide" style="text-shadow: 0 2px 20px rgba(250, 204, 21, 0.6), 0 4px 40px rgba(250, 204, 21, 0.3);">
             Where Champions Rise
           </p>
         </div>
         
         <!-- Vision statement -->
         <div class="max-w-3xl mx-auto">
-          <p class="text-lg md:text-xl lg:text-2xl text-gray-300 leading-relaxed font-light">
+          <p class="text-lg md:text-xl lg:text-2xl text-gray-200 leading-relaxed font-light" style="text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);">
             Building a world where <span class="text-cyan-400 font-semibold">geography does not define destiny</span>—where a gamer 
             in Bangladesh has the same <span class="text-purple-400 font-semibold">trusted path to global glory</span> as a pro on the main stage.
           </p>
@@ -698,120 +703,262 @@
         </div>
       </div>
       
-      <div class="grid md:grid-cols-2 gap-8 md:gap-10 mb-20">
-        
-        <!-- DeltaCoin -->
-        <div class="group glass-card rounded-3xl p-10 border border-yellow-500/30 hover:border-yellow-500/50 hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-900/30">
-          <div class="flex items-center gap-4 mb-8">
-            <div class="w-20 h-20 bg-yellow-500/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-              <svg class="w-12 h-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <h3 class="text-3xl md:text-4xl font-black text-yellow-400">DeltaCoin</h3>
-          </div>
-          <p class="text-gray-300 text-lg leading-relaxed mb-8">
-            <strong class="text-yellow-300 font-bold">NOT a speculative crypto asset.</strong> DeltaCoin is a reward-based internal currency 
-            tightly integrated with participation and progression.
+      <!-- DeltaCoin Section - Centered Layout -->
+      <div class="mb-24">
+        <div class="text-center mb-12">
+          <h3 class="text-3xl md:text-4xl font-black text-yellow-400 mb-4">DeltaCoin — Reward-Based Economy</h3>
+          <p class="text-lg text-gray-400 max-w-3xl mx-auto">
+            <span class="text-yellow-300 font-semibold">NOT a crypto asset.</span> A transparent, skill-based currency integrated with participation.
           </p>
-          <div class="space-y-4 mb-10">
-            <p class="text-base text-gray-400 leading-relaxed">
-              <strong class="text-green-400 font-bold">Earn:</strong> Competition, wins, milestones, community contributions
-            </p>
-            <p class="text-base text-gray-400 leading-relaxed">
-              <strong class="text-orange-400 font-bold">Spend:</strong> Tournament entries, premium features, coaching, merchandise
-            </p>
-          </div>
-          
-          <!-- DeltaCoin Loop SVG -->
-          <div class="border-t border-yellow-500/20 pt-8">
-            <h4 class="text-xl font-bold text-yellow-300 mb-6 text-center">The DeltaCoin Cycle</h4>
-            <svg class="w-full h-auto max-w-md mx-auto" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <!-- Glow filter for the cycle -->
-                <filter id="cycle-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-                
-                <!-- Arrow markers for each stage -->
-                <marker id="arrow-yellow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-                  <polygon points="0 0, 8 3, 0 6" fill="#facc15" opacity="0.8" />
-                </marker>
-              </defs>
-              
-              <!-- Circular path connecting all nodes -->
-              <circle cx="200" cy="200" r="140" fill="none" stroke="#facc15" stroke-width="2" opacity="0.2" stroke-dasharray="8,4" />
-              
-              <!-- Connection arrows (circular flow) -->
-              <!-- Play to Earn -->
-              <path d="M 200,60 Q 280,100 280,180" stroke="#facc15" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
-              
-              <!-- Earn to Upgrade -->
-              <path d="M 280,220 Q 250,300 180,320" stroke="#4ade80" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
-              
-              <!-- Upgrade to Compete -->
-              <path d="M 140,320 Q 80,280 80,200" stroke="#22d3ee" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
-              
-              <!-- Compete to Legacy -->
-              <path d="M 80,160 Q 100,80 180,60" stroke="#a78bfa" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
-              
-              <!-- Legacy back to Play (completing cycle) -->
-              <path d="M 220,60 L 200,60" stroke="#fb923c" stroke-width="2.5" fill="none" opacity="0.6" marker-end="url(#arrow-yellow)" />
-              
-              <!-- Node 1: PLAY (Top) -->
-              <g transform="translate(200, 60)">
-                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#fb923c" stroke-width="3" filter="url(#cycle-glow)" />
-                <text x="0" y="-5" text-anchor="middle" fill="#fb923c" font-size="16" font-weight="bold">PLAY</text>
-                <text x="0" y="10" text-anchor="middle" fill="#fdba74" font-size="10">Compete</text>
-              </g>
-              
-              <!-- Node 2: EARN (Right) -->
-              <g transform="translate(280, 200)">
-                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#4ade80" stroke-width="3" filter="url(#cycle-glow)" />
-                <text x="0" y="-5" text-anchor="middle" fill="#4ade80" font-size="16" font-weight="bold">EARN</text>
-                <text x="0" y="10" text-anchor="middle" fill="#86efac" font-size="10">DeltaCoin</text>
-              </g>
-              
-              <!-- Node 3: UPGRADE (Bottom-Right) -->
-              <g transform="translate(160, 320)">
-                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#22d3ee" stroke-width="3" filter="url(#cycle-glow)" />
-                <text x="0" y="-5" text-anchor="middle" fill="#22d3ee" font-size="16" font-weight="bold">UPGRADE</text>
-                <text x="0" y="10" text-anchor="middle" fill="#67e8f9" font-size="10">Improve</text>
-              </g>
-              
-              <!-- Node 4: COMPETE (Left) -->
-              <g transform="translate(80, 180)">
-                <circle cx="0" cy="0" r="35" fill="#1f2937" stroke="#a78bfa" stroke-width="3" filter="url(#cycle-glow)" />
-                <text x="0" y="-5" text-anchor="middle" fill="#a78bfa" font-size="16" font-weight="bold">COMPETE</text>
-                <text x="0" y="10" text-anchor="middle" fill="#c4b5fd" font-size="10">Rise</text>
-              </g>
-              
-              <!-- Node 5: LEGACY (Top-Left) -->
-              <g transform="translate(140, 80)">
-                <circle cx="0" cy="0" r="30" fill="#1f2937" stroke="#facc15" stroke-width="2.5" filter="url(#cycle-glow)" />
-                <text x="0" y="-2" text-anchor="middle" fill="#facc15" font-size="14" font-weight="bold">LEGACY</text>
-                <text x="0" y="12" text-anchor="middle" fill="#fde047" font-size="9">Build</text>
-              </g>
-              
-              <!-- Center Icon: DeltaCoin symbol -->
-              <g transform="translate(200, 200)">
-                <circle cx="0" cy="0" r="25" fill="#1f2937" stroke="#facc15" stroke-width="2" opacity="0.5" />
-                <text x="0" y="8" text-anchor="middle" fill="#facc15" font-size="28" font-weight="bold">Δ</text>
-              </g>
-            </svg>
-            
-            <p class="text-center text-sm text-gray-500 mt-6 italic">A virtuous cycle powered by participation</p>
-          </div>
         </div>
         
+        <div class="max-w-5xl mx-auto">
+          <div class="group glass-card rounded-3xl p-12 md:p-16 border border-yellow-500/30 hover:border-yellow-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-900/30">
+          <div class="grid md:grid-cols-2 gap-12 mb-12">
+            <!-- Earn -->
+            <div class="text-center md:text-left">
+              <div class="inline-flex items-center gap-3 mb-6">
+                <div class="w-14 h-14 bg-green-500/10 rounded-xl flex items-center justify-center">
+                  <svg class="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <h4 class="text-2xl font-black text-green-400">Earn DeltaCoin</h4>
+              </div>
+              <ul class="space-y-3 text-gray-300 text-lg">
+                <li class="flex items-center gap-3"><span class="text-green-400">✓</span> Tournament participation</li>
+                <li class="flex items-center gap-3"><span class="text-green-400">✓</span> Match victories</li>
+                <li class="flex items-center gap-3"><span class="text-green-400">✓</span> Milestone achievements</li>
+                <li class="flex items-center gap-3"><span class="text-green-400">✓</span> Community contributions</li>
+              </ul>
+            </div>
+            
+            <!-- Spend -->
+            <div class="text-center md:text-left">
+              <div class="inline-flex items-center gap-3 mb-6">
+                <div class="w-14 h-14 bg-orange-500/10 rounded-xl flex items-center justify-center">
+                  <svg class="w-8 h-8 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                  </svg>
+                </div>
+                <h4 class="text-2xl font-black text-orange-400">Spend DeltaCoin</h4>
+              </div>
+              <ul class="space-y-3 text-gray-300 text-lg">
+                <li class="flex items-center gap-3"><span class="text-orange-400">→</span> Tournament entry fees</li>
+                <li class="flex items-center gap-3"><span class="text-orange-400">→</span> Premium features</li>
+                <li class="flex items-center gap-3"><span class="text-orange-400">→</span> Coaching sessions</li>
+                <li class="flex items-center gap-3"><span class="text-orange-400">→</span> Team merchandise</li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- DeltaCoin Cycle Diagram - Modern Cinematic Design -->
+          <div class="border-t border-yellow-500/20 pt-16 mt-16">
+            <div class="text-center mb-12">
+              <h3 class="text-3xl md:text-4xl font-black text-yellow-400 mb-4">The DeltaCoin Ecosystem</h3>
+              <p class="text-lg text-gray-400 max-w-3xl mx-auto">
+                Every action fuels the next. Every reward creates opportunity. Every cycle builds legacy.
+              </p>
+            </div>
+            
+            <!-- Modern SVG Diagram with Aesthetic Background -->
+            <div class="max-w-6xl mx-auto mb-12">
+              <div class="relative rounded-2xl overflow-hidden p-6 md:p-10 bg-gradient-to-br from-gray-900/50 via-yellow-900/10 to-orange-900/10 backdrop-blur-sm border border-yellow-500/20">
+                <svg class="w-full h-auto" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <!-- Radial gradient background -->
+                  <radialGradient id="bg-glow" cx="50%" cy="50%">
+                    <stop offset="0%" style="stop-color:#facc15;stop-opacity:0.08" />
+                    <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:0.04" />
+                    <stop offset="100%" style="stop-color:#1f2937;stop-opacity:0" />
+                  </radialGradient>
+                  
+                  <!-- Glowing arrow markers -->
+                  <marker id="arrow-glow" markerWidth="10" markerHeight="10" refX="9" refY="3.5" orient="auto">
+                    <path d="M 0 0 L 10 3.5 L 0 7 Z" fill="#facc15" opacity="0.9">
+                      <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
+                    </path>
+                  </marker>
+                  
+                  <!-- Node glow filter -->
+                  <filter id="node-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                  
+                  <!-- Pulsing animation for center icon -->
+                  <filter id="pulse-glow" x="-100%" y="-100%" width="300%" height="300%">
+                    <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                
+                <!-- Background glow -->
+                <circle cx="400" cy="250" r="280" fill="url(#bg-glow)" opacity="0.6"/>
+                
+                <!-- Connecting orbital path (decorative) -->
+                <circle cx="400" cy="250" r="200" fill="none" stroke="#facc15" stroke-width="1.5" opacity="0.15" stroke-dasharray="8 8">
+                  <animateTransform attributeName="transform" type="rotate" from="0 400 250" to="360 400 250" dur="60s" repeatCount="indefinite"/>
+                </circle>
+                
+                <!-- TOP ROW FLOW -->
+                
+                <!-- Node 1: COMPETE (Top Left) -->
+                <g transform="translate(150, 120)">
+                  <!-- Outer ring glow -->
+                  <circle cx="0" cy="0" r="52" fill="none" stroke="#fb923c" stroke-width="2" opacity="0.3">
+                    <animate attributeName="r" values="52;55;52" dur="3s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" repeatCount="indefinite"/>
+                  </circle>
+                  <!-- Main node -->
+                  <circle cx="0" cy="0" r="45" fill="url(#bg-glow)" stroke="#fb923c" stroke-width="3" filter="url(#node-glow)"/>
+                  <circle cx="0" cy="0" r="45" fill="#1f2937" opacity="0.95" stroke="#fb923c" stroke-width="3"/>
+                  <!-- Label (positioned above) -->
+                  <text x="0" y="-75" text-anchor="middle" fill="#fb923c" font-size="16" font-weight="bold" letter-spacing="0.8">COMPETE</text>
+                  <text x="0" y="-59" text-anchor="middle" fill="#fdba74" font-size="11">Tournaments</text>
+                  <!-- Icon -->
+                  <path d="M -15 -10 L 0 -20 L 15 -10 L 15 15 L -15 15 Z" fill="none" stroke="#fb923c" stroke-width="3" stroke-linejoin="round"/>
+                  <circle cx="0" cy="5" r="3" fill="#fb923c"/>
+                </g>
+                
+                <!-- Arrow 1: COMPETE → EARN -->
+                <path d="M 200,120 L 350,120" stroke="#facc15" stroke-width="3" fill="none" marker-end="url(#arrow-glow)" opacity="0.8">
+                  <animate attributeName="stroke-dasharray" values="0 400;400 0" dur="2s" repeatCount="indefinite"/>
+                </path>
+                
+                <!-- Node 2: EARN (Top Center) -->
+                <g transform="translate(400, 120)">
+                  <circle cx="0" cy="0" r="52" fill="none" stroke="#4ade80" stroke-width="2" opacity="0.3">
+                    <animate attributeName="r" values="52;55;52" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" begin="0.5s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="0" cy="0" r="45" fill="url(#bg-glow)" stroke="#4ade80" stroke-width="3" filter="url(#node-glow)"/>
+                  <circle cx="0" cy="0" r="45" fill="#1f2937" opacity="0.95" stroke="#4ade80" stroke-width="3"/>
+                  <!-- Label (positioned above) -->
+                  <text x="0" y="-75" text-anchor="middle" fill="#4ade80" font-size="16" font-weight="bold" letter-spacing="0.8">EARN</text>
+                  <text x="0" y="-59" text-anchor="middle" fill="#86efac" font-size="11">DeltaCoin</text>
+                  <!-- Dollar/Coin icon -->
+                  <circle cx="0" cy="0" r="18" fill="none" stroke="#4ade80" stroke-width="3"/>
+                  <text x="0" y="10" text-anchor="middle" fill="#4ade80" font-size="26" font-weight="bold">Δ</text>
+                </g>
+                
+                <!-- Arrow 2: EARN → UPGRADE -->
+                <path d="M 450,120 L 600,120" stroke="#facc15" stroke-width="3" fill="none" marker-end="url(#arrow-glow)" opacity="0.8">
+                  <animate attributeName="stroke-dasharray" values="0 400;400 0" dur="2s" begin="0.3s" repeatCount="indefinite"/>
+                </path>
+                
+                <!-- Node 3: UPGRADE (Top Right) -->
+                <g transform="translate(650, 120)">
+                  <circle cx="0" cy="0" r="52" fill="none" stroke="#22d3ee" stroke-width="2" opacity="0.3">
+                    <animate attributeName="r" values="52;55;52" dur="3s" begin="1s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" begin="1s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="0" cy="0" r="45" fill="url(#bg-glow)" stroke="#22d3ee" stroke-width="3" filter="url(#node-glow)"/>
+                  <circle cx="0" cy="0" r="45" fill="#1f2937" opacity="0.95" stroke="#22d3ee" stroke-width="3"/>
+                  <!-- Label (positioned above) -->
+                  <text x="0" y="-75" text-anchor="middle" fill="#22d3ee" font-size="16" font-weight="bold" letter-spacing="0.8">UPGRADE</text>
+                  <text x="0" y="-59" text-anchor="middle" fill="#67e8f9" font-size="11">Invest</text>
+                  <!-- Shopping bag icon -->
+                  <path d="M -12 -5 L -12 12 L 12 12 L 12 -5" fill="none" stroke="#22d3ee" stroke-width="3" stroke-linejoin="round"/>
+                  <path d="M -8 -5 Q -8 -15 0 -15 Q 8 -15 8 -5" fill="none" stroke="#22d3ee" stroke-width="3"/>
+                </g>
+                
+                <!-- Arrow 3: UPGRADE → IMPROVE (curved down) -->
+                <path d="M 650,170 Q 650,240 650,310" stroke="#facc15" stroke-width="3" fill="none" marker-end="url(#arrow-glow)" opacity="0.8">
+                  <animate attributeName="stroke-dasharray" values="0 400;400 0" dur="2s" begin="0.6s" repeatCount="indefinite"/>
+                </path>
+                
+                <!-- BOTTOM ROW FLOW -->
+                
+                <!-- Node 4: IMPROVE (Bottom Right) -->
+                <g transform="translate(650, 380)">
+                  <circle cx="0" cy="0" r="52" fill="none" stroke="#a78bfa" stroke-width="2" opacity="0.3">
+                    <animate attributeName="r" values="52;55;52" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="0" cy="0" r="45" fill="url(#bg-glow)" stroke="#a78bfa" stroke-width="3" filter="url(#node-glow)"/>
+                  <circle cx="0" cy="0" r="45" fill="#1f2937" opacity="0.95" stroke="#a78bfa" stroke-width="3"/>
+                  <!-- Trending up icon -->
+                  <path d="M -15 8 L -5 -2 L 5 2 L 15 -8" fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M 10 -8 L 15 -8 L 15 -3" fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <text x="0" y="71" text-anchor="middle" fill="#a78bfa" font-size="16" font-weight="bold" letter-spacing="0.8">IMPROVE</text>
+                  <text x="0" y="86" text-anchor="middle" fill="#c4b5fd" font-size="11">Skills+</text>
+                </g>
+                
+                <!-- Arrow 4: IMPROVE → EXCEL -->
+                <path d="M 600,380 L 450,380" stroke="#facc15" stroke-width="3" fill="none" marker-end="url(#arrow-glow)" opacity="0.8">
+                  <animate attributeName="stroke-dasharray" values="0 400;400 0" dur="2s" begin="0.9s" repeatCount="indefinite"/>
+                </path>
+                
+                <!-- Node 5: EXCEL (Bottom Center) -->
+                <g transform="translate(400, 380)">
+                  <circle cx="0" cy="0" r="52" fill="none" stroke="#f59e0b" stroke-width="2" opacity="0.3">
+                    <animate attributeName="r" values="52;55;52" dur="3s" begin="2s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" begin="2s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="0" cy="0" r="45" fill="url(#bg-glow)" stroke="#f59e0b" stroke-width="3" filter="url(#node-glow)"/>
+                  <circle cx="0" cy="0" r="45" fill="#1f2937" opacity="0.95" stroke="#f59e0b" stroke-width="3"/>
+                  <!-- Star/Crown icon -->
+                  <path d="M 0 -15 L -5 -5 L -15 -5 L -7 2 L -10 12 L 0 6 L 10 12 L 7 2 L 15 -5 L 5 -5 Z" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linejoin="round"/>
+                  <text x="0" y="71" text-anchor="middle" fill="#f59e0b" font-size="16" font-weight="bold" letter-spacing="0.8">EXCEL</text>
+                  <text x="0" y="86" text-anchor="middle" fill="#fbbf24" font-size="11">Perform</text>
+                </g>
+                
+                <!-- Arrow 5: EXCEL → LEGACY -->
+                <path d="M 350,380 L 200,380" stroke="#facc15" stroke-width="3" fill="none" marker-end="url(#arrow-glow)" opacity="0.8">
+                  <animate attributeName="stroke-dasharray" values="0 400;400 0" dur="2s" begin="1.2s" repeatCount="indefinite"/>
+                </path>
+                
+                <!-- Node 6: LEGACY (Bottom Left) -->
+                <g transform="translate(150, 380)">
+                  <circle cx="0" cy="0" r="52" fill="none" stroke="#facc15" stroke-width="2" opacity="0.3">
+                    <animate attributeName="r" values="52;55;52" dur="3s" begin="2.5s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" begin="2.5s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="0" cy="0" r="45" fill="url(#bg-glow)" stroke="#facc15" stroke-width="3" filter="url(#node-glow)"/>
+                  <circle cx="0" cy="0" r="45" fill="#1f2937" opacity="0.95" stroke="#facc15" stroke-width="3"/>
+                  <!-- Trophy icon -->
+                  <path d="M -12 -10 L -8 -10 L -8 -5 Q -8 2 -5 5 L -5 8 L 5 8 L 5 5 Q 8 2 8 -5 L 8 -10 L 12 -10" fill="none" stroke="#facc15" stroke-width="3" stroke-linejoin="round"/>
+                  <path d="M -8 8 L -8 12 L 8 12 L 8 8" fill="none" stroke="#facc15" stroke-width="3" stroke-linejoin="round"/>
+                  <text x="0" y="71" text-anchor="middle" fill="#facc15" font-size="16" font-weight="bold" letter-spacing="0.8">LEGACY</text>
+                  <text x="0" y="86" text-anchor="middle" fill="#fde047" font-size="11">Achieve</text>
+                </g>
+                
+                <!-- Arrow 6: LEGACY → COMPETE (curved up, closing the loop) -->
+                <path d="M 150,330 Q 150,250 150,170" stroke="#facc15" stroke-width="3" fill="none" marker-end="url(#arrow-glow)" opacity="0.8">
+                  <animate attributeName="stroke-dasharray" values="0 400;400 0" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+                </path>
+                
+                <!-- Center Icon: DeltaCoin Symbol (Pulsing) -->
+                <g transform="translate(400, 250)">
+                  <circle cx="0" cy="0" r="40" fill="#1f2937" opacity="0.3" filter="url(#pulse-glow)">
+                    <animate attributeName="r" values="40;45;40" dur="4s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="0" cy="0" r="32" fill="none" stroke="#facc15" stroke-width="2.5" opacity="0.5"/>
+                  <text x="0" y="16" text-anchor="middle" fill="#facc15" font-size="42" font-weight="bold" opacity="0.8">Δ</text>
+                  <text x="0" y="48" text-anchor="middle" fill="#fde047" font-size="10" font-weight="bold" opacity="0.7" letter-spacing="1">DELTACOIN</text>
+                </g>
+              </svg>
+            </div>
+            
+            <p class="text-center text-base md:text-lg text-gray-300 mt-10 leading-relaxed max-w-3xl mx-auto">
+              <span class="text-yellow-400 font-bold">Compete</span> in tournaments → <span class="text-green-400 font-bold">Earn</span> DeltaCoin → <span class="text-cyan-400 font-bold">Upgrade</span> your gear → <span class="text-purple-400 font-bold">Improve</span> skills → <span class="text-orange-400 font-bold">Excel</span> in matches → Build <span class="text-yellow-400 font-bold">Legacy</span> → Repeat.
+            </p>
+            <p class="text-center text-sm text-gray-500 mt-4 italic">A self-reinforcing ecosystem where every action fuels your journey.</p>
+          </div>
+        </div>
+        </div>
       </div>
       
       <!-- Trust Statement -->
-      <div class="glass-card rounded-3xl p-12 md:p-16 text-center bg-gradient-to-br from-green-900/20 via-teal-900/20 to-green-900/20 border border-green-500/30 hover:border-green-500/50 hover:scale-[1.01] transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/30">
+      <div class="glass-card rounded-3xl p-12 md:p-16 text-center bg-gradient-to-br from-green-900/20 via-teal-900/20 to-green-900/20 border border-green-500/30 hover:border-green-500/50 hover:scale-[1.01] transition-all duration-300 hover:shadow-2xl hover:shadow-green-900/30 mt-20 mb-8">
         <div class="w-24 h-24 bg-green-500/10 rounded-2xl flex items-center justify-center mx-auto mb-8 hover:scale-110 transition-transform">
           <svg class="w-14 h-14 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -851,6 +998,12 @@
         </p>
       </div>
       
+      <!-- 
+        GAMES LIST SOURCE: Static list matching README.md official content.
+        A Game model exists in apps/games/models/game.py as the canonical source,
+        but About page keeps this static for now to match official marketing copy.
+        Future: Consider dynamic rendering via view context when games become admin-managed.
+      -->
       <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
         
         <div class="group glass-card rounded-2xl p-6 text-center border border-purple-500/20 hover:border-purple-500/50 hover:scale-110 hover:-translate-y-2 transition-all duration-300 hover:shadow-xl hover:shadow-purple-900/30">
