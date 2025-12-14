@@ -13,36 +13,10 @@ from .utils.embeds import build_embed_url
 
 
 def home(request):
-    """Premium homepage: dynamic NEXT EVENT + live stats.
-    NOTE: Tournament system moved to legacy - featured tournament disabled.
-    """
-    # Tournament system moved to legacy - no featured tournament
-    ft = None
-
-    # Community stats mapped to expected keys
-    raw_stats = compute_stats()  # players, prize_bdt
-    community_stats = {
-        "players": raw_stats.get("players", 0),
-        "prizes_bdt": raw_stats.get("prize_bdt", 0),
-        "payout_accuracy": 98,  # default showcase value
-    }
-    games_strip = [
-        {"slug": "efootball", "name": "eFootball", "image": "img/game_cards/efootball.jpeg"},
-        {"slug": "valorant", "name": "Valorant", "image": "img/game_cards/Valorant.jpg"},
-        {"slug": "fc26", "name": "FC 26", "image": "img/game_cards/FC26.jpg"},
-        {"slug": "pubg", "name": "PUBG Mobile", "image": "img/game_cards/PUBG.jpeg"},
-        {"slug": "mlbb", "name": "Mobile Legend", "image": "img/game_cards/MobileLegend.jpg"},
-        {"slug": "cs2", "name": "CS2", "image": "img/game_cards/CS2.jpg"},
-    ]
-
-    ctx = {
-        "featured_tournament": ft,
-        "community_stats": community_stats,
-        "spotlight": get_spotlight(3),
-        "timeline": get_timeline(6),
-        "games_strip": games_strip,
-    }
-    return render(request, "home_cyberpunk.html", ctx)
+    """DeltaCrown homepage - Modern newspaper-style esports platform."""
+    from .homepage_context import get_homepage_context
+    context = get_homepage_context()
+    return render(request, "home.html", context)
 
 
 def privacy(request):

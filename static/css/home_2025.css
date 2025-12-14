@@ -1,0 +1,865 @@
+/* 
+ * Home 2025 - Modern Esports Homepage Styling 
+ * Premium 2025 design with glass morphism, gradients, and animations
+ */
+
+/* ================================================================
+   CSS VARIABLES & FOUNDATIONS
+   ================================================================ */
+:root {
+    --color-primary: #06b6d4; /* Cyan */
+    --color-secondary: #8b5cf6; /* Purple */
+    --color-accent: #facc15; /* Gold */
+    --color-success: #10b981;
+    --color-danger: #ef4444;
+    --color-dark: #0a0a0a;
+    --color-darker: #050505;
+    --spacing-section: 6rem;
+    --border-radius-sm: 0.75rem;
+    --border-radius-md: 1rem;
+    --border-radius-lg: 1.5rem;
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-hover-border: rgba(6, 182, 212, 0.3);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--color-darker);
+    color: #f5f5f5;
+}
+
+/* ================================================================
+   SECTION UTILITIES
+   ================================================================ */
+.section-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: var(--spacing-section) 1.5rem;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: 1rem;
+}
+
+.section-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.05;
+    margin: 0 0 1.25rem 0;
+    background: linear-gradient(135deg, #fff 0%, #d1d5db 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+}
+
+.section-description {
+    font-size: 1.1875rem;
+    line-height: 1.75;
+    color: #d1d5db;
+    max-width: 44rem;
+    margin: 0 auto;
+    font-weight: 400;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ================================================================
+   GLASS CARD EFFECT (Consistent across all sections)
+   ================================================================ */
+.glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-md);
+    padding: 2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--card-hover-border);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(6, 182, 212, 0.15);
+}
+
+/* ================================================================
+   HERO SECTION (Particle Background with Enhanced Overlay)
+   ================================================================ */
+.hero-v2 {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 2rem 1.5rem;
+}
+
+/* Enhanced overlay with backdrop blur for crisp text */
+.hero-v2 .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        180deg, 
+        rgba(10, 10, 10, 0.75) 0%, 
+        rgba(5, 5, 5, 0.95) 100%
+    );
+    backdrop-filter: blur(2px);
+    z-index: 1;
+}
+
+.hero-v2 .hero-content-wrapper {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    max-width: 72rem;
+    margin: 0 auto;
+}
+
+/* Text backdrop blur for maximum crispness */
+.hero-v2 .hero-text-block {
+    background: rgba(10, 10, 10, 0.6);
+    backdrop-filter: blur(8px);
+    border-radius: var(--border-radius-lg);
+    padding: 3rem 2rem 2rem;
+    margin-bottom: 3rem;
+}
+
+.hero-v2 .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    border-radius: 9999px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--color-primary);
+    margin-bottom: 2rem;
+    animation: fadeInDown 0.8s ease;
+}
+
+.hero-v2 .hero-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 0 0 1.5rem 0;
+    color: #ffffff;
+    text-shadow: 0 2px 20px rgba(6, 182, 212, 0.3);
+    animation: fadeInUp 0.8s ease 0.2s both;
+}
+
+.hero-v2 .hero-subtitle {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 700;
+    margin: 0 0 2rem 0;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: fadeInUp 0.8s ease 0.3s both;
+}
+
+.hero-v2 .hero-description {
+    font-size: 1.25rem;
+    line-height: 1.8;
+    color: #e5e7eb;
+    max-width: 48rem;
+    margin: 0 auto 3rem auto;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.8s ease 0.4s both;
+}
+
+.hero-v2 .hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 0;
+    animation: fadeInUp 0.8s ease 0.5s both;
+}
+
+.btn-v2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    border-radius: var(--border-radius-sm);
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+}
+
+.btn-v2-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: #fff;
+    box-shadow: 0 12px 35px rgba(6, 182, 212, 0.4), 0 4px 12px rgba(6, 182, 212, 0.2);
+    font-weight: 700;
+}
+
+.btn-v2-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 45px rgba(6, 182, 212, 0.5), 0 6px 16px rgba(6, 182, 212, 0.3);
+}
+
+.btn-v2-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.btn-v2-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--color-primary);
+}
+
+.hero-v2 .hero-highlights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 2rem;
+    max-width: 56rem;
+    margin: 0 auto;
+    animation: fadeInUp 0.8s ease 0.6s both;
+}
+
+.hero-v2 .highlight-card {
+    text-align: center;
+    padding: 1.5rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: var(--border-radius-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-v2 .highlight-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--card-hover-border);
+    transform: translateY(-4px);
+}
+
+.hero-v2 .highlight-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.hero-v2 .highlight-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.hero-v2 .highlight-label {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ================================================================
+   PROBLEM/OPPORTUNITY SECTION
+   ================================================================ */
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.comparison-card {
+    padding: 2rem;
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--border-radius-md);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.comparison-card:hover {
+    transform: translateY(-4px);
+}
+
+.comparison-card.deltacrown {
+    background: rgba(16, 185, 129, 0.05);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.comparison-card::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -0.75rem;
+    left: 1.5rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--color-darker);
+    border: 1px solid currentColor;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.comparison-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0.5rem 0 0.5rem 0;
+    color: #fff;
+}
+
+.comparison-card p {
+    margin: 0;
+    color: #9ca3af;
+    line-height: 1.6;
+}
+
+/* ================================================================
+   ECOSYSTEM PILLARS
+   ================================================================ */
+.pillars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.pillar-card {
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pillar-card .pillar-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.pillar-card .pillar-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.75rem 0;
+    color: #fff;
+}
+
+.pillar-card .pillar-description {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: #9ca3af;
+    margin: 0 0 1.25rem 0;
+}
+
+.pillar-card a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: gap 0.3s ease;
+}
+
+.pillar-card a:hover {
+    gap: 0.75rem;
+}
+
+/* ================================================================
+   GAMES GRID
+   ================================================================ */
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.game-card {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.game-card .game-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.game-card .game-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #fff;
+}
+
+.game-card .game-platforms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.game-platform-badge {
+    padding: 0.25rem 0.75rem;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
+/* ================================================================
+   PLACEHOLDER SECTIONS (Tournaments, Teams, Community)
+   ================================================================ */
+.placeholder-section {
+    padding: 5rem 2rem;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.03) 0%, rgba(139, 92, 246, 0.03) 100%);
+    border: 1px solid rgba(6, 182, 212, 0.15);
+    border-radius: var(--border-radius-lg);
+    text-align: center;
+}
+
+.placeholder-section h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin: 0 0 1rem 0;
+    color: #fff;
+    letter-spacing: -0.01em;
+}
+
+.placeholder-section p {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #d1d5db;
+    margin: 0 0 2.5rem 0;
+    max-width: 40rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* ================================================================
+   PAYMENTS GRID
+   ================================================================ */
+.payments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.payment-card {
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.payment-card .payment-logo {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.payment-card .payment-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #fff;
+}
+
+.payment-card .payment-description {
+    font-size: 0.9375rem;
+    color: #9ca3af;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.trust-message {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: rgba(16, 185, 129, 0.05);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: var(--border-radius-md);
+}
+
+.trust-message p {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #d1d5db;
+    margin: 0;
+}
+
+/* ================================================================
+   DELTACOIN ECONOMY (Enhanced Circular Flow Design)
+   ================================================================ */
+.deltacoin-layout {
+    margin-top: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    align-items: center;
+}
+
+.deltacoin-flow-diagram {
+    max-width: 600px;
+    width: 100%;
+}
+
+.deltacoin-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    width: 100%;
+}
+
+.economy-card {
+    padding: 2.5rem;
+}
+
+.economy-card h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 1.5rem 0;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.economy-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.economy-card li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #d1d5db;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+.economy-card li:last-child {
+    border-bottom: none;
+}
+
+.economy-card li::before {
+    content: '→';
+    font-size: 1.25rem;
+    color: var(--color-primary);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* DeltaCoin cycle SVG styles */
+.deltacoin-cycle-svg {
+    width: 100%;
+    height: auto;
+}
+
+.cycle-circle {
+    fill: none;
+    stroke: var(--color-primary);
+    stroke-width: 2;
+    opacity: 0.3;
+}
+
+.cycle-arrow {
+    fill: var(--color-primary);
+}
+
+.cycle-node {
+    fill: rgba(6, 182, 212, 0.1);
+    stroke: var(--color-primary);
+    stroke-width: 2;
+}
+
+.cycle-text {
+    fill: #ffffff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    text-anchor: middle;
+}
+
+.cycle-label {
+    fill: #9ca3af;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    text-anchor: middle;
+}
+
+/* ================================================================
+   ROADMAP TIMELINE
+   ================================================================ */
+.roadmap-grid {
+    display: grid;
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.roadmap-item {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 2rem;
+    padding: 2rem;
+    align-items: center;
+}
+
+.roadmap-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.roadmap-status.completed {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--color-success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.roadmap-status.in-progress {
+    background: rgba(250, 204, 21, 0.15);
+    color: var(--color-accent);
+    border: 1px solid rgba(250, 204, 21, 0.3);
+}
+
+.roadmap-status.planned {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--color-secondary);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.roadmap-content h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    color: #fff;
+}
+
+.roadmap-content p {
+    margin: 0;
+    color: #9ca3af;
+}
+
+/* ================================================================
+   FINAL CTA SECTION
+   ================================================================ */
+.cta-section {
+    text-align: center;
+    padding: 6rem 1.5rem;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.15) 0%, transparent 70%);
+}
+
+.cta-section .cta-content {
+    position: relative;
+    z-index: 1;
+    max-width: 48rem;
+    margin: 0 auto;
+}
+
+.cta-section .cta-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    margin: 0 0 1rem 0;
+    color: #fff;
+}
+
+.cta-section .cta-description {
+    font-size: 1.25rem;
+    line-height: 1.7;
+    color: #d1d5db;
+    margin: 0 0 2.5rem 0;
+}
+
+.cta-section .cta-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+/* ================================================================
+   ANIMATIONS
+   ================================================================ */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ================================================================
+   RESPONSIVE DESIGN
+   ================================================================ */
+@media (max-width: 768px) {
+    :root {
+        --spacing-section: 4rem;
+    }
+    
+    .hero-v2 {
+        min-height: 90vh;
+    }
+    
+    .hero-v2 .hero-text-block {
+        padding: 2rem 1.5rem 1.5rem;
+    }
+    
+    .hero-v2 .hero-title {
+        font-size: clamp(2rem, 10vw, 3rem);
+    }
+    
+    .hero-v2 .hero-highlights {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .section-container {
+        padding: var(--spacing-section) 1rem;
+    }
+    
+    .pillars-grid,
+    .games-grid,
+    .payments-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .roadmap-item {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .roadmap-status {
+        justify-self: start;
+    }
+    
+    .deltacoin-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-v2 .hero-highlights {
+        grid-template-columns: 1fr;
+    }
+    
+    .hero-v2 .hero-cta {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .btn-v2 {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ================================================================
+   ACCESSIBILITY
+   ================================================================ */
+.btn-v2:focus-visible,
+.glass-card:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .glass-card {
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .hero-v2 .hero-overlay {
+        background: rgba(0, 0, 0, 0.9);
+    }
+}

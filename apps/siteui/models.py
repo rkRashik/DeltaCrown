@@ -5,9 +5,570 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from apps.user_profile.models import UserProfile
 
 User = get_user_model()
+
+
+class HomePageContent(models.Model):
+    """
+    Single-row singleton model for homepage content management.
+    
+    This model stores all editable content for the homepage, including hero section,
+    CTAs, section toggles, and data for various sections. It enforces a singleton
+    pattern to ensure only one homepage configuration exists at any time.
+    
+    Usage:
+        content = HomePageContent.get_instance()
+        content.hero_title = "New Title"
+        content.save()
+    """
+    
+    # === HERO SECTION ===
+    hero_badge_text = models.CharField(
+        max_length=100,
+        default="Bangladesh's #1 Esports Platform",
+        help_text="Badge text above hero title"
+    )
+    hero_title = models.CharField(
+        max_length=200,
+        default="From the Delta to the Crown",
+        help_text="Main hero headline"
+    )
+    hero_subtitle = models.CharField(
+        max_length=200,
+        default="Where Champions Rise",
+        help_text="Hero subtitle/tagline"
+    )
+    hero_description = models.TextField(
+        default=(
+            "Building a world where geography does not define destiny—where a gamer in "
+            "Bangladesh has the same trusted path to global glory as a pro on the main stage."
+        ),
+        help_text="Hero description paragraph"
+    )
+    
+    # Hero CTAs
+    primary_cta_text = models.CharField(max_length=50, default="Join Tournament")
+    primary_cta_url = models.CharField(max_length=200, default="/tournaments/")
+    primary_cta_icon = models.CharField(max_length=10, default="🏆", blank=True)
+    
+    secondary_cta_text = models.CharField(max_length=50, default="Explore Teams")
+    secondary_cta_url = models.CharField(max_length=200, default="/teams/")
+    secondary_cta_icon = models.CharField(max_length=10, default="👥", blank=True)
+    
+    # Hero highlights/stats (JSON array of objects)
+    hero_highlights = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Array of stat highlights: [{"label": "Active Players", "value": "12,500+", '
+            '"icon": "👥", "source": "DB_COUNT"}]. source can be "DB_COUNT" or "STATIC"'
+        )
+    )
+    
+    # === PROBLEM/OPPORTUNITY SECTION ===
+    problem_section_enabled = models.BooleanField(default=True)
+    problem_title = models.CharField(
+        max_length=200,
+        default="The Esports Gap",
+        help_text="Problem section headline"
+    )
+    problem_subtitle = models.TextField(
+        default="Most platforms solve one problem. DeltaCrown solves the entire esports lifecycle.",
+        help_text="Problem section description"
+    )
+    comparison_table = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Comparison items: [{"traditional": "One-time tournaments", '
+            '"deltacrown": "Persistent competitive history"}]'
+        )
+    )
+    
+    # === ECOSYSTEM PILLARS SECTION ===
+    pillars_section_enabled = models.BooleanField(default=True)
+    ecosystem_pillars_title = models.CharField(
+        max_length=200,
+        default="Complete Esports Ecosystem",
+        help_text="Ecosystem section headline"
+    )
+    ecosystem_pillars_description = models.TextField(
+        default="Eight interconnected domains, one unified platform",
+        help_text="Ecosystem section description"
+    )
+    ecosystem_pillars = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Array of pillars: [{"icon": "🏆", "title": "Tournaments", '
+            '"description": "...", "link": "/tournaments/"}]'
+        )
+    )
+    
+    # === GAMES SECTION ===
+    games_section_enabled = models.BooleanField(default=True)
+    games_section_title = models.CharField(
+        max_length=200,
+        default="11 Games, One Platform",
+        help_text="Games section headline"
+    )
+    games_section_description = models.TextField(
+        default="From mobile to PC, tactical shooters to sports—game-agnostic by design",
+        help_text="Games section description"
+    )
+    games_data = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Array of games: [{"slug": "cod-mobile", "name": "Call of Duty®: Mobile", '
+            '"tagline": "Tactical FPS", "platforms": ["Mobile"], "color": "#FF6B00"}]. '
+            'Phase 1: JSON. Phase 2: Migrate to Game model FK.'
+        )
+    )
+    
+    # === TOURNAMENTS SECTION ===
+    tournaments_section_enabled = models.BooleanField(default=True)
+    tournaments_section_title = models.CharField(
+        max_length=200,
+        default="Active Tournaments",
+        help_text="Tournaments section headline"
+    )
+    tournaments_section_description = models.TextField(
+        default="Join verified competitions with real prizes",
+        help_text="Tournaments section description"
+    )
+    
+    # === TEAMS SECTION ===
+    teams_section_enabled = models.BooleanField(default=True)
+    teams_section_title = models.CharField(
+        max_length=200,
+        default="Top Teams",
+        help_text="Teams section headline"
+    )
+    teams_section_description = models.TextField(
+        default="Professional organizations competing for glory",
+        help_text="Teams section description"
+    )
+    
+    # === LOCAL PAYMENTS SECTION ===
+    payments_section_enabled = models.BooleanField(default=True)
+    payments_section_title = models.CharField(
+        max_length=200,
+        default="Local Payment Partners",
+        help_text="Payments section headline"
+    )
+    payments_section_description = models.TextField(
+        default="Bangladesh-first infrastructure—we support the payment methods you already trust",
+        help_text="Payments section description"
+    )
+    payment_methods = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Array of payment methods: [{"name": "bKash", "icon": "💳", '
+            '"color": "#E2136E", "description": "Mobile money leader"}]'
+        )
+    )
+    payments_trust_message = models.TextField(
+        default="No credit cards required. No barriers to entry. Built for South Asian markets.",
+        help_text="Trust message for payment methods"
+    )
+    
+    # === DELTACOIN ECONOMY SECTION ===
+    deltacoin_section_enabled = models.BooleanField(default=True)
+    deltacoin_section_title = models.CharField(
+        max_length=200,
+        default="DeltaCoin Economy",
+        help_text="DeltaCoin section headline"
+    )
+    deltacoin_section_description = models.TextField(
+        default="Earn by competing. Spend on upgrades. Build your legacy.",
+        help_text="DeltaCoin section description"
+    )
+    deltacoin_earn_methods = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Array of earn methods: ["Participating in tournaments", "Winning matches"]'
+    )
+    deltacoin_spend_options = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Array of spend options: ["Store purchases", "Premium subscriptions"]'
+    )
+    
+    # === COMMUNITY SECTION ===
+    community_section_enabled = models.BooleanField(default=True)
+    community_section_title = models.CharField(
+        max_length=200,
+        default="Join the Community",
+        help_text="Community section headline"
+    )
+    community_section_description = models.TextField(
+        default="Strategy guides, match highlights, esports news—all in one home",
+        help_text="Community section description"
+    )
+    
+    # === ROADMAP SECTION ===
+    roadmap_section_enabled = models.BooleanField(default=True)
+    roadmap_section_title = models.CharField(
+        max_length=200,
+        default="The Vision Ahead",
+        help_text="Roadmap section headline"
+    )
+    roadmap_section_description = models.TextField(
+        default="Evolving toward global scale while staying rooted in emerging markets",
+        help_text="Roadmap section description"
+    )
+    roadmap_items = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=(
+            'Array of roadmap items: [{"status": "COMPLETED", "title": "...", '
+            '"description": "..."}]. status: COMPLETED, IN_PROGRESS, PLANNED'
+        )
+    )
+    
+    # === FINAL CTA SECTION ===
+    final_cta_section_enabled = models.BooleanField(default=True)
+    final_cta_title = models.CharField(
+        max_length=200,
+        default="Ready to Compete?",
+        help_text="Final CTA headline"
+    )
+    final_cta_description = models.TextField(
+        default="Join thousands of gamers building their esports careers on DeltaCrown",
+        help_text="Final CTA description"
+    )
+    final_cta_primary_text = models.CharField(max_length=50, default="Create Account")
+    final_cta_primary_url = models.CharField(max_length=200, default="/account/register/")
+    final_cta_secondary_text = models.CharField(max_length=50, default="Explore Platform")
+    final_cta_secondary_url = models.CharField(max_length=200, default="/about/")
+    
+    # === PLATFORM INFO (for footer/about) ===
+    platform_tagline = models.CharField(
+        max_length=200,
+        default="From the Delta to the Crown — Where Champions Rise.",
+        help_text="Platform tagline for footer/about sections"
+    )
+    platform_founded_year = models.PositiveIntegerField(
+        default=2025,
+        help_text="Year DeltaCrown was founded"
+    )
+    platform_founder = models.CharField(
+        max_length=100,
+        default="Redwanul Rashik",
+        help_text="Founder name"
+    )
+    
+    # === META ===
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='homepage_updates',
+        help_text="Last user who updated homepage content"
+    )
+    
+    class Meta:
+        verbose_name = "Homepage Content"
+        verbose_name_plural = "Homepage Content"
+        db_table = "siteui_homepage_content"
+    
+    def __str__(self):
+        return f"Homepage Content (Updated: {self.updated_at.strftime('%Y-%m-%d %H:%M')})"
+    
+    def save(self, *args, **kwargs):
+        """Enforce singleton: only one instance allowed."""
+        if not self.pk and HomePageContent.objects.exists():
+            raise ValidationError(
+                "Only one HomePageContent instance is allowed. "
+                "Please edit the existing instance instead."
+            )
+        return super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_instance(cls):
+        """
+        Get or create the singleton instance.
+        
+        Returns:
+            HomePageContent: The singleton instance with default values.
+        """
+        obj, created = cls.objects.get_or_create(pk=1)
+        if created:
+            # Initialize with default content on first creation
+            obj._initialize_default_content()
+            obj.save()
+        return obj
+    
+    def _initialize_default_content(self):
+        """Initialize default content for all JSON fields."""
+        # Hero highlights
+        self.hero_highlights = [
+            {
+                "label": "Active Players",
+                "value": "12,500+",
+                "icon": "👥",
+                "source": "DB_COUNT"
+            },
+            {
+                "label": "Prize Pool",
+                "value": "৳5,00,000+",
+                "icon": "💰",
+                "source": "STATIC"
+            },
+            {
+                "label": "Tournaments",
+                "value": "150+",
+                "icon": "🏆",
+                "source": "DB_COUNT"
+            },
+            {
+                "label": "Games",
+                "value": "11",
+                "icon": "🎮",
+                "source": "STATIC"
+            }
+        ]
+        
+        # Comparison table
+        self.comparison_table = [
+            {
+                "traditional": "One-time tournaments",
+                "deltacrown": "Persistent competitive history"
+            },
+            {
+                "traditional": "Temporary teams",
+                "deltacrown": "Professional organizations"
+            },
+            {
+                "traditional": "No career progression",
+                "deltacrown": "Player & team legacy"
+            },
+            {
+                "traditional": "Fragmented tools",
+                "deltacrown": "Unified ecosystem"
+            },
+            {
+                "traditional": "No local payment support",
+                "deltacrown": "Global + local payments"
+            }
+        ]
+        
+        # Ecosystem pillars
+        self.ecosystem_pillars = [
+            {
+                "icon": "🏆",
+                "title": "Tournaments",
+                "description": "Smart registration, automated brackets, verified results",
+                "link": "/tournaments/"
+            },
+            {
+                "icon": "👥",
+                "title": "Teams",
+                "description": "Professional structures with coaches, managers, sponsors",
+                "link": "/teams/"
+            },
+            {
+                "icon": "🎯",
+                "title": "Players",
+                "description": "Career progression, stats tracking, achievement system",
+                "link": "/players/"
+            },
+            {
+                "icon": "💰",
+                "title": "Economy",
+                "description": "DeltaCoin rewards, local payments, prize distribution",
+                "link": "/economy/"
+            },
+            {
+                "icon": "🌐",
+                "title": "Community",
+                "description": "Content, highlights, strategy guides, esports news",
+                "link": "/community/"
+            },
+            {
+                "icon": "📊",
+                "title": "Rankings",
+                "description": "Real-time leaderboards, performance analytics",
+                "link": "/leaderboards/"
+            },
+            {
+                "icon": "🧠",
+                "title": "Coaching",
+                "description": "Mentorship, training systems, skill development",
+                "link": "/coaching/"
+            },
+            {
+                "icon": "🛒",
+                "title": "Commerce",
+                "description": "Team merch, gaming gear, digital products",
+                "link": "/shop/"
+            }
+        ]
+        
+        # Games (11 official titles from README.md)
+        self.games_data = [
+            {
+                "slug": "call-of-duty-mobile",
+                "name": "Call of Duty®: Mobile",
+                "tagline": "Tactical FPS",
+                "platforms": ["Mobile"],
+                "color": "#FF6B00"
+            },
+            {
+                "slug": "counter-strike-2",
+                "name": "Counter-Strike 2",
+                "tagline": "Competitive FPS",
+                "platforms": ["PC"],
+                "color": "#FF9800"
+            },
+            {
+                "slug": "dota-2",
+                "name": "Dota 2",
+                "tagline": "Strategic MOBA",
+                "platforms": ["PC"],
+                "color": "#D32F2F"
+            },
+            {
+                "slug": "ea-sports-fc-26",
+                "name": "EA SPORTS FC™ 26",
+                "tagline": "Football Simulation",
+                "platforms": ["PC", "Console"],
+                "color": "#00D9FF"
+            },
+            {
+                "slug": "free-fire",
+                "name": "Free Fire",
+                "tagline": "Battle Royale",
+                "platforms": ["Mobile"],
+                "color": "#FF5722"
+            },
+            {
+                "slug": "mobile-legends",
+                "name": "Mobile Legends: Bang Bang",
+                "tagline": "Mobile MOBA",
+                "platforms": ["Mobile"],
+                "color": "#4A90E2"
+            },
+            {
+                "slug": "pubg-mobile",
+                "name": "PUBG MOBILE",
+                "tagline": "Battle Royale",
+                "platforms": ["Mobile"],
+                "color": "#FFB300"
+            },
+            {
+                "slug": "rocket-league",
+                "name": "Rocket League",
+                "tagline": "Vehicular Soccer",
+                "platforms": ["PC", "Console"],
+                "color": "#0076FF"
+            },
+            {
+                "slug": "rainbow-six-siege",
+                "name": "Tom Clancy's Rainbow Six® Siege",
+                "tagline": "Tactical Shooter",
+                "platforms": ["PC", "Console"],
+                "color": "#FFC107"
+            },
+            {
+                "slug": "valorant",
+                "name": "VALORANT",
+                "tagline": "Character-Based FPS",
+                "platforms": ["PC"],
+                "color": "#FF4655"
+            },
+            {
+                "slug": "efootball-2026",
+                "name": "eFootball™ 2026",
+                "tagline": "Football Simulation",
+                "platforms": ["PC", "Mobile", "Console"],
+                "color": "#0066CC"
+            }
+        ]
+        
+        # Payment methods
+        self.payment_methods = [
+            {
+                "name": "bKash",
+                "icon": "💳",
+                "color": "#E2136E",
+                "description": "Mobile money leader"
+            },
+            {
+                "name": "Nagad",
+                "icon": "📱",
+                "color": "#EE4023",
+                "description": "Fast & reliable"
+            },
+            {
+                "name": "Rocket",
+                "icon": "⚡",
+                "color": "#8142C6",
+                "description": "Dutch-Bangla Bank"
+            },
+            {
+                "name": "Bank Transfer",
+                "icon": "🏦",
+                "color": "#10B981",
+                "description": "Traditional & secure"
+            }
+        ]
+        
+        # DeltaCoin economy
+        self.deltacoin_earn_methods = [
+            "Participating in tournaments",
+            "Winning matches",
+            "Achieving milestones",
+            "Engaging with community"
+        ]
+        
+        self.deltacoin_spend_options = [
+            "Store purchases",
+            "Premium subscriptions",
+            "Platform services",
+            "Team merchandise"
+        ]
+        
+        # Roadmap
+        self.roadmap_items = [
+            {
+                "status": "COMPLETED",
+                "title": "Full Tournament Lifecycle",
+                "description": "Brackets, registration, results, disputes"
+            },
+            {
+                "status": "COMPLETED",
+                "title": "Team & Player Systems",
+                "description": "Professional structures, ranking, analytics"
+            },
+            {
+                "status": "IN_PROGRESS",
+                "title": "Payment Integration",
+                "description": "Local payment methods + prize distribution"
+            },
+            {
+                "status": "PLANNED",
+                "title": "Mobile Apps",
+                "description": "iOS & Android native apps"
+            },
+            {
+                "status": "PLANNED",
+                "title": "Sponsor Marketplace",
+                "description": "Connect brands with teams"
+            },
+            {
+                "status": "PLANNED",
+                "title": "Streaming Integrations",
+                "description": "YouTube, Twitch, Facebook Gaming"
+            }
+        ]
 
 
 class CommunityPost(models.Model):

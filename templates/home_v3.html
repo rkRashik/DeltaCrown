@@ -1,0 +1,762 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}DeltaCrown - Bangladesh's Premier Esports Ecosystem{% endblock %}
+
+{% block extra_css %}
+<!-- Tailwind CSS CDN (Production: Use compiled version) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'dc-cyan': '#06b6d4',
+                    'dc-purple': '#8b5cf6',
+                    'dc-gold': '#facc15',
+                    'dc-dark': '#0a0a0a',
+                },
+                fontFamily: {
+                    'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    'display': ['Space Grotesk', 'sans-serif'],
+                },
+                animation: {
+                    'float': 'float 3s ease-in-out infinite',
+                    'slide-up': 'slideUp 0.5s ease-out',
+                    'fade-in': 'fadeIn 0.6s ease-out',
+                    'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                },
+                keyframes: {
+                    float: {
+                        '0%, 100%': { transform: 'translateY(0)' },
+                        '50%': { transform: 'translateY(-10px)' },
+                    },
+                    slideUp: {
+                        '0%': { transform: 'translateY(20px)', opacity: '0' },
+                        '100%': { transform: 'translateY(0)', opacity: '1' },
+                    },
+                    fadeIn: {
+                        '0%': { opacity: '0' },
+                        '100%': { opacity: '1' },
+                    },
+                }
+            }
+        }
+    }
+</script>
+
+<style>
+    body {
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #0a0a0a;
+    }
+    
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-effect:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(6, 182, 212, 0.3);
+    }
+    
+    .gradient-text {
+        background: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #facc15 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .hero-grid {
+        background-image: 
+            linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: grid-move 20s linear infinite;
+    }
+    
+    @keyframes grid-move {
+        0% { background-position: 0 0; }
+        100% { background-position: 50px 50px; }
+    }
+    
+    .stat-card {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.1), transparent);
+        animation: shimmer 3s infinite;
+    }
+    
+    @keyframes shimmer {
+        100% { left: 100%; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ============================================
+     NEWSPAPER-STYLE HERO: THE FRONTPAGE
+     ============================================ -->
+<section class="relative min-h-screen bg-gradient-to-b from-dc-dark via-gray-900 to-dc-dark overflow-hidden">
+    <!-- Animated Grid Background -->
+    <div class="hero-grid absolute inset-0 opacity-30"></div>
+    
+    <!-- Glowing Orbs -->
+    <div class="absolute top-20 left-10 w-96 h-96 bg-dc-cyan rounded-full filter blur-3xl opacity-10 animate-pulse-slow"></div>
+    <div class="absolute bottom-20 right-10 w-96 h-96 bg-dc-purple rounded-full filter blur-3xl opacity-10 animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+    
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+        
+        <!-- Breaking News Banner -->
+        <div class="mb-8 animate-slide-up">
+            <div class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-dc-cyan/20 to-dc-purple/20 border border-dc-cyan/30 rounded-full">
+                <span class="relative flex h-3 w-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-dc-cyan"></span>
+                </span>
+                <span class="text-dc-cyan font-bold text-sm uppercase tracking-wider">Live Platform</span>
+                <span class="text-gray-300 text-sm">{{ live_stats.players_count }}+ Active Players</span>
+            </div>
+        </div>
+        
+        <!-- Main Headline -->
+        <div class="grid lg:grid-cols-2 gap-12 items-center mb-16">
+            <!-- Left: Headline -->
+            <div class="space-y-6 animate-fade-in">
+                <h1 class="font-display text-5xl sm:text-6xl lg:text-7xl font-black leading-tight">
+                    <span class="text-white">From the</span><br>
+                    <span class="gradient-text">Delta</span>
+                    <span class="text-white">to the</span><br>
+                    <span class="gradient-text">Crown</span>
+                </h1>
+                
+                <p class="text-xl sm:text-2xl text-gray-300 font-medium leading-relaxed">
+                    Bangladesh's first <span class="text-dc-cyan font-bold">complete esports ecosystem</span> 
+                    — where aspiring gamers become professional athletes
+                </p>
+                
+                <div class="flex flex-wrap gap-4 pt-4">
+                    <a href="/tournaments/" class="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-105">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        Join Tournament
+                        <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                    
+                    <a href="/teams/" class="inline-flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 transition-all duration-300">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
+                        Browse Teams
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Right: Live Stats Dashboard -->
+            <div class="grid grid-cols-2 gap-4 animate-slide-up" style="animation-delay: 0.2s;">
+                <!-- Active Players -->
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-dc-cyan/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-sm font-medium">Active Players</p>
+                            <p class="text-white text-2xl font-display font-bold" id="player-count">{{ live_stats.players_count|default:"12,500" }}+</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-green-400 text-sm">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/></svg>
+                        +23% this month
+                    </div>
+                </div>
+                
+                <!-- Live Tournaments -->
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-dc-purple/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-sm font-medium">Active Tournaments</p>
+                            <p class="text-white text-2xl font-display font-bold">{{ live_stats.tournaments_count|default:"42" }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-dc-cyan text-sm">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-dc-cyan opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-dc-cyan"></span>
+                        </span>
+                        Live Now
+                    </div>
+                </div>
+                
+                <!-- Registered Teams -->
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-dc-gold/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-sm font-medium">Registered Teams</p>
+                            <p class="text-white text-2xl font-display font-bold">{{ live_stats.teams_count|default:"850" }}+</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-400 text-sm">
+                        Across 11 games
+                    </div>
+                </div>
+                
+                <!-- Prize Pool -->
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-gray-400 text-sm font-medium">Total Prizes</p>
+                            <p class="text-white text-2xl font-display font-bold">৳2.5M+</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-green-400 text-sm">
+                        Distributed monthly
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Platform Highlights Ticker -->
+        <div class="glass-effect rounded-2xl p-6 animate-fade-in" style="animation-delay: 0.4s;">
+            <div class="flex flex-wrap items-center justify-between gap-8">
+                {% for highlight in hero.highlights %}
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">{{ highlight.icon }}</span>
+                    <div>
+                        <p class="text-white font-display text-2xl font-bold">{{ highlight.value }}</p>
+                        <p class="text-gray-400 text-sm">{{ highlight.label }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     VISUAL ECOSYSTEM MAP
+     ============================================ -->
+{% if sections_enabled.pillars %}
+<section class="relative py-24 bg-gradient-to-b from-dc-dark to-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Section Header -->
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
+                Complete Ecosystem
+            </div>
+            <h2 class="font-display text-4xl sm:text-5xl font-black text-white mb-6">
+                Eight Pillars, <span class="gradient-text">One Platform</span>
+            </h2>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                From tournaments to teams, payments to prizes—everything an esports athlete needs in one interconnected system
+            </p>
+        </div>
+        
+        <!-- Interactive Ecosystem Grid -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for pillar in pillars.items %}
+            <a href="{{ pillar.link }}" class="group glass-effect rounded-2xl p-6 hover:scale-105 transition-all duration-300 relative overflow-hidden">
+                <!-- Hover Glow Effect -->
+                <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/0 to-dc-purple/0 group-hover:from-dc-cyan/10 group-hover:to-dc-purple/10 transition-all duration-300"></div>
+                
+                <div class="relative">
+                    <!-- Icon -->
+                    <div class="text-5xl mb-4 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
+                        {{ pillar.icon }}
+                    </div>
+                    
+                    <!-- Title -->
+                    <h3 class="font-display text-xl font-bold text-white mb-2 group-hover:text-dc-cyan transition-colors">
+                        {{ pillar.title }}
+                    </h3>
+                    
+                    <!-- Description -->
+                    <p class="text-gray-400 text-sm mb-4">
+                        {{ pillar.description }}
+                    </p>
+                    
+                    <!-- Arrow -->
+                    <div class="flex items-center gap-2 text-dc-cyan font-semibold text-sm">
+                        <span>Explore</span>
+                        <svg class="w-4 h-4 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     11 GAMES VISUAL SHOWCASE
+     ============================================ -->
+{% if sections_enabled.games %}
+<section class="relative py-24 bg-gray-900">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-purple/10 border border-dc-purple/30 rounded-full text-dc-purple font-bold text-sm uppercase tracking-wider mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/></svg>
+                Multi-Game Platform
+            </div>
+            <h2 class="font-display text-4xl sm:text-5xl font-black text-white mb-6">
+                <span class="gradient-text">11 Games</span>, Unlimited Possibilities
+            </h2>
+            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+                From mobile to PC, MOBA to FPS—game-agnostic infrastructure built for competitive gaming
+            </p>
+        </div>
+        
+        <!-- Games Grid with Hover Effects -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for game in games.items %}
+            <div class="group glass-effect rounded-xl p-6 text-center hover:scale-105 transition-all duration-300 cursor-pointer">
+                <div class="text-4xl mb-3 transform group-hover:scale-110 transition-transform">🎮</div>
+                <h3 class="font-display font-bold text-white text-lg mb-2">{{ game.name }}</h3>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    {% for platform in game.platforms %}
+                    <span class="px-2 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-semibold rounded-full">
+                        {{ platform }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     LIVE PLATFORM ACTIVITY FEED
+     ============================================ -->
+<section class="relative py-24 bg-gradient-to-b from-gray-900 to-dc-dark">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="grid lg:grid-cols-2 gap-12">
+            <!-- Left: Active Tournaments -->
+            {% if sections_enabled.tournaments %}
+            <div>
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="font-display text-3xl font-black text-white">
+                        <span class="gradient-text">Live</span> Tournaments
+                    </h2>
+                    <a href="/tournaments/" class="text-dc-cyan hover:text-dc-purple font-semibold flex items-center gap-2 transition-colors">
+                        View All
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Tournament Cards (Sample) -->
+                    <div class="glass-effect rounded-xl p-6 hover:border-dc-cyan/50 transition-colors">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1">
+                                <h3 class="font-display font-bold text-white text-lg mb-2">VALORANT Championship Series</h3>
+                                <p class="text-gray-400 text-sm">Prize Pool: ৳50,000 • 64 Teams</p>
+                            </div>
+                            <span class="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-full">LIVE</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 bg-gray-800/50 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Registration</p>
+                                <p class="text-white font-bold">3 days left</p>
+                            </div>
+                            <a href="/tournaments/" class="px-6 py-3 bg-dc-cyan hover:bg-dc-purple text-white font-bold rounded-lg transition-colors">Join Now</a>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-effect rounded-xl p-6 hover:border-dc-cyan/50 transition-colors">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1">
+                                <h3 class="font-display font-bold text-white text-lg mb-2">PUBG Mobile Nationals</h3>
+                                <p class="text-gray-400 text-sm">Prize Pool: ৳100,000 • 128 Teams</p>
+                            </div>
+                            <span class="px-3 py-1 bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-bold rounded-full">UPCOMING</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="flex-1 bg-gray-800/50 rounded-lg p-3">
+                                <p class="text-gray-400 text-xs mb-1">Registration Opens</p>
+                                <p class="text-white font-bold">Dec 20, 2025</p>
+                            </div>
+                            <a href="/tournaments/" class="px-6 py-3 bg-dc-cyan hover:bg-dc-purple text-white font-bold rounded-lg transition-colors">Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Right: Top Teams -->
+            {% if sections_enabled.teams %}
+            <div>
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="font-display text-3xl font-black text-white">
+                        Top <span class="gradient-text">Teams</span>
+                    </h2>
+                    <a href="/teams/" class="text-dc-cyan hover:text-dc-purple font-semibold flex items-center gap-2 transition-colors">
+                        View All
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Team Rankings (Sample) -->
+                    <div class="glass-effect rounded-xl p-6 hover:border-dc-cyan/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-dc-gold to-yellow-600 rounded-full flex items-center justify-center font-display font-black text-white text-xl">
+                                1
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-display font-bold text-white text-lg mb-1">Dhaka Dragons</h3>
+                                <p class="text-gray-400 text-sm">2,450 ELO • VALORANT</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-green-400 font-bold">+12</p>
+                                <p class="text-gray-500 text-xs">This week</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-effect rounded-xl p-6 hover:border-dc-cyan/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center font-display font-black text-white text-xl">
+                                2
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-display font-bold text-white text-lg mb-1">Chittagong Chiefs</h3>
+                                <p class="text-gray-400 text-sm">2,380 ELO • CS2</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-green-400 font-bold">+8</p>
+                                <p class="text-gray-500 text-xs">This week</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-effect rounded-xl p-6 hover:border-dc-cyan/50 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-gradient-to-br from-orange-600 to-orange-800 rounded-full flex items-center justify-center font-display font-black text-white text-xl">
+                                3
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-display font-bold text-white text-lg mb-1">Sylhet Storm</h3>
+                                <p class="text-gray-400 text-sm">2,320 ELO • PUBG Mobile</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-red-400 font-bold">-2</p>
+                                <p class="text-gray-500 text-xs">This week</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     PAYMENTS & DELTACOIN ECONOMY
+     ============================================ -->
+{% if sections_enabled.payments or sections_enabled.deltacoin %}
+<section class="relative py-24 bg-dc-dark">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="grid lg:grid-cols-2 gap-12">
+            <!-- Left: Local Payments -->
+            {% if sections_enabled.payments %}
+            <div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full text-green-400 font-bold text-sm uppercase tracking-wider mb-6">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                    Local Payments
+                </div>
+                <h2 class="font-display text-4xl font-black text-white mb-4">
+                    Bangladesh-<span class="gradient-text">First</span> Infrastructure
+                </h2>
+                <p class="text-xl text-gray-300 mb-8">
+                    No credit cards required. No barriers to entry. We support the payment methods you already trust.
+                </p>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    {% for method in payments.methods %}
+                    <div class="glass-effect rounded-xl p-6 text-center hover:scale-105 transition-transform">
+                        <div class="text-4xl mb-2">{{ method.icon }}</div>
+                        <h3 class="font-bold text-white mb-1">{{ method.name }}</h3>
+                        <p class="text-gray-400 text-sm">{{ method.description }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
+                    <p class="text-gray-300 text-sm">
+                        <svg class="w-5 h-5 inline text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        {{ payments.trust_message }}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Right: DeltaCoin Economy -->
+            {% if sections_enabled.deltacoin %}
+            <div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-6">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+                    Platform Currency
+                </div>
+                <h2 class="font-display text-4xl font-black text-white mb-4">
+                    <span class="gradient-text">DeltaCoin</span> Economy
+                </h2>
+                <p class="text-xl text-gray-300 mb-8">
+                    Earn by competing. Spend on upgrades. Build your legacy.
+                </p>
+                
+                <!-- Interactive Cycle Diagram -->
+                <div class="glass-effect rounded-2xl p-8 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="text-center flex-1">
+                            <div class="w-16 h-16 bg-dc-cyan/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <span class="text-3xl">📈</span>
+                            </div>
+                            <p class="text-white font-bold text-sm">EARN</p>
+                        </div>
+                        <svg class="w-8 h-8 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                        <div class="text-center flex-1">
+                            <div class="w-16 h-16 bg-dc-purple/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <span class="text-3xl">🎮</span>
+                            </div>
+                            <p class="text-white font-bold text-sm">PLAY</p>
+                        </div>
+                        <svg class="w-8 h-8 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                        <div class="text-center flex-1">
+                            <div class="w-16 h-16 bg-dc-gold/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                                <span class="text-3xl">💰</span>
+                            </div>
+                            <p class="text-white font-bold text-sm">SPEND</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-800/50 rounded-lg p-4">
+                            <h4 class="text-dc-cyan font-bold mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
+                                Earn
+                            </h4>
+                            <ul class="text-gray-300 text-sm space-y-1">
+                                {% for method in deltacoin.earn_methods|slice:":3" %}
+                                <li>• {{ method }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-4">
+                            <h4 class="text-dc-gold font-bold mb-2 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                                Spend
+                            </h4>
+                            <ul class="text-gray-300 text-sm space-y-1">
+                                {% for option in deltacoin.spend_options|slice:":3" %}
+                                <li>• {{ option }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     ROADMAP TIMELINE
+     ============================================ -->
+{% if sections_enabled.roadmap %}
+<section class="relative py-24 bg-gradient-to-b from-gray-900 to-dc-dark">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-purple/10 border border-dc-purple/30 rounded-full text-dc-purple font-bold text-sm uppercase tracking-wider mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                Our Journey
+            </div>
+            <h2 class="font-display text-4xl sm:text-5xl font-black text-white mb-6">
+                The <span class="gradient-text">Vision</span> Ahead
+            </h2>
+            <p class="text-xl text-gray-300">
+                Evolving toward global scale while staying rooted in emerging markets
+            </p>
+        </div>
+        
+        <!-- Timeline -->
+        <div class="relative">
+            <!-- Vertical Line -->
+            <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-dc-cyan via-dc-purple to-dc-gold"></div>
+            
+            <div class="space-y-8">
+                {% for item in roadmap.items %}
+                <div class="relative pl-20">
+                    <!-- Timeline Dot -->
+                    <div class="absolute left-0 w-16 h-16 rounded-full flex items-center justify-center
+                        {% if item.status == 'COMPLETED' %}bg-green-500/20 border-2 border-green-500{% elif item.status == 'IN_PROGRESS' %}bg-dc-gold/20 border-2 border-dc-gold{% else %}bg-dc-purple/20 border-2 border-dc-purple{% endif %}">
+                        {% if item.status == 'COMPLETED' %}
+                        <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                        {% elif item.status == 'IN_PROGRESS' %}
+                        <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                        {% else %}
+                        <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Content Card -->
+                    <div class="glass-effect rounded-xl p-6">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="font-display font-bold text-white text-xl">{{ item.title }}</h3>
+                            <span class="px-3 py-1 text-xs font-bold rounded-full
+                                {% if item.status == 'COMPLETED' %}bg-green-500/20 text-green-400{% elif item.status == 'IN_PROGRESS' %}bg-dc-gold/20 text-dc-gold{% else %}bg-dc-purple/20 text-dc-purple{% endif %}">
+                                {% if item.status == 'COMPLETED' %}COMPLETED{% elif item.status == 'IN_PROGRESS' %}IN PROGRESS{% else %}PLANNED{% endif %}
+                            </span>
+                        </div>
+                        <p class="text-gray-400">{{ item.description }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     FINAL CTA - JOIN THE REVOLUTION
+     ============================================ -->
+{% if sections_enabled.final_cta %}
+<section class="relative py-32 bg-gradient-to-br from-dc-cyan/10 via-dc-dark to-dc-purple/10 overflow-hidden">
+    <!-- Animated Background -->
+    <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-dc-cyan rounded-full filter blur-3xl animate-pulse-slow"></div>
+        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-dc-purple rounded-full filter blur-3xl animate-pulse-slow" style="animation-delay: 2s;"></div>
+    </div>
+    
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="font-display text-5xl sm:text-6xl font-black text-white mb-6">
+            Ready to <span class="gradient-text">Compete</span>?
+        </h2>
+        <p class="text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
+            Join thousands of gamers building their esports careers on DeltaCrown—where talent meets opportunity
+        </p>
+        
+        <div class="flex flex-wrap gap-6 justify-center">
+            <a href="{{ final_cta.primary_cta.url }}" class="group inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-lg rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-105">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>
+                {{ final_cta.primary_cta.text }}
+                <svg class="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </a>
+            
+            <a href="{{ final_cta.secondary_cta.url }}" class="inline-flex items-center gap-3 px-10 py-5 bg-white/5 border-2 border-white/10 text-white font-bold text-lg rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 transition-all duration-300">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                {{ final_cta.secondary_cta.text }}
+            </a>
+        </div>
+        
+        <!-- Trust Indicators -->
+        <div class="mt-16 flex flex-wrap items-center justify-center gap-12">
+            <div class="text-center">
+                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.players_count|default:"12,500" }}+</p>
+                <p class="text-gray-400 text-sm">Active Players</p>
+            </div>
+            <div class="text-center">
+                <p class="text-white font-display font-bold text-3xl mb-1">{{ live_stats.teams_count|default:"850" }}+</p>
+                <p class="text-gray-400 text-sm">Registered Teams</p>
+            </div>
+            <div class="text-center">
+                <p class="text-white font-display font-bold text-3xl mb-1">11</p>
+                <p class="text-gray-400 text-sm">Supported Games</p>
+            </div>
+            <div class="text-center">
+                <p class="text-white font-display font-bold text-3xl mb-1">৳2.5M+</p>
+                <p class="text-gray-400 text-sm">Prize Pool</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Intersection Observer for Scroll Animations
+document.addEventListener('DOMContentLoaded', function() {
+    const animateOnScroll = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+    
+    // Apply to all glass cards
+    document.querySelectorAll('.glass-effect').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'all 0.6s ease-out';
+        animateOnScroll.observe(el);
+    });
+    
+    // Counter Animation
+    function animateCounter(element, target) {
+        let current = 0;
+        const increment = target / 100;
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                current = target;
+                clearInterval(timer);
+            }
+            element.textContent = Math.floor(current).toLocaleString() + '+';
+        }, 20);
+    }
+    
+    // Animate player count
+    const playerCountEl = document.getElementById('player-count');
+    if (playerCountEl) {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                const target = parseInt(playerCountEl.textContent.replace(/,|\+/g, ''));
+                animateCounter(playerCountEl, target);
+                observer.disconnect();
+            }
+        });
+        observer.observe(playerCountEl);
+    }
+});
+</script>
+{% endblock %}
