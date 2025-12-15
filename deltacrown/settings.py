@@ -135,6 +135,7 @@ INSTALLED_APPS = [
     "apps.moderation",  # Phase 8: Admin & Moderation (sanctions, audit, reports)
     "apps.leaderboards",  # Phase E/F: Leaderboards Service + Engine V2
     "apps.spectator",  # Phase G: Spectator Live Views
+    "apps.support",  # FAQ, Contact, Testimonials
     "channels",
 
 ]

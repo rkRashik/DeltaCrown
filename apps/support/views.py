@@ -2,6 +2,7 @@ from __future__ import annotations
 from django import forms
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from .models import FAQ, Testimonial
 
 
 class ContactForm(forms.Form):
@@ -27,18 +28,37 @@ def contact_view(request):
 
 
 def faq_view(request):
-    faqs = [
-        ("General", [
-            ("What games do you support?", "Valorant and eFootball Mobile, with more coming."),
-            ("How do I register?", "Go to a tournament page and click Register."),
-        ]),
-        ("Payments", [
-            ("Which methods?", "bKash and Nagad; bank transfer for special events."),
-            ("When are payouts issued?", "Within 48 hours after verification."),
-        ]),
-        ("Matches", [
-            ("How do I report?", "Use Report on your dashboard or the match page."),
-            ("How do disputes work?", "Open a dispute with evidence; referees review."),
-        ]),
-    ]
-    return render(request, "support/faq.html", {"faqs": faqs})
+    """Modern FAQ page with categorized questions"""
+    
+    # Group FAQs by category
+    faqs_by_category = {}
+    
+    for cat_code, cat_name in FAQ.CATEGORY_CHOICES:
+        faqs = FAQ.objects.filter(
+            category=cat_code,
+            is_active=True
+        ).order_by('order', '-created_at')
+        
+        if faqs.exists():
+            faqs_by_category[cat_name] = faqs
+    
+    context = {
+        'faqs_by_category': faqs_by_category,
+        'total_faqs': FAQ.objects.filter(is_active=True).count(),
+        'featured_faqs': FAQ.objects.filter(is_active=True, is_featured=True).order_by('order')[:5],
+    }
+    
+    return render(request, 'support/faq.html', context)
+
+
+def rules_view(request):
+    """Rules and Fair Play page"""
+    return render(request, 'support/rules.html')
+
+
+def get_homepage_testimonials():
+    """Get testimonials for homepage display"""
+    return Testimonial.objects.filter(
+        show_on_homepage=True
+    ).order_by('order', '-created_at')[:3]
+

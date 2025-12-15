@@ -118,8 +118,7 @@ urlpatterns = [
     path("search/", search_views.search, name="search"),
     path("privacy/", site_views.privacy, name="privacy"),
     path("terms/", site_views.terms, name="terms"),
-    path("help/", support_views.faq_view, name="faq"),
-    path("contact/", support_views.contact_view, name="contact"),
+    path("", include(("apps.support.urls", "support"), namespace="support")),
     # User profile system mounted last to prevent interference with other root paths
     path("", include(("apps.user_profile.urls", "user_profile"), namespace="user_profile")),
     path("user/u/<str:username>/", RedirectView.as_view(pattern_name="user_profile:public_profile", permanent=True)),

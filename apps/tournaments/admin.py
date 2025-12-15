@@ -182,12 +182,12 @@ class TournamentAdmin(admin.ModelAdmin):
     """Comprehensive tournament management - similar to Teams admin quality"""
     
     list_display = [
-        'name', 'game_badge', 'official_badge', 'organizer_link', 'status_badge', 
+        'name', 'game_badge', 'official_badge', 'featured_badge', 'organizer_link', 'status_badge', 
         'format', 'registration_count', 'tournament_start', 
         'organizer_console_link'
     ]
     list_filter = [
-        'status', 'format', 'participation_type', 'is_official', 'game',
+        'status', 'format', 'participation_type', 'is_official', 'is_featured', 'game',
         'enable_check_in', 'has_entry_fee', 'created_at'
     ]
     search_fields = ['name', 'slug', 'description', 'organizer__username', 'organizer__email']
@@ -203,7 +203,7 @@ class TournamentAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('🎮 Basic Information', {
-            'fields': ('name', 'slug', 'game', 'platform', 'mode', 'venue_name', 'venue_address', 'venue_city', 'venue_map_url', 'description', 'organizer', 'is_official', 'organizer_console_button'),
+            'fields': ('name', 'slug', 'game', 'platform', 'mode', 'venue_name', 'venue_address', 'venue_city', 'venue_map_url', 'description', 'organizer', 'is_official', 'is_featured', 'organizer_console_button'),
             'description': 'Core tournament identity and description'
         }),
         ('📅 Schedule & Timeline', {
@@ -306,6 +306,17 @@ class TournamentAdmin(admin.ModelAdmin):
         return format_html('<span style="color: #ccc;">—</span>')
     official_badge.short_description = 'Type'
     official_badge.admin_order_field = 'is_official'
+    
+    def featured_badge(self, obj):
+        """Display featured tournament badge"""
+        if obj.is_featured:
+            return format_html(
+                '<span style="background: #8b5cf6; color: #fff; padding: 3px 8px; '
+                'border-radius: 3px; font-size: 11px; font-weight: bold;">⭐ FEATURED</span>'
+            )
+        return format_html('<span style="color: #ccc;">—</span>')
+    featured_badge.short_description = 'Featured'
+    featured_badge.admin_order_field = 'is_featured'
     
     def organizer_link(self, obj):
         """Link to organizer's user profile"""

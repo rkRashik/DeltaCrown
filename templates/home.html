@@ -131,7 +131,7 @@
                     <span class="relative inline-flex rounded-full h-3 w-3 bg-dc-cyan"></span>
                 </span>
                 <span class="text-dc-cyan font-bold text-sm uppercase tracking-wider">Live Platform</span>
-                <span class="text-gray-300 text-sm">{{ live_stats.players_count }}+ Active Players</span>
+                <span class="text-gray-200 text-sm">{{ live_stats.players_count }}+ Active Players</span>
             </div>
         </div>
         
@@ -146,13 +146,13 @@
                     <span class="gradient-text">Crown</span>
                 </h1>
                 
-                <p class="text-xl sm:text-2xl text-gray-300 font-medium leading-relaxed">
+                <p class="text-xl sm:text-2xl text-gray-200 font-medium leading-relaxed">
                     Bangladesh's first <span class="text-dc-cyan font-bold">complete esports ecosystem</span> 
                     — where aspiring gamers become professional athletes
                 </p>
                 
                 <div class="flex flex-wrap gap-4 pt-4">
-                    <a href="/tournaments/" class="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-105">
+                    <a href="/tournaments/" class="group inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                         Join Tournament
                         <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
@@ -168,7 +168,7 @@
             <!-- Right: Live Stats Dashboard -->
             <div class="grid grid-cols-2 gap-4 animate-slide-up" style="animation-delay: 0.2s;">
                 <!-- Active Players -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-12 h-12 bg-dc-cyan/20 rounded-xl flex items-center justify-center">
                             <svg class="w-6 h-6 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
@@ -178,14 +178,17 @@
                             <p class="text-white text-2xl font-display font-bold" id="player-count">{{ live_stats.players_count|default:"12,500" }}+</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 text-green-400 text-sm">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/></svg>
-                        +23% this month
+                    <div class="flex items-center gap-2 text-gray-500 text-sm">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-green-400"></span>
+                        </span>
+                        Growing daily
                     </div>
                 </div>
                 
                 <!-- Live Tournaments -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-12 h-12 bg-dc-purple/20 rounded-xl flex items-center justify-center">
                             <svg class="w-6 h-6 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
@@ -205,7 +208,7 @@
                 </div>
                 
                 <!-- Registered Teams -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-12 h-12 bg-dc-gold/20 rounded-xl flex items-center justify-center">
                             <svg class="w-6 h-6 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clip-rule="evenodd"/></svg>
@@ -221,7 +224,7 @@
                 </div>
                 
                 <!-- Prize Pool -->
-                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                <div class="stat-card glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-transform duration-300">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
                             <svg class="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
@@ -238,18 +241,299 @@
             </div>
         </div>
         
-        <!-- Platform Highlights Ticker -->
+        <!-- Platform Guarantees - What Sets Us Apart -->
         <div class="glass-effect rounded-2xl p-6 animate-fade-in" style="animation-delay: 0.4s;">
-            <div class="flex flex-wrap items-center justify-between gap-8">
-                {% for highlight in hero.highlights %}
-                <div class="flex items-center gap-3">
-                    <span class="text-3xl">{{ highlight.icon }}</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Guarantee 1: Admin Verified -->
+                <div class="flex flex-col items-center text-center gap-3">
+                    <div class="w-14 h-14 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-xl flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    </div>
                     <div>
-                        <p class="text-white font-display text-2xl font-bold">{{ highlight.value }}</p>
-                        <p class="text-gray-400 text-sm">{{ highlight.label }}</p>
+                        <p class="text-white font-bold text-base">Admin Verified</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">Every tournament verified by our moderation team</p>
                     </div>
                 </div>
-                {% endfor %}
+                
+                <!-- Guarantee 2: Fair Play -->
+                <div class="flex flex-col items-center text-center gap-3">
+                    <div class="w-14 h-14 bg-gradient-to-br from-dc-purple to-dc-gold rounded-xl flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-base">Fair Play Guaranteed</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">Zero tolerance for cheating, skill-based competition</p>
+                    </div>
+                </div>
+                
+                <!-- Guarantee 3: Community Driven -->
+                <div class="flex flex-col items-center text-center gap-3">
+                    <div class="w-14 h-14 bg-gradient-to-br from-dc-gold to-dc-cyan rounded-xl flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-base">Community Driven</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">Built by gamers, for the Bangladesh esports community</p>
+                    </div>
+                </div>
+                
+                <!-- Guarantee 4: Instant Support -->
+                <div class="flex flex-col items-center text-center gap-3">
+                    <div class="w-14 h-14 bg-gradient-to-br from-green-500 to-dc-cyan rounded-xl flex items-center justify-center">
+                        <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524-1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668zM12 10a2 2 0 11-4 0 2 2 0 014 0z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-white font-bold text-base">Instant Support</p>
+                        <p class="text-gray-400 text-sm leading-relaxed">24/7 moderator assistance via Discord and platform chat</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     WHY DELTACROWN - VALUE PROPOSITION
+     ============================================ -->
+<section class="relative py-24 bg-dc-dark">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                Why Choose Us
+            </div>
+            <h2 class="font-display text-5xl font-black text-white mb-6">
+                Bangladesh's Most <span class="gradient-text">Trusted</span> Platform
+            </h2>
+            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
+                Professional esports infrastructure built for competitive gaming excellence
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Verified Tournaments -->
+            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
+                <div class="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">Verified Tournaments</h3>
+                <p class="text-gray-400">All tournaments admin-verified. No scams, no fake prizes. Every event is monitored for fair play and integrity.</p>
+            </div>
+            
+            <!-- Instant Payouts -->
+            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
+                <div class="w-16 h-16 bg-dc-cyan/20 rounded-2xl flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">Instant Payouts</h3>
+                <p class="text-gray-400">Prize money via bKash/Nagad within 24 hours. No delays, no excuses. Winners get paid fast.</p>
+            </div>
+            
+            <!-- Professional Certificates -->
+            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
+                <div class="w-16 h-16 bg-dc-purple/20 rounded-2xl flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">Pro Certificates</h3>
+                <p class="text-gray-400">Shareable digital certificates for all winners. Build your esports portfolio and showcase achievements.</p>
+            </div>
+            
+            <!-- Anti-Cheat System -->
+            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
+                <div class="w-16 h-16 bg-dc-cyan/20 rounded-2xl flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">Anti-Cheat & Fair Play</h3>
+                <p class="text-gray-400">Strict monitoring and moderation. Cheaters get banned. Skill-based competition guaranteed.</p>
+            </div>
+            
+            <!-- ELO Rankings -->
+            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
+                <div class="w-16 h-16 bg-dc-gold/20 rounded-2xl flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">ELO Rankings & Stats</h3>
+                <p class="text-gray-400">Track your team's performance with comprehensive statistics. Climb the leaderboard and prove your skill.</p>
+            </div>
+            
+            <!-- 24/7 Support -->
+            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-transform duration-300">
+                <div class="w-16 h-16 bg-dc-purple/20 rounded-2xl flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-2 0c0 .993-.241 1.929-.668 2.754l-1.524-1.525a3.997 3.997 0 00.078-2.183l1.562-1.562C15.802 8.249 16 9.1 16 10zm-5.165 3.913l1.58 1.58A5.98 5.98 0 0110 16a5.976 5.976 0 01-2.516-.552l1.562-1.562a4.006 4.006 0 001.789.027zm-4.677-2.796a4.002 4.002 0 01-.041-2.08l-.08.08-1.53-1.533A5.98 5.98 0 004 10c0 .954.223 1.856.619 2.657l1.54-1.54zm1.088-6.45A5.974 5.974 0 0110 4c.954 0 1.856.223 2.657.619l-1.54 1.54a4.002 4.002 0 00-2.346.033L7.246 4.668zM12 10a2 2 0 11-4 0 2 2 0 014 0z" clip-rule="evenodd"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">24/7 Moderator Support</h3>
+                <p class="text-gray-400">Need help? Our moderation team is always online. Fast dispute resolution and tournament support.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================
+     FEATURED TOURNAMENT SPOTLIGHT
+     ============================================ -->
+{% if featured_tournament %}
+<section class="relative py-24 bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-gold/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="glass-effect rounded-3xl overflow-hidden">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Left: Tournament Banner -->
+                <div class="relative h-96 lg:h-auto">
+                    {% if featured_tournament.banner_image %}
+                    <img src="{{ featured_tournament.banner_image }}" alt="{{ featured_tournament.name }}" class="absolute inset-0 w-full h-full object-cover">
+                    {% else %}
+                    <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center">
+                        <svg class="w-32 h-32 text-white/20" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    </div>
+                    {% endif %}
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+                    <div class="absolute top-4 left-4">
+                        <span class="px-4 py-2 bg-dc-gold text-black font-bold text-sm rounded-full flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                            FEATURED TOURNAMENT
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Right: Tournament Details -->
+                <div class="p-8 flex flex-col justify-center">
+                    <div class="mb-4">
+                        <span class="px-3 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-bold rounded-full">{{ featured_tournament.game_display }}</span>
+                    </div>
+                    
+                    <h2 class="font-display text-4xl font-black text-white mb-4">
+                        {{ featured_tournament.name }}
+                    </h2>
+                    
+                <p class="text-gray-200 text-lg mb-6">
+                    <!-- Tournament Stats Grid -->
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-800/50 rounded-lg p-4 text-center">
+                            <p class="text-gray-400 text-xs mb-1">Prize Pool</p>
+                            <p class="text-white font-display font-bold text-2xl">{{ featured_tournament.prize_pool }}</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-4 text-center">
+                            <p class="text-gray-400 text-xs mb-1">Teams Registered</p>
+                            <p class="text-white font-display font-bold text-2xl">{% if featured_tournament.max_teams %}{{ featured_tournament.registration_count }}/{{ featured_tournament.max_teams }}{% else %}{{ featured_tournament.registration_count }}{% endif %}</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-4 text-center">
+                            <p class="text-gray-400 text-xs mb-1">Time Left</p>
+                            <p class="text-white font-display font-bold text-2xl" data-deadline="{{ featured_tournament.registration_deadline|date:'c' }}">
+                                {% if featured_tournament.days_left %}{{ featured_tournament.days_left }}d{% else %}Closed{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Registration Progress -->
+                    {% if featured_tournament.max_teams and featured_tournament.registration_count %}
+                        {% widthratio featured_tournament.registration_count featured_tournament.max_teams 100 as fill_pct %}
+                        <div class="mb-6">
+                            <div class="flex justify-between text-sm text-gray-400 mb-2">
+                                <span>Registration Progress</span>
+                                <span>{{ fill_pct }}% Full</span>
+                            </div>
+                            <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-500 {% if fill_pct >= 80 %}bg-gradient-to-r from-orange-500 to-red-500{% elif fill_pct >= 50 %}bg-gradient-to-r from-yellow-500 to-orange-500{% else %}bg-gradient-to-r from-green-500 to-cyan-500{% endif %}" style="width: {{ fill_pct }}%"></div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="flex gap-4">
+                        <a href="{{ featured_tournament.url }}" class="flex-1 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-center rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
+                            Register Now
+                        </a>
+                        <a href="{{ featured_tournament.url }}" class="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     ACHIEVEMENT MILESTONES - ANIMATED COUNTERS
+     ============================================ -->
+<section class="relative py-24 bg-gradient-to-b from-dc-dark to-gray-900 overflow-hidden">
+    <!-- Animated Background -->
+    <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0" style="background-image: radial-gradient(circle, rgba(6, 182, 212, 0.4) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    </div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                By The Numbers
+            </div>
+            <h2 class="font-display text-5xl font-black text-white mb-6">
+                Built on <span class="gradient-text">Trust & Community</span>
+            </h2>
+            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
+                Every metric reflects our commitment to Bangladesh's esports growth since 2025
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Milestone 1: Prize Money -->
+            <div class="relative group">
+                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative">
+                        <div class="w-16 h-16 bg-dc-cyan/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <p class="text-dc-cyan font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.total_prize_pool|default:'2500000' }}" data-prefix="৳" data-suffix="+">৳0</p>
+                        <p class="text-gray-200 font-bold text-lg mb-2">Prize Money</p>
+                        <p class="text-gray-500 text-sm">Since Launch</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Milestone 2: Matches Completed -->
+            <div class="relative group">
+                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-br from-dc-purple/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative">
+                        <div class="w-16 h-16 bg-dc-purple/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-dc-purple" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <p class="text-dc-purple font-display font-black text-5xl mb-2 counter-animate" data-target="1200" data-suffix="+">0</p>
+                        <p class="text-gray-200 font-bold text-lg mb-2">Matches Played</p>
+                        <p class="text-gray-500 text-sm">Fair & Verified</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Milestone 3: Active Players -->
+            <div class="relative group">
+                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-br from-dc-gold/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative">
+                        <div class="w-16 h-16 bg-dc-gold/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-dc-gold" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                        </div>
+                        <p class="text-dc-gold font-display font-black text-5xl mb-2 counter-animate" data-target="{{ live_stats.players_count|default:'12500' }}" data-suffix="+">0</p>
+                        <p class="text-gray-200 font-bold text-lg mb-2">Active Players</p>
+                        <p class="text-gray-500 text-sm">And Growing Daily</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Milestone 4: Zero Disputes -->
+            <div class="relative group">
+                <div class="glass-effect rounded-2xl p-8 text-center hover:scale-[1.02] transition-all duration-300">
+                    <div class="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <div class="relative">
+                        <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        </div>
+                        <p class="text-green-400 font-display font-black text-5xl mb-2">0</p>
+                        <p class="text-gray-200 font-bold text-lg mb-2">Payment Disputes</p>
+                        <p class="text-gray-500 text-sm">100% Payout Rate</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -268,10 +552,10 @@
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/></svg>
                 Complete Ecosystem
             </div>
-            <h2 class="font-display text-4xl sm:text-5xl font-black text-white mb-6">
+            <h2 class="font-display text-5xl font-black text-white mb-6">
                 Eight Pillars, <span class="gradient-text">One Platform</span>
             </h2>
-            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
                 From tournaments to teams, payments to prizes—everything an esports athlete needs in one interconnected system
             </p>
         </div>
@@ -279,7 +563,7 @@
         <!-- Interactive Ecosystem Grid -->
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {% for pillar in pillars.items %}
-            <a href="{{ pillar.link }}" class="group glass-effect rounded-2xl p-6 hover:scale-105 transition-all duration-300 relative overflow-hidden">
+            <a href="{{ pillar.link }}" class="group glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300 relative overflow-hidden">
                 <!-- Hover Glow Effect -->
                 <div class="absolute inset-0 bg-gradient-to-br from-dc-cyan/0 to-dc-purple/0 group-hover:from-dc-cyan/10 group-hover:to-dc-purple/10 transition-all duration-300"></div>
                 
@@ -324,28 +608,51 @@
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/></svg>
                 Multi-Game Platform
             </div>
-            <h2 class="font-display text-4xl sm:text-5xl font-black text-white mb-6">
-                <span class="gradient-text">11 Games</span>, Unlimited Possibilities
+            <h2 class="font-display text-5xl font-black text-white mb-6">
+                <span class="gradient-text">{{ games.items|length }} Games</span>, Unlimited Possibilities
             </h2>
-            <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
                 From mobile to PC, MOBA to FPS—game-agnostic infrastructure built for competitive gaming
             </p>
         </div>
         
-        <!-- Games Grid with Hover Effects -->
+        <!-- Games Grid with Real Data -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {% for game in games.items %}
-            <div class="group glass-effect rounded-xl p-6 text-center hover:scale-105 transition-all duration-300 cursor-pointer">
-                <div class="text-4xl mb-3 transform group-hover:scale-110 transition-transform">🎮</div>
-                <h3 class="font-display font-bold text-white text-lg mb-2">{{ game.name }}</h3>
-                <div class="flex flex-wrap gap-2 justify-center">
-                    {% for platform in game.platforms %}
-                    <span class="px-2 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-semibold rounded-full">
-                        {{ platform }}
-                    </span>
-                    {% endfor %}
+            <a href="/tournaments/?game={{ game.slug }}" class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer relative overflow-hidden">
+                <!-- Background Image -->
+                {% if game.card_image %}
+                <div class="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity">
+                    <img src="{{ game.card_image }}" alt="{{ game.display_name }}" class="w-full h-full object-cover">
                 </div>
-            </div>
+                {% endif %}
+                
+                <!-- Gradient Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                
+                <!-- Content -->
+                <div class="relative z-10">
+                    {% if game.icon %}
+                        <img src="{{ game.icon }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="text-4xl mb-3 hidden transform group-hover:scale-110 transition-transform">🎮</div>
+                    {% elif game.logo %}
+                        <img src="{{ game.logo }}" alt="{{ game.display_name }}" class="w-16 h-16 mx-auto mb-3 transform group-hover:scale-110 transition-transform" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="text-4xl mb-3 hidden transform group-hover:scale-110 transition-transform">🎮</div>
+                    {% else %}
+                        <div class="text-4xl mb-3 transform group-hover:scale-110 transition-transform">🎮</div>
+                    {% endif %}
+                    
+                    <h3 class="font-display font-bold text-white text-lg mb-2">{{ game.display_name }}</h3>
+                    
+                    <div class="flex flex-wrap gap-2 justify-center">
+                        {% for platform in game.platforms %}
+                        <span class="px-2 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-semibold rounded-full">
+                            {{ platform }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </a>
             {% endfor %}
         </div>
     </div>
@@ -355,12 +662,12 @@
 <!-- ============================================
      LIVE PLATFORM ACTIVITY FEED
      ============================================ -->
-<section class="relative py-24 bg-gradient-to-b from-gray-900 to-dc-dark">
+<section class="relative py-16 bg-gradient-to-b from-gray-900 to-dc-dark">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div class="grid lg:grid-cols-2 gap-12">
             <!-- Left: Active Tournaments -->
-            {% if sections_enabled.tournaments %}
+            {% if sections_enabled.tournaments and tournaments.items %}
             <div>
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="font-display text-3xl font-black text-white">
@@ -375,25 +682,53 @@
                 <div class="space-y-4">
                     {% if tournaments.items %}
                         {% for tournament in tournaments.items %}
-                        <div class="glass-effect rounded-xl p-6 hover:border-dc-cyan/50 transition-colors">
+                        <div class="glass-effect rounded-2xl p-6 hover:border-dc-cyan/50 transition-colors">
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex-1">
                                     <h3 class="font-display font-bold text-white text-lg mb-2">{{ tournament.name }}</h3>
                                     <p class="text-gray-400 text-sm">Prize Pool: {{ tournament.prize_pool }} • {% if tournament.max_teams %}{{ tournament.registration_count }}/{{ tournament.max_teams }} Teams{% else %}{{ tournament.registration_count }} Teams{% endif %}</p>
                                 </div>
-                                {% if tournament.status == 'live' %}
-                                <span class="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-full">LIVE</span>
-                                {% elif tournament.status == 'registration_open' %}
-                                <span class="px-3 py-1 bg-blue-500/20 border border-blue-500/30 text-blue-400 text-xs font-bold rounded-full">OPEN</span>
-                                {% else %}
-                                <span class="px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-bold rounded-full">UPCOMING</span>
-                                {% endif %}
+                                <div class="flex flex-col gap-2">
+                                    {% if tournament.status == 'live' %}
+                                    <span class="px-3 py-1 bg-green-500/20 border border-green-500/30 text-green-400 text-xs font-bold rounded-full">LIVE</span>
+                                    {% elif tournament.status == 'registration_open' %}
+                                    <span class="px-3 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-bold rounded-full">OPEN</span>
+                                    {% else %}
+                                    <span class="px-3 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-400 text-xs font-bold rounded-full">UPCOMING</span>
+                                    {% endif %}
+                                    {% if tournament.max_teams and tournament.registration_count %}
+                                        {% widthratio tournament.registration_count tournament.max_teams 100 as fill_percentage %}
+                                        {% if fill_percentage >= 80 %}
+                                        <span class="px-2 py-1 bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold rounded-full animate-pulse">ALMOST FULL</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
                             </div>
+                            <!-- Registration Progress Bar -->
+                            {% if tournament.max_teams and tournament.registration_count %}
+                                {% widthratio tournament.registration_count tournament.max_teams 100 as fill_percentage %}
+                                <div class="mb-3">
+                                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                                        <span>Registration Progress</span>
+                                        <span>{{ fill_percentage }}% Full</span>
+                                    </div>
+                                    <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-500 {% if fill_percentage >= 80 %}bg-gradient-to-r from-orange-500 to-red-500{% elif fill_percentage >= 50 %}bg-gradient-to-r from-yellow-500 to-orange-500{% else %}bg-gradient-to-r from-green-500 to-cyan-500{% endif %}" style="width: {{ fill_percentage }}%"></div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
                             <div class="flex items-center gap-4">
                                 <div class="flex-1 bg-gray-800/50 rounded-lg p-3">
-                                    {% if tournament.days_left is not None %}
-                                        <p class="text-gray-400 text-xs mb-1">Registration</p>
-                                        <p class="text-white font-bold">{% if tournament.days_left == 0 %}Last day!{% elif tournament.days_left == 1 %}1 day left{% else %}{{ tournament.days_left }} days left{% endif %}</p>
+                                    {% if tournament.registration_deadline %}
+                                        <p class="text-gray-400 text-xs mb-1">Registration Closes</p>
+                                        <p class="text-white font-bold" data-deadline="{{ tournament.registration_deadline|date:'c' }}">
+                                            {% if tournament.days_left is not None %}
+                                                {% if tournament.days_left == 0 %}Last day!{% elif tournament.days_left == 1 %}1 day left{% else %}{{ tournament.days_left }} days left{% endif %}
+                                            {% else %}
+                                                {{ tournament.registration_deadline|date:"M j, Y" }}
+                                            {% endif %}
+                                        </p>
                                     {% elif tournament.tournament_start %}
                                         <p class="text-gray-400 text-xs mb-1">Starts</p>
                                         <p class="text-white font-bold">{{ tournament.tournament_start|date:"M j, Y" }}</p>
@@ -409,7 +744,7 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="glass-effect rounded-xl p-8 text-center">
+                        <div class="glass-effect rounded-2xl p-8 text-center">
                             <div class="text-gray-400 mb-4">
                                 <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                             </div>
@@ -422,7 +757,7 @@
             {% endif %}
             
             <!-- Right: Top Teams -->
-            {% if sections_enabled.teams %}
+            {% if sections_enabled.teams and teams.items %}
             <div>
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="font-display text-3xl font-black text-white">
@@ -437,7 +772,7 @@
                 <div class="space-y-4">
                     {% if teams.items %}
                         {% for team in teams.items %}
-                        <div class="glass-effect rounded-xl p-6 hover:border-dc-cyan/50 transition-colors">
+                        <div class="glass-effect rounded-2xl p-6 hover:border-dc-cyan/50 transition-colors">
                             <div class="flex items-center gap-4">
                                 <div class="w-12 h-12 {% if team.rank == 1 %}bg-gradient-to-br from-dc-gold to-yellow-600{% elif team.rank == 2 %}bg-gradient-to-br from-gray-400 to-gray-600{% elif team.rank == 3 %}bg-gradient-to-br from-orange-600 to-orange-800{% else %}bg-gradient-to-br from-dc-cyan to-dc-purple{% endif %} rounded-full flex items-center justify-center font-display font-black text-white text-xl">
                                     {{ team.rank }}
@@ -464,7 +799,7 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="glass-effect rounded-xl p-8 text-center">
+                        <div class="glass-effect rounded-2xl p-8 text-center">
                             <div class="text-gray-400 mb-4">
                                 <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                             </div>
@@ -490,29 +825,57 @@
             <!-- Left: Local Payments -->
             {% if sections_enabled.payments %}
             <div>
-                <div class="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded-full text-green-400 font-bold text-sm uppercase tracking-wider mb-6">
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-6">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
                     Local Payments
                 </div>
                 <h2 class="font-display text-4xl font-black text-white mb-4">
                     Bangladesh-<span class="gradient-text">First</span> Infrastructure
                 </h2>
-                <p class="text-xl text-gray-300 mb-8">
-                    No credit cards required. No barriers to entry. We support the payment methods you already trust.
+                <p class="text-xl text-gray-200 mb-8">
+                    Pay with the methods you trust. Compete with confidence.
                 </p>
                 
                 <div class="grid grid-cols-2 gap-4">
-                    {% for method in payments.methods %}
-                    <div class="glass-effect rounded-xl p-6 text-center hover:scale-105 transition-transform">
-                        <div class="text-4xl mb-2">{{ method.icon }}</div>
-                        <h3 class="font-bold text-white mb-1">{{ method.name }}</h3>
-                        <p class="text-gray-400 text-sm">{{ method.description }}</p>
+                    <!-- bKash -->
+                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+                        <div class="relative h-16 mb-4 flex items-center justify-center">
+                            <img src="{% static 'img/payment/logos/BKash.svg' %}" alt="bKash" class="h-12 w-auto opacity-80 group-hover:opacity-100 transition-opacity">
+                        </div>
+                        <h3 class="font-bold text-white mb-1">bKash</h3>
+                        <p class="text-gray-400 text-sm">Instant payments</p>
                     </div>
-                    {% endfor %}
+                    
+                    <!-- Nagad -->
+                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+                        <div class="relative h-16 mb-4 flex items-center justify-center">
+                            <img src="{% static 'img/payment/logos/Nagad.svg' %}" alt="Nagad" class="h-12 w-auto opacity-80 group-hover:opacity-100 transition-opacity">
+                        </div>
+                        <h3 class="font-bold text-white mb-1">Nagad</h3>
+                        <p class="text-gray-400 text-sm">Fast & secure</p>
+                    </div>
+                    
+                    <!-- Rocket -->
+                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+                        <div class="relative h-16 mb-4 flex items-center justify-center">
+                            <img src="{% static 'img/payment/logos/rocket_logo.svg' %}" alt="Rocket" class="h-12 w-auto opacity-80 group-hover:opacity-100 transition-opacity">
+                        </div>
+                        <h3 class="font-bold text-white mb-1">Rocket</h3>
+                        <p class="text-gray-400 text-sm">Reliable transfers</p>
+                    </div>
+                    
+                    <!-- Bank Transfer -->
+                    <div class="group glass-effect rounded-2xl p-6 text-center hover:scale-[1.02] transition-all duration-300 cursor-pointer">
+                        <div class="relative h-16 mb-4 flex items-center justify-center">
+                            <div class="text-4xl">🏦</div>
+                        </div>
+                        <h3 class="font-bold text-white mb-1">Bank Transfer</h3>
+                        <p class="text-gray-400 text-sm">Direct deposits</p>
+                    </div>
                 </div>
                 
                 <div class="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
-                    <p class="text-gray-300 text-sm">
+                    <p class="text-gray-200 text-sm">
                         <svg class="w-5 h-5 inline text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
                         {{ payments.trust_message }}
                     </p>
@@ -530,7 +893,7 @@
                 <h2 class="font-display text-4xl font-black text-white mb-4">
                     <span class="gradient-text">DeltaCoin</span> Economy
                 </h2>
-                <p class="text-xl text-gray-300 mb-8">
+                <p class="text-xl text-gray-200 mb-8">
                     Earn by competing. Spend on upgrades. Build your legacy.
                 </p>
                 
@@ -565,7 +928,7 @@
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
                                 Earn
                             </h4>
-                            <ul class="text-gray-300 text-sm space-y-1">
+                            <ul class="text-gray-200 text-sm space-y-1">
                                 {% for method in deltacoin.earn_methods|slice:":3" %}
                                 <li>• {{ method }}</li>
                                 {% endfor %}
@@ -576,7 +939,7 @@
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
                                 Spend
                             </h4>
-                            <ul class="text-gray-300 text-sm space-y-1">
+                            <ul class="text-gray-200 text-sm space-y-1">
                                 {% for option in deltacoin.spend_options|slice:":3" %}
                                 <li>• {{ option }}</li>
                                 {% endfor %}
@@ -590,6 +953,419 @@
     </div>
 </section>
 {% endif %}
+
+<!-- ============================================
+     RECENT MATCH RESULTS
+     ============================================ -->
+{% if recent_matches %}
+<section class="relative py-24 bg-dc-dark">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between mb-12">
+            <div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-purple/10 border border-dc-purple/30 rounded-full text-dc-purple font-bold text-sm uppercase tracking-wider mb-4">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                    Just Finished
+                </div>
+                <h2 class="font-display text-3xl sm:text-4xl font-black text-white">
+                    Recent <span class="gradient-text">Match Results</span>
+                </h2>
+            </div>
+            <a href="/matches/" class="px-6 py-3 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 transition-all">
+                View All Matches →
+            </a>
+        </div>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for match in recent_matches %}
+            <a href="{{ match.url }}" class="group glass-effect rounded-2xl p-6 hover:scale-[1.02] transition-all duration-300">
+                <!-- Tournament & Game Info -->
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="px-3 py-1 bg-dc-cyan/20 border border-dc-cyan/30 text-dc-cyan text-xs font-bold rounded-full">
+                        {{ match.tournament.game }}
+                    </span>
+                    <span class="text-gray-400 text-xs">{{ match.time_ago }}</span>
+                </div>
+                
+                <!-- Match Details -->
+                <div class="flex items-center justify-between mb-4">
+                    <!-- Team A -->
+                    <div class="flex flex-col items-center flex-1">
+                        {% if match.team_a.logo %}
+                        <img src="{{ match.team_a.logo }}" alt="{{ match.team_a.name }}" class="w-16 h-16 rounded-full object-cover mb-2">
+                        {% else %}
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-dc-cyan to-dc-purple flex items-center justify-center mb-2">
+                            <span class="text-2xl font-bold text-white">{{ match.team_a.name|slice:":1" }}</span>
+                        </div>
+                        {% endif %}
+                        <p class="font-bold text-white text-sm text-center {% if match.winner == 'team_a' %}text-dc-gold{% endif %}">
+                            {{ match.team_a.name }}
+                        </p>
+                    </div>
+                    
+                    <!-- Score -->
+                    <div class="px-6">
+                        <div class="text-center">
+                            <p class="text-3xl font-display font-black text-white">
+                                <span class="{% if match.winner == 'team_a' %}text-dc-gold{% endif %}">{{ match.team_a.score }}</span>
+                                <span class="text-gray-500 mx-2">-</span>
+                                <span class="{% if match.winner == 'team_b' %}text-dc-gold{% endif %}">{{ match.team_b.score }}</span>
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">FINAL</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Team B -->
+                    <div class="flex flex-col items-center flex-1">
+                        {% if match.team_b.logo %}
+                        <img src="{{ match.team_b.logo }}" alt="{{ match.team_b.name }}" class="w-16 h-16 rounded-full object-cover mb-2">
+                        {% else %}
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br from-dc-purple to-dc-gold flex items-center justify-center mb-2">
+                            <span class="text-2xl font-bold text-white">{{ match.team_b.name|slice:":1" }}</span>
+                        </div>
+                        {% endif %}
+                        <p class="font-bold text-white text-sm text-center {% if match.winner == 'team_b' %}text-dc-gold{% endif %}">
+                            {{ match.team_b.name }}
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Tournament Name -->
+                <div class="pt-4 border-t border-white/10">
+                    <p class="text-gray-400 text-sm text-center">
+                        {{ match.tournament.name|truncatewords:6 }}
+                    </p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ============================================
+     COMMUNITY ACTIVITY TICKER
+     ============================================ -->
+<section class="relative py-4 bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-gold/10 border-y border-white/10 overflow-hidden">
+    <div class="flex items-center gap-8 animate-marquee whitespace-nowrap">
+        {% if recent_matches %}
+            {% for match in recent_matches %}
+            <div class="flex items-center gap-2 text-gray-200">
+                <svg class="w-4 h-4 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                <span class="font-bold text-white">{{ match.team_a.name }}</span> vs <span class="font-bold text-white">{{ match.team_b.name }}</span>
+                <span class="text-dc-gold font-bold">{{ match.team_a.score }}-{{ match.team_b.score }}</span>
+                <span class="text-gray-500">•</span>
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if tournaments.items %}
+            {% for tournament in tournaments.items %}
+            <div class="flex items-center gap-2 text-gray-200">
+                <svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                <span class="font-bold text-dc-cyan">{{ tournament.name }}</span> is now open
+                <span class="text-gray-500">•</span>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</section>
+
+<!-- Add CSS for Marquee Animation & Custom Scrollbar -->
+<style>
+@keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+    animation: marquee 60s linear infinite;
+    will-change: transform;
+    transform: translateZ(0);
+}
+.animate-marquee:hover {
+    animation-play-state: paused;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 12px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.5);
+}
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #06b6d4 0%, #a855f7 50%, #eab308 100%);
+    border-radius: 6px;
+    border: 2px solid rgba(15, 23, 42, 0.5);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #0891b2 0%, #9333ea 50%, #ca8a04 100%);
+}
+
+/* Mobile typography boost */
+@media (max-width: 768px) {
+    body {
+        font-size: 17px;
+    }
+    .btn, a[href]:not(.text-sm) {
+        min-height: 48px;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+</style>
+
+<!-- ============================================
+     TESTIMONIALS - WINNER STORIES
+     ============================================ -->
+<section class="relative py-24 bg-gradient-to-b from-gray-900 to-dc-dark">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-4">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                Winner Stories
+            </div>
+            <h2 class="font-display text-5xl font-black text-white mb-6">
+                Real Winners, <span class="gradient-text">Real Stories</span>
+            </h2>
+            <p class="text-xl text-gray-200 max-w-3xl mx-auto">
+                Hear from champions who've competed and won on DeltaCrown
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+            {% for testimonial in testimonials %}
+            <div class="glass-effect rounded-2xl p-8 hover:scale-[1.02] transition-all duration-300">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="text-dc-gold text-2xl">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= testimonial.rating %}⭐{% else %}☆{% endif %}
+                        {% endfor %}
+                    </span>
+                </div>
+                <p class="text-gray-200 italic leading-relaxed mb-6">
+                    "{{ testimonial.testimonial_text }}"
+                </p>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-gradient-to-br from-dc-cyan to-dc-purple rounded-full flex items-center justify-center text-white font-bold text-xl">
+                        {{ testimonial.avatar_text|default:testimonial.name.0|upper }}
+                    </div>
+                    <div>
+                        <p class="text-white font-bold">{{ testimonial.name }}</p>
+                        {% if testimonial.team_name %}
+                        <p class="text-gray-500 text-sm">{{ testimonial.team_name }}</p>
+                        {% endif %}
+                        {% if testimonial.prize_won %}
+                        <p class="text-dc-gold text-xs font-bold mt-1">{{ testimonial.prize_won }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-3 text-center py-24">
+                <div class="inline-flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-xl">
+                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                    <p class="text-gray-400 text-lg">No testimonials yet. Be the first winner to share your story!</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Continue with rest of sections... -->
+
+<!-- ============================================
+     FAQ SECTION - EXPANDABLE CARD GRID
+     ============================================ -->
+<section class="relative py-24 bg-gradient-to-b from-gray-900 via-dc-dark to-gray-900 overflow-hidden">
+    <!-- Animated Background Effects -->
+    <div class="absolute inset-0 opacity-30">
+        <div class="absolute top-20 left-10 w-96 h-96 bg-dc-cyan/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-20 right-10 w-96 h-96 bg-dc-purple/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
+    </div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-16">
+            <div class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-6 backdrop-blur-sm">
+                <svg class="w-4 h-4 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                Got Questions?
+            </div>
+            <h2 class="font-display text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
+                Frequently Asked <span class="gradient-text">Questions</span>
+            </h2>
+            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+                Tap any card to see the answer
+            </p>
+        </div>
+        
+        {% if featured_faqs %}
+        <!-- Card Grid -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            {% for faq in featured_faqs %}
+            <div class="faq-card group cursor-pointer" onclick="toggleFAQCard(this)">
+                <div class="relative h-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/[0.07] hover:border-dc-cyan/40 hover:scale-[1.02] transition-all duration-300 ease-out overflow-hidden">
+                    <!-- Gradient Accent -->
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-cyan opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
+                    <!-- Category Badge -->
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-dc-purple/20 to-dc-cyan/20 border border-dc-purple/30 text-dc-cyan text-xs font-bold rounded-lg uppercase tracking-wide">
+                            {{ faq.get_category_display }}
+                        </span>
+                        <div class="faq-icon w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-dc-cyan/20 transition-all duration-300">
+                            <svg class="faq-plus w-5 h-5 text-gray-400 group-hover:text-dc-cyan transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <!-- Question -->
+                    <h3 class="text-white font-display font-bold text-lg leading-snug mb-3 min-h-[3.5rem] flex items-center">
+                        {{ faq.question }}
+                    </h3>
+                    
+                    <!-- Decorative Line -->
+                    <div class="w-12 h-0.5 bg-gradient-to-r from-dc-cyan to-transparent mb-4 opacity-50"></div>
+                    
+                    <!-- Answer (Hidden Initially) -->
+                    <div class="faq-answer-content overflow-hidden transition-all duration-500 ease-out" style="max-height: 0; opacity: 0;">
+                        <div class="pt-2 pb-1">
+                            <div class="text-gray-300 text-sm leading-relaxed space-y-2">
+                                {{ faq.answer|safe }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Read More Hint -->
+                    <div class="faq-hint mt-4 flex items-center gap-2 text-dc-cyan text-sm font-semibold opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+                        <span>Click to read answer</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-16 glass-effect rounded-3xl border border-white/10 max-w-2xl mx-auto">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center">
+                <svg class="w-10 h-10 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <p class="text-gray-400 text-lg font-medium">No FAQs available at the moment.</p>
+            <p class="text-gray-500 text-sm mt-2">Check back soon for answers to common questions!</p>
+        </div>
+        {% endif %}
+        
+        <!-- CTA Footer -->
+        <div class="text-center">
+            <div class="inline-block glass-effect rounded-3xl p-8 border border-white/10">
+                <p class="text-gray-300 text-lg mb-6 font-medium">Still have questions?</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/faq/" class="group inline-flex items-center gap-3 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
+                        <svg class="w-5 h-5 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                        <span>Browse All FAQs</span>
+                    </a>
+                    <a href="/contact/" class="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
+                        <span>Contact Support</span>
+                        <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Card JavaScript -->
+<script>
+function toggleFAQCard(card) {
+    const answerContent = card.querySelector('.faq-answer-content');
+    const plusIcon = card.querySelector('.faq-plus');
+    const hint = card.querySelector('.faq-hint');
+    const isExpanded = answerContent.style.maxHeight && answerContent.style.maxHeight !== '0px';
+    
+    // Close all other cards
+    document.querySelectorAll('.faq-card').forEach(otherCard => {
+        if (otherCard !== card) {
+            const otherAnswer = otherCard.querySelector('.faq-answer-content');
+            const otherPlus = otherCard.querySelector('.faq-plus');
+            const otherHint = otherCard.querySelector('.faq-hint');
+            
+            otherAnswer.style.maxHeight = '0px';
+            otherAnswer.style.opacity = '0';
+            otherPlus.style.transform = 'rotate(0deg)';
+            otherHint.style.display = 'flex';
+        }
+    });
+    
+    // Toggle current card
+    if (isExpanded) {
+        answerContent.style.maxHeight = '0px';
+        answerContent.style.opacity = '0';
+        plusIcon.style.transform = 'rotate(0deg)';
+        hint.style.display = 'flex';
+    } else {
+        answerContent.style.maxHeight = answerContent.scrollHeight + 'px';
+        answerContent.style.opacity = '1';
+        plusIcon.style.transform = 'rotate(45deg)';
+        hint.style.display = 'none';
+    }
+}
+</script>
+
+<!-- ============================================
+     FINAL CTA - JOIN NOW
+     ============================================ -->
+<section class="relative py-24 bg-gradient-to-br from-dc-dark via-dc-cyan/10 to-dc-purple/10 overflow-hidden">
+    <div class="absolute inset-0">
+        <div class="absolute top-0 left-1/4 w-96 h-96 bg-dc-cyan/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-dc-purple/20 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+    </div>
+    
+    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-dc-gold/10 border border-dc-gold/30 rounded-full text-dc-gold font-bold text-sm uppercase tracking-wider mb-8">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd"/></svg>
+            Start Your Journey
+        </div>
+        
+        <h2 class="font-display text-5xl sm:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
+            Ready to <span class="gradient-text">Compete</span>?<br>
+            Join <span class="text-dc-cyan">{{ live_stats.players_count|default:'12,500' }}+</span> Players Today
+        </h2>
+        
+        <p class="text-xl sm:text-2xl text-gray-200 mb-12 max-w-3xl mx-auto leading-relaxed">
+            Sign up in 60 seconds. No credit card required. Start competing in fair, transparent tournaments with real prize money.
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <a href="/signup/" class="group inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-lg rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                Create Free Account
+                <svg class="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </a>
+            
+            <a href="/tournaments/" class="inline-flex items-center justify-center gap-3 px-12 py-5 bg-white/5 border-2 border-white/20 text-white font-bold text-lg rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 transition-all duration-300">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                Browse Tournaments
+            </a>
+        </div>
+        
+        <div class="flex flex-wrap items-center justify-center gap-8 text-gray-400">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                <span>No Credit Card Required</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                <span>Free to Join</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                <span>Cancel Anytime</span>
+            </div>
+        </div>
+    </div>
+</section>
 
 <!-- ============================================
      ROADMAP TIMELINE
@@ -606,7 +1382,7 @@
             <h2 class="font-display text-4xl sm:text-5xl font-black text-white mb-6">
                 The <span class="gradient-text">Vision</span> Ahead
             </h2>
-            <p class="text-xl text-gray-300">
+            <p class="text-xl text-gray-200">
                 Evolving toward global scale while staying rooted in emerging markets
             </p>
         </div>
@@ -632,7 +1408,7 @@
                     </div>
                     
                     <!-- Content Card -->
-                    <div class="glass-effect rounded-xl p-6">
+                    <div class="glass-effect rounded-2xl p-6">
                         <div class="flex items-start justify-between mb-2">
                             <h3 class="font-display font-bold text-white text-xl">{{ item.title }}</h3>
                             <span class="px-3 py-1 text-xs font-bold rounded-full
@@ -654,7 +1430,7 @@
      FINAL CTA - JOIN THE REVOLUTION
      ============================================ -->
 {% if sections_enabled.final_cta %}
-<section class="relative py-32 bg-gradient-to-br from-dc-cyan/10 via-dc-dark to-dc-purple/10 overflow-hidden">
+<section class="relative py-24 bg-gradient-to-br from-dc-cyan/10 via-dc-dark to-dc-purple/10 overflow-hidden">
     <!-- Animated Background -->
     <div class="absolute inset-0 opacity-20">
         <div class="absolute top-0 left-1/4 w-96 h-96 bg-dc-cyan rounded-full filter blur-3xl animate-pulse-slow"></div>
@@ -665,12 +1441,12 @@
         <h2 class="font-display text-5xl sm:text-6xl font-black text-white mb-6">
             Ready to <span class="gradient-text">Compete</span>?
         </h2>
-        <p class="text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
+        <p class="text-2xl text-gray-200 mb-12 max-w-2xl mx-auto">
             Join thousands of gamers building their esports careers on DeltaCrown—where talent meets opportunity
         </p>
         
         <div class="flex flex-wrap gap-6 justify-center">
-            <a href="{{ final_cta.primary_cta.url }}" class="group inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-lg rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-105">
+            <a href="{{ final_cta.primary_cta.url }}" class="group inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold text-lg rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 transition-all duration-300 hover:scale-[1.02]">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>
                 {{ final_cta.primary_cta.text }}
                 <svg class="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
@@ -756,6 +1532,109 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         observer.observe(playerCountEl);
     }
-});
+    
+    // ========== COUNTDOWN TIMERS ==========
+    function updateCountdowns() {
+        document.querySelectorAll('[data-deadline]').forEach(el => {
+            const deadline = new Date(el.dataset.deadline);
+            const now = new Date();
+            const diff = deadline - now;
+            
+            if (diff <= 0) {
+                el.textContent = 'Registration Closed';
+                el.classList.add('text-red-400');
+                return;
+            }
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            if (days > 0) {
+                el.textContent = `${days}d ${hours}h ${minutes}m`;
+            } else if (hours > 0) {
+                el.textContent = `${hours}h ${minutes}m`;
+                el.classList.add('text-dc-gold');
+            } else {
+                el.textContent = `${minutes}m remaining`;
+                el.classList.add('text-red-400', 'animate-pulse');
+            }
+        });
+    }
+    
+    // Update countdowns every 30 seconds
+    updateCountdowns();
+    setInterval(updateCountdowns, 30000);
+    
+    // ========== FAQ ACCORDION ==========
+    document.querySelectorAll('.faq-toggle').forEach(button => {
+        button.addEventListener('click', function() {
+            const content = this.nextElementSibling;
+            const icon = this.querySelector('svg');
+            const isOpen = !content.classList.contains('hidden');
+            
+            // Close all other FAQs
+            document.querySelectorAll('.faq-content').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.querySelectorAll('.faq-toggle svg').forEach(svg => {
+                svg.style.transform = 'rotate(0deg)';
+            });
+            
+            // Toggle current FAQ
+            if (!isOpen) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+    
+    // ========== MILESTONE COUNTERS ==========
+    const milestoneObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                
+                // Run animation only once
+                if (el.dataset.animated === 'true') return;
+                el.dataset.animated = 'true';
+                
+                const target = parseInt(el.dataset.target.replace(/,/g, ''));
+                const prefix = el.dataset.prefix || '';
+                const suffix = el.dataset.suffix || '';
+                let current = 0;
+                const increment = target / 50;
+                const duration = 2000; // 2 seconds
+                const stepTime = duration / 50;
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    el.textContent = prefix + Math.floor(current).toLocaleString() + suffix;
+                }, stepTime);
+                
+                milestoneObserver.unobserve(el);
+            }
+        });
+    }, { threshold: 0.5 });
+    
+    document.querySelectorAll('.counter-animate').forEach(el => {
+        milestoneObserver.observe(el);
+    });
+    
+    // ========== MARQUEE VISIBILITY OPTIMIZATION ==========
+    document.addEventListener('visibilitychange', function() {
+        const marquee = document.querySelector('.animate-marquee');
+        if (marquee) {
+            if (document.hidden) {
+                marquee.style.animationPlayState = 'paused';
+            } else {
+                marquee.style.animationPlayState = 'running';
+            }
+        }
+    });});
 </script>
 {% endblock %}

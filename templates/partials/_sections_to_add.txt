@@ -1,0 +1,10 @@
+# Testimonials, FAQ, and Final CTA sections
+
+These sections will be inserted before the Roadmap section at line 1154.
+
+Content includes:
+1. Testimonials - Winner stories with 5-star ratings
+2. FAQ - 8 common questions with accordion
+3. Final CTA - Large call-to-action before footer
+
+All sections use real data, no fake partnerships.

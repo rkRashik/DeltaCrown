@@ -1,21 +1,216 @@
 {% extends "base.html" %}
-{% block title %}Help Center — DeltaCrown{% endblock %}
-{% block content %}
-<section class="container py-10">
-  <h1 class="sec-h">Help Center</h1>
-  <div class="glass p-6 rounded-2xl mt-4">
-    {% for group, qa in faqs %}
-      <h3 id="{{ group|slugify }}" class="font-semibold mt-4">{{ group }}</h3>
-      <div class="divide-y divide-border">
-        {% for q,a in qa %}
-        <details id="{{ q|slugify }}" class="py-2">
-          <summary class="cursor-pointer font-semibold">{{ q }}</summary>
-          <div class="text-sm text-muted mt-1">{{ a }}</div>
-        </details>
-        {% endfor %}
-      </div>
-    {% endfor %}
-  </div>
-</section>
+{% load static %}
+{% block title %}Frequently Asked Questions — DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+.faq-accordion details > summary {
+    list-style: none;
+    cursor: pointer;
+}
+.faq-accordion details > summary::-webkit-details-marker {
+    display: none;
+}
+.faq-accordion details[open] .rotate-icon {
+    transform: rotate(180deg);
+}
+.rotate-icon {
+    transition: transform 0.3s ease;
+}
+</style>
 {% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative min-h-[40vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-dc-dark-blue via-dc-dark to-dc-dark-purple">
+    <!-- Animated Background -->
+    <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-20 left-10 w-72 h-72 bg-dc-cyan rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
+        <div class="absolute top-40 right-20 w-72 h-72 bg-dc-purple rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-20 left-1/3 w-72 h-72 bg-dc-gold rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
+    </div>
+    
+    <div class="relative z-10 container mx-auto px-4 text-center">
+        <h1 class="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
+            Got Questions?
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-gold">
+                We've Got Answers
+            </span>
+        </h1>
+        <p class="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-8">
+            Everything you need to know about DeltaCrown esports platform
+        </p>
+        
+        <!-- Search Box -->
+        <div class="max-w-2xl mx-auto">
+            <div class="relative">
+                <input 
+                    type="text" 
+                    id="faqSearch" 
+                    placeholder="Search for answers..." 
+                    class="w-full px-6 py-4 pl-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-dc-cyan focus:border-transparent text-lg"
+                >
+                <svg class="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FAQ Categories -->
+<section class="py-20 bg-gradient-to-b from-dc-dark-purple to-dc-dark">
+    <div class="container mx-auto px-4 max-w-5xl">
+        
+        <!-- Quick Navigation -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
+            {% for category_name, faqs in faqs_by_category.items %}
+            <a href="#{{ category_name|slugify }}" class="glass-effect hover:scale-105 transition-transform rounded-xl p-4 text-center">
+                <div class="text-3xl mb-2">
+                    {% if "General" in category_name %}📋
+                    {% elif "Tournament" in category_name %}🏆
+                    {% elif "Payment" in category_name %}💰
+                    {% elif "Technical" in category_name %}⚙️
+                    {% elif "Team" in category_name %}👥
+                    {% elif "Rules" in category_name %}📜
+                    {% else %}❓{% endif %}
+                </div>
+                <p class="text-sm text-gray-300 font-medium">{{ category_name }}</p>
+            </a>
+            {% endfor %}
+        </div>
+        
+        <!-- FAQ Accordion by Category -->
+        <div class="space-y-12 faq-accordion">
+            {% for category_name, faqs in faqs_by_category.items %}
+            <div id="{{ category_name|slugify }}" class="scroll-mt-24">
+                <h2 class="font-display text-3xl md:text-4xl font-bold text-white mb-6 flex items-center gap-3">
+                    <span class="text-4xl">
+                        {% if "General" in category_name %}📋
+                        {% elif "Tournament" in category_name %}🏆
+                        {% elif "Payment" in category_name %}💰
+                        {% elif "Technical" in category_name %}⚙️
+                        {% elif "Team" in category_name %}👥
+                        {% elif "Rules" in category_name %}📜
+                        {% else %}❓{% endif %}
+                    </span>
+                    {{ category_name }}
+                </h2>
+                
+                <div class="space-y-4">
+                    {% for faq in faqs %}
+                    <details class="glass-effect rounded-xl overflow-hidden group faq-item" data-question="{{ faq.question|lower }}" data-answer="{{ faq.answer|striptags|lower }}">
+                        <summary class="px-6 py-5 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
+                            <h3 class="text-lg md:text-xl font-semibold text-white pr-4">{{ faq.question }}</h3>
+                            <svg class="w-6 h-6 text-dc-cyan flex-shrink-0 rotate-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </summary>
+                        <div class="px-6 pb-6 text-gray-300 leading-relaxed border-t border-white/10 pt-4">
+                            {{ faq.answer|safe }}
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="glass-effect rounded-2xl p-12 text-center">
+                <p class="text-gray-400 text-lg">No FAQs available yet. Check back soon!</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Still Need Help CTA -->
+        <div class="glass-effect rounded-2xl p-10 mt-16 text-center bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-gold/10 border-2 border-white/20">
+            <h2 class="font-display text-3xl md:text-4xl font-bold text-white mb-4">Still Need Help?</h2>
+            <p class="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
+                Can't find what you're looking for? Our support team is here to help you 24/7.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/contact/" class="btn-primary px-8 py-4 text-lg rounded-xl hover:scale-105 transition-transform">
+                    📧 Contact Support
+                </a>
+                <a href="https://discord.gg/deltacrown" target="_blank" class="btn-secondary px-8 py-4 text-lg rounded-xl hover:scale-105 transition-transform bg-dc-purple/20 text-white border-2 border-dc-purple hover:bg-dc-purple/30">
+                    💬 Join Discord
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// Real-time FAQ Search
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('faqSearch');
+    const faqItems = document.querySelectorAll('.faq-item');
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        if (!query) {
+            // Show all FAQs
+            faqItems.forEach(item => {
+                item.style.display = 'block';
+            });
+            return;
+        }
+        
+        // Filter FAQs
+        let matchCount = 0;
+        faqItems.forEach(item => {
+            const question = item.dataset.question;
+            const answer = item.dataset.answer;
+            
+            if (question.includes(query) || answer.includes(query)) {
+                item.style.display = 'block';
+                matchCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show "no results" message if needed
+        if (matchCount === 0 && !document.querySelector('.no-results')) {
+            const noResults = document.createElement('div');
+            noResults.className = 'no-results glass-effect rounded-2xl p-12 text-center';
+            noResults.innerHTML = '<p class="text-gray-400 text-lg">No FAQs match your search. Try different keywords or <a href="/contact/" class="text-dc-cyan hover:underline">contact support</a>.</p>';
+            document.querySelector('.faq-accordion').appendChild(noResults);
+        } else if (matchCount > 0) {
+            const noResults = document.querySelector('.no-results');
+            if (noResults) noResults.remove();
+        }
+    });
+    
+    // Smooth scroll for category links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+    
+    // Close other accordions when one opens (optional single-open behavior)
+    const details = document.querySelectorAll('details');
+    details.forEach(detail => {
+        detail.addEventListener('toggle', function() {
+            if (this.open) {
+                details.forEach(otherDetail => {
+                    if (otherDetail !== this && otherDetail.open) {
+                        otherDetail.open = false;
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}
+
 

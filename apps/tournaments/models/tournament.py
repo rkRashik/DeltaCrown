@@ -245,6 +245,11 @@ class Tournament(SoftDeleteModel, TimestampedModel):
         db_index=True,
         help_text='Whether this is an official DeltaCrown tournament'
     )
+    is_featured = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='Whether this tournament is featured on the homepage'
+    )
     
     # Game (ForeignKey to Game)
     game = models.ForeignKey(

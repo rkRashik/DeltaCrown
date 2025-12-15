@@ -1,5 +1,4 @@
-"""
-Homepage Context Provider
+"""Homepage Context Provider
 
 Provides safe, structured context data for the homepage template.
 Combines editable content from HomePageContent model with live statistics.
@@ -8,16 +7,26 @@ Combines editable content from HomePageContent model with live statistics.
 from typing import Dict, Any
 from django.contrib.auth import get_user_model
 from django.db.models import Count
+from django.core.cache import cache
+from django.utils import timezone
+import hashlib
 
 User = get_user_model()
+
+# Import testimonials helper
+try:
+    from apps.support.views import get_homepage_testimonials
+except ImportError:
+    def get_homepage_testimonials():
+        return []
 
 
 def get_homepage_context() -> Dict[str, Any]:
     """
     Returns comprehensive homepage context with DB content + dynamic stats.
     
-    This function safely retrieves homepage content and merges it with live statistics
-    from the database. It includes fallback handling to ensure the homepage never crashes.
+    PERFORMANCE: Cached for 5 minutes to reduce database load.
+    Cache is automatically invalidated when HomePageContent is updated.
     
     Returns:
         Dict containing:
@@ -32,6 +41,14 @@ def get_homepage_context() -> Dict[str, Any]:
         >>> print(context['hero']['title'])
         "From the Delta to the Crown"
     """
+    # Try to get cached context first
+    cache_key = 'homepage_context_v2'
+    cached_context = cache.get(cache_key)
+    
+    if cached_context is not None:
+        return cached_context
+    
+    # Cache miss - generate fresh context
     from .models import HomePageContent
     
     # Get or create singleton content instance
@@ -116,8 +133,11 @@ def get_homepage_context() -> Dict[str, Any]:
         "games": {
             "title": content.games_section_title,
             "description": content.games_section_description,
-            "items": content.games_data,
+            "items": _get_active_games(),  # Changed from content.games_data to real data
         },
+        
+        # Featured Tournament (new)
+        "featured_tournament": _get_featured_tournament(),
         
         # Tournaments section (with real live data)
         "tournaments": {
@@ -125,6 +145,9 @@ def get_homepage_context() -> Dict[str, Any]:
             "description": content.tournaments_section_description,
             "items": _get_featured_tournaments(),
         },
+        
+        # Recent Matches (new)
+        "recent_matches": _get_recent_matches(limit=5),
         
         # Teams section (with real leaderboard data)
         "teams": {
@@ -177,6 +200,12 @@ def get_homepage_context() -> Dict[str, Any]:
             },
         },
         
+        # Testimonials (admin-managed)
+        "testimonials": get_homepage_testimonials(),
+        
+        # Featured FAQs (admin-managed via is_featured toggle)
+        "featured_faqs": _get_featured_faqs(),
+        
         # Platform info
         "platform": {
             "tagline": content.platform_tagline,
@@ -185,7 +214,25 @@ def get_homepage_context() -> Dict[str, Any]:
         },
     }
     
+    # Cache context for 5 minutes (300 seconds)
+    cache.set(cache_key, context, 300)
+    
     return context
+
+
+def _get_featured_faqs():
+    """
+    Get FAQs marked as featured for homepage display.
+    
+    Returns:
+        list: Featured FAQ objects with question, answer, category
+    """
+    try:
+        from apps.support.models import FAQ
+        return list(FAQ.objects.filter(is_active=True, is_featured=True).order_by('order')[:6])
+    except Exception as e:
+        print(f"[WARNING] Failed to get featured FAQs: {e}")
+        return []
 
 
 def _safe_count(queryset):
@@ -428,6 +475,8 @@ def _get_featured_tournaments(limit=3):
     """
     Get featured tournaments for homepage display.
     
+    OPTIMIZED: Uses select_related('game', 'organizer') to reduce N+1 queries.
+    
     Prioritizes:
     1. Live tournaments
     2. Registration open tournaments
@@ -493,6 +542,8 @@ def _get_top_teams(limit=5):
     """
     Get top teams for homepage leaderboard.
     
+    OPTIMIZED: Uses select_related('captain') and annotate() for efficient querying.
+    
     Orders by:
     1. Total ranking points (if available)
     2. Fallback to ELO rating
@@ -545,4 +596,175 @@ def _get_top_teams(limit=5):
         
     except Exception as e:
         print(f"[WARNING] Failed to get top teams: {e}")
+        return []
+
+
+def _get_featured_tournament():
+    """
+    Get the single featured tournament for spotlight section.
+    
+    Returns:
+        dict: Featured tournament with full details or None
+    """
+    try:
+        from django.apps import apps
+        from django.utils import timezone
+        
+        Tournament = apps.get_model('tournaments', 'Tournament')
+        Registration = apps.get_model('tournaments', 'Registration')
+        
+        # Get first featured tournament, fallback to first live/open tournament
+        tournament = Tournament.objects.filter(
+            is_featured=True,
+            status__in=['live', 'registration_open', 'published']
+        ).select_related('game', 'organizer').first()
+        
+        # Fallback to most recent live tournament if no featured
+        if not tournament:
+            tournament = Tournament.objects.filter(
+                status='live'
+            ).select_related('game', 'organizer').order_by('-tournament_start').first()
+        
+        if not tournament:
+            return None
+        
+        # Count registrations
+        registration_count = Registration.objects.filter(
+            tournament=tournament,
+            status__in=['confirmed', 'pending']
+        ).count()
+        
+        # Calculate days until registration ends
+        days_left = None
+        hours_left = None
+        if tournament.registration_end:
+            delta = tournament.registration_end - timezone.now()
+            days_left = max(0, delta.days)
+            hours_left = max(0, int(delta.total_seconds() / 3600))
+        
+        return {
+            'id': tournament.id,
+            'name': tournament.name,
+            'slug': tournament.slug,
+            'description': tournament.description if hasattr(tournament, 'description') else '',
+            'game': tournament.game.name if hasattr(tournament, 'game') and tournament.game else 'N/A',
+            'game_display': tournament.game.display_name if hasattr(tournament.game, 'display_name') else tournament.game.name if tournament.game else 'N/A',
+            'prize_pool': f"৳{tournament.prize_pool:,.0f}" if tournament.prize_pool else "TBD",
+            'registration_count': registration_count,
+            'max_teams': tournament.max_participants if hasattr(tournament, 'max_participants') else None,
+            'status': tournament.status,
+            'days_left': days_left,
+            'hours_left': hours_left,
+            'tournament_start': tournament.tournament_start if hasattr(tournament, 'tournament_start') else None,
+            'registration_deadline': tournament.registration_end,
+            'banner_image': tournament.banner_image.url if hasattr(tournament, 'banner_image') and tournament.banner_image else None,
+            'url': f"/tournaments/{tournament.slug}/",
+            'organizer': tournament.organizer.username if tournament.organizer else 'DeltaCrown',
+        }
+        
+    except Exception as e:
+        print(f"[WARNING] Failed to get featured tournament: {e}")
+        return None
+
+
+def _get_recent_matches(limit=5):
+    """
+    Get recent completed matches for homepage feed.
+    
+    Returns:
+        list: Match dicts with teams, scores, and timestamps
+    """
+    try:
+        from django.apps import apps
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        Match = apps.get_model('tournaments', 'Match')
+        
+        # Get recent completed matches
+        matches = Match.objects.filter(
+            state='completed'
+        ).select_related(
+            'team_a', 'team_b', 'tournament', 'tournament__game'
+        ).order_by('-completed_at')[:limit]
+        
+        result = []
+        for match in matches:
+            # Calculate how long ago
+            time_ago = ""
+            if hasattr(match, 'completed_at') and match.completed_at:
+                delta = timezone.now() - match.completed_at
+                if delta.days > 0:
+                    time_ago = f"{delta.days}d ago"
+                elif delta.seconds >= 3600:
+                    time_ago = f"{delta.seconds // 3600}h ago"
+                else:
+                    time_ago = f"{delta.seconds // 60}m ago"
+            
+            result.append({
+                'id': match.id,
+                'team_a': {
+                    'name': match.team_a.name if match.team_a else 'TBD',
+                    'logo': match.team_a.logo.url if match.team_a and match.team_a.logo else None,
+                    'score': getattr(match, 'score_team_a', 0),
+                },
+                'team_b': {
+                    'name': match.team_b.name if match.team_b else 'TBD',
+                    'logo': match.team_b.logo.url if match.team_b and match.team_b.logo else None,
+                    'score': getattr(match, 'score_team_b', 0),
+                },
+                'tournament': {
+                    'name': match.tournament.name if match.tournament else 'Unknown',
+                    'game': match.tournament.game.name if match.tournament and match.tournament.game else 'N/A',
+                },
+                'winner': match.team_a.name if match.team_a and hasattr(match, 'winner') and match.winner == match.team_a else (match.team_b.name if match.team_b else None),
+                'time_ago': time_ago,
+                'url': f"/tournaments/{match.tournament.slug}/matches/{match.id}/" if match.tournament else '#',
+            })
+        
+        return result
+        
+    except Exception as e:
+        print(f"[WARNING] Failed to get recent matches: {e}")
+        return []
+
+
+def _get_active_games():
+    """
+    Get active games from the Game model with real images and data.
+    
+    Returns:
+        list: Game dicts with name, icon, logo, platforms, etc.
+    """
+    try:
+        from django.apps import apps
+        
+        # Try tournaments.Game first, then games.Game
+        try:
+            Game = apps.get_model('games', 'Game')
+        except LookupError:
+            Game = apps.get_model('tournaments', 'Game')
+        
+        games = Game.objects.filter(is_active=True).order_by('name')
+        
+        result = []
+        for game in games:
+            result.append({
+                'id': game.id,
+                'name': game.name,
+                'display_name': game.display_name if hasattr(game, 'display_name') else game.name,
+                'slug': game.slug if hasattr(game, 'slug') else game.name.lower().replace(' ', '-'),
+                'icon': game.icon.url if hasattr(game, 'icon') and game.icon else None,
+                'logo': game.logo.url if hasattr(game, 'logo') and game.logo else None,
+                'card_image': game.card_image.url if hasattr(game, 'card_image') and game.card_image else None,
+                'platforms': game.platforms if hasattr(game, 'platforms') else ['PC', 'Mobile'],
+                'category': game.category if hasattr(game, 'category') else 'Esports',
+                'primary_color': game.primary_color if hasattr(game, 'primary_color') else '#667eea',
+            })
+        
+        return result
+        
+    except Exception as e:
+        print(f"[WARNING] Failed to get active games: {e}")
+        # Fallback to empty list
         return []
