@@ -307,25 +307,59 @@ class UserProfile(models.Model):
             role__in=['CAPTAIN', 'MANAGER']
         ).exists()
     
-    # ===== GAME PROFILE METHODS (New Pluggable System) =====
+    # ===== GAME PROFILE METHODS (Modern Unified System) =====
     
     def get_game_profile(self, game_code):
-        """Get game profile for a specific game."""
+        """
+        Get game profile for a specific game from the game_profiles JSON field.
+        
+        Args:
+            game_code: Game slug (e.g., 'valorant', 'cs2', 'dota2', 'mlbb')
+        
+        Returns:
+            dict: Game profile data or None if not found
+            
+        Example:
+            >>> profile.get_game_profile('valorant')
+            {'game': 'valorant', 'ign': 'TenZ#1234', 'role': 'Duelist', ...}
+        """
+        if not isinstance(self.game_profiles, list):
+            return None
+            
+        game_code_lower = game_code.lower()
         for profile in self.game_profiles:
-            if profile.get('game', '').lower() == game_code.lower():
+            if isinstance(profile, dict) and profile.get('game', '').lower() == game_code_lower:
                 return profile
         return None
     
     def set_game_profile(self, game_code, data):
-        """Set or update game profile for a specific game."""
+        """
+        Set or update game profile for a specific game.
+        
+        Args:
+            game_code: Game slug (e.g., 'valorant', 'cs2')
+            data: dict with keys: ign, role (optional), rank (optional), platform (optional), metadata (optional)
+        
+        Returns:
+            bool: True if successful
+            
+        Example:
+            >>> profile.set_game_profile('valorant', {'ign': 'TenZ#1234', 'role': 'Duelist'})
+        """
+        if not isinstance(self.game_profiles, list):
+            self.game_profiles = []
+        
+        game_code_lower = game_code.lower()
+        
         # Remove existing profile for this game
         self.game_profiles = [
             p for p in self.game_profiles 
-            if p.get('game', '').lower() != game_code.lower()
+            if not (isinstance(p, dict) and p.get('game', '').lower() == game_code_lower)
         ]
+        
         # Add new profile
         profile_data = {
-            'game': game_code.lower(),
+            'game': game_code_lower,
             'ign': data.get('ign', ''),
             'role': data.get('role', ''),
             'rank': data.get('rank', ''),
@@ -337,7 +371,12 @@ class UserProfile(models.Model):
         return True
     
     def add_game_profile(self, game_code, ign, role='', rank='', platform='PC', metadata=None):
-        """Convenience method to add a game profile."""
+        """
+        Convenience method to add a game profile with minimal parameters.
+        
+        Example:
+            >>> profile.add_game_profile('valorant', 'TenZ#1234', role='Duelist', rank='Radiant')
+        """
         return self.set_game_profile(game_code, {
             'ign': ign,
             'role': role,
@@ -346,59 +385,86 @@ class UserProfile(models.Model):
             'metadata': metadata or {}
         })
     
-    # ===== LEGACY GAME ID METHODS (Backwards Compatibility) =====
+    def remove_game_profile(self, game_code):
+        """
+        Remove a game profile.
+        
+        Args:
+            game_code: Game slug to remove
+        
+        Returns:
+            bool: True if profile was found and removed
+        """
+        if not isinstance(self.game_profiles, list):
+            return False
+            
+        game_code_lower = game_code.lower()
+        initial_length = len(self.game_profiles)
+        
+        self.game_profiles = [
+            p for p in self.game_profiles 
+            if not (isinstance(p, dict) and p.get('game', '').lower() == game_code_lower)
+        ]
+        
+        return len(self.game_profiles) < initial_length
     
     def get_game_id(self, game_code):
-        """Get the appropriate game ID based on game code."""
-        game_id_mapping = {
-            'valorant': 'riot_id',
-            'efootball': 'efootball_id',
-            'dota2': 'steam_id',
-            'cs2': 'steam_id',
-            'mlbb': 'mlbb_id',
-            'pubgm': 'pubg_mobile_id',
-            'freefire': 'free_fire_id',
-            'fc24': 'ea_id',
-            'codm': 'codm_uid',
-        }
-        field_name = game_id_mapping.get(game_code.lower())
-        if field_name:
-            return getattr(self, field_name, '')
+        """
+        Get the game ID/IGN for a specific game (shorthand for getting 'ign' field).
+        
+        Args:
+            game_code: Game slug
+        
+        Returns:
+            str: The IGN/game ID or empty string
+            
+        Example:
+            >>> profile.get_game_id('valorant')
+            'TenZ#1234'
+        """
+        game_profile = self.get_game_profile(game_code)
+        if game_profile:
+            return game_profile.get('ign', '')
         return ''
     
-    def set_game_id(self, game_code, value):
-        """Set the appropriate game ID based on game code."""
-        game_id_mapping = {
-            'valorant': 'riot_id',
-            'efootball': 'efootball_id',
-            'dota2': 'steam_id',
-            'cs2': 'steam_id',
-            'mlbb': 'mlbb_id',
-            'pubgm': 'pubg_mobile_id',
-            'freefire': 'free_fire_id',
-            'fc24': 'ea_id',
-            'codm': 'codm_uid',
-        }
-        field_name = game_id_mapping.get(game_code.lower())
-        if field_name:
-            setattr(self, field_name, value)
+    def set_game_id(self, game_code, ign):
+        """
+        Set the game ID/IGN for a specific game (shorthand for setting 'ign' field).
+        
+        Args:
+            game_code: Game slug
+            ign: The in-game name/ID
+        
+        Returns:
+            bool: True if successful
+            
+        Example:
+            >>> profile.set_game_id('valorant', 'TenZ#1234')
+        """
+        game_profile = self.get_game_profile(game_code)
+        if game_profile:
+            # Update existing profile
+            game_profile['ign'] = ign
+            self.save(update_fields=['game_profiles'])
             return True
-        return False
+        else:
+            # Create new profile with just the IGN
+            return self.set_game_profile(game_code, {'ign': ign})
     
-    def get_game_id_label(self, game_code):
-        """Get the label for the game ID field."""
-        game_id_labels = {
-            'valorant': 'Riot ID (Name#TAG)',
-            'efootball': 'User ID',
-            'dota2': 'Steam ID',
-            'cs2': 'Steam ID',
-            'mlbb': 'Game ID',
-            'pubgm': 'Character ID',
-            'freefire': 'Player ID',
-            'fc24': 'EA ID',
-            'codm': 'UID',
-        }
-        return game_id_labels.get(game_code.lower(), 'Game ID')
+    def get_all_game_profiles(self):
+        """
+        Get all game profiles for this user.
+        
+        Returns:
+            list: List of game profile dicts
+        """
+        if not isinstance(self.game_profiles, list):
+            return []
+        return [p for p in self.game_profiles if isinstance(p, dict) and p.get('game')]
+    
+    def has_game_profile(self, game_code):
+        """Check if user has a profile for a specific game."""
+        return self.get_game_profile(game_code) is not None
     
     # ===== XP AND BADGE METHODS =====
     

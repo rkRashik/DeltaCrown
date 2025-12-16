@@ -1,18 +1,36 @@
 <svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="yellowGold" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
-      <stop offset="0.0" stop-color="#DAA520"/>   <stop offset="0.2" stop-color="#FFD700"/>   <stop offset="0.4" stop-color="#FFFACD"/>   <stop offset="0.5" stop-color="#FDB931"/>   <stop offset="0.6" stop-color="#FFD700"/>   <stop offset="0.8" stop-color="#E1B12C"/>   <stop offset="1.0" stop-color="#B8860B"/>   </linearGradient>
+      <stop offset="0.0" stop-color="#DAA520"/>
+      <stop offset="0.2" stop-color="#FFD700"/>
+      <stop offset="0.4" stop-color="#FFFACD"/>
+      <stop offset="0.5" stop-color="#FDB931"/>
+      <stop offset="0.6" stop-color="#FFD700"/>
+      <stop offset="0.8" stop-color="#E1B12C"/>
+      <stop offset="1.0" stop-color="#B8860B"/>
+    </linearGradient>
 
     <radialGradient id="deepYellowField" cx="128" cy="128" r="128" gradientUnits="userSpaceOnUse">
-      <stop offset="0.4" stop-color="#B8860B"/>   <stop offset="1.0" stop-color="#8B6508"/>   </radialGradient>
+      <stop offset="0.4" stop-color="#B8860B"/>
+      <stop offset="1.0" stop-color="#8B6508"/>
+    </radialGradient>
 
-    <pattern id="vTechPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-      <path d="M0 0 L10 10 L20 0" fill="none" stroke="#FDB931" stroke-width="0.5" opacity="0.8"/>
-      <path d="M10 10 V20" stroke="#FDB931" stroke-width="0.5" opacity="0.6"/>
-      <circle cx="10" cy="10" r="1.5" fill="#FFFACD" opacity="0.9"/>
+    <pattern id="brushedGold" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+       <line x1="0" y1="0" x2="0" y2="4" stroke="#8B6508" stroke-width="0.25" opacity="0.3"/>
     </pattern>
 
-    <filter id="engrave" x="-20%" y="-20%" width="140%" height="140%">
+    <pattern id="sandblast" x="0" y="0" width="3" height="3" patternUnits="userSpaceOnUse">
+        <rect x="0" y="0" width="1" height="1" fill="#8B6508" opacity="0.4"/>
+        <rect x="1.5" y="1.5" width="0.5" height="0.5" fill="#FDB931" opacity="0.3"/>
+    </pattern>
+
+    <g opacity="0.5">
+    <pattern id="hexPattern" x="0" y="0" width="14" height="24" patternUnits="userSpaceOnUse">
+       <path d="M7 0 L14 4 V12 L7 16 L0 12 V4 Z" fill="none" stroke="#FDB931" stroke-width="0.5"/>
+    </pattern>
+    </g>
+
+    <filter id="goldStamp" x="-20%" y="-20%" width="140%" height="140%">
       <feOffset dx="1" dy="2" in="SourceAlpha" result="off"/>
       <feFlood flood-color="#8B6508" flood-opacity="0.8" result="color"/>
       <feComposite in="color" in2="off" operator="in" result="shadow"/>
@@ -20,58 +38,64 @@
     </filter>
   </defs>
 
-  <circle cx="128" cy="128" r="126" fill="url(#yellowGold)" stroke="#8B6508" stroke-width="0.5"/>
-
+  <circle cx="128" cy="128" r="126" fill="url(#yellowGold)" stroke="#8B6508" stroke-width="1"/>
   <circle cx="128" cy="128" r="114" fill="url(#deepYellowField)" stroke="#8B6508" stroke-width="1"/>
 
-  <circle cx="128" cy="128" r="113" fill="url(#vTechPattern)"/>
-
-  <g stroke="#FFD700" stroke-width="0.5" opacity="0.3">
-    <path d="M128 128 L128 20" transform="rotate(0 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(30 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(60 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(90 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(120 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(150 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(180 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(210 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(240 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(270 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(300 128 128)"/>
-    <path d="M128 128 L128 20" transform="rotate(330 128 128)"/>
+  <g opacity="0.5">
+    <circle cx="128" cy="128" r="114" fill="url(#hexPattern)"/>
+    <g stroke="#FFD700" stroke-width="0.5" stroke-dasharray="1 3">
+        <path d="M128 128 L128 30" transform="rotate(0 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(20 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(40 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(60 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(80 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(100 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(120 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(140 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(160 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(180 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(200 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(220 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(240 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(260 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(280 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(300 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(320 128 128)"/>
+        <path d="M128 128 L128 30" transform="rotate(340 128 128)"/>
+    </g>
   </g>
 
-  <circle cx="128" cy="128" r="108" fill="none" stroke="url(#yellowGold)" stroke-width="2.5" stroke-dasharray="0.5 5" stroke-linecap="butt" filter="url(#engrave)"/>
+  <circle cx="128" cy="128" r="108" fill="none" stroke="url(#yellowGold)" stroke-width="2.5" stroke-dasharray="0.5 5" stroke-linecap="round" filter="url(#goldStamp)"/>
 
   <path id="topCurve" d="M 40,128 A 88,88 0 0,1 216,128" fill="none" />
   <path id="botCurve" d="M 50,128 A 78,78 0 0,0 206,128" fill="none" />
 
-  <text fill="url(#yellowGold)" font-family="Times New Roman, Serif" font-weight="900" font-size="20" letter-spacing="4" filter="url(#engrave)">
+  <text fill="url(#yellowGold)" font-family="Times New Roman, Serif" font-weight="900" font-size="20" letter-spacing="4" filter="url(#goldStamp)">
     <textPath href="#topCurve" startOffset="50%" text-anchor="middle">DELTACROWN</textPath>
   </text>
 
-  <text fill="url(#yellowGold)" font-family="Times New Roman, Serif" font-weight="bold" font-size="10" letter-spacing="3" opacity="0.9" filter="url(#engrave)">
+  <text fill="url(#yellowGold)" font-family="Times New Roman, Serif" font-weight="bold" font-size="10" letter-spacing="3" opacity="0.9" filter="url(#goldStamp)">
     <textPath href="#botCurve" startOffset="50%" text-anchor="middle">EST 2025</textPath>
   </text>
 
-  <g transform="translate(128 128)" filter="url(#engrave)">
+  <g transform="translate(128 128)" filter="url(#goldStamp)">
     <g transform="translate(-32 -42)">
       <path d="M 0 0 H 35 C 65 0 80 25 80 42 C 80 65 65 84 35 84 H 0 V 0 Z" fill="url(#yellowGold)"/>
+      <path d="M 0 0 H 35 C 65 0 80 25 80 42 C 80 65 65 84 35 84 H 0 V 0 Z" fill="url(#brushedGold)"/>
 
-      <path d="M 1 1 H 35 C 64 1 79 26 79 42 C 79 64 64 83 35 83 H 1 V 1 Z" fill="none" stroke="#FFFACD" stroke-width="0.75" opacity="0.9"/>
-
-      <path d="M 18 18 V 66 H 30 C 45 66 58 55 58 42 C 58 30 45 18 30 18 H 18 Z" fill="url(#deepYellowField)" stroke="#8B6508" stroke-width="1"/>
-
-      <path d="M 18 18 V 66 H 30 C 45 66 58 55 58 42 C 58 30 45 18 30 18 H 18 Z" fill="url(#vTechPattern)" opacity="0.5"/>
-
-      <rect x="25" y="-10" width="6" height="18" fill="url(#yellowGold)"/>
-      <path d="M25 -10 H31 V8 H25 Z" fill="none" stroke="#FFFACD" stroke-width="0.5" opacity="0.6"/>
-      <rect x="25" y="76" width="6" height="18" fill="url(#yellowGold)"/>
-      <path d="M25 76 H31 V94 H25 Z" fill="none" stroke="#FFFACD" stroke-width="0.5" opacity="0.6"/>
+      <rect x="24" y="-12" width="6" height="24" fill="url(#yellowGold)"/>
+      <rect x="24" y="72" width="6" height="24" fill="url(#yellowGold)"/>
+      <rect x="24" y="-12" width="6" height="24" fill="url(#brushedGold)"/>
+      <rect x="24" y="72" width="6" height="24" fill="url(#brushedGold)"/>
 
       <path d="M 0 0 L 0 -14 L 10 -4 L 20 -14 L 20 0 H 0 Z" fill="url(#yellowGold)"/>
+      <path d="M 0 0 L 0 -14 L 10 -4 L 20 -14 L 20 0 H 0 Z" fill="url(#brushedGold)"/>
 
-      <path d="M 10 -8 L 13 -5 L 10 -2 L 7 -5 Z" fill="#FFFACD"/>
+      <path d="M 18 18 V 66 H 30 C 45 66 58 55 58 42 C 58 30 45 18 30 18 H 18 Z" fill="#B8860B" stroke="#8B6508" stroke-width="1"/>
+      <path d="M 18 18 V 66 H 30 C 45 66 58 55 58 42 C 58 30 45 18 30 18 H 18 Z" fill="url(#sandblast)"/>
+      <path d="M 18 18 V 66 H 30 C 45 66 58 55 58 42 C 58 30 45 18 30 18 H 18 Z" fill="url(#hexPattern)" opacity="0.3"/>
+
+      <path d="M 10 -8 L 13 -5 L 10 -2 L 7 -5 Z" fill="#FFD700"/>
     </g>
   </g>
 </svg>

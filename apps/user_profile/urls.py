@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     MyProfileUpdateView, profile_view, my_tournaments_view,
     kyc_upload_view, kyc_status_view, privacy_settings_view, settings_view,
+    save_game_profiles,
     # Phase 4: Modal Action Views
     update_bio, add_social_link, add_game_profile, edit_game_profile, delete_game_profile,
     # Phase 4: Follow System
@@ -37,6 +38,9 @@ urlpatterns = [
     
     # Modular Settings Page
     path("me/settings/", settings_view, name="settings"),
+    
+    # Save Game Profiles
+    path("actions/save-game-profiles/", save_game_profiles, name="save_game_profiles"),
 
     # ============================================
     # PHASE 4: MODAL ACTION ENDPOINTS (POST handlers)

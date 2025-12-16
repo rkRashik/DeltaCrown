@@ -510,12 +510,12 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
                 }
                 # Add game ID if authorized and available
                 if show_game_ids and membership.team.game:
-                    game_id = profile.get_game_id(membership.team.game)
-                    if game_id:
-                        team_data['game_id'] = game_id
-                        team_data['game_id_label'] = profile.get_game_id_label(membership.team.game)
-                        if membership.team.game == 'mlbb' and profile.mlbb_server_id:
-                            team_data['mlbb_server_id'] = profile.mlbb_server_id
+                    game_profile = profile.get_game_profile(membership.team.game)
+                    if game_profile and game_profile.get('ign'):
+                        team_data['game_id'] = game_profile['ign']
+                        # For MLBB, add server info from metadata if available
+                        if membership.team.game == 'mlbb' and game_profile.get('metadata', {}).get('server_id'):
+                            team_data['mlbb_server_id'] = game_profile['metadata']['server_id']
                 team_info.append(team_data)
         except Exception:
             team_info = []

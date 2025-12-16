@@ -175,212 +175,397 @@
             <!-- Game IDs Section -->
             <section id="section-games" class="settings-section">
                 <h2 class="section-title">Game Profiles</h2>
-                <p class="section-description">Manage your competitive gaming profiles and in-game usernames</p>
+                <p class="section-description">Manage your in-game identities for all 11 supported games on DeltaCrown</p>
                 
-                <!-- Existing Game Profiles -->
-                {% if game_profiles %}
-                <div class="game-profiles-list" style="margin-bottom: 2rem;" x-data="{ editingId: null }">
-                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #e2e8f0;">Your Game Profiles</h3>
-                    {% for gp in game_profiles %}
-                    <div class="game-profile-card" style="background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem;">
+                <form method="post" action="{% url 'user_profile:save_game_profiles' %}" class="settings-form">
+                    {% csrf_token %}
+                    
+                    <!-- Games Grid -->
+                    <div style="display: grid; gap: 1rem;">
                         
-                        <!-- View Mode -->
-                        <div x-show="editingId !== {{ gp.id }}" style="display: flex; justify-content: space-between; align-items: start;">
-                            <div style="flex: 1;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <span style="font-size: 1.5rem;">🎮</span>
-                                    <h4 style="font-size: 1.1rem; font-weight: 700; color: white;">{{ gp.game_display_name }}</h4>
-                                </div>
-                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; color: #94a3b8; font-size: 0.875rem;">
-                                    <div>
-                                        <span style="color: #64748b;">In-Game Name:</span>
-                                        <span style="color: white; font-weight: 600; margin-left: 0.25rem;">{{ gp.in_game_name }}</span>
-                                    </div>
-                                    {% if gp.rank_name %}
-                                    <div>
-                                        <span style="color: #64748b;">Rank:</span>
-                                        <span style="color: #fbbf24; font-weight: 600; margin-left: 0.25rem;">{{ gp.rank_name }}</span>
-                                    </div>
-                                    {% endif %}
-                                    {% if gp.main_role %}
-                                    <div>
-                                        <span style="color: #64748b;">Role:</span>
-                                        <span style="color: #a78bfa; margin-left: 0.25rem;">{{ gp.main_role }}</span>
-                                    </div>
-                                    {% endif %}
-                                    <div>
-                                        <span style="color: #64748b;">Matches:</span>
-                                        <span style="color: white; margin-left: 0.25rem;">{{ gp.matches_played }}</span>
-                                    </div>
-                                    {% if gp.win_rate %}
-                                    <div>
-                                        <span style="color: #64748b;">Win Rate:</span>
-                                        <span style="color: #10b981; margin-left: 0.25rem;">{{ gp.win_rate }}%</span>
-                                    </div>
-                                    {% endif %}
+                        <!-- VALORANT -->
+                        <div class="game-profile-card" style="background: rgba(255, 70, 85, 0.1); border: 2px solid rgba(255, 70, 85, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🎯</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #ff4655; margin: 0;">VALORANT</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">FPS • Featured</p>
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button @click="editingId = {{ gp.id }}" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Edit</button>
-                                <form method="post" action="{% url 'user_profile:delete_game_profile' gp.id %}" style="display: inline;" onsubmit="return confirm('Delete this game profile?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Delete</button>
-                                </form>
+                            <div class="form-group">
+                                <label class="form-label" for="game_valorant_ign">Riot ID (Name#TAG)</label>
+                                <input type="text" id="game_valorant_ign" name="game_valorant_ign" 
+                                       value="{{ valorant_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="PlayerName#0000">
+                                <span class="form-hint">Example: TenZ#1234</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_valorant_role">Role (Optional)</label>
+                                    <select id="game_valorant_role" name="game_valorant_role" class="form-input">
+                                        <option value="">Select Role</option>
+                                        <option value="Duelist" {% if valorant_profile.role == "Duelist" %}selected{% endif %}>Duelist</option>
+                                        <option value="Controller" {% if valorant_profile.role == "Controller" %}selected{% endif %}>Controller</option>
+                                        <option value="Initiator" {% if valorant_profile.role == "Initiator" %}selected{% endif %}>Initiator</option>
+                                        <option value="Sentinel" {% if valorant_profile.role == "Sentinel" %}selected{% endif %}>Sentinel</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_valorant_rank">Rank (Optional)</label>
+                                    <input type="text" id="game_valorant_rank" name="game_valorant_rank" 
+                                           value="{{ valorant_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., Immortal 2">
+                                </div>
                             </div>
                         </div>
                         
-                        <!-- Edit Mode -->
-                        <div x-show="editingId === {{ gp.id }}" style="display: none;">
-                            <form method="post" action="{% url 'user_profile:edit_game_profile' gp.id %}">
-                                {% csrf_token %}
-                                <div style="margin-bottom: 1rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
-                                        <span style="font-size: 1.5rem;">🎮</span>
-                                        <h4 style="font-size: 1.1rem; font-weight: 700; color: white;">{{ gp.game_display_name }}</h4>
-                                    </div>
-                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                                        <div>
-                                            <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem;">In-Game Name *</label>
-                                            <input type="text" name="in_game_name" value="{{ gp.in_game_name }}" required class="form-input" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;">
-                                        </div>
-                                        <div>
-                                            <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem;">Rank</label>
-                                            <input type="text" name="rank_name" value="{{ gp.rank_name }}" class="form-input" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;">
-                                        </div>
-                                        <div style="grid-column: 1 / -1;">
-                                            <label style="display: block; color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.25rem;">Main Role</label>
-                                            <input type="text" name="main_role" value="{{ gp.main_role }}" class="form-input" style="width: 100%; padding: 0.5rem; border-radius: 0.375rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white;">
-                                        </div>
-                                    </div>
+                        <!-- Counter-Strike 2 -->
+                        <div class="game-profile-card" style="background: rgba(205, 169, 98, 0.1); border: 2px solid rgba(205, 169, 98, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🔫</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #cda962; margin: 0;">Counter-Strike 2</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">FPS • Featured</p>
                                 </div>
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                    <button type="button" @click="editingId = null" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Cancel</button>
-                                    <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Save Changes</button>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_cs2_ign">Steam Name / Friend Code</label>
+                                <input type="text" id="game_cs2_ign" name="game_cs2_ign" 
+                                       value="{{ cs2_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your Steam username">
+                                <span class="form-hint">Example: s1mple</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_cs2_role">Role (Optional)</label>
+                                    <select id="game_cs2_role" name="game_cs2_role" class="form-input">
+                                        <option value="">Select Role</option>
+                                        <option value="AWPer" {% if cs2_profile.role == "AWPer" %}selected{% endif %}>AWPer</option>
+                                        <option value="Entry Fragger" {% if cs2_profile.role == "Entry Fragger" %}selected{% endif %}>Entry Fragger</option>
+                                        <option value="Support" {% if cs2_profile.role == "Support" %}selected{% endif %}>Support</option>
+                                        <option value="IGL" {% if cs2_profile.role == "IGL" %}selected{% endif %}>IGL</option>
+                                        <option value="Lurker" {% if cs2_profile.role == "Lurker" %}selected{% endif %}>Lurker</option>
+                                    </select>
                                 </div>
-                            </form>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_cs2_rank">Rank (Optional)</label>
+                                    <input type="text" id="game_cs2_rank" name="game_cs2_rank" 
+                                           value="{{ cs2_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., Global Elite">
+                                </div>
+                            </div>
                         </div>
                         
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div style="background: rgba(30, 41, 59, 0.3); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem; padding: 2rem; text-align: center; margin-bottom: 2rem;">
-                    <span style="font-size: 3rem; opacity: 0.5;">🎮</span>
-                    <p style="color: #94a3b8; margin-top: 0.5rem;">No game profiles added yet</p>
-                    <p style="color: #64748b; font-size: 0.875rem; margin-top: 0.25rem;">Add your first game profile using the form below</p>
-                </div>
-                {% endif %}
-                
-                <!-- Legacy Game IDs (Backward Compatibility) -->
-                <details style="margin-bottom: 2rem;">
-                    <summary style="cursor: pointer; font-weight: 600; color: #94a3b8; margin-bottom: 1rem;">Legacy Game IDs (Deprecated)</summary>
-                    <form method="post" class="settings-form">
-                        {% csrf_token %}
-                    
-                    <div class="game-id-group">
-                        <h3 class="game-title">Riot Games</h3>
-                        <div class="form-row">
+                        <!-- Dota 2 -->
+                        <div class="game-profile-card" style="background: rgba(165, 38, 27, 0.1); border: 2px solid rgba(165, 38, 27, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🛡️</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #a5261b; margin: 0;">Dota 2</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">MOBA • Featured</p>
+                                </div>
+                            </div>
                             <div class="form-group">
-                                <label class="form-label" for="riot_id">Riot ID (Name#TAG)</label>
-                                <input type="text" id="riot_id" name="riot_id" value="{{ request.user.profile.riot_id }}" class="form-input" placeholder="PlayerName#TAG">
+                                <label class="form-label" for="game_dota2_ign">Steam Name / Friend Code</label>
+                                <input type="text" id="game_dota2_ign" name="game_dota2_ign" 
+                                       value="{{ dota2_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your Steam username">
+                                <span class="form-hint">Example: Miracle-</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_dota2_role">Position (Optional)</label>
+                                    <select id="game_dota2_role" name="game_dota2_role" class="form-input">
+                                        <option value="">Select Position</option>
+                                        <option value="Carry" {% if dota2_profile.role == "Carry" %}selected{% endif %}>Carry</option>
+                                        <option value="Mid" {% if dota2_profile.role == "Mid" %}selected{% endif %}>Mid</option>
+                                        <option value="Offlane" {% if dota2_profile.role == "Offlane" %}selected{% endif %}>Offlane</option>
+                                        <option value="Soft Support" {% if dota2_profile.role == "Soft Support" %}selected{% endif %}>Soft Support</option>
+                                        <option value="Hard Support" {% if dota2_profile.role == "Hard Support" %}selected{% endif %}>Hard Support</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_dota2_rank">MMR (Optional)</label>
+                                    <input type="text" id="game_dota2_rank" name="game_dota2_rank" 
+                                           value="{{ dota2_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., 7500 MMR">
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="game-id-group">
-                        <h3 class="game-title">Steam Games</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label" for="steam_id">Steam ID</label>
-                                <input type="text" id="steam_id" name="steam_id" value="{{ request.user.profile.steam_id }}" class="form-input" placeholder="Your Steam ID">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="game-id-group">
-                        <h3 class="game-title">Mobile Legends</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label" for="mlbb_id">Game ID</label>
-                                <input type="text" id="mlbb_id" name="mlbb_id" value="{{ request.user.profile.mlbb_id }}" class="form-input">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="mlbb_server_id">Server ID</label>
-                                <input type="text" id="mlbb_server_id" name="mlbb_server_id" value="{{ request.user.profile.mlbb_server_id }}" class="form-input">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="game-id-group">
-                        <h3 class="game-title">Other Games</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label" for="ea_id">EA ID (FC 24)</label>
-                                <input type="text" id="ea_id" name="ea_id" value="{{ request.user.profile.ea_id }}" class="form-input">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="pubg_mobile_id">PUBG Mobile ID</label>
-                                <input type="text" id="pubg_mobile_id" name="pubg_mobile_id" value="{{ request.user.profile.pubg_mobile_id }}" class="form-input">
-                            </div>
-                        </div>
-                    </div>
-                    
-                        <button type="submit" class="btn btn-primary">Save Game IDs</button>
-                    </form>
-                </details>
-                
-                <!-- Add New Game Profile -->
-                <div class="add-game-profile" style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 0.5rem; padding: 1.5rem;">
-                    <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #e2e8f0;">Add New Game Profile</h3>
-                    <form method="post" action="{% url 'user_profile:add_game_profile' %}" class="settings-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="redirect_to" value="settings">
                         
-                        <div class="form-row">
+                        <!-- EA SPORTS FC 26 -->
+                        <div class="game-profile-card" style="background: rgba(0, 164, 255, 0.1); border: 2px solid rgba(0, 164, 255, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">⚽</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #00a4ff; margin: 0;">EA SPORTS FC™ 26</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">SPORTS • Featured</p>
+                                </div>
+                            </div>
                             <div class="form-group">
-                                <label class="form-label" for="game">Game</label>
-                                <select id="game" name="game" class="form-input" required>
-                                    <option value="">-- Select Game --</option>
-                                    <option value="valorant">🎯 VALORANT</option>
-                                    <option value="csgo">🔫 CS:GO</option>
-                                    <option value="cs2">🔫 Counter-Strike 2</option>
-                                    <option value="lol">⚔ League of Legends</option>
-                                    <option value="dota2">🛡 Dota 2</option>
-                                    <option value="overwatch">🎮 Overwatch 2</option>
-                                    <option value="apex">🏹 Apex Legends</option>
-                                    <option value="fortnite">🪂 Fortnite</option>
-                                    <option value="pubg">🔥 PUBG</option>
-                                    <option value="r6">🏰 Rainbow Six Siege</option>
-                                    <option value="rocket_league">🚗 Rocket League</option>
-                                    <option value="mlbb">⚡ Mobile Legends</option>
-                                    <option value="codm">🎖 Call of Duty Mobile</option>
-                                    <option value="pubgm">📱 PUBG Mobile</option>
-                                    <option value="freefire">🔥 Free Fire</option>
-                                    <option value="fc24">⚽ FC 24</option>
+                                <label class="form-label" for="game_ea_fc_ign">EA ID / Gamertag</label>
+                                <input type="text" id="game_ea_fc_ign" name="game_ea_fc_ign" 
+                                       value="{{ ea_fc_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your EA ID">
+                                <span class="form-hint">Example: YourEAID</span>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_ea_fc_platform">Platform (Optional)</label>
+                                <select id="game_ea_fc_platform" name="game_ea_fc_platform" class="form-input">
+                                    <option value="">Select Platform</option>
+                                    <option value="PC" {% if ea_fc_profile.platform == "PC" %}selected{% endif %}>PC</option>
+                                    <option value="PlayStation" {% if ea_fc_profile.platform == "PlayStation" %}selected{% endif %}>PlayStation</option>
+                                    <option value="Xbox" {% if ea_fc_profile.platform == "Xbox" %}selected{% endif %}>Xbox</option>
                                 </select>
                             </div>
-                            
+                        </div>
+                        
+                        <!-- eFootball 2026 -->
+                        <div class="game-profile-card" style="background: rgba(0, 85, 170, 0.1); border: 2px solid rgba(0, 85, 170, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">⚽</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #0055aa; margin: 0;">eFootball™ 2026</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">SPORTS</p>
+                                </div>
+                            </div>
                             <div class="form-group">
-                                <label class="form-label" for="in_game_name">In-Game Username</label>
-                                <input type="text" id="in_game_name" name="in_game_name" class="form-input" placeholder="e.g., PlayerName#TAG" required>
+                                <label class="form-label" for="game_efootball_ign">Konami ID / Username</label>
+                                <input type="text" id="game_efootball_ign" name="game_efootball_ign" 
+                                       value="{{ efootball_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your Konami ID">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_efootball_platform">Platform (Optional)</label>
+                                <select id="game_efootball_platform" name="game_efootball_platform" class="form-input">
+                                    <option value="">Select Platform</option>
+                                    <option value="PC" {% if efootball_profile.platform == "PC" %}selected{% endif %}>PC</option>
+                                    <option value="PlayStation" {% if efootball_profile.platform == "PlayStation" %}selected{% endif %}>PlayStation</option>
+                                    <option value="Xbox" {% if efootball_profile.platform == "Xbox" %}selected{% endif %}>Xbox</option>
+                                    <option value="Mobile" {% if efootball_profile.platform == "Mobile" %}selected{% endif %}>Mobile</option>
+                                </select>
                             </div>
                         </div>
                         
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label" for="rank_name">Current Rank (Optional)</label>
-                                <input type="text" id="rank_name" name="rank_name" class="form-input" placeholder="e.g., Diamond 2, Global Elite">
+                        <!-- PUBG MOBILE -->
+                        <div class="game-profile-card" style="background: rgba(255, 153, 0, 0.1); border: 2px solid rgba(255, 153, 0, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🎮</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #ff9900; margin: 0;">PUBG MOBILE</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">BR • Featured</p>
+                                </div>
                             </div>
-                            
                             <div class="form-group">
-                                <label class="form-label" for="main_role">Main Role (Optional)</label>
-                                <input type="text" id="main_role" name="main_role" class="form-input" placeholder="e.g., Duelist, Support, Mid">
+                                <label class="form-label" for="game_pubgm_ign">Player ID</label>
+                                <input type="text" id="game_pubgm_ign" name="game_pubgm_ign" 
+                                       value="{{ pubgm_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your PUBG Mobile ID">
+                                <span class="form-hint">Example: 5123456789</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_pubgm_role">Role (Optional)</label>
+                                    <select id="game_pubgm_role" name="game_pubgm_role" class="form-input">
+                                        <option value="">Select Role</option>
+                                        <option value="IGL" {% if pubgm_profile.role == "IGL" %}selected{% endif %}>IGL</option>
+                                        <option value="Assaulter" {% if pubgm_profile.role == "Assaulter" %}selected{% endif %}>Assaulter</option>
+                                        <option value="Sniper" {% if pubgm_profile.role == "Sniper" %}selected{% endif %}>Sniper</option>
+                                        <option value="Support" {% if pubgm_profile.role == "Support" %}selected{% endif %}>Support</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_pubgm_rank">Tier (Optional)</label>
+                                    <input type="text" id="game_pubgm_rank" name="game_pubgm_rank" 
+                                           value="{{ pubgm_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., Conqueror">
+                                </div>
                             </div>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary">➕ Add Game Profile</button>
-                    </form>
-                </div>
+                        <!-- Mobile Legends: Bang Bang -->
+                        <div class="game-profile-card" style="background: rgba(70, 110, 255, 0.1); border: 2px solid rgba(70, 110, 255, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">⚡</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #466eff; margin: 0;">Mobile Legends: Bang Bang</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">MOBA • Featured</p>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_mlbb_ign">Game ID</label>
+                                    <input type="text" id="game_mlbb_ign" name="game_mlbb_ign" 
+                                           value="{{ mlbb_profile.ign|default:'' }}" 
+                                           class="form-input" placeholder="Your MLBB ID">
+                                    <span class="form-hint">Example: 123456789</span>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_mlbb_server">Server ID</label>
+                                    <input type="text" id="game_mlbb_server" name="game_mlbb_server" 
+                                           value="{{ mlbb_profile.metadata.server_id|default:'' }}" 
+                                           class="form-input" placeholder="Server ID">
+                                    <span class="form-hint">Example: 1234</span>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_mlbb_role">Role (Optional)</label>
+                                    <select id="game_mlbb_role" name="game_mlbb_role" class="form-input">
+                                        <option value="">Select Role</option>
+                                        <option value="Tank" {% if mlbb_profile.role == "Tank" %}selected{% endif %}>Tank</option>
+                                        <option value="Fighter" {% if mlbb_profile.role == "Fighter" %}selected{% endif %}>Fighter</option>
+                                        <option value="Assassin" {% if mlbb_profile.role == "Assassin" %}selected{% endif %}>Assassin</option>
+                                        <option value="Mage" {% if mlbb_profile.role == "Mage" %}selected{% endif %}>Mage</option>
+                                        <option value="Marksman" {% if mlbb_profile.role == "Marksman" %}selected{% endif %}>Marksman</option>
+                                        <option value="Support" {% if mlbb_profile.role == "Support" %}selected{% endif %}>Support</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_mlbb_rank">Rank (Optional)</label>
+                                    <input type="text" id="game_mlbb_rank" name="game_mlbb_rank" 
+                                           value="{{ mlbb_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., Mythic Glory">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Free Fire -->
+                        <div class="game-profile-card" style="background: rgba(255, 87, 51, 0.1); border: 2px solid rgba(255, 87, 51, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🔥</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #ff5733; margin: 0;">Free Fire</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">BR</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_freefire_ign">Player ID</label>
+                                <input type="text" id="game_freefire_ign" name="game_freefire_ign" 
+                                       value="{{ freefire_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your Free Fire ID">
+                                <span class="form-hint">Example: 123456789</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_freefire_role">Role (Optional)</label>
+                                    <select id="game_freefire_role" name="game_freefire_role" class="form-input">
+                                        <option value="">Select Role</option>
+                                        <option value="Rusher" {% if freefire_profile.role == "Rusher" %}selected{% endif %}>Rusher</option>
+                                        <option value="Support" {% if freefire_profile.role == "Support" %}selected{% endif %}>Support</option>
+                                        <option value="Sniper" {% if freefire_profile.role == "Sniper" %}selected{% endif %}>Sniper</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_freefire_rank">Rank (Optional)</label>
+                                    <input type="text" id="game_freefire_rank" name="game_freefire_rank" 
+                                           value="{{ freefire_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., Heroic">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Call of Duty: Mobile -->
+                        <div class="game-profile-card" style="background: rgba(82, 198, 126, 0.1); border: 2px solid rgba(82, 198, 126, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🎖️</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #52c67e; margin: 0;">Call of Duty®: Mobile</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">FPS</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_codm_ign">Player ID / UID</label>
+                                <input type="text" id="game_codm_ign" name="game_codm_ign" 
+                                       value="{{ codm_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your COD Mobile UID">
+                                <span class="form-hint">Example: 6742012345678901234</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_codm_role">Role (Optional)</label>
+                                    <select id="game_codm_role" name="game_codm_role" class="form-input">
+                                        <option value="">Select Role</option>
+                                        <option value="Slayer" {% if codm_profile.role == "Slayer" %}selected{% endif %}>Slayer</option>
+                                        <option value="Obj" {% if codm_profile.role == "Obj" %}selected{% endif %}>Obj</option>
+                                        <option value="Sniper" {% if codm_profile.role == "Sniper" %}selected{% endif %}>Sniper</option>
+                                        <option value="Support" {% if codm_profile.role == "Support" %}selected{% endif %}>Support</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_codm_rank">Rank (Optional)</label>
+                                    <input type="text" id="game_codm_rank" name="game_codm_rank" 
+                                           value="{{ codm_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., Legendary">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Rocket League -->
+                        <div class="game-profile-card" style="background: rgba(0, 112, 224, 0.1); border: 2px solid rgba(0, 112, 224, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🚗</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #0070e0; margin: 0;">Rocket League</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">SPORTS • Featured</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_rocketleague_ign">Epic Games ID</label>
+                                <input type="text" id="game_rocketleague_ign" name="game_rocketleague_ign" 
+                                       value="{{ rocketleague_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your Epic Games ID">
+                                <span class="form-hint">Example: YourEpicID</span>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_rocketleague_rank">Rank (Optional)</label>
+                                <input type="text" id="game_rocketleague_rank" name="game_rocketleague_rank" 
+                                       value="{{ rocketleague_profile.rank|default:'' }}" 
+                                       class="form-input" placeholder="e.g., Grand Champion">
+                            </div>
+                        </div>
+                        
+                        <!-- Rainbow Six Siege -->
+                        <div class="game-profile-card" style="background: rgba(242, 201, 76, 0.1); border: 2px solid rgba(242, 201, 76, 0.3); border-radius: 0.75rem; padding: 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                <span style="font-size: 2rem;">🏰</span>
+                                <div>
+                                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #f2c94c; margin: 0;">Tom Clancy's Rainbow Six® Siege</h3>
+                                    <p style="font-size: 0.875rem; color: #94a3b8; margin: 0;">FPS • Featured</p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="game_r6siege_ign">Ubisoft Username</label>
+                                <input type="text" id="game_r6siege_ign" name="game_r6siege_ign" 
+                                       value="{{ r6siege_profile.ign|default:'' }}" 
+                                       class="form-input" placeholder="Your Ubisoft username">
+                                <span class="form-hint">Example: Beaulo</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="game_r6siege_role">Role (Optional)</label>
+                                    <select id="game_r6siege_role" name="game_r6siege_role" class="form-input">
+                                        <option value="">Select Role</option>
+                                        <option value="Entry Fragger" {% if r6siege_profile.role == "Entry Fragger" %}selected{% endif %}>Entry Fragger</option>
+                                        <option value="Support" {% if r6siege_profile.role == "Support" %}selected{% endif %}>Support</option>
+                                        <option value="Flex" {% if r6siege_profile.role == "Flex" %}selected{% endif %}>Flex</option>
+                                        <option value="Hard Breach" {% if r6siege_profile.role == "Hard Breach" %}selected{% endif %}>Hard Breach</option>
+                                        <option value="IGL" {% if r6siege_profile.role == "IGL" %}selected{% endif %}>IGL</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="game_r6siege_rank">Rank (Optional)</label>
+                                    <input type="text" id="game_r6siege_rank" name="game_r6siege_rank" 
+                                           value="{{ r6siege_profile.rank|default:'' }}" 
+                                           class="form-input" placeholder="e.g., Diamond 1">
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem; font-size: 1.125rem; padding: 0.875rem 2rem;">💾 Save All Game Profiles</button>
+                </form>
             </section>
             
             <!-- Social Links Section -->

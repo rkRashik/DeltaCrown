@@ -687,14 +687,69 @@ def settings_view(request):
         messages.success(request, 'Your settings have been updated.')
         return redirect('user_profile:settings')
 
+    # Get all game profiles from the unified game_profiles JSON field
+    from apps.games.constants import ALL_GAMES, SUPPORTED_GAMES
+    game_profile_data = {}
+    for game_slug in ALL_GAMES:
+        game_data = profile.get_game_profile(game_slug)
+        if game_data:
+            game_profile_data[f'{game_slug}_profile'] = game_data
+
     context = {
         'profile': profile,
         'privacy_settings': privacy_settings,
         'verification_record': verification_record,
         'game_profiles': game_profiles,
+        **game_profile_data,  # Add all game profile data to context
     }
 
     return render(request, 'user_profile/settings.html', context)
+
+
+@login_required
+def save_game_profiles(request):
+    """
+    Handle saving all 11 game profiles from the unified settings form.
+    Uses the game_profiles JSONField to store all game data.
+    """
+    if request.method != 'POST':
+        return redirect('user_profile:settings')
+    
+    from apps.games.constants import ALL_GAMES
+    profile = request.user.profile
+    
+    # Process each of the 11 games
+    for game_slug in ALL_GAMES:
+        ign = request.POST.get(f'game_{game_slug}_ign', '').strip()
+        role = request.POST.get(f'game_{game_slug}_role', '').strip()
+        rank = request.POST.get(f'game_{game_slug}_rank', '').strip()
+        platform = request.POST.get(f'game_{game_slug}_platform', '').strip()
+        
+        # For MLBB, also capture server_id
+        metadata = {}
+        if game_slug == 'mlbb':
+            server_id = request.POST.get('game_mlbb_server', '').strip()
+            if server_id:
+                metadata['server_id'] = server_id
+        
+        # If IGN is provided, save/update the profile
+        if ign:
+            profile.set_game_profile(game_slug, {
+                'game': game_slug,
+                'ign': ign,
+                'role': role or None,
+                'rank': rank or None,
+                'platform': platform or None,
+                'is_verified': False,
+                'metadata': metadata
+            })
+        else:
+            # If no IGN, remove the profile if it exists
+            profile.remove_game_profile(game_slug)
+    
+    profile.save()
+    messages.success(request, '✅ Game profiles saved successfully!')
+    return redirect('user_profile:settings')
 
 
 # ============================================================================
