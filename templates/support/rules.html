@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Tournament Rules & Guidelines — DeltaCrown{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-[#0d1117] via-[#0d1117] to-[#161b22]">
+    
+    <!-- Header -->
+    <header class="relative bg-gradient-to-b from-[#161b22] to-[#0d1117] border-b border-[#30363d] shadow-2xl">
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute top-0 left-1/4 w-64 h-64 bg-[#f85149]/10 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#58a6ff]/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+        </div>
+        
+        <div class="relative max-w-6xl mx-auto px-6 py-16">
+            <div class="flex items-center gap-4 mb-6">
+                <div class="w-14 h-14 bg-gradient-to-br from-[#f85149] to-[#da3633] rounded-xl flex items-center justify-center shadow-lg shadow-[#f85149]/20">
+                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-5xl font-bold text-white mb-2">Tournament Rules & Guidelines</h1>
+                    <p class="text-[#8b949e] text-lg">Official rules governing all DeltaCrown tournaments and competitions</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 text-sm text-[#8b949e]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span>Last updated: December 16, 2025</span>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Content -->
+    <div class="max-w-6xl mx-auto px-6 py-16">
+        
+        <!-- Table of Contents -->
+        <nav class="mb-16 bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-xl p-8 shadow-xl">
+            <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                <svg class="w-6 h-6 text-[#58a6ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
+                Table of Contents
+            </h2>
+            <ul class="grid md:grid-cols-2 gap-3">
+                <li><a href="#eligibility" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">1. Eligibility Requirements</a></li>
+                <li><a href="#registration" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">2. Tournament Registration</a></li>
+                <li><a href="#conduct" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">3. Code of Conduct</a></li>
+                <li><a href="#gameplay" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">4. Gameplay Rules</a></li>
+                <li><a href="#cheating" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">5. Anti-Cheat Policy</a></li>
+                <li><a href="#disputes" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">6. Dispute Resolution</a></li>
+                <li><a href="#prizes" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">7. Prize Distribution</a></li>
+                <li><a href="#penalties" class="text-[#58a6ff] hover:text-[#79c0ff] transition-colors">8. Violations & Penalties</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Section 1: Eligibility -->
+        <section id="eligibility" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">🎯</span>
+                <h2 class="text-3xl font-bold text-white">1. Eligibility Requirements</h2>
+            </div>
+            
+            <div class="space-y-6 text-[#c9d1d9] leading-relaxed">
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">General Eligibility</h3>
+                    <ul class="space-y-3 text-[#8b949e]">
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-[#238636] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span>Players must be at least <strong class="text-white">13 years old</strong> to participate in DeltaCrown tournaments</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-[#238636] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span>Players under 18 must have <strong class="text-white">parental consent</strong> to participate</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-[#238636] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span>All players must have a <strong class="text-white">valid DeltaCrown account</strong> in good standing</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-[#238636] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span>Players must not be subject to any <strong class="text-white">active bans or suspensions</strong></span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg class="w-5 h-5 text-[#238636] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            <span>Participants agree to provide <strong class="text-white">accurate information</strong> during registration</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Regional Restrictions</h3>
+                    <p class="text-[#8b949e] mb-4">While DeltaCrown primarily serves Bangladesh and emerging markets, certain tournaments may have regional restrictions based on:</p>
+                    <ul class="space-y-2 text-[#8b949e] ml-6 list-disc">
+                        <li>Game server availability and latency requirements</li>
+                        <li>Legal compliance with local gaming regulations</li>
+                        <li>Payment method availability for prize distribution</li>
+                        <li>Age verification requirements in specific jurisdictions</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 2: Registration -->
+        <section id="registration" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">📝</span>
+                <h2 class="text-3xl font-bold text-white">2. Tournament Registration</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Registration Process</h3>
+                    <ol class="space-y-4 text-[#8b949e]">
+                        <li class="flex items-start gap-4">
+                            <span class="flex-shrink-0 w-8 h-8 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">1</span>
+                            <div>
+                                <strong class="text-white">Create or Join a Team:</strong> For team tournaments, assemble your roster ensuring all members meet eligibility requirements. Solo tournaments require individual registration only.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <span class="flex-shrink-0 w-8 h-8 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">2</span>
+                            <div>
+                                <strong class="text-white">Pay Entry Fee:</strong> Complete payment through accepted methods (bKash, Nagad, Rocket, or DeltaCoin). Entry fees are non-refundable unless the tournament is cancelled by DeltaCrown.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <span class="flex-shrink-0 w-8 h-8 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">3</span>
+                            <div>
+                                <strong class="text-white">Confirm Registration:</strong> Verify all team member details, in-game IDs, and contact information before the registration deadline. Changes after deadline require administrator approval.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-4">
+                            <span class="flex-shrink-0 w-8 h-8 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">4</span>
+                            <div>
+                                <strong class="text-white">Check-in Requirement:</strong> All registered participants must check in 30 minutes before tournament start time. Failure to check in results in disqualification.
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+                
+                <div class="bg-[#21262d] border border-[#f85149]/30 rounded-xl p-6">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-[#f85149] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        <div>
+                            <strong class="text-white block mb-2">Important Registration Notes:</strong>
+                            <ul class="space-y-1 text-[#8b949e] text-sm">
+                                <li>• Registration closes 24 hours before tournament start or when slots are filled</li>
+                                <li>• Substitute players must be registered before tournament begins</li>
+                                <li>• Each player can only register for one team per tournament</li>
+                                <li>• False information during registration may result in permanent ban</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 3: Code of Conduct -->
+        <section id="conduct" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">🤝</span>
+                <h2 class="text-3xl font-bold text-white">3. Code of Conduct</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Expected Behavior</h3>
+                    <p class="text-[#8b949e] mb-4">All participants must adhere to professional standards of conduct:</p>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="bg-[#0d1117] border border-[#30363d] rounded-lg p-4">
+                            <h4 class="font-semibold text-[#238636] mb-2">✓ DO</h4>
+                            <ul class="space-y-2 text-[#8b949e] text-sm">
+                                <li>• Treat all players, staff, and spectators with respect</li>
+                                <li>• Communicate professionally in all platforms</li>
+                                <li>• Report violations or technical issues promptly</li>
+                                <li>• Follow match schedules and respond to officials</li>
+                                <li>• Accept decisions made by tournament administrators</li>
+                            </ul>
+                        </div>
+                        <div class="bg-[#0d1117] border border-[#30363d] rounded-lg p-4">
+                            <h4 class="font-semibold text-[#f85149] mb-2">✗ DON'T</h4>
+                            <ul class="space-y-2 text-[#8b949e] text-sm">
+                                <li>• Use offensive, discriminatory, or hateful language</li>
+                                <li>• Harass, threaten, or bully other participants</li>
+                                <li>• Share personal information of other players</li>
+                                <li>• Spam, advertise, or promote external services</li>
+                                <li>• Attempt to manipulate or exploit tournament systems</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 4: Gameplay Rules -->
+        <section id="gameplay" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">🎮</span>
+                <h2 class="text-3xl font-bold text-white">4. Gameplay Rules</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">General Match Rules</h3>
+                    <ul class="space-y-3 text-[#8b949e]">
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#58a6ff] font-bold">•</span>
+                            <span><strong class="text-white">Match Format:</strong> All matches follow the format specified in tournament details (Bo1, Bo3, Bo5, etc.)</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#58a6ff] font-bold">•</span>
+                            <span><strong class="text-white">Server Selection:</strong> Matches are played on specified servers. Ping disputes must be raised before match starts.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#58a6ff] font-bold">•</span>
+                            <span><strong class="text-white">Technical Pauses:</strong> Teams may request one technical pause per map (maximum 5 minutes). Abuse results in forfeit.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#58a6ff] font-bold">•</span>
+                            <span><strong class="text-white">Disconnections:</strong> Players have 5 minutes to reconnect. Repeated disconnections may result in match forfeit.</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#58a6ff] font-bold">•</span>
+                            <span><strong class="text-white">Match Recording:</strong> All tournament matches must allow spectators and may be recorded for verification purposes.</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Game-Specific Rules</h3>
+                    <p class="text-[#8b949e] mb-4">Each game title has specific rules regarding:</p>
+                    <ul class="grid md:grid-cols-2 gap-3 text-[#8b949e]">
+                        <li class="flex items-start gap-2">
+                            <span class="text-[#58a6ff]">→</span>
+                            <span>Allowed/banned characters, weapons, or items</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-[#58a6ff]">→</span>
+                            <span>Map pool and selection process</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-[#58a6ff]">→</span>
+                            <span>Exploit and bug usage prohibitions</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-[#58a6ff]">→</span>
+                            <span>Third-party software restrictions</span>
+                        </li>
+                    </ul>
+                    <p class="text-[#8b949e] mt-4 text-sm">Refer to individual tournament pages for game-specific ruleset details.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 5: Anti-Cheat -->
+        <section id="cheating" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">🛡️</span>
+                <h2 class="text-3xl font-bold text-white">5. Anti-Cheat Policy</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-gradient-to-br from-[#f85149]/10 to-[#da3633]/10 border border-[#f85149]/30 rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Zero Tolerance Policy</h3>
+                    <p class="text-[#c9d1d9] mb-4 leading-relaxed">
+                        DeltaCrown maintains a strict zero-tolerance policy toward cheating, hacking, or any form of unfair advantage. We employ advanced detection systems and manual review processes to ensure competitive integrity.
+                    </p>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Prohibited Activities</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3 p-3 bg-[#0d1117] rounded-lg">
+                            <svg class="w-6 h-6 text-[#f85149] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+                            <div>
+                                <strong class="text-white">Cheating Software:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Using aimbots, wallhacks, ESPs, triggerb ots, or any unauthorized third-party software that provides competitive advantages.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-[#0d1117] rounded-lg">
+                            <svg class="w-6 h-6 text-[#f85149] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+                            <div>
+                                <strong class="text-white">Match Fixing:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Deliberately losing, colluding with opponents, or manipulating match outcomes for personal gain or to influence betting.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-[#0d1117] rounded-lg">
+                            <svg class="w-6 h-6 text-[#f85149] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+                            <div>
+                                <strong class="text-white">Account Sharing:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Allowing another player to compete using your account or using someone else's account during tournaments.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-[#0d1117] rounded-lg">
+                            <svg class="w-6 h-6 text-[#f85149] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+                            <div>
+                                <strong class="text-white">Smurfing:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Using secondary accounts to compete below your skill level or evade bans and restrictions.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 bg-[#0d1117] rounded-lg">
+                            <svg class="w-6 h-6 text-[#f85149] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+                            <div>
+                                <strong class="text-white">Exploits & Bugs:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Intentionally exploiting game bugs, glitches, or map exploits to gain unfair advantages.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Reporting Suspicious Activity</h3>
+                    <p class="text-[#8b949e] mb-4">If you suspect cheating or rule violations:</p>
+                    <ol class="space-y-2 text-[#8b949e]">
+                        <li><strong class="text-white">1.</strong> Collect evidence (screenshots, video recordings, match IDs)</li>
+                        <li><strong class="text-white">2.</strong> Submit a report through the support system or email deltacrownhq@gmail.com</li>
+                        <li><strong class="text-white">3.</strong> Do not publicly accuse players without conclusive evidence</li>
+                        <li><strong class="text-white">4.</strong> Allow our moderation team to investigate and take appropriate action</li>
+                    </ol>
+                    <p class="text-[#8b949e] text-sm mt-4 italic">All reports are treated confidentially. False accusations made in bad faith may result in penalties.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 6: Dispute Resolution -->
+        <section id="disputes" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">⚖️</span>
+                <h2 class="text-3xl font-bold text-white">6. Dispute Resolution</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Filing a Dispute</h3>
+                    <p class="text-[#8b949e] mb-4">Disputes must be filed within <strong class="text-white">30 minutes</strong> of match completion. Include:</p>
+                    <ul class="space-y-2 text-[#8b949e] ml-6 list-disc">
+                        <li>Match ID and tournament details</li>
+                        <li>Clear description of the issue</li>
+                        <li>Supporting evidence (screenshots, videos, timestamps)</li>
+                        <li>Contact information for follow-up</li>
+                    </ul>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Resolution Process</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-10 h-10 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">1</div>
+                            <div>
+                                <strong class="text-white">Initial Review:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Tournament administrators review the dispute and all provided evidence within 24 hours.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-10 h-10 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">2</div>
+                            <div>
+                                <strong class="text-white">Investigation:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Additional information may be requested from involved parties. Match replays and server logs are analyzed.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-10 h-10 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">3</div>
+                            <div>
+                                <strong class="text-white">Decision:</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Administrators issue a final decision based on evidence and rules. All parties are notified via email.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 w-10 h-10 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center text-[#58a6ff] font-bold">4</div>
+                            <div>
+                                <strong class="text-white">Appeal (if applicable):</strong>
+                                <p class="text-[#8b949e] text-sm mt-1">Appeals may be submitted within 48 hours with new evidence. Senior administrators make final ruling.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-[#21262d] border border-[#58a6ff]/30 rounded-xl p-6">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-[#58a6ff] flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                        <div>
+                            <strong class="text-white block mb-2">Important Notice:</strong>
+                            <p class="text-[#8b949e] text-sm">
+                                Administrator decisions are considered final. DeltaCrown reserves the right to modify match results, award penalties, or take corrective action as necessary to maintain tournament integrity.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 7: Prize Distribution -->
+        <section id="prizes" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">💰</span>
+                <h2 class="text-3xl font-bold text-white">7. Prize Distribution</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Prize Pool & Distribution</h3>
+                    <ul class="space-y-3 text-[#8b949e]">
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#238636] font-bold">✓</span>
+                            <span>Prize pools are distributed according to tournament-specific payout structures</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#238636] font-bold">✓</span>
+                            <span>Winners must claim prizes within <strong class="text-white">30 days</strong> of tournament conclusion</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#238636] font-bold">✓</span>
+                            <span>Payment methods include bKash, Nagad, Rocket, bank transfer, or DeltaCoin credits</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#238636] font-bold">✓</span>
+                            <span>Winners must provide valid payment information and identity verification</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <span class="text-[#238636] font-bold">✓</span>
+                            <span>Prize distribution typically occurs within <strong class="text-white">7-14 business days</strong> after verification</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Tax & Legal Considerations</h3>
+                    <p class="text-[#8b949e] leading-relaxed">
+                        Prize winners are responsible for any applicable taxes or fees in their jurisdiction. DeltaCrown may be required to report earnings to tax authorities in accordance with local laws. Winners may need to provide tax identification numbers or complete additional documentation for prizes exceeding certain thresholds as defined by Bangladesh law.
+                    </p>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Prize Forfeiture</h3>
+                    <p class="text-[#8b949e] mb-4">Prizes may be forfeited or withheld if:</p>
+                    <ul class="space-y-2 text-[#8b949e] ml-6 list-disc">
+                        <li>Cheating or rule violations are discovered during post-tournament review</li>
+                        <li>Winner fails to provide required documentation within specified timeframe</li>
+                        <li>Winner is found to have provided false information during registration</li>
+                        <li>Winner's account is banned or suspended for policy violations</li>
+                        <li>Winner is unreachable or does not respond to prize claim communications</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Section 8: Penalties -->
+        <section id="penalties" class="mb-16 scroll-mt-6">
+            <div class="flex items-center gap-4 mb-6 pb-4 border-b-2 border-[#21262d]">
+                <span class="text-3xl">⚠️</span>
+                <h2 class="text-3xl font-bold text-white">8. Violations & Penalties</h2>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="bg-gradient-to-br from-[#f85149]/10 to-[#da3633]/10 border border-[#f85149]/30 rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Penalty Structure</h3>
+                    <p class="text-[#c9d1d9] mb-6 leading-relaxed">
+                        DeltaCrown employs a tiered penalty system based on violation severity and frequency. Penalties are cumulative and may escalate with repeated offenses.
+                    </p>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-[#0d1117] border border-[#f0d00030 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-bold text-[#f0d000]">⚡ Minor Violations</h4>
+                                <span class="text-xs px-3 py-1 bg-[#f0d000]/10 text-[#f0d000] rounded-full">Warning → 7-day ban</span>
+                            </div>
+                            <p class="text-[#8b949e] text-sm">Unsportsmanlike conduct, minor toxicity, spam, late check-in</p>
+                        </div>
+                        
+                        <div class="bg-[#0d1117] border border-[#f85149]/30 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-bold text-[#f85149]">🔴 Major Violations</h4>
+                                <span class="text-xs px-3 py-1 bg-[#f85149]/10 text-[#f85149] rounded-full">14-30 day ban</span>
+                            </div>
+                            <p class="text-[#8b949e] text-sm">Harassment, hate speech, intentional game disruption, repeated minor violations</p>
+                        </div>
+                        
+                        <div class="bg-[#0d1117] border border-[#f85149]/50 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-bold text-[#f85149]">🚫 Severe Violations</h4>
+                                <span class="text-xs px-3 py-1 bg-[#f85149]/20 text-[#f85149] rounded-full font-bold">PERMANENT BAN</span>
+                            </div>
+                            <p class="text-[#8b949e] text-sm">Cheating, match fixing, account selling, doxxing, threats, circumventing bans</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-[#161b22] border border-[#30363d] rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Ban Appeal Process</h3>
+                    <p class="text-[#8b949e] mb-4">Players may appeal bans under the following conditions:</p>
+                    <ul class="space-y-2 text-[#8b949e]">
+                        <li><strong class="text-white">•</strong> Appeals must be submitted within 14 days of ban notification</li>
+                        <li><strong class="text-white">•</strong> New evidence or extenuating circumstances must be presented</li>
+                        <li><strong class="text-white">•</strong> Permanent bans for cheating are typically non-appealable</li>
+                        <li><strong class="text-white">•</strong> Appeal decisions by senior moderation team are final</li>
+                    </ul>
+                    <p class="text-[#8b949e] mt-4 text-sm">
+                        Submit appeals to: <a href="mailto:deltacrownhq@gmail.com" class="text-[#58a6ff] hover:underline">deltacrownhq@gmail.com</a> with subject line "Ban Appeal - [Your Username]"
+                    </p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Footer Section -->
+        <div class="border-t-2 border-[#21262d] pt-12 mt-16">
+            <div class="bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-xl p-8 text-center">
+                <h3 class="text-2xl font-bold text-white mb-4">Questions About Our Rules?</h3>
+                <p class="text-[#8b949e] mb-6 max-w-2xl mx-auto">
+                    If you need clarification on any rule or have concerns about tournament conduct, our support team is here to help.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="{% url 'support:contact' %}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#238636] to-[#2ea043] hover:from-[#2ea043] hover:to-[#238636] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-[#238636]/50">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Contact Support
+                    </a>
+                    <a href="{% url 'support:faq' %}" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#161b22] hover:bg-[#21262d] text-white font-semibold rounded-xl border border-[#30363d] hover:border-[#58a6ff]/50 transition-all duration-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        View FAQ
+                    </a>
+                </div>
+                <p class="text-[#6e7681] text-sm mt-6">
+                    Email: <a href="mailto:deltacrownhq@gmail.com" class="text-[#58a6ff] hover:underline">deltacrownhq@gmail.com</a>
+                </p>
+            </div>
+        </div>
+        
+    </div>
+    
+</div>
+
+<style>
+html {
+    scroll-behavior: smooth;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+</style>
+
+{% endblock %}

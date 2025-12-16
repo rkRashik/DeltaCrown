@@ -1,7 +1,7 @@
 # apps/support/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import FAQ, Testimonial
+from .models import FAQ, Testimonial, ContactMessage
 
 
 @admin.register(FAQ)
@@ -106,3 +106,51 @@ class TestimonialAdmin(admin.ModelAdmin):
         queryset.update(is_verified=True)
         self.message_user(request, f"{queryset.count()} testimonials verified")
     verify_testimonial.short_description = "Mark as verified"
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ['name', 'email', 'subject_preview', 'status', 'priority', 'created_at']
+    list_filter = ['status', 'priority', 'created_at']
+    search_fields = ['name', 'email', 'subject', 'message']
+    list_editable = ['status', 'priority']
+    readonly_fields = ['name', 'email', 'user', 'subject', 'message', 'created_at', 'ip_address', 'user_agent']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Sender Information', {
+            'fields': ('name', 'email', 'user')
+        }),
+        ('Message Content', {
+            'fields': ('subject', 'message')
+        }),
+        ('Status & Management', {
+            'fields': ('status', 'priority', 'resolved_at', 'admin_notes')
+        }),
+        ('Metadata', {
+            'fields': ('created_at', 'ip_address', 'user_agent'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def subject_preview(self, obj):
+        return obj.subject[:50] + ('...' if len(obj.subject) > 50 else '')
+    subject_preview.short_description = 'Subject'
+    
+    actions = ['mark_as_resolved', 'mark_as_in_progress', 'mark_as_urgent']
+    
+    def mark_as_resolved(self, request, queryset):
+        from django.utils import timezone
+        queryset.update(status='RESOLVED', resolved_at=timezone.now())
+        self.message_user(request, f"{queryset.count()} messages marked as resolved")
+    mark_as_resolved.short_description = "Mark as resolved"
+    
+    def mark_as_in_progress(self, request, queryset):
+        queryset.update(status='IN_PROGRESS')
+        self.message_user(request, f"{queryset.count()} messages marked as in progress")
+    mark_as_in_progress.short_description = "Mark as in progress"
+    
+    def mark_as_urgent(self, request, queryset):
+        queryset.update(priority='URGENT')
+        self.message_user(request, f"{queryset.count()} messages marked as urgent")
+    mark_as_urgent.short_description = "Mark as urgent"

@@ -20,11 +20,15 @@ def home(request):
 
 
 def privacy(request):
-    return render(request, "legal/privacy.html")
+    return render(request, "legal/privacy_policy.html")
 
 
 def terms(request):
-    return render(request, "legal/terms.html")
+    return render(request, "legal/terms_of_service.html")
+
+
+def cookies(request):
+    return render(request, "legal/cookie_policy.html")
 
 def ui_showcase(request):
     game_opts = [

@@ -1,18 +1,351 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Terms of Service — DeltaCrown{% endblock %}
-{% block content %}
-<section class="container py-10">
-  <h1 class="sec-h">Terms of Service</h1>
-  <div class="glass p-6 rounded-2xl mt-4 prose prose-invert max-w-none">
-    <h2>1. Acceptance</h2>
-    <p>By using DeltaCrown you agree to these terms.</p>
-    <h2>2. User Conduct</h2>
-    <p>Respect fair play and community guidelines. Cheating or abuse is prohibited.</p>
-    <h2>3. Payments</h2>
-    <p>Entry fees are non-refundable except where required by law or our policy.</p>
-    <h2>4. Changes</h2>
-    <p>We may update these terms. We will post changes here.</p>
-  </div>
-</section>
-{% endblock %}
 
+{% block content %}
+<!-- Hero Section -->
+<section class="relative min-h-[40vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-dc-dark to-gray-900">
+    <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-20 left-10 w-96 h-96 bg-dc-cyan/30 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-20 right-10 w-96 h-96 bg-dc-purple/30 rounded-full blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
+    </div>
+    
+    <div class="relative z-10 container mx-auto px-4 text-center">
+        <div class="inline-flex items-center gap-2 px-5 py-2.5 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-6 backdrop-blur-sm">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+            Legal
+        </div>
+        
+        <h1 class="font-display text-5xl md:text-6xl lg:text-7xl font-black text-white mb-6">
+            Terms of <span class="gradient-text">Service</span>
+        </h1>
+        <p class="text-xl text-gray-300 max-w-2xl mx-auto mb-4">
+            Last Updated: December 16, 2025
+        </p>
+        <p class="text-gray-400">
+            Please read these terms carefully before using DeltaCrown.
+        </p>
+    </div>
+</section>
+
+<!-- Terms Content -->
+<section class="py-20 bg-gradient-to-b from-dc-dark to-gray-900">
+    <div class="container mx-auto px-4 max-w-4xl">
+        
+        <!-- Quick Navigation -->
+        <div class="glass-effect rounded-2xl p-6 border border-white/10 mb-12">
+            <h3 class="font-bold text-white mb-4">Quick Navigation</h3>
+            <div class="grid md:grid-cols-2 gap-3 text-sm">
+                <a href="#acceptance" class="text-dc-cyan hover:text-dc-cyan/80">1. Acceptance of Terms</a>
+                <a href="#platform" class="text-dc-cyan hover:text-dc-cyan/80">2. Platform Description</a>
+                <a href="#accounts" class="text-dc-cyan hover:text-dc-cyan/80">3. User Accounts</a>
+                <a href="#conduct" class="text-dc-cyan hover:text-dc-cyan/80">4. User Conduct</a>
+                <a href="#tournaments" class="text-dc-cyan hover:text-dc-cyan/80">5. Tournaments & Competition</a>
+                <a href="#payments" class="text-dc-cyan hover:text-dc-cyan/80">6. Payments & Prizes</a>
+                <a href="#intellectual" class="text-dc-cyan hover:text-dc-cyan/80">7. Intellectual Property</a>
+                <a href="#moderation" class="text-dc-cyan hover:text-dc-cyan/80">8. Moderation & Enforcement</a>
+                <a href="#liability" class="text-dc-cyan hover:text-dc-cyan/80">9. Liability & Disclaimers</a>
+                <a href="#termination" class="text-dc-cyan hover:text-dc-cyan/80">10. Termination</a>
+                <a href="#changes" class="text-dc-cyan hover:text-dc-cyan/80">11. Changes to Terms</a>
+                <a href="#contact" class="text-dc-cyan hover:text-dc-cyan/80">12. Contact Us</a>
+            </div>
+        </div>
+        
+        <!-- Terms Sections -->
+        <div class="prose prose-invert max-w-none space-y-12">
+            
+            <!-- 1. Acceptance of Terms -->
+            <div id="acceptance" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">1.</span> Acceptance of Terms
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        By accessing or using DeltaCrown ("Platform", "Service", "We", "Us"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Platform.
+                    </p>
+                    <p>
+                        These Terms constitute a legally binding agreement between you and DeltaCrown, operated by Redwanul Rashik. By creating an account, participating in tournaments, or using any feature of the Platform, you acknowledge that you have read, understood, and agree to be bound by these Terms.
+                    </p>
+                    <p>
+                        <strong class="text-white">Eligibility:</strong> You must be at least 13 years old to use the Platform. If you are under 18, you must have parental or guardian consent to use the Platform and participate in tournaments.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 2. Platform Description -->
+            <div id="platform" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">2.</span> Platform Description
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        DeltaCrown is a comprehensive esports ecosystem that provides:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 ml-4">
+                        <li>Tournament organization and management systems</li>
+                        <li>Team and player profile management</li>
+                        <li>Competitive ranking and statistics tracking</li>
+                        <li>Match result verification and dispute resolution</li>
+                        <li>Payment processing for prize distribution</li>
+                        <li>Community features and social interactions</li>
+                        <li>E-commerce services for gaming products</li>
+                        <li>Digital economy through DeltaCoin</li>
+                    </ul>
+                    <p>
+                        The Platform supports multiple competitive games and provides infrastructure for players, teams, tournament organizers, and esports organizations to participate in professional competitive gaming.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 3. User Accounts -->
+            <div id="accounts" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">3.</span> User Accounts
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        <strong class="text-white">Account Creation:</strong> To access certain features, you must create an account. You agree to:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 ml-4">
+                        <li>Provide accurate, current, and complete information</li>
+                        <li>Maintain and promptly update your account information</li>
+                        <li>Maintain the security of your account credentials</li>
+                        <li>Notify us immediately of any unauthorized use</li>
+                        <li>Be responsible for all activities under your account</li>
+                    </ul>
+                    <p>
+                        <strong class="text-white">One Account Per Person:</strong> You may only create one account. Creating multiple accounts to manipulate rankings, circumvent bans, or gain unfair advantages is strictly prohibited and will result in permanent suspension.
+                    </p>
+                    <p>
+                        <strong class="text-white">Account Termination:</strong> We reserve the right to suspend or terminate your account for violations of these Terms, fraudulent activity, or any behavior that undermines the integrity of the Platform.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 4. User Conduct -->
+            <div id="conduct" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">4.</span> User Conduct
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        You agree <strong class="text-white">NOT</strong> to:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 ml-4">
+                        <li>Use cheats, hacks, exploits, or any unfair advantages in competition</li>
+                        <li>Engage in match-fixing, collusion, or result manipulation</li>
+                        <li>Harass, threaten, or abuse other users</li>
+                        <li>Post hate speech, discriminatory content, or offensive material</li>
+                        <li>Impersonate other users, staff, or organizations</li>
+                        <li>Spam, advertise, or promote external services without permission</li>
+                        <li>Share account credentials or allow others to use your account</li>
+                        <li>Attempt to bypass security measures or access unauthorized areas</li>
+                        <li>Use bots, automation, or scripts to gain unfair advantages</li>
+                        <li>Engage in fraudulent payment activities or chargebacks</li>
+                    </ul>
+                    <p>
+                        Violation of these conduct rules will result in warnings, suspensions, or permanent bans depending on severity.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 5. Tournaments & Competition -->
+            <div id="tournaments" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">5.</span> Tournaments & Competition
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        <strong class="text-white">Tournament Rules:</strong> Each tournament has specific rules, formats, and eligibility requirements. By registering, you agree to:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 ml-4">
+                        <li>Follow all tournament-specific rules and regulations</li>
+                        <li>Attend matches at scheduled times or notify organizers of issues</li>
+                        <li>Submit match results accurately and honestly</li>
+                        <li>Provide evidence (screenshots, videos) when requested</li>
+                        <li>Respect decisions made by tournament organizers and moderators</li>
+                    </ul>
+                    <p>
+                        <strong class="text-white">Fair Play:</strong> All matches must be played fairly. The use of third-party software, game exploits, or any form of cheating will result in immediate disqualification and account suspension.
+                    </p>
+                    <p>
+                        <strong class="text-white">Disputes:</strong> Disputes must be reported within 24 hours of the match. Our moderation team will review evidence and make final decisions. Dispute outcomes are final and non-negotiable.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 6. Payments & Prizes -->
+            <div id="payments" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">6.</span> Payments & Prizes
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        <strong class="text-white">Entry Fees:</strong> Some tournaments require entry fees. By registering, you authorize payment processing through our supported payment methods (bKash, Nagad, Rocket, Bank Transfer, Card Payments).
+                    </p>
+                    <p>
+                        <strong class="text-white">Prize Distribution:</strong> Tournament winners receive prizes as specified in tournament details. Prizes are distributed within 7-14 business days after tournament completion and verification.
+                    </p>
+                    <p>
+                        <strong class="text-white">Refunds:</strong> Entry fees are non-refundable except in cases of tournament cancellation by organizers. Refunds are processed within 14 business days.
+                    </p>
+                    <p>
+                        <strong class="text-white">DeltaCoin:</strong> DeltaCoin is a digital currency used within the Platform for rewards, purchases, and services. DeltaCoin has no cash value outside the Platform and cannot be exchanged for real currency except as specified in Platform policies.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 7. Intellectual Property -->
+            <div id="intellectual" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">7.</span> Intellectual Property
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        <strong class="text-white">Platform Content:</strong> All content on the Platform including logos, trademarks, designs, text, graphics, and software is owned by DeltaCrown or licensed to us. You may not copy, reproduce, or distribute Platform content without written permission.
+                    </p>
+                    <p>
+                        <strong class="text-white">User Content:</strong> By posting content (team logos, profiles, comments, videos), you grant DeltaCrown a worldwide, non-exclusive license to use, display, and distribute your content for Platform operations and marketing.
+                    </p>
+                    <p>
+                        <strong class="text-white">Game Content:</strong> Game names, logos, and trademarks are property of their respective owners. DeltaCrown does not claim ownership of third-party game intellectual property.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 8. Moderation & Enforcement -->
+            <div id="moderation" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">8.</span> Moderation & Enforcement
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        DeltaCrown employs 24/7 moderation to ensure fair play and community safety. We reserve the right to:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 ml-4">
+                        <li>Monitor matches, chat, and user behavior</li>
+                        <li>Issue warnings, suspensions, or permanent bans</li>
+                        <li>Remove or modify user-generated content</li>
+                        <li>Investigate and resolve disputes</li>
+                        <li>Disqualify players or teams from tournaments</li>
+                        <li>Withhold prizes for rule violations</li>
+                    </ul>
+                    <p>
+                        Moderation decisions are made at our sole discretion and are final.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 9. Liability & Disclaimers -->
+            <div id="liability" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">9.</span> Liability & Disclaimers
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        <strong class="text-white">Service "As Is":</strong> The Platform is provided "as is" without warranties of any kind. We do not guarantee uninterrupted, secure, or error-free service.
+                    </p>
+                    <p>
+                        <strong class="text-white">Limitation of Liability:</strong> DeltaCrown is not liable for:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 ml-4">
+                        <li>Lost profits, data, or opportunities</li>
+                        <li>Technical issues, bugs, or service downtime</li>
+                        <li>Actions of other users or third parties</li>
+                        <li>External payment processor issues</li>
+                        <li>Game server failures or connectivity problems</li>
+                    </ul>
+                    <p>
+                        Our total liability will not exceed the amount you paid to us in the 12 months prior to the claim.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 10. Termination -->
+            <div id="termination" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">10.</span> Termination
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        You may terminate your account at any time by contacting support. Upon termination:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 ml-4">
+                        <li>You lose access to all Platform features</li>
+                        <li>All DeltaCoin balance is forfeited</li>
+                        <li>Team memberships and tournament registrations are cancelled</li>
+                        <li>Your data may be retained as required by law or Platform operations</li>
+                    </ul>
+                    <p>
+                        We may terminate your account for violations of these Terms without prior notice. Banned users may not create new accounts.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 11. Changes to Terms -->
+            <div id="changes" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">11.</span> Changes to Terms
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        We reserve the right to modify these Terms at any time. Changes will be posted on this page with an updated "Last Updated" date. Continued use of the Platform after changes constitutes acceptance of the new Terms.
+                    </p>
+                    <p>
+                        For significant changes, we will provide notice via email or Platform notification.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 12. Contact Us -->
+            <div id="contact" class="glass-effect rounded-2xl p-8 border border-white/10 scroll-mt-24">
+                <h2 class="font-display text-3xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-dc-cyan">12.</span> Contact Us
+                </h2>
+                <div class="text-gray-300 leading-relaxed space-y-4">
+                    <p>
+                        If you have questions about these Terms, contact us at:
+                    </p>
+                    <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+                        <p class="text-white font-semibold">DeltaCrown</p>
+                        <p>Email: <a href="mailto:deltacrownhq@gmail.com" class="text-dc-cyan hover:text-dc-cyan/80">deltacrownhq@gmail.com</a></p>
+                        <p>Founded: 2025</p>
+                        <p>Founder: Redwanul Rashik</p>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Bottom CTA -->
+        <div class="mt-16 glass-effect rounded-2xl p-8 border border-white/10 text-center">
+            <h3 class="font-display text-2xl font-bold text-white mb-4">Have Questions About Our Terms?</h3>
+            <p class="text-gray-300 mb-6">Our support team is here to help clarify any concerns.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="{% url 'support:contact' %}" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
+                    Contact Support
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                </a>
+                <a href="{% url 'support:faq' %}" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
+                    View FAQ
+                </a>
+            </div>
+        </div>
+        
+    </div>
+</section>
+
+<script>
+// Smooth scroll for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+});
+</script>
+
+{% endblock %}

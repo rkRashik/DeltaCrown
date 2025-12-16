@@ -120,3 +120,92 @@ class Testimonial(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.rating}★ - {'Homepage' if self.show_on_homepage else 'Hidden'}"
+
+
+class ContactMessage(models.Model):
+    """Contact form submissions"""
+    
+    STATUS_CHOICES = [
+        ('NEW', 'New'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('RESOLVED', 'Resolved'),
+        ('CLOSED', 'Closed'),
+    ]
+    
+    PRIORITY_CHOICES = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('URGENT', 'Urgent'),
+    ]
+    
+    # Sender Information
+    name = models.CharField(max_length=120, help_text="Sender's name")
+    email = models.EmailField(help_text="Sender's email address")
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='contact_messages',
+        help_text="Associated user if logged in"
+    )
+    
+    # Message Content
+    subject = models.CharField(max_length=200, help_text="Message subject")
+    message = models.TextField(help_text="Message content")
+    
+    # Status & Priority
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='NEW',
+        help_text="Current status"
+    )
+    priority = models.CharField(
+        max_length=20,
+        choices=PRIORITY_CHOICES,
+        default='MEDIUM',
+        help_text="Priority level"
+    )
+    
+    # Metadata
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="Sender's IP address"
+    )
+    user_agent = models.TextField(
+        blank=True,
+        help_text="Browser user agent"
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the issue was resolved"
+    )
+    
+    # Admin Notes
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Internal notes (not visible to user)"
+    )
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Contact Message"
+        verbose_name_plural = "Contact Messages"
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.subject} [{self.status}]"
+    
+    @property
+    def is_resolved(self):
+        return self.status in ['RESOLVED', 'CLOSED']

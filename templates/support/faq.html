@@ -1,209 +1,358 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Frequently Asked Questions — DeltaCrown{% endblock %}
-
-{% block extra_css %}
-<style>
-.faq-accordion details > summary {
-    list-style: none;
-    cursor: pointer;
-}
-.faq-accordion details > summary::-webkit-details-marker {
-    display: none;
-}
-.faq-accordion details[open] .rotate-icon {
-    transform: rotate(180deg);
-}
-.rotate-icon {
-    transition: transform 0.3s ease;
-}
-</style>
-{% endblock %}
+{% block title %}Support — DeltaCrown{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="relative min-h-[40vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-dc-dark-blue via-dc-dark to-dc-dark-purple">
-    <!-- Animated Background -->
-    <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-20 left-10 w-72 h-72 bg-dc-cyan rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-        <div class="absolute top-40 right-20 w-72 h-72 bg-dc-purple rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-        <div class="absolute bottom-20 left-1/3 w-72 h-72 bg-dc-gold rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
-    </div>
+<div class="min-h-screen bg-gradient-to-br from-[#0d1117] via-[#0d1117] to-[#161b22]">
     
-    <div class="relative z-10 container mx-auto px-4 text-center">
-        <h1 class="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6">
-            Got Questions?
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-dc-cyan via-dc-purple to-dc-gold">
-                We've Got Answers
-            </span>
-        </h1>
-        <p class="text-gray-300 text-lg md:text-xl max-w-3xl mx-auto mb-8">
-            Everything you need to know about DeltaCrown esports platform
-        </p>
+    <!-- Header Section -->
+    <header class="relative bg-gradient-to-b from-[#161b22] to-[#0d1117] border-b border-[#30363d] shadow-2xl">
+        <div class="absolute inset-0 opacity-30">
+            <div class="absolute top-0 left-1/4 w-64 h-64 bg-[#58a6ff]/10 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[#238636]/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+        </div>
         
-        <!-- Search Box -->
-        <div class="max-w-2xl mx-auto">
-            <div class="relative">
-                <input 
-                    type="text" 
-                    id="faqSearch" 
-                    placeholder="Search for answers..." 
-                    class="w-full px-6 py-4 pl-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-dc-cyan focus:border-transparent text-lg"
-                >
-                <svg class="absolute left-5 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
+        <div class="relative max-w-7xl mx-auto px-6 py-12">
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 bg-gradient-to-br from-[#58a6ff] to-[#1f6feb] rounded-xl flex items-center justify-center shadow-lg shadow-[#58a6ff]/20">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-4xl font-bold text-white mb-1">Support Center</h1>
+                    <p class="text-[#8b949e]">Get help with your account, tournaments, and more</p>
+                </div>
+            </div>
+            
+            <!-- Enhanced Search -->
+            <form action="{% url 'support:faq' %}" method="get" class="max-w-3xl">
+                <div class="relative group">
+                    <div class="absolute -inset-0.5 bg-gradient-to-r from-[#58a6ff] to-[#1f6feb] rounded-xl opacity-0 group-hover:opacity-20 blur transition-all duration-300"></div>
+                    <input 
+                        type="text" 
+                        name="q"
+                        value="{{ search_query }}"
+                        placeholder="Search for help articles, guides, and FAQs..." 
+                        class="relative w-full h-14 px-14 bg-[#0d1117] border border-[#30363d] rounded-xl text-[#c9d1d9] text-lg placeholder-[#6e7681] focus:border-[#58a6ff] focus:outline-none focus:ring-2 focus:ring-[#58a6ff]/30 transition-all duration-200 shadow-xl"
+                    >
+                    <svg class="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-[#6e7681] group-hover:text-[#58a6ff] transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-gradient-to-r from-[#58a6ff] to-[#1f6feb] hover:from-[#1f6feb] hover:to-[#58a6ff] text-white font-medium rounded-lg transition-all duration-300 shadow-lg hover:shadow-[#58a6ff]/50">
+                        Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </header>
+    
+    {% if search_query %}
+    <!-- Search Results Info -->
+    <div class="bg-[#161b22]/50 backdrop-blur-sm border-b border-[#30363d]">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-[#58a6ff]/10 rounded-lg flex items-center justify-center">
+                        <svg class="w-4 h-4 text-[#58a6ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm text-[#8b949e]">
+                        Showing results for <span class="text-white font-semibold">"{{ search_query }}"</span>
+                    </span>
+                </div>
+                <a href="{% url 'support:faq' %}" class="flex items-center gap-2 text-sm text-[#58a6ff] hover:text-[#79c0ff] transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Clear
+                </a>
             </div>
         </div>
     </div>
-</section>
-
-<!-- FAQ Categories -->
-<section class="py-20 bg-gradient-to-b from-dc-dark-purple to-dc-dark">
-    <div class="container mx-auto px-4 max-w-5xl">
+    {% endif %}
+    
+    <div class="max-w-7xl mx-auto px-6 py-12">
         
-        <!-- Quick Navigation -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
-            {% for category_name, faqs in faqs_by_category.items %}
-            <a href="#{{ category_name|slugify }}" class="glass-effect hover:scale-105 transition-transform rounded-xl p-4 text-center">
-                <div class="text-3xl mb-2">
-                    {% if "General" in category_name %}📋
-                    {% elif "Tournament" in category_name %}🏆
-                    {% elif "Payment" in category_name %}💰
-                    {% elif "Technical" in category_name %}⚙️
-                    {% elif "Team" in category_name %}👥
-                    {% elif "Rules" in category_name %}📜
-                    {% else %}❓{% endif %}
-                </div>
-                <p class="text-sm text-gray-300 font-medium">{{ category_name }}</p>
-            </a>
-            {% endfor %}
+        {% if not search_query %}
+        <!-- Category Grid -->
+        <div class="mb-20">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-1 h-8 bg-gradient-to-b from-[#58a6ff] to-[#1f6feb] rounded-full"></div>
+                <h2 class="text-2xl font-bold text-white">Browse by Category</h2>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {% for category_name, faqs in faqs_by_category.items %}
+                <a href="#{{ category_name|slugify }}" class="group relative block p-6 bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-xl hover:border-[#58a6ff] hover:shadow-xl hover:shadow-[#58a6ff]/10 transition-all duration-300 hover:-translate-y-1">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#58a6ff]/0 to-[#1f6feb]/0 group-hover:from-[#58a6ff]/5 group-hover:to-[#1f6feb]/5 rounded-xl transition-all duration-300"></div>
+                    <div class="relative flex items-start gap-4">
+                        <div class="flex-shrink-0 w-12 h-12 bg-[#21262d] border border-[#30363d] rounded-xl flex items-center justify-center text-2xl group-hover:bg-[#58a6ff]/10 group-hover:border-[#58a6ff]/30 group-hover:scale-110 transition-all duration-300 shadow-lg">
+                            {% if "General" in category_name %}📋
+                            {% elif "Tournament" in category_name %}🏆
+                            {% elif "Payment" in category_name %}💰
+                            {% elif "Technical" in category_name %}⚙️
+                            {% elif "Team" in category_name %}👥
+                            {% elif "Rules" in category_name %}📜
+                            {% else %}❓{% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-[#c9d1d9] mb-2 group-hover:text-[#58a6ff] transition-colors text-lg">{{ category_name }}</h3>
+                            <p class="text-sm text-[#8b949e] group-hover:text-[#c9d1d9] transition-colors">{{ faqs|length }} helpful article{{ faqs|length|pluralize }}</p>
+                        </div>
+                        <svg class="w-5 h-5 text-[#58a6ff] flex-shrink-0 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
         </div>
+        {% endif %}
         
-        <!-- FAQ Accordion by Category -->
-        <div class="space-y-12 faq-accordion">
+        {% if faqs_by_category %}
+        <!-- FAQ Content -->
+        <div class="space-y-16">
             {% for category_name, faqs in faqs_by_category.items %}
-            <div id="{{ category_name|slugify }}" class="scroll-mt-24">
-                <h2 class="font-display text-3xl md:text-4xl font-bold text-white mb-6 flex items-center gap-3">
-                    <span class="text-4xl">
-                        {% if "General" in category_name %}📋
-                        {% elif "Tournament" in category_name %}🏆
-                        {% elif "Payment" in category_name %}💰
-                        {% elif "Technical" in category_name %}⚙️
-                        {% elif "Team" in category_name %}👥
-                        {% elif "Rules" in category_name %}📜
-                        {% else %}❓{% endif %}
-                    </span>
-                    {{ category_name }}
-                </h2>
+            <section id="{{ category_name|slugify }}" class="scroll-mt-6">
+                <!-- Category Header -->
+                <div class="flex items-center gap-4 mb-8 pb-4 border-b-2 border-[#21262d]">
+                    <div class="w-14 h-14 bg-gradient-to-br from-[#21262d] to-[#0d1117] border border-[#30363d] rounded-xl flex items-center justify-center shadow-lg">
+                        <span class="text-3xl">
+                            {% if "General" in category_name %}📋
+                            {% elif "Tournament" in category_name %}🏆
+                            {% elif "Payment" in category_name %}💰
+                            {% elif "Technical" in category_name %}⚙️
+                            {% elif "Team" in category_name %}👥
+                            {% elif "Rules" in category_name %}📜
+                            {% else %}❓{% endif %}
+                        </span>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="text-3xl font-bold text-white mb-1">{{ category_name }}</h2>
+                        <p class="text-sm text-[#8b949e]">{{ faqs|length }} frequently asked question{{ faqs|length|pluralize }}</p>
+                    </div>
+                </div>
                 
+                <!-- FAQ List -->
                 <div class="space-y-4">
                     {% for faq in faqs %}
-                    <details class="glass-effect rounded-xl overflow-hidden group faq-item" data-question="{{ faq.question|lower }}" data-answer="{{ faq.answer|striptags|lower }}">
-                        <summary class="px-6 py-5 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
-                            <h3 class="text-lg md:text-xl font-semibold text-white pr-4">{{ faq.question }}</h3>
-                            <svg class="w-6 h-6 text-dc-cyan flex-shrink-0 rotate-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
+                    <details class="faq-item group bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-xl overflow-hidden hover:border-[#58a6ff]/50 hover:shadow-lg hover:shadow-[#58a6ff]/5 transition-all duration-300">
+                        <summary class="flex items-center justify-between px-7 py-5 cursor-pointer list-none select-none group-hover:bg-[#161b22]/50 transition-all duration-200">
+                            <span class="font-semibold text-[#c9d1d9] text-lg pr-6 group-hover:text-white transition-colors">{{ faq.question }}</span>
+                            <div class="flex-shrink-0 w-8 h-8 bg-[#21262d] rounded-lg flex items-center justify-center group-hover:bg-[#58a6ff]/10 transition-all duration-200">
+                                <svg class="w-5 h-5 text-[#8b949e] group-hover:text-[#58a6ff] transition-all duration-300 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
                         </summary>
-                        <div class="px-6 pb-6 text-gray-300 leading-relaxed border-t border-white/10 pt-4">
-                            {{ faq.answer|safe }}
+                        <div class="px-7 pb-6 pt-2">
+                            <div class="pl-4 border-l-2 border-[#58a6ff]/30 text-[#8b949e] leading-relaxed prose-sm">
+                                {{ faq.answer|safe }}
+                            </div>
                         </div>
                     </details>
                     {% endfor %}
                 </div>
-            </div>
-            {% empty %}
-            <div class="glass-effect rounded-2xl p-12 text-center">
-                <p class="text-gray-400 text-lg">No FAQs available yet. Check back soon!</p>
-            </div>
+            </section>
             {% endfor %}
         </div>
         
-        <!-- Still Need Help CTA -->
-        <div class="glass-effect rounded-2xl p-10 mt-16 text-center bg-gradient-to-r from-dc-cyan/10 via-dc-purple/10 to-dc-gold/10 border-2 border-white/20">
-            <h2 class="font-display text-3xl md:text-4xl font-bold text-white mb-4">Still Need Help?</h2>
-            <p class="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
-                Can't find what you're looking for? Our support team is here to help you 24/7.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/contact/" class="btn-primary px-8 py-4 text-lg rounded-xl hover:scale-105 transition-transform">
-                    📧 Contact Support
-                </a>
-                <a href="https://discord.gg/deltacrown" target="_blank" class="btn-secondary px-8 py-4 text-lg rounded-xl hover:scale-105 transition-transform bg-dc-purple/20 text-white border-2 border-dc-purple hover:bg-dc-purple/30">
-                    💬 Join Discord
-                </a>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-32">
+            <div class="w-24 h-24 bg-gradient-to-br from-[#21262d] to-[#0d1117] border-2 border-[#30363d] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                <svg class="w-12 h-12 text-[#6e7681]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-3">No results found</h3>
+            <p class="text-[#8b949e] text-lg mb-8 max-w-md mx-auto">We couldn't find any matches for your search. Try different keywords or browse our categories.</p>
+            <a href="{% url 'support:faq' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#238636] to-[#2ea043] hover:from-[#2ea043] hover:to-[#238636] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-[#238636]/50">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                </svg>
+                View all articles
+            </a>
+        </div>
+        {% endif %}
+        
+    </div>
+    
+    <!-- Footer CTA -->
+    <footer class="relative border-t border-[#30363d] mt-24 bg-gradient-to-b from-[#0d1117] to-[#161b22]">
+        <div class="absolute inset-0 opacity-20">
+            <div class="absolute top-0 left-1/3 w-96 h-96 bg-[#58a6ff]/10 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-0 right-1/3 w-96 h-96 bg-[#238636]/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div class="relative max-w-7xl mx-auto px-6 py-16">
+            <div class="max-w-3xl mx-auto">
+                <div class="relative bg-gradient-to-br from-[#161b22] to-[#0d1117] border border-[#30363d] rounded-2xl p-10 shadow-2xl">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#58a6ff]/5 to-[#238636]/5 rounded-2xl"></div>
+                    
+                    <div class="relative text-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-[#58a6ff] to-[#1f6feb] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#58a6ff]/30">
+                            <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                        </div>
+                        
+                        <h3 class="text-3xl font-bold text-white mb-4">Still need help?</h3>
+                        <p class="text-[#8b949e] text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+                            Can't find what you're looking for? Our dedicated support team is ready to assist you with personalized help.
+                        </p>
+                        
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                            <a href="{% url 'support:contact' %}" class="group inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-[#238636] to-[#2ea043] hover:from-[#2ea043] hover:to-[#238636] text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-[#238636]/50 hover:scale-105">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Contact Support</span>
+                                <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
+                            
+                            <a href="{% url 'support:moderation' %}" class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#161b22] hover:bg-[#21262d] text-[#c9d1d9] hover:text-white font-semibold rounded-xl border border-[#30363d] hover:border-[#58a6ff]/50 transition-all duration-300 shadow-lg">
+                                <svg class="w-5 h-5 text-[#58a6ff]" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Community Guidelines</span>
+                            </a>
+                        </div>
+                        
+                        <div class="pt-8 border-t border-[#30363d]">
+                            <p class="text-sm text-[#6e7681] mb-2">Email us directly at</p>
+                            <a href="mailto:deltacrownhq@gmail.com" class="text-[#58a6ff] hover:text-[#79c0ff] font-medium text-lg transition-colors">
+                                deltacrownhq@gmail.com
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </footer>
+    
+</div>
+
+<style>
+html {
+    scroll-behavior: smooth;
+}
+
+details summary::-webkit-details-marker {
+    display: none;
+}
+
+details[open] summary {
+    margin-bottom: 0.75rem;
+}
+
+details {
+    transition: all 0.3s ease;
+}
+
+details[open] {
+    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+}
+
+.prose-sm {
+    font-size: 0.95rem;
+}
+
+.prose-sm p {
+    margin-bottom: 1em;
+    line-height: 1.7;
+    color: #8b949e;
+}
+
+.prose-sm ul, .prose-sm ol {
+    margin: 1em 0;
+    padding-left: 1.75em;
+}
+
+.prose-sm li {
+    margin-bottom: 0.5em;
+    line-height: 1.6;
+}
+
+.prose-sm strong {
+    color: #c9d1d9;
+    font-weight: 600;
+}
+
+.prose-sm a {
+    color: #58a6ff;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+}
+
+.prose-sm a:hover {
+    color: #79c0ff;
+}
+
+.prose-sm code {
+    background-color: #161b22;
+    padding: 0.2em 0.5em;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+* {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+input:focus,
+button:focus,
+a:focus,
+summary:focus {
+    outline: 2px solid #58a6ff;
+    outline-offset: 2px;
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0d1117;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 6px;
+    border: 2px solid #0d1117;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+</style>
 
 <script>
-// Real-time FAQ Search
 document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('faqSearch');
-    const faqItems = document.querySelectorAll('.faq-item');
-    
-    searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        
-        if (!query) {
-            // Show all FAQs
-            faqItems.forEach(item => {
-                item.style.display = 'block';
-            });
-            return;
-        }
-        
-        // Filter FAQs
-        let matchCount = 0;
-        faqItems.forEach(item => {
-            const question = item.dataset.question;
-            const answer = item.dataset.answer;
-            
-            if (question.includes(query) || answer.includes(query)) {
-                item.style.display = 'block';
-                matchCount++;
-            } else {
-                item.style.display = 'none';
-            }
-        });
-        
-        // Show "no results" message if needed
-        if (matchCount === 0 && !document.querySelector('.no-results')) {
-            const noResults = document.createElement('div');
-            noResults.className = 'no-results glass-effect rounded-2xl p-12 text-center';
-            noResults.innerHTML = '<p class="text-gray-400 text-lg">No FAQs match your search. Try different keywords or <a href="/contact/" class="text-dc-cyan hover:underline">contact support</a>.</p>';
-            document.querySelector('.faq-accordion').appendChild(noResults);
-        } else if (matchCount > 0) {
-            const noResults = document.querySelector('.no-results');
-            if (noResults) noResults.remove();
-        }
-    });
-    
-    // Smooth scroll for category links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
             if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-    
-    // Close other accordions when one opens (optional single-open behavior)
-    const details = document.querySelectorAll('details');
-    details.forEach(detail => {
-        detail.addEventListener('toggle', function() {
-            if (this.open) {
-                details.forEach(otherDetail => {
-                    if (otherDetail !== this && otherDetail.open) {
-                        otherDetail.open = false;
-                    }
+                const offset = 24;
+                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
                 });
             }
         });
@@ -212,5 +361,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {% endblock %}
-
-

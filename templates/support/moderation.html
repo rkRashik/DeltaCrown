@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Moderation & Fair Play — DeltaCrown{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative min-h-[50vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-dc-dark to-gray-900">
+    <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-20 left-10 w-96 h-96 bg-dc-cyan/30 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-20 right-10 w-96 h-96 bg-dc-purple/30 rounded-full blur-3xl animate-pulse" style="animation-delay: 1.5s;"></div>
+    </div>
+    
+    <div class="relative z-10 container mx-auto px-4 text-center py-20">
+        <div class="inline-flex items-center gap-2 px-5 py-2.5 bg-dc-cyan/10 border border-dc-cyan/30 rounded-full text-dc-cyan font-bold text-sm uppercase tracking-wider mb-6 backdrop-blur-sm">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Fair Play
+        </div>
+        
+        <h1 class="font-display text-5xl md:text-6xl lg:text-7xl font-black text-white mb-6 leading-tight">
+            Moderation & <span class="gradient-text">Fair Play</span>
+        </h1>
+        <p class="text-xl text-gray-300 max-w-3xl mx-auto">
+            Maintaining a safe, competitive, and respectful environment for all players
+        </p>
+    </div>
+</section>
+
+<!-- Core Principles -->
+<section class="py-20 bg-gradient-to-b from-dc-dark to-gray-900">
+    <div class="container mx-auto px-4 max-w-6xl">
+        <div class="text-center mb-16">
+            <h2 class="font-display text-4xl md:text-5xl font-black text-white mb-4">Our Core Principles</h2>
+            <p class="text-xl text-gray-300">The foundation of competitive integrity on DeltaCrown</p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-6">
+            <div class="glass-effect rounded-2xl p-8 border border-white/10 hover:border-dc-cyan/40 transition-all duration-300">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">Fair Competition</h3>
+                <p class="text-gray-400 leading-relaxed">Every player competes on equal footing. Cheating, exploits, and unfair advantages are strictly prohibited and result in immediate action.</p>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-8 border border-white/10 hover:border-dc-cyan/40 transition-all duration-300">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">Respectful Community</h3>
+                <p class="text-gray-400 leading-relaxed">Harassment, hate speech, and toxic behavior have no place here. We foster an inclusive environment where everyone feels welcome.</p>
+            </div>
+            
+            <div class="glass-effect rounded-2xl p-8 border border-white/10 hover:border-dc-cyan/40 transition-all duration-300">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-dc-cyan/20 to-dc-purple/20 flex items-center justify-center mb-6">
+                    <svg class="w-8 h-8 text-dc-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/></svg>
+                </div>
+                <h3 class="font-display text-2xl font-bold text-white mb-3">Transparent Justice</h3>
+                <p class="text-gray-400 leading-relaxed">All moderation actions are documented and appealable. We believe in clear communication and fair enforcement of rules.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Rules & Violations -->
+<section class="py-20 bg-gray-900">
+    <div class="container mx-auto px-4 max-w-5xl">
+        <div class="text-center mb-16">
+            <h2 class="font-display text-4xl md:text-5xl font-black text-white mb-4">Rules & Violations</h2>
+            <p class="text-xl text-gray-300">What's not allowed on DeltaCrown</p>
+        </div>
+        
+        <div class="space-y-6">
+            <!-- Cheating & Exploits -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/10">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-display text-2xl font-bold text-white mb-2">Cheating & Exploits</h3>
+                        <p class="text-gray-400 mb-4">Using third-party software, game exploits, or any unauthorized advantage is strictly forbidden.</p>
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg font-semibold">Permanent Ban</span>
+                            <span class="text-gray-500">No warnings</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Match Fixing -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/10">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-display text-2xl font-bold text-white mb-2">Match Fixing & Collusion</h3>
+                        <p class="text-gray-400 mb-4">Intentionally losing, teaming up in solo matches, or coordinating results to manipulate rankings or prizes.</p>
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg font-semibold">Permanent Ban</span>
+                            <span class="text-gray-500">All involved parties</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Harassment -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/10">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-display text-2xl font-bold text-white mb-2">Harassment & Toxic Behavior</h3>
+                        <p class="text-gray-400 mb-4">Personal attacks, hate speech, discrimination, doxxing, or repeated unwanted contact.</p>
+                        <div class="flex items-center gap-2 text-sm flex-wrap">
+                            <span class="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-lg font-semibold">1st: 7-day ban</span>
+                            <span class="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-lg font-semibold">2nd: 30-day ban</span>
+                            <span class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg font-semibold">3rd: Permanent</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Account Sharing -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/10">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-1 1-1 1H6v2H2v-4l4.257-4.257A6 6 0 1118 8zm-6-4a1 1 0 100 2 2 2 0 012 2 1 1 0 102 0 4 4 0 00-4-4z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-display text-2xl font-bold text-white mb-2">Account Sharing & Boosting</h3>
+                        <p class="text-gray-400 mb-4">Letting others play on your account or playing on someone else's to boost rankings.</p>
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="px-3 py-1 bg-orange-500/20 text-orange-400 rounded-lg font-semibold">14-day ban + rank reset</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Smurfing -->
+            <div class="glass-effect rounded-2xl p-8 border border-white/10">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-display text-2xl font-bold text-white mb-2">Smurfing (Multiple Accounts)</h3>
+                        <p class="text-gray-400 mb-4">Creating alternate accounts to play against lower-skilled players or circumvent bans.</p>
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-lg font-semibold">All accounts banned</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Reporting System -->
+<section class="py-20 bg-gradient-to-b from-gray-900 to-dc-dark">
+    <div class="container mx-auto px-4 max-w-5xl">
+        <div class="text-center mb-16">
+            <h2 class="font-display text-4xl md:text-5xl font-black text-white mb-4">Report a Violation</h2>
+            <p class="text-xl text-gray-300">Help us maintain a fair and safe community</p>
+        </div>
+        
+        <div class="glass-effect rounded-3xl p-8 md:p-12 border border-white/10">
+            <h3 class="font-display text-2xl font-bold text-white mb-6">How to Report</h3>
+            
+            <div class="space-y-6 mb-8">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-dc-cyan/20 flex items-center justify-center flex-shrink-0">
+                        <span class="text-dc-cyan font-bold">1</span>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-bold text-lg mb-2">Gather Evidence</h4>
+                        <p class="text-gray-400">Screenshots, video recordings, match IDs, and player usernames.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-dc-cyan/20 flex items-center justify-center flex-shrink-0">
+                        <span class="text-dc-cyan font-bold">2</span>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-bold text-lg mb-2">Contact Support</h4>
+                        <p class="text-gray-400">Use our contact form with "Moderation Report" as the subject.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-dc-cyan/20 flex items-center justify-center flex-shrink-0">
+                        <span class="text-dc-cyan font-bold">3</span>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-bold text-lg mb-2">We Investigate</h4>
+                        <p class="text-gray-400">Our team reviews all reports within 24-48 hours and takes appropriate action.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4">
+                <a href="{% url 'support:contact' %}" class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-dc-cyan to-dc-purple text-white font-bold rounded-xl hover:shadow-2xl hover:shadow-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <span>Report Violation</span>
+                </a>
+                <a href="{% url 'support:faq' %}" class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-xl hover:bg-white/10 hover:border-dc-cyan/50 hover:scale-[1.02] transition-all duration-300">
+                    <svg class="w-5 h-5 text-dc-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                    <span>View FAQs</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Appeals Process -->
+<section class="py-20 bg-dc-dark">
+    <div class="container mx-auto px-4 max-w-5xl">
+        <div class="text-center mb-16">
+            <h2 class="font-display text-4xl md:text-5xl font-black text-white mb-4">Appeals Process</h2>
+            <p class="text-xl text-gray-300">We believe in second chances and fair reviews</p>
+        </div>
+        
+        <div class="glass-effect rounded-3xl p-8 md:p-12 border border-white/10">
+            <div class="space-y-6">
+                <p class="text-gray-300 text-lg">If you believe you were banned or punished unfairly, you can submit an appeal.</p>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="p-6 bg-white/5 rounded-xl border border-white/10">
+                        <h4 class="font-bold text-white text-lg mb-3">✅ Valid Appeal Reasons</h4>
+                        <ul class="space-y-2 text-gray-400 text-sm">
+                            <li>• Mistaken identity</li>
+                            <li>• Technical error</li>
+                            <li>• Compromised account</li>
+                            <li>• New evidence available</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="p-6 bg-white/5 rounded-xl border border-white/10">
+                        <h4 class="font-bold text-white text-lg mb-3">❌ Invalid Appeal Reasons</h4>
+                        <ul class="space-y-2 text-gray-400 text-sm">
+                            <li>• "It wasn't that bad"</li>
+                            <li>• "Everyone does it"</li>
+                            <li>• "I didn't know the rules"</li>
+                            <li>• Repeat offenses</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="p-6 bg-dc-cyan/10 border border-dc-cyan/30 rounded-xl">
+                    <p class="text-white font-semibold">📧 Submit appeals to: <a href="mailto:deltacrownhq@gmail.com" class="text-dc-cyan hover:text-dc-cyan/80 transition-colors">deltacrownhq@gmail.com</a></p>
+                    <p class="text-gray-400 text-sm mt-2">Include your username, ban reason, and detailed explanation. Response within 3-5 business days.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
