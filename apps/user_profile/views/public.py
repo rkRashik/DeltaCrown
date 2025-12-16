@@ -8,15 +8,30 @@ from django.shortcuts import render
 
 User = get_user_model()
 
+import logging
+from django.db import DatabaseError
+
+logger = logging.getLogger(__name__)
+
+
 def _get_profile(user) -> Optional[object]:
     # Try user.profile first (typical OneToOne related_name)
-    prof = getattr(user, "profile", None)
+    try:
+        prof = getattr(user, "profile", None)
+    except DatabaseError:
+        # If the profile table/schema is inconsistent (missing columns), avoid raising.
+        logger.warning("UserProfile access failed for user %s due to database schema mismatch.", getattr(user, 'username', user))
+        return None
     if prof is not None:
         return prof
-    # Fallback: query explicit model if needed
+
+    # Fallback: query explicit model if needed — guard DB errors gracefully
     try:
         from apps.user_profile.models import UserProfile
         return UserProfile.objects.filter(user=user).first()
+    except DatabaseError:
+        # If the table schema doesn't match the model (missing column), return None
+        return None
     except Exception:
         return None
 
@@ -44,30 +59,38 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     # Best-effort fields (won't crash if missing)
     phone = getattr(profile, "phone", None)
     socials = getattr(profile, "socials", None)  # dict/json or string
-    ign = getattr(profile, "ign", None)
-    riot_id = getattr(profile, "riot_id", None)
-    efootball_id = getattr(profile, "efootball_id", None)
     discord_id = getattr(profile, "discord_id", None)
+
+    # Prefer new `game_profiles` pluggable system for in-game IDs
+    ign = None
+    riot_id = None
+    efootball_id = None
+    if profile is not None:
+        try:
+            gp = None
+            if hasattr(profile, 'get_game_profile'):
+                gp = profile.get_game_profile('valorant')
+            if gp:
+                ign = gp.get('ign')
+            else:
+                # Fallback to legacy field if game_profiles not populated
+                riot_id = getattr(profile, 'riot_id', None)
+
+            ef = None
+            if hasattr(profile, 'get_game_profile'):
+                ef = profile.get_game_profile('efootball')
+            if ef:
+                efootball_id = ef.get('ign')
+            else:
+                efootball_id = getattr(profile, 'efootball_id', None)
+        except Exception:
+            # Be resilient to any DB/schema issues
+            ign = None
+            riot_id = None
+            efootball_id = None
 
     # Add `profile_user` alias for templates expecting that name
     context = {
-        **{
-            "public_user": user,
-            "profile": profile,
-            "is_private": False,
-            "show_email": show_email,
-            "show_phone": show_phone,
-            "show_socials": show_socials,
-            "phone": phone,
-            "socials": socials,
-            "ign": ign,
-            "riot_id": riot_id,
-            "efootball_id": efootball_id,
-            "discord_id": discord_id,
-        }
-    }
-    context['profile_user'] = user
-    return render(request, "user_profile/profile.html", context)
         "public_user": user,
         "profile": profile,
         "is_private": False,
@@ -80,4 +103,7 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         "riot_id": riot_id,
         "efootball_id": efootball_id,
         "discord_id": discord_id,
-    })
+        "profile_user": user,
+    }
+
+    return render(request, "user_profile/profile.html", context)

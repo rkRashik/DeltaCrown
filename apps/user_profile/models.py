@@ -219,17 +219,11 @@ class UserProfile(models.Model):
         """
     )
     
-    # ===== LEGACY GAME IDs (Kept for backwards compatibility, will migrate to game_profiles) =====
-    riot_id = models.CharField(max_length=100, blank=True, help_text="Riot ID (Name#TAG) for Valorant")
-    riot_tagline = models.CharField(max_length=50, blank=True, help_text="Riot Tagline (part after #)")
-    efootball_id = models.CharField(max_length=100, blank=True, help_text="eFootball User ID")
-    steam_id = models.CharField(max_length=100, blank=True, help_text="Steam ID for Dota 2, CS2")
-    mlbb_id = models.CharField(max_length=100, blank=True, help_text="Mobile Legends Game ID")
-    mlbb_server_id = models.CharField(max_length=50, blank=True, help_text="Mobile Legends Server ID")
-    pubg_mobile_id = models.CharField(max_length=100, blank=True, help_text="PUBG Mobile Character/Player ID")
-    free_fire_id = models.CharField(max_length=100, blank=True, help_text="Free Fire User/Player ID")
-    ea_id = models.CharField(max_length=100, blank=True, help_text="EA ID for FC 24")
-    codm_uid = models.CharField(max_length=100, blank=True, help_text="Call of Duty Mobile UID")
+    # ===== LEGACY GAME IDs REMOVED =====
+    # NOTE: Legacy game ID fields (riot_id, riot_tagline, efootball_id, steam_id, mlbb_id, 
+    # mlbb_server_id, pubg_mobile_id, free_fire_id, ea_id, codm_uid) were removed in 
+    # migration 0011_remove_legacy_game_id_fields after data migration to game_profiles.
+    # Use get_game_profile(game) and set_game_profile(game, data) methods instead.
 
     # ===== PRIVACY SETTINGS (Will be moved to PrivacySettings model in Phase 2) =====
     is_private = models.BooleanField(default=False, help_text="Hide entire profile from public.")

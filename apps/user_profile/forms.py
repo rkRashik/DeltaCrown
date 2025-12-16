@@ -33,10 +33,8 @@ class UserProfileForm(forms.ModelForm):
             'facebook', 'instagram', 'tiktok', 'twitter',
             'youtube_link', 'twitch_link', 'discord_id',
             
-            # Legacy Game IDs (will migrate to game_profiles JSON)
-            'riot_id', 'riot_tagline', 'steam_id', 'efootball_id', 
-            'mlbb_id', 'mlbb_server_id', 'pubg_mobile_id', 'free_fire_id',
-            'ea_id', 'codm_uid',
+            # Note: Legacy game ID fields were removed and migrated to game_profiles JSON
+            # Use the game_profiles JSONField to store game-specific data
             
             # Privacy Settings
             'is_private', 'show_email', 'show_phone', 'show_socials',
@@ -156,48 +154,6 @@ class UserProfileForm(forms.ModelForm):
                 'placeholder': 'Your Discord username'
             }),
             
-            # Game IDs (legacy fields)
-            'riot_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Your Riot ID (e.g., Username#TAG)'
-            }),
-            'riot_tagline': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Tagline (part after #)'
-            }),
-            'steam_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Your Steam ID'
-            }),
-            'efootball_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Your eFootball User ID'
-            }),
-            'mlbb_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Mobile Legends Game ID'
-            }),
-            'mlbb_server_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Server ID'
-            }),
-            'pubg_mobile_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'PUBG Mobile Character/Player ID'
-            }),
-            'free_fire_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Free Fire Player ID'
-            }),
-            'ea_id': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'EA ID for FC 24'
-            }),
-            'codm_uid': forms.TextInput(attrs={
-                'class': 'form-input',
-                'placeholder': 'Call of Duty Mobile UID'
-            }),
-            
             # Privacy Settings
             'is_private': forms.CheckboxInput(attrs={
                 'class': 'form-checkbox'
@@ -261,18 +217,6 @@ class UserProfileForm(forms.ModelForm):
             'instagram': 'Link to your Instagram profile (optional).',
             'tiktok': 'Link to your TikTok profile (optional).',
             'twitter': 'Link to your Twitter/X profile (optional).',
-            
-            # Legacy Game IDs
-            'riot_id': 'Your Riot Games ID for Valorant (Name#TAG format).',
-            'riot_tagline': 'The tagline part of your Riot ID (after the #).',
-            'steam_id': 'Your Steam ID for Dota 2, Counter-Strike 2.',
-            'efootball_id': 'Your eFootball User ID.',
-            'mlbb_id': 'Your Mobile Legends: Bang Bang Game ID.',
-            'mlbb_server_id': 'Your Mobile Legends Server ID.',
-            'pubg_mobile_id': 'Your PUBG Mobile Character/Player ID.',
-            'free_fire_id': 'Your Free Fire User/Player ID.',
-            'ea_id': 'Your EA ID for FC 24.',
-            'codm_uid': 'Your Call of Duty Mobile Unique ID.',
             'discord_id': 'Your Discord username for team communication.',
             'youtube_link': 'Link to your YouTube channel (optional).',
             'twitch_link': 'Link to your Twitch channel (optional).',

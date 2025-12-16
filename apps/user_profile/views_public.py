@@ -88,10 +88,32 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
 
     # Initialize social_links to prevent UnboundLocalError
     social_links = []
-    ign = getattr(profile, "ign", None)
-    riot_id = getattr(profile, "riot_id", None)
-    efootball_id = getattr(profile, "efootball_id", None)
+    ign = None
+    riot_id = None
+    efootball_id = None
     discord_id = getattr(profile, "discord_id", None)
+
+    # Prefer new game_profiles system when available (but keep backward-compatible fallback)
+    if profile is not None:
+        try:
+            # Valorant / Riot
+            gp_valorant = getattr(profile, 'get_game_profile', None) and profile.get_game_profile('valorant')
+            if gp_valorant and gp_valorant.get('ign'):
+                ign = gp_valorant.get('ign')
+                riot_id = ign
+            else:
+                riot_id = getattr(profile, 'riot_id', None)
+
+            # eFootball
+            gp_efootball = getattr(profile, 'get_game_profile', None) and profile.get_game_profile('efootball')
+            if gp_efootball and gp_efootball.get('ign'):
+                efootball_id = gp_efootball.get('ign')
+            else:
+                efootball_id = getattr(profile, 'efootball_id', None)
+        except Exception:
+            ign = None
+            riot_id = None
+            efootball_id = None
 
     # Tournament system moved to legacy - player stats disabled
     stats = None

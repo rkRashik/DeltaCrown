@@ -1,0 +1,108 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mirrorGold" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0.0" stop-color="#CA8A04"/>
+      <stop offset="0.2" stop-color="#FDE047"/>
+      <stop offset="0.45" stop-color="#FEF08A"/>
+      <stop offset="0.5" stop-color="#FFFFFF"/>    <stop offset="0.55" stop-color="#FEF08A"/>
+      <stop offset="0.8" stop-color="#EAB308"/>
+      <stop offset="1.0" stop-color="#A16207"/>
+    </linearGradient>
+
+    <radialGradient id="matteField" cx="128" cy="128" r="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0.6" stop-color="#EAB308"/>
+      <stop offset="1.0" stop-color="#CA8A04"/>
+    </radialGradient>
+
+    <linearGradient id="brushedGold" x1="0" y1="0" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FDE047"/>
+      <stop offset="0.5" stop-color="#CA8A04"/>
+      <stop offset="1" stop-color="#FDE047"/>
+    </linearGradient>
+
+    <filter id="hardStamp" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="1" dy="1.5" stdDeviation="0.5" flood-color="#713F12" flood-opacity="0.9"/>
+    </filter>
+  </defs>
+
+  <circle cx="128" cy="128" r="126" fill="url(#mirrorGold)" stroke="#A16207" stroke-width="0.5"/>
+  <circle cx="128" cy="128" r="114" fill="url(#matteField)" stroke="#713F12" stroke-width="1"/>
+
+  <g stroke="#FDE047" stroke-width="0.5" opacity="0.3">
+    <mask id="gridMask">
+      <circle cx="128" cy="128" r="110" fill="white"/>
+    </mask>
+    <g mask="url(#gridMask)">
+      <path d="M70 60 L80 54 L90 60 L90 72 L80 78 L70 72 Z" fill="none"/>
+      <path d="M90 60 L100 54 L110 60 L110 72 L100 78 L90 72 Z" fill="#CA8A04" opacity="0.5"/> <path d="M110 60 L120 54 L130 60 L130 72 L120 78 L110 72 Z" fill="none"/>
+      <path d="M130 60 L140 54 L150 60 L150 72 L140 78 L130 72 Z" fill="none"/>
+      <path d="M150 60 L160 54 L170 60 L170 72 L160 78 L150 72 Z" fill="none"/>
+      <path d="M170 60 L180 54 L190 60 L190 72 L180 78 L170 72 Z" fill="#FFFFFF" opacity="0.4"/> <path d="M60 78 L70 72 L80 78 L80 90 L70 96 L60 90 Z" fill="none"/>
+      <path d="M80 78 L90 72 L100 78 L100 90 L90 96 L80 90 Z" fill="none"/>
+      <path d="M100 78 L110 72 L120 78 L120 90 L110 96 L100 90 Z" fill="#FDE047" opacity="0.3"/> <path d="M120 78 L130 72 L140 78 L140 90 L130 96 L120 90 Z" fill="none"/>
+      <path d="M140 78 L150 72 L160 78 L160 90 L150 96 L140 90 Z" fill="none"/>
+      <path d="M160 78 L170 72 L180 78 L180 90 L170 96 L160 90 Z" fill="none"/>
+
+      <path d="M70 96 L80 90 L90 96 L90 108 L80 114 L70 108 Z" fill="none"/>
+      <path d="M90 96 L100 90 L110 96 L110 108 L100 114 L90 108 Z" fill="none"/>
+      <path d="M110 96 L120 90 L130 96 L130 108 L120 114 L110 108 Z" fill="none"/>
+      <path d="M130 96 L140 90 L150 96 L150 108 L140 114 L130 108 Z" fill="#CA8A04" opacity="0.6"/> <path d="M150 96 L160 90 L170 96 L170 108 L160 114 L150 108 Z" fill="none"/>
+      <path d="M170 96 L180 90 L190 96 L190 108 L180 114 L170 108 Z" fill="none"/>
+
+      <path d="M40 114 L50 108 L60 114 L60 126 L50 132 L40 126 Z" fill="none"/>
+      <path d="M180 114 L190 108 L200 114 L200 126 L190 132 L180 126 Z" fill="#FFFFFF" opacity="0.2"/>
+
+      <path d="M70 132 L80 126 L90 132 L90 144 L80 150 L70 144 Z" fill="#FDE047" opacity="0.2"/>
+      <path d="M90 132 L100 126 L110 132 L110 144 L100 150 L90 144 Z" fill="none"/>
+      <path d="M110 132 L120 126 L130 132 L130 144 L120 150 L110 144 Z" fill="none"/>
+      <path d="M130 132 L140 126 L150 132 L150 144 L140 150 L130 144 Z" fill="none"/>
+      <path d="M150 132 L160 126 L170 132 L170 144 L160 150 L150 144 Z" fill="none"/>
+
+      <path d="M80 150 L90 144 L100 150 L100 162 L90 168 L80 162 Z" fill="none"/>
+      <path d="M100 150 L110 144 L120 150 L120 162 L110 168 L100 162 Z" fill="none"/>
+      <path d="M120 150 L130 144 L140 150 L140 162 L130 168 L120 162 Z" fill="#CA8A04" opacity="0.4"/>
+      <path d="M140 150 L150 144 L160 150 L160 162 L150 168 L140 162 Z" fill="none"/>
+
+      <path d="M90 168 L100 162 L110 168 L110 180 L100 186 L90 180 Z" fill="none"/>
+      <path d="M110 168 L120 162 L130 168 L130 180 L120 186 L110 180 Z" fill="none"/>
+      <path d="M130 168 L140 162 L150 168 L150 180 L140 186 L130 180 Z" fill="none"/>
+    </g>
+  </g>
+
+  <circle cx="128" cy="128" r="108" fill="none" stroke="url(#mirrorGold)" stroke-width="3" stroke-dasharray="0.5 8" stroke-linecap="round" filter="url(#hardStamp)"/>
+
+  <path id="topCurve" d="M 40,128 A 88,88 0 0,1 216,128" fill="none" />
+  <path id="botCurve" d="M 50,128 A 78,78 0 0,0 206,128" fill="none" />
+
+  <text fill="url(#mirrorGold)" stroke="#713F12" stroke-width="0.25" font-family="Times New Roman, Serif" font-weight="900" font-size="20" letter-spacing="4" filter="url(#hardStamp)">
+    <textPath href="#topCurve" startOffset="50%" text-anchor="middle">DELTACROWN</textPath>
+  </text>
+
+  <text fill="url(#mirrorGold)" stroke="#713F12" stroke-width="0.25" font-family="Times New Roman, Serif" font-weight="bold" font-size="10" letter-spacing="3" filter="url(#hardStamp)">
+    <textPath href="#botCurve" startOffset="50%" text-anchor="middle">EST 2025</textPath>
+  </text>
+
+  <g transform="translate(128 128)" filter="url(#hardStamp)">
+    <g transform="translate(-32 -42)">
+      <path d="M 0 0 H 35 C 65 0 80 25 80 42 C 80 65 65 84 35 84 H 0 V 0 Z" fill="url(#brushedGold)" stroke="#A16207" stroke-width="0.5"/>
+
+      <mask id="dMask">
+        <path d="M 0 0 H 35 C 65 0 80 25 80 42 C 80 65 65 84 35 84 H 0 V 0 Z" fill="white"/>
+      </mask>
+      <g mask="url(#dMask)" stroke="#CA8A04" stroke-width="1" opacity="0.3">
+         <line x1="-10" y1="20" x2="50" y2="-40" />
+         <line x1="-10" y1="40" x2="70" y2="-40" />
+         <line x1="-10" y1="60" x2="90" y2="-40" />
+         <line x1="-10" y1="80" x2="110" y2="-40" />
+         <line x1="-10" y1="100" x2="130" y2="-40" />
+      </g>
+
+      <path d="M 18 18 V 66 H 30 C 45 66 58 55 58 42 C 58 30 45 18 30 18 H 18 Z" fill="#CA8A04" stroke="#713F12" stroke-width="1"/>
+
+      <path d="M 0 0 L 0 -14 L 10 -4 L 20 -14 L 20 0 H 0 Z" fill="url(#mirrorGold)" stroke="#A16207" stroke-width="0.5"/>
+      <circle cx="10" cy="-4" r="2" fill="#FFFFFF"/>
+    </g>
+  </g>
+
+  <ellipse cx="60" cy="60" rx="30" ry="15" fill="white" opacity="0.25" transform="rotate(-45 60 60)"/>
+</svg>
