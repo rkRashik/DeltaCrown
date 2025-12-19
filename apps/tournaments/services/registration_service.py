@@ -928,6 +928,151 @@ class RegistrationService:
     
     @staticmethod
     @transaction.atomic
+    def approve_registration(registration: Registration, approved_by) -> Registration:
+        """
+        Approve a pending registration (organizer action).
+        
+        Args:
+            registration: Registration instance to approve
+            approved_by: User performing the approval (organizer/admin)
+        
+        Returns:
+            Registration: Approved registration instance
+        
+        Raises:
+            ValidationError: If registration cannot be approved
+        
+        Example:
+            >>> registration = get_object_or_404(Registration, id=reg_id)
+            >>> RegistrationService.approve_registration(registration, request.user)
+        """
+        # Move exact logic from organizer.py::approve_registration view
+        registration.status = 'confirmed'
+        registration.save()
+        return registration
+    
+    @staticmethod
+    @transaction.atomic
+    def reject_registration(registration: Registration, rejected_by) -> Registration:
+        """
+        Reject a pending registration (organizer action).
+        
+        Args:
+            registration: Registration instance to reject
+            rejected_by: User performing the rejection (organizer/admin)
+        
+        Returns:
+            Registration: Rejected registration instance
+        
+        Raises:
+            ValidationError: If registration cannot be rejected
+        
+        Example:
+            >>> registration = get_object_or_404(Registration, id=reg_id)
+            >>> RegistrationService.reject_registration(registration, request.user)
+        """
+        # Move exact logic from organizer.py::reject_registration view
+        registration.status = 'rejected'
+        registration.save()
+        return registration
+    
+    @staticmethod
+    @transaction.atomic
+    def bulk_approve_registrations(
+        registration_ids: list,
+        tournament: Tournament,
+        approved_by
+    ) -> dict:
+        """
+        Bulk approve multiple pending registrations (organizer action).
+        
+        Args:
+            registration_ids: List of registration IDs to approve
+            tournament: Tournament instance (for permission check)
+            approved_by: User performing the approval (organizer/admin)
+        
+        Returns:
+            dict: {'success': True, 'count': number_updated}
+        
+        Raises:
+            ValidationError: If no registrations selected or validation fails
+        
+        Example:
+            >>> result = RegistrationService.bulk_approve_registrations(
+            ...     registration_ids=[1, 2, 3],
+            ...     tournament=tournament,
+            ...     approved_by=request.user
+            ... )
+            >>> print(result['count'])  # Number of registrations approved
+        """
+        # Move exact logic from organizer.py::bulk_approve_registrations view
+        if not registration_ids:
+            raise ValidationError('No registrations selected')
+        
+        updated = Registration.objects.filter(
+            id__in=registration_ids,
+            tournament=tournament,
+            status=Registration.PENDING
+        ).update(status=Registration.CONFIRMED)
+        
+        return {'success': True, 'count': updated}
+    
+    @staticmethod
+    @transaction.atomic
+    def bulk_reject_registrations(
+        registration_ids: list,
+        tournament: Tournament,
+        rejected_by,
+        reason: str = ''
+    ) -> dict:
+        """
+        Bulk reject multiple pending registrations (organizer action).
+        
+        Args:
+            registration_ids: List of registration IDs to reject
+            tournament: Tournament instance (for permission check)
+            rejected_by: User performing the rejection (organizer/admin)
+            reason: Optional rejection reason to store in registration_data
+        
+        Returns:
+            dict: {'success': True, 'count': number_updated}
+        
+        Raises:
+            ValidationError: If no registrations selected or validation fails
+        
+        Example:
+            >>> result = RegistrationService.bulk_reject_registrations(
+            ...     registration_ids=[1, 2, 3],
+            ...     tournament=tournament,
+            ...     rejected_by=request.user,
+            ...     reason='Invalid game IDs'
+            ... )
+            >>> print(result['count'])  # Number of registrations rejected
+        """
+        # Move exact logic from organizer.py::bulk_reject_registrations view
+        if not registration_ids:
+            raise ValidationError('No registrations selected')
+        
+        registrations = Registration.objects.filter(
+            id__in=registration_ids,
+            tournament=tournament,
+            status=Registration.PENDING
+        )
+        
+        updated = 0
+        for reg in registrations:
+            reg.status = Registration.REJECTED
+            if reason:
+                # Store rejection reason in registration_data JSONB
+                reg.registration_data = reg.registration_data or {}
+                reg.registration_data['rejection_reason'] = reason
+            reg.save()
+            updated += 1
+        
+        return {'success': True, 'count': updated}
+    
+    @staticmethod
+    @transaction.atomic
     def refund_payment(
         payment_id: int,
         refunded_by,

@@ -260,6 +260,43 @@ class CheckinService:
         
         return results
     
+    @staticmethod
+    @transaction.atomic
+    def organizer_toggle_checkin(
+        registration: Registration,
+        actor: User
+    ) -> Registration:
+        """
+        Toggle check-in status for a registration (organizer override).
+        
+        Phase 0 Refactor: Extracted from organizer.py toggle_checkin view.
+        Preserves exact behavior - simple toggle without validation.
+        
+        This is an organizer override that bypasses normal check-in rules.
+        Unlike check_in() and undo_check_in(), this method does not validate
+        timing windows, registration status, or other constraints.
+        
+        Args:
+            registration: Registration instance to toggle
+            actor: User performing the toggle (typically organizer)
+        
+        Returns:
+            Updated Registration instance with toggled checked_in status
+        """
+        if registration.checked_in:
+            # Uncheck
+            registration.checked_in = False
+            registration.checked_in_at = None
+            registration.checked_in_by = None
+        else:
+            # Check in
+            registration.checked_in = True
+            registration.checked_in_at = timezone.now()
+            registration.checked_in_by = actor
+        
+        registration.save()
+        return registration
+    
     # ========================
     # Private Helper Methods
     # ========================

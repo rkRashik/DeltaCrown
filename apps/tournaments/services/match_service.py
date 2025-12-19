@@ -834,6 +834,243 @@ class MatchService:
         return match
     
     # =========================
+    # Phase 0 Organizer Actions (extracted from organizer.py views)
+    # =========================
+    
+    @staticmethod
+    @transaction.atomic
+    def organizer_reschedule_match(
+        match: Match,
+        new_time: datetime,
+        reason: str,
+        rescheduled_by_username: str
+    ) -> Match:
+        """
+        Reschedule a match to new time (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py reschedule_match view.
+        Preserves exact behavior - stores old/new times in lobby_info.
+        
+        Note: Original view used match.metadata (which doesn't exist on model).
+        Corrected to use match.lobby_info (actual JSONField).
+        
+        Args:
+            match: Match instance
+            new_time: New scheduled datetime (aware)
+            reason: Reason for rescheduling
+            rescheduled_by_username: Username of organizer
+        
+        Returns:
+            Updated Match instance
+        """
+        # Store old time for audit
+        old_time = match.scheduled_time
+        
+        # Update match
+        match.scheduled_time = new_time
+        
+        # Store reschedule metadata in lobby_info
+        match.lobby_info['rescheduled'] = {
+            'old_time': old_time.isoformat() if old_time else None,
+            'new_time': new_time.isoformat(),
+            'reason': reason,
+            'rescheduled_at': timezone.now().isoformat(),
+            'rescheduled_by': rescheduled_by_username,
+        }
+        match.save()
+        
+        return match
+    
+    @staticmethod
+    @transaction.atomic
+    def organizer_forfeit_match(
+        match: Match,
+        forfeiting_participant: int,
+        reason: str,
+        forfeited_by_username: str
+    ) -> Match:
+        """
+        Mark match as forfeit (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py forfeit_match view.
+        Preserves exact behavior - sets winner based on forfeiting participant.
+        
+        Args:
+            match: Match instance
+            forfeiting_participant: 1 or 2 (which participant forfeited)
+            reason: Forfeit reason
+            forfeited_by_username: Username of organizer
+        
+        Returns:
+            Updated Match instance
+        """
+        # Set winner (opposite of forfeiting participant)
+        if forfeiting_participant == 1:
+            match.winner_id = match.participant2_id
+            match.loser_id = match.participant1_id
+            match.score1 = 0
+            match.score2 = 1  # Forfeit score
+        else:
+            match.winner_id = match.participant1_id
+            match.loser_id = match.participant2_id
+            match.score1 = 1  # Forfeit score
+            match.score2 = 0
+        
+        match.state = 'completed'
+        
+        # Store forfeit metadata in lobby_info
+        match.lobby_info['forfeit'] = {
+            'forfeiting_participant': forfeiting_participant,
+            'reason': reason,
+            'forfeited_at': timezone.now().isoformat(),
+            'forfeited_by': forfeited_by_username,
+        }
+        match.save()
+        
+        return match
+    
+    @staticmethod
+    @transaction.atomic
+    def organizer_override_score(
+        match: Match,
+        score1: int,
+        score2: int,
+        reason: str,
+        overridden_by_username: str
+    ) -> Match:
+        """
+        Override match score (organizer correction action).
+        
+        Phase 0 Refactor: Extracted from organizer.py override_match_score view.
+        Preserves exact behavior - stores old/new scores in lobby_info.
+        
+        Args:
+            match: Match instance
+            score1: New score for participant 1
+            score2: New score for participant 2
+            reason: Reason for override
+            overridden_by_username: Username of organizer
+        
+        Returns:
+            Updated Match instance
+        """
+        # Store old scores for audit
+        old_score1 = match.score1
+        old_score2 = match.score2
+        
+        # Update match
+        match.score1 = score1
+        match.score2 = score2
+        
+        # Determine winner
+        if score1 > score2:
+            match.winner_id = match.participant1_id
+            match.loser_id = match.participant2_id
+        else:
+            match.winner_id = match.participant2_id
+            match.loser_id = match.participant1_id
+        
+        match.state = 'completed'
+        
+        # Store override metadata in lobby_info
+        match.lobby_info['score_override'] = {
+            'old_score1': old_score1,
+            'old_score2': old_score2,
+            'new_score1': score1,
+            'new_score2': score2,
+            'reason': reason,
+            'overridden_at': timezone.now().isoformat(),
+            'overridden_by': overridden_by_username,
+        }
+        match.save()
+        
+        return match
+    
+    @staticmethod
+    @transaction.atomic
+    def organizer_cancel_match(
+        match: Match,
+        reason: str,
+        cancelled_by_username: str
+    ) -> Match:
+        """
+        Cancel a match (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py cancel_match view.
+        Preserves exact behavior - sets state to cancelled.
+        
+        Args:
+            match: Match instance
+            reason: Cancellation reason
+            cancelled_by_username: Username of organizer
+        
+        Returns:
+            Updated Match instance
+        """
+        # Mark match as cancelled
+        match.state = 'cancelled'
+        
+        # Store cancellation metadata in lobby_info
+        match.lobby_info['cancelled'] = {
+            'reason': reason,
+            'cancelled_at': timezone.now().isoformat(),
+            'cancelled_by': cancelled_by_username,
+        }
+        match.save()
+        
+        return match
+    
+    @staticmethod
+    @transaction.atomic
+    def organizer_submit_score(
+        match: Match,
+        score1: int,
+        score2: int
+    ) -> Match:
+        """
+        Submit/update match score (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py submit_match_score view.
+        Preserves exact behavior - sets scores, determines winner, marks completed.
+        
+        Args:
+            match: Match instance
+            score1: Score for participant 1
+            score2: Score for participant 2
+        
+        Returns:
+            Updated Match instance
+        
+        Raises:
+            ValidationError: If scores invalid
+        """
+        from django.core.exceptions import ValidationError
+        
+        # Validate scores
+        if score1 < 0 or score2 < 0:
+            raise ValidationError('Scores must be non-negative')
+        
+        if score1 == score2:
+            raise ValidationError('Scores cannot be tied')
+        
+        # Update match
+        match.score1 = score1
+        match.score2 = score2
+        match.state = 'completed'
+        
+        # Determine winner
+        if score1 > score2:
+            match.winner_id = match.participant1_id
+            match.loser_id = match.participant2_id
+        else:
+            match.winner_id = match.participant2_id
+            match.loser_id = match.participant1_id
+        
+        match.save()
+        
+        return match
+        
+    # =========================
     # Statistics & Queries
     # =========================
     

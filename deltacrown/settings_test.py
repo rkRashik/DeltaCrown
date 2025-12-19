@@ -45,10 +45,36 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # Disable Sentry in tests
 SENTRY_DSN = None
 
-# Test database configuration
-DATABASES['default']['TEST'] = {
-    'NAME': 'test_deltacrown',
-}
+# Test database configuration with local Postgres fallback
+# Phase 0 Refactor: Support local Postgres when Neon user can't create test DB
+import os
+
+# Check if we should use local test database
+use_local_test_db = os.environ.get('USE_LOCAL_TEST_DB', 'false').lower() == 'true'
+
+if use_local_test_db:
+    # Use local Postgres for tests (fallback when Neon doesn't allow test DB creation)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('LOCAL_TEST_DB_NAME', 'test_deltacrown'),
+            'USER': os.environ.get('LOCAL_TEST_DB_USER', 'postgres'),
+            'PASSWORD': os.environ.get('LOCAL_TEST_DB_PASSWORD', 'postgres'),
+            'HOST': os.environ.get('LOCAL_TEST_DB_HOST', 'localhost'),
+            'PORT': os.environ.get('LOCAL_TEST_DB_PORT', '5432'),
+            'TEST': {
+                'NAME': os.environ.get('LOCAL_TEST_DB_NAME', 'test_deltacrown'),
+            },
+        }
+    }
+    print(f"\n[WARNING] Using local test database: {DATABASES['default']['NAME']}@{DATABASES['default']['HOST']}\n")
+else:
+    # Keep existing DATABASE_URL configuration but mark test DB name
+    DATABASES['default']['TEST'] = {
+        'NAME': 'test_deltacrown',
+    }
+    print("\n[WARNING] Using DATABASE_URL for tests (may fail if user can't create DB)\n")
+    print("[INFO] To use local Postgres, set: USE_LOCAL_TEST_DB=true\n")
 
 # Disable logging during tests (unless --log-cli is passed)
 LOGGING = {

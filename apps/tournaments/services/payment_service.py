@@ -376,6 +376,56 @@ class PaymentService:
         }
     
     @staticmethod
+    @transaction.atomic
+    def verify_payment(payment, verified_by):
+        """
+        Verify a payment (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py view.
+        Preserves exact behavior - sets status to 'verified' and records verifier.
+        
+        Args:
+            payment: Payment instance to verify
+            verified_by: User performing the verification
+        
+        Returns:
+            Payment: The updated payment instance
+        """
+        payment.status = 'verified'
+        payment.verified_by = verified_by
+        payment.verified_at = timezone.now()
+        payment.save()
+        return payment
+    
+    @staticmethod
+    @transaction.atomic
+    def reject_payment(payment, rejected_by):
+        """
+        Reject a payment (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py view.
+        Phase 0 Patch: Fixed to match Payment model semantics - verified_by/verified_at
+        track BOTH verifications and rejections per model help text.
+        
+        Note: Original view only set status='rejected', but Payment model fields
+        verified_by/verified_at have help text: "Admin who verified/rejected the payment"
+        and "When payment was verified/rejected". This patch aligns implementation
+        with model design intent.
+        
+        Args:
+            payment: Payment instance to reject
+            rejected_by: User performing the rejection (stored in verified_by field)
+        
+        Returns:
+            Payment: The updated payment instance
+        """
+        payment.status = 'rejected'
+        payment.verified_by = rejected_by
+        payment.verified_at = timezone.now()
+        payment.save()
+        return payment
+    
+    @staticmethod
     def can_use_deltacoin(user, entry_fee: int) -> Dict[str, Any]:
         """
         Check if user can afford to pay with DeltaCoin.
@@ -408,3 +458,88 @@ class PaymentService:
             'required': entry_fee,
             'shortfall': shortfall,
         }
+    
+    # =========================
+    # Phase 0: Organizer Actions
+    # =========================
+    
+    @staticmethod
+    @transaction.atomic
+    def organizer_bulk_verify(payment_ids: list, tournament, verified_by) -> int:
+        """
+        Bulk verify payments (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py bulk_verify_payments view.
+        Preserves exact behavior - updates multiple payments to verified status.
+        
+        Args:
+            payment_ids: List of payment IDs to verify
+            tournament: Tournament instance (for filtering)
+            verified_by: User instance (organizer)
+        
+        Returns:
+            int: Number of payments updated
+        """
+        updated = Payment.objects.filter(
+            id__in=payment_ids,
+            registration__tournament=tournament,
+            status='submitted'
+        ).update(
+            status='verified',
+            verified_by=verified_by,
+            verified_at=timezone.now()
+        )
+        
+        return updated
+    
+    @staticmethod
+    @transaction.atomic
+    def organizer_process_refund(payment, refund_amount, reason: str, refund_method: str, processed_by_username: str):
+        """
+        Process refund for a payment (organizer action).
+        
+        Phase 0 Refactor: Extracted from organizer.py process_refund view.
+        Preserves exact behavior - stores refund metadata, updates status.
+        
+        Args:
+            payment: Payment instance
+            refund_amount: Decimal amount to refund
+            reason: Refund reason
+            refund_method: Refund method ('manual', etc.)
+            processed_by_username: Username of organizer
+        
+        Returns:
+            Updated Payment instance
+        
+        Raises:
+            ValidationError: If amount invalid or reason missing
+        """
+        from django.core.exceptions import ValidationError
+        from decimal import Decimal
+        
+        # Convert to Decimal if needed
+        if not isinstance(refund_amount, Decimal):
+            refund_amount = Decimal(str(refund_amount))
+        
+        # Validate
+        if refund_amount <= 0 or refund_amount > payment.amount:
+            raise ValidationError('Invalid refund amount')
+        
+        if not reason or not reason.strip():
+            raise ValidationError('Refund reason required')
+        
+        # Store refund info in payment metadata (JSONB)
+        if not hasattr(payment, 'metadata') or payment.metadata is None:
+            payment.metadata = {}
+        
+        payment.metadata['refund'] = {
+            'amount': str(refund_amount),
+            'reason': reason,
+            'method': refund_method,
+            'processed_at': timezone.now().isoformat(),
+            'processed_by': processed_by_username,
+        }
+        payment.status = 'refunded'
+        payment.save()
+        
+        return payment

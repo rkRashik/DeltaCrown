@@ -25,6 +25,10 @@ from apps.tournaments.models import (
     Bracket, TournamentStaff, TournamentPaymentMethod, TournamentAnnouncement
 )
 from apps.tournaments.services.staff_permission_checker import StaffPermissionChecker
+from apps.tournaments.services.registration_service import RegistrationService
+from apps.tournaments.services.payment_service import PaymentService
+from apps.tournaments.services.checkin_service import CheckinService
+from apps.tournaments.services.match_service import MatchService
 
 
 class OrganizerRequiredMixin(UserPassesTestMixin):
@@ -617,8 +621,9 @@ def approve_registration(request, slug, registration_id):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     registration = get_object_or_404(Registration, id=registration_id, tournament=tournament)
-    registration.status = 'confirmed'
-    registration.save()
+    
+    # Refactored: Move ORM mutation to service
+    RegistrationService.approve_registration(registration, request.user)
     
     messages.success(request, f"Registration for {registration.user.username} approved.")
     return JsonResponse({'success': True})
@@ -635,8 +640,9 @@ def reject_registration(request, slug, registration_id):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     registration = get_object_or_404(Registration, id=registration_id, tournament=tournament)
-    registration.status = 'rejected'
-    registration.save()
+    
+    # Refactored: Move ORM mutation to service
+    RegistrationService.reject_registration(registration, request.user)
     
     messages.success(request, f"Registration for {registration.user.username} rejected.")
     return JsonResponse({'success': True})
@@ -653,10 +659,7 @@ def verify_payment(request, slug, payment_id):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     payment = get_object_or_404(Payment, id=payment_id, registration__tournament=tournament)
-    payment.status = 'verified'
-    payment.verified_by = request.user
-    payment.verified_at = timezone.now()
-    payment.save()
+    PaymentService.verify_payment(payment, request.user)
     
     messages.success(request, f"Payment verified for {payment.registration.user.username}.")
     return JsonResponse({'success': True})
@@ -673,8 +676,7 @@ def reject_payment(request, slug, payment_id):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     payment = get_object_or_404(Payment, id=payment_id, registration__tournament=tournament)
-    payment.status = 'rejected'
-    payment.save()
+    PaymentService.reject_payment(payment, request.user)
     
     messages.warning(request, f"Payment rejected for {payment.registration.user.username}.")
     return JsonResponse({'success': True})
@@ -692,20 +694,14 @@ def toggle_checkin(request, slug, registration_id):
     
     registration = get_object_or_404(Registration, id=registration_id, tournament=tournament)
     
+    # Use service to toggle check-in
+    CheckinService.organizer_toggle_checkin(registration, request.user)
+    
+    # Message based on new state
     if registration.checked_in:
-        # Uncheck
-        registration.checked_in = False
-        registration.checked_in_at = None
-        registration.checked_in_by = None
-        registration.save()
-        messages.info(request, f"{registration.user.username} check-in removed.")
-    else:
-        # Check in
-        registration.checked_in = True
-        registration.checked_in_at = timezone.now()
-        registration.checked_in_by = request.user
-        registration.save()
         messages.success(request, f"{registration.user.username} checked in successfully.")
+    else:
+        messages.info(request, f"{registration.user.username} check-in removed.")
     
     return JsonResponse({'success': True, 'checked_in': registration.checked_in})
 
@@ -727,11 +723,11 @@ def update_dispute_status(request, slug, dispute_id):
     data = json.loads(request.body)
     new_status = data.get('status')
     
-    if new_status not in ['open', 'under_review', 'resolved']:
-        return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
-    
-    dispute.status = new_status
-    dispute.save()
+    # Use service to update status
+    try:
+        DisputeService.organizer_update_status(dispute, new_status)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
     
     messages.info(request, f"Dispute status updated to {new_status.replace('_', ' ').title()}.")
     return JsonResponse({'success': True})
@@ -754,14 +750,11 @@ def resolve_dispute(request, slug, dispute_id):
     data = json.loads(request.body)
     resolution_notes = data.get('resolution_notes', '').strip()
     
-    if not resolution_notes:
-        return JsonResponse({'success': False, 'error': 'Resolution notes required'}, status=400)
-    
-    dispute.status = 'resolved'
-    dispute.resolution_notes = resolution_notes
-    dispute.resolved_by = request.user
-    dispute.resolved_at = timezone.now()
-    dispute.save()
+    # Use service to resolve dispute
+    try:
+        DisputeService.organizer_resolve(dispute, resolution_notes, request.user)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
     
     messages.success(request, f"Dispute resolved successfully.")
     return JsonResponse({'success': True})
@@ -789,27 +782,14 @@ def submit_match_score(request, slug, match_id):
     try:
         score1 = int(score1)
         score2 = int(score2)
-        if score1 < 0 or score2 < 0:
-            return JsonResponse({'success': False, 'error': 'Scores must be non-negative'}, status=400)
-        if score1 == score2:
-            return JsonResponse({'success': False, 'error': 'Scores cannot be tied'}, status=400)
     except (ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'Invalid score values'}, status=400)
     
-    # Update match
-    match.score1 = score1
-    match.score2 = score2
-    match.state = 'completed'
-    
-    # Determine winner
-    if score1 > score2:
-        match.winner_id = match.participant1_id
-        match.loser_id = match.participant2_id
-    else:
-        match.winner_id = match.participant2_id
-        match.loser_id = match.participant1_id
-    
-    match.save()
+    # Use service to submit score
+    try:
+        MatchService.organizer_submit_score(match, score1, score2)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
     
     messages.success(request, f"Match score submitted: {score1}-{score2}")
     return JsonResponse({'success': True, 'score1': score1, 'score2': 'score2'})
@@ -882,18 +862,15 @@ def bulk_approve_registrations(request, slug):
         data = json.loads(request.body)
         registration_ids = data.get('registration_ids', [])
         
-        if not registration_ids:
-            return JsonResponse({'success': False, 'error': 'No registrations selected'}, status=400)
-        
-        # Update registrations
-        updated = Registration.objects.filter(
-            id__in=registration_ids,
+        # Refactored: Move ORM mutation to service
+        result = RegistrationService.bulk_approve_registrations(
+            registration_ids=registration_ids,
             tournament=tournament,
-            status=Registration.PENDING
-        ).update(status=Registration.CONFIRMED)
+            approved_by=request.user
+        )
         
-        messages.success(request, f"Successfully approved {updated} registration(s).")
-        return JsonResponse({'success': True, 'count': updated})
+        messages.success(request, f"Successfully approved {result['count']} registration(s).")
+        return JsonResponse({'success': True, 'count': result['count']})
     
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -920,28 +897,16 @@ def bulk_reject_registrations(request, slug):
         registration_ids = data.get('registration_ids', [])
         reason = data.get('reason', '').strip()
         
-        if not registration_ids:
-            return JsonResponse({'success': False, 'error': 'No registrations selected'}, status=400)
-        
-        # Update registrations
-        registrations = Registration.objects.filter(
-            id__in=registration_ids,
+        # Refactored: Move ORM mutation to service
+        result = RegistrationService.bulk_reject_registrations(
+            registration_ids=registration_ids,
             tournament=tournament,
-            status=Registration.PENDING
+            rejected_by=request.user,
+            reason=reason
         )
         
-        updated = 0
-        for reg in registrations:
-            reg.status = Registration.REJECTED
-            if reason:
-                # Store rejection reason in registration_data JSONB
-                reg.registration_data = reg.registration_data or {}
-                reg.registration_data['rejection_reason'] = reason
-            reg.save()
-            updated += 1
-        
-        messages.warning(request, f"Rejected {updated} registration(s).")
-        return JsonResponse({'success': True, 'count': updated})
+        messages.warning(request, f"Rejected {result['count']} registration(s).")
+        return JsonResponse({'success': True, 'count': result['count']})
     
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
@@ -1081,16 +1046,12 @@ def bulk_verify_payments(request, slug):
         if not payment_ids:
             return JsonResponse({'success': False, 'error': 'No payments selected'}, status=400)
         
-        # Update payments
-        from apps.tournaments.models import Payment
-        updated = Payment.objects.filter(
-            id__in=payment_ids,
-            registration__tournament=tournament,
-            status='submitted'
-        ).update(
-            status='verified',
-            verified_by=request.user,
-            verified_at=timezone.now()
+        # Use service to bulk verify
+        from apps.tournaments.services.payment_service import PaymentService
+        updated = PaymentService.organizer_bulk_verify(
+            payment_ids,
+            tournament,
+            request.user
         )
         
         messages.success(request, f"Successfully verified {updated} payment(s).")
@@ -1126,25 +1087,18 @@ def process_refund(request, slug, payment_id):
         reason = data.get('reason', '').strip()
         refund_method = data.get('refund_method', 'manual')
         
-        if refund_amount <= 0 or refund_amount > payment.amount:
-            return JsonResponse({'success': False, 'error': 'Invalid refund amount'}, status=400)
-        
-        if not reason:
-            return JsonResponse({'success': False, 'error': 'Refund reason required'}, status=400)
-        
-        # Store refund info in payment metadata (JSONB)
-        if not hasattr(payment, 'metadata'):
-            payment.metadata = {}
-        
-        payment.metadata['refund'] = {
-            'amount': str(refund_amount),
-            'reason': reason,
-            'method': refund_method,
-            'processed_at': timezone.now().isoformat(),
-            'processed_by': request.user.username,
-        }
-        payment.status = 'refunded'
-        payment.save()
+        # Use service to process refund
+        from apps.tournaments.services.payment_service import PaymentService
+        try:
+            PaymentService.organizer_process_refund(
+                payment,
+                refund_amount,
+                reason,
+                refund_method,
+                request.user.username
+            )
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
         
         messages.success(request, f"Refund of ${refund_amount} processed successfully.")
         return JsonResponse({'success': True})
@@ -1279,22 +1233,13 @@ def reschedule_match(request, slug, match_id):
         except ValueError:
             return JsonResponse({'success': False, 'error': 'Invalid datetime format'}, status=400)
         
-        # Store old time for audit
-        old_time = match.scheduled_time
-        
-        # Update match
-        match.scheduled_time = new_time
-        if not hasattr(match, 'metadata'):
-            match.metadata = {}
-        
-        match.metadata['rescheduled'] = {
-            'old_time': old_time.isoformat() if old_time else None,
-            'new_time': new_time.isoformat(),
-            'reason': reason,
-            'rescheduled_at': timezone.now().isoformat(),
-            'rescheduled_by': request.user.username,
-        }
-        match.save()
+        # Use service to reschedule
+        MatchService.organizer_reschedule_match(
+            match,
+            new_time,
+            reason,
+            request.user.username
+        )
         
         messages.success(request, f"Match rescheduled to {new_time.strftime('%b %d, %H:%M')}.")
         return JsonResponse({'success': True, 'new_time': new_time.isoformat()})
@@ -1331,31 +1276,13 @@ def forfeit_match(request, slug, match_id):
         
         forfeiting = int(forfeiting)
         
-        # Set winner (opposite of forfeiting participant)
-        if forfeiting == 1:
-            match.winner_id = match.participant2_id
-            match.loser_id = match.participant1_id
-            match.score1 = 0
-            match.score2 = 1  # Forfeit score
-        else:
-            match.winner_id = match.participant1_id
-            match.loser_id = match.participant2_id
-            match.score1 = 1  # Forfeit score
-            match.score2 = 0
-        
-        match.state = 'completed'
-        
-        # Store forfeit metadata
-        if not hasattr(match, 'metadata'):
-            match.metadata = {}
-        
-        match.metadata['forfeit'] = {
-            'forfeiting_participant': forfeiting,
-            'reason': reason,
-            'forfeited_at': timezone.now().isoformat(),
-            'forfeited_by': request.user.username,
-        }
-        match.save()
+        # Use service to forfeit match
+        MatchService.organizer_forfeit_match(
+            match,
+            forfeiting,
+            reason,
+            request.user.username
+        )
         
         messages.warning(request, f"Match marked as forfeit.")
         return JsonResponse({'success': True})
@@ -1397,38 +1324,14 @@ def override_match_score(request, slug, match_id):
         if not reason:
             return JsonResponse({'success': False, 'error': 'Override reason required'}, status=400)
         
-        # Store old scores for audit
-        old_score1 = match.score1
-        old_score2 = match.score2
-        
-        # Update match
-        match.score1 = score1
-        match.score2 = score2
-        
-        # Determine winner
-        if score1 > score2:
-            match.winner_id = match.participant1_id
-            match.loser_id = match.participant2_id
-        else:
-            match.winner_id = match.participant2_id
-            match.loser_id = match.participant1_id
-        
-        match.state = 'completed'
-        
-        # Store override metadata
-        if not hasattr(match, 'metadata'):
-            match.metadata = {}
-        
-        match.metadata['score_override'] = {
-            'old_score1': old_score1,
-            'old_score2': old_score2,
-            'new_score1': score1,
-            'new_score2': score2,
-            'reason': reason,
-            'overridden_at': timezone.now().isoformat(),
-            'overridden_by': request.user.username,
-        }
-        match.save()
+        # Use service to override score
+        MatchService.organizer_override_score(
+            match,
+            score1,
+            score2,
+            reason,
+            request.user.username
+        )
         
         messages.success(request, f"Match score overridden to {score1}-{score2}.")
         return JsonResponse({'success': True, 'score1': score1, 'score2': score2})
@@ -1462,19 +1365,12 @@ def cancel_match(request, slug, match_id):
         if not reason:
             return JsonResponse({'success': False, 'error': 'Cancellation reason required'}, status=400)
         
-        # Mark match as cancelled
-        match.state = 'cancelled'
-        
-        # Store cancellation metadata
-        if not hasattr(match, 'metadata'):
-            match.metadata = {}
-        
-        match.metadata['cancelled'] = {
-            'reason': reason,
-            'cancelled_at': timezone.now().isoformat(),
-            'cancelled_by': request.user.username,
-        }
-        match.save()
+        # Use service to cancel match
+        MatchService.organizer_cancel_match(
+            match,
+            reason,
+            request.user.username
+        )
         
         messages.warning(request, f"Match cancelled.")
         return JsonResponse({'success': True})
