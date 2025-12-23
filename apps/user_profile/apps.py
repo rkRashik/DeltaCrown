@@ -20,5 +20,6 @@ class UserProfileConfig(AppConfig):
         # LEGACY: Keep old signals during migration
         try:
             import apps.user_profile.signals  # noqa
-        except Exception:
-            pass
+            logger.info("✅ User profile signals registered")
+        except Exception as e:
+            logger.error(f"❌ Failed to register signals: {e}")

@@ -39,6 +39,14 @@ class UserProfile(models.Model):
     # ===== SYSTEM IDENTITY (Immutable) =====
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, help_text="Public unique identifier")
+    public_id = models.CharField(
+        max_length=15,
+        unique=True,
+        null=True,  # Will be False after backfill migration
+        blank=True,
+        db_index=True,
+        help_text="Human-readable public identifier (DC-YY-NNNNNN format, e.g., DC-25-000042)"
+    )
     updated_at = models.DateTimeField(auto_now=True, help_text="Last profile update timestamp")
     
     # ===== LEGAL IDENTITY (Locked after KYC) =====
@@ -252,11 +260,29 @@ class UserProfile(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = [models.Index(fields=["region"])]
+        indexes = [
+            models.Index(fields=["region"]),
+            models.Index(fields=["public_id"], name='idx_profile_public_id'),
+        ]
         verbose_name = "User Profile"
 
     def __str__(self):
+        if self.public_id:
+            return f"{self.display_name or self.user.username} ({self.public_id})"
         return self.display_name or getattr(self.user, "username", str(self.user_id))
+    
+    def clean(self):
+        """Validate fields before saving"""
+        super().clean()
+        
+        # Validate public_id format if present
+        if self.public_id:
+            from apps.user_profile.services.public_id import PublicIDGenerator
+            if not PublicIDGenerator.validate_format(self.public_id):
+                raise ValidationError(
+                    f"Invalid public_id format: {self.public_id}. "
+                    "Must be DC-YY-NNNNNN (e.g., DC-25-000042)"
+                )
     
     # ===== COMPUTED PROPERTIES =====
     

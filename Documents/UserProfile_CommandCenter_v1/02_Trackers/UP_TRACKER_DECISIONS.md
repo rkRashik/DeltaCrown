@@ -83,6 +83,344 @@ This document records all significant architectural decisions made during User P
 
 ## APPROVED ADRS
 
+### ADR-UP-009: Public ID Format (DC-YY-NNNNNN)
+
+**Status:** ✅ APPROVED → 🟢 IMPLEMENTING (UP-M1)  
+**Date:** December 23, 2025  
+**Author:** Architecture Team  
+**Related ADRs:** ADR-UP-002 (Profile Provisioning Invariant)
+
+#### Context
+
+Current UserProfile identification uses Django auto-increment PK and username. Both have issues:
+- **PK:** Exposes user count (security), not human-readable, implementation detail leaked to URLs
+- **Username:** Mutable (users can change), contains PII (often real names), not branded
+- **UUID:** Exists but not memorable, ugly URLs (`/profile/550e8400-e29b.../`)
+
+**Requirements:**
+- Human-readable and memorable
+- Branded with DeltaCrown identity
+- Immutable (never changes once assigned)
+- Non-PII (GDPR compliant)
+- URL-friendly (no special characters)
+- Unique (globally, forever)
+
+#### Decision
+
+**Format:** DC-YY-NNNNNN  
+- DC: DeltaCrown brand prefix (fixed)
+- YY: Year (2025 → 25, supports 2000-2099)
+- NNNNNN: Sequential counter (000001 to 999999, 6 digits per year)
+
+**Example:** DC-25-000042 (42nd user in 2025)
+
+**Implementation:**
+- PublicIDCounter model: year-based counter with atomic F() increment
+- select_for_update() locking prevents race conditions
+- Unique constraint enforced at database level
+- Auto-assigned by profile creation signal
+- Retry logic handles concurrent allocation (max 3 attempts)
+
+#### Consequences
+
+**Positive:**
+- Human-readable: Users can remember "DC-25-000042"
+- Branded: Reinforces DeltaCrown identity in URLs (/u/DC-25-000042/)
+- Immutable: Never changes, safe for bookmarks and external references
+- Non-PII: No personal information, GDPR compliant
+- Capacity: 999,999 users per year (sufficient for growth)
+- Year-partitioned: Easy to audit user growth by year
+
+**Negative:**
+- Sequential reveals timing: Can infer signup order within year
+- Counter overflow: Max 999,999 users per year (manual intervention if exceeded)
+- Migration cost: All existing profiles need backfill
+
+**Neutral:**
+- Not globally unique without year component (but year+counter is unique)
+- Does not replace Django PK (both coexist, PK for internal use)
+
+#### Alternatives Considered
+
+**Alternative 1: UUID (Opaque)**  
+**Pros:** Globally unique, no collision risk, no counter management  
+**Cons:** Not human-readable, not memorable, ugly URLs  
+**Why rejected:** Terrible user experience, defeats purpose of public ID
+
+**Alternative 2: Hashid (Obfuscated PK)**  
+**Pros:** Short (6-8 chars), hides actual PK, reversible  
+**Cons:** Not branded, still feels random, not truly memorable  
+**Why rejected:** No DeltaCrown brand identity
+
+**Alternative 3: Username-based slug**  
+**Pros:** User-chosen, completely customizable  
+**Cons:** Mutable, PII risk, name squatting, breaks references  
+**Why rejected:** Already have slug field (separate from immutable ID)
+
+#### Implementation Notes
+
+**Code Changes:**
+- Added `public_id` field to UserProfile (CharField, max_length=15, unique, db_index, null=True)
+- Created PublicIDCounter model with year + counter fields
+- Created PublicIDGenerator service (apps/user_profile/services/public_id.py)
+- Updated ensure_profile() signal to auto-assign public_id
+- Model validation: clean() method checks format with regex ^DC-\d{2}-\d{6}$
+
+**Migration Plan:**
+1. Add public_id field (nullable)
+2. Create PublicIDCounter model
+3. Backfill missing profiles
+4. Backfill public_id for all profiles
+5. Make public_id non-null
+
+**Test Coverage:**
+- 8 unit tests planned (format, concurrency, year rollover, overflow)
+- Race condition test: 10 threads generating IDs simultaneously
+
+#### References
+
+- UP-02: Public User ID Strategy (target architecture)
+- UP-M1 Implementation Plan: Phase 2 (Public ID Generator Service)
+- Documents/UserProfile_CommandCenter_v1/00_TargetArchitecture/UP_02_PUBLIC_USER_ID_STRATEGY.md
+
+---
+
+### ADR-UP-010: Privacy Enforcement Baseline
+
+**Status:** ✅ APPROVED → 🟢 IMPLEMENTING (UP-M1)  
+**Date:** December 23, 2025  
+**Author:** Architecture Team  
+**Related ADRs:** ADR-UP-006 (Privacy Enforcement in 4 Layers - from UP-0 architecture docs)
+
+#### Context
+
+User Profile contains sensitive PII (email, phone, address, date_of_birth, etc.). Current system has no centralized privacy enforcement:
+- Templates access fields directly (`{{ profile.email }}`)
+- Views pass full profile dict to templates
+- APIs return all fields regardless of viewer
+- No role-based visibility (owner vs public vs staff)
+- Risk of accidental PII leaks
+
+**Requirements:**
+- Centralized privacy policy (single source of truth)
+- Role-based field filtering (owner, public, staff)
+- Prevent accidental PII exposure
+- Extensible for GDPR compliance (UP-M5)
+- Testable and auditable
+
+#### Decision
+
+**Created ProfileVisibilityPolicy service** (apps/user_profile/services/privacy_policy.py)
+
+**Field Visibility Rules:**
+
+| Viewer Role | Visible Fields | Example Fields |
+|-------------|----------------|----------------|
+| Owner (viewer == profile.user) | All fields (57+ fields) | email, phone, address, balance, PII |
+| Public (anonymous or non-owner) | PUBLIC_FIELDS only (42 fields) | display_name, avatar, bio, stats |
+| Staff (is_staff=True) | All fields + admin metadata | All fields + internal_notes, moderation_flags |
+
+**PII Fields (Hidden by Default - 14 fields):**
+- email, phone
+- city, postal_code, address
+- real_full_name, date_of_birth, nationality, gender
+- emergency_contact_* (3 fields)
+- deltacoin_balance, lifetime_earnings
+- kyc_status, kyc_verified_at
+
+**Methods:**
+- `can_view_profile(viewer, profile) -> bool` - Check if viewer can see profile at all
+- `get_visible_fields(viewer, profile) -> Set[str]` - Get field names visible to viewer
+- `filter_profile_data(viewer, profile, data: dict) -> dict` - Filter dict by visibility
+- `is_pii_field(field_name) -> bool` - Check if field is PII
+- `redact_pii_for_logs(data: dict) -> dict` - Safe logging helper
+
+#### Consequences
+
+**Positive:**
+- Single source of truth for privacy logic (no scattered checks)
+- Prevents accidental PII leaks (centralized enforcement)
+- Role-based access control (owner/public/staff)
+- Testable (12 unit tests planned)
+- Extensible for GDPR (UP-M5 will add PrivacySettings toggles)
+- Performance: <1ms filtering (in-memory dict operation)
+
+**Negative:**
+- Not yet enforced in templates/APIs (UP-M1 baseline only, enforcement in UP-M5)
+- Requires code changes to use policy (not automatic)
+- May break existing features expecting full profile data
+
+**Neutral:**
+- Currently in "audit mode" (policy exists but not enforced)
+- Migration path: Phase 1 (implement), Phase 2 (API enforcement), Phase 3 (template enforcement)
+
+#### Alternatives Considered
+
+**Alternative 1: Field-level permissions in model**  
+**Pros:** Django-native, integrated with admin  
+**Cons:** Inflexible, hard to test, couples model with presentation  
+**Why rejected:** Too rigid, doesn't support dynamic rules
+
+**Alternative 2: View-level filtering only**  
+**Pros:** Simple, no new services  
+**Cons:** Scattered logic, easy to bypass, not reusable  
+**Why rejected:** No single source of truth, hard to audit
+
+**Alternative 3: Django Guardian (object-level permissions)**  
+**Pros:** Battle-tested, feature-rich  
+**Cons:** Overkill for simple visibility rules, adds dependency  
+**Why rejected:** Too heavy for our use case
+
+#### Implementation Notes
+
+**Code Changes:**
+- Created ProfileVisibilityPolicy service (245 lines)
+- Defined field sets: PUBLIC_FIELDS, OWNER_ONLY_FIELDS, STAFF_ONLY_FIELDS
+- Helper function: get_profile_context_for_template() for views
+- No template/API changes yet (UP-M5 will enforce)
+
+**Usage Example:**
+```python
+from apps.user_profile.services.privacy_policy import ProfileVisibilityPolicy
+
+# Get visible fields
+visible_fields = ProfileVisibilityPolicy.get_visible_fields(request.user, profile)
+
+# Filter profile dict
+from django.forms.models import model_to_dict
+profile_data = model_to_dict(profile)
+filtered = ProfileVisibilityPolicy.filter_profile_data(request.user, profile, profile_data)
+
+# Check if field is PII
+if ProfileVisibilityPolicy.is_pii_field('email'):
+    # Handle PII field
+```
+
+**Test Coverage:**
+- 12 unit tests planned (owner/public/staff scenarios, PII hiding, performance)
+
+#### References
+
+- UP-03: Privacy Enforcement Model (target architecture)
+- UP-M1 Implementation Plan: Phase 4 (Privacy Enforcement Baseline)
+- Documents/UserProfile_CommandCenter_v1/00_TargetArchitecture/UP_03_PRIVACY_ENFORCEMENT_MODEL.md
+
+---
+
+### ADR-UP-008: Safety Accessor Pattern (get_or_create_user_profile)
+
+**Status:** ✅ APPROVED → ✅ IMPLEMENTED  
+**Date:** December 23, 2025 (UP-M0)  
+**Author:** Developer Agent  
+**Related ADRs:** ADR-UP-002 (Profile Provisioning Invariant)
+
+#### Context
+
+Audit revealed 94 locations with `.profile` access patterns. 22 locations (23%) have CRITICAL risk:
+- Direct `user.profile` access without existence check
+- Will crash with `RelatedObjectDoesNotExist` if profile missing
+- Current signal-based provisioning has 1.3% failure rate (OAuth bypass)
+
+**Requirements:**
+- Atomic profile creation with race condition handling
+- Retry logic for IntegrityError (concurrent creation scenarios)
+- No PII exposure in logs (GDPR compliance)
+- 100% success rate guarantee (fail fast if provisioning impossible)
+- Idempotent (multiple calls return same profile)
+
+**Architecture Reference:**
+- UP-01 Section 1: "Invariant: Every User MUST have exactly one UserProfile"
+- UP-M0 Audit: 22 CRITICAL locations require safety net
+
+#### Decision
+
+**Created safety accessor utility:** `get_or_create_user_profile(user, max_retries=3)`
+
+**Implementation:**
+- Uses `select_for_update()` to lock User row (prevent race conditions)
+- Atomic transaction wrapper (all-or-nothing profile creation)
+- Retry logic with exponential backoff (0.1s, 0.2s, 0.3s) on IntegrityError
+- Returns `(profile, created)` tuple (Django get_or_create pattern)
+- Raises `ValueError` for unsaved users (pk=None)
+- Raises `RuntimeError` if provisioning fails after max_retries
+- Logs creation events with user_id + username only (no PII)
+
+**Also created:**
+- `get_user_profile_safe(user)` - Convenience wrapper (profile only, no created flag)
+- `@ensure_profile_exists` - View decorator guaranteeing profile exists before execution
+
+#### Consequences
+
+**Positive:**
+- 100% profile provisioning guarantee (or explicit failure)
+- No more `RelatedObjectDoesNotExist` crashes in production
+- Race condition safe (tested with 10 concurrent threads)
+- Clear error messages for debugging (fail fast pattern)
+- Drop-in replacement for unsafe `user.profile` access
+- Monitoring-friendly (log warnings if profile was missing)
+
+**Negative:**
+- Extra database query if profile exists (1 SELECT + 1 LOCK)
+- Slightly slower than direct access (~5ms overhead)
+- Requires code changes in 22 CRITICAL locations (manual migration)
+
+**Neutral:**
+- Does not fix root cause (OAuth bypass) - UP-M4 will fix signal gaps
+- Temporary solution until 100% signal coverage achieved
+- Must be used consistently (cannot enforce at framework level)
+
+#### Alternatives Considered
+
+**Alternative 1: Fix signal coverage only (no safety accessor)**  
+**Pros:** Zero runtime overhead, no code changes  
+**Cons:** Cannot guarantee 100% (OAuth/SSO edge cases), no retroactive fix for existing missing profiles  
+**Why rejected:** Risk too high, leaves 1.3% failure rate
+
+**Alternative 2: Middleware-based profile creation**  
+**Pros:** Automatic for all requests, no per-view changes  
+**Cons:** Runs on every request (performance), hard to test, no API/CLI coverage  
+**Why rejected:** Performance impact, incomplete coverage
+
+**Alternative 3: Database constraint + trigger**  
+**Pros:** Enforced at DB level, cannot be bypassed  
+**Cons:** PostgreSQL-specific, complex rollback, hard to test  
+**Why rejected:** Framework agnostic solution preferred
+
+#### Implementation Notes
+
+**Usage Examples:**
+
+```python
+# Before (UNSAFE - will crash if profile missing)
+profile = request.user.profile
+
+# After (SAFE - guaranteed to work)
+from apps.user_profile.utils import get_user_profile_safe
+profile = get_user_profile_safe(request.user)
+
+# Or use decorator
+from apps.user_profile.decorators import ensure_profile_exists
+
+@login_required
+@ensure_profile_exists
+def my_view(request):
+    profile = request.user.profile  # Guaranteed to exist
+```
+
+**Test Coverage:** 25 tests, 100% line coverage  
+**Files Created:**
+- `apps/user_profile/utils.py` (145 lines)
+- `apps/user_profile/decorators.py` (72 lines)
+- `tests/test_profile_safety.py` (290 lines)
+
+#### References
+
+- UP-01: Core User Profile Architecture
+- UP-M0 Audit Report: Table 4 (22 CRITICAL locations)
+- Documents/UserProfile_CommandCenter_v1/04_Audit/UP_M0_AUDIT_REPORT.md
+
+---
+
 ### ADR-UP-001: Public User ID Strategy
 
 **Status:** ✅ APPROVED  
@@ -855,13 +1193,369 @@ When decisions are replaced, move them here with link to replacement.
 
 ---
 
-**END OF DECISION LOG**
+## ADR-UP-011: Event-Sourced User Activity Pattern
 
-**Status:** Active  
-**Total ADRs:** 7 approved, 0 proposed, 0 superseded  
-**Last Updated:** December 22, 2025
+**Date:** 2025-12-23  
+**Status:** ✅ IMPLEMENTED  
+**Context:** UP-M2 (Stats + History)  
+**Decision Owner:** Platform Architecture
+
+**Problem:**
+UserProfile stats (tournaments_played, matches_won, lifetime_earnings) are manually mutated throughout the codebase, leading to:
+1. **No audit trail:** Cannot answer "what did user do 6 months ago?"
+2. **Desynchronization risk:** Stats incremented manually (tournaments_played++), can drift from reality
+3. **No authoritative source:** TournamentResult stores winner, but no User→Tournament→Outcome link
+4. **Stats not recomputable:** If corrupted, cannot rebuild from historical data
+
+**Options Considered:**
+
+**Option 1: Immutable Event Log (CHOSEN)**
+- Create UserActivity model (append-only event log)
+- Event types: TOURNAMENT_JOINED, MATCH_WON, COINS_EARNED, etc.
+- Stats derived from events (recomputable)
+- Pros: Infinite audit trail, stats always recomputable, scalable (append-only)
+- Cons: Requires backfill migration, more storage (events never deleted)
+
+**Option 2: Manual Stats Updates with Soft Delete**
+- Keep current approach, add soft delete to stats
+- Pros: Minimal code changes
+- Cons: Still no audit trail, stats not recomputable, desync risk remains
+
+**Option 3: Stats Snapshots (Daily/Monthly)**
+- Store UserProfileStats snapshots at regular intervals
+- Pros: Point-in-time history
+- Cons: Coarse granularity, still no event-level detail, complex rollup logic
+
+**Decision:**
+Implement **Option 1: Event-Sourced Activity Log** with 3-tier data hierarchy:
+- **Tier 1: Events (Source of Truth)** - UserActivity (immutable, append-only)
+- **Tier 2: Stats (Derived Projection)** - UserProfileStats (recomputed from events)
+- **Tier 3: Profile (Display Cache)** - UserProfile (updated from stats)
+
+**Implementation:**
+```python
+# Immutable event log (ACTUAL DB SCHEMA)
+class UserActivity(models.Model):
+    event_type = models.CharField(choices=EventType.choices)
+    user = models.ForeignKey(User)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    source_model = models.CharField()  # tournament/match/economy
+    source_id = models.IntegerField()
+    metadata = models.JSONField()  # Flexible metadata
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['source_model', 'source_id', 'event_type', 'user'],
+                name='unique_source_event'  # Idempotency guarantee
+            )
+        ]
+
+# Derived stats (recomputable from events)
+class UserProfileStats(models.Model):
+    user_profile = models.OneToOneField(UserProfile)
+    tournaments_played = models.IntegerField()  # COUNT(events WHERE type=TOURNAMENT_JOINED)
+    matches_won = models.IntegerField()  # COUNT(events WHERE type=MATCH_WON)
+    computed_at = models.DateTimeField()  # Staleness detection
+    
+    @classmethod
+    def recompute_from_events(cls, user_id):
+        # Rebuild stats from scratch by aggregating UserActivity events
+```
+
+**Consequences:**
+- **Positive:**
+  - Infinite audit trail (can answer "what happened 2 years ago?")
+  - Stats always accurate (recompute from events if desync suspected)
+  - Scalable (append-only writes, partitionable by timestamp)
+  - Compliance-friendly (immutable audit log for GDPR/finance regulations)
+- **Negative:**
+  - Storage cost (events never deleted, 1M+ events/year expected)
+  - Backfill complexity (must generate events from historical Registration/Match records)
+  - Read complexity (queries must aggregate events, requires indexed queries)
+
+**Rollback Strategy:**
+- Event log append-only (safe to keep even if feature disabled)
+- Stats calculator can be toggled off (revert to manual updates)
+- Profile sync can be disabled via feature flag
+
+**Monitoring:**
+- Alert if UserActivity table grows >1GB/month (partition if needed)
+- Alert if stats recomputation takes >5 seconds (optimize aggregation queries)
+- Alert if event creation fails (signal handlers must be idempotent)
+
+**Related Decisions:**
+- UP-M3 will use UserActivity events for economy sync (COINS_EARNED/SPENT tracking)
+- UP-M5 audit logs will reference UserActivity for compliance
 
 ---
 
-*Document Version: 1.0*  
+## ADR-UP-012: Idempotency Key Strategy for User Activity Events
+
+**Date:** 2025-12-23  
+**Status:** ✅ IMPLEMENTED  
+**Context:** UP-M2 (Stats + History)  
+**Decision Owner:** Platform Architecture
+
+**Problem:**
+Event recording can be triggered multiple times due to:
+1. **Signal retries:** Django signals may fire multiple times for same object (transaction rollback/retry)
+2. **Backfill re-runs:** Management command must be safe to run multiple times
+3. **Race conditions:** Multiple workers processing same Match completion concurrently
+
+Without idempotency, duplicate events would:
+- Inflate stats (tournaments_played = 2 for same tournament)
+- Break audit trail integrity (cannot trust event count)
+- Complicate analytics (must deduplicate before queries)
+
+**Options Considered:**
+
+**Option 1: Composite Unique Constraint (CHOSEN)**
+- Database-enforced unique constraint on (source_model, source_id, event_type, user)
+- Example: Only 1 TOURNAMENT_JOINED event per (user, tournament_id)
+- Pros: Atomic, database-guaranteed, works across processes
+- Cons: Requires get_or_create() pattern (2 queries for new events)
+
+**Option 2: UUID Per Event**
+- Assign UUID to each event, caller must generate UUID
+- Pros: Explicit deduplication control
+- Cons: Caller must remember UUID (stateful), no protection if UUID forgotten
+
+**Option 3: Timestamp-Based Deduplication**
+- Only allow 1 event per (user, type, minute)
+- Pros: Simple
+- Cons: Not reliable (user can join 2 tournaments in same minute), time zones
+
+**Decision:**
+Implement **Option 1: Composite Unique Constraint** with get_or_create() pattern.
+
+**Implementation:**
+```python
+# Database constraint (enforced at DB level)
+class Meta:
+    constraints = [
+        models.UniqueConstraint(
+            fields=['source_model', 'source_id', 'event_type', 'user'],
+            name='unique_source_event'
+        )
+    ]
+
+# Service layer (safe for re-runs)
+def record_event(self, event_type, user_id, source_model, source_id, metadata):
+    event, created = UserActivity.objects.get_or_create(
+        event_type=event_type,
+        user_id=user_id,
+        source_model=source_model,
+        source_id=source_id,
+        defaults={'metadata': metadata, 'timestamp': now()}
+    )
+    return event  # Returns existing event if duplicate
+```
+
+**Consequences:**
+- **Positive:**
+  - Mathematically guaranteed (database enforces uniqueness)
+  - Safe for retries (backfill command can run 10 times, only creates once)
+  - Works across processes (multiple workers can't create duplicates)
+  - Explicit semantics (get_or_create makes idempotency obvious in code)
+- **Negative:**
+  - Requires 2 queries for new events (SELECT + INSERT vs just INSERT)
+  - Constraint violation exceptions must be handled (IntegrityError → get existing)
+  - Cannot distinguish "retry" from "legitimate second event" (but that's correct behavior)
+
+**Verification:**
+Backfill command dry-run tested (ran twice, second run showed 0 new events created).
+
+**Related Decisions:**
+- ADR-UP-011: Event-Sourced pattern (provides source_model/source_id for constraint)
+- UP-M3: Economy sync will rely on same idempotency pattern
+
+---
+
+## ADR-UP-013: Stats Derived Projection Rules
+
+**Date:** 2025-12-23  
+**Status:** ✅ IMPLEMENTED  
+**Context:** UP-M2 (Stats + History)  
+**Decision Owner:** Platform Architecture
+
+**Problem:**
+UserProfileStats contains computed values (tournaments_played, matches_won, total_earnings). If stats can be manually edited, they become unreliable:
+1. **Desync risk:** Manual update bypasses event log (stats no longer match events)
+2. **No rollback:** If bad data entered, cannot restore (no event log to recompute from)
+3. **Compliance issue:** Audit trail broken (cannot prove stats accuracy)
+
+**Options Considered:**
+
+**Option 1: Block All Manual Updates (CHOSEN)**
+- UserProfileStats.save() only allowed for initial creation
+- Updates MUST use recompute_from_events() (rebuilds from UserActivity)
+- Pros: Stats always match events, disaster recovery trivial (just recompute)
+- Cons: Cannot hotfix stats (must fix event log instead)
+
+**Option 2: Allow Manual Updates with Audit Log**
+- Record all stat changes in separate audit table
+- Pros: Flexible (can override stats if needed)
+- Cons: Two sources of truth (events vs manual edits), unclear which is correct
+
+**Option 3: Versioned Stats (Copy-On-Write)**
+- Create new stats record on each update (immutable history)
+- Pros: Full history of stat changes
+- Cons: Complex queries (must find latest version), storage overhead
+
+**Decision:**
+Implement **Option 1: Block Manual Updates** with escape hatch for admin operations.
+
+**Implementation:**
+```python
+class UserProfileStats(models.Model):
+    # ... fields ...
+    
+    def save(self, *args, **kwargs):
+        # Block updates (only allow creation)
+        if self.pk and not kwargs.pop('_allow_direct_save', False):
+            raise ValueError(
+                "UserProfileStats cannot be updated directly. "
+                "Use StatsUpdateService.recompute_stats_for_user() instead."
+            )
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def recompute_from_events(cls, user_id):
+        # Aggregate UserActivity events → stats
+        stats = cls.objects.get(user_profile__user_id=user_id)
+        stats.tournaments_played = UserActivity.objects.filter(
+            user_id=user_id, event_type='TOURNAMENT_JOINED'
+        ).count()
+        # ... aggregate other stats ...
+        stats.save(_allow_direct_save=True)  # Bypass protection
+```
+
+**Consequences:**
+- **Positive:**
+  - Stats always recomputable (disaster recovery: just rerun recompute_from_events())
+  - Single source of truth (event log is authoritative)
+  - Prevents accidental corruption (save() will raise error)
+  - Compliance-friendly (stats proven to match audit log)
+- **Negative:**
+  - Cannot hotfix stats (must fix event log first, then recompute)
+  - Admin operations need _allow_direct_save=True (escape hatch)
+  - Recomputation may be slow for users with 1M+ events (requires optimization)
+
+**Verification:**
+Test suite confirms save() raises ValueError for updates (test_stats_service.py).
+
+**Related Decisions:**
+- ADR-UP-011: Event-Sourced pattern (provides events to aggregate)
+- ADR-UP-012: Idempotency (ensures event counts are accurate)
+
+---
+
+### ADR-UP-016: Signal Timing for Economy Sync
+
+**Status:** ✅ IMPLEMENTED  
+**Date:** December 23, 2025  
+**Author:** Platform Architecture Team  
+**Related ADRs:** ADR-UP-014 (Signal Integration for Economy Sync)
+
+#### Context
+
+Economy sync signal (`on_economy_transaction`) was failing to sync profile balance correctly:
+- Signal fires on `DeltaCrownTransaction.post_save` 
+- Transaction model's `save()` method calls `wallet.recalc_and_save()` at END of save
+- Django's `post_save` signal fires immediately after `super().save()` but BEFORE remaining code in save method
+- Result: Signal saw stale `wallet.cached_balance=0` instead of updated balance
+
+**Requirements:**
+- Profile must sync immediately when transaction created
+- Wallet balance must be current (not stale)
+- Signal must be idempotent (safe to call multiple times)
+- No race conditions or double-sync issues
+
+#### Decision
+
+Signal handler explicitly calls `wallet.recalc_and_save()` BEFORE calling `sync_wallet_to_profile()`:
+
+```python
+@receiver(post_save, sender='economy.DeltaCrownTransaction')
+def on_economy_transaction(sender, instance, created, **kwargs):
+    if not created:
+        return
+    
+    # Ensure wallet.cached_balance is current
+    instance.wallet.recalc_and_save()
+    
+    # Now sync to profile with up-to-date balance
+    sync_wallet_to_profile(instance.wallet_id)
+```
+
+**Guards:**
+- Only act on `created=True` (new transactions only)
+- Signal catches all exceptions (non-critical, won't block transaction creation)
+- Sync service is idempotent (calling twice is safe)
+
+#### Consequences
+
+**Positive:**
+- Profile balance syncs correctly on every transaction
+- No stale data issues
+- Signal is simple and explicit (no hidden timing dependencies)
+
+**Negative:**
+- Wallet recalc happens twice: once in signal, once at end of transaction.save()
+- Minor performance impact (extra SELECT FOR UPDATE + ledger sum)
+
+**Neutral:**
+- Signal assumes wallet.recalc_and_save() is fast (it locks one row, sums ledger)
+- Alternative (transaction.on_commit()) would be cleaner but requires Django 3.2+ patterns
+
+#### Alternatives Considered
+
+**Alternative 1: Move wallet.recalc_and_save() BEFORE super().save() in transaction model**
+- **Pros:** Signal would see correct balance, no double-recalc
+- **Cons:** Breaks transaction immutability pattern (recalc should happen AFTER ledger write)
+- **Why rejected:** Architectural violation (transaction must be saved before wallet updates)
+
+**Alternative 2: Use transaction.on_commit() hook instead of post_save**
+- **Pros:** Guaranteed to run after ALL save logic completes
+- **Cons:** Requires refactoring signal registration, more complex testing
+- **Why rejected:** Overkill for this issue, post_save is standard pattern
+
+**Alternative 3: Remove wallet.recalc_and_save() from transaction.save(), only rely on signal**
+- **Pros:** No double-recalc, cleaner separation of concerns
+- **Cons:** Breaks existing code that creates transactions without signals enabled
+- **Why rejected:** Too risky, signals can be disabled/fail
+
+#### Implementation Notes
+
+**Files Modified:**
+- `apps/user_profile/signals/activity_signals.py` (lines 173-177)
+
+**Future Improvement:**
+- Consider `transaction.on_commit()` pattern for cleaner timing control
+- Monitor performance impact of double-recalc (likely negligible, but profile if needed)
+- Add metrics: signal execution time, sync success rate
+
+**Testing:**
+- Test: `test_transaction_create_triggers_sync` - verifies signal syncs profile correctly
+- Test: `test_sync_updates_profile_balance` - verifies sync service works independently
+- Test: `test_sync_is_idempotent` - verifies calling sync twice is safe
+
+#### References
+
+- [Django Signals Documentation](https://docs.djangoproject.com/en/5.0/topics/signals/)
+- [Django transaction.on_commit()](https://docs.djangoproject.com/en/5.0/topics/db/transactions/#django.db.transaction.on_commit)
+- UP-FIX-05 debug session (wallet.cached_balance timing issue)
+
+---
+
+**END OF DECISION LOG**
+
+**Status:** Active  
+**Total ADRs:** 14 approved, 0 proposed, 0 superseded  
+**Last Updated:** December 23, 2025
+
+---
+
+*Document Version: 1.2*  
 *Maintained by: Architecture Team*

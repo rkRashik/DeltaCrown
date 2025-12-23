@@ -1,0 +1,183 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.2, pluggy-1.6.0
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+django: version: 5.2.8, settings: deltacrown.settings_test (from ini)
+rootdir: G:\My Projects\WORK\DeltaCrown
+configfile: pytest.ini
+plugins: Faker-37.12.0, hypothesis-6.147.0, asyncio-1.2.0, benchmark-5.2.3, cov-7.0.0, django-4.11.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 42 items
+
+apps\user_profile\tests\test_activity_service.py ...........             [ 26%]
+apps\user_profile\tests\test_backfill.py ........                        [ 45%]
+apps\user_profile\tests\test_stats_service.py ............               [ 73%]
+apps\user_profile\tests\test_economy_sync.py .F....F..F.                 [100%]
+
+================================== FAILURES ===================================
+_________ TestEconomySyncService.test_sync_updates_lifetime_earnings __________
+apps\user_profile\tests\test_economy_sync.py:100: in test_sync_updates_lifetime_earnings
+    assert result['earnings_synced'] is True
+E   assert False is True
+_________ TestSignalIntegration.test_transaction_create_triggers_sync _________
+apps\user_profile\tests\test_economy_sync.py:196: in test_transaction_create_triggers_sync
+    assert profile.deltacoin_balance == Decimal('250'), "Signal should auto-sync"
+E   AssertionError: Signal should auto-sync
+E   assert Decimal('0.00') == Decimal('250')
+E    +  where Decimal('0.00') = <UserProfile: Test User>.deltacoin_balance
+E    +  and   Decimal('250') = Decimal('250')
+_____________ TestReconcileCommand.test_reconcile_all_with_limit ______________
+apps\user_profile\tests\test_economy_sync.py:274: in test_reconcile_all_with_limit
+    assert 'Balance synced: 2' in output
+E   AssertionError: assert 'Balance synced: 2' in '\U0001f4cb Processing 2 wallets...\\n\\n============================================================\\n\U0001f4ca SUMMARY:\\n  Processed: 2\\n  Balance synced: 0\\n  Earnings synced: 0\\n  Errors: 0\\n\\n\u2705 Reconciliation complete\\n'
+============================== warnings summary ===============================
+apps\teams\models\base.py:13
+  G:\My Projects\WORK\DeltaCrown\apps\teams\models\base.py:13: DeprecationWarning: apps.teams.game_config is deprecated. Use apps.games.services.game_service.GameService instead. See Documents/PHASE3_IMPLEMENTATION_SUMMARY.md for migration guide.
+    from ..game_config import (
+
+apps\tournaments\models\tournament.py:587
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:587: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\tournament.py:591
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:591: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:190
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:190: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:475
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:475: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:480
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:480: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:487
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:487: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:494
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:494: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\bracket.py:391
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:391: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:396
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:396: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:401
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:401: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\match.py:284
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:284: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:295
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:295: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:300
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:300: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:308
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:308: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:524
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:524: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:534
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:534: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:197
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:197: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:201
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:201: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\prize.py:130
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\prize.py:130: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\group.py:116
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:116: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:120
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:120: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:361
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:361: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:497
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:497: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:501
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:501: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:505
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:505: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:191
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:191: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:195
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:195: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\lobby.py:310
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\lobby.py:310: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\economy\models.py:322
+  G:\My Projects\WORK\DeltaCrown\apps\economy\models.py:322: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:78
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:78: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+.venv\Lib\site-packages\PyPDF2\__init__.py:21
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\PyPDF2\__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED apps/user_profile/tests/test_economy_sync.py::TestEconomySyncService::test_sync_updates_lifetime_earnings
+FAILED apps/user_profile/tests/test_economy_sync.py::TestSignalIntegration::test_transaction_create_triggers_sync
+FAILED apps/user_profile/tests/test_economy_sync.py::TestReconcileCommand::test_reconcile_all_with_limit
+================= 3 failed, 39 passed, 40 warnings in 24.21s ==================

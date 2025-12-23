@@ -1,0 +1,613 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.2, pluggy-1.6.0
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+django: version: 5.2.8, settings: deltacrown.settings_test (from ini)
+rootdir: G:\My Projects\WORK\DeltaCrown
+configfile: pytest.ini
+plugins: Faker-37.12.0, hypothesis-6.147.0, asyncio-1.2.0, benchmark-5.2.3, cov-7.0.0, django-4.11.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 11 items
+
+apps\user_profile\tests\test_economy_sync.py .F....F..F.                 [100%]
+
+================================== FAILURES ===================================
+_________ TestEconomySyncService.test_sync_updates_lifetime_earnings __________
+apps\user_profile\tests\test_economy_sync.py:109: in test_sync_updates_lifetime_earnings
+    assert result['earnings_synced'] == True, f"earnings_synced should be True, got {result['earnings_synced']}"
+E   AssertionError: earnings_synced should be True, got False
+E   assert False == True
+---------------------------- Captured stderr setup ----------------------------
+Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+Failed to assign public_id for user_id=1705: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+----------------------------- Captured log setup ------------------------------
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+ERROR    apps.user_profile.services.public_id:public_id.py:126 Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+WARNING  apps.user_profile.signals.legacy_signals:legacy_signals.py:36 Failed to assign public_id for user_id=1705: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+_________ TestSignalIntegration.test_transaction_create_triggers_sync _________
+apps\user_profile\tests\test_economy_sync.py:205: in test_transaction_create_triggers_sync
+    assert profile.deltacoin_balance == Decimal('250'), "Signal should auto-sync"
+E   AssertionError: Signal should auto-sync
+E   assert Decimal('0.00') == Decimal('250')
+E    +  where Decimal('0.00') = <UserProfile: Test User>.deltacoin_balance
+E    +  and   Decimal('250') = Decimal('250')
+---------------------------- Captured stderr setup ----------------------------
+Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+Failed to assign public_id for user_id=1710: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+----------------------------- Captured log setup ------------------------------
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+ERROR    apps.user_profile.services.public_id:public_id.py:126 Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+WARNING  apps.user_profile.signals.legacy_signals:legacy_signals.py:36 Failed to assign public_id for user_id=1710: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+_____________ TestReconcileCommand.test_reconcile_all_with_limit ______________
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "user_profile_userprofile_user_id_key"
+E   DETAIL:  Key (user_id)=(1713) already exists.
+
+The above exception was the direct cause of the following exception:
+apps\user_profile\tests\test_economy_sync.py:268: in test_reconcile_all_with_limit
+    profile = UserProfile.objects.create(user=user, display_name=f'User {i}')
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:665: in create
+    obj.save(force_insert=True, using=self.db)
+apps\user_profile\models_main.py:683: in save
+    super().save(*args, **kwargs)
+.venv\Lib\site-packages\django\db\models\base.py:902: in save
+    self.save_base(
+.venv\Lib\site-packages\django\db\models\base.py:1008: in save_base
+    updated = self._save_table(
+.venv\Lib\site-packages\django\db\models\base.py:1169: in _save_table
+    results = self._do_insert(
+.venv\Lib\site-packages\django\db\models\base.py:1210: in _do_insert
+    return manager._insert(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:1873: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\compiler.py:1882: in execute_sql
+    cursor.execute(sql, params)
+.venv\Lib\site-packages\django\db\backends\utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv\Lib\site-packages\django\db\backends\utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\backends\utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\utils.py:91: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "user_profile_userprofile_user_id_key"
+E   DETAIL:  Key (user_id)=(1713) already exists.
+---------------------------- Captured stderr call -----------------------------
+Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+Failed to assign public_id for user_id=1713: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+------------------------------ Captured log call ------------------------------
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+ERROR    apps.user_profile.services.public_id:public_id.py:126 Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+WARNING  apps.user_profile.signals.legacy_signals:legacy_signals.py:36 Failed to assign public_id for user_id=1713: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+============================== warnings summary ===============================
+apps\teams\models\base.py:13
+  G:\My Projects\WORK\DeltaCrown\apps\teams\models\base.py:13: DeprecationWarning: apps.teams.game_config is deprecated. Use apps.games.services.game_service.GameService instead. See Documents/PHASE3_IMPLEMENTATION_SUMMARY.md for migration guide.
+    from ..game_config import (
+
+apps\tournaments\models\tournament.py:587
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:587: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\tournament.py:591
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:591: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:190
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:190: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:475
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:475: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:480
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:480: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:487
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:487: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:494
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:494: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\bracket.py:391
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:391: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:396
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:396: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:401
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:401: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\match.py:284
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:284: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:295
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:295: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:300
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:300: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:308
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:308: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:524
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:524: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:534
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:534: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:197
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:197: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:201
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:201: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\prize.py:130
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\prize.py:130: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\group.py:116
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:116: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:120
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:120: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:361
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:361: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:497
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:497: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:501
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:501: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:505
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:505: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:191
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:191: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:195
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:195: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\lobby.py:310
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\lobby.py:310: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\economy\models.py:322
+  G:\My Projects\WORK\DeltaCrown\apps\economy\models.py:322: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:78
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:78: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+.venv\Lib\site-packages\PyPDF2\__init__.py:21
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\PyPDF2\__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED apps/user_profile/tests/test_economy_sync.py::TestEconomySyncService::test_sync_updates_lifetime_earnings
+FAILED apps/user_profile/tests/test_economy_sync.py::TestSignalIntegration::test_transaction_create_triggers_sync
+FAILED apps/user_profile/tests/test_economy_sync.py::TestReconcileCommand::test_reconcile_all_with_limit
+================== 3 failed, 8 passed, 40 warnings in 26.81s ==================

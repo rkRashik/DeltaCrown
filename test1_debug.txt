@@ -1,0 +1,555 @@
+﻿.venv\Scripts\python.exe : Bengali font not found at G:\My Projects\W
+ORK\DeltaCrown\staticfiles\fonts\NotoSansBengali-Regular.ttf. 
+Bengali text will fall back to standard font. See 
+static/fonts/README.md for installation instructions.
+At line:1 char:38
++ ... eltaCrown"; .venv\Scripts\python.exe -m pytest 
+apps/user_profile/test ...
++                 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Bengali font no...n ins 
+   tructions.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.2, pluggy-1.6.0
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+django: version: 5.2.8, settings: deltacrown.settings_test (from ini)
+rootdir: G:\My Projects\WORK\DeltaCrown
+configfile: pytest.ini
+plugins: Faker-37.12.0, hypothesis-6.147.0, asyncio-1.2.0, benchmark-5.2.3, cov-7.0.0, django-4.11.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1 item
+
+Looking for locale `en_US` in provider `faker.providers.address`.
+apps/user_profile/tests/test_economy_sync.py::TestEconomySyncService::test_sync_updates_lifetime_earnings 
+------------------------------- live log setup --------------------------------
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.address`.
+Provider `faker.providers.address` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.address` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.automotive`.
+Looking for locale `en_US` in provider `faker.providers.automotive`.
+Provider `faker.providers.automotive` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.automotive` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.bank`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.bank`.
+Specified locale `en_US` is not available for provider 
+`faker.providers.bank`. Locale reset to `en_GB` for this provider.
+DEBUG    faker.factory:factory.py:88 Specified locale `en_US` is not available for provider `faker.providers.bank`. Locale reset to `en_GB` for this provider.
+Looking for locale `en_US` in provider `faker.providers.barcode`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.barcode`.
+Provider `faker.providers.barcode` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.barcode` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.color`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.color`.
+Provider `faker.providers.color` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.color` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.company`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.company`.
+Provider `faker.providers.company` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.company` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.credit_card`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.credit_card`.
+Provider `faker.providers.credit_card` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.credit_card` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.currency`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.currency`.
+Provider `faker.providers.currency` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.currency` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.date_time`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.date_time`.
+Provider `faker.providers.date_time` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.date_time` has been localized to `en_US`.
+Provider `faker.providers.doi` does not feature localization. 
+Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.doi` does not feature localization. Specified locale `en_US` is not used for this provider.
+Provider `faker.providers.emoji` does not feature localization. 
+Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.emoji` does not feature localization. Specified locale `en_US` is not used for this provider.
+Provider `faker.providers.file` does not feature localization. 
+Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.file` does not feature localization. Specified locale `en_US` is not used for this provider.
+Looking for locale `en_US` in provider `faker.providers.geo`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.geo`.
+Provider `faker.providers.geo` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.geo` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.internet`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.internet`.
+Provider `faker.providers.internet` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.internet` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.isbn`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.isbn`.
+Provider `faker.providers.isbn` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.isbn` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.job`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.job`.
+Provider `faker.providers.job` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.job` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.lorem`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.lorem`.
+Provider `faker.providers.lorem` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.lorem` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.misc`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.misc`.
+Provider `faker.providers.misc` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.misc` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.passport`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.passport`.
+Provider `faker.providers.passport` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.passport` has been localized to `en_US`.
+Looking for locale `en_US` in provider `faker.providers.person`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.person`.
+Provider `faker.providers.person` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.person` has been localized to `en_US`.
+Looking for locale `en_US` in provider 
+`faker.providers.phone_number`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.phone_number`.
+Provider `faker.providers.phone_number` has been localized to 
+`en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.phone_number` has been localized to `en_US`.
+Provider `faker.providers.profile` does not feature localization. 
+Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.profile` does not feature localization. Specified locale `en_US` is not used for this provider.
+Provider `faker.providers.python` does not feature localization. 
+Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.python` does not feature localization. Specified locale `en_US` is not used for this provider.
+Provider `faker.providers.sbn` does not feature localization. 
+Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.sbn` does not feature localization. Specified locale `en_US` is not used for this provider.
+Looking for locale `en_US` in provider `faker.providers.ssn`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.ssn`.
+Provider `faker.providers.ssn` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.ssn` has been localized to `en_US`.
+Provider `faker.providers.user_agent` does not feature localization. 
+Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.user_agent` does not feature localization. Specified locale `en_US` is not used for this provider.
+Using existing test database for alias 'default'...
+
+Public ID generation failed (attempt 1/3): relation 
+"user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM 
+"user_prof...
+                                                             ^
+, retrying...
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed (attempt 2/3): relation 
+"user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM 
+"user_prof...
+                                                             ^
+, retrying...
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+Public ID generation failed after 3 attempts: relation 
+"user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM 
+"user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation 
+"user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM 
+"user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My 
+Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", 
+line 83, in generate_public_id
+    counter_obj, created = 
+PublicIDCounter.objects.select_for_update().get_or_create(
+                           
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\models\query.py", line 1954, in _fetch_all
+ERROR    apps.user_profile.services.public_id:public_id.py:126 Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+WARNING  apps.user_profile.signals.legacy_signals:legacy_signals.py:36 Failed to assign public_id for user_id=1717: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django
+\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation 
+"user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM 
+"user_prof...
+                                                             ^
+
+Failed to assign public_id for user_id=1717: Failed to generate 
+public_id after 3 attempts. Last error: relation 
+"user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM 
+"user_prof...
+                                                             ^
+
+FAILED
+
+================================== FAILURES ===================================
+_________ TestEconomySyncService.test_sync_updates_lifetime_earnings __________
+apps\user_profile\tests\test_economy_sync.py:101: in test_sync_updates_lifetime_earnings
+    result = sync_wallet_to_profile(wallet.id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\economy_sync.py:72: in sync_wallet_to_profile
+    logger.debug(
+    ^^^^^^
+E   NameError: name 'logger' is not defined
+----------------------------- Captured log setup ------------------------------
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.address`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.address` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.automotive`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.automotive` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.bank`.
+DEBUG    faker.factory:factory.py:88 Specified locale `en_US` is not available for provider `faker.providers.bank`. Locale reset to `en_GB` for this provider.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.barcode`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.barcode` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.color`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.color` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.company`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.company` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.credit_card`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.credit_card` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.currency`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.currency` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.date_time`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.date_time` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.doi` does not feature localization. Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.emoji` does not feature localization. Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.file` does not feature localization. Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.geo`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.geo` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.internet`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.internet` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.isbn`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.isbn` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.job`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.job` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.lorem`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.lorem` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.misc`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.misc` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.passport`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.passport` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.person`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.person` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.phone_number`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.phone_number` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.profile` does not feature localization. Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.python` does not feature localization. Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.sbn` does not feature localization. Specified locale `en_US` is not used for this provider.
+DEBUG    faker.factory:factory.py:78 Looking for locale `en_US` in provider `faker.providers.ssn`.
+DEBUG    faker.factory:factory.py:97 Provider `faker.providers.ssn` has been localized to `en_US`.
+DEBUG    faker.factory:factory.py:108 Provider `faker.providers.user_agent` does not feature localization. Specified locale `en_US` is not used for this provider.
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 1/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+WARNING  apps.user_profile.services.public_id:public_id.py:120 Public ID generation failed (attempt 2/3): relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+, retrying...
+ERROR    apps.user_profile.services.public_id:public_id.py:126 Public ID generation failed after 3 attempts: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\public_id.py", line 83, in generate_public_id
+    counter_obj, created = PublicIDCounter.objects.select_for_update().get_or_create(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 631, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 368, in __len__
+    self._fetch_all()
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1954, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1623, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+
+WARNING  apps.user_profile.signals.legacy_signals:legacy_signals.py:36 Failed to assign public_id for user_id=1717: Failed to generate public_id after 3 attempts. Last error: relation "user_profile_publicidcounter" does not exist
+LINE 1: ... "user_profile_publicidcounter"."updated_at" FROM "user_prof...
+                                                             ^
+============================== warnings summary ===============================
+apps\teams\models\base.py:13
+  G:\My Projects\WORK\DeltaCrown\apps\teams\models\base.py:13: DeprecationWarning: apps.teams.game_config is deprecated. Use apps.games.services.game_service.GameService instead. See Documents/PHASE3_IMPLEMENTATION_SUMMARY.md for migration guide.
+    from ..game_config import (
+
+apps\tournaments\models\tournament.py:587
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:587: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\tournament.py:591
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:591: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:190
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:190: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:475
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:475: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:480
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:480: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:487
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:487: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:494
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:494: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\bracket.py:391
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:391: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:396
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:396: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:401
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:401: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\match.py:284
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:284: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:295
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:295: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:300
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:300: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:308
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:308: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:524
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:524: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:534
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:534: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:197
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:197: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:201
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:201: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\prize.py:130
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\prize.py:130: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\group.py:116
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:116: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:120
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:120: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:361
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:361: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:497
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:497: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:501
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:501: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:505
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:505: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:191
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:191: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:195
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:195: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\lobby.py:310
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\lobby.py:310: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\economy\models.py:322
+  G:\My Projects\WORK\DeltaCrown\apps\economy\models.py:322: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:78
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:78: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+.venv\Lib\site-packages\PyPDF2\__init__.py:21
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\PyPDF2\__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED apps/user_profile/tests/test_economy_sync.py::TestEconomySyncService::test_sync_updates_lifetime_earnings
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+======================= 1 failed, 40 warnings in 3.13s ========================

@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 import logging
 
-from .models import UserProfile, PrivacySettings, VerificationRecord
+from apps.user_profile.models_main import UserProfile, PrivacySettings, VerificationRecord
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -12,11 +12,43 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=User)
 def ensure_profile(sender, instance, created, **_):
+    """
+    Ensure every User has a UserProfile.
+    Auto-assigns public_id if missing.
+    
+    Note: Uses get_or_create to handle race conditions.
+    See UP-M0 for safety utilities (get_or_create_user_profile).
+    """
     defaults = {"display_name": instance.username or instance.email}
+    
     if created:
-        UserProfile.objects.get_or_create(user=instance, defaults=defaults)
+        profile, profile_created = UserProfile.objects.get_or_create(user=instance, defaults=defaults)
+        
+        # Assign public_id if missing (new profile or backfill scenario)
+        if profile_created and not profile.public_id:
+            try:
+                from apps.user_profile.services.public_id import PublicIDGenerator
+                public_id = PublicIDGenerator.generate_public_id()
+                profile.public_id = public_id
+                profile.save(update_fields=["public_id", "updated_at"])
+                logger.info(f"✅ Generated public_id={public_id} for user_id={instance.id}")
+            except Exception as e:
+                logger.warning(f"Failed to assign public_id for user_id={instance.id}: {e}")
+                # Continue without public_id (can be assigned later)
     else:
-        UserProfile.objects.get_or_create(user=instance, defaults=defaults)
+        # Existing user save - ensure profile exists
+        profile, profile_created = UserProfile.objects.get_or_create(user=instance, defaults=defaults)
+        
+        # Backfill public_id if missing (legacy profiles)
+        if not profile.public_id:
+            try:
+                from apps.user_profile.services.public_id import PublicIDGenerator
+                public_id = PublicIDGenerator.generate_public_id()
+                profile.public_id = public_id
+                profile.save(update_fields=['public_id', 'updated_at'])
+                logger.warning(f"Backfilled public_id={public_id} for existing profile user_id={instance.pk}")
+            except Exception as e:
+                logger.warning(f"Failed to backfill public_id for user_id={instance.pk}: {e}")
 
 
 @receiver(post_save, sender=UserProfile)

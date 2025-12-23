@@ -33,3 +33,35 @@ def award_on_payment_verified_DISABLED(sender, instance, created, **kwargs):
     # except Exception:
     #     # never break the save path
     #     pass
+
+
+# ============================================================================
+# UP-M3: Economy Sync Signals
+# ============================================================================
+
+@receiver(post_save, sender='economy.DeltaCrownTransaction', dispatch_uid='up_m3_sync_profile_on_transaction')
+def sync_profile_on_transaction(sender, instance, created, **kwargs):
+    """
+    UP-M3: Sync wallet balance → profile fields when transaction is created.
+    
+    Updates:
+    - profile.deltacoin_balance = wallet.cached_balance
+    - profile.lifetime_earnings = sum(positive transactions)
+    - wallet.lifetime_earnings = sum(positive transactions)
+    
+    Idempotent: Safe to call multiple times (checks if update needed).
+    Never raises: Catches all exceptions to avoid blocking transaction save.
+    """
+    if not created:
+        return  # Only sync on new transactions
+    
+    try:
+        from apps.user_profile.services.economy_sync import sync_wallet_to_profile
+        
+        wallet_id = instance.wallet_id
+        if wallet_id:
+            sync_wallet_to_profile(wallet_id)
+    except Exception:
+        # Never block transaction creation
+        # Reconciliation command can fix any missed syncs
+        pass

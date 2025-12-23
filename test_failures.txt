@@ -1,0 +1,1781 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.4.2, pluggy-1.6.0
+benchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+django: version: 5.2.8, settings: deltacrown.settings_test (from ini)
+rootdir: G:\My Projects\WORK\DeltaCrown
+configfile: pytest.ini
+plugins: Faker-37.12.0, hypothesis-6.147.0, asyncio-1.2.0, benchmark-5.2.3, cov-7.0.0, django-4.11.1
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 42 items
+
+apps\user_profile\tests\test_activity_service.py F...FFF...F             [ 26%]
+apps\user_profile\tests\test_backfill.py ........                        [ 45%]
+apps\user_profile\tests\test_stats_service.py FFFFFFFFFFFF               [ 73%]
+apps\user_profile\tests\test_economy_sync.py .F....F..F.                 [100%]
+
+================================== FAILURES ===================================
+______________ TestTournamentEvents.test_record_tournament_join _______________
+apps\user_profile\tests\test_activity_service.py:53: in test_record_tournament_join
+    assert event.source_model == 'registration'
+E   AssertionError: assert 'tournament' == 'registration'
+E     
+E     - registration
+E     + tournament
+__________________ TestMatchEvents.test_record_match_result ___________________
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+
+The above exception was the direct cause of the following exception:
+apps\user_profile\tests\test_activity_service.py:126: in test_record_match_result
+    winner_event, loser_event = UserActivityService.record_match_result(
+apps\user_profile\services\activity_service.py:221: in record_match_result
+    cls._record_event(
+apps\user_profile\services\activity_service.py:91: in _record_event
+    event = UserActivity.objects.create(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:665: in create
+    obj.save(force_insert=True, using=self.db)
+apps\user_profile\models\activity.py:163: in save
+    super().save(*args, **kwargs)
+.venv\Lib\site-packages\django\db\models\base.py:902: in save
+    self.save_base(
+.venv\Lib\site-packages\django\db\models\base.py:1008: in save_base
+    updated = self._save_table(
+.venv\Lib\site-packages\django\db\models\base.py:1169: in _save_table
+    results = self._do_insert(
+.venv\Lib\site-packages\django\db\models\base.py:1210: in _do_insert
+    return manager._insert(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:1873: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\compiler.py:1882: in execute_sql
+    cursor.execute(sql, params)
+.venv\Lib\site-packages\django\db\backends\utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv\Lib\site-packages\django\db\backends\utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\backends\utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\utils.py:91: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+---------------------------- Captured stderr call -----------------------------
+Failed to create event match_played for user 647: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.activity_service:activity_service.py:105 Failed to create event match_played for user 647: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 398322, match_played) already exists.
+________________ TestMatchEvents.test_match_result_idempotency ________________
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+
+The above exception was the direct cause of the following exception:
+apps\user_profile\tests\test_activity_service.py:165: in test_match_result_idempotency
+    events1 = UserActivityService.record_match_result(
+apps\user_profile\services\activity_service.py:221: in record_match_result
+    cls._record_event(
+apps\user_profile\services\activity_service.py:91: in _record_event
+    event = UserActivity.objects.create(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:665: in create
+    obj.save(force_insert=True, using=self.db)
+apps\user_profile\models\activity.py:163: in save
+    super().save(*args, **kwargs)
+.venv\Lib\site-packages\django\db\models\base.py:902: in save
+    self.save_base(
+.venv\Lib\site-packages\django\db\models\base.py:1008: in save_base
+    updated = self._save_table(
+.venv\Lib\site-packages\django\db\models\base.py:1169: in _save_table
+    results = self._do_insert(
+.venv\Lib\site-packages\django\db\models\base.py:1210: in _do_insert
+    return manager._insert(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:1873: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\compiler.py:1882: in execute_sql
+    cursor.execute(sql, params)
+.venv\Lib\site-packages\django\db\backends\utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv\Lib\site-packages\django\db\backends\utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\backends\utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\utils.py:91: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+---------------------------- Captured stderr call -----------------------------
+Failed to create event match_played for user 649: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.activity_service:activity_service.py:105 Failed to create event match_played for user 649: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 356095, match_played) already exists.
+_________________ TestEconomyEvents.test_record_coins_earned __________________
+apps\user_profile\tests\test_activity_service.py:203: in test_record_coins_earned
+    assert event.event_data['amount'] == 100.00
+           ^^^^^^^^^^^^^^^^
+E   AttributeError: 'UserActivity' object has no attribute 'event_data'
+____________________ TestEventQueries.test_event_ordering _____________________
+apps\user_profile\tests\test_activity_service.py:285: in test_event_ordering
+    assert events.first().event_data['tournament_id'] == 101
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'UserActivity' object has no attribute 'event_data'
+______________ TestStatsRecomputation.test_recompute_empty_stats ______________
+apps\user_profile\tests\test_stats_service.py:47: in test_recompute_empty_stats
+    stats = StatsUpdateService.update_stats_for_user(test_user.id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:209: in recompute_from_events
+    ).aggregate(
+.venv\Lib\site-packages\django\db\models\query.py:590: in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:460: in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+.venv\Lib\site-packages\django\db\models\aggregates.py:63: in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\expressions.py:300: in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+.venv\Lib\site-packages\django\db\models\expressions.py:902: in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:2050: in resolve_ref
+    join_info = self.setup_joins(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1901: in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1806: in names_to_path
+    raise FieldError(
+E   django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 656: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 656: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+___________ TestStatsRecomputation.test_recompute_tournament_stats ____________
+apps\user_profile\tests\test_stats_service.py:76: in test_recompute_tournament_stats
+    stats = StatsUpdateService.update_stats_for_user(test_user.id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:209: in recompute_from_events
+    ).aggregate(
+.venv\Lib\site-packages\django\db\models\query.py:590: in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:460: in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+.venv\Lib\site-packages\django\db\models\aggregates.py:63: in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\expressions.py:300: in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+.venv\Lib\site-packages\django\db\models\expressions.py:902: in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:2050: in resolve_ref
+    join_info = self.setup_joins(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1901: in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1806: in names_to_path
+    raise FieldError(
+E   django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 657: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 657: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+______________ TestStatsRecomputation.test_recompute_match_stats ______________
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+
+The above exception was the direct cause of the following exception:
+apps\user_profile\tests\test_stats_service.py:91: in test_recompute_match_stats
+    UserActivityService.record_match_result(
+apps\user_profile\services\activity_service.py:221: in record_match_result
+    cls._record_event(
+apps\user_profile\services\activity_service.py:91: in _record_event
+    event = UserActivity.objects.create(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:665: in create
+    obj.save(force_insert=True, using=self.db)
+apps\user_profile\models\activity.py:163: in save
+    super().save(*args, **kwargs)
+.venv\Lib\site-packages\django\db\models\base.py:902: in save
+    self.save_base(
+.venv\Lib\site-packages\django\db\models\base.py:1008: in save_base
+    updated = self._save_table(
+.venv\Lib\site-packages\django\db\models\base.py:1169: in _save_table
+    results = self._do_insert(
+.venv\Lib\site-packages\django\db\models\base.py:1210: in _do_insert
+    return manager._insert(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:1873: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\compiler.py:1882: in execute_sql
+    cursor.execute(sql, params)
+.venv\Lib\site-packages\django\db\backends\utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv\Lib\site-packages\django\db\backends\utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\backends\utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\utils.py:91: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+---------------------------- Captured stderr call -----------------------------
+Failed to create event match_played for user 659: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.activity_service:activity_service.py:105 Failed to create event match_played for user 659: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 933075, match_played) already exists.
+_____________ TestStatsRecomputation.test_recompute_economy_stats _____________
+apps\user_profile\tests\test_stats_service.py:136: in test_recompute_economy_stats
+    stats = StatsUpdateService.update_stats_for_user(test_user.id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:209: in recompute_from_events
+    ).aggregate(
+.venv\Lib\site-packages\django\db\models\query.py:590: in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:460: in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+.venv\Lib\site-packages\django\db\models\aggregates.py:63: in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\expressions.py:300: in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+.venv\Lib\site-packages\django\db\models\expressions.py:902: in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:2050: in resolve_ref
+    join_info = self.setup_joins(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1901: in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1806: in names_to_path
+    raise FieldError(
+E   django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 660: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 660: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+______________ TestStatsRecomputation.test_recompute_timestamps _______________
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+
+The above exception was the direct cause of the following exception:
+apps\user_profile\tests\test_stats_service.py:166: in test_recompute_timestamps
+    UserActivityService.record_match_result(
+apps\user_profile\services\activity_service.py:221: in record_match_result
+    cls._record_event(
+apps\user_profile\services\activity_service.py:91: in _record_event
+    event = UserActivity.objects.create(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:665: in create
+    obj.save(force_insert=True, using=self.db)
+apps\user_profile\models\activity.py:163: in save
+    super().save(*args, **kwargs)
+.venv\Lib\site-packages\django\db\models\base.py:902: in save
+    self.save_base(
+.venv\Lib\site-packages\django\db\models\base.py:1008: in save_base
+    updated = self._save_table(
+.venv\Lib\site-packages\django\db\models\base.py:1169: in _save_table
+    results = self._do_insert(
+.venv\Lib\site-packages\django\db\models\base.py:1210: in _do_insert
+    return manager._insert(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:1873: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\compiler.py:1882: in execute_sql
+    cursor.execute(sql, params)
+.venv\Lib\site-packages\django\db\backends\utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv\Lib\site-packages\django\db\backends\utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\backends\utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\utils.py:91: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+---------------------------- Captured stderr call -----------------------------
+Failed to create event match_played for user 662: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.activity_service:activity_service.py:105 Failed to create event match_played for user 662: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 62587, match_played) already exists.
+_________________ TestStatsAccuracy.test_win_rate_calculation _________________
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+
+The above exception was the direct cause of the following exception:
+apps\user_profile\tests\test_stats_service.py:195: in test_win_rate_calculation
+    UserActivityService.record_match_result(
+apps\user_profile\services\activity_service.py:221: in record_match_result
+    cls._record_event(
+apps\user_profile\services\activity_service.py:91: in _record_event
+    event = UserActivity.objects.create(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:665: in create
+    obj.save(force_insert=True, using=self.db)
+apps\user_profile\models\activity.py:163: in save
+    super().save(*args, **kwargs)
+.venv\Lib\site-packages\django\db\models\base.py:902: in save
+    self.save_base(
+.venv\Lib\site-packages\django\db\models\base.py:1008: in save_base
+    updated = self._save_table(
+.venv\Lib\site-packages\django\db\models\base.py:1169: in _save_table
+    results = self._do_insert(
+.venv\Lib\site-packages\django\db\models\base.py:1210: in _do_insert
+    return manager._insert(
+.venv\Lib\site-packages\django\db\models\manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\query.py:1873: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\compiler.py:1882: in execute_sql
+    cursor.execute(sql, params)
+.venv\Lib\site-packages\django\db\backends\utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv\Lib\site-packages\django\db\backends\utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\backends\utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\utils.py:91: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv\Lib\site-packages\django\db\backends\utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+E   DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+---------------------------- Captured stderr call -----------------------------
+Failed to create event match_played for user 664: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.activity_service:activity_service.py:105 Failed to create event match_played for user 664: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\activity_service.py", line 91, in _record_event
+    event = UserActivity.objects.create(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 665, in create
+    obj.save(force_insert=True, using=self.db)
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\activity.py", line 163, in save
+    super().save(*args, **kwargs)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 1873, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1882, in execute_sql
+    cursor.execute(sql, params)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "unique_source_event"
+DETAIL:  Key (source_model, source_id, event_type)=(match, 514764, match_played) already exists.
+________________ TestStatsAccuracy.test_win_rate_zero_matches _________________
+apps\user_profile\tests\test_stats_service.py:216: in test_win_rate_zero_matches
+    stats = StatsUpdateService.update_stats_for_user(test_user.id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:209: in recompute_from_events
+    ).aggregate(
+.venv\Lib\site-packages\django\db\models\query.py:590: in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:460: in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+.venv\Lib\site-packages\django\db\models\aggregates.py:63: in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\expressions.py:300: in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+.venv\Lib\site-packages\django\db\models\expressions.py:902: in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:2050: in resolve_ref
+    join_info = self.setup_joins(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1901: in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1806: in names_to_path
+    raise FieldError(
+E   django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 665: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 665: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+_________________ TestStatsAccuracy.test_top3_placement_count _________________
+apps\user_profile\tests\test_stats_service.py:243: in test_top3_placement_count
+    stats = StatsUpdateService.update_stats_for_user(test_user.id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:192: in recompute_from_events
+    stats.tournaments_top3 = sum(
+apps\user_profile\models\stats.py:194: in <genexpr>
+    if event.event_data.get('placement', 999) <= 3
+       ^^^^^^^^^^^^^^^^
+E   AttributeError: 'UserActivity' object has no attribute 'event_data'
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 666: 'UserActivity' object has no attribute 'event_data'
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 192, in recompute_from_events
+    stats.tournaments_top3 = sum(
+                             ^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 194, in <genexpr>
+    if event.event_data.get('placement', 999) <= 3
+       ^^^^^^^^^^^^^^^^
+AttributeError: 'UserActivity' object has no attribute 'event_data'
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 666: 'UserActivity' object has no attribute 'event_data'
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 192, in recompute_from_events
+    stats.tournaments_top3 = sum(
+                             ^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 194, in <genexpr>
+    if event.event_data.get('placement', 999) <= 3
+       ^^^^^^^^^^^^^^^^
+AttributeError: 'UserActivity' object has no attribute 'event_data'
+_______________ TestStatsIdempotency.test_recompute_idempotent ________________
+apps\user_profile\tests\test_stats_service.py:263: in test_recompute_idempotent
+    stats1 = StatsUpdateService.update_stats_for_user(test_user.id)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:209: in recompute_from_events
+    ).aggregate(
+.venv\Lib\site-packages\django\db\models\query.py:590: in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:460: in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+.venv\Lib\site-packages\django\db\models\aggregates.py:63: in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\expressions.py:300: in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+.venv\Lib\site-packages\django\db\models\expressions.py:902: in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:2050: in resolve_ref
+    join_info = self.setup_joins(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1901: in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1806: in names_to_path
+    raise FieldError(
+E   django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 667: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 667: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+_____________________ TestStatsStaleness.test_fresh_stats _____________________
+apps\user_profile\tests\test_stats_service.py:277: in test_fresh_stats
+    stats = StatsUpdateService.update_stats_for_user(test_user.id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:209: in recompute_from_events
+    ).aggregate(
+.venv\Lib\site-packages\django\db\models\query.py:590: in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:460: in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+.venv\Lib\site-packages\django\db\models\aggregates.py:63: in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\expressions.py:300: in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+.venv\Lib\site-packages\django\db\models\expressions.py:902: in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:2050: in resolve_ref
+    join_info = self.setup_joins(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1901: in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1806: in names_to_path
+    raise FieldError(
+E   django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 668: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 668: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+_____________________ TestStatsStaleness.test_stale_stats _____________________
+apps\user_profile\tests\test_stats_service.py:282: in test_stale_stats
+    stats = StatsUpdateService.update_stats_for_user(test_user.id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\services\stats_service.py:57: in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+apps\user_profile\models\stats.py:209: in recompute_from_events
+    ).aggregate(
+.venv\Lib\site-packages\django\db\models\query.py:590: in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:460: in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+.venv\Lib\site-packages\django\db\models\aggregates.py:63: in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\expressions.py:300: in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+.venv\Lib\site-packages\django\db\models\expressions.py:902: in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv\Lib\site-packages\django\db\models\sql\query.py:2050: in resolve_ref
+    join_info = self.setup_joins(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1901: in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+.venv\Lib\site-packages\django\db\models\sql\query.py:1806: in names_to_path
+    raise FieldError(
+E   django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+---------------------------- Captured stderr call -----------------------------
+Failed to update stats for user 669: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:68 Failed to update stats for user 669: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+Traceback (most recent call last):
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\services\stats_service.py", line 57, in update_stats_for_user
+    stats = UserProfileStats.recompute_from_events(user_id)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\apps\user_profile\models\stats.py", line 209, in recompute_from_events
+    ).aggregate(
+      ^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\query.py", line 590, in aggregate
+    return self.query.chain().get_aggregation(self.db, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 460, in get_aggregation
+    aggregate = aggregate_expr.resolve_expression(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\aggregates.py", line 63, in resolve_expression
+    c = super().resolve_expression(query, allow_joins, reuse, summarize)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 300, in resolve_expression
+    expr.resolve_expression(query, allow_joins, reuse, summarize, for_save)
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\expressions.py", line 902, in resolve_expression
+    return query.resolve_ref(self.name, allow_joins, reuse, summarize)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2050, in resolve_ref
+    join_info = self.setup_joins(
+                ^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1901, in setup_joins
+    path, final_field, targets, rest = self.names_to_path(
+                                       ^^^^^^^^^^^^^^^^^^^
+  File "G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1806, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'event_data' into field. Choices are: created_at, event_type, id, metadata, source_id, source_model, timestamp, user, user_id
+______________ TestBatchUpdate.test_batch_update_multiple_users _______________
+apps\user_profile\tests\test_stats_service.py:320: in test_batch_update_multiple_users
+    assert len(result['success']) == 3
+E   assert 0 == 3
+E    +  where 0 = len([])
+---------------------------- Captured stderr call -----------------------------
+Cannot update stats: User 670 profile not found
+Failed to update stats for user 670: UserProfile matching query does not exist.
+Cannot update stats: User 671 profile not found
+Failed to update stats for user 671: UserProfile matching query does not exist.
+Cannot update stats: User 672 profile not found
+Failed to update stats for user 672: UserProfile matching query does not exist.
+------------------------------ Captured log call ------------------------------
+ERROR    apps.user_profile.services.stats_service:stats_service.py:65 Cannot update stats: User 670 profile not found
+ERROR    apps.user_profile.services.stats_service:stats_service.py:90 Failed to update stats for user 670: UserProfile matching query does not exist.
+ERROR    apps.user_profile.services.stats_service:stats_service.py:65 Cannot update stats: User 671 profile not found
+ERROR    apps.user_profile.services.stats_service:stats_service.py:90 Failed to update stats for user 671: UserProfile matching query does not exist.
+ERROR    apps.user_profile.services.stats_service:stats_service.py:65 Cannot update stats: User 672 profile not found
+ERROR    apps.user_profile.services.stats_service:stats_service.py:90 Failed to update stats for user 672: UserProfile matching query does not exist.
+_________ TestEconomySyncService.test_sync_updates_lifetime_earnings __________
+apps\user_profile\tests\test_economy_sync.py:98: in test_sync_updates_lifetime_earnings
+    assert result['earnings_synced'] is True
+E   assert False is True
+_________ TestSignalIntegration.test_transaction_create_triggers_sync _________
+apps\user_profile\tests\test_economy_sync.py:194: in test_transaction_create_triggers_sync
+    assert profile.deltacoin_balance == Decimal('250'), "Signal should auto-sync"
+E   AssertionError: Signal should auto-sync
+E   assert Decimal('0.00') == Decimal('250')
+E    +  where Decimal('0.00') = <UserProfile: Test User>.deltacoin_balance
+E    +  and   Decimal('250') = Decimal('250')
+_____________ TestReconcileCommand.test_reconcile_all_with_limit ______________
+apps\user_profile\tests\test_economy_sync.py:272: in test_reconcile_all_with_limit
+    assert 'Balance synced: 2' in output
+E   AssertionError: assert 'Balance synced: 2' in '\U0001f4cb Processing 2 wallets...\\n\\n============================================================\\n\U0001f4ca SUMMARY:\\n  Processed: 2\\n  Balance synced: 0\\n  Earnings synced: 0\\n  Errors: 0\\n\\n\u2705 Reconciliation complete\\n'
+============================== warnings summary ===============================
+apps\teams\models\base.py:13
+  G:\My Projects\WORK\DeltaCrown\apps\teams\models\base.py:13: DeprecationWarning: apps.teams.game_config is deprecated. Use apps.games.services.game_service.GameService instead. See Documents/PHASE3_IMPLEMENTATION_SUMMARY.md for migration guide.
+    from ..game_config import (
+
+apps\tournaments\models\tournament.py:587
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:587: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\tournament.py:591
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\tournament.py:591: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:190
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:190: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:475
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:475: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:480
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:480: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:487
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:487: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\registration.py:494
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\registration.py:494: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\bracket.py:391
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:391: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:396
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:396: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\bracket.py:401
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\bracket.py:401: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\match.py:284
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:284: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:295
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:295: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:300
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:300: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:308
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:308: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:524
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:524: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\match.py:534
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\match.py:534: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:197
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:197: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\result.py:201
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\result.py:201: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\prize.py:130
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\prize.py:130: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\tournaments\models\group.py:116
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:116: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:120
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:120: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:361
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:361: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:497
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:497: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:501
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:501: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\group.py:505
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\group.py:505: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:191
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:191: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\stage.py:195
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\stage.py:195: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\tournaments\models\lobby.py:310
+  G:\My Projects\WORK\DeltaCrown\apps\tournaments\models\lobby.py:310: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    CheckConstraint(
+
+apps\economy\models.py:322
+  G:\My Projects\WORK\DeltaCrown\apps\economy\models.py:322: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:78
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:78: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+apps\moderation\models.py:210
+  G:\My Projects\WORK\DeltaCrown\apps\moderation\models.py:210: RemovedInDjango60Warning: CheckConstraint.check is deprecated in favor of `.condition`.
+    models.CheckConstraint(
+
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\django\db\models\fields\__init__.py:1148: RemovedInDjango60Warning: The default scheme will be changed from 'http' to 'https' in Django 6.0. Pass the forms.URLField.assume_scheme argument to silence this warning, or set the FORMS_URLFIELD_ASSUME_HTTPS transitional setting to True to opt into using 'https' as the new default scheme.
+    return form_class(**defaults)
+
+.venv\Lib\site-packages\PyPDF2\__init__.py:21
+  G:\My Projects\WORK\DeltaCrown\.venv\Lib\site-packages\PyPDF2\__init__.py:21: DeprecationWarning: PyPDF2 is deprecated. Please move to the pypdf library instead.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED apps/user_profile/tests/test_activity_service.py::TestTournamentEvents::test_record_tournament_join
+FAILED apps/user_profile/tests/test_activity_service.py::TestMatchEvents::test_record_match_result
+FAILED apps/user_profile/tests/test_activity_service.py::TestMatchEvents::test_match_result_idempotency
+FAILED apps/user_profile/tests/test_activity_service.py::TestEconomyEvents::test_record_coins_earned
+FAILED apps/user_profile/tests/test_activity_service.py::TestEventQueries::test_event_ordering
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsRecomputation::test_recompute_empty_stats
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsRecomputation::test_recompute_tournament_stats
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsRecomputation::test_recompute_match_stats
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsRecomputation::test_recompute_economy_stats
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsRecomputation::test_recompute_timestamps
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsAccuracy::test_win_rate_calculation
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsAccuracy::test_win_rate_zero_matches
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsAccuracy::test_top3_placement_count
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsIdempotency::test_recompute_idempotent
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsStaleness::test_fresh_stats
+FAILED apps/user_profile/tests/test_stats_service.py::TestStatsStaleness::test_stale_stats
+FAILED apps/user_profile/tests/test_stats_service.py::TestBatchUpdate::test_batch_update_multiple_users
+FAILED apps/user_profile/tests/test_economy_sync.py::TestEconomySyncService::test_sync_updates_lifetime_earnings
+FAILED apps/user_profile/tests/test_economy_sync.py::TestSignalIntegration::test_transaction_create_triggers_sync
+FAILED apps/user_profile/tests/test_economy_sync.py::TestReconcileCommand::test_reconcile_all_with_limit
+================= 20 failed, 22 passed, 40 warnings in 21.48s =================

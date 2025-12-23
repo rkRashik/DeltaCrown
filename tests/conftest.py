@@ -6,6 +6,7 @@ Provides:
 - Settings overrides for test environment
 - WebSocket testing utilities
 - Redis fixtures for Module 6.8 rate limit tests
+- Test schema setup (avoids CREATEDB requirement)
 """
 
 import asyncio
@@ -14,12 +15,56 @@ import uuid
 from django.contrib.auth import get_user_model
 from channels.testing import WebsocketCommunicator
 from django.conf import settings
+from django.db import connection
 
 # Import Redis fixtures for Module 6.8
 pytest_plugins = ['tests.redis_fixtures']
 
 
 User = get_user_model()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def setup_test_schema(django_db_setup, django_db_blocker):
+    """
+    Create test schema if it doesn't exist (no CREATEDB privilege needed).
+    Schema isolation allows tests to run in production DB without conflicts.
+    """
+    with django_db_blocker.unblock():
+        with connection.cursor() as cursor:
+            # Create schema if it doesn't exist (allowed without CREATEDB)
+            cursor.execute("CREATE SCHEMA IF NOT EXISTS test_schema")
+            # Set search_path for this connection
+            cursor.execute("SET search_path TO test_schema, public")
+    yield
+    # Cleanup: Drop schema after all tests (optional, commented out for --reuse-db)
+    # with django_db_blocker.unblock():
+    #     with connection.cursor() as cursor:
+    #         cursor.execute("DROP SCHEMA IF EXISTS test_schema CASCADE")
+
+
+@pytest.fixture(scope='function', autouse=True)
+def cleanup_test_data(db):
+    """
+    Clean up test data between test functions to avoid unique constraint violations.
+    Truncates only user_profile tables used by tests.
+    """
+    yield  # Run test first
+    # Cleanup after test
+    from apps.user_profile.models.activity import UserActivity
+    from apps.user_profile.models.stats import UserProfileStats
+    from apps.user_profile.models import UserProfile
+    from apps.accounts.models import User
+    from apps.economy.models import DeltaCrownWallet, DeltaCrownTransaction
+    
+    # Delete in correct order (respect foreign keys)
+    UserActivity.objects.all().delete()
+    UserProfileStats.objects.all().delete()
+    DeltaCrownTransaction.objects.all().delete()
+    DeltaCrownWallet.objects.all().delete()
+    UserProfile.objects.all().delete()
+    User.objects.all().delete()
+
 
 
 @pytest.fixture
