@@ -3,132 +3,227 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/user_profile/core.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<div class="profile-privacy-v2">
-    <div class="container">
-        <!-- Page Header -->
-        <div class="page-header">
-            <h1>Privacy Settings</h1>
-            <a href="{% url 'user_profile:profile_public_v2' username=profile.username %}" class="btn btn-secondary">View Profile</a>
+<!-- UP-UI-RESTORE-02: Glassmorphic Privacy Settings -->
+
+<div class="min-h-screen bg-slate-950">
+    
+    <!-- Header -->
+    <section class="bg-gradient-to-br from-indigo-900/50 to-slate-900/50 border-b border-white/10">
+        <div class="container mx-auto px-4 md:px-6 py-8 max-w-7xl">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">Privacy Settings</h1>
+                    <p class="text-slate-400 mt-2">Control who sees your profile and personal information</p>
+                </div>
+                <a href="{% url 'user_profile:profile_settings_v2' %}" 
+                   class="px-6 py-3 bg-slate-700/60 hover:bg-slate-700 border border-white/10 rounded-lg text-white font-bold transition-all">
+                    Back to Settings
+                </a>
+            </div>
         </div>
+    </section>
+    
+    <!-- Content -->
+    <div class="container mx-auto px-4 md:px-6 py-8 max-w-4xl">
         
         <!-- Privacy Form -->
-        <div class="privacy-container">
-            <div class="privacy-section">
-                <h2>Profile Visibility</h2>
-                <p class="section-help">Control who can see your profile and personal information.</p>
+        <form method="post" action="{% url 'user_profile:privacy_settings_save_safe' %}">
+            {% csrf_token %}
+            
+            <!-- Profile Visibility -->
+            <div class="bg-slate-900/60 backdrop-blur-lg rounded-2xl p-6 border border-white/10 mb-6">
+                <h2 class="text-xl font-black text-white uppercase mb-3">Profile Visibility</h2>
+                <p class="text-sm text-slate-400 mb-6">Choose who can view your profile</p>
                 
-                <form method="post" action="{% url 'user_profile:privacy_settings_save_safe' %}">
-                    {% csrf_token %}
+                <div class="space-y-3">
+                    <label class="block p-4 rounded-lg border-2 cursor-pointer transition-all {% if owner_data.privacy_settings.profile_visibility == 'public' %}border-indigo-500 bg-indigo-500/10{% else %}border-white/10 hover:border-white/20{% endif %}">
+                        <input type="radio" 
+                               name="profile_visibility" 
+                               value="public" 
+                               class="mr-3"
+                               {% if owner_data.privacy_settings.profile_visibility == 'public' %}checked{% endif %}>
+                        <span class="inline-flex items-center gap-2">
+                            <span class="text-2xl">🌍</span>
+                            <div>
+                                <div class="text-white font-bold">Public</div>
+                                <div class="text-sm text-slate-400">Anyone can view your profile</div>
+                            </div>
+                        </span>
+                    </label>
                     
-                    <!-- Profile Visibility -->
-                    <div class="form-group">
-                        <label for="profile_visibility">Profile Visibility</label>
-                        <select id="profile_visibility" name="profile_visibility" class="form-control">
-                            <option value="public" {% if owner_data.privacy_settings.profile_visibility == 'public' %}selected{% endif %}>
-                                Public - Anyone can view
-                            </option>
-                            <option value="friends_only" {% if owner_data.privacy_settings.profile_visibility == 'friends_only' %}selected{% endif %}>
-                                Friends Only - Only friends can view
-                            </option>
-                            <option value="private" {% if owner_data.privacy_settings.profile_visibility == 'private' %}selected{% endif %}>
-                                Private - Only you can view
-                            </option>
-                        </select>
-                    </div>
+                    <label class="block p-4 rounded-lg border-2 cursor-pointer transition-all {% if owner_data.privacy_settings.profile_visibility == 'friends_only' %}border-indigo-500 bg-indigo-500/10{% else %}border-white/10 hover:border-white/20{% endif %}">
+                        <input type="radio" 
+                               name="profile_visibility" 
+                               value="friends_only" 
+                               class="mr-3"
+                               {% if owner_data.privacy_settings.profile_visibility == 'friends_only' %}checked{% endif %}>
+                        <span class="inline-flex items-center gap-2">
+                            <span class="text-2xl">👥</span>
+                            <div>
+                                <div class="text-white font-bold">Friends Only</div>
+                                <div class="text-sm text-slate-400">Only your friends can view your profile</div>
+                            </div>
+                        </span>
+                    </label>
                     
-                    <!-- Field Visibility -->
-                    <h3>Field Visibility</h3>
-                    <p class="section-help">Choose which personal information to display on your profile.</p>
-                    
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="show_email" {% if owner_data.privacy_settings.show_email %}checked{% endif %}>
-                            <span>Show email address</span>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="show_phone" {% if owner_data.privacy_settings.show_phone %}checked{% endif %}>
-                            <span>Show phone number</span>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="show_real_name" {% if owner_data.privacy_settings.show_real_name %}checked{% endif %}>
-                            <span>Show real name</span>
-                        </label>
-                    </div>
-                    
-                    <!-- Social Privacy -->
-                    <h3>Social Privacy</h3>
-                    <p class="section-help">Control how others can interact with you.</p>
-                    
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="allow_friend_requests" {% if owner_data.privacy_settings.allow_friend_requests %}checked{% endif %}>
-                            <span>Allow friend requests</span>
-                        </label>
-                    </div>
-                    
-                    <div class="checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" name="show_online_status" {% if owner_data.privacy_settings.show_online_status %}checked{% endif %}>
-                            <span>Show online status</span>
-                        </label>
-                    </div>
-                    
-                    <!-- Submit Button -->
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Privacy Settings</button>
-                    </div>
-                </form>
+                    <label class="block p-4 rounded-lg border-2 cursor-pointer transition-all {% if owner_data.privacy_settings.profile_visibility == 'private' %}border-indigo-500 bg-indigo-500/10{% else %}border-white/10 hover:border-white/20{% endif %}">
+                        <input type="radio" 
+                               name="profile_visibility" 
+                               value="private" 
+                               class="mr-3"
+                               {% if owner_data.privacy_settings.profile_visibility == 'private' %}checked{% endif %}>
+                        <span class="inline-flex items-center gap-2">
+                            <span class="text-2xl">🔒</span>
+                            <div>
+                                <div class="text-white font-bold">Private</div>
+                                <div class="text-sm text-slate-400">Only you can view your profile</div>
+                            </div>
+                        </span>
+                    </label>
+                </div>
             </div>
             
-            <!-- Privacy Notice -->
-            <div class="privacy-notice">
-                <h3>Privacy Notice</h3>
-                <p>
-                    Your privacy is important to us. These settings control what information is visible
-                    to other users. Some information (like your username and display name) is always
-                    public to ensure tournament functionality.
-                </p>
-                <p>
-                    For more information, see our
-                    <a href="#" target="_blank">Privacy Policy</a>.
+            <!-- Field Visibility -->
+            <div class="bg-slate-900/60 backdrop-blur-lg rounded-2xl p-6 border border-white/10 mb-6">
+                <h2 class="text-xl font-black text-white uppercase mb-3">Field Visibility</h2>
+                <p class="text-sm text-slate-400 mb-6">Choose which personal information to display</p>
+                
+                <div class="space-y-4">
+                    <!-- Show Email -->
+                    <label class="flex items-center justify-between p-4 rounded-lg bg-slate-800/40 border border-white/10 hover:border-white/20 cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">📧</span>
+                            <div>
+                                <div class="text-white font-semibold">Show email address</div>
+                                <div class="text-sm text-slate-400">Your email will be visible on your profile</div>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-14 h-8">
+                            <input type="checkbox" 
+                                   name="show_email" 
+                                   class="toggle-checkbox absolute w-14 h-8 opacity-0 cursor-pointer"
+                                   {% if owner_data.privacy_settings.show_email %}checked{% endif %}>
+                            <div class="toggle-background w-14 h-8 bg-slate-700 rounded-full transition-all"></div>
+                            <div class="toggle-dot absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all"></div>
+                        </div>
+                    </label>
+                    
+                    <!-- Show Phone -->
+                    <label class="flex items-center justify-between p-4 rounded-lg bg-slate-800/40 border border-white/10 hover:border-white/20 cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">📞</span>
+                            <div>
+                                <div class="text-white font-semibold">Show phone number</div>
+                                <div class="text-sm text-slate-400">Your phone will be visible on your profile</div>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-14 h-8">
+                            <input type="checkbox" 
+                                   name="show_phone" 
+                                   class="toggle-checkbox absolute w-14 h-8 opacity-0 cursor-pointer"
+                                   {% if owner_data.privacy_settings.show_phone %}checked{% endif %}>
+                            <div class="toggle-background w-14 h-8 bg-slate-700 rounded-full transition-all"></div>
+                            <div class="toggle-dot absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all"></div>
+                        </div>
+                    </label>
+                    
+                    <!-- Show Real Name -->
+                    <label class="flex items-center justify-between p-4 rounded-lg bg-slate-800/40 border border-white/10 hover:border-white/20 cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">👤</span>
+                            <div>
+                                <div class="text-white font-semibold">Show real name</div>
+                                <div class="text-sm text-slate-400">Your real name will be visible on your profile</div>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-14 h-8">
+                            <input type="checkbox" 
+                                   name="show_real_name" 
+                                   class="toggle-checkbox absolute w-14 h-8 opacity-0 cursor-pointer"
+                                   {% if owner_data.privacy_settings.show_real_name %}checked{% endif %}>
+                            <div class="toggle-background w-14 h-8 bg-slate-700 rounded-full transition-all"></div>
+                            <div class="toggle-dot absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all"></div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Social Privacy -->
+            <div class="bg-slate-900/60 backdrop-blur-lg rounded-2xl p-6 border border-white/10 mb-6">
+                <h2 class="text-xl font-black text-white uppercase mb-3">Social Privacy</h2>
+                <p class="text-sm text-slate-400 mb-6">Control how others interact with you</p>
+                
+                <div class="space-y-4">
+                    <!-- Allow Friend Requests -->
+                    <label class="flex items-center justify-between p-4 rounded-lg bg-slate-800/40 border border-white/10 hover:border-white/20 cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">💌</span>
+                            <div>
+                                <div class="text-white font-semibold">Allow friend requests</div>
+                                <div class="text-sm text-slate-400">Others can send you friend requests</div>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-14 h-8">
+                            <input type="checkbox" 
+                                   name="allow_friend_requests" 
+                                   class="toggle-checkbox absolute w-14 h-8 opacity-0 cursor-pointer"
+                                   {% if owner_data.privacy_settings.allow_friend_requests %}checked{% endif %}>
+                            <div class="toggle-background w-14 h-8 bg-slate-700 rounded-full transition-all"></div>
+                            <div class="toggle-dot absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all"></div>
+                        </div>
+                    </label>
+                    
+                    <!-- Show Online Status -->
+                    <label class="flex items-center justify-between p-4 rounded-lg bg-slate-800/40 border border-white/10 hover:border-white/20 cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🟢</span>
+                            <div>
+                                <div class="text-white font-semibold">Show online status</div>
+                                <div class="text-sm text-slate-400">Others can see when you're online</div>
+                            </div>
+                        </div>
+                        <div class="relative inline-block w-14 h-8">
+                            <input type="checkbox" 
+                                   name="show_online_status" 
+                                   class="toggle-checkbox absolute w-14 h-8 opacity-0 cursor-pointer"
+                                   {% if owner_data.privacy_settings.show_online_status %}checked{% endif %}>
+                            <div class="toggle-background w-14 h-8 bg-slate-700 rounded-full transition-all"></div>
+                            <div class="toggle-dot absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-all"></div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="bg-slate-900/60 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
+                <button type="submit" 
+                        class="w-full px-6 py-4 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white font-bold text-lg transition-all shadow-lg">
+                    Save Privacy Settings
+                </button>
+                
+                <p class="text-center text-sm text-slate-400 mt-4">
+                    Your username and display name are always public for tournament functionality
                 </p>
             </div>
-        </div>
+        </form>
+        
     </div>
+    
 </div>
 
 <style>
-.profile-privacy-v2 { padding: 20px 0; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-.privacy-container { display: flex; flex-direction: column; gap: 30px; }
-.privacy-section { padding: 30px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.privacy-section h2 { margin-top: 0; margin-bottom: 15px; font-size: 24px; }
-.privacy-section h3 { font-size: 18px; margin-top: 30px; margin-bottom: 15px; }
-.section-help { color: #666; margin-bottom: 20px; }
-.form-group { margin-bottom: 20px; }
-.form-group label { display: block; font-weight: 500; margin-bottom: 8px; }
-.form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
-.form-control:focus { outline: none; border-color: #667eea; }
-.checkbox-group { margin-bottom: 15px; }
-.checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px; background: #f8f9fa; border-radius: 6px; }
-.checkbox-label input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-.checkbox-label span { font-size: 16px; }
-.checkbox-label:hover { background: #e9ecef; }
-.form-actions { margin-top: 30px; }
-.btn { display: inline-block; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; border: none; cursor: pointer; }
-.btn-primary { background: #667eea; color: #fff; }
-.btn-primary:hover { background: #5568d3; }
-.btn-secondary { background: #f8f9fa; color: #333; border: 1px solid #dee2e6; }
-.privacy-notice { padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 8px; }
-.privacy-notice h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; }
-.privacy-notice p { margin-bottom: 10px; line-height: 1.6; }
-.privacy-notice a { color: #667eea; text-decoration: underline; }
+/* Toggle Switch Styles */
+.toggle-checkbox:checked + .toggle-background {
+    background-color: rgb(79, 70, 229); /* indigo-600 */
+}
+.toggle-checkbox:checked ~ .toggle-dot {
+    transform: translateX(1.5rem);
+}
 </style>
+
 {% endblock %}
