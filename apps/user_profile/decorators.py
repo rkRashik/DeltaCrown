@@ -73,3 +73,69 @@ def ensure_profile_exists(view_func):
         return view_func(request, *args, **kwargs)
     
     return wrapper
+
+
+def deprecate_route(replacement=None, reason=None, log_only=False):
+    """
+    Decorator: Marks a view as deprecated and logs usage for monitoring.
+    
+    Part of UP-CLEANUP-02 (Route Migration + Deprecation Wrappers).
+    
+    Usage:
+        @deprecate_route(
+            replacement="/@{username}/",
+            reason="Uses new privacy service",
+            log_only=True
+        )
+        def profile_view(request, username):
+            ...
+    
+    Logs:
+        WARNING DEPRECATED_USER_PROFILE_ROUTE {
+            "route": "/u/alice/",
+            "user_id": 123,
+            "replacement": "/@alice/",
+            "reason": "Uses new privacy service"
+        }
+    
+    Args:
+        replacement: Recommended replacement URL/endpoint
+        reason: Why this route is deprecated
+        log_only: If True, only logs warning. If False, future phases may redirect/410.
+    
+    Architecture Reference:
+        UP-CLEANUP-02: Phase A — Deprecation Wrappers (Non-Breaking)
+    """
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapper(request, *args, **kwargs):
+            # Build context for logging
+            user_id = request.user.id if request.user.is_authenticated else None
+            route_path = request.path
+            
+            # Format replacement URL with kwargs if provided
+            formatted_replacement = replacement
+            if replacement and kwargs:
+                try:
+                    formatted_replacement = replacement.format(**kwargs)
+                except (KeyError, ValueError):
+                    # Couldn't format, use as-is
+                    pass
+            
+            # Log deprecation warning
+            logger.warning(
+                "DEPRECATED_USER_PROFILE_ROUTE",
+                extra={
+                    "route": route_path,
+                    "user_id": user_id,
+                    "replacement": formatted_replacement or "See UP_CLEANUP_02_ROUTE_MIGRATION.md",
+                    "reason": reason or "Legacy route without privacy enforcement",
+                    "view_func": view_func.__name__
+                }
+            )
+            
+            # Execute wrapped view
+            return view_func(request, *args, **kwargs)
+        
+        return wrapper
+    return decorator

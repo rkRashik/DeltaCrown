@@ -119,6 +119,11 @@ class Game(models.Model):
         default=False,
         help_text="Featured on homepage?"
     )
+    is_passport_supported = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Does this game support Game Passport functionality? (Admin filter)"
+    )
     release_date = models.DateField(
         null=True,
         blank=True

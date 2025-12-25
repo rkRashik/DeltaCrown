@@ -9,6 +9,7 @@ UP-M5: Audit trail for compliance and change tracking.
 from apps.user_profile.models.activity import UserActivity, EventType
 from apps.user_profile.models.stats import UserProfileStats
 from apps.user_profile.models.audit import UserAuditEvent
+from apps.user_profile.models.game_passport_schema import GamePassportSchema
 
 # Re-export existing models from models_main.py to maintain backward compatibility
 from apps.user_profile.models_main import (
@@ -17,6 +18,9 @@ from apps.user_profile.models_main import (
     UserBadge,
     Badge,
     VerificationRecord,
+    GameProfile,
+    GameProfileAlias,
+    GameProfileConfig,
     REGION_CHOICES,
     KYC_STATUS_CHOICES,
     GENDER_CHOICES,
@@ -34,7 +38,13 @@ __all__ = [
     
     # UP-M5 models
     'UserAuditEvent',
-    'UserProfileStats',
+    
+    # GP-0/GP-1 models
+    'GameProfile',
+    'GameProfileAlias',
+    'GameProfileConfig',
+    'GamePassportSchema',
+    
     # Existing models
     'UserProfile',
     'PrivacySettings',

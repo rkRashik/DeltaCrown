@@ -51,6 +51,15 @@ class UserAuditEvent(models.Model):
         # Privacy
         PRIVACY_SETTINGS_CHANGED = 'privacy_settings_changed', 'Privacy Settings Changed'
         
+        # Game Profiles (UP-CLEANUP-04 Phase C Part 2)
+        GAME_PROFILE_CREATED = 'game_profile_created', 'Game Profile Created'
+        GAME_PROFILE_UPDATED = 'game_profile_updated', 'Game Profile Updated'
+        GAME_PROFILE_DELETED = 'game_profile_deleted', 'Game Profile Deleted'
+        
+        # Social/Follow (UP-CLEANUP-04 Phase C Part 2)
+        FOLLOW_CREATED = 'follow_created', 'Follow Created'
+        FOLLOW_DELETED = 'follow_deleted', 'Follow Deleted'
+        
         # Admin Actions
         ADMIN_OVERRIDE = 'admin_override', 'Admin Override'
         SYSTEM_RECONCILE = 'system_reconcile', 'System Reconcile'

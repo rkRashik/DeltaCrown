@@ -1,0 +1,43 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+
+{% block extrahead %}
+{{ block.super }}
+
+{# GP-2D: Inject schema matrix JSON for dynamic admin form #}
+{{ schema_matrix|json_script:"gp-schema-matrix" }}
+
+<style>
+  /* GP-2D: Visual feedback for required fields */
+  .gp-required-field label:after {
+    content: " *";
+    color: red;
+    font-weight: bold;
+  }
+  
+  /* Hide fields that are not applicable for selected game */
+  .gp-hidden-field {
+    display: none !important;
+  }
+  
+  /* Identity preview box */
+  #gp-identity-preview {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 12px;
+    margin: 10px 0;
+    font-family: monospace;
+    color: #495057;
+  }
+  
+  #gp-identity-preview .label {
+    font-weight: bold;
+    color: #007bff;
+  }
+  
+  #gp-identity-preview .value {
+    color: #28a745;
+  }
+</style>
+{% endblock %}

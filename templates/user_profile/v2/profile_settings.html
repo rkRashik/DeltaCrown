@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% load static %}
+{% load profile_tags %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="profile-settings-v2">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Profile Settings</h1>
+            <a href="{% url 'user_profile:profile_public_v2' username=profile.username %}" class="btn btn-secondary">View Profile</a>
+        </div>
+        
+        <!-- Settings Sections -->
+        <div class="settings-container">
+            <!-- Basic Info Section -->
+            <div class="settings-section">
+                <h2>Basic Information</h2>
+                <form method="post" action="{% url 'user_profile:update_basic_info' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="display_name">Display Name</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ profile.display_name }}" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bio">Bio</label>
+                        <textarea id="bio" name="bio" class="form-control" rows="4">{{ profile.bio }}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <input type="text" id="country" name="country" value="{{ profile.country }}" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="avatar">Profile Picture</label>
+                        {% if profile.avatar_url %}
+                        <img src="{{ profile.avatar_url }}" alt="Avatar" class="avatar-preview">
+                        {% endif %}
+                        <input type="file" id="avatar" name="avatar" class="form-control" accept="image/*">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+            
+            <!-- Game Passports Section -->
+            <div class="settings-section">
+                <h2>Game Passports</h2>
+                <form method="post" action="{% url 'user_profile:save_game_profiles_safe' %}">
+                    {% csrf_token %}
+                    
+                    <p class="section-help">Add your in-game names for tournaments you want to join.</p>
+                    
+                    {% for game in available_games %}
+                    <div class="game-profile-card">
+                        <h3>{{ game.name }}</h3>
+                        
+                        {% for existing_game in games %}
+                            {% if existing_game.game == game.slug %}
+                            <div class="form-group">
+                                <label for="game_{{ game.slug }}_ign">In-Game Name (IGN)</label>
+                                <input type="text" id="game_{{ game.slug }}_ign" name="game_{{ game.slug }}_ign" value="{{ existing_game.ign }}" class="form-control">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="game_{{ game.slug }}_role">Role</label>
+                                <input type="text" id="game_{{ game.slug }}_role" name="game_{{ game.slug }}_role" value="{{ existing_game.role }}" class="form-control">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="game_{{ game.slug }}_rank">Rank</label>
+                                <input type="text" id="game_{{ game.slug }}_rank" name="game_{{ game.slug }}_rank" value="{{ existing_game.rank }}" class="form-control">
+                            </div>
+                            {% endif %}
+                        {% empty %}
+                        <div class="form-group">
+                            <label for="game_{{ game.slug }}_ign">In-Game Name (IGN)</label>
+                            <input type="text" id="game_{{ game.slug }}_ign" name="game_{{ game.slug }}_ign" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="game_{{ game.slug }}_role">Role</label>
+                            <input type="text" id="game_{{ game.slug }}_role" name="game_{{ game.slug }}_role" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="game_{{ game.slug }}_rank">Rank</label>
+                            <input type="text" id="game_{{ game.slug }}_rank" name="game_{{ game.slug }}_rank" class="form-control">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                    
+                    <button type="submit" class="btn btn-primary">Save Game Passports</button>
+                </form>
+            </div>
+            
+            <!-- Social Links Section -->
+            <div class="settings-section">
+                <h2>Social Links</h2>
+                <form method="post" action="{% url 'user_profile:update_social_links' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <label for="youtube">YouTube</label>
+                        <input type="url" id="youtube" name="youtube" value="{{ social.youtube }}" class="form-control" placeholder="https://youtube.com/@yourname">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="twitch">Twitch</label>
+                        <input type="url" id="twitch" name="twitch" value="{{ social.twitch }}" class="form-control" placeholder="https://twitch.tv/yourname">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="twitter">Twitter</label>
+                        <input type="url" id="twitter" name="twitter" value="{{ social.twitter }}" class="form-control" placeholder="https://twitter.com/yourname">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="discord">Discord</label>
+                        <input type="text" id="discord" name="discord" value="{{ social.discord }}" class="form-control" placeholder="username#1234">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="instagram">Instagram</label>
+                        <input type="url" id="instagram" name="instagram" value="{{ social.instagram }}" class="form-control" placeholder="https://instagram.com/yourname">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save Social Links</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-settings-v2 { padding: 20px 0; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+.settings-container { display: flex; flex-direction: column; gap: 30px; }
+.settings-section { padding: 30px; background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.settings-section h2 { margin-top: 0; margin-bottom: 20px; font-size: 24px; }
+.section-help { color: #666; margin-bottom: 20px; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; font-weight: 500; margin-bottom: 8px; }
+.form-control { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
+.form-control:focus { outline: none; border-color: #667eea; }
+textarea.form-control { resize: vertical; min-height: 100px; }
+.avatar-preview { width: 100px; height: 100px; border-radius: 50%; margin-bottom: 10px; display: block; }
+.game-profile-card { padding: 20px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px; }
+.game-profile-card h3 { margin-top: 0; margin-bottom: 15px; font-size: 18px; color: #667eea; }
+.btn { display: inline-block; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500; border: none; cursor: pointer; }
+.btn-primary { background: #667eea; color: #fff; }
+.btn-primary:hover { background: #5568d3; }
+.btn-secondary { background: #f8f9fa; color: #333; border: 1px solid #dee2e6; }
+</style>
+{% endblock %}

@@ -63,6 +63,10 @@ from django.db import transaction, models
 from django.utils import timezone
 from django.db.models import Count, Q
 from apps.tournaments.models import Registration, Payment, Tournament
+from apps.user_profile.integrations.tournaments import (
+    on_registration_status_change,
+    on_payment_status_change,
+)
 
 
 class RegistrationService:
@@ -753,6 +757,23 @@ class RegistrationService:
         registration.status = Registration.CONFIRMED
         registration.save(update_fields=['status'])
         
+        # User Profile Integration Hook - Payment Verified
+        def _notify_profile():
+            try:
+                on_payment_status_change(
+                    user_id=registration.user_id,
+                    tournament_id=registration.tournament_id,
+                    transaction_id=payment.transaction_id or str(payment.id),
+                    registration_id=registration.id,
+                    status='verified',
+                    actor_user_id=verified_by.id,
+                    amount=payment.amount,
+                    reason=admin_notes,
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile)
+        
         # =====================================================================
         # MODULE 2.4: Audit Logging
         # =====================================================================
@@ -832,6 +853,21 @@ class RegistrationService:
         registration = payment.registration
         registration.status = Registration.PENDING
         registration.save(update_fields=['status'])
+        
+        # UP-INTEGRATION-01: Notify user profile of payment rejection
+        def _notify_profile():
+            try:
+                on_payment_status_change(
+                    user_id=registration.user_id if registration.user_id else None,
+                    team_id=registration.team_id if registration.team_id else None,
+                    tournament_id=registration.tournament_id,
+                    payment_id=payment_id,
+                    new_status='rejected',
+                    amount=payment.amount if hasattr(payment, 'amount') else None
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile)
         
         # =====================================================================
         # MODULE 2.4: Audit Logging
@@ -949,6 +985,21 @@ class RegistrationService:
         # Move exact logic from organizer.py::approve_registration view
         registration.status = 'confirmed'
         registration.save()
+        
+        # User Profile Integration Hook
+        def _notify_profile():
+            try:
+                on_registration_status_change(
+                    user_id=registration.user_id,
+                    tournament_id=registration.tournament_id,
+                    registration_id=registration.id,
+                    status='approved',
+                    actor_user_id=approved_by.id if approved_by else None,
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile)
+        
         return registration
     
     @staticmethod
@@ -974,6 +1025,21 @@ class RegistrationService:
         # Move exact logic from organizer.py::reject_registration view
         registration.status = 'rejected'
         registration.save()
+        
+        # User Profile Integration Hook
+        def _notify_profile():
+            try:
+                on_registration_status_change(
+                    user_id=registration.user_id,
+                    tournament_id=registration.tournament_id,
+                    registration_id=registration.id,
+                    status='rejected',
+                    actor_user_id=rejected_by.id if rejected_by else None,
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile)
+        
         return registration
     
     @staticmethod

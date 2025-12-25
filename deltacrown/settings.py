@@ -888,3 +888,13 @@ LEADERBOARDS_CACHE_ENABLED = os.getenv('LEADERBOARDS_CACHE_ENABLED', 'False').lo
 # Default: False (API returns 404)
 # Requires COMPUTE_ENABLED=True for non-empty responses
 LEADERBOARDS_API_ENABLED = os.getenv('LEADERBOARDS_API_ENABLED', 'False').lower() == 'true'
+
+# -----------------------------------------------------------------------------
+# User Profile Integration Feature Flags
+# -----------------------------------------------------------------------------
+# Enable User Profile ↔ Tournament integration (activity tracking, stats recompute, audit)
+# Default: False (integration disabled, tournament operations unaffected)
+# When True: Tournament lifecycle events trigger UserActivity, UserAuditEvent, and stats recompute
+# Rollback: Set to False to disable integration (no impact on tournaments)
+# Reference: Documents/UserProfile_CommandCenter_v1/03_Planning/UP_TOURNAMENT_INTEGRATION_CONTRACT.md
+USER_PROFILE_INTEGRATION_ENABLED = os.getenv('USER_PROFILE_INTEGRATION_ENABLED', 'False').lower() == 'true'

@@ -208,23 +208,11 @@ class UserProfile(models.Model):
     preferred_games = models.JSONField(default=list, blank=True, null=True)
     
     # ===== GAME PROFILES (Future-Proof Pluggable System) =====
+    # GP-CLEAN-02: DEPRECATED - Use GameProfile model instead
     game_profiles = models.JSONField(
         default=list,
         blank=True,
-        help_text="""
-        JSON structure for infinite game support:
-        [
-            {
-                "game": "valorant",
-                "ign": "Player#TAG",
-                "role": "Duelist",
-                "rank": "Immortal 3",
-                "platform": "PC",
-                "is_verified": false,
-                "metadata": {}
-            }
-        ]
-        """
+        help_text="DEPRECATED: Use GameProfile model and GamePassportService instead. See GP-0 documentation."
     )
     
     # ===== LEGACY GAME IDs REMOVED =====
@@ -334,9 +322,12 @@ class UserProfile(models.Model):
         ).exists()
     
     # ===== GAME PROFILE METHODS (Modern Unified System) =====
+    # GP-CLEAN-02: DEPRECATED - Use GamePassportService instead
     
     def get_game_profile(self, game_code):
         """
+        DEPRECATED: Use GamePassportService.get_passport() instead.
+        
         Get game profile for a specific game from the game_profiles JSON field.
         
         Args:
@@ -344,11 +335,13 @@ class UserProfile(models.Model):
         
         Returns:
             dict: Game profile data or None if not found
-            
-        Example:
-            >>> profile.get_game_profile('valorant')
-            {'game': 'valorant', 'ign': 'TenZ#1234', 'role': 'Duelist', ...}
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"DEPRECATED: get_game_profile() called for user_id={self.user.id}. "
+            "Use GamePassportService.get_passport() instead."
+        )
         if not isinstance(self.game_profiles, list):
             return None
             
@@ -360,45 +353,34 @@ class UserProfile(models.Model):
     
     def set_game_profile(self, game_code, data):
         """
-        Set or update game profile for a specific game.
+        BLOCKED: JSON writes forbidden per GP-STABILIZE-01.
+        Use GamePassportService.create_passport() or update_passport() instead.
+        
+        This method now raises RuntimeError to prevent accidental JSON writes.
+        All game profile data must go through GameProfile model.
         
         Args:
             game_code: Game slug (e.g., 'valorant', 'cs2')
             data: dict with keys: ign, role (optional), rank (optional), platform (optional), metadata (optional)
         
-        Returns:
-            bool: True if successful
-            
-        Example:
-            >>> profile.set_game_profile('valorant', {'ign': 'TenZ#1234', 'role': 'Duelist'})
+        Raises:
+            RuntimeError: Always - JSON writes blocked
         """
-        if not isinstance(self.game_profiles, list):
-            self.game_profiles = []
-        
-        game_code_lower = game_code.lower()
-        
-        # Remove existing profile for this game
-        self.game_profiles = [
-            p for p in self.game_profiles 
-            if not (isinstance(p, dict) and p.get('game', '').lower() == game_code_lower)
-        ]
-        
-        # Add new profile
-        profile_data = {
-            'game': game_code_lower,
-            'ign': data.get('ign', ''),
-            'role': data.get('role', ''),
-            'rank': data.get('rank', ''),
-            'platform': data.get('platform', 'PC'),
-            'is_verified': data.get('is_verified', False),
-            'metadata': data.get('metadata', {})
-        }
-        self.game_profiles.append(profile_data)
-        return True
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(
+            f"BLOCKED: set_game_profile() called for user_id={self.user.id}. "
+            "JSON writes are forbidden. Use GamePassportService instead."
+        )
+        raise RuntimeError(
+            "set_game_profile() is blocked. Use GamePassportService.create_passport() "
+            "or update_passport() instead. See GP-STABILIZE-01 for migration guide."
+        )
     
     def add_game_profile(self, game_code, ign, role='', rank='', platform='PC', metadata=None):
         """
-        Convenience method to add a game profile with minimal parameters.
+        BLOCKED: JSON writes forbidden per GP-STABILIZE-01.
+        Use GamePassportService.create_passport() instead.
         
         Example:
             >>> profile.add_game_profile('valorant', 'TenZ#1234', role='Duelist', rank='Radiant')
@@ -413,26 +395,24 @@ class UserProfile(models.Model):
     
     def remove_game_profile(self, game_code):
         """
-        Remove a game profile.
+        BLOCKED: JSON writes forbidden per GP-STABILIZE-01.
+        Use GamePassportService.delete_passport() instead.
         
         Args:
             game_code: Game slug to remove
         
-        Returns:
-            bool: True if profile was found and removed
+        Raises:
+            RuntimeError: Always - JSON writes blocked
         """
-        if not isinstance(self.game_profiles, list):
-            return False
-            
-        game_code_lower = game_code.lower()
-        initial_length = len(self.game_profiles)
-        
-        self.game_profiles = [
-            p for p in self.game_profiles 
-            if not (isinstance(p, dict) and p.get('game', '').lower() == game_code_lower)
-        ]
-        
-        return len(self.game_profiles) < initial_length
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(
+            f"BLOCKED: remove_game_profile() called for user_id={self.user.id}. "
+            "JSON writes are forbidden. Use GamePassportService.delete_passport() instead."
+        )
+        raise RuntimeError(
+            "remove_game_profile() is blocked. Use GamePassportService.delete_passport() instead."
+        )
     
     def get_game_id(self, game_code):
         """
@@ -1234,47 +1214,94 @@ class SocialLink(models.Model):
 
 class GameProfile(models.Model):
     """
-    User's game-specific profiles with stats and rank.
+    Game Passport: First-class game identity system (GP-0)
+    
+    Hybrid storage:
+    - in_game_name: Primary identity (dedicated column)
+    - identity_key: Normalized for uniqueness enforcement
+    - metadata: Per-game extras (JSON)
+    
+    Features:
+    - Global uniqueness per game (identity_key)
+    - Identity change cooldown
+    - Alias history tracking (GameProfileAlias)
+    - Privacy levels (PUBLIC/PROTECTED/PRIVATE)
+    - Pinning/ordering for showcase
+    - Looking for team (is_lft) flag
+    
     Frontend component: _game_passport.html
     """
     
-    GAME_CHOICES = [
-        ('valorant', 'VALORANT'),
-        ('csgo', 'CS:GO'),
-        ('cs2', 'Counter-Strike 2'),
-        ('lol', 'League of Legends'),
-        ('dota2', 'Dota 2'),
-        ('overwatch', 'Overwatch 2'),
-        ('apex', 'Apex Legends'),
-        ('fortnite', 'Fortnite'),
-        ('pubg', 'PUBG'),
-        ('r6', 'Rainbow Six Siege'),
-        ('rocket_league', 'Rocket League'),
-        ('mlbb', 'Mobile Legends'),
-        ('codm', 'Call of Duty Mobile'),
-        ('pubgm', 'PUBG Mobile'),
-        ('freefire', 'Free Fire'),
-        ('fc24', 'FC 24'),
+    # Visibility choices
+    VISIBILITY_PUBLIC = 'PUBLIC'
+    VISIBILITY_PROTECTED = 'PROTECTED'
+    VISIBILITY_PRIVATE = 'PRIVATE'
+    
+    VISIBILITY_CHOICES = [
+        (VISIBILITY_PUBLIC, 'Public'),
+        (VISIBILITY_PROTECTED, 'Protected'),
+        (VISIBILITY_PRIVATE, 'Private'),
     ]
     
+    # Status choices
+    STATUS_ACTIVE = 'ACTIVE'
+    STATUS_SUSPENDED = 'SUSPENDED'
+    
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, 'Active'),
+        (STATUS_SUSPENDED, 'Suspended'),
+    ]
+    
+    # Core Identity
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='game_profiles'
     )
-    game = models.CharField(
-        max_length=20,
-        choices=GAME_CHOICES,
-        help_text="Game identifier"
+    game = models.ForeignKey(
+        'games.Game',
+        on_delete=models.PROTECT,
+        related_name='passports',
+        help_text="Game from registry (source of truth)"
     )
     game_display_name = models.CharField(
         max_length=100,
         editable=False,
         help_text="Auto-filled from choices"
     )
+    
+    # GP-2A: Structured Identity Fields (First-Class Columns)
+    ign = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="In-game name / username (e.g., 'Player123' for Riot, 'SteamID64' for Steam)"
+    )
+    discriminator = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Discriminator / Tag / Zone (e.g., '#NA1' for Riot, Zone ID for MLBB)"
+    )
+    platform = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Platform identifier (e.g., 'PC', 'PS5', 'Xbox', platform-specific ID)"
+    )
+    
+    # Legacy/Computed Fields
     in_game_name = models.CharField(
         max_length=100,
-        help_text="In-game username (e.g., Player#TAG)"
+        help_text="Display name (computed from ign+discriminator, e.g., 'Player#TAG')"
+    )
+    identity_key = models.CharField(
+        max_length=100,
+        db_index=True,
+        help_text="Normalized identity for uniqueness (computed from ign+discriminator+region+platform, lowercase)"
     )
     
     # Rank Information
@@ -1334,33 +1361,103 @@ class GameProfile(models.Model):
         help_text="Main role/position (e.g., Duelist, Support, Mid)"
     )
     
-    # Verification
-    is_verified = models.BooleanField(
+    # Game Passport Features (GP-0)
+    visibility = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default=VISIBILITY_PUBLIC,
+        help_text="Privacy level for this passport"
+    )
+    is_lft = models.BooleanField(
         default=False,
-        help_text="Whether this profile has been verified via game API"
+        help_text="Looking for team flag"
+    )
+    region = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Player region (part of identity for some games, used for join gating)"
     )
     
-    # Metadata
+    # Pinning/Ordering
+    is_pinned = models.BooleanField(
+        default=False,
+        help_text="Whether this passport is pinned to profile"
+    )
+    pinned_order = models.SmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Order for pinned passports (1-N)"
+    )
+    sort_order = models.SmallIntegerField(
+        default=0,
+        help_text="General sort order"
+    )
+    
+    # Identity Lock (Cooldown)
+    locked_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Identity cannot be changed until this date"
+    )
+    
+    # Status
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_ACTIVE,
+        help_text="Passport status"
+    )
+    
+    # Per-game metadata (JSON)
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="SHOWCASE/CONFIG ONLY - DO NOT store identity here (use ign/discriminator/region/platform columns)"
+    )
+    
+    # Verification DEPRECATED (GP-0: Remove verification system)
+    is_verified = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="DEPRECATED: Verification removed in GP-0"
+    )
+    
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
         unique_together = [['user', 'game']]
-        ordering = ['-updated_at']
-        verbose_name = "Game Profile"
-        verbose_name_plural = "Game Profiles"
+        ordering = ['-is_pinned', '-pinned_order', 'sort_order', '-updated_at']
+        verbose_name = "Game Passport"
+        verbose_name_plural = "Game Passports"
         indexes = [
             models.Index(fields=['user', 'game']),
+            models.Index(fields=['game', 'identity_key']),
             models.Index(fields=['game', '-rank_tier']),
+            models.Index(fields=['-is_pinned', '-pinned_order']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['game', 'identity_key'],
+                name='unique_game_identity'
+            )
         ]
     
     def __str__(self):
-        return f"{self.user.username} - {self.get_game_display()}"
+        return f"{self.user.username} - {self.game.display_name}"
     
     def save(self, *args, **kwargs):
-        # Auto-populate display name from choices
-        if not self.game_display_name:
-            self.game_display_name = self.get_game_display()
+        # Auto-populate display name from Game model
+        if not self.game_display_name and self.game:
+            self.game_display_name = self.game.display_name
+        
+        # Generate identity_key if not set (should be set by service)
+        if not self.identity_key:
+            self.identity_key = self.in_game_name.lower().strip()
+        
         super().save(*args, **kwargs)
     
     @property
@@ -1371,6 +1468,147 @@ class GameProfile(models.Model):
         wins = int(self.matches_played * (self.win_rate / 100))
         losses = self.matches_played - wins
         return f"{wins}-{losses}"
+    
+    def is_identity_locked(self) -> bool:
+        """Check if identity changes are currently locked"""
+        if not self.locked_until:
+            return False
+        return timezone.now() < self.locked_until
+
+
+class GameProfileAlias(models.Model):
+    """
+    Alias history for game passport identity changes (GP-0, GP-2A)
+    
+    Tracks when a user changes their identity (ign/discriminator/platform/region)
+    to maintain identity audit trail and prevent abuse.
+    
+    GP-2A: Extended to track structured identity fields.
+    """
+    
+    game_profile = models.ForeignKey(
+        GameProfile,
+        on_delete=models.CASCADE,
+        related_name='aliases'
+    )
+    
+    # Legacy field (kept for backward compatibility, computed from structured fields)
+    old_in_game_name = models.CharField(
+        max_length=100,
+        help_text="Previous in-game name (display format)"
+    )
+    
+    # GP-2A: Structured Identity History
+    old_ign = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        help_text="Previous IGN/username"
+    )
+    old_discriminator = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        help_text="Previous discriminator/tag/zone"
+    )
+    old_platform = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        help_text="Previous platform"
+    )
+    old_region = models.CharField(
+        max_length=10,
+        blank=True,
+        default="",
+        help_text="Previous region"
+    )
+    
+    changed_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the identity was changed"
+    )
+    changed_by_user_id = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="User ID who made the change (nullable for system)"
+    )
+    request_ip = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="IP address of change request"
+    )
+    reason = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Reason for identity change"
+    )
+    
+    class Meta:
+        ordering = ['-changed_at']
+        verbose_name = "Game Profile Alias"
+        verbose_name_plural = "Game Profile Aliases"
+        indexes = [
+            models.Index(fields=['game_profile', '-changed_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.game_profile.user.username} - {self.game_profile.game}: {self.old_in_game_name}"
+
+
+class GameProfileConfig(models.Model):
+    """
+    Singleton configuration for Game Passport system (GP-0)
+    
+    Admin Command Center for managing passport behavior.
+    Only one row should exist.
+    """
+    
+    # Identity Management
+    cooldown_days = models.IntegerField(
+        default=30,
+        help_text="Days before identity can be changed again"
+    )
+    allow_id_change = models.BooleanField(
+        default=True,
+        help_text="Whether users can change identities"
+    )
+    
+    # Pinning Limits
+    max_pinned_games = models.IntegerField(
+        default=3,
+        help_text="Maximum number of games a user can pin"
+    )
+    
+    # Regional Settings
+    require_region = models.BooleanField(
+        default=False,
+        help_text="Whether region is required for passports"
+    )
+    
+    # Anti-Abuse (Future)
+    enable_ip_smurf_detection = models.BooleanField(
+        default=False,
+        help_text="Enable IP-based smurf detection"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Game Passport Configuration"
+        verbose_name_plural = "Game Passport Configuration"
+    
+    def __str__(self):
+        return f"Game Passport Config (Cooldown: {self.cooldown_days} days)"
+    
+    @classmethod
+    def get_config(cls):
+        """Get or create singleton config"""
+        config, created = cls.objects.get_or_create(pk=1)
+        return config
 
 
 class Achievement(models.Model):

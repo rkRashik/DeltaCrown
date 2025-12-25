@@ -5,6 +5,7 @@ DeltaCrown — User Profile admin (package)
 We split the legacy admin.py into submodules:
   - users.py   : ModelAdmin registrations
   - exports.py : CSV export action
+  - game_passports.py : GameProfile, GameProfileAlias, GameProfileConfig admins
 
 Importing this package triggers registrations at import time so that
 `import apps.user_profile.admin` continues to work everywhere.
@@ -14,4 +15,5 @@ Importing this package triggers registrations at import time so that
 from .users import *    # noqa: F401,F403
 from .exports import *  # noqa: F401,F403
 from .privacy import *  # noqa
+from .game_passports import *  # noqa: F401,F403
 

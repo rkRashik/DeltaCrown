@@ -46,6 +46,14 @@ from apps.tournaments.models import (
     Registration
 )
 
+# User Profile Integration
+from apps.user_profile.integrations.tournaments import (
+    on_match_result_submitted,
+    on_match_finalized,
+    on_dispute_opened,
+    on_dispute_resolved,
+)
+
 # Module 2.3: Real-time WebSocket broadcasting
 from apps.tournaments.realtime.utils import (
     broadcast_match_started,
@@ -372,6 +380,20 @@ class MatchService:
         
         match.save()
         
+        # User Profile Integration Hook - Match Result Submitted
+        def _notify_profile():
+            try:
+                on_match_result_submitted(
+                    user_id=submitted_by_id,
+                    match_id=match.id,
+                    tournament_id=match.tournament_id,
+                    submission_id=match.id,  # Use match.id as submission identifier
+                    status='pending_opponent',
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile)
+        
         # Module 2.3: Broadcast score_updated event to WebSocket clients
         # Module 6.1: Wrap async broadcast with async_to_sync
         try:
@@ -558,6 +580,21 @@ class MatchService:
         match.state = Match.DISPUTED
         match.save()
         
+        # User Profile Integration Hook - Dispute Opened
+        def _notify_profile():
+            try:
+                on_dispute_opened(
+                    user_id=initiated_by_id,
+                    match_id=match.id,
+                    tournament_id=match.tournament_id,
+                    dispute_id=dispute.id,
+                    submission_id=match.id,  # Use match.id as submission identifier
+                    reason_code=reason,
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile)
+        
         # =====================================================================
         # Module 4.5: WebSocket broadcast - dispute_created event
         # =====================================================================
@@ -660,6 +697,30 @@ class MatchService:
         dispute.final_participant2_score = final_participant2_score
         dispute.save()
         
+        # User Profile Integration Hook - Dispute Resolved
+        def _notify_profile_dispute():
+            try:
+                # Determine if resolution finalizes match result
+                winner_user_ids = None
+                loser_user_ids = None
+                
+                if status != Dispute.ESCALATED:
+                    # Resolution finalizes the match (will be computed after match updated)
+                    pass  # Will be set after match.save()
+                
+                on_dispute_resolved(
+                    match_id=dispute.match_id,
+                    tournament_id=dispute.match.tournament_id if dispute.match else None,
+                    dispute_id=dispute.id,
+                    resolution_type=status or 'resolved',
+                    actor_user_id=resolved_by_id,
+                    winner_user_ids=winner_user_ids,
+                    loser_user_ids=loser_user_ids,
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile_dispute)
+        
         # =====================================================================
         # MODULE 2.4: Audit Logging
         # =====================================================================
@@ -709,6 +770,26 @@ class MatchService:
             match.completed_at = timezone.now()
         
         match.save()
+        
+        # User Profile Integration Hook - Match Finalized (when dispute resolved)
+        if dispute.status == Dispute.RESOLVED:
+            def _notify_profile():
+                try:
+                    # Get user IDs from participants
+                    winner_user_ids = [match.winner_id] if match.winner_id else []
+                    loser_user_ids = [match.loser_id] if match.loser_id else []
+                    
+                    on_match_finalized(
+                        match_id=match.id,
+                        tournament_id=match.tournament_id,
+                        winner_id=match.winner_id,
+                        loser_id=match.loser_id,
+                        winner_user_ids=winner_user_ids,
+                        loser_user_ids=loser_user_ids,
+                    )
+                except Exception:
+                    pass  # Non-blocking
+            transaction.on_commit(_notify_profile)
         
         # TODO: Notify participants of resolution (Module 2.x)
         # TODO: Update bracket if match completed (Module 1.5)

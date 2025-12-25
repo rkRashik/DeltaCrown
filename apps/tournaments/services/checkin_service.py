@@ -19,6 +19,7 @@ from django.contrib.auth import get_user_model
 
 from apps.tournaments.models import Registration, Tournament
 from apps.tournaments.security.audit import audit_event, AuditAction
+from apps.user_profile.integrations.tournaments import on_checkin_toggled
 
 User = get_user_model()
 
@@ -295,6 +296,21 @@ class CheckinService:
             registration.checked_in_by = actor
         
         registration.save()
+        
+        # User Profile Integration Hook
+        def _notify_profile():
+            try:
+                on_checkin_toggled(
+                    user_id=registration.user_id,
+                    tournament_id=registration.tournament_id,
+                    registration_id=registration.id,
+                    checked_in=registration.checked_in,
+                    actor_user_id=actor.id,
+                )
+            except Exception:
+                pass  # Non-blocking
+        transaction.on_commit(_notify_profile)
+        
         return registration
     
     # ========================

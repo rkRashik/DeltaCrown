@@ -286,3 +286,42 @@ def privacy_indicator(profile, viewer):
             'can_see_personal': True,
             'can_see_gaming': True,
         }
+
+
+@register.filter
+def replace(value, args):
+    """
+    Replace substring in a string.
+    
+    Usage: {{ "hello_world"|replace:"_ " }}
+           Where first char is old, rest is new.
+           OR: {{ "hello_world"|replace:"_" }} to replace with empty string
+    
+    Args:
+        value: The string to perform replacement on
+        args: String where first char is 'old', rest is 'new' (for simple single-char replace)
+              Or use format "old new" where old is replaced by new (space-separated)
+    
+    Returns:
+        String with replacements applied
+    """
+    if not isinstance(value, str):
+        value = str(value)
+    
+    if not args:
+        return value
+    
+    # Handle space-separated format: "_ " means replace _ with space
+    if len(args) >= 2 and args[1] == ' ':
+        old = args[0]
+        new = args[2:] if len(args) > 2 else ' '
+        return value.replace(old, new)
+    
+    # Handle single character replacement with empty string
+    if len(args) == 1:
+        return value.replace(args, '')
+    
+    # Default: first char is old, rest is new
+    old = args[0]
+    new = args[1:]
+    return value.replace(old, new)

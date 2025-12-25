@@ -33,8 +33,8 @@ class UserProfileForm(forms.ModelForm):
             'facebook', 'instagram', 'tiktok', 'twitter',
             'youtube_link', 'twitch_link', 'discord_id',
             
-            # Note: Legacy game ID fields were removed and migrated to game_profiles JSON
-            # Use the game_profiles JSONField to store game-specific data
+            # Note: Legacy game ID fields migrated to Game Passport system
+            # Game-specific identities now managed via GameProfile model
             
             # Privacy Settings
             'is_private', 'show_email', 'show_phone', 'show_socials',

@@ -8,7 +8,8 @@ Usage:
 """
 
 from django.db.models import Count, Sum, Q
-from apps.user_profile.models import Achievement, Follow, GameProfile, SocialLink
+from apps.user_profile.models_main import Achievement, Follow, GameProfile, SocialLink
+from apps.user_profile.utils import get_user_profile_safe
 from apps.teams.models import TeamMembership
 from datetime import datetime, timedelta
 
@@ -237,8 +238,9 @@ def check_social_achievements(user):
             achievements_awarded.append(ach)
     
     # Team Player
+    user_profile = get_user_profile_safe(user)
     team_count = TeamMembership.objects.filter(
-        user=user,
+        profile=user_profile,
         status='active'
     ).count()
     

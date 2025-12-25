@@ -42,6 +42,7 @@ def _get_profile(user) -> Optional[object]:
     # Fallback to explicit model if present
     try:
         from apps.user_profile.models import UserProfile
+        from apps.user_profile.services.game_passport_service import GamePassportService
         return UserProfile.objects.filter(user=user).first()
     except Exception:
         return None
@@ -93,21 +94,21 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
     efootball_id = None
     discord_id = getattr(profile, "discord_id", None)
 
-    # Prefer new game_profiles system when available (but keep backward-compatible fallback)
+    # Get game profiles from GamePassport service
     if profile is not None:
         try:
             # Valorant / Riot
-            gp_valorant = getattr(profile, 'get_game_profile', None) and profile.get_game_profile('valorant')
-            if gp_valorant and gp_valorant.get('ign'):
-                ign = gp_valorant.get('ign')
+            gp_valorant = GamePassportService.get_passport(user=user, game='valorant')
+            if gp_valorant:
+                ign = gp_valorant.in_game_name
                 riot_id = ign
             else:
                 riot_id = getattr(profile, 'riot_id', None)
 
             # eFootball
-            gp_efootball = getattr(profile, 'get_game_profile', None) and profile.get_game_profile('efootball')
-            if gp_efootball and gp_efootball.get('ign'):
-                efootball_id = gp_efootball.get('ign')
+            gp_efootball = GamePassportService.get_passport(user=user, game='efootball')
+            if gp_efootball:
+                efootball_id = gp_efootball.in_game_name
             else:
                 efootball_id = getattr(profile, 'efootball_id', None)
         except Exception:
@@ -359,10 +360,14 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
         logger.warning(f"Error loading activity data: {e}")
         activity = []
 
-    # Get game profiles from the new pluggable system
+    # Get game profiles from GamePassport service
     game_profiles = []
-    if profile and profile.game_profiles:
-        game_profiles = profile.game_profiles
+    if profile:
+        gp_list = GamePassportService.list_passports(user=user)
+        game_profiles = [
+            {'game': gp.game, 'ign': gp.in_game_name, 'is_verified': gp.is_verified}
+            for gp in gp_list
+        ]
     
     # Calculate tournament stats (placeholder for now)
     tournament_stats = {
@@ -510,12 +515,12 @@ def profile_api(request: HttpRequest, profile_id: str) -> HttpResponse:
                 }
                 # Add game ID if authorized and available
                 if show_game_ids and membership.team.game:
-                    game_profile = profile.get_game_profile(membership.team.game)
-                    if game_profile and game_profile.get('ign'):
-                        team_data['game_id'] = game_profile['ign']
+                    game_passport = GamePassportService.get_passport(user=user, game=membership.team.game)
+                    if game_passport:
+                        team_data['game_id'] = game_passport.in_game_name
                         # For MLBB, add server info from metadata if available
-                        if membership.team.game == 'mlbb' and game_profile.get('metadata', {}).get('server_id'):
-                            team_data['mlbb_server_id'] = game_profile['metadata']['server_id']
+                        if membership.team.game == 'mlbb' and game_passport.metadata.get('server_id'):
+                            team_data['mlbb_server_id'] = game_passport.metadata['server_id']
                 team_info.append(team_data)
         except Exception:
             team_info = []

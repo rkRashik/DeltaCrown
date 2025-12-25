@@ -1,8 +1,10 @@
-# apps/user_profile/views.py
+# apps/user_profile/views/legacy_views.py
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.core.exceptions import ValidationError
 
 from django.views.generic import UpdateView
 from django.urls import reverse_lazy
@@ -12,8 +14,9 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
-from .models import UserProfile
-from .forms import UserProfileForm
+from apps.user_profile.models import UserProfile
+from apps.user_profile.forms import UserProfileForm
+from apps.user_profile.decorators import deprecate_route
 import logging
 
 logger = logging.getLogger(__name__)
@@ -112,13 +115,23 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
 User = get_user_model()
 
 
-@login_required  
+@login_required
+@deprecate_route(
+    replacement="/@{username}/",
+    reason="Legacy profile view bypasses privacy enforcement. Use views/public.py ProfileDetailView.",
+    log_only=True
+)
 def profile_view(request, username=None):
     """
     Main profile view - displays user profile with all components.
     Phase 3 Implementation - Full backend integration.
     Phase 4 Fix: Corrected user lookup and profile access.
     DEBUG MODE: Extensive logging enabled.
+    
+    DEPRECATED: UP-CLEANUP-02 Phase A
+    - No privacy filtering via PrivacyService
+    - Direct model access
+    - Replacement: views/public.py ProfileDetailView
     """
     import datetime
     from django.utils import timezone
@@ -455,8 +468,8 @@ def kyc_upload_view(request):
     View for users to upload KYC verification documents.
     Users can submit ID documents and a selfie for verification.
     """
-    from .forms import KYCUploadForm
-    from .models import VerificationRecord
+    from apps.user_profile.forms import KYCUploadForm
+    from apps.user_profile.models import VerificationRecord
     
     profile = request.user.profile
     
@@ -509,7 +522,7 @@ def kyc_status_view(request):
     View to display current KYC verification status.
     Shows pending/approved/rejected status with details.
     """
-    from .models import VerificationRecord
+    from apps.user_profile.models import VerificationRecord
     
     profile = request.user.profile
     
@@ -530,13 +543,23 @@ def kyc_status_view(request):
 # ============================================================================
 
 @login_required
+@deprecate_route(
+    replacement="/api/v1/user_profile/settings/privacy/",
+    reason="Legacy privacy settings lacks audit trail. Use api/settings_api.py.",
+    log_only=True
+)
 def privacy_settings_view(request):
     """
     View for users to manage their privacy settings.
     Controls what information is visible to other users.
+    
+    DEPRECATED: UP-CLEANUP-02 Phase A
+    - No audit events via AuditService
+    - Direct model updates
+    - Replacement: api/settings_api.py update_privacy_settings
     """
-    from .forms import PrivacySettingsForm
-    from .models import PrivacySettings
+    from apps.user_profile.forms import PrivacySettingsForm
+    from apps.user_profile.models import PrivacySettings
     
     profile = request.user.profile
     
@@ -570,7 +593,7 @@ def settings_view(request):
     Modular settings page with all settings sections in one place.
     Provides a unified interface for Profile, Privacy, KYC, Payment, Security, and Game Accounts.
     """
-    from .models import PrivacySettings, VerificationRecord
+    from apps.user_profile.models import PrivacySettings, VerificationRecord
     
     profile = request.user.profile
     
@@ -583,7 +606,7 @@ def settings_view(request):
     verification_record = VerificationRecord.objects.filter(user_profile=profile).first()
     
     # Get existing game profiles
-    from .models import GameProfile
+    from apps.user_profile.models import GameProfile
     game_profiles = GameProfile.objects.filter(user=request.user).order_by('game')
     
     if request.method == 'POST':
@@ -668,7 +691,7 @@ def settings_view(request):
 
         # Handle privacy settings POST
         try:
-            from .models import PrivacySettings
+            from apps.user_profile.models import PrivacySettings
             privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
             privacy_settings.show_email = bool(request.POST.get('show_email'))
             privacy_settings.show_phone = bool(request.POST.get('show_phone'))
@@ -707,48 +730,98 @@ def settings_view(request):
 
 
 @login_required
+@deprecate_route(
+    replacement="/api/v1/user_profile/game-id/<game_code>/",
+    reason="Legacy game profile save lacks validation. Use api/game_id_api.py.",
+    log_only=True
+)
 def save_game_profiles(request):
     """
     Handle saving all 11 game profiles from the unified settings form.
-    Uses the game_profiles JSONField to store all game data.
+    MIGRATED: GP-STABILIZE-02 - Now uses GamePassportService.
     """
     if request.method != 'POST':
         return redirect('user_profile:settings')
     
     from apps.games.constants import ALL_GAMES
-    profile = request.user.profile
+    from apps.user_profile.services.game_passport_service import GamePassportService
+    from apps.user_profile.models import GameProfile
+    from django.core.exceptions import ValidationError
+    
+    created_count = 0
+    updated_count = 0
+    deleted_count = 0
+    errors = []
+    
+    # Collect submitted games
+    submitted_games = set()
     
     # Process each of the 11 games
     for game_slug in ALL_GAMES:
         ign = request.POST.get(f'game_{game_slug}_ign', '').strip()
-        role = request.POST.get(f'game_{game_slug}_role', '').strip()
-        rank = request.POST.get(f'game_{game_slug}_rank', '').strip()
-        platform = request.POST.get(f'game_{game_slug}_platform', '').strip()
         
-        # For MLBB, also capture server_id
+        if not ign:
+            continue
+            
+        submitted_games.add(game_slug)
+        
+        # Prepare metadata
         metadata = {}
         if game_slug == 'mlbb':
             server_id = request.POST.get('game_mlbb_server', '').strip()
             if server_id:
-                metadata['server_id'] = server_id
+                metadata['zone_id'] = server_id
         
-        # If IGN is provided, save/update the profile
-        if ign:
-            profile.set_game_profile(game_slug, {
-                'game': game_slug,
-                'ign': ign,
-                'role': role or None,
-                'rank': rank or None,
-                'platform': platform or None,
-                'is_verified': False,
-                'metadata': metadata
-            })
-        else:
-            # If no IGN, remove the profile if it exists
-            profile.remove_game_profile(game_slug)
+        try:
+            # Check if passport exists
+            existing = GameProfile.objects.filter(user=request.user, game=game_slug).first()
+            
+            if existing:
+                # Update existing passport
+                if existing.in_game_name != ign:
+                    GamePassportService.update_passport_identity(
+                        user=request.user,
+                        game=game_slug,
+                        new_in_game_name=ign,
+                        new_metadata=metadata if metadata else None,
+                        reason='Settings form update',
+                        actor_user_id=request.user.id,
+                        request_ip=request.META.get('REMOTE_ADDR')
+                    )
+                    updated_count += 1
+            else:
+                # Create new passport
+                GamePassportService.create_passport(
+                    user=request.user,
+                    game=game_slug,
+                    in_game_name=ign,
+                    metadata=metadata,
+                    actor_user_id=request.user.id,
+                    request_ip=request.META.get('REMOTE_ADDR')
+                )
+                created_count += 1
+        except ValidationError as e:
+            errors.append(f"{game_slug}: {str(e)}")
+        except Exception as e:
+            errors.append(f"{game_slug}: Unexpected error")
+            logger.error(f"Error saving {game_slug} for user {request.user.id}: {e}", exc_info=True)
     
-    profile.save()
-    messages.success(request, '✅ Game profiles saved successfully!')
+    # Delete passports not in submitted data
+    existing_passports = GameProfile.objects.filter(user=request.user)
+    for passport in existing_passports:
+        if passport.game not in submitted_games:
+            try:
+                passport.delete()
+                deleted_count += 1
+            except Exception as e:
+                errors.append(f"Error deleting {passport.game}")
+    
+    # Show results
+    if errors:
+        messages.warning(request, f'⚠️ Saved with errors: {created_count} created, {updated_count} updated, {deleted_count} deleted. Errors: {"; ".join(errors)}')
+    else:
+        messages.success(request, f'✅ Game profiles saved successfully! ({created_count} created, {updated_count} updated, {deleted_count} deleted)')
+    
     return redirect('user_profile:settings')
 
 
@@ -825,15 +898,15 @@ def add_social_link(request):
 def add_game_profile(request):
     """
     Handle game profile addition from Add Game Profile modal or settings page.
-    Frontend: _game_passport.html add game modal OR settings page form
+    MIGRATED: GP-STABILIZE-02 - Now uses GamePassportService.
     """
     if request.method == 'POST':
         from apps.user_profile.models import GameProfile
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        from django.core.exceptions import ValidationError
         
         game = request.POST.get('game', '').strip()
         in_game_name = request.POST.get('in_game_name', '').strip()
-        rank_name = request.POST.get('rank_name', '').strip()
-        main_role = request.POST.get('main_role', '').strip()
         
         # Determine redirect target (settings or profile)
         redirect_to = request.POST.get('redirect_to', 'profile')
@@ -854,19 +927,23 @@ def add_game_profile(request):
                     return redirect('user_profile:settings')
                 return redirect('user_profile:profile', username=request.user.username)
             
-            # Create new game profile
-            game_profile = GameProfile.objects.create(
+            # Create new game passport via service
+            game_profile = GamePassportService.create_passport(
                 user=request.user,
                 game=game,
                 in_game_name=in_game_name,
-                rank_name=rank_name,
-                main_role=main_role,
+                metadata={},
+                actor_user_id=request.user.id,
+                request_ip=request.META.get('REMOTE_ADDR')
             )
             
             messages.success(request, f'{game_profile.game_display_name} profile added successfully!')
                 
+        except ValidationError as e:
+            messages.error(request, f'Validation error: {str(e)}')
         except Exception as e:
             messages.error(request, f'Error adding game profile: {str(e)}')
+            logger.error(f"Error adding game profile for user {request.user.id}: {e}", exc_info=True)
         
         if redirect_to == 'settings':
             return redirect('user_profile:settings')
@@ -880,18 +957,17 @@ def add_game_profile(request):
 def edit_game_profile(request, profile_id):
     """
     Handle game profile editing from settings page.
-    GET: Show edit form (or redirect to settings with modal data)
-    POST: Update game profile
+    MIGRATED: GP-STABILIZE-02 - Now uses GamePassportService.
     """
     from apps.user_profile.models import GameProfile
+    from apps.user_profile.services.game_passport_service import GamePassportService
+    from django.core.exceptions import ValidationError
     
     # Get the game profile or 404
     game_profile = get_object_or_404(GameProfile, id=profile_id, user=request.user)
     
     if request.method == 'POST':
         in_game_name = request.POST.get('in_game_name', '').strip()
-        rank_name = request.POST.get('rank_name', '').strip()
-        main_role = request.POST.get('main_role', '').strip()
         
         # Validate
         if not in_game_name:
@@ -899,15 +975,23 @@ def edit_game_profile(request, profile_id):
             return redirect('user_profile:settings')
         
         try:
-            # Update fields
-            game_profile.in_game_name = in_game_name
-            game_profile.rank_name = rank_name
-            game_profile.main_role = main_role
-            game_profile.save()
+            # Update via service if name changed
+            if game_profile.in_game_name != in_game_name:
+                GamePassportService.update_passport_identity(
+                    user=request.user,
+                    game=game_profile.game,
+                    new_in_game_name=in_game_name,
+                    reason='Settings form edit',
+                    actor_user_id=request.user.id,
+                    request_ip=request.META.get('REMOTE_ADDR')
+                )
             
             messages.success(request, f'{game_profile.game_display_name} profile updated successfully!')
+        except ValidationError as e:
+            messages.error(request, f'Validation error: {str(e)}')
         except Exception as e:
             messages.error(request, f'Error updating game profile: {str(e)}')
+            logger.error(f"Error updating game profile {profile_id} for user {request.user.id}: {e}", exc_info=True)
         
         return redirect('user_profile:settings')
     
@@ -921,9 +1005,11 @@ def edit_game_profile(request, profile_id):
 def delete_game_profile(request, profile_id):
     """
     Handle game profile deletion from settings page.
-    POST only: Delete game profile
+    MIGRATED: GP-STABILIZE-02 - Now uses GamePassportService auditing.
     """
     from apps.user_profile.models import GameProfile
+    from apps.user_profile.services.audit import AuditService
+    from apps.user_profile.models.audit import UserAuditEvent
     
     if request.method == 'POST':
         # Get the game profile or 404
@@ -931,18 +1017,51 @@ def delete_game_profile(request, profile_id):
         
         try:
             game_name = game_profile.game_display_name
+            game_code = game_profile.game
+            
+            # Audit before deletion
+            AuditService.record_event(
+                subject_user_id=request.user.id,
+                event_type='game_passport.deleted',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=game_profile.id,
+                actor_user_id=request.user.id,
+                before_snapshot={
+                    'game': game_code,
+                    'in_game_name': game_profile.in_game_name
+                },
+                metadata={
+                    'deleted_via': 'settings_form',
+                    'game_display_name': game_name
+                },
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT')
+            )
+            
             game_profile.delete()
             messages.success(request, f'{game_name} profile deleted successfully!')
         except Exception as e:
             messages.error(request, f'Error deleting game profile: {str(e)}')
+            logger.error(f"Error deleting game profile {profile_id} for user {request.user.id}: {e}", exc_info=True)
     
     return redirect('user_profile:settings')
 
 
 @login_required
+@deprecate_route(
+    replacement="/api/v1/user_profile/follow/{username}/",
+    reason="Legacy follow endpoint lacks proper validation. Use services/follow_service.py.",
+    log_only=True
+)
 def follow_user(request, username):
     """
     Follow a user (Ajax endpoint).
+    
+    DEPRECATED: UP-CLEANUP-02 Phase A
+    - No validation for circular follows
+    - No rate limiting
+    - Replacement: services/follow_service.py
     """
     if request.method == 'POST':
         from apps.user_profile.models import Follow
@@ -1001,9 +1120,19 @@ def unfollow_user(request, username):
 
 
 @login_required
+@deprecate_route(
+    replacement="/@{username}/followers/",
+    reason="Legacy followers list bypasses privacy checks. Use services/follow_service.py.",
+    log_only=True
+)
 def followers_list(request, username):
     """
     Instagram-style followers list modal view.
+    
+    DEPRECATED: UP-CLEANUP-02 Phase A
+    - No privacy filtering for follower visibility
+    - Direct model access
+    - Replacement: services/follow_service.py get_followers
     """
     from apps.user_profile.models import Follow
     
@@ -1113,3 +1242,327 @@ def certificates_view(request, username):
     return render(request, 'user_profile/certificates.html', context)
 
 
+# ============================================================================
+# UP-CLEANUP-04 PHASE C PART 1: SAFE MUTATION ENDPOINTS
+# ============================================================================
+
+@login_required
+def privacy_settings_save_safe(request):
+    """
+    Safe privacy settings update with audit trail.
+    Replacement for privacy_settings_view POST handler.
+    
+    UP-CLEANUP-04 Phase C Part 1:
+    - Uses PrivacySettingsService (audit trail)
+    - Safe profile accessor
+    - Backward compatible with existing forms
+    """
+    if request.method != 'POST':
+        return redirect('user_profile:privacy_settings')
+    
+    settings_dict = {
+        'show_email': bool(request.POST.get('show_email')),
+        'show_phone': bool(request.POST.get('show_phone')),
+        'show_real_name': bool(request.POST.get('show_real_name')),
+        'show_age': bool(request.POST.get('show_age')),
+        'show_country': bool(request.POST.get('show_country')),
+        'show_social_links': bool(request.POST.get('show_socials')),
+        'allow_friend_requests': bool(request.POST.get('allow_friend_requests')),
+    }
+    
+    # Get request metadata for audit
+    ip_address = request.META.get('REMOTE_ADDR')
+    user_agent = request.META.get('HTTP_USER_AGENT')
+    
+    from apps.user_profile.services.privacy_settings_service import PrivacySettingsService
+    PrivacySettingsService.update_settings(
+        user=request.user,
+        settings_dict=settings_dict,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    
+    messages.success(request, 'Privacy settings updated successfully!')
+    return redirect('user_profile:privacy_settings')
+
+
+@login_required
+def follow_user_safe(request, username):
+    """
+    Safe follow with privacy enforcement + audit.
+    Replacement for follow_user.
+    
+    UP-CLEANUP-04 Phase C Part 1:
+    - Uses FollowService (privacy + audit)
+    - Safe profile accessors
+    - Idempotent
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    from django.core.exceptions import PermissionDenied
+    from apps.user_profile.services.follow_service import FollowService
+    
+    try:
+        follow, created = FollowService.follow_user(
+            follower_user=request.user,
+            followee_username=username,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT')
+        )
+        
+        followee_user = User.objects.get(username=username)
+        
+        return JsonResponse({
+            'success': True,
+            'status': 'following',
+            'message': f'Following @{username}',
+            'follower_count': followee_user.followers.count()
+        })
+        
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except PermissionDenied as e:
+        return JsonResponse({'error': str(e)}, status=403)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+
+@login_required
+def unfollow_user_safe(request, username):
+    """
+    Safe unfollow with audit trail (idempotent).
+    Replacement for unfollow_user.
+    
+    UP-CLEANUP-04 Phase C Part 1:
+    - Uses FollowService (audit trail)
+    - Safe profile accessors
+    - Idempotent (returns 200 even if not following)
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    from apps.user_profile.services.follow_service import FollowService
+    
+    try:
+        unfollowed = FollowService.unfollow_user(
+            follower_user=request.user,
+            followee_username=username,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT')
+        )
+        
+        followee_user = User.objects.get(username=username)
+        
+        return JsonResponse({
+            'success': True,
+            'status': 'unfollowed',
+            'message': f'Unfollowed @{username}',
+            'follower_count': followee_user.followers.count(),
+            'was_following': unfollowed
+        })
+        
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+
+# ============================================================================
+# UP-CLEANUP-04 PHASE C PART 2: SAFE MUTATION ENDPOINTS (Game Profiles)
+# ============================================================================
+
+@login_required
+def save_game_profiles_safe(request):
+    """
+    Safe game profiles batch save with validation, deduplication, and audit.
+    MIGRATED: GP-STABILIZE-02 - Now uses GamePassportService.
+    
+    POST /actions/game-profiles/save/
+    Accepts same params as legacy: game_{slug}_ign, game_{slug}_role, etc.
+    """
+    if request.method != 'POST':
+        return redirect('user_profile:settings')
+    
+    from apps.games.constants import ALL_GAMES
+    from apps.user_profile.services.game_passport_service import GamePassportService
+    from apps.user_profile.models import GameProfile
+    from django.core.exceptions import ValidationError
+    
+    created_count = 0
+    updated_count = 0
+    deleted_count = 0
+    errors = []
+    submitted_games = set()
+    
+    # Parse POST data for each game
+    for game_slug in ALL_GAMES:
+        ign = request.POST.get(f'game_{game_slug}_ign', '').strip()
+        
+        if not ign:
+            continue
+            
+        submitted_games.add(game_slug)
+        
+        # For MLBB, capture zone_id
+        metadata = {}
+        if game_slug == 'mlbb':
+            server_id = request.POST.get('game_mlbb_server', '').strip()
+            if server_id:
+                metadata['zone_id'] = server_id
+        
+        try:
+            existing = GameProfile.objects.filter(user=request.user, game=game_slug).first()
+            
+            if existing:
+                if existing.in_game_name != ign:
+                    GamePassportService.update_passport_identity(
+                        user=request.user,
+                        game=game_slug,
+                        new_in_game_name=ign,
+                        new_metadata=metadata if metadata else None,
+                        reason='Batch save',
+                        actor_user_id=request.user.id,
+                        request_ip=request.META.get('REMOTE_ADDR')
+                    )
+                    updated_count += 1
+            else:
+                GamePassportService.create_passport(
+                    user=request.user,
+                    game=game_slug,
+                    in_game_name=ign,
+                    metadata=metadata,
+                    actor_user_id=request.user.id,
+                    request_ip=request.META.get('REMOTE_ADDR')
+                )
+                created_count += 1
+        except ValidationError as e:
+            errors.append(f"{game_slug}: {str(e)}")
+        except Exception as e:
+            errors.append(f"{game_slug}: Unexpected error")
+            logger.error(f"Error saving {game_slug}: {e}", exc_info=True)
+    
+    # Remove game profiles not in submitted data
+    existing_passports = GameProfile.objects.filter(user=request.user)
+    for passport in existing_passports:
+        if passport.game not in submitted_games:
+            try:
+                from apps.user_profile.services.audit import AuditService
+                AuditService.record_event(
+                    subject_user_id=request.user.id,
+                    event_type='game_passport.deleted',
+                    source_app='user_profile',
+                    object_type='GameProfile',
+                    object_id=passport.id,
+                    actor_user_id=request.user.id,
+                    before_snapshot={
+                        'game': passport.game,
+                        'in_game_name': passport.in_game_name
+                    },
+                    metadata={'deleted_via': 'batch_save'},
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT')
+                )
+                passport.delete()
+                deleted_count += 1
+            except Exception as e:
+                errors.append(f"Error deleting {passport.game}")
+    
+    if errors:
+        messages.warning(request, f'⚠️ Saved with errors: {created_count} created, {updated_count} updated, {deleted_count} deleted. Errors: {"; ".join(errors)}')
+    else:
+        messages.success(request, f'✅ Game profiles saved successfully! ({created_count} created, {updated_count} updated, {deleted_count} deleted)')
+    
+    return redirect('user_profile:settings')
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_game_id_safe(request):
+    """
+    Safe game ID update with validation, privacy enforcement, and audit.
+    MIGRATED: GP-STABILIZE-02 - Now uses GamePassportService.
+    
+    POST /api/profile/update-game-id-safe/
+    Body: {"game": "valorant", "ign": "Player#123", "role": "Duelist"}
+    """
+    import json
+    from apps.user_profile.services.game_passport_service import GamePassportService
+    from apps.user_profile.models import GameProfile
+    from django.core.exceptions import ValidationError
+    
+    try:
+        # Parse JSON body
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data'
+            }, status=400)
+        
+        game_slug = data.get('game', '').lower().strip()
+        ign = data.get('ign', '').strip()
+        
+        if not game_slug:
+            return JsonResponse({
+                'success': False,
+                'error': 'Game code is required'
+            }, status=400)
+        
+        if not ign:
+            return JsonResponse({
+                'success': False,
+                'error': 'In-game name is required'
+            }, status=400)
+        
+        # Prepare metadata
+        metadata = data.get('metadata', {})
+        
+        # Check if passport exists
+        existing = GameProfile.objects.filter(user=request.user, game=game_slug).first()
+        
+        if existing:
+            # Update existing passport
+            if existing.in_game_name != ign:
+                game_profile = GamePassportService.update_passport_identity(
+                    user=request.user,
+                    game=game_slug,
+                    new_in_game_name=ign,
+                    new_metadata=metadata if metadata else None,
+                    reason='API update',
+                    actor_user_id=request.user.id,
+                    request_ip=request.META.get('REMOTE_ADDR')
+                )
+                created = False
+            else:
+                game_profile = existing
+                created = False
+        else:
+            # Create new passport
+            game_profile = GamePassportService.create_passport(
+                user=request.user,
+                game=game_slug,
+                in_game_name=ign,
+                metadata=metadata,
+                actor_user_id=request.user.id,
+                request_ip=request.META.get('REMOTE_ADDR')
+            )
+            created = True
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Game ID {"created" if created else "updated"} successfully',
+            'game': game_profile.game,
+            'ign': game_profile.in_game_name
+        })
+    
+    except ValidationError as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error updating game ID: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred updating game ID'
+        }, status=500)

@@ -53,6 +53,9 @@ from apps.tournaments.models import (
 # Module 5.1: WebSocket broadcasting for tournament_completed event
 from apps.tournaments.realtime.utils import broadcast_tournament_event
 
+# UP-INTEGRATION-01: Tournament completion notification
+from apps.user_profile.integrations.tournaments import on_tournament_completed
+
 logger = logging.getLogger(__name__)
 
 
@@ -249,6 +252,20 @@ class WinnerDeterminationService:
                 f"{winner_reg.id} (method: {determination_method}, "
                 f"requires_review: {requires_review})"
             )
+            
+            # UP-INTEGRATION-01: Notify user profile of tournament completion
+            def _notify_profile():
+                try:
+                    on_tournament_completed(
+                        tournament_id=self.tournament.id,
+                        winner_user_id=winner_reg.user_id if winner_reg and winner_reg.user_id else None,
+                        winner_team_id=winner_reg.team_id if winner_reg and winner_reg.team_id else None,
+                        runner_up_user_id=runner_up_reg.user_id if runner_up_reg and runner_up_reg.user_id else None,
+                        runner_up_team_id=runner_up_reg.team_id if runner_up_reg and runner_up_reg.team_id else None
+                    )
+                except Exception:
+                    pass  # Non-blocking
+            transaction.on_commit(_notify_profile)
             
             # Broadcast tournament_completed event (after commit)
             transaction.on_commit(lambda: self._broadcast_completion(result))

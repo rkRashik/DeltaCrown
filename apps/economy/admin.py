@@ -1,6 +1,10 @@
 # apps/economy/admin.py
 from __future__ import annotations
 
+import tempfile
+from datetime import datetime
+from pathlib import Path
+
 from django import forms
 from django.contrib import admin, messages
 from django.db.models import Sum
@@ -15,24 +19,78 @@ from .models import CoinPolicy, DeltaCrownTransaction, DeltaCrownWallet, Withdra
 @admin.register(DeltaCrownWallet)
 class DeltaCrownWalletAdmin(admin.ModelAdmin):
     list_display = ("id", "profile_display", "cached_balance", "updated_at")
-    search_fields = ("profile__user__username", "profile__user__email")
+    search_fields = ("profile__user__username", "profile__user__email", "profile__public_id")
     readonly_fields = ("created_at", "updated_at", "cached_balance")
     autocomplete_fields = ("profile",)
-    actions = ["recalculate_balances"]
+    actions = ["recalculate_balances", "reconcile_to_profile"]
 
     def profile_display(self, obj):
         u = getattr(obj.profile, "user", None)
-        return f"{getattr(obj.profile, 'id', None)} — {getattr(u, 'username', '') or getattr(u, 'email', '')}"
+        public_id = getattr(obj.profile, 'public_id', None)
+        username = getattr(u, 'username', '') or getattr(u, 'email', '')
+        if public_id:
+            return f"{public_id} — {username}"
+        return f"{getattr(obj.profile, 'id', None)} — {username}"
 
     profile_display.short_description = "Profile"
 
-    @admin.action(description="Recalculate selected wallet balances")
+    @admin.action(description="🔄 Recalculate selected wallet balances")
     def recalculate_balances(self, request: HttpRequest, queryset):
         count = 0
         for w in queryset:
             w.recalc_and_save()
             count += 1
         self.message_user(request, f"Recalculated {count} wallet(s).", level=messages.SUCCESS)
+    
+    @admin.action(description="💰 Reconcile selected wallets to user profile stats")
+    def reconcile_to_profile(self, request: HttpRequest, queryset):
+        """Sync wallet balance to UserProfileStats (calls economy_sync service)"""
+        if not request.user.is_superuser:
+            self.message_user(request, "Only superusers can reconcile to profile.", level=messages.ERROR)
+            return
+        
+        try:
+            from apps.user_profile.services.economy_sync import sync_profile_by_user_id
+            from apps.user_profile.services.audit import AuditService
+        except ImportError as e:
+            self.message_user(request, f"Import error: {e}", level=messages.ERROR)
+            return
+        
+        count = 0
+        errors = []
+        
+        for wallet in queryset.select_related('profile__user'):
+            try:
+                user_id = wallet.profile.user.id
+                sync_profile_by_user_id(user_id)
+                
+                # Record audit event
+                AuditService.record_event(
+                    subject_user_id=user_id,
+                    event_type='economy_sync',
+                    source_app='economy',
+                    object_type='wallet',
+                    object_id=wallet.id,
+                    actor_user_id=request.user.id,
+                    metadata={'trigger': 'admin_wallet_reconcile'},
+                )
+                
+                count += 1
+            except Exception as e:
+                errors.append(f"Wallet {wallet.id}: {e}")
+        
+        if errors:
+            self.message_user(
+                request,
+                f"Reconciled {count} wallet(s) with {len(errors)} errors: {'; '.join(errors[:5])}",
+                level=messages.WARNING
+            )
+        else:
+            self.message_user(
+                request,
+                f"✅ Successfully reconciled {count} wallet(s) to profile stats.",
+                level=messages.SUCCESS
+            )
 
 
 class AdjustForm(forms.Form):
