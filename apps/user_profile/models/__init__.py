@@ -15,6 +15,7 @@ from apps.user_profile.models.game_passport_schema import GamePassportSchema
 from apps.user_profile.models_main import (
     UserProfile,
     PrivacySettings,
+    SocialLink,
     UserBadge,
     Badge,
     VerificationRecord,
@@ -48,6 +49,7 @@ __all__ = [
     # Existing models
     'UserProfile',
     'PrivacySettings',
+    'SocialLink',
     'UserBadge',
     'Badge',
     'VerificationRecord',

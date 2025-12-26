@@ -137,12 +137,17 @@ class TestAdminPages:
     
     def test_gameprofile_admin_change_page_loads(self):
         """GameProfile change page should load"""
-        # Create a game passport
-        passport = GameProfile.objects.create(
+        from apps.games.models import Game
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        
+        # Create a game passport using service (GP-2A structured)
+        valorant = Game.objects.get(slug='valorant')
+        passport = GamePassportService.create_passport(
             user=self.test_user,
             game='valorant',
-            in_game_name='TestPlayer#VAL',
-            visibility='PUBLIC'
+            ign='TestPlayer',
+            discriminator='VAL1',
+            actor_user_id=self.admin_user.id
         )
         
         url = reverse('admin:user_profile_gameprofile_change', args=[passport.pk])

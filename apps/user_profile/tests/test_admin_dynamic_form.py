@@ -334,18 +334,16 @@ class TestUniquenessCaseInsensitiveForRiotIDs:
     
     def test_duplicate_identity_case_insensitive_rejected(self):
         """Duplicate identity (different case) should be rejected"""
-        # Create first passport
-        passport1 = GameProfile.objects.create(
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        
+        # Create first passport using GP-2A structured API
+        passport1 = GamePassportService.create_passport(
             user=self.user1,
-            game=self.valorant,
-            in_game_name='Player#NA1',
-            identity_key='player#na1',  # Lowercase
-            visibility='PUBLIC',
+            game='valorant',
+            ign='Player',
+            discriminator='NA1',
             region='NA',
-            metadata={
-                'riot_name': 'Player',
-                'tagline': 'NA1'
-            }
+            actor_user_id=self.user1.id
         )
         
         # Try to create second passport with same identity (different case)
@@ -368,18 +366,16 @@ class TestUniquenessCaseInsensitiveForRiotIDs:
     
     def test_same_user_can_edit_their_passport(self):
         """User should be able to edit their own passport (not trigger uniqueness)"""
-        # Create passport
-        passport = GameProfile.objects.create(
+        from apps.user_profile.services.game_passport_service import GamePassportService
+        
+        # Create passport using GP-2A structured API
+        passport = GamePassportService.create_passport(
             user=self.user1,
-            game=self.valorant,
-            in_game_name='Player#NA1',
-            identity_key='player#na1',
-            visibility='PUBLIC',
+            game='valorant',
+            ign='Player',
+            discriminator='NA1',
             region='NA',
-            metadata={
-                'riot_name': 'Player',
-                'tagline': 'NA1'
-            }
+            actor_user_id=self.user1.id
         )
         
         # Edit same passport (case change)

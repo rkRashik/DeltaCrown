@@ -36,13 +36,18 @@ class TestGamePassportCreation:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id,
             request_ip='127.0.0.1'
         )
         
-        assert passport.game == 'valorant'
-        assert passport.in_game_name == 'Player#1234'
+        from apps.games.models import Game
+        game_obj = Game.objects.get(slug='valorant')
+        assert passport.game == game_obj
+        assert passport.ign == 'Player'
+        assert passport.discriminator == '1234'
+        assert passport.in_game_name == 'Player#1234'  # Auto-generated
         assert passport.identity_key == 'player#1234'  # Lowercase normalized
         assert passport.status == GameProfile.STATUS_ACTIVE
         assert passport.visibility == GameProfile.VISIBILITY_PUBLIC
@@ -62,11 +67,13 @@ class TestGamePassportCreation:
             GamePassportService.create_passport(
                 user=user,
                 game='valorant',
-                in_game_name='NoHashTag',  # Missing #TAG
+                ign='ThisIsWayTooLongForARiotName',  # Invalid - exceeds 16 char max
+                discriminator='1234',
                 actor_user_id=user.id
             )
         
-        assert 'expected format' in str(exc.value).lower()
+        # Validation error for IGN length
+        assert 'ign' in str(exc.value).lower() or 'riot_name' in str(exc.value).lower() or 'max_length' in str(exc.value).lower()
     
     def test_create_duplicate_passport_same_user(self):
         """Should reject duplicate passport for same game"""
@@ -76,7 +83,8 @@ class TestGamePassportCreation:
         GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -85,7 +93,8 @@ class TestGamePassportCreation:
             GamePassportService.create_passport(
                 user=user,
                 game='valorant',
-                in_game_name='Player#5678',
+                ign='Player',
+                discriminator='5678',
                 actor_user_id=user.id
             )
         
@@ -100,7 +109,8 @@ class TestGamePassportCreation:
         GamePassportService.create_passport(
             user=user1,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user1.id
         )
         
@@ -109,11 +119,12 @@ class TestGamePassportCreation:
             GamePassportService.create_passport(
                 user=user2,
                 game='valorant',
-                in_game_name='PLAYER#1234',  # Different case, same normalized key
+                ign='PLAYER',  # Different case, same normalized key
+                discriminator='1234',
                 actor_user_id=user2.id
             )
         
-        assert 'already registered' in str(exc.value).lower()
+        assert 'already registered' in str(exc.value).lower() or 'already exists' in str(exc.value).lower()
     
     def test_create_cs2_passport_with_steam_id(self):
         """Should create CS2 passport with valid Steam ID"""
@@ -122,26 +133,30 @@ class TestGamePassportCreation:
         passport = GamePassportService.create_passport(
             user=user,
             game='cs2',
-            in_game_name='76561198012345678',  # 17-digit Steam ID
+            ign='76561198012345678',  # 17-digit Steam ID as IGN
             actor_user_id=user.id
         )
         
+        assert passport.ign == '76561198012345678'
         assert passport.identity_key == '76561198012345678'
+        assert passport.discriminator is None  # CS2 doesn't use discriminator
     
     def test_create_mlbb_passport_with_zone(self):
-        """Should create MLBB passport with zone_id in metadata"""
+        """Should create MLBB passport with player_id and server_id"""
         user = User.objects.create_user(username='player1', email='p1@test.com')
         
         passport = GamePassportService.create_passport(
             user=user,
             game='mlbb',
-            in_game_name='123456789',
-            metadata={'zone_id': '1234'},
+            ign='123456789',
+            discriminator='1234',  # Server ID
             actor_user_id=user.id
         )
         
+        assert passport.ign == '123456789'
+        assert passport.discriminator == '1234'
         assert passport.identity_key == '123456789:1234'
-        assert passport.metadata['zone_id'] == '1234'
+        assert passport.in_game_name == '123456789:1234'  # Auto-generated
 
 
 @pytest.mark.django_db
@@ -156,7 +171,8 @@ class TestIdentityChangeCooldown:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -164,12 +180,15 @@ class TestIdentityChangeCooldown:
         updated = GamePassportService.update_passport_identity(
             user=user,
             game='valorant',
-            new_in_game_name='NewName#5678',
+            ign='NewName',
+            discriminator='5678',
             reason='Rebranding',
             actor_user_id=user.id,
             request_ip='127.0.0.1'
         )
         
+        assert updated.ign == 'NewName'
+        assert updated.discriminator == '5678'
         assert updated.in_game_name == 'NewName#5678'
         assert updated.identity_key == 'newname#5678'
         assert updated.locked_until is not None
@@ -189,14 +208,16 @@ class TestIdentityChangeCooldown:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
         GamePassportService.update_passport_identity(
             user=user,
             game='valorant',
-            new_in_game_name='NewName#5678',
+            ign='NewName',
+            discriminator='5678',
             actor_user_id=user.id
         )
         
@@ -205,7 +226,8 @@ class TestIdentityChangeCooldown:
             GamePassportService.update_passport_identity(
                 user=user,
                 game='valorant',
-                new_in_game_name='Another#9999',
+                ign='Another',
+                discriminator='9999',
                 actor_user_id=user.id
             )
         
@@ -218,7 +240,8 @@ class TestIdentityChangeCooldown:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -243,7 +266,8 @@ class TestIdentityChangeCooldown:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -251,7 +275,8 @@ class TestIdentityChangeCooldown:
         GamePassportService.update_passport_identity(
             user=user,
             game='valorant',
-            new_in_game_name='PLAYER#1234',  # Same normalized key
+            ign='PLAYER',  # Same normalized key
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -271,7 +296,8 @@ class TestPinningSystem:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -290,19 +316,28 @@ class TestPinningSystem:
         
         # Create and pin 2 passports
         for i, game in enumerate(['valorant', 'cs2']):
-            passport = GamePassportService.create_passport(
-                user=user,
-                game=game,
-                in_game_name=f'Player{i+1}#123' if game == 'valorant' else f'7656119801234567{i}',
-                actor_user_id=user.id
-            )
+            if game == 'valorant':
+                passport = GamePassportService.create_passport(
+                    user=user,
+                    game=game,
+                    ign=f'Player{i+1}',
+                    discriminator='1234',
+                    actor_user_id=user.id
+                )
+            else:  # cs2
+                passport = GamePassportService.create_passport(
+                    user=user,
+                    game=game,
+                    ign=f'7656119801234567{i}',
+                    actor_user_id=user.id
+                )
             GamePassportService.pin_passport(user=user, game=game, pin=True)
         
         # Create 3rd passport
         GamePassportService.create_passport(
             user=user,
             game='dota2',
-            in_game_name='76561198012345679',
+            ign='76561198012345679',
             actor_user_id=user.id
         )
         
@@ -319,12 +354,21 @@ class TestPinningSystem:
         # Create 3 passports and pin them
         games = ['valorant', 'cs2', 'dota2']
         for i, game in enumerate(games):
-            GamePassportService.create_passport(
-                user=user,
-                game=game,
-                in_game_name=f'Player{i+1}#123' if game == 'valorant' else f'7656119801234567{i}',
-                actor_user_id=user.id
-            )
+            if game == 'valorant':
+                GamePassportService.create_passport(
+                    user=user,
+                    game=game,
+                    ign=f'Player{i+1}',
+                    discriminator='1234',
+                    actor_user_id=user.id
+                )
+            else:  # cs2, dota2
+                GamePassportService.create_passport(
+                    user=user,
+                    game=game,
+                    ign=f'7656119801234567{i}',
+                    actor_user_id=user.id
+                )
             GamePassportService.pin_passport(user=user, game=game, pin=True)
         
         # Reorder
@@ -332,8 +376,9 @@ class TestPinningSystem:
         GamePassportService.reorder_pinned_passports(user=user, game_order=new_order)
         
         # Check order
+        from apps.games.models import Game
         passports = GameProfile.objects.filter(user=user, is_pinned=True).order_by('pinned_order')
-        assert [p.game for p in passports] == new_order
+        assert [p.game.slug for p in passports] == new_order
 
 
 @pytest.mark.django_db
@@ -347,7 +392,8 @@ class TestPrivacyControls:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             visibility=GameProfile.VISIBILITY_PRIVATE,
             actor_user_id=user.id
         )
@@ -368,7 +414,8 @@ class TestPrivacyControls:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -389,7 +436,8 @@ class TestAuditTrail:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id,
             request_ip='192.168.1.1'
         )
@@ -411,14 +459,16 @@ class TestAuditTrail:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
         GamePassportService.update_passport_identity(
             user=user,
             game='valorant',
-            new_in_game_name='NewName#5678',
+            ign='NewName',
+            discriminator='5678',
             actor_user_id=user.id
         )
         
@@ -438,7 +488,8 @@ class TestAuditTrail:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -487,7 +538,8 @@ class TestConfigManagement:
         passport = GamePassportService.create_passport(
             user=user,
             game='valorant',
-            in_game_name='Player#1234',
+            ign='Player',
+            discriminator='1234',
             actor_user_id=user.id
         )
         
@@ -495,6 +547,7 @@ class TestConfigManagement:
             GamePassportService.update_passport_identity(
                 user=user,
                 game='valorant',
-                new_in_game_name='NewName#5678',
+                ign='NewName',
+                discriminator='5678',
                 actor_user_id=user.id
             )

@@ -673,11 +673,31 @@ class PrivacySettings(models.Model):
     Granular privacy settings for UserProfile.
     Separate model for better organization and future extensibility.
     """
+    
+    # Visibility Presets
+    PRESET_PUBLIC = 'PUBLIC'
+    PRESET_PROTECTED = 'PROTECTED'
+    PRESET_PRIVATE = 'PRIVATE'
+    
+    PRESET_CHOICES = [
+        (PRESET_PUBLIC, 'Public - Everyone can see everything'),
+        (PRESET_PROTECTED, 'Protected - Show limited info to non-friends'),
+        (PRESET_PRIVATE, 'Private - Minimal public visibility'),
+    ]
+    
     user_profile = models.OneToOneField(
         'UserProfile',
         on_delete=models.CASCADE,
         related_name='privacy_settings',
         help_text="User profile these settings belong to"
+    )
+    
+    # ===== VISIBILITY PRESET =====
+    visibility_preset = models.CharField(
+        max_length=20,
+        choices=PRESET_CHOICES,
+        default=PRESET_PUBLIC,
+        help_text="Quick privacy preset that sets multiple toggles"
     )
     
     # ===== PROFILE VISIBILITY =====
@@ -726,6 +746,14 @@ class PrivacySettings(models.Model):
     show_achievements = models.BooleanField(
         default=True,
         help_text="Show badges and achievements"
+    )
+    show_activity_feed = models.BooleanField(
+        default=True,
+        help_text="Show activity feed on profile"
+    )
+    show_tournaments = models.BooleanField(
+        default=True,
+        help_text="Show tournament participation history"
     )
     
     # ===== ECONOMY & INVENTORY =====
@@ -1137,17 +1165,27 @@ class UserBadge(models.Model):
 class SocialLink(models.Model):
     """
     User's connected social media platforms.
+    Esports/Creator-first social links with gaming platforms.
     Frontend component: _social_links.html
     """
     
     PLATFORM_CHOICES = [
+        # Streaming Platforms
         ('twitch', 'Twitch'),
         ('youtube', 'YouTube'),
-        ('twitter', 'Twitter'),
+        ('kick', 'Kick'),
+        ('facebook_gaming', 'Facebook Gaming'),
+        # Social Media
+        ('twitter', 'Twitter/X'),
         ('discord', 'Discord'),
         ('instagram', 'Instagram'),
         ('tiktok', 'TikTok'),
         ('facebook', 'Facebook'),
+        # Gaming Platforms
+        ('steam', 'Steam'),
+        ('riot', 'Riot Games'),
+        # Development
+        ('github', 'GitHub'),
     ]
     
     user = models.ForeignKey(
@@ -1196,6 +1234,11 @@ class SocialLink(models.Model):
             'instagram': 'instagram.com/',
             'tiktok': 'tiktok.com/@',
             'facebook': 'facebook.com/',
+            'facebook_gaming': 'facebook.com/gaming/',
+            'kick': 'kick.com/',
+            'steam': ('steamcommunity.com/', 'store.steampowered.com/'),
+            'riot': ('tracker.gg/', 'riot.com/'),
+            'github': 'github.com/',
         }
         
         if self.platform in url_validators:

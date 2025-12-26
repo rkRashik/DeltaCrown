@@ -1,0 +1,841 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Profile Settings - DeltaCrown{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Modern 2025 Esports Settings - Glass & Neo Design */
+:root {
+    --bg-primary: rgb(15, 23, 42);
+    --bg-secondary: rgb(7, 11, 20);
+    --glass-bg: rgba(15, 23, 42, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-hover: rgba(99, 102, 241, 0.4);
+    --accent-primary: rgb(99, 102, 241);
+    --accent-secondary: rgb(79, 70, 229);
+    --text-primary: white;
+    --text-secondary: rgb(148, 163, 184);
+    --text-muted: rgb(100, 116, 139);
+}
+
+.settings-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+}
+
+.glass-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(16px);
+    border-radius: 1rem;
+    transition: border-color 0.3s;
+}
+
+.glass-card:hover {
+    border-color: var(--glass-hover);
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--text-primary);
+}
+
+.nav-link.active {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: var(--text-primary);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.settings-section {
+    display: none;
+}
+
+.settings-section.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.passport-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--accent-primary);
+    transition: all 0.2s;
+}
+
+.passport-card:hover {
+    background: rgba(51, 65, 85, 0.6);
+    border-left-color: var(--accent-secondary);
+}
+
+.social-platform-group {
+    margin-bottom: 2rem;
+}
+
+.social-platform-group h3 {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.social-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.social-link-item {
+    position: relative;
+}
+
+.social-link-item label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.platform-icon {
+    font-size: 1.25rem;
+}
+
+.privacy-preset-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.preset-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.preset-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.preset-card.active {
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.privacy-section-group {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: 0.75rem;
+}
+
+.privacy-section-group h3 {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.privacy-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.privacy-toggle:last-child {
+    border-bottom: none;
+}
+
+.danger-zone {
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+.modal {
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.toast {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+    animation: toastIn 0.3s ease;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.media-preview-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.media-preview-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.media-preview-container:hover .media-preview-overlay {
+    opacity: 1;
+}
+
+.schema-field {
+    margin-bottom: 1rem;
+}
+
+.schema-field.hidden {
+    display: none;
+}
+
+.schema-field label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgb(203, 213, 225);
+    margin-bottom: 0.5rem;
+}
+
+.schema-field input,
+.schema-field select {
+    width: 100%;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgb(71, 85, 105);
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+    color: white;
+    font-size: 0.875rem;
+}
+
+.schema-field input:focus,
+.schema-field select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    ring: 1px;
+    ring-color: var(--accent-primary);
+}
+
+.schema-field-help {
+    font-size: 0.75rem;
+    color: rgb(148, 163, 184);
+    margin-top: 0.25rem;
+}
+
+.field-error {
+    font-size: 0.75rem;
+    color: rgb(248, 113, 113);
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-6">
+            
+            <!-- Sidebar Navigation -->
+            <nav class="settings-sidebar glass-card p-6 h-fit sticky top-8">
+                <h2 class="text-white font-bold text-lg mb-4">Settings</h2>
+                <div class="space-y-2">
+                    <a href="#profile" class="nav-link active" data-section="profile">
+                        <span class="text-xl">👤</span> Profile & Media
+                    </a>
+                    <a href="#passports" class="nav-link" data-section="passports">
+                        <span class="text-xl">🎮</span> Game Passports
+                    </a>
+                    <a href="#social" class="nav-link" data-section="social">
+                        <span class="text-xl">🔗</span> Social Links
+                    </a>
+                    <a href="#privacy" class="nav-link" data-section="privacy">
+                        <span class="text-xl">🔒</span> Privacy
+                    </a>
+                    <a href="#platform" class="nav-link" data-section="platform">
+                        <span class="text-xl">⚙️</span> Platform Settings
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <div class="settings-content">
+                
+                <!-- Profile & Media Section (MERGED) -->
+                <section id="profile-section" class="settings-section active glass-card p-8 mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-6">Profile & Media</h2>
+                    
+                    <!-- Media Section (Banner + Avatar) -->
+                    <div class="mb-8 p-6 bg-slate-800/30 rounded-lg">
+                        <h3 class="text-lg font-semibold text-white mb-4">Visual Identity</h3>
+                        
+                        <!-- Banner Upload -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-slate-300 mb-3">Profile Banner</label>
+                            <div class="media-preview-container relative w-full h-48 bg-slate-800 rounded-lg overflow-hidden border-2 border-slate-700 hover:border-indigo-500 transition-colors cursor-pointer" id="banner-preview">
+                                {% if profile.banner %}
+                                <img src="{{ profile.banner.url }}" alt="Banner" class="w-full h-full object-cover" id="banner-preview-img">
+                                <div class="media-preview-overlay">
+                                    <button type="button" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors mr-2" id="remove-banner">
+                                        🗑️ Remove
+                                    </button>
+                                    <button type="button" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors" id="change-banner">
+                                        🔄 Change
+                                    </button>
+                                </div>
+                                {% else %}
+                                <div class="flex items-center justify-center h-full text-slate-500">
+                                    <span class="text-4xl">🖼️</span>
+                                    <p class="ml-3">No banner set</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <input type="file" id="banner-upload" accept="image/jpeg,image/png,image/webp" class="hidden">
+                            <button type="button" onclick="document.getElementById('banner-upload').click()" class="mt-3 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors">
+                                📤 Upload Banner (1200x300px min, max 10MB)
+                            </button>
+                        </div>
+
+                        <!-- Avatar Upload -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-3">Profile Avatar</label>
+                            <div class="flex items-center gap-6">
+                                <div class="media-preview-container relative w-32 h-32 rounded-full bg-slate-800 overflow-hidden border-2 border-slate-700 hover:border-indigo-500 transition-colors cursor-pointer" id="avatar-preview">
+                                    {% if profile.avatar %}
+                                    <img src="{{ profile.avatar.url }}" alt="Avatar" class="w-full h-full object-cover" id="avatar-preview-img">
+                                    <div class="media-preview-overlay">
+                                        <button type="button" class="text-red-500 hover:text-red-400 text-2xl" id="remove-avatar">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                    {% else %}
+                                    <div class="flex items-center justify-center h-full text-slate-500 text-4xl">
+                                        👤
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <input type="file" id="avatar-upload" accept="image/jpeg,image/png,image/webp" class="hidden">
+                                    <button type="button" onclick="document.getElementById('avatar-upload').click()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors">
+                                        📤 {% if profile.avatar %}Change Avatar{% else %}Upload Avatar{% endif %}
+                                    </button>
+                                    <p class="text-xs text-slate-500 mt-2">100x100px min, max 5MB<br>Square images work best</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Information -->
+                    <form method="POST" action="{% url 'user_profile:update_basic_info' %}" class="space-y-6">
+                        {% csrf_token %}
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Display Name *</label>
+                            <input type="text" name="display_name" value="{{ profile.display_name }}" required
+                                   class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                   maxlength="50" placeholder="Your display name">
+                            <p class="text-xs text-slate-500 mt-1">Max 50 characters</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Bio</label>
+                            <textarea name="bio" rows="4" maxlength="500"
+                                      class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                      placeholder="Tell us about yourself, your gaming journey, achievements...">{{ profile.bio }}</textarea>
+                            <p class="text-xs text-slate-500 mt-1">Max 500 characters</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-300 mb-2">Country</label>
+                            <input type="text" name="country" value="{{ profile.country }}"
+                                   class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                   maxlength="100" placeholder="Your country">
+                        </div>
+
+                        <button type="submit" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-lg font-semibold transition-all">
+                            💾 Save Profile
+                        </button>
+                    </form>
+                </section>
+
+                <!-- Game Passports Section -->
+                <section id="passports-section" class="settings-section glass-card p-8 mb-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">Game Passports</h2>
+                            <p class="text-slate-400 text-sm mt-1">Showcase your gaming identities across platforms</p>
+                        </div>
+                        <button type="button" id="add-passport-btn" class="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg font-semibold transition-all">
+                            ➕ Add Passport
+                        </button>
+                    </div>
+
+                    <div id="passports-list" class="space-y-4">
+                        {% for passport in passports %}
+                        <div class="passport-card p-4 rounded-lg" data-passport-id="{{ passport.id }}">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="text-3xl">🎮</div>
+                                    <div>
+                                        <h3 class="text-lg font-bold text-white">{{ passport.game.display_name }}</h3>
+                                        <p class="text-slate-400 text-sm">{{ passport.in_game_name }}</p>
+                                        {% if passport.platform %}<span class="text-xs text-slate-500">Platform: {{ passport.platform }}</span>{% endif %}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" class="passport-action p-2 hover:bg-slate-700 rounded transition-colors" data-action="toggle-lft" data-id="{{ passport.id }}" title="Toggle LFT">
+                                        <span class="{% if passport.is_lft %}text-green-400{% else %}text-slate-500{% endif %}">🔍</span>
+                                    </button>
+                                    <button type="button" class="passport-action p-2 hover:bg-slate-700 rounded transition-colors" data-action="toggle-pin" data-id="{{ passport.id }}" title="Pin/Unpin">
+                                        <span class="{% if passport.is_pinned %}text-yellow-400{% else %}text-slate-500{% endif %}">📌</span>
+                                    </button>
+                                    <select class="passport-visibility bg-slate-700 border-slate-600 text-white text-sm rounded px-2 py-1" data-id="{{ passport.id }}">
+                                        <option value="PUBLIC" {% if passport.visibility == 'PUBLIC' %}selected{% endif %}>👁️ Public</option>
+                                        <option value="PROTECTED" {% if passport.visibility == 'PROTECTED' %}selected{% endif %}>🔒 Protected</option>
+                                        <option value="PRIVATE" {% if passport.visibility == 'PRIVATE' %}selected{% endif %}>🚫 Private</option>
+                                    </select>
+                                    <button type="button" class="passport-action p-2 hover:bg-red-700 rounded transition-colors text-red-500" data-action="delete" data-id="{{ passport.id }}" title="Delete">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-12 text-slate-500" id="no-passports">
+                            <p class="text-4xl mb-3">🎮</p>
+                            <p class="font-semibold text-lg">No game passports yet</p>
+                            <p class="text-sm mt-2">Add your gaming profiles to showcase your skills across different games</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <!-- Social Links Section (REDESIGNED) -->
+                <section id="social-section" class="settings-section glass-card p-8 mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2">Social & Creator Links</h2>
+                    <p class="text-slate-400 mb-6">Connect your social media and streaming platforms to build your esports presence. Mark one as your primary link to highlight it on your profile.</p>
+                    
+                    <!-- Streaming Platforms -->
+                    <div class="social-platform-group">
+                        <h3><span class="text-2xl">🎥</span> Streaming & Content</h3>
+                        <div class="social-grid">
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">🟣</span> Twitch
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="twitch" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="twitch" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://twitch.tv/yourchannel">
+                            </div>
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">🔴</span> YouTube
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="youtube" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="youtube" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://youtube.com/@yourchannel">
+                            </div>
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">🎮</span> Facebook Gaming
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="facebook_gaming" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="facebook_gaming" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://facebook.com/gaming/yourpage">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Competitive Platforms -->
+                    <div class="social-platform-group">
+                        <h3><span class="text-2xl">🏆</span> Competitive Platforms</h3>
+                        <div class="social-grid">
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">⚙️</span> Steam
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="steam" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="steam" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://steamcommunity.com/id/yourprofile">
+                            </div>
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">🎯</span> Riot Games
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="riot" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="riot" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://tracker.gg/valorant/profile/riot/...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Media -->
+                    <div class="social-platform-group">
+                        <h3><span class="text-2xl">🌐</span> Social Media</h3>
+                        <div class="social-grid">
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">🐦</span> X (Twitter)
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="twitter" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="twitter" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://twitter.com/yourhandle">
+                            </div>
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">📷</span> Instagram
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="instagram" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="instagram" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://instagram.com/yourhandle">
+                            </div>
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">🎵</span> TikTok
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="tiktok" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="tiktok" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://tiktok.com/@yourhandle">
+                            </div>
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">💬</span> Discord
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="discord" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="discord" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://discord.gg/yourinvite">
+                            </div>
+                            <div class="social-link-item">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="text-sm font-medium text-slate-300">
+                                        <span class="platform-icon">👥</span> Facebook
+                                    </label>
+                                    <label class="text-xs text-slate-400 flex items-center gap-1">
+                                        <input type="radio" name="primary_link" value="facebook" class="text-indigo-600 focus:ring-indigo-500">
+                                        Primary
+                                    </label>
+                                </div>
+                                <input type="url" data-platform="facebook" class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-indigo-500" placeholder="https://facebook.com/yourprofile">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="save-social-links" class="mt-6 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-lg font-semibold transition-all">
+                        💾 Save Social Links
+                    </button>
+                </section>
+
+                <!-- Privacy Settings (ENHANCED) -->
+                <section id="privacy-section" class="settings-section glass-card p-8 mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2">Privacy & Visibility</h2>
+                    <p class="text-slate-400 mb-6">Control what information is visible on your public profile</p>
+
+                    <!-- Preset Selector -->
+                    <div class="privacy-preset-selector">
+                        <div class="preset-card" data-preset="public">
+                            <div class="text-3xl mb-2">👁️</div>
+                            <h4 class="font-semibold text-white mb-1">Public</h4>
+                            <p class="text-xs text-slate-400">Everything visible</p>
+                        </div>
+                        <div class="preset-card" data-preset="protected">
+                            <div class="text-3xl mb-2">🔒</div>
+                            <h4 class="font-semibold text-white mb-1">Protected</h4>
+                            <p class="text-xs text-slate-400">Balanced privacy</p>
+                        </div>
+                        <div class="preset-card" data-preset="private">
+                            <div class="text-3xl mb-2">🚫</div>
+                            <h4 class="font-semibold text-white mb-1">Private</h4>
+                            <p class="text-xs text-slate-400">Minimal visibility</p>
+                        </div>
+                    </div>
+
+                    <!-- Profile Information -->
+                    <div class="privacy-section-group">
+                        <h3>👤 Profile Information</h3>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Real Name</p>
+                                <p class="text-xs text-slate-400">Show your real name on your profile</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="show_real_name">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Email Address</p>
+                                <p class="text-xs text-slate-400">Show email on public profile</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="show_email">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Bio & Country</p>
+                                <p class="text-xs text-slate-400">Show profile bio and country</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="show_bio" checked>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Gaming Activity -->
+                    <div class="privacy-section-group">
+                        <h3>🎮 Gaming Activity</h3>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Game Passports</p>
+                                <p class="text-xs text-slate-400">Show gaming profiles on public page</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="show_passports" checked>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Tournament History</p>
+                                <p class="text-xs text-slate-400">Show tournament participation and results</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="show_tournaments" checked>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Social & Interaction -->
+                    <div class="privacy-section-group">
+                        <h3>🔗 Social & Interaction</h3>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Social Links</p>
+                                <p class="text-xs text-slate-400">Show connected social media</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="show_socials" checked>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 mt-6">
+                        <button type="button" id="save-privacy-settings" class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-lg font-semibold transition-all">
+                            💾 Save Privacy Settings
+                        </button>
+                        <a href="{% url 'user_profile:profile_privacy_v2' %}" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-all">
+                            🔒 Advanced Privacy Settings
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Platform Settings (NEW) -->
+                <section id="platform-section" class="settings-section glass-card p-8 mb-6">
+                    <h2 class="text-2xl font-bold text-white mb-2">Platform Settings</h2>
+                    <p class="text-slate-400 mb-6">Manage your account preferences and platform behavior</p>
+
+                    <!-- Notifications -->
+                    <div class="privacy-section-group">
+                        <h3>🔔 Notifications</h3>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Email Notifications</p>
+                                <p class="text-xs text-slate-400">Receive important updates via email</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="email_notifications" checked>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Tournament Updates</p>
+                                <p class="text-xs text-slate-400">Notifications about tournament changes</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="tournament_notifications" checked>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                        <div class="privacy-toggle">
+                            <div>
+                                <p class="text-white">Marketing Communications</p>
+                                <p class="text-xs text-slate-400">Promotional emails and platform news</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" class="sr-only peer" data-field="marketing_emails">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Danger Zone -->
+                    <div class="danger-zone">
+                        <h3 class="text-red-400 font-semibold mb-4">⚠️ Danger Zone</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-white font-medium">Logout All Sessions</p>
+                                    <p class="text-xs text-slate-400">Sign out from all devices</p>
+                                </div>
+                                <button type="button" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors">
+                                    Logout Everywhere
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center pt-3 border-t border-red-800/30">
+                                <div>
+                                    <p class="text-white font-medium">Delete Account</p>
+                                    <p class="text-xs text-slate-400">Permanently remove your account</p>
+                                </div>
+                                <button type="button" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors">
+                                    Request Deletion
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="save-platform-settings" class="mt-6 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white rounded-lg font-semibold transition-all">
+                        💾 Save Platform Settings
+                    </button>
+                </section>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Game Passport Modal (SCHEMA-DRIVEN) -->
+<div id="passport-modal" class="modal hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+    <div class="modal-content glass-card rounded-xl p-8 max-w-md w-full mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold text-white">Add Game Passport</h3>
+            <button type="button" class="modal-close text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+        </div>
+        <form id="passport-form" class="space-y-4">
+            <!-- Game Selection -->
+            <div class="schema-field">
+                <label>Game *</label>
+                <select name="game" id="passport-game-select" required class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-2 text-white">
+                    <option value="">Select a game...</option>
+                    {% for game in games %}
+                    <option value="{{ game.slug }}" data-game-id="{{ game.id }}">{{ game.display_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Dynamic Schema Fields (populated by JS) -->
+            <div id="passport-identity-fields" class="space-y-4">
+                <!-- Fields will be injected here based on game selection -->
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-lg font-semibold transition-all">
+                    ✅ Create Passport
+                </button>
+                <button type="button" class="modal-close px-4 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Game Passport Schemas (injected from backend)
+const GAME_SCHEMAS = {{ game_schemas_json|safe }};
+const CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+<script src="{% static 'user_profile/settings.js' %}"></script>
+{% endblock %}

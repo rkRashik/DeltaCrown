@@ -21,7 +21,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, Http404
 from django.contrib import messages
 from django.urls import reverse
+from django.conf import settings
 import logging
+import os
 
 from apps.user_profile.services.profile_context import build_public_profile_context
 
@@ -77,6 +79,7 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
     
     # GP-FE-MVP-01: Add game passports with pinned/unpinned separation
     # GP-FINAL-01: Add team badge integration
+    # UP-UI-REBIRTH-01: Remove role from passport display (role belongs to team)
     from apps.user_profile.services.game_passport_service import GamePassportService
     from apps.user_profile.models import GameProfile, UserProfile
     from django.contrib.auth import get_user_model
@@ -87,7 +90,10 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
         user_profile = UserProfile.objects.filter(user=profile_user).first()
         all_passports = GamePassportService.get_all_passports(user=profile_user)
         
-        # Attach team badge data to each passport
+        # UP-UI-REBIRTH-02: Add profile_user to context for template access
+        context['profile_user'] = profile_user
+        
+        # Attach team badge data to each passport (NO ROLE - role belongs to team context)
         if user_profile:
             from apps.teams.models import TeamMembership
             for passport in all_passports:
@@ -100,10 +106,9 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
                 
                 if team_membership:
                     passport.current_team = team_membership.team
-                    passport.team_role = team_membership.get_role_display()
+                    # UP-UI-REBIRTH-01: Do NOT attach role to passport
                 else:
                     passport.current_team = None
-                    passport.team_role = None
         
         # Separate pinned and unpinned
         pinned_passports = [p for p in all_passports if p.is_pinned]
@@ -117,7 +122,31 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
         context['unpinned_passports'] = []
         context['MAX_PINNED_GAMES'] = 6
     
-    return render(request, 'user_profile/v2/profile_public.html', context)
+    # UP-UI-REBIRTH-01: Add dashboard navigation sections
+    nav_sections = [
+        {'id': 'stats', 'label': 'Stats'},
+        {'id': 'passports', 'label': 'Passports'},
+        {'id': 'teams', 'label': 'Teams'},
+        {'id': 'tournaments', 'label': 'Tournaments'},
+    ]
+    
+    if context.get('is_owner'):
+        nav_sections.extend([
+            {'id': 'economy', 'label': 'Economy'},
+            {'id': 'shop', 'label': 'Shop'},
+        ])
+    
+    nav_sections.extend([
+        {'id': 'activity', 'label': 'Activity'},
+        {'id': 'about', 'label': 'About'},
+    ])
+    
+    if context.get('achievements'):
+        nav_sections.insert(-2, {'id': 'achievements', 'label': 'Achievements'})
+    
+    context['nav_sections'] = nav_sections
+    
+    return render(request, 'user_profile/profile/public.html', context)
 
 
 def profile_activity_v2(request: HttpRequest, username: str) -> HttpResponse:
@@ -172,7 +201,7 @@ def profile_activity_v2(request: HttpRequest, username: str) -> HttpResponse:
     context['page_title'] = f"@{username} Activity - DeltaCrown Esports"
     context['current_page'] = 'activity'
     
-    return render(request, 'user_profile/v2/profile_activity.html', context)
+    return render(request, 'user_profile/profile/activity.html', context)
 
 
 @login_required
@@ -220,10 +249,44 @@ def profile_settings_v2(request: HttpRequest) -> HttpResponse:
     # Add CSRF token (for forms)
     # Add available games list (for game profile form)
     from apps.games.constants import SUPPORTED_GAMES
+    from apps.games.models import Game
     from apps.user_profile.services.game_passport_service import GamePassportService
-    from apps.user_profile.models import GameProfile
+    from apps.user_profile.models import GameProfile, SocialLink
+    import json
     
-    context['available_games'] = SUPPORTED_GAMES
+    # TASK 1 FIX: Pass actual Game objects for template loop + schema matrix
+    supported_game_slugs = list(SUPPORTED_GAMES.keys())
+    games_queryset = Game.objects.filter(slug__in=supported_game_slugs).order_by('name')
+    
+    # Build schema matrix for dynamic field rendering
+    game_schemas = {}
+    for game in games_queryset:
+        identity_configs = game.identity_configs.all().order_by('order')
+        schema_fields = []
+        for config in identity_configs:
+            schema_fields.append({
+                'field_name': config.field_name,
+                'display_name': config.display_name,
+                'field_type': config.field_type,
+                'is_required': config.is_required,
+                'placeholder': config.placeholder,
+                'help_text': config.help_text,
+                'validation_regex': config.validation_regex or '',
+                'min_length': config.min_length,
+                'max_length': config.max_length,
+            })
+        
+        game_schemas[game.slug] = {
+            'game_id': game.id,
+            'name': game.name,
+            'display_name': game.display_name,
+            'fields': schema_fields,
+            'platforms': game.platforms or [],
+        }
+    
+    context['games'] = games_queryset  # For template loop in modal
+    context['game_schemas_json'] = json.dumps(game_schemas)  # For JS dynamic fields
+    context['available_games'] = SUPPORTED_GAMES  # Legacy compatibility
     
     # GP-FE-MVP-01: Add passport management data
     all_passports = GamePassportService.get_all_passports(user=request.user)
@@ -231,12 +294,17 @@ def profile_settings_v2(request: HttpRequest) -> HttpResponse:
     unpinned_passports = [p for p in all_passports if not p.is_pinned]
     
     context['all_passports'] = all_passports
+    context['passports'] = all_passports  # UP-UI-REBIRTH-01: Alias for settings template
     context['pinned_passports'] = pinned_passports
     context['unpinned_passports'] = unpinned_passports
     context['MAX_PINNED_GAMES'] = 6
     context['VISIBILITY_CHOICES'] = GameProfile.VISIBILITY_CHOICES
     
-    return render(request, 'user_profile/v2/profile_settings.html', context)
+    # UP-SETTINGS-UI-01: Add social links data for settings template
+    context['social_links'] = SocialLink.objects.filter(user=request.user)
+    context['social_platforms'] = SocialLink.PLATFORM_CHOICES
+    
+    return render(request, 'user_profile/profile/settings.html', context)
 
 
 @login_required
@@ -280,7 +348,16 @@ def profile_privacy_v2(request: HttpRequest) -> HttpResponse:
     context['page_title'] = 'Privacy Settings - DeltaCrown Esports'
     context['current_page'] = 'privacy'
     
-    return render(request, 'user_profile/v2/profile_privacy.html', context)
+    # UP-SETTINGS-UI-01: Add privacy_settings object for enhanced privacy template
+    from apps.user_profile.models import PrivacySettings
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    # Fix: PrivacySettings is linked by user_profile, not user
+    user_profile = get_user_profile_safe(request.user)
+    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=user_profile)
+    context['privacy_settings'] = privacy_settings
+    
+    return render(request, 'user_profile/profile/privacy.html', context)
 
 
 # ============================================

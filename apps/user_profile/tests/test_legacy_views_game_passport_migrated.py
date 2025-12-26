@@ -62,7 +62,7 @@ class TestSaveGameProfilesEndpoint:
         
         # Create initial passport
         passport = GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='OldName#123', metadata={}
+            user=user, game='valorant', ign='OldName', discriminator='123', metadata={}
         )
         
         client = Client()
@@ -82,8 +82,8 @@ class TestSaveGameProfilesEndpoint:
         user = User.objects.create_user(username='deleteuser', email='delete@example.com', password='pass123')
         
         # Create 2 passports
-        GamePassportService.create_passport(user=user, game='valorant', in_game_name='Val#123', metadata={})
-        GamePassportService.create_passport(user=user, game='cs2', in_game_name='76561198012345678', metadata={})
+        GamePassportService.create_passport(user=user, game='valorant', ign='Val', discriminator='123', metadata={})
+        GamePassportService.create_passport(user=user, game='cs2', ign='76561198012345678', metadata={})
         
         client = Client()
         client.force_login(user)
@@ -134,7 +134,7 @@ class TestAddGameProfileEndpoint:
         user = User.objects.create_user(username='dupuser', email='dup@example.com', password='pass123')
         
         # Create existing passport
-        GamePassportService.create_passport(user=user, game='valorant', in_game_name='Existing#123', metadata={})
+        GamePassportService.create_passport(user=user, game='valorant', ign='Existing', discriminator='123', metadata={})
         
         client = Client()
         client.force_login(user)
@@ -162,7 +162,7 @@ class TestEditGameProfileEndpoint:
         
         # Create passport
         passport = GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='Original#123', metadata={}
+            user=user, game='valorant', ign='Original', discriminator='123', metadata={}
         )
         
         json_before = profile.game_profiles
@@ -188,7 +188,7 @@ class TestEditGameProfileEndpoint:
         user = User.objects.create_user(username='sameuser', email='same@example.com', password='pass123')
         
         passport = GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='Same#123', metadata={}
+            user=user, game='valorant', ign='Same', discriminator='123', metadata={}
         )
         
         client = Client()
@@ -212,7 +212,7 @@ class TestDeleteGameProfileEndpoint:
         user = User.objects.create_user(username='deluser', email='del@example.com', password='pass123')
         
         passport = GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='ToDelete#123', metadata={}
+            user=user, game='valorant', ign='ToDelete', discriminator='123', metadata={}
         )
         
         client = Client()
@@ -242,7 +242,7 @@ class TestSaveGameProfilesSafeEndpoint:
         user = User.objects.create_user(username='safeuser', email='safe@example.com', password='pass123')
         
         # Create 1 existing passport
-        GamePassportService.create_passport(user=user, game='valorant', in_game_name='Old#123', metadata={})
+        GamePassportService.create_passport(user=user, game='valorant', ign='Old', discriminator='123', metadata={})
         
         client = Client()
         client.force_login(user)
@@ -297,7 +297,7 @@ class TestUpdateGameIdSafeEndpoint:
         user = User.objects.create_user(username='apiupdate', email='apiupdate@example.com', password='pass123')
         
         # Create existing
-        GamePassportService.create_passport(user=user, game='valorant', in_game_name='Old#123', metadata={})
+        GamePassportService.create_passport(user=user, game='valorant', ign='Old', discriminator='123', metadata={})
         
         client = Client()
         client.force_login(user)

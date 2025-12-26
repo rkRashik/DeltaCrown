@@ -1,0 +1,24 @@
+{# UP-UI-REBIRTH-01: Reusable Section Header Component #}
+<div class="flex items-center justify-between mb-6">
+    <div class="flex items-center gap-3">
+        {% if icon %}
+        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+            {{ icon|safe }}
+        </div>
+        {% endif %}
+        <div>
+            <h2 class="text-xl font-black text-white uppercase tracking-tight">{{ title }}</h2>
+            {% if subtitle %}
+            <p class="text-sm text-slate-400 mt-0.5">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if action_url and action_text %}
+    <a href="{{ action_url }}" 
+       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-bold text-white transition-colors"
+       {% if action_aria_label %}aria-label="{{ action_aria_label }}"{% endif %}>
+        {{ action_text }}
+    </a>
+    {% endif %}
+</div>

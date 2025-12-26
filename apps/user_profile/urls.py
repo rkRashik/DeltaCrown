@@ -26,6 +26,13 @@ from .views.fe_v2 import (
 from .views.passport_api import (
     toggle_lft, set_visibility, pin_passport, reorder_passports
 )
+# UP-SETTINGS-MVP-01: Settings API endpoints
+from .views.settings_api import (
+    upload_media, update_social_links_api, update_privacy_settings, remove_media_api
+)
+# UP-PASSPORT-CREATE-01: Passport creation endpoint
+from .views.passport_create import create_passport
+
 from .views_public import public_profile, profile_api
 from .api_views import get_game_id, update_game_id
 from .api.game_id_api import (
@@ -81,12 +88,19 @@ urlpatterns = [
     # UP-FE-MVP-02: Settings mutation endpoints
     path("me/settings/basic/", update_basic_info, name="update_basic_info"),
     path("me/settings/social/", update_social_links, name="update_social_links"),
+    path("me/settings/media/", upload_media, name="upload_media"),
+    path("me/settings/media/remove/", remove_media_api, name="remove_media"),
+    path("me/settings/privacy/save/", update_privacy_settings, name="update_privacy_settings"),
     
     # GP-FE-MVP-01: Game Passport management API
     path("api/passports/toggle-lft/", toggle_lft, name="passport_toggle_lft"),
     path("api/passports/set-visibility/", set_visibility, name="passport_set_visibility"),
     path("api/passports/pin/", pin_passport, name="passport_pin"),
     path("api/passports/reorder/", reorder_passports, name="passport_reorder"),
+    path("api/passports/create/", create_passport, name="passport_create"),
+    
+    # UP-SETTINGS-MVP-01: Additional settings API
+    path("api/social-links/update/", update_social_links_api, name="update_social_links_api"),
     
     # ============================================
     # LEGACY OWNER PAGES (me/...)

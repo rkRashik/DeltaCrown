@@ -52,10 +52,10 @@ class TestProfilePublicTemplate:
         
         # Create some passports
         GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='Fighter#123', metadata={}
+            user=user, game='valorant', ign='Fighter', discriminator='123', metadata={}
         )
         GamePassportService.create_passport(
-            user=user, game='cs2', in_game_name='76561198012345678', metadata={}
+            user=user, game='cs2', ign='76561198012345678', metadata={}
         )
         
         # Pin one
@@ -87,7 +87,7 @@ class TestProfileSettingsTemplate:
         user = User.objects.create_user(username='manager', email='manager@example.com', password='pass123')
         
         GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='Manager#456', metadata={}
+            user=user, game='valorant', ign='Manager', discriminator='456', metadata={}
         )
         
         client = Client()
@@ -108,7 +108,7 @@ class TestPassportAPIEndpoints:
         user = User.objects.create_user(username='lftuser', email='lftuser@example.com', password='pass123')
         
         GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='Seeker#789', metadata={}
+            user=user, game='valorant', ign='Seeker', discriminator='789', metadata={}
         )
         
         client = Client()
@@ -135,7 +135,7 @@ class TestPassportAPIEndpoints:
         user = User.objects.create_user(username='privuser', email='privuser@example.com', password='pass123')
         
         GamePassportService.create_passport(
-            user=user, game='cs2', in_game_name='76561198012345678', metadata={}
+            user=user, game='cs2', ign='76561198012345678', metadata={}
         )
         
         client = Client()
@@ -162,7 +162,7 @@ class TestPassportAPIEndpoints:
         user = User.objects.create_user(username='pinner', email='pinner@example.com', password='pass123')
         
         GamePassportService.create_passport(
-            user=user, game='valorant', in_game_name='Pinner#111', metadata={}
+            user=user, game='valorant', ign='Pinner', discriminator='111', metadata={}
         )
         
         client = Client()
@@ -189,9 +189,9 @@ class TestPassportAPIEndpoints:
         user = User.objects.create_user(username='orderer', email='orderer@example.com', password='pass123')
         
         # Create 3 passports with valid formats
-        GamePassportService.create_passport(user=user, game='valorant', in_game_name='Orderer#VAL', metadata={})
-        GamePassportService.create_passport(user=user, game='cs2', in_game_name='76561198012345678', metadata={})
-        GamePassportService.create_passport(user=user, game='lol', in_game_name='OrdererLOL', metadata={})
+        GamePassportService.create_passport(user=user, game='valorant', ign='Orderer', discriminator='VAL1', metadata={})
+        GamePassportService.create_passport(user=user, game='cs2', ign='76561198012345678', metadata={})
+        GamePassportService.create_passport(user=user, game='lol', ign='OrdererLOL', discriminator='NA1', metadata={})
         
         # Pin all
         for game in ['valorant', 'cs2', 'lol']:
@@ -230,9 +230,9 @@ class TestPassportServiceMutations:
         user = User.objects.create_user(username='lister', email='lister@example.com', password='pass123')
         
         # Create passports with valid formats
-        GamePassportService.create_passport(user=user, game='valorant', in_game_name='Lister#VAL', metadata={})
-        GamePassportService.create_passport(user=user, game='cs2', in_game_name='76561198012345678', metadata={})
-        GamePassportService.create_passport(user=user, game='lol', in_game_name='ListerLOL', metadata={})
+        GamePassportService.create_passport(user=user, game='valorant', ign='Lister', discriminator='VAL1', metadata={})
+        GamePassportService.create_passport(user=user, game='cs2', ign='76561198012345678', metadata={})
+        GamePassportService.create_passport(user=user, game='lol', ign='ListerLOL', discriminator='NA1', metadata={})
         
         # Pin 2
         GamePassportService.pin_passport(user=user, game='valorant')
