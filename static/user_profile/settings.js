@@ -470,8 +470,15 @@ const GamePassports = {
         const select = document.getElementById('game-select');
         if (!select) return;
 
+        let loadTimeout;
         select.addEventListener('change', async (e) => {
             const gameId = e.target.value;
+            
+            // Clear any pending load
+            if (loadTimeout) {
+                clearTimeout(loadTimeout);
+            }
+            
             if (!gameId) {
                 this.selectedGame = null;
                 this.clearGamePreview();
@@ -481,8 +488,13 @@ const GamePassports = {
 
             this.selectedGame = this.games.find(g => g.id == gameId);
             if (this.selectedGame) {
+                // Update preview immediately (fast operation)
                 this.updateGamePreview(this.selectedGame);
-                await this.loadGameSchema(gameId);
+                
+                // Debounce the schema load (network request)
+                loadTimeout = setTimeout(async () => {
+                    await this.loadGameSchema(gameId);
+                }, 150); // 150ms debounce
             }
         });
     },
@@ -516,7 +528,18 @@ const GamePassports = {
             const response = await fetch(`/api/games/${gameId}/schema/`);
             if (response.ok) {
                 const schema = await response.json();
-                this.renderDynamicFields(schema.fields);
+                console.log('Loaded game schema:', schema);
+                console.log('Required fields to render:', schema.fields);
+                console.log('Optional fields to render:', schema.optional_fields);
+                if (schema.fields && schema.fields.length > 0) {
+                    this.renderDynamicFields(schema.fields, schema.optional_fields || []);
+                } else {
+                    console.warn('No fields returned from schema');
+                    Toast.warning('No fields configured for this game');
+                }
+            } else {
+                console.error('Failed to load schema, status:', response.status);
+                Toast.error('Failed to load game fields');
             }
         } catch (error) {
             console.error('Failed to load game schema:', error);
@@ -524,76 +547,109 @@ const GamePassports = {
         }
     },
 
-    renderDynamicFields(fields) {
+    renderDynamicFields(fields, optionalFields = []) {
         const container = document.getElementById('dynamic-fields');
-        if (!container) return;
+        if (!container) {
+            console.error('Dynamic fields container not found!');
+            return;
+        }
 
+        console.log('Rendering required fields:', fields);
+        console.log('Rendering optional fields:', optionalFields);
         container.innerHTML = '';
 
+        if (!fields || fields.length === 0) {
+            console.warn('No fields to render');
+            return;
+        }
+
+        // Render required fields
         fields.forEach(field => {
-            const fieldDiv = document.createElement('div');
-            fieldDiv.className = 'mb-4';
-
-            const label = document.createElement('label');
-            label.className = 'block text-slate-300 font-semibold mb-2';
-            label.textContent = field.label + (field.required ? ' *' : '');
-
-            let input;
-            if (field.type === 'select' && field.choices) {
-                input = document.createElement('select');
-                input.className = 'form-input';
-                
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = `Select ${field.label}...`;
-                input.appendChild(defaultOption);
-
-                field.choices.forEach(choice => {
-                    const option = document.createElement('option');
-                    option.value = choice.value;
-                    option.textContent = choice.label;
-                    input.appendChild(option);
-                });
-            } else if (field.type === 'textarea') {
-                input = document.createElement('textarea');
-                input.className = 'form-input';
-                input.rows = 3;
-            } else {
-                input = document.createElement('input');
-                input.type = field.type || 'text';
-                input.className = 'form-input';
-            }
-
-            input.name = field.field_name;
-            input.required = field.required;
-            if (field.placeholder) input.placeholder = field.placeholder;
-            if (field.validation) input.pattern = field.validation;
-            if (field.immutable) input.readOnly = true;
-            if (field.min_length) input.minLength = field.min_length;
-            if (field.max_length) input.maxLength = field.max_length;
-
-            fieldDiv.appendChild(label);
-            fieldDiv.appendChild(input);
-
-            if (field.help_text) {
-                const help = document.createElement('p');
-                help.className = 'text-slate-500 text-xs mt-1';
-                help.textContent = field.help_text;
-                fieldDiv.appendChild(help);
-            }
-
-            // Show validation error if pattern is set
-            if (field.validation && field.validation_error) {
-                input.addEventListener('invalid', () => {
-                    input.setCustomValidity(field.validation_error);
-                });
-                input.addEventListener('input', () => {
-                    input.setCustomValidity('');
-                });
-            }
-
+            console.log('Rendering required field:', field);
+            const fieldDiv = this.createFieldElement(field);
             container.appendChild(fieldDiv);
         });
+
+        // Add optional fields section if we have any
+        if (optionalFields && optionalFields.length > 0) {
+            const divider = document.createElement('div');
+            divider.className = 'border-t border-slate-700 mt-6 mb-4 pt-4';
+            divider.innerHTML = '<p class="text-slate-400 text-sm font-semibold mb-4">📋 Additional Information (Optional)</p>';
+            container.appendChild(divider);
+
+            optionalFields.forEach(field => {
+                console.log('Rendering optional field:', field);
+                const fieldDiv = this.createFieldElement(field);
+                container.appendChild(fieldDiv);
+            });
+        }
+
+        console.log('Finished rendering', fields.length, 'required fields and', optionalFields.length, 'optional fields');
+    },
+
+    createFieldElement(field) {
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'mb-4';
+
+        const label = document.createElement('label');
+        label.className = 'block text-slate-300 font-semibold mb-2';
+        label.textContent = field.label + (field.required ? ' *' : '');
+
+        let input;
+        if (field.type === 'select' && field.choices) {
+            input = document.createElement('select');
+            input.className = 'form-input';
+            
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = `Select ${field.label}...`;
+            input.appendChild(defaultOption);
+
+            field.choices.forEach(choice => {
+                const option = document.createElement('option');
+                option.value = choice.value;
+                option.textContent = choice.label;
+                input.appendChild(option);
+            });
+        } else if (field.type === 'textarea') {
+            input = document.createElement('textarea');
+            input.className = 'form-input';
+            input.rows = 3;
+        } else {
+            input = document.createElement('input');
+            input.type = field.type || 'text';
+            input.className = 'form-input';
+        }
+
+        input.name = field.field_name;
+        input.required = field.required;
+        if (field.placeholder) input.placeholder = field.placeholder;
+        if (field.validation) input.pattern = field.validation;
+        if (field.immutable) input.readOnly = true;
+        if (field.min_length) input.minLength = field.min_length;
+        if (field.max_length) input.maxLength = field.max_length;
+
+        fieldDiv.appendChild(label);
+        fieldDiv.appendChild(input);
+
+        if (field.help_text) {
+            const help = document.createElement('p');
+            help.className = 'text-slate-500 text-xs mt-1';
+            help.textContent = field.help_text;
+            fieldDiv.appendChild(help);
+        }
+
+        // Show validation error if pattern is set
+        if (field.validation && field.validation_error) {
+            input.addEventListener('invalid', () => {
+                input.setCustomValidity(field.validation_error);
+            });
+            input.addEventListener('input', () => {
+                input.setCustomValidity('');
+            });
+        }
+
+        return fieldDiv;
     },
 
     clearDynamicFields() {
@@ -623,30 +679,44 @@ const GamePassports = {
 
         // Collect all dynamic field values
         const dynamicFields = document.querySelectorAll('#dynamic-fields input, #dynamic-fields select, #dynamic-fields textarea');
+        let hasMainIdentifier = false;
+        
         dynamicFields.forEach(field => {
             if (field.value.trim()) {
-                // Map common field names to backend expected names
                 const fieldName = field.name;
+                const value = field.value.trim();
+                
+                // Map custom field names to backend expected names
+                // Check if this is a main identifier field (riot_id, pubgm_id, etc.)
                 if (fieldName === 'ign' || fieldName === 'in_game_name') {
-                    data.ign = field.value.trim();
+                    data.ign = value;
+                    hasMainIdentifier = true;
+                } else if (fieldName.includes('_id') || fieldName.includes('_uid') || fieldName === 'riot_id' || fieldName === 'epic_id') {
+                    // These custom ID fields should be treated as the main IGN
+                    if (!hasMainIdentifier) {
+                        data.ign = value;
+                        hasMainIdentifier = true;
+                    }
+                    // Also store in metadata with original field name
+                    data.metadata[fieldName] = value;
                 } else if (fieldName === 'discriminator' || fieldName === 'tag') {
-                    data.discriminator = field.value.trim();
+                    data.discriminator = value;
                 } else if (fieldName === 'platform') {
-                    data.platform = field.value.trim();
+                    data.platform = value;
                 } else if (fieldName === 'region' || fieldName === 'server') {
-                    data.metadata.region = field.value.trim();
+                    data.metadata.region = value;
                 } else if (fieldName === 'rank' || fieldName === 'tier') {
-                    data.metadata.rank = field.value.trim();
+                    data.metadata.rank = value;
                 } else {
                     // Store other fields in metadata
-                    data.metadata[fieldName] = field.value.trim();
+                    data.metadata[fieldName] = value;
                 }
             }
         });
 
         // Validate required fields
-        if (!data.ign) {
-            Toast.error('Please provide your in-game name');
+        if (!hasMainIdentifier) {
+            Toast.error('Please provide your game identifier');
             return;
         }
 

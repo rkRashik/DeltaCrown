@@ -39,7 +39,13 @@ def create_passport(request):
         ign = data.get('ign', '').strip()
         discriminator = data.get('discriminator', '').strip() or None
         platform = data.get('platform', '').strip() or None
+        region = data.get('region', '').strip() or ''
+        rank = data.get('rank', '').strip() or None
         metadata = data.get('metadata', {})
+        
+        # Add rank to metadata if provided (ranks are showcase data, not identity)
+        if rank:
+            metadata['rank'] = rank
         
         # Validate required fields
         if not game_id:
@@ -65,14 +71,16 @@ def create_passport(request):
         
         # Create passport using service
         try:
-            passport = GamePassportService.create_or_update_passport(
+            passport = GamePassportService.create_passport(
                 user=request.user,
-                game=game,
+                game=game.slug,  # Service expects game slug, not object
                 ign=ign,
                 discriminator=discriminator,
                 platform=platform,
+                region=region,
                 visibility='PUBLIC',  # Default to public
-                metadata=metadata if isinstance(metadata, dict) else {}
+                metadata=metadata if isinstance(metadata, dict) else {},
+                request_ip=request.META.get('REMOTE_ADDR')
             )
             
             # Log audit event
@@ -84,7 +92,9 @@ def create_passport(request):
                     'game': game.name,
                     'ign': ign,
                     'discriminator': discriminator,
-                    'platform': platform
+                    'platform': platform,
+                    'region': region,
+                    'rank': rank
                 },
                 request_meta={
                     'ip_address': request.META.get('REMOTE_ADDR'),
@@ -101,6 +111,8 @@ def create_passport(request):
                     'ign': passport.ign,
                     'discriminator': passport.discriminator,
                     'platform': passport.platform,
+                    'region': passport.region,
+                    'rank': passport.metadata.get('rank') if passport.metadata else None,
                     'in_game_name': passport.in_game_name,
                     'visibility': passport.visibility,
                     'is_pinned': passport.is_pinned,

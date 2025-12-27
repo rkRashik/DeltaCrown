@@ -68,6 +68,22 @@ class Game(models.Model):
         help_text="List of platforms: ['PC', 'Mobile', 'Console']"
     )
     
+    has_servers = models.BooleanField(
+        default=False,
+        help_text="Does this game have regional servers that affect gameplay/ranking?"
+    )
+    
+    # === RANKS/TIERS ===
+    has_rank_system = models.BooleanField(
+        default=False,
+        help_text="Does this game have a competitive rank/tier system?"
+    )
+    available_ranks = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Game-specific ranks: [{'value': 'iron', 'label': 'Iron'}, ...]"
+    )
+    
     # === MEDIA ===
     icon = models.ImageField(
         upload_to='games/icons/',

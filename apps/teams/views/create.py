@@ -140,17 +140,28 @@ def _handle_team_creation_get(request, profile):
     
     form = TeamCreationForm(user=request.user, initial=initial)
     
-    # Prepare user profile data for game ID autofill
-    user_profile_data = {
-        'riot_id': profile.riot_id or '',
-        'steam_id': profile.steam_id or '',
-        'mlbb_id': profile.mlbb_id or '',
-        'pubg_mobile_id': profile.pubg_mobile_id or '',
-        'free_fire_id': profile.free_fire_id or '',
-        'codm_uid': profile.codm_uid or '',
-        'efootball_id': profile.efootball_id or '',
-        'ea_id': profile.ea_id or '',
-    }
+    # Prepare user profile data for game ID autofill from game passports
+    # Legacy game ID fields were removed - fetch from GameProfile model instead
+    from apps.user_profile.models import GameProfile
+    user_game_passports = GameProfile.objects.filter(user=request.user).select_related('game')
+    
+    user_profile_data = {}
+    for passport in user_game_passports:
+        game_slug = passport.game.slug
+        # Map game slugs to expected frontend field names
+        field_mapping = {
+            'valorant': 'riot_id',
+            'counter-strike-2': 'steam_id',
+            'dota-2': 'steam_id',
+            'mlbb': 'mlbb_id',
+            'pubg-mobile': 'pubg_mobile_id',
+            'free-fire': 'free_fire_id',
+            'codm': 'codm_uid',
+            'efootball': 'efootball_id',
+            'ea-fc-26': 'ea_id',
+        }
+        if game_slug in field_mapping:
+            user_profile_data[field_mapping[game_slug]] = passport.ign or ''
     
     context = {
         'form': form,

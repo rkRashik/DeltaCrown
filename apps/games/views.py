@@ -59,9 +59,24 @@ def game_identity_schema(request, game_id):
         ).order_by('order')
         
         fields = []
+        
+        # ALWAYS include IGN field first
+        fields.append({
+            'field_name': 'ign',
+            'label': 'In-Game Name (IGN)',
+            'type': 'text',
+            'required': True,
+            'immutable': False,
+            'placeholder': 'YourGameName',
+            'help_text': 'Your display name in the game',
+            'min_length': 2,
+            'max_length': 50,
+        })
+        
+        # Add game-specific identity fields (Steam ID, Riot ID, etc.)
         for config in identity_configs:
             field = {
-                'field_name': config.field_name,  # Keep original field name
+                'field_name': config.field_name,
                 'label': config.display_name,
                 'type': config.field_type.lower(),
                 'required': config.is_required,
@@ -75,41 +90,43 @@ def game_identity_schema(request, game_id):
             }
             fields.append(field)
         
-        # If no custom identity config, return default fields
-        if not fields:
-            fields = [
-                {
-                    'field_name': 'ign',
-                    'label': 'In-Game Name (IGN)',
-                    'type': 'text',
-                    'required': True,
-                    'immutable': False,
-                    'placeholder': 'YourGameName',
-                    'help_text': 'Your player name in the game',
-                    'min_length': 3,
-                    'max_length': 50,
-                },
-                {
+        # Add optional dropdown fields CONDITIONALLY based on game features
+        optional_fields = []
+        
+        # Platform dropdown - only if game has multiple platforms
+        if game.platforms and len(game.platforms) > 1:
+            optional_fields.append({
+                'field_name': 'platform',
+                'label': 'Platform',
+                'type': 'select',
+                'required': False,
+                'choices': [{'value': p, 'label': p} for p in game.platforms],
+                'help_text': 'Which platform do you play on?'
+            })
+        
+        # Region dropdown - only if game has_servers flag is True
+        if game.has_servers and hasattr(game, 'roster_config') and game.roster_config and game.roster_config.has_regions:
+            regions = game.roster_config.available_regions
+            if regions:
+                optional_fields.append({
                     'field_name': 'region',
                     'label': 'Region/Server',
-                    'type': 'text',
+                    'type': 'select',
                     'required': False,
-                    'immutable': False,
-                    'placeholder': 'NA, EU, Asia, etc.',
-                    'help_text': 'Your game region or server',
-                    'max_length': 20,
-                },
-                {
-                    'field_name': 'rank',
-                    'label': 'Rank/Tier',
-                    'type': 'text',
-                    'required': False,
-                    'immutable': False,
-                    'placeholder': 'e.g. Diamond, Master',
-                    'help_text': 'Your current rank or tier (optional)',
-                    'max_length': 50,
-                }
-            ]
+                    'choices': [{'value': r.get('code', r.get('name', '')), 'label': r.get('name', r.get('code', ''))} for r in regions],
+                    'help_text': 'Your game region or server'
+                })
+        
+        # Rank dropdown - only if game has_rank_system flag is True
+        if game.has_rank_system and game.available_ranks and len(game.available_ranks) > 0:
+            optional_fields.append({
+                'field_name': 'rank',
+                'label': 'Rank/Tier',
+                'type': 'select',
+                'required': False,
+                'choices': game.available_ranks,
+                'help_text': 'Your current rank or tier (optional)'
+            })
         
         return JsonResponse({
             'game': {
@@ -118,7 +135,8 @@ def game_identity_schema(request, game_id):
                 'display_name': game.display_name,
                 'icon': game.icon.url if game.icon else None,
             },
-            'fields': fields
+            'fields': fields,
+            'optional_fields': optional_fields
         })
     
     except Game.DoesNotExist:
