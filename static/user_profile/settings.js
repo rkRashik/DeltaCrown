@@ -1,748 +1,1193 @@
 /**
- * DeltaCrown Settings - Modern 2025 Design
- * Complete redesign with drag & drop, glassy UI, responsive design
+ * DeltaCrown Settings Page - Complete Implementation
+ * Professional settings management with full backend integration
  */
 
-// ========== MODERN TOAST SYSTEM ==========
-const ModernToast = {
+// ============================================================================
+// UTILITY FUNCTIONS & HELPERS
+// ============================================================================
+
+const getCookie = (name) => {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+};
+
+const csrfToken = getCookie('csrftoken');
+
+// ============================================================================
+// TOAST NOTIFICATION SYSTEM
+// ============================================================================
+
+const Toast = {
     container: null,
-    
+
     init() {
         this.container = document.getElementById('toast-container');
+        if (!this.container) {
+            this.container = document.createElement('div');
+            this.container.id = 'toast-container';
+            this.container.className = 'fixed top-4 right-4 z-50 space-y-3';
+            document.body.appendChild(this.container);
+        }
     },
-    
-    show(title, message, type = 'success', duration = 4000) {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        
+
+    show(message, type = 'info', duration = 4000) {
+        if (!this.container) this.init();
+
         const icons = {
             success: '✅',
             error: '❌',
             warning: '⚠️',
             info: 'ℹ️'
         };
-        
+
+        const colors = {
+            success: 'from-green-900/90 to-emerald-900/90 border-green-500/50',
+            error: 'from-red-900/90 to-rose-900/90 border-red-500/50',
+            warning: 'from-orange-900/90 to-amber-900/90 border-orange-500/50',
+            info: 'from-blue-900/90 to-cyan-900/90 border-blue-500/50'
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `toast-notification bg-gradient-to-r ${colors[type]} backdrop-blur-xl border-2 rounded-xl p-4 shadow-2xl transform transition-all duration-300 ease-out max-w-md`;
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+
         toast.innerHTML = `
-            <div class="toast-icon">${icons[type]}</div>
-            <div class="toast-content">
-                <div class="toast-title">${title}</div>
-                <div class="toast-message">${message}</div>
+            <div class="flex items-start gap-3">
+                <span class="text-2xl flex-shrink-0">${icons[type]}</span>
+                <p class="text-white font-medium leading-relaxed flex-1">${message}</p>
+                <button onclick="this.parentElement.parentElement.remove()" class="text-white/70 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
-            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
         `;
-        
+
         this.container.appendChild(toast);
-        
-        // Auto remove after duration
+
+        // Animate in
         setTimeout(() => {
-            toast.style.animation = 'toastSlideIn 0.3s reverse';
-            setTimeout(() => toast.remove(), 300);
-        }, duration);
-    }
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+        }, 10);
+
+        // Auto remove
+        if (duration > 0) {
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+    },
+
+    success(message) { this.show(message, 'success'); },
+    error(message) { this.show(message, 'error'); },
+    warning(message) { this.show(message, 'warning'); },
+    info(message) { this.show(message, 'info'); }
 };
 
-// ========== NAVIGATION ==========
+// ============================================================================
+// NAVIGATION SYSTEM
+// ============================================================================
+
 const Navigation = {
     init() {
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (e) => {
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.content-section');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
                 e.preventDefault();
-                const section = link.dataset.section;
-                this.switchSection(section);
-                
-                // Update active state
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
+                const targetId = item.getAttribute('data-section') + '-section';
+
+                // Update active states
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+
+                // Show target section
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === targetId) {
+                        section.classList.add('active');
+                        // Smooth scroll to top of section
+                        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+
+                // Update URL hash
+                window.location.hash = item.getAttribute('data-section');
             });
         });
-    },
-    
-    switchSection(sectionName) {
-        // Hide all sections
-        document.querySelectorAll('.section').forEach(section => {
-            section.classList.remove('active');
-        });
-        
-        // Show selected section
-        const targetSection = document.getElementById(`${sectionName}-section`);
-        if (targetSection) {
-            targetSection.classList.add('active');
+
+        // Handle initial hash
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            const targetNav = document.querySelector(`[data-section="${hash}"]`);
+            if (targetNav) {
+                targetNav.click();
+            }
         }
     }
 };
 
-// ========== DRAG & DROP MEDIA UPLOAD ==========
+// ============================================================================
+// PROFILE FORM MODULE
+// ============================================================================
+
+const ProfileForm = {
+    form: null,
+
+    init() {
+        this.form = document.getElementById('profile-form');
+        if (!this.form) return;
+
+        this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+
+        // Character counter for bio
+        const bioTextarea = this.form.querySelector('[name="bio"]');
+        if (bioTextarea) {
+            const charCount = document.createElement('div');
+            charCount.className = 'text-right text-slate-500 text-xs mt-1';
+            bioTextarea.parentElement.appendChild(charCount);
+
+            bioTextarea.addEventListener('input', () => {
+                const remaining = 500 - bioTextarea.value.length;
+                charCount.textContent = `${remaining} characters remaining`;
+                charCount.style.color = remaining < 50 ? '#ef4444' : '#64748b';
+            });
+            bioTextarea.dispatchEvent(new Event('input'));
+        }
+    },
+
+    async handleSubmit(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this.form);
+        const data = {
+            display_name: formData.get('display_name'),
+            country: formData.get('country'),
+            bio: formData.get('bio')
+        };
+
+        try {
+            const response = await fetch('/me/settings/basic/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                Toast.success('Profile updated successfully! 🎉');
+            } else {
+                Toast.error(result.error || 'Failed to update profile');
+            }
+        } catch (error) {
+            console.error('Profile update error:', error);
+            Toast.error('Network error. Please try again.');
+        }
+    }
+};
+
+// ============================================================================
+// MEDIA UPLOAD MODULE
+// ============================================================================
+
 const MediaUpload = {
     init() {
-        this.setupBannerUpload();
-        this.setupAvatarUpload();
-        this.setupRemoveButtons();
+        this.initBannerUpload();
+        this.initAvatarUpload();
+        this.initRemoveButtons();
     },
-    
-    setupBannerUpload() {
+
+    initBannerUpload() {
         const dropZone = document.getElementById('banner-drop-zone');
-        const fileInput = document.getElementById('banner-upload');
-        const preview = document.getElementById('banner-preview');
-        
-        // Drag and drop events
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            });
-        });
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.add('drag-over');
-            });
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => {
-                dropZone.classList.remove('drag-over');
-            });
-        });
-        
-        dropZone.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                this.handleBannerUpload(files[0]);
-            }
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                this.handleBannerUpload(e.target.files[0]);
-            }
-        });
+        const fileInput = document.getElementById('banner-input');
+        if (!dropZone || !fileInput) return;
+
+        this.setupDropZone(dropZone, fileInput, 'banner', 10 * 1024 * 1024); // 10MB
     },
-    
-    setupAvatarUpload() {
+
+    initAvatarUpload() {
         const dropZone = document.getElementById('avatar-drop-zone');
-        const fileInput = document.getElementById('avatar-upload');
-        const preview = document.getElementById('avatar-preview');
-        
-        // Drag and drop events
+        const fileInput = document.getElementById('avatar-input');
+        if (!dropZone || !fileInput) return;
+
+        this.setupDropZone(dropZone, fileInput, 'avatar', 5 * 1024 * 1024); // 5MB
+    },
+
+    setupDropZone(dropZone, fileInput, type, maxSize) {
+        // Click to upload
+        dropZone.addEventListener('click', (e) => {
+            if (!e.target.closest('button')) {
+                fileInput.click();
+            }
+        });
+
+        // Drag & Drop
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, (e) => {
                 e.preventDefault();
                 e.stopPropagation();
             });
         });
-        
+
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => {
-                dropZone.classList.add('drag-over');
+                dropZone.style.borderColor = '#3b82f6';
+                dropZone.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
             });
         });
-        
+
         ['dragleave', 'drop'].forEach(eventName => {
             dropZone.addEventListener(eventName, () => {
-                dropZone.classList.remove('drag-over');
+                dropZone.style.borderColor = '';
+                dropZone.style.backgroundColor = '';
             });
         });
-        
+
         dropZone.addEventListener('drop', (e) => {
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                this.handleAvatarUpload(files[0]);
+                this.handleFile(files[0], type, maxSize);
             }
         });
-        
+
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                this.handleAvatarUpload(e.target.files[0]);
+                this.handleFile(e.target.files[0], type, maxSize);
             }
         });
     },
-    
-    async handleBannerUpload(file) {
-        // Validate file
+
+    handleFile(file, type, maxSize) {
+        // Validate file type
         if (!file.type.startsWith('image/')) {
-            ModernToast.show('Invalid File', 'Please upload an image file', 'error');
+            Toast.error('Please upload an image file');
             return;
         }
-        
-        if (file.size > 10 * 1024 * 1024) { // 10MB
-            ModernToast.show('File Too Large', 'Maximum file size is 10MB', 'error');
+
+        // Validate file size
+        if (file.size > maxSize) {
+            const maxMB = maxSize / (1024 * 1024);
+            Toast.error(`File size must be less than ${maxMB}MB`);
             return;
         }
-        
-        // Show preview immediately
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            let preview = document.getElementById('banner-preview');
-            if (!preview) {
-                preview = document.createElement('img');
-                preview.id = 'banner-preview';
-                preview.className = 'banner-preview';
-                document.getElementById('banner-drop-zone').appendChild(preview);
-            }
-            preview.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-        
-        // Upload to server
+
+        this.uploadFile(file, type);
+    },
+
+    async uploadFile(file, type) {
         const formData = new FormData();
-        formData.append('media_type', 'banner');
-        formData.append('file', file);
-        
+        formData.append(type, file);
+
         try {
+            Toast.info(`Uploading ${type}...`);
+
             const response = await fetch('/me/settings/media/', {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': CSRF_TOKEN
+                    'X-CSRFToken': csrfToken
                 },
                 body: formData
             });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                ModernToast.show('Banner Uploaded', 'Your banner has been updated successfully', 'success');
+
+            const result = await response.json();
+
+            if (response.ok) {
+                Toast.success(`${type === 'banner' ? 'Banner' : 'Avatar'} updated! 🎨`);
                 
-                // Add remove button if it doesn't exist
-                if (!document.getElementById('remove-banner')) {
-                    const btnContainer = document.querySelector('#banner-drop-zone').nextElementSibling;
-                    btnContainer.innerHTML = `
-                        <button type="button" class="btn btn-primary" onclick="document.getElementById('banner-upload').click()">
-                            <span>📤</span>
-                            <span>Upload Banner</span>
-                        </button>
-                        <button type="button" class="btn btn-danger" id="remove-banner">
-                            <span>🗑️</span>
-                            <span>Remove</span>
-                        </button>
-                    `;
-                    MediaUpload.setupRemoveButtons();
+                // Update preview
+                if (type === 'banner' && result.banner_url) {
+                    const bannerPreview = document.querySelector('#banner-drop-zone img');
+                    if (bannerPreview) {
+                        bannerPreview.src = result.banner_url;
+                    }
+                } else if (type === 'avatar' && result.avatar_url) {
+                    const avatarPreview = document.querySelector('#avatar-drop-zone img');
+                    if (avatarPreview) {
+                        avatarPreview.src = result.avatar_url;
+                    }
                 }
             } else {
-                ModernToast.show('Upload Failed', data.error || 'Failed to upload banner', 'error');
+                Toast.error(result.error || `Failed to upload ${type}`);
             }
         } catch (error) {
-            console.error('Banner upload error:', error);
-            ModernToast.show('Network Error', 'Failed to connect to server', 'error');
+            console.error('Upload error:', error);
+            Toast.error('Upload failed. Please try again.');
         }
     },
-    
-    async handleAvatarUpload(file) {
-        // Validate file
-        if (!file.type.startsWith('image/')) {
-            ModernToast.show('Invalid File', 'Please upload an image file', 'error');
-            return;
-        }
-        
-        if (file.size > 5 * 1024 * 1024) { // 5MB
-            ModernToast.show('File Too Large', 'Maximum file size is 5MB', 'error');
-            return;
-        }
-        
-        // Show preview immediately
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            let preview = document.getElementById('avatar-preview');
-            if (!preview) {
-                preview = document.createElement('img');
-                preview.id = 'avatar-preview';
-                preview.className = 'avatar-preview';
-                document.getElementById('avatar-drop-zone').appendChild(preview);
-            }
-            preview.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-        
-        // Upload to server
-        const formData = new FormData();
-        formData.append('media_type', 'avatar');
-        formData.append('file', file);
-        
+
+    initRemoveButtons() {
+        document.querySelectorAll('[data-remove-media]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const mediaType = button.getAttribute('data-remove-media');
+                this.removeMedia(mediaType);
+            });
+        });
+    },
+
+    async removeMedia(type) {
+        if (!confirm(`Are you sure you want to remove your ${type}?`)) return;
+
         try {
-            const response = await fetch('/me/settings/media/', {
+            const response = await fetch('/me/settings/media/remove/', {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': CSRF_TOKEN
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 },
-                body: formData
+                body: JSON.stringify({ type })
             });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                ModernToast.show('Avatar Uploaded', 'Your profile photo has been updated', 'success');
-                
-                // Add remove button if it doesn't exist
-                const avatarBtns = document.querySelector('.avatar-info').querySelector('div');
-                if (!document.getElementById('remove-avatar')) {
-                    avatarBtns.innerHTML = `
-                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('avatar-upload').click()">
-                            Upload Photo
-                        </button>
-                        <button type="button" class="btn btn-danger" id="remove-avatar" style="padding: 0.75rem 1rem;">
-                            🗑️
-                        </button>
-                    `;
-                    MediaUpload.setupRemoveButtons();
-                }
+
+            const result = await response.json();
+
+            if (response.ok) {
+                Toast.success(`${type === 'banner' ? 'Banner' : 'Avatar'} removed`);
+                location.reload(); // Reload to show default image
             } else {
-                ModernToast.show('Upload Failed', data.error || 'Failed to upload avatar', 'error');
+                Toast.error(result.error || 'Failed to remove media');
             }
         } catch (error) {
-            console.error('Avatar upload error:', error);
-            ModernToast.show('Network Error', 'Failed to connect to server', 'error');
-        }
-    },
-    
-    setupRemoveButtons() {
-        const removeBannerBtn = document.getElementById('remove-banner');
-        const removeAvatarBtn = document.getElementById('remove-avatar');
-        
-        if (removeBannerBtn) {
-            removeBannerBtn.addEventListener('click', async () => {
-                if (!confirm('Remove your banner image?')) return;
-                
-                try {
-                    const response = await fetch('/me/settings/media/remove/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': CSRF_TOKEN
-                        },
-                        body: JSON.stringify({ media_type: 'banner' })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        ModernToast.show('Banner Removed', 'Your banner has been removed', 'success');
-                        
-                        // Replace with placeholder
-                        const dropZone = document.getElementById('banner-drop-zone');
-                        dropZone.innerHTML = `
-                            <input type="file" id="banner-upload" accept="image/*" style="display: none;">
-                            <div style="height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(30, 41, 59, 0.5);">
-                                <div style="text-align: center; color: #64748b;">
-                                    <div style="font-size: 4rem; margin-bottom: 1rem;">🖼️</div>
-                                    <div style="font-size: 1.125rem; font-weight: 600;">No banner set</div>
-                                </div>
-                            </div>
-                            <div class="upload-overlay" onclick="document.getElementById('banner-upload').click()">
-                                <div class="upload-icon">📤</div>
-                                <div class="upload-text">Click or drag to upload</div>
-                                <div class="upload-hint">1920x480px recommended, max 10MB</div>
-                            </div>
-                        `;
-                        
-                        // Remove the remove button
-                        removeBannerBtn.remove();
-                        
-                        // Re-setup upload
-                        MediaUpload.setupBannerUpload();
-                    } else {
-                        ModernToast.show('Remove Failed', data.error || 'Failed to remove banner', 'error');
-                    }
-                } catch (error) {
-                    console.error('Banner remove error:', error);
-                    ModernToast.show('Network Error', 'Failed to connect to server', 'error');
-                }
-            });
-        }
-        
-        if (removeAvatarBtn) {
-            removeAvatarBtn.addEventListener('click', async () => {
-                if (!confirm('Remove your profile photo?')) return;
-                
-                try {
-                    const response = await fetch('/me/settings/media/remove/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': CSRF_TOKEN
-                        },
-                        body: JSON.stringify({ media_type: 'avatar' })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        ModernToast.show('Avatar Removed', 'Your profile photo has been removed', 'success');
-                        
-                        // Replace with placeholder
-                        const dropZone = document.getElementById('avatar-drop-zone');
-                        dropZone.innerHTML = `
-                            <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
-                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(30, 41, 59, 0.5); color: #64748b; font-size: 3rem;">
-                                👤
-                            </div>
-                            <div class="upload-overlay" style="border-radius: 50%;" onclick="document.getElementById('avatar-upload').click()">
-                                <div style="font-size: 2rem;">📸</div>
-                            </div>
-                        `;
-                        
-                        // Remove the remove button
-                        removeAvatarBtn.remove();
-                        
-                        // Re-setup upload
-                        MediaUpload.setupAvatarUpload();
-                    } else {
-                        ModernToast.show('Remove Failed', data.error || 'Failed to remove avatar', 'error');
-                    }
-                } catch (error) {
-                    console.error('Avatar remove error:', error);
-                    ModernToast.show('Network Error', 'Failed to connect to server', 'error');
-                }
-            });
+            console.error('Remove error:', error);
+            Toast.error('Failed to remove media');
         }
     }
 };
 
-// ========== GAME PASSPORTS (INLINE, NO POPUP) ==========
+// ============================================================================
+// GAME PASSPORTS MODULE (CRITICAL)
+// ============================================================================
+
 const GamePassports = {
+    games: [],
+    modal: null,
+    selectedGame: null,
+
     init() {
-        this.setupGameSelect();
+        this.modal = document.getElementById('passport-modal');
+        if (!this.modal) return;
+
+        // Load games and existing passports
+        this.loadGames();
+        this.loadPassports();
+
+        // Setup modal controls
+        this.setupModalControls();
+        this.setupGameSelection();
         this.setupPassportForm();
-        this.setupToggleButton();
         this.setupDeleteButtons();
     },
-    
-    setupToggleButton() {
-        const toggleBtn = document.getElementById('toggle-passport-form');
-        const form = document.getElementById('passport-form');
-        const icon = document.getElementById('form-toggle-icon');
-        const container = document.getElementById('passport-form-container');
-        
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', () => {
-                const isCollapsed = form.style.display === 'none';
-                form.style.display = isCollapsed ? 'block' : 'none';
-                icon.textContent = isCollapsed ? '▼' : '▲';
-                container.classList.toggle('collapsed', !isCollapsed);
-            });
+
+    async loadGames() {
+        try {
+            const response = await fetch('/api/games/');
+            if (response.ok) {
+                this.games = await response.json();
+                this.populateGameDropdown();
+            }
+        } catch (error) {
+            console.error('Failed to load games:', error);
         }
     },
-    
-    setupGameSelect() {
-        const select = document.getElementById('passport-game-select');
+
+    populateGameDropdown() {
+        const select = document.getElementById('game-select');
         if (!select) return;
+
+        select.innerHTML = '<option value="">Select a game...</option>';
         
-        select.addEventListener('change', (e) => {
-            const gameSlug = e.target.value;
-            if (!gameSlug) {
-                document.getElementById('passport-identity-fields').innerHTML = '';
-                document.getElementById('passport-showcase-fields').style.display = 'none';
-                return;
-            }
-            
-            const schema = GAME_SCHEMAS[gameSlug];
-            if (!schema) {
-                ModernToast.show('Error', 'Game schema not found', 'error');
-                return;
-            }
-            
-            this.renderIdentityFields(schema.identity_schema);
-            document.getElementById('passport-showcase-fields').style.display = 'block';
+        this.games.forEach(game => {
+            const option = document.createElement('option');
+            option.value = game.id;
+            option.textContent = `${game.display_name} (${game.category})`;
+            select.appendChild(option);
         });
     },
-    
-    renderIdentityFields(schema) {
-        const container = document.getElementById('passport-identity-fields');
-        container.innerHTML = '<h4 style="color: white; margin-bottom: 1rem; font-weight: 600;">Game Identity</h4>';
-        
-        const grid = document.createElement('div');
-        grid.className = 'form-grid';
-        
-        schema.forEach(field => {
-            const formGroup = document.createElement('div');
-            formGroup.className = 'form-group';
-            
+
+    setupModalControls() {
+        // Open modal - main button
+        document.getElementById('add-passport-btn')?.addEventListener('click', () => {
+            this.openModal();
+        });
+
+        // Open modal - empty state button
+        document.getElementById('add-first-passport-btn')?.addEventListener('click', () => {
+            this.openModal();
+        });
+
+        // Close modal
+        document.getElementById('close-modal-btn')?.addEventListener('click', () => {
+            this.closeModal();
+        });
+
+        document.getElementById('cancel-passport-btn')?.addEventListener('click', () => {
+            this.closeModal();
+        });
+
+        // Close on overlay click
+        this.modal?.addEventListener('click', (e) => {
+            if (e.target === this.modal) {
+                this.closeModal();
+            }
+        });
+    },
+
+    openModal() {
+        if (this.modal) {
+            this.modal.classList.remove('hidden');
+            this.modal.style.display = 'flex';
+            this.resetForm();
+        }
+    },
+
+    closeModal() {
+        if (this.modal) {
+            this.modal.classList.add('hidden');
+            this.modal.style.display = 'none';
+        }
+    },
+
+    setupGameSelection() {
+        const select = document.getElementById('game-select');
+        if (!select) return;
+
+        select.addEventListener('change', async (e) => {
+            const gameId = e.target.value;
+            if (!gameId) {
+                this.selectedGame = null;
+                this.clearGamePreview();
+                this.clearDynamicFields();
+                return;
+            }
+
+            this.selectedGame = this.games.find(g => g.id == gameId);
+            if (this.selectedGame) {
+                this.updateGamePreview(this.selectedGame);
+                await this.loadGameSchema(gameId);
+            }
+        });
+    },
+
+    updateGamePreview(game) {
+        const preview = document.getElementById('game-preview');
+        if (!preview) return;
+
+        preview.classList.remove('hidden');
+        preview.innerHTML = `
+            <div class="flex items-center gap-4">
+                ${game.logo ? 
+                    `<img src="${game.logo}" alt="${game.display_name}" class="w-16 h-16 rounded-lg object-cover">` :
+                    '<div class="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl">🎮</div>'
+                }
+                <div>
+                    <h4 class="text-white font-bold text-lg">${game.display_name}</h4>
+                    <p class="text-slate-400 text-sm">${game.category} • ${game.game_type || 'Competitive'}</p>
+                </div>
+            </div>
+        `;
+    },
+
+    clearGamePreview() {
+        const preview = document.getElementById('game-preview');
+        if (preview) preview.classList.add('hidden');
+    },
+
+    async loadGameSchema(gameId) {
+        try {
+            const response = await fetch(`/api/games/${gameId}/schema/`);
+            if (response.ok) {
+                const schema = await response.json();
+                this.renderDynamicFields(schema.fields);
+            }
+        } catch (error) {
+            console.error('Failed to load game schema:', error);
+            Toast.error('Failed to load game fields');
+        }
+    },
+
+    renderDynamicFields(fields) {
+        const container = document.getElementById('dynamic-fields');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        fields.forEach(field => {
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'mb-4';
+
             const label = document.createElement('label');
-            label.className = 'form-label';
+            label.className = 'block text-slate-300 font-semibold mb-2';
             label.textContent = field.label + (field.required ? ' *' : '');
-            
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.name = field.key;
-            input.className = 'form-input';
-            input.placeholder = field.placeholder || '';
-            if (field.required) input.required = true;
-            
-            formGroup.appendChild(label);
-            formGroup.appendChild(input);
-            grid.appendChild(formGroup);
+
+            let input;
+            if (field.type === 'select' && field.choices) {
+                input = document.createElement('select');
+                input.className = 'form-input';
+                
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = `Select ${field.label}...`;
+                input.appendChild(defaultOption);
+
+                field.choices.forEach(choice => {
+                    const option = document.createElement('option');
+                    option.value = choice.value;
+                    option.textContent = choice.label;
+                    input.appendChild(option);
+                });
+            } else if (field.type === 'textarea') {
+                input = document.createElement('textarea');
+                input.className = 'form-input';
+                input.rows = 3;
+            } else {
+                input = document.createElement('input');
+                input.type = field.type || 'text';
+                input.className = 'form-input';
+            }
+
+            input.name = field.field_name;
+            input.required = field.required;
+            if (field.placeholder) input.placeholder = field.placeholder;
+            if (field.validation) input.pattern = field.validation;
+            if (field.immutable) input.readOnly = true;
+            if (field.min_length) input.minLength = field.min_length;
+            if (field.max_length) input.maxLength = field.max_length;
+
+            fieldDiv.appendChild(label);
+            fieldDiv.appendChild(input);
+
+            if (field.help_text) {
+                const help = document.createElement('p');
+                help.className = 'text-slate-500 text-xs mt-1';
+                help.textContent = field.help_text;
+                fieldDiv.appendChild(help);
+            }
+
+            // Show validation error if pattern is set
+            if (field.validation && field.validation_error) {
+                input.addEventListener('invalid', () => {
+                    input.setCustomValidity(field.validation_error);
+                });
+                input.addEventListener('input', () => {
+                    input.setCustomValidity('');
+                });
+            }
+
+            container.appendChild(fieldDiv);
         });
-        
-        container.appendChild(grid);
     },
-    
+
+    clearDynamicFields() {
+        const container = document.getElementById('dynamic-fields');
+        if (container) container.innerHTML = '';
+    },
+
     setupPassportForm() {
         const form = document.getElementById('passport-form');
         if (!form) return;
-        
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const select = document.getElementById('passport-game-select');
-            const gameSlug = select.value;
-            const gameId = select.selectedOptions[0].dataset.gameId;
-            
-            if (!gameSlug) {
-                ModernToast.show('Error', 'Please select a game', 'error');
-                return;
-            }
-            
-            // Collect identity fields
-            const identityData = {};
-            const identityFields = document.querySelectorAll('#passport-identity-fields input');
-            identityFields.forEach(input => {
-                if (input.value) {
-                    identityData[input.name] = input.value;
-                }
-            });
-            
-            // Collect showcase fields
-            const showcaseData = {};
-            const showcaseFields = document.querySelectorAll('#passport-showcase-fields input');
-            showcaseFields.forEach(input => {
-                if (input.value) {
-                    showcaseData[input.name] = input.value;
-                }
-            });
-            
-            const payload = {
-                game_id: gameId,
-                identity_data: identityData,
-                showcase_data: showcaseData
-            };
-            
-            try {
-                const response = await fetch('/api/passports/create/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': CSRF_TOKEN
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    ModernToast.show('Passport Created', `Your ${select.selectedOptions[0].text} passport has been created`, 'success');
-                    
-                    // Reset form
-                    form.reset();
-                    document.getElementById('passport-identity-fields').innerHTML = '';
-                    document.getElementById('passport-showcase-fields').style.display = 'none';
-                    
-                    // Reload passports list
-                    setTimeout(() => location.reload(), 1500);
+
+        form.addEventListener('submit', (e) => this.handleSubmit(e));
+    },
+
+    async handleSubmit(e) {
+        e.preventDefault();
+
+        if (!this.selectedGame) {
+            Toast.error('Please select a game');
+            return;
+        }
+
+        const data = {
+            game_id: this.selectedGame.id,
+            metadata: {}
+        };
+
+        // Collect all dynamic field values
+        const dynamicFields = document.querySelectorAll('#dynamic-fields input, #dynamic-fields select, #dynamic-fields textarea');
+        dynamicFields.forEach(field => {
+            if (field.value.trim()) {
+                // Map common field names to backend expected names
+                const fieldName = field.name;
+                if (fieldName === 'ign' || fieldName === 'in_game_name') {
+                    data.ign = field.value.trim();
+                } else if (fieldName === 'discriminator' || fieldName === 'tag') {
+                    data.discriminator = field.value.trim();
+                } else if (fieldName === 'platform') {
+                    data.platform = field.value.trim();
+                } else if (fieldName === 'region' || fieldName === 'server') {
+                    data.metadata.region = field.value.trim();
+                } else if (fieldName === 'rank' || fieldName === 'tier') {
+                    data.metadata.rank = field.value.trim();
                 } else {
-                    ModernToast.show('Creation Failed', data.error || 'Failed to create passport', 'error');
+                    // Store other fields in metadata
+                    data.metadata[fieldName] = field.value.trim();
                 }
-            } catch (error) {
-                console.error('Passport creation error:', error);
-                ModernToast.show('Network Error', 'Failed to connect to server', 'error');
             }
+        });
+
+        // Validate required fields
+        if (!data.ign) {
+            Toast.error('Please provide your in-game name');
+            return;
+        }
+
+        try {
+            Toast.info('Creating game passport...');
+
+            const response = await fetch('/api/passports/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                Toast.success(`${this.selectedGame.display_name} passport created! 🎮`);
+                this.closeModal();
+                this.loadPassports(); // Reload passports
+            } else {
+                Toast.error(result.error || 'Failed to create passport');
+            }
+        } catch (error) {
+            console.error('Passport creation error:', error);
+            Toast.error('Failed to create passport');
+        }
+    },
+
+    resetForm() {
+        document.getElementById('passport-form')?.reset();
+        this.selectedGame = null;
+        this.clearGamePreview();
+        this.clearDynamicFields();
+    },
+
+    async loadPassports() {
+        // This would load existing passports from the backend
+        // For now, passports are rendered server-side in the template
+    },
+
+    setupDeleteButtons() {
+        document.querySelectorAll('[data-delete-passport]').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const passportId = button.getAttribute('data-delete-passport');
+                this.deletePassport(passportId);
+            });
         });
     },
-    
-    setupDeleteButtons() {
-        document.querySelectorAll('[data-action="delete"]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const passportId = btn.dataset.passportId;
-                
-                if (!confirm('Delete this game passport?')) return;
-                
-                try {
-                    const response = await fetch(`/api/passports/${passportId}/delete/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': CSRF_TOKEN
-                        }
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        ModernToast.show('Passport Deleted', 'Your passport has been removed', 'success');
-                        btn.closest('.passport-card').remove();
-                    } else {
-                        ModernToast.show('Delete Failed', data.error || 'Failed to delete passport', 'error');
-                    }
-                } catch (error) {
-                    console.error('Passport delete error:', error);
-                    ModernToast.show('Network Error', 'Failed to connect to server', 'error');
+
+    async deletePassport(passportId) {
+        if (!confirm('Are you sure you want to delete this game passport?')) return;
+
+        try {
+            const response = await fetch(`/api/passports/${passportId}/delete/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
                 }
             });
-        });
+
+            if (response.ok) {
+                Toast.success('Passport deleted');
+                location.reload();
+            } else {
+                Toast.error('Failed to delete passport');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            Toast.error('Failed to delete passport');
+        }
     }
 };
 
-// ========== SOCIAL LINKS ==========
+// ============================================================================
+// SOCIAL LINKS MODULE
+// ============================================================================
+
 const SocialLinks = {
     init() {
-        this.loadLinks();
-        document.getElementById('save-social-links').addEventListener('click', () => this.saveLinks());
+        const saveBtn = document.getElementById('save-social');
+        if (!saveBtn) return;
+
+        saveBtn.addEventListener('click', () => this.save());
+        this.load();
     },
-    
-    async loadLinks() {
+
+    async load() {
         try {
-            const response = await fetch('/api/social-links/', {
-                headers: {
-                    'X-CSRFToken': CSRF_TOKEN
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Populate fields
-                Object.entries(data.links).forEach(([platform, url]) => {
-                    const input = document.querySelector(`[data-platform="${platform}"]`);
-                    if (input) input.value = url || '';
-                });
+            const response = await fetch('/api/social-links/');
+            if (response.ok) {
+                const links = await response.json();
+                this.populateForm(links);
             }
         } catch (error) {
-            console.error('Load social links error:', error);
+            console.error('Failed to load social links:', error);
         }
     },
-    
-    async saveLinks() {
-        const links = {};
-        
-        document.querySelectorAll('[data-platform]').forEach(input => {
-            const platform = input.dataset.platform;
-            const url = input.value.trim();
-            if (url) links[platform] = url;
+
+    populateForm(links) {
+        const form = document.getElementById('social-form');
+        if (!form) return;
+
+        links.forEach(link => {
+            const input = form.querySelector(`[name="${link.platform}"]`);
+            if (input) {
+                input.value = link.handle || link.url || '';
+            }
         });
-        
+    },
+
+    async save() {
+        const form = document.getElementById('social-form');
+        if (!form) return;
+
+        const formData = new FormData(form);
+        const data = {};
+
+        for (let [key, value] of formData.entries()) {
+            if (key !== 'csrfmiddlewaretoken' && value.trim()) {
+                data[key] = value.trim();
+            }
+        }
+
         try {
             const response = await fetch('/api/social-links/update/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': CSRF_TOKEN
+                    'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ links })
+                body: JSON.stringify(data)
             });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                ModernToast.show('Links Saved', 'Your social links have been updated', 'success');
+
+            if (response.ok) {
+                Toast.success('Social links updated! 🔗');
             } else {
-                ModernToast.show('Save Failed', data.error || 'Failed to save social links', 'error');
+                Toast.error('Failed to update social links');
             }
         } catch (error) {
-            console.error('Save social links error:', error);
-            ModernToast.show('Network Error', 'Failed to connect to server', 'error');
+            console.error('Social links error:', error);
+            Toast.error('Failed to save changes');
         }
     }
 };
 
-// ========== PRIVACY SETTINGS ==========
-const PrivacySettings = {
+// ============================================================================
+// PRIVACY SETTINGS MODULE
+// ============================================================================
+
+const Privacy = {
     init() {
-        this.loadSettings();
-        document.getElementById('save-privacy-settings').addEventListener('click', () => this.saveSettings());
+        this.setupPresets();
+        this.setupToggles();
+        this.setupSaveButton();
+        this.load();
     },
-    
-    async loadSettings() {
-        try {
-            const response = await fetch('/me/settings/privacy/', {
-                headers: {
-                    'X-CSRFToken': CSRF_TOKEN
-                }
+
+    setupPresets() {
+        document.querySelectorAll('.preset-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const preset = card.getAttribute('data-preset');
+                this.applyPreset(preset);
+                
+                // Update active state
+                document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
             });
-            
-            const data = await response.json();
-            
-            if (data.success && data.settings) {
-                // Populate toggles
-                Object.entries(data.settings).forEach(([field, value]) => {
-                    const toggle = document.querySelector(`[data-field="${field}"]`);
-                    if (toggle) toggle.checked = value;
-                });
+        });
+    },
+
+    applyPreset(preset) {
+        const toggles = {
+            public: {
+                'privacy-profile': true,
+                'privacy-real-name': false,
+                'privacy-age': true,
+                'privacy-country': true,
+                'privacy-passports': true,
+                'privacy-matches': true,
+                'privacy-tournaments': true,
+                'privacy-stats': true,
+                'privacy-teams': true,
+                'privacy-team-invites': true,
+                'privacy-friend-requests': true,
+                'privacy-messages': true
+            },
+            protected: {
+                'privacy-profile': true,
+                'privacy-real-name': false,
+                'privacy-age': false,
+                'privacy-country': true,
+                'privacy-passports': true,
+                'privacy-matches': true,
+                'privacy-tournaments': true,
+                'privacy-stats': true,
+                'privacy-teams': true,
+                'privacy-team-invites': true,
+                'privacy-friend-requests': true,
+                'privacy-messages': false
+            },
+            private: {
+                'privacy-profile': false,
+                'privacy-real-name': false,
+                'privacy-age': false,
+                'privacy-country': false,
+                'privacy-passports': false,
+                'privacy-matches': false,
+                'privacy-tournaments': false,
+                'privacy-stats': false,
+                'privacy-teams': false,
+                'privacy-team-invites': false,
+                'privacy-friend-requests': false,
+                'privacy-messages': false
             }
-        } catch (error) {
-            console.error('Load privacy settings error:', error);
+        };
+
+        const settings = toggles[preset];
+        if (settings) {
+            Object.entries(settings).forEach(([id, value]) => {
+                const toggle = document.getElementById(id);
+                if (toggle) toggle.checked = value;
+            });
+            Toast.info(`Applied ${preset} preset`);
         }
     },
-    
-    async saveSettings() {
-        const settings = {};
-        
-        document.querySelectorAll('[data-field]').forEach(toggle => {
-            const field = toggle.dataset.field;
-            settings[field] = toggle.checked;
+
+    setupToggles() {
+        // Toggles are already functional via HTML
+    },
+
+    setupSaveButton() {
+        const saveBtn = document.getElementById('save-privacy');
+        if (!saveBtn) return;
+
+        saveBtn.addEventListener('click', () => this.save());
+    },
+
+    async load() {
+        try {
+            const response = await fetch('/me/settings/privacy/');
+            if (response.ok) {
+                const settings = await response.json();
+                this.populateToggles(settings);
+            }
+        } catch (error) {
+            console.error('Failed to load privacy settings:', error);
+        }
+    },
+
+    populateToggles(settings) {
+        Object.entries(settings).forEach(([key, value]) => {
+            const toggle = document.getElementById(`privacy-${key.replace(/_/g, '-')}`);
+            if (toggle) toggle.checked = value;
         });
+    },
+
+    async save() {
+        const data = {};
         
+        document.querySelectorAll('[id^="privacy-"]').forEach(toggle => {
+            const key = toggle.id.replace('privacy-', '').replace(/-/g, '_');
+            data[key] = toggle.checked;
+        });
+
         try {
             const response = await fetch('/me/settings/privacy/save/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': CSRF_TOKEN
+                    'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ privacy_settings: settings })
+                body: JSON.stringify(data)
             });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                ModernToast.show('Privacy Updated', 'Your privacy settings have been saved', 'success');
+
+            if (response.ok) {
+                Toast.success('Privacy settings saved! 🔒');
             } else {
-                ModernToast.show('Save Failed', data.error || 'Failed to save privacy settings', 'error');
+                Toast.error('Failed to save privacy settings');
             }
         } catch (error) {
-            console.error('Save privacy settings error:', error);
-            ModernToast.show('Network Error', 'Failed to connect to server', 'error');
+            console.error('Privacy save error:', error);
+            Toast.error('Failed to save settings');
         }
     }
 };
 
-// ========== PROFILE FORM ==========
-const ProfileForm = {
+// ============================================================================
+// PLATFORM SETTINGS MODULE
+// ============================================================================
+
+const PlatformSettings = {
     init() {
-        const form = document.querySelector('#profile-section form');
+        const form = document.getElementById('platform-form');
         if (!form) return;
-        
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(form);
-            
-            try {
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    ModernToast.show('Profile Updated', 'Your profile information has been saved', 'success');
+
+        form.addEventListener('submit', (e) => this.handleSubmit(e));
+    },
+
+    async handleSubmit(e) {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const data = {};
+
+        for (let [key, value] of formData.entries()) {
+            if (key !== 'csrfmiddlewaretoken') {
+                if (e.target.elements[key].type === 'checkbox') {
+                    data[key] = e.target.elements[key].checked;
                 } else {
-                    ModernToast.show('Update Failed', data.error || 'Failed to update profile', 'error');
+                    data[key] = value;
+                }
+            }
+        }
+
+        try {
+            const response = await fetch('/me/settings/platform/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                Toast.success('Platform settings updated! ⚙️');
+            } else {
+                Toast.error('Failed to update settings');
+            }
+        } catch (error) {
+            console.error('Platform settings error:', error);
+            Toast.error('Failed to save changes');
+        }
+    }
+};
+
+// ============================================================================
+// SECURITY MODULE
+// ============================================================================
+
+const Security = {
+    init() {
+        this.initPasswordForm();
+        this.init2FA();
+        this.initSessions();
+        this.initLoginHistory();
+    },
+
+    initPasswordForm() {
+        const form = document.getElementById('password-form');
+        if (!form) return;
+
+        form.addEventListener('submit', (e) => this.handlePasswordChange(e));
+    },
+
+    async handlePasswordChange(e) {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const data = {
+            current_password: formData.get('current_password'),
+            new_password: formData.get('new_password'),
+            confirm_password: formData.get('confirm_password')
+        };
+
+        if (data.new_password !== data.confirm_password) {
+            Toast.error('Passwords do not match');
+            return;
+        }
+
+        try {
+            const response = await fetch('/me/settings/security/password/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                Toast.success('Password updated successfully! 🔐');
+                e.target.reset();
+            } else {
+                Toast.error(result.error || 'Failed to update password');
+            }
+        } catch (error) {
+            console.error('Password change error:', error);
+            Toast.error('Failed to update password');
+        }
+    },
+
+    init2FA() {
+        const enableBtn = document.getElementById('enable-2fa');
+        if (!enableBtn) return;
+
+        enableBtn.addEventListener('click', () => {
+            Toast.info('2FA setup coming soon...');
+            // This would open a modal with QR code for 2FA setup
+        });
+    },
+
+    initSessions() {
+        const refreshBtn = document.getElementById('refresh-sessions');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => this.loadSessions());
+        }
+        
+        this.loadSessions();
+    },
+
+    async loadSessions() {
+        try {
+            const response = await fetch('/me/settings/security/sessions/');
+            if (response.ok) {
+                const sessions = await response.json();
+                this.renderSessions(sessions);
+            }
+        } catch (error) {
+            console.error('Failed to load sessions:', error);
+        }
+    },
+
+    renderSessions(sessions) {
+        const container = document.getElementById('sessions-list');
+        if (!container || !sessions.length) return;
+
+        // Keep the current session display, append others
+        // This would be implemented based on your backend session structure
+    },
+
+    initLoginHistory() {
+        const viewBtn = document.getElementById('view-full-history');
+        if (viewBtn) {
+            viewBtn.addEventListener('click', () => {
+                Toast.info('Full login history coming soon...');
+            });
+        }
+    }
+};
+
+// ============================================================================
+// DANGER ZONE MODULE
+// ============================================================================
+
+const DangerZone = {
+    init() {
+        this.initLogoutAll();
+        this.initDeleteAccount();
+    },
+
+    initLogoutAll() {
+        const btn = document.getElementById('logout-all');
+        if (!btn) return;
+
+        btn.addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to logout from all other devices? You will remain logged in on this device.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/me/settings/security/logout-all/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    Toast.success('Logged out from all other devices');
+                } else {
+                    Toast.error('Failed to logout from other devices');
                 }
             } catch (error) {
-                console.error('Profile update error:', error);
-                ModernToast.show('Network Error', 'Failed to connect to server', 'error');
+                console.error('Logout all error:', error);
+                Toast.error('Failed to logout from other devices');
+            }
+        });
+    },
+
+    initDeleteAccount() {
+        const btn = document.getElementById('delete-account');
+        if (!btn) return;
+
+        btn.addEventListener('click', async () => {
+            // Double confirmation
+            if (!confirm('⚠️ WARNING: This will permanently delete your account and all data. This action CANNOT be undone.\n\nAre you absolutely sure?')) {
+                return;
+            }
+
+            const confirmation = prompt('Type "DELETE" to confirm account deletion:');
+            if (confirmation !== 'DELETE') {
+                Toast.warning('Account deletion cancelled');
+                return;
+            }
+
+            try {
+                const response = await fetch('/me/settings/danger/delete-account/', {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    Toast.success('Account deleted. Redirecting...');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    Toast.error('Failed to delete account');
+                }
+            } catch (error) {
+                console.error('Delete account error:', error);
+                Toast.error('Failed to delete account');
             }
         });
     }
 };
 
-// ========== INITIALIZATION ==========
+// ============================================================================
+// MAIN INITIALIZATION
+// ============================================================================
+
 document.addEventListener('DOMContentLoaded', () => {
-    ModernToast.init();
+    // Initialize all modules
+    Toast.init();
     Navigation.init();
-    MediaUpload.init();
-    GamePassports.init();
-    SocialLinks.init();
-    PrivacySettings.init();
     ProfileForm.init();
-    
-    console.log('🚀 DeltaCrown Settings - Modern 2025 Loaded');
+    MediaUpload.init();
+    GamePassports.init(); // Critical module
+    SocialLinks.init();
+    Privacy.init();
+    PlatformSettings.init();
+    Security.init();
+    DangerZone.init();
+
+    console.log('✅ DeltaCrown Settings - All modules initialized');
 });

@@ -70,6 +70,7 @@ urlpatterns = [
     # URL namespace kept active for admin panel functionality
     path("tournaments/", include(("apps.tournaments.urls", "tournaments"), namespace="tournaments")),
     path("teams/", include(("apps.teams.urls", "teams"), namespace="teams")),
+    path("", include(("apps.games.urls", "games"), namespace="games")),
     
     # API endpoints
     # Module 3.1: Registration Flow & Validation API
