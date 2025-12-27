@@ -39,6 +39,7 @@ def create_passport(request):
         ign = data.get('ign', '').strip()
         discriminator = data.get('discriminator', '').strip() or None
         platform = data.get('platform', '').strip() or None
+        metadata = data.get('metadata', {})
         
         # Validate required fields
         if not game_id:
@@ -71,7 +72,7 @@ def create_passport(request):
                 discriminator=discriminator,
                 platform=platform,
                 visibility='PUBLIC',  # Default to public
-                metadata={}
+                metadata=metadata if isinstance(metadata, dict) else {}
             )
             
             # Log audit event

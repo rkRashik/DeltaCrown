@@ -28,7 +28,8 @@ from .views.passport_api import (
 )
 # UP-SETTINGS-MVP-01: Settings API endpoints
 from .views.settings_api import (
-    upload_media, update_social_links_api, update_privacy_settings, remove_media_api
+    upload_media, update_social_links_api, update_privacy_settings, 
+    remove_media_api, get_privacy_settings, get_social_links
 )
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
@@ -90,6 +91,7 @@ urlpatterns = [
     path("me/settings/social/", update_social_links, name="update_social_links"),
     path("me/settings/media/", upload_media, name="upload_media"),
     path("me/settings/media/remove/", remove_media_api, name="remove_media"),
+    path("me/settings/privacy/", get_privacy_settings, name="get_privacy_settings"),
     path("me/settings/privacy/save/", update_privacy_settings, name="update_privacy_settings"),
     
     # GP-FE-MVP-01: Game Passport management API
@@ -100,6 +102,7 @@ urlpatterns = [
     path("api/passports/create/", create_passport, name="passport_create"),
     
     # UP-SETTINGS-MVP-01: Additional settings API
+    path("api/social-links/", get_social_links, name="get_social_links"),
     path("api/social-links/update/", update_social_links_api, name="update_social_links_api"),
     
     # ============================================

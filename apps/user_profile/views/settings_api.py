@@ -164,6 +164,43 @@ def remove_media_api(request):
 
 
 @login_required
+@require_http_methods(["GET"])
+def get_social_links(request):
+    """
+    Get current social links for the authenticated user.
+    
+    Route: GET /api/social-links/
+    
+    Returns:
+        JSON: {
+            success: true,
+            links: {
+                twitch: "https://twitch.tv/username",
+                youtube: "https://youtube.com/@username",
+                ...
+            }
+        }
+    """
+    from apps.user_profile.models import SocialLink
+    
+    try:
+        social_links = SocialLink.objects.filter(user=request.user)
+        
+        links = {}
+        for link in social_links:
+            links[link.platform] = link.url
+        
+        return JsonResponse({
+            'success': True,
+            'links': links
+        })
+    
+    except Exception as e:
+        logger.error(f"Error loading social links: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
 @require_http_methods(["POST"])
 def update_social_links_api(request):
     """
@@ -248,68 +285,105 @@ def update_privacy_settings(request):
     
     Route: POST /me/settings/privacy/save/
     
-    Fields:
-    - visibility_preset: 'PUBLIC', 'PROTECTED', or 'PRIVATE'
-    - show_* toggles (various boolean fields)
+    Body (JSON):
+    {
+        "privacy_settings": {
+            "show_real_name": false,
+            "show_email": false,
+            ...
+        }
+    }
     
     Returns:
-        Redirect to privacy page with success message
+        JSON: {success: true, message: '...'}
+    """
+    import json
+    from apps.user_profile.utils import get_user_profile_safe
+    from apps.user_profile.models import PrivacySettings
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        # Parse JSON body
+        data = json.loads(request.body)
+        settings_data = data.get('privacy_settings', {})
+        
+        # Get or create privacy settings
+        privacy, created = PrivacySettings.objects.get_or_create(user_profile=profile)
+        
+        # Update preset if provided
+        if 'visibility_preset' in settings_data:
+            preset = settings_data['visibility_preset']
+            if preset in ['PUBLIC', 'PROTECTED', 'PRIVATE']:
+                privacy.visibility_preset = preset
+        
+        # Update all toggles (accept both camelCase and snake_case)
+        boolean_fields = [
+            'show_real_name', 'show_email', 'show_phone', 'show_age', 'show_gender',
+            'show_country', 'show_address', 'show_game_ids', 'show_match_history',
+            'show_teams', 'show_achievements', 'show_activity_feed', 'show_tournaments',
+            'show_social_links', 'show_inventory_value', 'show_level_xp',
+            'allow_team_invites', 'allow_friend_requests', 'allow_direct_messages'
+        ]
+        
+        for field in boolean_fields:
+            if field in settings_data:
+                setattr(privacy, field, bool(settings_data[field]))
+        
+        privacy.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Privacy settings saved successfully'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating privacy settings: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_privacy_settings(request):
+    """
+    Get current privacy settings for the authenticated user.
+    
+    Route: GET /me/settings/privacy/
+    
+    Returns:
+        JSON: {
+            success: true,
+            settings: {
+                show_real_name: false,
+                show_email: false,
+                ...
+            }
+        }
     """
     from apps.user_profile.utils import get_user_profile_safe
     from apps.user_profile.models import PrivacySettings
     
     profile = get_user_profile_safe(request.user)
     
-    # Get or create privacy settings
-    privacy, created = PrivacySettings.objects.get_or_create(user_profile=profile)
+    try:
+        privacy, created = PrivacySettings.objects.get_or_create(user_profile=profile)
+        
+        settings = {
+            'show_real_name': privacy.show_real_name,
+            'show_email': privacy.show_email,
+            'show_bio': privacy.show_bio if hasattr(privacy, 'show_bio') else True,
+            'show_passports': privacy.show_game_ids if hasattr(privacy, 'show_game_ids') else True,
+            'show_socials': privacy.show_social_links if hasattr(privacy, 'show_social_links') else True,
+            'allow_team_invites': privacy.allow_team_invites if hasattr(privacy, 'allow_team_invites') else True,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'settings': settings
+        })
     
-    # Capture before state
-    before_state = {
-        'visibility_preset': privacy.visibility_preset,
-        'show_social_links': privacy.show_social_links,
-        'show_activity_feed': privacy.show_activity_feed,
-        'show_teams': privacy.show_teams,
-        'show_tournaments': privacy.show_tournaments,
-    }
-    
-    # Update preset
-    preset = request.POST.get('visibility_preset', 'PUBLIC')
-    if preset in ['PUBLIC', 'PROTECTED', 'PRIVATE']:
-        privacy.visibility_preset = preset
-    
-    # Update toggles (All 25 model fields)
-    privacy.show_real_name = request.POST.get('show_real_name') == 'on'
-    privacy.show_email = request.POST.get('show_email') == 'on'
-    privacy.show_phone = request.POST.get('show_phone') == 'on'
-    privacy.show_age = request.POST.get('show_age') == 'on'
-    privacy.show_gender = request.POST.get('show_gender') == 'on'
-    privacy.show_country = request.POST.get('show_country') == 'on'
-    privacy.show_address = request.POST.get('show_address') == 'on'
-    privacy.show_game_ids = request.POST.get('show_game_ids') == 'on'
-    privacy.show_match_history = request.POST.get('show_match_history') == 'on'
-    privacy.show_teams = request.POST.get('show_teams') == 'on'
-    privacy.show_achievements = request.POST.get('show_achievements') == 'on'
-    privacy.show_activity_feed = request.POST.get('show_activity_feed') == 'on'
-    privacy.show_tournaments = request.POST.get('show_tournaments') == 'on'
-    privacy.show_social_links = request.POST.get('show_social_links') == 'on'
-    privacy.show_inventory_value = request.POST.get('show_inventory_value') == 'on'
-    privacy.show_level_xp = request.POST.get('show_level_xp') == 'on'
-    privacy.allow_team_invites = request.POST.get('allow_team_invites') == 'on'
-    privacy.allow_friend_requests = request.POST.get('allow_friend_requests') == 'on'
-    privacy.allow_direct_messages = request.POST.get('allow_direct_messages') == 'on'
-    
-    privacy.save()
-    
-    # Log audit event
-    after_state = {
-        'visibility_preset': privacy.visibility_preset,
-        'show_social_links': privacy.show_social_links,
-        'show_activity_feed': privacy.show_activity_feed,
-        'show_teams': privacy.show_teams,
-        'show_tournaments': privacy.show_tournaments,
-    }
-    
-    privacy.save()
-    
-    messages.success(request, 'Privacy settings saved successfully')
-    return redirect(reverse('user_profile:profile_privacy_v2'))
+    except Exception as e:
+        logger.error(f"Error loading privacy settings: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)

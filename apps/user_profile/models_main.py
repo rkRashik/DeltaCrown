@@ -296,6 +296,20 @@ class UserProfile(models.Model):
             return self.real_full_name
         return self.user.get_full_name() if hasattr(self.user, 'get_full_name') else ""
     
+    # ===== MEDIA HELPER METHODS =====
+    
+    def get_avatar_url(self):
+        """Get avatar URL or return None if no avatar set."""
+        if self.avatar:
+            return self.avatar.url
+        return None
+    
+    def get_banner_url(self):
+        """Get banner URL or return None if no banner set."""
+        if self.banner:
+            return self.banner.url
+        return None
+    
     # ===== TEAM HELPER METHODS =====
     
     def get_active_teams(self):
