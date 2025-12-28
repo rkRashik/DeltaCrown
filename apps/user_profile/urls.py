@@ -24,7 +24,7 @@ from .views.fe_v2 import (
 )
 # GP-FE-MVP-01: Game Passport API
 from .views.passport_api import (
-    toggle_lft, set_visibility, pin_passport, reorder_passports
+    toggle_lft, set_visibility, pin_passport, reorder_passports, delete_passport
 )
 # UP-SETTINGS-MVP-01: Settings API endpoints
 from .views.settings_api import (
@@ -100,6 +100,7 @@ urlpatterns = [
     path("api/passports/pin/", pin_passport, name="passport_pin"),
     path("api/passports/reorder/", reorder_passports, name="passport_reorder"),
     path("api/passports/create/", create_passport, name="passport_create"),
+    path("api/passports/<int:passport_id>/delete/", delete_passport, name="passport_delete"),
     
     # UP-SETTINGS-MVP-01: Additional settings API
     path("api/social-links/", get_social_links, name="get_social_links"),

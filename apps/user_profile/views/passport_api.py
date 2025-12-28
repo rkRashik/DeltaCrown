@@ -176,3 +176,87 @@ def reorder_passports(request):
     except Exception as e:
         logger.error(f"Error reordering passports for user {request.user.id}: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@csrf_protect
+@require_http_methods(["DELETE", "POST"])
+def delete_passport(request, passport_id):
+    """Delete a game passport with validation"""
+    try:
+        # Get the passport
+        try:
+            passport = GameProfile.objects.select_related('game').get(id=passport_id, user=request.user)
+        except GameProfile.DoesNotExist:
+            logger.error(f"Passport {passport_id} not found for user {request.user.id}")
+            return JsonResponse({'success': False, 'error': 'Passport not found'}, status=404)
+        
+        # Get game name and slug
+        game_name = passport.game.display_name
+        game_slug = passport.game.slug
+        
+        logger.info(f"Attempting to delete passport {passport_id} for user {request.user.id}, game: {game_slug}")
+        
+        # Check if user is in an active team using this game
+        from apps.teams.models import TeamMembership
+        active_team = TeamMembership.objects.filter(
+            profile__user=request.user,
+            team__game=game_slug,
+            status=TeamMembership.Status.ACTIVE
+        ).select_related('team').first()
+        
+        if active_team:
+            logger.info(f"Cannot delete passport {passport_id} - user in active team: {active_team.team.name}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Cannot delete {game_name} passport while in team "{active_team.team.name}". Leave the team first.'
+            }, status=400)
+        
+        # Capture snapshot BEFORE deletion
+        before_snapshot = {
+            'game': game_name,
+            'ign': passport.ign,
+            'discriminator': passport.discriminator,
+            'platform': passport.platform,
+            'region': passport.region,
+        }
+        
+        # Delete via service (includes audit logging)
+        logger.info(f"Calling GamePassportService.delete_passport for user {request.user.username}, game {game_slug}")
+        deleted = GamePassportService.delete_passport(
+            user=request.user,
+            game=game_slug,
+            actor_user_id=request.user.id
+        )
+        
+        if not deleted:
+            logger.error(f"GamePassportService.delete_passport returned False for passport {passport_id}")
+            return JsonResponse({'success': False, 'error': 'Failed to delete passport'}, status=500)
+        
+        # Additional audit event (using captured snapshot)
+        from apps.user_profile.services.audit import AuditService
+        
+        AuditService.record_event(
+            subject_user_id=request.user.id,
+            actor_user_id=request.user.id,
+            event_type='game_passport.deleted',
+            source_app='user_profile',
+            object_type='GameProfile',
+            object_id=passport_id,
+            before_snapshot=before_snapshot,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:200]
+        )
+        
+        logger.info(f"Successfully deleted passport {passport_id} for user {request.user.id}")
+        return JsonResponse({
+            'success': True,
+            'message': f'{game_name} passport deleted successfully'
+        }, status=200)
+        
+    except ValidationError as e:
+        logger.error(f"ValidationError deleting passport {passport_id}: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    except Exception as e:
+        logger.error(f"Error deleting passport {passport_id} for user {request.user.id}: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)

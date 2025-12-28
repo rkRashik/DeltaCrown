@@ -649,8 +649,13 @@ class GamePassportService:
         passport_id = passport.id
         identity_key = passport.identity_key
         
-        # Delete (cascades to aliases)
-        passport.delete()
+        # Delete using raw SQL to avoid ORM caching issues
+        from django.db import connection
+        with connection.cursor() as cursor:
+            # Delete aliases first
+            cursor.execute("DELETE FROM user_profile_gameprofilealias WHERE game_profile_id = %s", [passport_id])
+            # Delete passport
+            cursor.execute("DELETE FROM user_profile_gameprofile WHERE id = %s", [passport_id])
         
         # Audit log
         AuditService.record_event(

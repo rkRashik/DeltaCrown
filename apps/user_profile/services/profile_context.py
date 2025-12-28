@@ -338,7 +338,7 @@ def _build_social_links_data(
     visible_fields: set
 ) -> Dict[str, Any]:
     """
-    Build social links dict.
+    Build social links dict from SocialLink model.
     
     Args:
         profile: UserProfile model instance
@@ -347,23 +347,51 @@ def _build_social_links_data(
     Returns:
         Dict with social links (all strings)
     """
+    from apps.user_profile.models import SocialLink
+    
     social = {}
     
-    # Social links are public by default
-    if 'youtube_link' in visible_fields:
-        social['youtube'] = profile.youtube_link if hasattr(profile, 'youtube_link') and profile.youtube_link else None
-    if 'twitch_link' in visible_fields:
-        social['twitch'] = profile.twitch_link if hasattr(profile, 'twitch_link') and profile.twitch_link else None
-    if 'discord_id' in visible_fields:
-        social['discord'] = profile.discord_id if hasattr(profile, 'discord_id') and profile.discord_id else None
-    if 'twitter' in visible_fields:
-        social['twitter'] = profile.twitter if hasattr(profile, 'twitter') and profile.twitter else None
-    if 'instagram' in visible_fields:
-        social['instagram'] = profile.instagram if hasattr(profile, 'instagram') and profile.instagram else None
-    if 'tiktok' in visible_fields:
-        social['tiktok'] = profile.tiktok if hasattr(profile, 'tiktok') and profile.tiktok else None
-    if 'facebook' in visible_fields:
-        social['facebook'] = profile.facebook if hasattr(profile, 'facebook') and profile.facebook else None
+    # Query SocialLink model for this user
+    social_links = SocialLink.objects.filter(user=profile.user)
+    
+    # Build dict with platform as key and handle/url as value
+    for link in social_links:
+        # Extract username/handle from URL for cleaner display
+        platform = link.platform
+        
+        # Use handle if available, otherwise extract from URL
+        if link.handle:
+            social[platform] = link.handle
+        else:
+            # Try to extract username from URL
+            url = link.url
+            if platform == 'twitch' and 'twitch.tv/' in url:
+                social[platform] = url.split('twitch.tv/')[-1].strip('/')
+            elif platform == 'youtube':
+                if '@' in url:
+                    social[platform] = url.split('@')[-1].split('/')[0]
+                elif 'channel/' in url:
+                    social[platform] = url.split('channel/')[-1].strip('/')
+                else:
+                    social[platform] = url
+            elif platform == 'twitter' or platform == 'x':
+                if 'twitter.com/' in url:
+                    social['twitter'] = url.split('twitter.com/')[-1].strip('/')
+                elif 'x.com/' in url:
+                    social['twitter'] = url.split('x.com/')[-1].strip('/')
+            elif platform == 'discord':
+                social[platform] = link.url  # Discord uses invite links
+            elif platform == 'instagram' and 'instagram.com/' in url:
+                social[platform] = url.split('instagram.com/')[-1].strip('/')
+            elif platform == 'tiktok':
+                if '@' in url:
+                    social[platform] = url.split('@')[-1].split('/')[0]
+                else:
+                    social[platform] = url.split('tiktok.com/')[-1].strip('/')
+            elif platform == 'facebook' and 'facebook.com/' in url:
+                social[platform] = url.split('facebook.com/')[-1].strip('/')
+            else:
+                social[platform] = link.url
     
     return social
 

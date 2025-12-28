@@ -35,17 +35,28 @@ def create_passport(request):
     
     try:
         data = json.loads(request.body)
+        logger.info(f"Creating passport with data: {data}")
+        
         game_id = data.get('game_id')
         ign = data.get('ign', '').strip()
         discriminator = data.get('discriminator', '').strip() or None
         platform = data.get('platform', '').strip() or None
-        region = data.get('region', '').strip() or ''
-        rank = data.get('rank', '').strip() or None
         metadata = data.get('metadata', {})
         
-        # Add rank to metadata if provided (ranks are showcase data, not identity)
+        # Region can be in metadata.region or top-level region
+        region = data.get('region', '').strip() or metadata.get('region', '').strip() or ''
+        
+        # Rank can be in metadata.rank or top-level rank
+        rank = data.get('rank', '').strip() or metadata.get('rank', '').strip() or None
+        
+        # Clean metadata to not duplicate top-level fields
+        metadata = {k: v for k, v in metadata.items() if k not in ['region', 'rank']}
+        
+        # Add rank back to metadata if provided (ranks are showcase data, not identity)
         if rank:
             metadata['rank'] = rank
+        
+        logger.info(f"Processed params - game_id:{game_id}, ign:{ign}, region:{region}, rank:{rank}")
         
         # Validate required fields
         if not game_id:
@@ -84,11 +95,17 @@ def create_passport(request):
             )
             
             # Log audit event
-            from apps.user_profile.services.audit_service import AuditService
-            AuditService.log_event(
-                user=request.user,
-                event_type='passport.created',
-                after_state={
+            from apps.user_profile.services.audit import AuditService
+            from apps.user_profile.models.audit import UserAuditEvent
+            
+            AuditService.record_event(
+                subject_user_id=request.user.id,
+                actor_user_id=request.user.id,
+                event_type='game_passport.created',
+                source_app='user_profile',
+                object_type='GameProfile',
+                object_id=passport.id,
+                after_snapshot={
                     'game': game.name,
                     'ign': ign,
                     'discriminator': discriminator,
@@ -96,10 +113,8 @@ def create_passport(request):
                     'region': region,
                     'rank': rank
                 },
-                request_meta={
-                    'ip_address': request.META.get('REMOTE_ADDR'),
-                    'user_agent': request.META.get('HTTP_USER_AGENT', '')[:200],
-                }
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:200]
             )
             
             return JsonResponse({
@@ -122,10 +137,11 @@ def create_passport(request):
             })
         
         except ValueError as e:
+            logger.error(f"Validation error creating passport: {e}", exc_info=True)
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
         except Exception as e:
             logger.error(f"Error creating passport: {e}", exc_info=True)
-            return JsonResponse({'success': False, 'error': 'Failed to create passport'}, status=500)
+            return JsonResponse({'success': False, 'error': f'Server error: {str(e)}'}, status=500)
     
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)

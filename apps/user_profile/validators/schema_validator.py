@@ -98,11 +98,42 @@ class GamePassportSchemaValidator:
         try:
             schema = GamePassportSchema.objects.get(game=game)
         except GamePassportSchema.DoesNotExist:
-            errors['game'] = (
-                f'No passport schema configured for {game.display_name}. '
-                'Please run: python manage.py seed_game_passport_schemas'
+            # FALLBACK: If no schema exists, use simple validation
+            # Just check that IGN is provided
+            if not ign:
+                errors['ign'] = 'In-Game Name is required'
+                return ValidationResult(is_valid=False, errors=errors)
+            
+            # Compute simple identity key and in_game_name
+            if discriminator:
+                in_game_name = f"{ign}#{discriminator}"
+                identity_key = f"{ign.lower()}#{discriminator.lower()}"
+            else:
+                in_game_name = ign
+                identity_key = ign.lower()
+            
+            # Check uniqueness
+            existing = GameProfile.objects.filter(
+                game=game,
+                identity_key=identity_key
             )
-            return ValidationResult(is_valid=False, errors=errors)
+            if passport_id:
+                existing = existing.exclude(id=passport_id)
+            
+            if existing.exists():
+                errors['ign'] = f'A passport with this identity already exists for {game.display_name}'
+                return ValidationResult(is_valid=False, errors=errors)
+            
+            # Return valid result with simple data
+            return ValidationResult(
+                is_valid=True,
+                errors={},
+                identity_key=identity_key,
+                in_game_name=in_game_name,
+                ign=ign,
+                discriminator=discriminator,
+                platform=platform
+            )
         
         # 2. Convert structured fields to identity_data dict for schema validation
         identity_data = {}

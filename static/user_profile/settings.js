@@ -757,38 +757,187 @@ const GamePassports = {
     async loadPassports() {
         // This would load existing passports from the backend
         // For now, passports are rendered server-side in the template
+        // Set up delete buttons after page load
+        // Use setTimeout to ensure DOM is fully rendered
+        setTimeout(() => this.setupDeleteButtons(), 100);
     },
 
     setupDeleteButtons() {
+        const deleteButtons = document.querySelectorAll('[data-delete-passport]');
+        console.log(`Found ${deleteButtons.length} delete buttons`);
+        
+        deleteButtons.forEach(button => {
+            // Remove any existing listeners to avoid duplicates
+            button.replaceWith(button.cloneNode(true));
+        });
+        
+        // Re-query after cloning
         document.querySelectorAll('[data-delete-passport]').forEach(button => {
             button.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 const passportId = button.getAttribute('data-delete-passport');
-                this.deletePassport(passportId);
+                const gameName = button.getAttribute('data-game-name');
+                console.log(`Delete clicked for passport ${passportId}: ${gameName}`);
+                this.openDeleteModal(passportId, gameName);
             });
         });
     },
 
-    async deletePassport(passportId) {
-        if (!confirm('Are you sure you want to delete this game passport?')) return;
+    openDeleteModal(passportId, gameName) {
+        const modal = document.getElementById('delete-passport-modal');
+        const gameNameDisplay = document.getElementById('delete-game-name');
+        const confirmText = document.getElementById('delete-confirm-text');
+        const confirmInput = document.getElementById('delete-confirm-input');
+        const confirmBtn = document.getElementById('confirm-delete-btn');
+        const cancelBtn = document.getElementById('cancel-delete-btn');
+        const inputError = document.getElementById('delete-input-error');
+
+        if (!modal) return;
+
+        // Store passport data
+        modal.dataset.passportId = passportId;
+        modal.dataset.gameName = gameName;
+
+        // Update modal content
+        gameNameDisplay.textContent = gameName;
+        confirmText.textContent = gameName;
+        confirmInput.value = '';
+        confirmBtn.disabled = true;
+        inputError.classList.add('hidden');
+
+        // Show modal
+        modal.classList.remove('hidden');
+
+        // Focus input after animation
+        setTimeout(() => confirmInput.focus(), 100);
+
+        // Input validation
+        const validateInput = () => {
+            const inputValue = confirmInput.value.trim();
+            const isMatch = inputValue.toLowerCase() === gameName.toLowerCase();
+            
+            confirmBtn.disabled = !isMatch;
+            
+            if (inputValue && !isMatch) {
+                inputError.classList.remove('hidden');
+                confirmInput.classList.add('shake');
+                setTimeout(() => confirmInput.classList.remove('shake'), 500);
+            } else {
+                inputError.classList.add('hidden');
+            }
+        };
+
+        confirmInput.addEventListener('input', validateInput);
+        confirmInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !confirmBtn.disabled) {
+                this.confirmDelete(passportId, gameName);
+            } else if (e.key === 'Escape') {
+                this.closeDeleteModal();
+            }
+        });
+
+        // Confirm delete button
+        confirmBtn.onclick = () => this.confirmDelete(passportId, gameName);
+
+        // Cancel button
+        cancelBtn.onclick = () => this.closeDeleteModal();
+
+        // Click outside to close
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                this.closeDeleteModal();
+            }
+        };
+
+        // ESC key to close
+        document.addEventListener('keydown', this.handleEscKey);
+    },
+
+    closeDeleteModal() {
+        const modal = document.getElementById('delete-passport-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.removeEventListener('keydown', this.handleEscKey);
+        }
+    },
+
+    handleEscKey(e) {
+        if (e.key === 'Escape') {
+            GamePassports.closeDeleteModal();
+        }
+    },
+
+    async confirmDelete(passportId, gameName) {
+        const confirmBtn = document.getElementById('confirm-delete-btn');
+        const btnText = confirmBtn.querySelector('.delete-btn-text');
+        const btnLoading = confirmBtn.querySelector('.delete-btn-loading');
+
+        // Show loading state
+        confirmBtn.disabled = true;
+        btnText.classList.add('hidden');
+        btnLoading.classList.remove('hidden');
 
         try {
             const response = await fetch(`/api/passports/${passportId}/delete/`, {
                 method: 'DELETE',
                 headers: {
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
                 }
             });
 
+            const result = await response.json();
+
             if (response.ok) {
-                Toast.success('Passport deleted');
-                location.reload();
+                Toast.success(`${gameName} passport deleted successfully! 🗑️`);
+                this.closeDeleteModal();
+                
+                // Remove passport card from UI with fade animation
+                const passportCard = document.querySelector(`[data-delete-passport="${passportId}"]`)?.closest('.glass-card');
+                if (passportCard) {
+                    passportCard.style.opacity = '0';
+                    passportCard.style.transform = 'scale(0.95)';
+                    passportCard.style.transition = 'all 0.3s ease';
+                    setTimeout(() => passportCard.remove(), 300);
+                }
+                
+                // Reload after delay to update counts
+                setTimeout(() => location.reload(), 1500);
             } else {
-                Toast.error('Failed to delete passport');
+                // Show error in modal instead of just toast
+                const errorMsg = result.error || 'Failed to delete passport';
+                Toast.error(errorMsg);
+                
+                // Also show in modal
+                const inputError = document.getElementById('delete-input-error');
+                if (inputError) {
+                    inputError.textContent = `❌ ${errorMsg}`;
+                    inputError.classList.remove('hidden');
+                }
+                
+                // Reset button state
+                btnText.classList.remove('hidden');
+                btnLoading.classList.add('hidden');
+                confirmBtn.disabled = false;
             }
         } catch (error) {
             console.error('Delete error:', error);
             Toast.error('Failed to delete passport');
+            // Reset button state
+            btnText.classList.remove('hidden');
+            btnLoading.classList.add('hidden');
+            confirmBtn.disabled = false;
+        }
+    },
+
+    async deletePassport(passportId) {
+        // Legacy function kept for backward compatibility
+        // Use openDeleteModal instead
+        const button = document.querySelector(`[data-delete-passport="${passportId}"]`);
+        if (button) {
+            const gameName = button.getAttribute('data-game-name') || 'this game';
+            this.openDeleteModal(passportId, gameName);
         }
     }
 };
@@ -821,6 +970,12 @@ const SocialLinks = {
     populateForm(links) {
         const form = document.getElementById('social-form');
         if (!form) return;
+        
+        // Check if links is an array
+        if (!Array.isArray(links)) {
+            console.warn('Social links response is not an array:', links);
+            return;
+        }
 
         links.forEach(link => {
             const input = form.querySelector(`[name="${link.platform}"]`);

@@ -146,6 +146,39 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
     
     context['nav_sections'] = nav_sections
     
+    # UP-TEAM-DISPLAY-01: Add user's teams data
+    if user_profile:
+        from apps.teams.models import TeamMembership
+        user_teams = TeamMembership.objects.filter(
+            profile=user_profile,
+            status=TeamMembership.Status.ACTIVE
+        ).select_related('team').order_by('-team__created_at')[:10]
+        
+        # Get game display names from Game model
+        from apps.games.models import Game
+        games_map = {g.slug: g.display_name for g in Game.objects.all()}
+        
+        context['user_teams'] = [
+            {
+                'id': tm.team.id,
+                'slug': tm.team.slug,
+                'name': tm.team.name,
+                'tag': tm.team.tag,
+                'game': games_map.get(tm.team.game, tm.team.game),
+                'game_slug': tm.team.game,
+                'role': tm.role,
+                'logo_url': tm.team.logo.url if tm.team.logo else None,
+                'is_captain': tm.role == 'CAPTAIN',
+            }
+            for tm in user_teams
+        ]
+    else:
+        context['user_teams'] = []
+    
+    # UP-TOURNAMENT-DISPLAY-01: Add user's tournaments data
+    # TODO: Implement tournament participation query when tournament app is ready
+    context['user_tournaments'] = []
+    
     return render(request, 'user_profile/profile/public.html', context)
 
 

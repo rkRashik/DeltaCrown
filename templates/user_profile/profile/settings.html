@@ -778,26 +778,36 @@
 
                     <div id="passports-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {% for passport in user_passports %}
-                        <div class="glass-card p-6 hover:border-indigo-500/50 transition-all">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex items-center gap-4">
-                                    {% if passport.game.icon %}
-                                    <img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="w-16 h-16 rounded-xl object-cover shadow-lg">
-                                    {% else %}
-                                    <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-3xl shadow-lg">
-                                        🎮
+                        <div class="glass-card p-6 hover:border-indigo-500/50 transition-all group relative overflow-hidden">
+                            <!-- Hover overlay to show actions -->
+                            <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                            
+                            <div class="relative z-10">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-4">
+                                        {% if passport.game.icon %}
+                                        <img src="{{ passport.game.icon.url }}" alt="{{ passport.game.name }}" class="w-16 h-16 rounded-xl object-cover shadow-lg">
+                                        {% else %}
+                                        <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-3xl shadow-lg">
+                                            🎮
+                                        </div>
+                                        {% endif %}
+                                        <div>
+                                            <h3 class="text-white font-bold text-lg">{{ passport.game.display_name }}</h3>
+                                            <p class="text-slate-400 text-sm">{{ passport.game.category }}</p>
+                                        </div>
                                     </div>
-                                    {% endif %}
-                                    <div>
-                                        <h3 class="text-white font-bold text-lg">{{ passport.game.display_name }}</h3>
-                                        <p class="text-slate-400 text-sm">{{ passport.game.category }}</p>
-                                    </div>
+                                    <button 
+                                        data-delete-passport="{{ passport.id }}" 
+                                        data-game-name="{{ passport.game.display_name }}"
+                                        class="delete-passport-btn text-red-400 hover:text-red-300 transition-all p-2 hover:bg-red-500/10 rounded-lg transform hover:scale-110"
+                                        title="Delete passport"
+                                    >
+                                        <span class="text-xl">🗑️</span>
+                                    </button>
                                 </div>
-                                <button onclick="deletePassport({{ passport.id }})" class="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg">
-                                    <span class="text-xl">🗑️</span>
-                                </button>
                             </div>
-                            <div class="space-y-2 border-t border-slate-700/50 pt-4">
+                            <div class="relative z-10 space-y-2 border-t border-slate-700/50 pt-4">
                                 <div class="flex items-center justify-between">
                                     <span class="text-slate-400 text-sm">IGN:</span>
                                     <span class="text-white font-semibold">{{ passport.in_game_name }}</span>
@@ -819,6 +829,14 @@
                                     <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold uppercase">
                                         {{ passport.visibility }}
                                     </span>
+                                </div>
+                                
+                                <!-- Action hint on hover -->
+                                <div class="mt-4 pt-3 border-t border-slate-700/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <p class="text-center text-slate-400 text-xs">
+                                        <span class="inline-block mr-2">🖱️</span>
+                                        Click delete button to remove this passport
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -1558,8 +1576,8 @@
                     <button type="submit" class="btn btn-primary flex-1">
                         ✅ Create Passport
                     </button>
-                    <button type="button" id="cancel-modal" class="btn btn-secondary">
-                        Cancel
+                    <button type="button" id="cancel-passport-btn" class="btn btn-secondary">
+                        ✖️ Cancel
                     </button>
                 </div>
             </form>
@@ -1612,6 +1630,19 @@
     opacity: 1;
 }
 
+/* Delete button hover animation */
+.delete-passport-btn {
+    transition: all 0.2s ease;
+}
+
+.delete-passport-btn:hover {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+.delete-passport-btn:active {
+    transform: scale(0.95);
+}
+
 /* Dynamic Fields Animation */
 #dynamic-fields > div {
     animation: slideDown 0.3s ease;
@@ -1627,7 +1658,121 @@
         transform: translateY(0);
     }
 }
+
+/* Delete Modal Styles */
+.modal-overlay {
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    max-width: 480px;
+    margin: auto;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.shake {
+    animation: shake 0.5s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+    20%, 40%, 60%, 80% { transform: translateX(8px); }
+}
 </style>
+
+<!-- Delete Passport Confirmation Modal -->
+<div id="delete-passport-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+    <div class="modal-content glass-card p-8 mx-4">
+        <!-- Warning Icon -->
+        <div class="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-red-500/20 rounded-full">
+            <span class="text-4xl">⚠️</span>
+        </div>
+        
+        <!-- Title -->
+        <h3 class="text-2xl font-bold text-white text-center mb-3">Delete Game Passport?</h3>
+        
+        <!-- Game Name Display -->
+        <div class="text-center mb-6">
+            <p class="text-lg text-slate-300 mb-2">You're about to delete:</p>
+            <div id="delete-game-name" class="text-2xl font-bold text-red-400 mb-4"></div>
+        </div>
+        
+        <!-- Warning Message -->
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6">
+            <p class="text-sm text-slate-300 mb-3">This will permanently remove:</p>
+            <ul class="space-y-2 text-sm text-slate-400">
+                <li class="flex items-start gap-2">
+                    <span class="text-red-400">•</span>
+                    <span>Your IGN, rank, and region data</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-red-400">•</span>
+                    <span>Connection to teams using this game</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-red-400">•</span>
+                    <span>Tournament history for this game</span>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Confirmation Input -->
+        <div class="mb-6">
+            <label class="block text-sm text-slate-300 mb-2">
+                Type <strong id="delete-confirm-text" class="text-white"></strong> to confirm:
+            </label>
+            <input 
+                type="text" 
+                id="delete-confirm-input" 
+                class="form-input text-center text-lg font-semibold"
+                placeholder="Type game name here"
+                autocomplete="off"
+            >
+            <p id="delete-input-error" class="text-red-400 text-sm mt-2 hidden">
+                ❌ Game name doesn't match
+            </p>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+            <button 
+                type="button" 
+                id="cancel-delete-btn" 
+                class="flex-1 px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-semibold transition-all"
+            >
+                Cancel
+            </button>
+            <button 
+                type="button" 
+                id="confirm-delete-btn" 
+                class="flex-1 px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+            >
+                <span class="delete-btn-text">Delete Permanently</span>
+                <span class="delete-btn-loading hidden">
+                    <svg class="animate-spin inline w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                </span>
+            </button>
+        </div>
+    </div>
+</div>
 
 <script>
 const CSRF_TOKEN = '{{ csrf_token }}';
