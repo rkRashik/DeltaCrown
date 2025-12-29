@@ -68,8 +68,6 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
         fields = [
             "display_name", "region", "avatar", "bio",
             "discord_id", "riot_id", "efootball_id",
-            # add privacy flags:
-            "is_private", "show_email", "show_phone", "show_socials",
         ]
 
     def get_object(self, queryset=None):
@@ -78,32 +76,11 @@ class MyProfileUpdateView(LoginRequiredMixin, UpdateView):
 
     def post(self, request, *args, **kwargs):
         """
-        If this POST only includes the 4 privacy flags, update them directly and skip
-        the form (which requires other profile fields). Otherwise, fall back to the
-        standard UpdateView form handling for full profile edits.
+        Legacy privacy flag handling removed - privacy settings now managed
+        via PrivacySettings model and /me/settings/privacy/ endpoint.
+        This view only handles basic profile updates.
         """
-        privacy_keys = {"is_private", "show_email", "show_phone", "show_socials"}
-        posted_keys = set(k for k in request.POST.keys() if k != "csrfmiddlewaretoken")
-
-        # If it's purely a privacy toggle POST, persist flags directly.
-        if posted_keys and posted_keys.issubset(privacy_keys):
-            is_private = bool(request.POST.get("is_private"))
-            show_email = bool(request.POST.get("show_email"))
-            show_phone = bool(request.POST.get("show_phone"))
-            show_socials = bool(request.POST.get("show_socials"))
-
-            # Write via the user relation to avoid any pk/instance drift
-            UserProfile.objects.filter(user_id=request.user.id).update(
-                is_private=is_private,
-                show_email=show_email,
-                show_phone=show_phone,
-                show_socials=show_socials,
-            )
-
-            messages.success(request, "Your privacy settings have been saved.")
-            return redirect(self.success_url)
-
-        # Otherwise, proceed with normal form-driven update (full profile edits)
+        # Standard form-driven update for profile edits
         return super().post(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):

@@ -3,6 +3,7 @@ User Profile Models
 
 UP-M2: Event-sourced activity tracking with derived stats.
 UP-M5: Audit trail for compliance and change tracking.
+UP-PHASE6-C: Settings models for notifications and wallet.
 """
 
 # Import new models from subdirectory
@@ -10,6 +11,7 @@ from apps.user_profile.models.activity import UserActivity, EventType
 from apps.user_profile.models.stats import UserProfileStats
 from apps.user_profile.models.audit import UserAuditEvent
 from apps.user_profile.models.game_passport_schema import GamePassportSchema
+from apps.user_profile.models.settings import NotificationPreferences, WalletSettings
 
 # Re-export existing models from models_main.py to maintain backward compatibility
 from apps.user_profile.models_main import (
@@ -22,6 +24,7 @@ from apps.user_profile.models_main import (
     GameProfile,
     GameProfileAlias,
     GameProfileConfig,
+    Follow,  # UP-PHASE10: Export Follow model (used by fe_v2.py)
     REGION_CHOICES,
     KYC_STATUS_CHOICES,
     GENDER_CHOICES,
@@ -46,6 +49,10 @@ __all__ = [
     'GameProfileConfig',
     'GamePassportSchema',
     
+    # UP-PHASE6-C models
+    'NotificationPreferences',
+    'WalletSettings',
+    
     # Existing models
     'UserProfile',
     'PrivacySettings',
@@ -53,6 +60,7 @@ __all__ = [
     'UserBadge',
     'Badge',
     'VerificationRecord',
+    'Follow',  # UP-PHASE10: Follow model
     'REGION_CHOICES',
     'KYC_STATUS_CHOICES',
     'GENDER_CHOICES',

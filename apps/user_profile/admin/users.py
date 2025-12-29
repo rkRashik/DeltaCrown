@@ -39,7 +39,11 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_select_related = ("user",)
     autocomplete_fields = ("user",)
     
-    readonly_fields = ("uuid", "slug", "public_id", "created_at", "updated_at", "kyc_verified_at")
+    readonly_fields = (
+        "uuid", "slug", "public_id", "created_at", "updated_at", "kyc_verified_at",
+        "deltacoin_balance",  # UP-PHASE11: Economy-owned (read-only)
+        "lifetime_earnings",  # UP-PHASE11: Economy-owned (read-only)
+    )
     
     fieldsets = (
         ('User Account', {
@@ -66,13 +70,15 @@ class UserProfileAdmin(admin.ModelAdmin):
         }),
         ('Gaming', {
             'fields': ('stream_status',),
-            'description': 'Game profiles are stored in game_profiles JSON field.'
+            'description': 'Game Passports are managed via Game Profile admin.',
+            'classes': ('collapse',)
         }),
         ('Gamification', {
             'fields': ('level', 'xp', 'pinned_badges')
         }),
-        ('Economy', {
-            'fields': ('deltacoin_balance', 'lifetime_earnings', 'inventory_items')
+        ('💰 Economy (Read-Only)', {
+            'fields': ('deltacoin_balance', 'lifetime_earnings', 'inventory_items'),
+            'description': '⚠️ <strong>WARNING:</strong> Wallet balances are managed by the Economy app. Changes here will be overwritten.'
         }),
         ('System Data', {
             'fields': ('attributes', 'system_settings', 'created_at', 'updated_at'),

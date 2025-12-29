@@ -3,6 +3,7 @@
      Section 3.3.5 - Master Plan
      Display: Tabbed Game Profiles with Stats
      Owner: Add Games via Dropdown Modal
+     Phase 6C: Privacy-aware with locked states
      ============================================ -->
 <div class="glass-card"
      x-data="{ activeGame: '{{ game_profiles.0.game|default:"valorant" }}' }">
@@ -13,14 +14,15 @@
             <span>🎮</span> Game Profiles
         </h3>
         {% if is_own_profile %}
-        <button @click="$dispatch('open-game-modal')" 
+        <button @click="$dispatch('open-passport-modal')" 
                 class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">
             + Add Game
         </button>
         {% endif %}
     </div>
     
-    {% if game_profiles %}
+    {% if can_view_game_passports %}
+        {% if game_profiles %}
     
     <!-- Game Tabs (Horizontal Scroll on Mobile) -->
     <div class="overflow-x-auto border-b border-white/5">
@@ -143,21 +145,43 @@
         
     </div>
     
+        {% else %}
+        
+        <!-- Empty State - Owner has no game profiles -->
+        <div class="p-6 text-center py-12">
+            <div class="text-6xl mb-3 opacity-50">🎮</div>
+            {% if is_own_profile %}
+            <p class="text-slate-400 text-sm font-semibold mb-1">No game profiles yet</p>
+            <p class="text-slate-600 text-xs mb-4">Add your competitive games to showcase your ranks</p>
+            <button @click="$dispatch('open-game-modal')"
+                    class="inline-block px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                           text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
+                + Add Your First Game
+            </button>
+            {% else %}
+            <p class="text-slate-500 text-sm italic">No game profiles added yet</p>
+            {% endif %}
+        </div>
+        
+        {% endif %}
+    
     {% else %}
     
-    <!-- Empty State -->
+    <!-- Privacy Locked State (Visitor cannot view game passports) -->
     <div class="p-6 text-center py-12">
-        <div class="text-6xl mb-3 opacity-50">🎮</div>
-        {% if is_own_profile %}
-        <p class="text-slate-400 text-sm font-semibold mb-1">No game profiles yet</p>
-        <p class="text-slate-600 text-xs mb-4">Add your competitive games to showcase your ranks</p>
-        <button @click="$dispatch('open-game-modal')"
-                class="inline-block px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
-                       text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
-            + Add Your First Game
-        </button>
-        {% else %}
-        <p class="text-slate-500 text-sm italic">No game profiles added yet</p>
+        <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 border-2 border-indigo-500/30 flex items-center justify-center">
+            <i class="fas fa-lock text-indigo-500 text-2xl"></i>
+        </div>
+        <p class="text-slate-400 text-sm font-semibold mb-2">Game Profiles are Private</p>
+        <p class="text-slate-600 text-xs mb-5">Follow {{ profile.display_name }} to see their game stats</p>
+        {% if not request.user.is_authenticated %}
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}" 
+           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                  text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 
+                  transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
+            <i class="fas fa-user-plus"></i>
+            <span>Login to Follow</span>
+        </a>
         {% endif %}
     </div>
     
@@ -165,124 +189,8 @@
     
 </div>
 
-<!-- ============================================
-     ADD GAME MODAL
-     Alpine.js Modal with Game Dropdown
-     ============================================ -->
+<!-- Include new schema-driven passport modal -->
 {% if is_own_profile %}
-<div x-data="{ 
-        showGameModal: false,
-        selectedGame: 'valorant',
-        games: {
-            'valorant': { name: 'VALORANT', icon: '🎯', has_rank: true },
-            'csgo': { name: 'CS:GO', icon: '🔫', has_rank: true },
-            'lol': { name: 'League of Legends', icon: '⚔', has_rank: true },
-            'dota2': { name: 'Dota 2', icon: '🛡', has_rank: true },
-            'overwatch': { name: 'Overwatch 2', icon: '🎮', has_rank: true },
-            'apex': { name: 'Apex Legends', icon: '🏹', has_rank: true },
-            'fortnite': { name: 'Fortnite', icon: '🪂', has_rank: false },
-            'pubg': { name: 'PUBG', icon: '🔥', has_rank: true },
-            'r6': { name: 'Rainbow Six Siege', icon: '🏰', has_rank: true },
-            'rocket_league': { name: 'Rocket League', icon: '🚗', has_rank: true }
-        }
-     }"
-     @open-game-modal.window="showGameModal = true"
-     @keydown.escape.window="showGameModal = false"
-     x-show="showGameModal"
-     x-transition
-     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-     style="display: none;">
-    
-    <!-- Modal Card -->
-    <div @click.away="showGameModal = false"
-         x-transition:enter="transition ease-out duration-200 transform"
-         x-transition:enter-start="opacity-0 scale-95"
-         x-transition:enter-end="opacity-100 scale-100"
-         class="glass-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        
-        <!-- Header -->
-        <div class="sticky top-0 bg-slate-900/95 backdrop-blur-xl px-6 py-4 border-b border-white/10 flex items-center justify-between">
-            <h2 class="text-xl font-bold text-white uppercase tracking-wide">Add Game Profile</h2>
-            <button @click="showGameModal = false" 
-                    class="text-slate-400 hover:text-white text-2xl leading-none transition-colors">
-                ×
-            </button>
-        </div>
-        
-        <!-- Body -->
-        <div class="p-6">
-            
-            <form method="POST" action="{% url 'user_profile:add_game_profile' %}">
-                {% csrf_token %}
-                
-                <!-- Game Dropdown -->
-                <div class="mb-4">
-                    <label class="block text-slate-300 text-sm font-semibold mb-2">Select Game</label>
-                    <div class="relative">
-                        <select name="game" 
-                                x-model="selectedGame"
-                                required
-                                class="glass-input w-full px-4 py-3 pr-10 rounded-lg text-white appearance-none cursor-pointer
-                                       focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <option value="valorant">🎯 VALORANT</option>
-                            <option value="csgo">🔫 CS:GO</option>
-                            <option value="lol">⚔ League of Legends</option>
-                            <option value="dota2">🛡 Dota 2</option>
-                            <option value="overwatch">🎮 Overwatch 2</option>
-                            <option value="apex">🏹 Apex Legends</option>
-                            <option value="fortnite">🪂 Fortnite</option>
-                            <option value="pubg">🔥 PUBG</option>
-                            <option value="r6">🏰 Rainbow Six Siege</option>
-                            <option value="rocket_league">🚗 Rocket League</option>
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- In-Game Name -->
-                <div class="mb-4">
-                    <label class="block text-slate-300 text-sm font-semibold mb-2">In-Game Username</label>
-                    <input type="text" 
-                           name="in_game_name" 
-                           placeholder="e.g., ProGamer#1234"
-                           required
-                           class="glass-input w-full px-4 py-3 rounded-lg text-white placeholder-slate-500 
-                                  focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                
-                <!-- Current Rank (Optional) -->
-                <div class="mb-6">
-                    <label class="block text-slate-300 text-sm font-semibold mb-2">Current Rank (Optional)</label>
-                    <input type="text" 
-                           name="rank_name" 
-                           placeholder="e.g., Diamond 2, Global Elite"
-                           class="glass-input w-full px-4 py-3 rounded-lg text-white placeholder-slate-500 
-                                  focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    <p class="text-slate-500 text-xs mt-2">You can update stats later in settings</p>
-                </div>
-                
-                <!-- Actions -->
-                <div class="flex gap-3">
-                    <button type="button" 
-                            @click="showGameModal = false"
-                            class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-slate-700 hover:bg-slate-600 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                            class="flex-1 px-6 py-3 rounded-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all">
-                        🎮 Add Game
-                    </button>
-                </div>
-                
-            </form>
-            
-        </div>
-        
-    </div>
-    
-</div>
+{% include 'user_profile/components/_passport_modal.html' %}
 {% endif %}
+

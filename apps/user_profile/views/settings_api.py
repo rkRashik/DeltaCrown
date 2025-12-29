@@ -287,11 +287,10 @@ def update_privacy_settings(request):
     
     Body (JSON):
     {
-        "privacy_settings": {
-            "show_real_name": false,
-            "show_email": false,
-            ...
-        }
+        "visibility_preset": "PUBLIC",
+        "show_real_name": false,
+        "show_email": false,
+        ...
     }
     
     Returns:
@@ -306,18 +305,17 @@ def update_privacy_settings(request):
     try:
         # Parse JSON body
         data = json.loads(request.body)
-        settings_data = data.get('privacy_settings', {})
         
-        # Get or create privacy settings
+        # Get or create privacy settings (linked to UserProfile, not User)
         privacy, created = PrivacySettings.objects.get_or_create(user_profile=profile)
         
         # Update preset if provided
-        if 'visibility_preset' in settings_data:
-            preset = settings_data['visibility_preset']
+        if 'visibility_preset' in data:
+            preset = data['visibility_preset']
             if preset in ['PUBLIC', 'PROTECTED', 'PRIVATE']:
                 privacy.visibility_preset = preset
         
-        # Update all toggles (accept both camelCase and snake_case)
+        # Update all toggles
         boolean_fields = [
             'show_real_name', 'show_email', 'show_phone', 'show_age', 'show_gender',
             'show_country', 'show_address', 'show_game_ids', 'show_match_history',
@@ -327,10 +325,12 @@ def update_privacy_settings(request):
         ]
         
         for field in boolean_fields:
-            if field in settings_data:
-                setattr(privacy, field, bool(settings_data[field]))
+            if field in data:
+                setattr(privacy, field, bool(data[field]))
         
         privacy.save()
+        
+        logger.info(f"Privacy settings updated for user {request.user.username}")
         
         return JsonResponse({
             'success': True,
@@ -356,6 +356,7 @@ def get_privacy_settings(request):
         JSON: {
             success: true,
             settings: {
+                visibility_preset: "PUBLIC",
                 show_real_name: false,
                 show_email: false,
                 ...
@@ -371,12 +372,26 @@ def get_privacy_settings(request):
         privacy, created = PrivacySettings.objects.get_or_create(user_profile=profile)
         
         settings = {
+            'visibility_preset': privacy.visibility_preset,
             'show_real_name': privacy.show_real_name,
             'show_email': privacy.show_email,
-            'show_bio': privacy.show_bio if hasattr(privacy, 'show_bio') else True,
-            'show_passports': privacy.show_game_ids if hasattr(privacy, 'show_game_ids') else True,
-            'show_socials': privacy.show_social_links if hasattr(privacy, 'show_social_links') else True,
-            'allow_team_invites': privacy.allow_team_invites if hasattr(privacy, 'allow_team_invites') else True,
+            'show_phone': privacy.show_phone,
+            'show_age': privacy.show_age,
+            'show_gender': privacy.show_gender,
+            'show_country': privacy.show_country,
+            'show_address': privacy.show_address,
+            'show_game_ids': privacy.show_game_ids,
+            'show_match_history': privacy.show_match_history,
+            'show_teams': privacy.show_teams,
+            'show_achievements': privacy.show_achievements,
+            'show_activity_feed': privacy.show_activity_feed,
+            'show_tournaments': privacy.show_tournaments,
+            'show_social_links': privacy.show_social_links,
+            'show_inventory_value': privacy.show_inventory_value,
+            'show_level_xp': privacy.show_level_xp,
+            'allow_team_invites': privacy.allow_team_invites,
+            'allow_friend_requests': privacy.allow_friend_requests,
+            'allow_direct_messages': privacy.allow_direct_messages,
         }
         
         return JsonResponse({
@@ -387,3 +402,564 @@ def get_privacy_settings(request):
     except Exception as e:
         logger.error(f"Error loading privacy settings: {e}", exc_info=True)
         return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_profile_data(request):
+    """
+    Get current profile data for the authenticated user.
+    
+    Route: GET /api/profile/data/
+    
+    Returns:
+        JSON: {
+            success: true,
+            profile: {
+                display_name: "...",
+                bio: "...",
+                country: "...",
+                ...
+            }
+        }
+    """
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        data = {
+            'display_name': profile.display_name,
+            'bio': profile.bio,
+            'country': profile.country,
+            'city': profile.city,
+            'postal_code': profile.postal_code,
+            'address': profile.address,
+            'phone': profile.phone,
+            'pronouns': profile.pronouns,
+            'real_full_name': profile.real_full_name,
+            'date_of_birth': profile.date_of_birth.isoformat() if profile.date_of_birth else '',
+            'nationality': profile.nationality,
+            'gender': profile.gender,
+            'emergency_contact_name': profile.emergency_contact_name,
+            'emergency_contact_phone': profile.emergency_contact_phone,
+            'emergency_contact_relation': profile.emergency_contact_relation,
+            'kyc_status': profile.kyc_status,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'profile': data
+        })
+    
+    except Exception as e:
+        logger.error(f"Error loading profile data: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_platform_settings(request):
+    """
+    Update platform settings (language, timezone, time format, notifications).
+    
+    Route: POST /me/settings/platform/
+    
+    Body (JSON):
+    {
+        "language": "bn",
+        "timezone": "Asia/Dhaka",
+        "time_format": "12",
+        "email_tournament_updates": true,
+        "email_team_invites": true,
+        "push_match_reminders": true,
+        ...
+    }
+    
+    Returns:
+        JSON: {success: true, message: 'Platform settings updated successfully'}
+    """
+    import json
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Get or initialize system_settings
+        system_settings = profile.system_settings or {}
+        
+        # Update language
+        if 'language' in data:
+            language = data['language']
+            valid_languages = ['en', 'bn', 'es', 'fr', 'de', 'pt', 'ru', 'zh', 'ja', 'ko', 'ar', 'hi']
+            if language in valid_languages:
+                system_settings['language'] = language
+        
+        # Update timezone
+        if 'timezone' in data:
+            timezone = data['timezone']
+            # Basic validation (could be more comprehensive)
+            if timezone and len(timezone) < 100:
+                system_settings['timezone'] = timezone
+        
+        # Update time format
+        if 'time_format' in data:
+            time_format = data['time_format']
+            if time_format in ['12', '24']:
+                system_settings['time_format'] = time_format
+        
+        # Update notification preferences
+        notification_fields = [
+            'email_tournament_updates',
+            'email_team_invites',
+            'email_announcements',
+            'email_marketing',
+            'push_match_reminders',
+            'push_messages',
+            'push_friend_requests'
+        ]
+        
+        notifications = system_settings.get('notifications', {})
+        for field in notification_fields:
+            if field in data:
+                notifications[field] = bool(data[field])
+        system_settings['notifications'] = notifications
+        
+        # Save to profile
+        profile.system_settings = system_settings
+        profile.save()
+        
+        logger.info(f"Platform settings updated for user {request.user.username}: {system_settings}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Platform settings updated successfully'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating platform settings: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_platform_settings(request):
+    """
+    Get current platform settings for the authenticated user.
+    
+    Route: GET /me/settings/platform/
+    
+    Returns:
+        JSON: {
+            success: true,
+            settings: {
+                language: "en",
+                timezone: "UTC",
+                time_format: "12",
+                notifications: {...}
+            }
+        }
+    """
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        system_settings = profile.system_settings or {}
+        
+        # Default settings
+        settings = {
+            'language': system_settings.get('language', 'en'),
+            'timezone': system_settings.get('timezone', 'UTC'),
+            'time_format': system_settings.get('time_format', '12'),
+            'notifications': system_settings.get('notifications', {
+                'email_tournament_updates': True,
+                'email_team_invites': True,
+                'email_announcements': False,
+                'email_marketing': False,
+                'push_match_reminders': True,
+                'push_messages': True,
+                'push_friend_requests': False
+            })
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'settings': settings
+        })
+    
+    except Exception as e:
+        logger.error(f"Error loading platform settings: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+# ============================================
+# UP-PHASE6-C: Settings Redesign API Endpoints
+# ============================================
+
+@login_required
+@require_http_methods(["POST"])
+def update_notification_preferences(request):
+    """
+    Update notification preferences for the authenticated user.
+    
+    Route: POST /me/settings/notifications/
+    
+    Body (JSON):
+    {
+        "email_tournament_reminders": true,
+        "email_match_results": true,
+        "email_team_invites": true,
+        "email_achievements": false,
+        "email_platform_updates": true,
+        "notify_tournament_start": true,
+        "notify_team_messages": true,
+        "notify_follows": true,
+        "notify_achievements": true
+    }
+    
+    Returns:
+        JSON: {success: true, message: 'Notification preferences updated successfully'}
+    """
+    import json
+    from apps.user_profile.models import NotificationPreferences
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Get or create notification preferences
+        prefs, created = NotificationPreferences.objects.get_or_create(user_profile=profile)
+        
+        # Update fields if present in request
+        email_fields = [
+            'email_tournament_reminders', 'email_match_results', 'email_team_invites',
+            'email_achievements', 'email_platform_updates'
+        ]
+        platform_fields = [
+            'notify_tournament_start', 'notify_team_messages', 'notify_follows', 'notify_achievements'
+        ]
+        
+        for field in email_fields + platform_fields:
+            if field in data:
+                setattr(prefs, field, bool(data[field]))
+        
+        prefs.save()
+        
+        logger.info(f"Notification preferences updated for user {request.user.username}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Notification preferences updated successfully'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating notification preferences: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_notification_preferences(request):
+    """
+    Get current notification preferences for the authenticated user.
+    
+    Route: GET /me/settings/notifications/
+    
+    Returns:
+        JSON: {
+            success: true,
+            preferences: {
+                email_tournament_reminders: true,
+                email_match_results: true,
+                ...
+            }
+        }
+    """
+    from apps.user_profile.models import NotificationPreferences
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        # Get or create with defaults
+        prefs, created = NotificationPreferences.objects.get_or_create(user_profile=profile)
+        
+        preferences = {
+            'email_tournament_reminders': prefs.email_tournament_reminders,
+            'email_match_results': prefs.email_match_results,
+            'email_team_invites': prefs.email_team_invites,
+            'email_achievements': prefs.email_achievements,
+            'email_platform_updates': prefs.email_platform_updates,
+            'notify_tournament_start': prefs.notify_tournament_start,
+            'notify_team_messages': prefs.notify_team_messages,
+            'notify_follows': prefs.notify_follows,
+            'notify_achievements': prefs.notify_achievements,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'preferences': preferences
+        })
+    
+    except Exception as e:
+        logger.error(f"Error loading notification preferences: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_platform_preferences(request):
+    """
+    Update platform preferences (language, timezone, time format, theme).
+    
+    Route: POST /me/settings/platform-prefs/
+    
+    Body (JSON):
+    {
+        "preferred_language": "en",
+        "timezone_pref": "Asia/Dhaka",
+        "time_format": "12h",
+        "theme_preference": "dark"
+    }
+    
+    Returns:
+        JSON: {success: true, message: 'Platform preferences updated successfully'}
+    """
+    import json
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Update preferred language
+        if 'preferred_language' in data:
+            language = data['preferred_language']
+            if language in ['en', 'bn']:  # Only English for now, Bengali "Coming Soon"
+                profile.preferred_language = language
+        
+        # Update timezone
+        if 'timezone_pref' in data:
+            timezone = data['timezone_pref']
+            if timezone and len(timezone) < 100:
+                profile.timezone_pref = timezone
+        
+        # Update time format
+        if 'time_format' in data:
+            time_format = data['time_format']
+            if time_format in ['12h', '24h']:
+                profile.time_format = time_format
+        
+        # Update theme preference
+        if 'theme_preference' in data:
+            theme = data['theme_preference']
+            if theme in ['light', 'dark', 'system']:
+                profile.theme_preference = theme
+        
+        profile.save()
+        
+        logger.info(f"Platform preferences updated for user {request.user.username}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Platform preferences updated successfully'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating platform preferences: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_platform_preferences(request):
+    """
+    Get current platform preferences for the authenticated user.
+    
+    Route: GET /me/settings/platform-prefs/
+    
+    Returns:
+        JSON: {
+            success: true,
+            preferences: {
+                preferred_language: "en",
+                timezone_pref: "Asia/Dhaka",
+                time_format: "12h",
+                theme_preference: "dark"
+            }
+        }
+    """
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        preferences = {
+            'preferred_language': profile.preferred_language,
+            'timezone_pref': profile.timezone_pref,
+            'time_format': profile.time_format,
+            'theme_preference': profile.theme_preference,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'preferences': preferences
+        })
+    
+    except Exception as e:
+        logger.error(f"Error loading platform preferences: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_wallet_settings(request):
+    """
+    Update wallet settings (mobile banking accounts, withdrawal preferences).
+    
+    Route: POST /me/settings/wallet/
+    
+    Body (JSON):
+    {
+        "bkash_enabled": true,
+        "bkash_account": "01712345678",
+        "nagad_enabled": false,
+        "nagad_account": "",
+        "rocket_enabled": true,
+        "rocket_account": "01812345678",
+        "auto_withdrawal_threshold": 1000,
+        "auto_convert_to_usd": false
+    }
+    
+    Returns:
+        JSON: {success: true, message: 'Wallet settings updated successfully'}
+    """
+    import json
+    from apps.user_profile.models import WalletSettings
+    from apps.user_profile.utils import get_user_profile_safe
+    from django.core.exceptions import ValidationError
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Get or create wallet settings
+        wallet, created = WalletSettings.objects.get_or_create(user_profile=profile)
+        
+        # Update bKash settings
+        if 'bkash_enabled' in data:
+            wallet.bkash_enabled = bool(data['bkash_enabled'])
+        if 'bkash_account' in data:
+            wallet.bkash_account = data['bkash_account'].strip()
+        
+        # Update Nagad settings
+        if 'nagad_enabled' in data:
+            wallet.nagad_enabled = bool(data['nagad_enabled'])
+        if 'nagad_account' in data:
+            wallet.nagad_account = data['nagad_account'].strip()
+        
+        # Update Rocket settings
+        if 'rocket_enabled' in data:
+            wallet.rocket_enabled = bool(data['rocket_enabled'])
+        if 'rocket_account' in data:
+            wallet.rocket_account = data['rocket_account'].strip()
+        
+        # Update withdrawal preferences
+        if 'auto_withdrawal_threshold' in data:
+            threshold = int(data['auto_withdrawal_threshold'])
+            if threshold >= 0:
+                wallet.auto_withdrawal_threshold = threshold
+        
+        if 'auto_convert_to_usd' in data:
+            wallet.auto_convert_to_usd = bool(data['auto_convert_to_usd'])
+        
+        # Validate before saving (validators will run)
+        try:
+            wallet.full_clean()
+        except ValidationError as ve:
+            return JsonResponse({
+                'success': False,
+                'error': 'Validation failed',
+                'details': ve.message_dict
+            }, status=400)
+        
+        wallet.save()
+        
+        logger.info(f"Wallet settings updated for user {request.user.username}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Wallet settings updated successfully'
+        })
+    
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except ValueError as e:
+        return JsonResponse({'success': False, 'error': f'Invalid value: {str(e)}'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating wallet settings: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_wallet_settings(request):
+    """
+    Get current wallet settings for the authenticated user.
+    
+    Route: GET /me/settings/wallet/
+    
+    Returns:
+        JSON: {
+            success: true,
+            settings: {
+                bkash_enabled: false,
+                bkash_account: "",
+                ...
+                enabled_methods: ["bkash", "rocket"]
+            }
+        }
+    """
+    from apps.user_profile.models import WalletSettings
+    from apps.user_profile.utils import get_user_profile_safe
+    
+    profile = get_user_profile_safe(request.user)
+    
+    try:
+        # Get or create with defaults
+        wallet, created = WalletSettings.objects.get_or_create(user_profile=profile)
+        
+        settings = {
+            'bkash_enabled': wallet.bkash_enabled,
+            'bkash_account': wallet.bkash_account,
+            'nagad_enabled': wallet.nagad_enabled,
+            'nagad_account': wallet.nagad_account,
+            'rocket_enabled': wallet.rocket_enabled,
+            'rocket_account': wallet.rocket_account,
+            'auto_withdrawal_threshold': wallet.auto_withdrawal_threshold,
+            'auto_convert_to_usd': wallet.auto_convert_to_usd,
+            'enabled_methods': wallet.get_enabled_methods(),
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'settings': settings
+        })
+    
+    except Exception as e:
+        logger.error(f"Error loading wallet settings: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
+

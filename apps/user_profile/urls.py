@@ -29,7 +29,12 @@ from .views.passport_api import (
 # UP-SETTINGS-MVP-01: Settings API endpoints
 from .views.settings_api import (
     upload_media, update_social_links_api, update_privacy_settings, 
-    remove_media_api, get_privacy_settings, get_social_links
+    remove_media_api, get_privacy_settings, get_social_links,
+    update_platform_settings, get_platform_settings, get_profile_data,
+    # UP-PHASE6-C: New settings endpoints
+    update_notification_preferences, get_notification_preferences,
+    update_platform_preferences, get_platform_preferences,
+    update_wallet_settings, get_wallet_settings
 )
 # UP-PASSPORT-CREATE-01: Passport creation endpoint
 from .views.passport_create import create_passport
@@ -105,6 +110,17 @@ urlpatterns = [
     # UP-SETTINGS-MVP-01: Additional settings API
     path("api/social-links/", get_social_links, name="get_social_links"),
     path("api/social-links/update/", update_social_links_api, name="update_social_links_api"),
+    path("api/platform-settings/", get_platform_settings, name="get_platform_settings"),
+    path("me/settings/platform/", update_platform_settings, name="update_platform_settings"),
+    path("api/profile/data/", get_profile_data, name="get_profile_data"),
+    
+    # UP-PHASE6-C: Settings redesign endpoints
+    path("me/settings/notifications/", update_notification_preferences, name="update_notification_preferences"),
+    path("api/settings/notifications/", get_notification_preferences, name="get_notification_preferences"),
+    path("me/settings/platform-prefs/", update_platform_preferences, name="update_platform_preferences"),
+    path("api/settings/platform-prefs/", get_platform_preferences, name="get_platform_preferences"),
+    path("me/settings/wallet/", update_wallet_settings, name="update_wallet_settings"),
+    path("api/settings/wallet/", get_wallet_settings, name="get_wallet_settings"),
     
     # ============================================
     # LEGACY OWNER PAGES (me/...)

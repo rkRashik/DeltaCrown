@@ -1,17 +1,19 @@
 """
-Frontend V2 Views (UP-FE-MVP-01)
+Frontend V2 Views (UP-FE-MVP-01 + Phase 5B Privacy Enforcement)
 
-Privacy-safe profile views using profile_context service.
-NO raw ORM objects passed to templates for public views.
+Privacy-safe profile views using profile_context service + ProfilePermissionChecker.
+Server-side privacy enforcement with can_view_* flags passed to template.
 
 Views:
-- profile_public_v2: Public profile page
+- profile_public_v2: Public profile page (✅ Phase 5B privacy-aware)
 - profile_activity_v2: Activity feed page
 - profile_settings_v2: Owner-only settings page
 - profile_privacy_v2: Owner-only privacy settings page
 
 Architecture:
-- Uses build_public_profile_context() for all data
+- Uses ProfilePermissionChecker for all permission decisions
+- Passes can_view_* flags to template for server-side enforcement
+- NO CSS-only privacy (sections not rendered if private)
 - Enforces authentication/ownership where required
 - Returns safe primitives/JSON only
 - Backward compatible with existing URLs (redirects)
@@ -26,37 +28,66 @@ import logging
 import os
 
 from apps.user_profile.services.profile_context import build_public_profile_context
+from apps.user_profile.services.profile_permissions import ProfilePermissionChecker
+from apps.user_profile.models import UserProfile
 
 logger = logging.getLogger(__name__)
 
 
 def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
     """
-    Public profile page (V2) - privacy-safe context.
+    Public profile page (V2) - Phase 5B privacy-aware with permission enforcement.
     
     Route: /@<username>/
     
-    Shows:
-    - Display name, avatar, bio
-    - Stats summary (tournaments, matches, teams)
-    - Game profiles
-    - Social links
-    - Activity feed preview (last 10)
+    Privacy Enforcement (Phase 5B):
+    - Uses ProfilePermissionChecker to compute can_view_* flags
+    - Passes permissions to template for server-side conditional rendering
+    - NO CSS-only privacy (sections not rendered if private)
+    - Viewer roles: owner / follower / visitor / anonymous
     
-    Privacy:
-    - Uses ProfileVisibilityPolicy for field filtering
-    - NO raw User/Profile objects in context
-    - Anonymous users see public fields only
-    - Owner sees full profile + edit actions
+    Shows (if permitted):
+    - Display name, avatar, bio, verification badges
+    - Game passports (if can_view_game_passports)
+    - Achievements (if can_view_achievements)
+    - Teams (if can_view_teams)
+    - Social links (if can_view_social_links)
+    - Wallet (owner only)
+    - Activity feed preview
     
     Args:
         request: HTTP request
         username: Username of profile to view
         
     Returns:
-        Rendered profile_public.html template
+        Rendered profile.html template with permission flags
     """
-    # Build safe context
+    # Get user and profile
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    
+    try:
+        profile_user = User.objects.get(username=username)
+        user_profile = UserProfile.objects.get(user=profile_user)
+    except (User.DoesNotExist, UserProfile.DoesNotExist):
+        raise Http404(f"User @{username} not found")
+    
+    # Phase 5B: Compute permissions using ProfilePermissionChecker
+    permission_checker = ProfilePermissionChecker(
+        viewer=request.user if request.user.is_authenticated else None,
+        profile=user_profile
+    )
+    permissions = permission_checker.get_all_permissions()
+    
+    # Block access if profile is private
+    if not permissions['can_view_profile']:
+        return render(request, 'user_profile/profile_private.html', {
+            'profile_user': profile_user,
+            'profile': user_profile,
+            'viewer_role': permissions['viewer_role'],
+        })
+    
+    # Build safe context (existing logic)
     context = build_public_profile_context(
         viewer=request.user if request.user.is_authenticated else None,
         username=username,
@@ -65,13 +96,8 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
         activity_per_page=10  # Preview only (show last 10)
     )
     
-    # Check if profile was found
-    if not context['can_view'] or context.get('error'):
-        if context.get('error') == f'User @{username} not found':
-            raise Http404(f"User @{username} not found")
-        else:
-            messages.error(request, context.get('error', 'Profile could not be loaded'))
-            return redirect('home')
+    # Phase 5B: Add permission flags to context
+    context.update(permissions)
     
     # Add page metadata
     context['page_title'] = f"@{username} - DeltaCrown Esports"
@@ -81,13 +107,10 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
     # GP-FINAL-01: Add team badge integration
     # UP-UI-REBIRTH-01: Remove role from passport display (role belongs to team)
     from apps.user_profile.services.game_passport_service import GamePassportService
-    from apps.user_profile.models import GameProfile, UserProfile
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
     
     try:
-        profile_user = User.objects.get(username=username)
-        user_profile = UserProfile.objects.filter(user=profile_user).first()
+        # Reuse profile_user and user_profile from earlier in function (lines 70-72)
+        # DO NOT re-query - causes UnboundLocalError
         all_passports = GamePassportService.get_all_passports(user=profile_user)
         
         # UP-UI-REBIRTH-02: Add profile_user to context for template access
@@ -117,7 +140,9 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
         context['pinned_passports'] = pinned_passports
         context['unpinned_passports'] = unpinned_passports
         context['MAX_PINNED_GAMES'] = 6  # From GameProfile model constant
-    except User.DoesNotExist:
+    except Exception as e:
+        # Defensive: Catch any passport service errors
+        logger.warning(f"Failed to load game passports for {username}: {e}")
         context['pinned_passports'] = []
         context['unpinned_passports'] = []
         context['MAX_PINNED_GAMES'] = 6
@@ -178,6 +203,17 @@ def profile_public_v2(request: HttpRequest, username: str) -> HttpResponse:
     # UP-TOURNAMENT-DISPLAY-01: Add user's tournaments data
     # TODO: Implement tournament participation query when tournament app is ready
     context['user_tournaments'] = []
+    
+    # Phase 5B Workstream 3: Add follower count for real follow button
+    from apps.user_profile.models import Follow
+    context['follower_count'] = Follow.objects.filter(following=profile_user).count()
+    context['following_count'] = Follow.objects.filter(follower=profile_user).count()
+    context['is_following'] = False
+    if request.user.is_authenticated and request.user != profile_user:
+        context['is_following'] = Follow.objects.filter(
+            follower=request.user,
+            following=profile_user
+        ).exists()
     
     return render(request, 'user_profile/profile/public.html', context)
 
@@ -418,7 +454,18 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
     - display_name (required, max 50 chars)
     - bio (optional, max 500 chars)
     - country (optional, max 100 chars)
-    - avatar (optional, file upload)
+    - pronouns (optional, max 50 chars)
+    - city (optional, max 100 chars)
+    - postal_code (optional, max 20 chars)
+    - address (optional, max 300 chars)
+    - phone (optional, max 20 chars)
+    - real_full_name (optional, max 200 chars)
+    - date_of_birth (optional, YYYY-MM-DD format)
+    - nationality (optional, max 100 chars)
+    - gender (optional, from GENDER_CHOICES)
+    - emergency_contact_name (optional, max 200 chars)
+    - emergency_contact_phone (optional, max 20 chars)
+    - emergency_contact_relation (optional, max 50 chars)
     
     Security:
     - CSRF protected (Django's @login_required + POST)
@@ -426,72 +473,136 @@ def update_basic_info(request: HttpRequest) -> HttpResponse:
     - Audit logging with before/after snapshots
     
     Returns:
-        Redirect to settings page with success/error message
+        JSON: {success: true, message: '...'}
     """
     if request.method != 'POST':
-        return redirect(reverse('user_profile:profile_settings_v2'))
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
     
-    # Get user profile safely
+    import json
+    from django.http import JsonResponse
     from apps.user_profile.utils import get_user_profile_safe
+    from datetime import datetime
+    
     profile = get_user_profile_safe(request.user)
     
-    # Capture before state for audit
-    before_snapshot = {
-        'display_name': profile.display_name,
-        'bio': profile.bio,
-        'country': profile.country,
-        'avatar_url': profile.get_avatar_url()
-    }
-    
-    # Validate and update fields
-    display_name = request.POST.get('display_name', '').strip()
-    bio = request.POST.get('bio', '').strip()
-    country = request.POST.get('country', '').strip()
-    
-    # Validation
-    if not display_name:
-        messages.error(request, 'Display name is required')
-        return redirect(reverse('user_profile:profile_settings_v2'))
-    
-    if len(display_name) > 50:
-        messages.error(request, 'Display name must be 50 characters or less')
-        return redirect(reverse('user_profile:profile_settings_v2'))
-    
-    if len(bio) > 500:
-        messages.error(request, 'Bio must be 500 characters or less')
-        return redirect(reverse('user_profile:profile_settings_v2'))
-    
-    # Update profile
-    profile.display_name = display_name
-    profile.bio = bio
-    profile.country = country
-    
-    # Handle avatar upload
-    if 'avatar' in request.FILES:
-        avatar_file = request.FILES['avatar']
-        # Basic validation
-        if avatar_file.size > 5 * 1024 * 1024:  # 5MB limit
-            messages.error(request, 'Avatar file must be less than 5MB')
-            return redirect(reverse('user_profile:profile_settings_v2'))
+    try:
+        data = json.loads(request.body)
         
-        # Save avatar (Django will handle file storage)
-        profile.avatar = avatar_file
+        # Capture before state for audit
+        before_snapshot = {
+            'display_name': profile.display_name,
+            'bio': profile.bio,
+            'country': profile.country,
+            'pronouns': profile.pronouns,
+        }
+        
+        # ===== BASIC PROFILE =====
+        display_name = data.get('display_name', '').strip()
+        if not display_name:
+            return JsonResponse({'success': False, 'error': 'Display name is required'}, status=400)
+        if len(display_name) > 80:
+            return JsonResponse({'success': False, 'error': 'Display name must be 80 characters or less'}, status=400)
+        profile.display_name = display_name
+        
+        bio = data.get('bio', '').strip()
+        if len(bio) > 500:
+            return JsonResponse({'success': False, 'error': 'Bio must be 500 characters or less'}, status=400)
+        profile.bio = bio
+        
+        pronouns = data.get('pronouns', '').strip()
+        if len(pronouns) > 50:
+            return JsonResponse({'success': False, 'error': 'Pronouns must be 50 characters or less'}, status=400)
+        profile.pronouns = pronouns
+        
+        # ===== LOCATION =====
+        country = data.get('country', '').strip()
+        if len(country) > 100:
+            return JsonResponse({'success': False, 'error': 'Country must be 100 characters or less'}, status=400)
+        profile.country = country
+        
+        city = data.get('city', '').strip()
+        if len(city) > 100:
+            return JsonResponse({'success': False, 'error': 'City must be 100 characters or less'}, status=400)
+        profile.city = city
+        
+        postal_code = data.get('postal_code', '').strip()
+        if len(postal_code) > 20:
+            return JsonResponse({'success': False, 'error': 'Postal code must be 20 characters or less'}, status=400)
+        profile.postal_code = postal_code
+        
+        address = data.get('address', '').strip()
+        if len(address) > 300:
+            return JsonResponse({'success': False, 'error': 'Address must be 300 characters or less'}, status=400)
+        profile.address = address
+        
+        # ===== CONTACT =====
+        phone = data.get('phone', '').strip()
+        if len(phone) > 20:
+            return JsonResponse({'success': False, 'error': 'Phone must be 20 characters or less'}, status=400)
+        profile.phone = phone
+        
+        # ===== LEGAL IDENTITY & KYC =====
+        # Only allow updating if not KYC verified
+        if profile.kyc_status != 'verified':
+            real_full_name = data.get('real_full_name', '').strip()
+            if len(real_full_name) > 200:
+                return JsonResponse({'success': False, 'error': 'Full name must be 200 characters or less'}, status=400)
+            profile.real_full_name = real_full_name
+            
+            nationality = data.get('nationality', '').strip()
+            if len(nationality) > 100:
+                return JsonResponse({'success': False, 'error': 'Nationality must be 100 characters or less'}, status=400)
+            profile.nationality = nationality
+            
+            # Date of birth
+            dob_str = data.get('date_of_birth', '').strip()
+            if dob_str:
+                try:
+                    profile.date_of_birth = datetime.strptime(dob_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD'}, status=400)
+            else:
+                profile.date_of_birth = None
+        
+        # ===== DEMOGRAPHICS =====
+        gender = data.get('gender', '').strip()
+        if gender:
+            from apps.user_profile.models_main import GENDER_CHOICES
+            valid_genders = [choice[0] for choice in GENDER_CHOICES]
+            if gender not in valid_genders:
+                return JsonResponse({'success': False, 'error': 'Invalid gender selection'}, status=400)
+            profile.gender = gender
+        else:
+            profile.gender = ''
+        
+        # ===== EMERGENCY CONTACT =====
+        emergency_contact_name = data.get('emergency_contact_name', '').strip()
+        if len(emergency_contact_name) > 200:
+            return JsonResponse({'success': False, 'error': 'Emergency contact name must be 200 characters or less'}, status=400)
+        profile.emergency_contact_name = emergency_contact_name
+        
+        emergency_contact_phone = data.get('emergency_contact_phone', '').strip()
+        if len(emergency_contact_phone) > 20:
+            return JsonResponse({'success': False, 'error': 'Emergency contact phone must be 20 characters or less'}, status=400)
+        profile.emergency_contact_phone = emergency_contact_phone
+        
+        emergency_contact_relation = data.get('emergency_contact_relation', '').strip()
+        if len(emergency_contact_relation) > 50:
+            return JsonResponse({'success': False, 'error': 'Emergency contact relation must be 50 characters or less'}, status=400)
+        profile.emergency_contact_relation = emergency_contact_relation
+        
+        profile.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Profile updated successfully'
+        })
     
-    profile.save()
-    
-    # Capture after state
-    after_snapshot = {
-        'display_name': profile.display_name,
-        'bio': profile.bio,
-        'country': profile.country,
-        'avatar_url': profile.get_avatar_url()
-    }
-    
-    # Audit logging disabled for now
-    # TODO: Re-enable when audit service is properly configured
-    
-    messages.success(request, 'Profile updated successfully')
-    return redirect(reverse('user_profile:profile_settings_v2'))
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating profile: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': 'Server error'}, status=500)
 
 
 @login_required

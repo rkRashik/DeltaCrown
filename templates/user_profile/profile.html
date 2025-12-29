@@ -21,9 +21,10 @@
         activeGameTab: '{{ game_profiles.0.game|default:"valorant" }}',
         mobileTab: 'info',
         
-        // State Management
+        // State Management - Phase 5B: Real follow state from backend
         isFollowing: {{ is_following|yesno:"true,false" }},
-    followLoading: false,
+        followLoading: false,
+        followerCount: {{ follower_count|default:0 }},
         walletBlurred: true,
         
         // Toast Notification System
@@ -58,16 +59,68 @@
             }
         },
         
-        toggleFollow() {
+        // Phase 5B: Real follow system with optimistic UI updates
+        async toggleFollow() {
             if (this.followLoading) return;
             this.followLoading = true;
-            // Simulate async request
-            setTimeout(() => {
-                this.isFollowing = !this.isFollowing;
-                this.showToast(this.isFollowing ? 'Followed' : 'Unfollowed', this.isFollowing ? '✓' : 'ℹ');
+            
+            const username = '{{ profile_user.username }}';
+            const wasFollowing = this.isFollowing;
+            
+            // Optimistic UI update
+            this.isFollowing = !this.isFollowing;
+            if (this.isFollowing) {
+                this.followerCount += 1;
+            } else {
+                this.followerCount = Math.max(0, this.followerCount - 1);
+            }
+            
+            try {
+                // Call real API
+                if (this.isFollowing) {
+                    const response = await fetch(`/actions/follow-safe/${username}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to follow');
+                    }
+                    
+                    this.showToast('Followed', '✓');
+                } else {
+                    const response = await fetch(`/actions/unfollow-safe/${username}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        credentials: 'same-origin'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to unfollow');
+                    }
+                    
+                    this.showToast('Unfollowed', 'ℹ');
+                }
+            } catch (error) {
+                // Rollback on failure
+                this.isFollowing = wasFollowing;
+                if (wasFollowing) {
+                    this.followerCount += 1;
+                } else {
+                    this.followerCount = Math.max(0, this.followerCount - 1);
+                }
+                this.showToast('Failed to update follow status', '❌');
+                console.error('Follow error:', error);
+            } finally {
                 this.followLoading = false;
-            }, 650);
-            // TODO: Replace with real AJAX POST to follow/unfollow endpoint
+            }
         }
      }">
 

@@ -33,12 +33,12 @@ class UserProfileForm(forms.ModelForm):
             'facebook', 'instagram', 'tiktok', 'twitter',
             'youtube_link', 'twitch_link', 'discord_id',
             
+            # Platform Preferences (Phase 6 Part C)
+            'preferred_language', 'timezone_pref', 'time_format', 'theme_preference',
+            
             # Note: Legacy game ID fields migrated to Game Passport system
             # Game-specific identities now managed via GameProfile model
-            
-            # Privacy Settings
-            'is_private', 'show_email', 'show_phone', 'show_socials',
-            'show_real_name', 'show_age', 'show_gender', 'show_country', 'show_address'
+            # Note: Privacy settings managed via PrivacySettings model (not on UserProfile)
         ]
         
         widgets = {
@@ -154,33 +154,19 @@ class UserProfileForm(forms.ModelForm):
                 'placeholder': 'Your Discord username'
             }),
             
-            # Privacy Settings
-            'is_private': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
+            # Platform Preferences
+            'preferred_language': forms.Select(attrs={
+                'class': 'form-input'
             }),
-            'show_email': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
+            'timezone_pref': forms.TextInput(attrs={
+                'class': 'form-input',
+                'placeholder': 'e.g., Asia/Dhaka'
             }),
-            'show_phone': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
+            'time_format': forms.Select(attrs={
+                'class': 'form-input'
             }),
-            'show_socials': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
-            }),
-            'show_real_name': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
-            }),
-            'show_age': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
-            }),
-            'show_gender': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
-            }),
-            'show_country': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
-            }),
-            'show_address': forms.CheckboxInput(attrs={
-                'class': 'form-checkbox'
+            'theme_preference': forms.Select(attrs={
+                'class': 'form-input'
             }),
         }
         
@@ -221,35 +207,11 @@ class UserProfileForm(forms.ModelForm):
             'youtube_link': 'Link to your YouTube channel (optional).',
             'twitch_link': 'Link to your Twitch channel (optional).',
             
-            # Privacy Settings
-            'is_private': 'Hide your entire profile from public view.',
-            'show_email': 'Display your email address on your public profile.',
-            'show_phone': 'Display your phone number on your public profile.',
-            'show_socials': 'Display your gaming IDs and social links on your public profile.',
-            'show_real_name': 'Display your real name on your public profile.',
-            'show_age': 'Display your age on your public profile.',
-            'show_gender': 'Display your gender on your public profile.',
-            'show_country': 'Display your country on your public profile.',
-            'show_address': 'Display your address on your public profile.',
-        }
-
-
-class PrivacySettingsForm(forms.ModelForm):
-    """Legacy form for privacy settings only"""
-    class Meta:
-        model = UserProfile
-        fields = ("is_private", "show_email", "show_phone", "show_socials")
-        widgets = {
-            "is_private": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-            "show_email": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-            "show_phone": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-            "show_socials": forms.CheckboxInput(attrs={"class": "form-checkbox h-4 w-4"}),
-        }
-        help_texts = {
-            "is_private": "If enabled, your public profile is hidden (404) unless explicitly shared with staff.",
-            "show_email": "Show your email on the public profile page.",
-            "show_phone": "Show your phone on the public profile page.",
-            "show_socials": "Show your linked social account on the public profile page.",
+            # Platform Preferences
+            'preferred_language': 'Your preferred language for the UI (currently only English is fully supported).',
+            'timezone_pref': 'Your timezone for displaying times (e.g., Asia/Dhaka, UTC, America/New_York).',
+            'time_format': 'Display times in 12-hour (3:00 PM) or 24-hour (15:00) format.',
+            'theme_preference': 'Choose your preferred theme (Light, Dark, or match your system settings).',
         }
 
 

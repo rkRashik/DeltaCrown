@@ -3,6 +3,7 @@
      Section 3.3.6 - Master Plan
      Display: Recent Match Results
      Layout: Timeline with W/L Badges
+     Phase 6C: Privacy-aware with locked states
      ============================================ -->
 <div class="glass-card p-6">
     
@@ -11,7 +12,7 @@
         <h3 class="text-white font-bold text-lg uppercase tracking-wide flex items-center gap-2">
             <span>⚔</span> Match History
         </h3>
-        {% if matches %}
+        {% if can_view_match_history and matches %}
         <a href="{% url 'user_profile:match_history' profile_user.username %}" 
            class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">
             View All
@@ -19,7 +20,8 @@
         {% endif %}
     </div>
     
-    {% if matches %}
+    {% if can_view_match_history %}
+        {% if matches %}
     
     <!-- Match Timeline -->
     <div class="space-y-3">
@@ -93,23 +95,36 @@
     </div>
     {% endif %}
     
+        {% else %}
+        
+        <!-- Empty State - Owner has no matches -->
+        <div class="text-center py-12">
+            <div class="text-6xl mb-3 opacity-50">⚔</div>
+            {% if is_own_profile %}
+            <p class="text-slate-400 text-sm font-semibold mb-1">No match history yet</p>
+            <p class="text-slate-600 text-xs mb-4">Your competitive matches will appear here</p>
+            <a href="{% url 'tournaments:browse' %}" 
+               class="inline-block px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                      text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
+                🎮 Find Matches
+            </a>
+            {% else %}
+            <p class="text-slate-500 text-sm italic">No matches recorded yet</p>
+            <p class="text-slate-600 text-xs mt-1">Check back after they compete!</p>
+            {% endif %}
+        </div>
+        
+        {% endif %}
+    
     {% else %}
     
-    <!-- Empty State -->
+    <!-- Privacy Locked State (Visitor cannot view match history) -->
     <div class="text-center py-12">
-        <div class="text-6xl mb-3 opacity-50">⚔</div>
-        {% if is_own_profile %}
-        <p class="text-slate-400 text-sm font-semibold mb-1">No match history yet</p>
-        <p class="text-slate-600 text-xs mb-4">Your competitive matches will appear here</p>
-        <a href="{% url 'tournaments:browse' %}" 
-           class="inline-block px-5 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
-                  text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all">
-            🎮 Find Matches
-        </a>
-        {% else %}
-        <p class="text-slate-500 text-sm italic">No matches recorded yet</p>
-        <p class="text-slate-600 text-xs mt-1">Check back after they compete!</p>
-        {% endif %}
+        <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 border-2 border-red-500/30 flex items-center justify-center">
+            <i class="fas fa-lock text-red-500 text-2xl"></i>
+        </div>
+        <p class="text-slate-400 text-sm font-semibold mb-2">Match History is Private</p>
+        <p class="text-slate-600 text-xs">Follow {{ profile.display_name }} to see their matches</p>
     </div>
     
     {% endif %}

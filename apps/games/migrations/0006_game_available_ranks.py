@@ -10,13 +10,13 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="game",
-            name="available_ranks",
-            field=models.JSONField(
-                blank=True,
-                default=list,
-                help_text="Game-specific ranks: [{'value': 'iron', 'label': 'Iron'}, ...]",
-            ),
+        migrations.RunSQL(
+            sql="""
+                ALTER TABLE games_game
+                ADD COLUMN IF NOT EXISTS available_ranks jsonb DEFAULT '[]'::jsonb NOT NULL;
+            """,
+            reverse_sql="""
+                ALTER TABLE games_game DROP COLUMN IF EXISTS available_ranks;
+            """,
         ),
     ]

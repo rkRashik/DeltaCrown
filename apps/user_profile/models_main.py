@@ -221,16 +221,47 @@ class UserProfile(models.Model):
     # migration 0011_remove_legacy_game_id_fields after data migration to game_profiles.
     # Use get_game_profile(game) and set_game_profile(game, data) methods instead.
 
-    # ===== PRIVACY SETTINGS (Will be moved to PrivacySettings model in Phase 2) =====
-    is_private = models.BooleanField(default=False, help_text="Hide entire profile from public.")
-    show_email = models.BooleanField(default=False, help_text="Allow showing my email on public profile.")
-    show_phone = models.BooleanField(default=False, help_text="Allow showing my phone on public profile.")
-    show_socials = models.BooleanField(default=True, help_text="Allow showing my social links/IDs on public profile.")
-    show_address = models.BooleanField(default=False, help_text="Display address on public profile")
-    show_age = models.BooleanField(default=True, help_text="Display age (calculated from DOB) on public profile")
-    show_gender = models.BooleanField(default=False, help_text="Display gender on public profile")
-    show_country = models.BooleanField(default=True, help_text="Display country on public profile")
-    show_real_name = models.BooleanField(default=False, help_text="Display real full name on public profile")
+    # ===== PRIVACY SETTINGS =====
+    # REMOVED: Legacy privacy fields (is_private, show_email, show_phone, show_socials, 
+    # show_address, show_age, show_gender, show_country, show_real_name) have been removed
+    # in migration 0029_remove_legacy_privacy_fields.
+    # All privacy settings are now managed via the PrivacySettings model.
+    # Use PrivacySettingsService or profile.privacy_settings to access privacy configuration.
+    
+    # ===== PLATFORM PREFERENCES (Phase 6 Part C) =====
+    preferred_language = models.CharField(
+        max_length=10,
+        default='en',
+        choices=[
+            ('en', 'English'),
+            ('bn', 'Bengali (Coming Soon)'),
+        ],
+        help_text="Preferred UI language"
+    )
+    timezone_pref = models.CharField(
+        max_length=50,
+        default='Asia/Dhaka',
+        help_text="User's preferred timezone for displaying times (e.g., 'Asia/Dhaka', 'UTC')"
+    )
+    time_format = models.CharField(
+        max_length=10,
+        default='12h',
+        choices=[
+            ('12h', '12-hour (3:00 PM)'),
+            ('24h', '24-hour (15:00)'),
+        ],
+        help_text="Preferred time display format"
+    )
+    theme_preference = models.CharField(
+        max_length=10,
+        default='dark',
+        choices=[
+            ('light', 'Light'),
+            ('dark', 'Dark'),
+            ('system', 'System'),
+        ],
+        help_text="UI theme preference"
+    )
     
     # ===== METADATA (Future-Proof Extensibility) =====
     attributes = models.JSONField(
@@ -243,6 +274,7 @@ class UserProfile(models.Model):
         blank=True,
         help_text="User preferences (theme, notifications, language)"
     )
+
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -23,19 +23,20 @@ from .models import (
     Badge,
     UserBadge,
     # Phase 3 Models
-    SocialLink,
+    # SocialLink - REMOVED: Orphaned model, no view usage
     GameProfile,
     Achievement,
-    Match,
+    # Match - REMOVED: Placeholder admin, unregistered until tournament system writes data
     Certificate,
-    # UP-M2 Models
-    UserActivity,
-    UserProfileStats,
+    # UP-M2 Models - REMOVED: Orphaned (UserActivity, UserProfileStats)
     # UP-M5 Models
     UserAuditEvent,
     # GP-0 Models
     GameProfileAlias,
     GameProfileConfig,
+    # UP-PHASE6-C Models
+    NotificationPreferences,
+    WalletSettings,
 )
 from .services.audit import AuditService
 from .services.tournament_stats import TournamentStatsService
@@ -141,6 +142,66 @@ class UserBadgeInline(admin.TabularInline):
     readonly_fields = ['earned_at']
 
 
+class NotificationPreferencesInline(admin.StackedInline):
+    """
+    UP-PHASE6-C: Inline notification preferences editor
+    
+    Displays email and platform notification settings on UserProfile admin.
+    """
+    model = NotificationPreferences
+    can_delete = False
+    verbose_name = "Notification Preferences"
+    verbose_name_plural = "Notification Preferences"
+    
+    fieldsets = [
+        ('Email Notifications', {
+            'fields': [
+                'email_tournament_reminders',
+                'email_match_results',
+                'email_team_invites',
+                'email_achievements',
+                'email_platform_updates',
+            ]
+        }),
+        ('Platform Notifications', {
+            'fields': [
+                'notify_tournament_start',
+                'notify_team_messages',
+                'notify_follows',
+                'notify_achievements',
+            ]
+        }),
+    ]
+
+
+class WalletSettingsInline(admin.StackedInline):
+    """
+    UP-PHASE6-C: Inline wallet settings editor
+    
+    Displays Bangladesh mobile banking settings and withdrawal preferences.
+    """
+    model = WalletSettings
+    can_delete = False
+    verbose_name = "Wallet Settings"
+    verbose_name_plural = "Wallet Settings"
+    
+    fieldsets = [
+        ('Mobile Banking', {
+            'fields': [
+                ('bkash_enabled', 'bkash_account'),
+                ('nagad_enabled', 'nagad_account'),
+                ('rocket_enabled', 'rocket_account'),
+            ]
+        }),
+        ('Withdrawal Preferences', {
+            'fields': [
+                'auto_withdrawal_threshold',
+                'auto_convert_to_usd',
+            ]
+        }),
+    ]
+
+
 # ============================================================================
 # MAIN MODEL ADMINS
 # ============================================================================
@@ -167,7 +228,6 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_filter = [
         'kyc_status',
         'region',
-        'is_private',
         'stream_status',
         'created_at',
     ]
@@ -189,14 +249,18 @@ class UserProfileAdmin(admin.ModelAdmin):
         'created_at',
         'updated_at',
         'kyc_verified_at',
+        'deltacoin_balance',  # Economy-owned: updated by economy app only
+        'lifetime_earnings',  # Economy-owned: updated by economy app only
     ]
     
     fieldsets = [
         ('User Account', {
-            'fields': ['user', 'uuid', 'public_id', 'created_at', 'updated_at']
+            'fields': ['user', 'uuid', 'public_id', 'created_at', 'updated_at'],
+            'description': 'System identifiers and registration metadata (read-only)'
         }),
         ('Public Identity', {
-            'fields': ['display_name', 'slug', 'avatar', 'banner', 'bio', 'pronouns']
+            'fields': ['display_name', 'slug', 'avatar', 'banner', 'bio', 'pronouns'],
+            'description': 'Visible to all visitors on profile page'
         }),
         ('Legal Identity (KYC)', {
             'fields': [
@@ -207,14 +271,18 @@ class UserProfileAdmin(admin.ModelAdmin):
                 'kyc_status',
                 'kyc_verified_at',
             ],
-            'classes': ['collapse']
+            'classes': ['collapse'],
+            'description': 'Verification data - immutable after KYC approval'
         }),
         ('Location', {
-            'fields': ['country', 'region', 'city', 'postal_code', 'address']
+            'fields': ['country', 'region', 'city', 'postal_code', 'address'],
+            'classes': ['collapse'],
+            'description': 'Geographic data for tournaments and leaderboards'
         }),
-        ('Contact', {
+        ('Demographics', {  # Renamed from 'Contact'
             'fields': ['phone', 'gender'],
-            'classes': ['collapse']
+            'classes': ['collapse'],
+            'description': 'Optional demographic information'
         }),
         ('Emergency Contact', {
             'fields': [
@@ -222,10 +290,10 @@ class UserProfileAdmin(admin.ModelAdmin):
                 'emergency_contact_phone',
                 'emergency_contact_relation',
             ],
-            'classes': ['collapse']
+            'classes': ['collapse'],
+            'description': 'For LAN events and emergencies only'
         }),
-        ('Legacy Social Links', {
-            'description': 'Note: New social links use SocialLink model (see inline below)',
+        ('Social Links', {
             'fields': [
                 'youtube_link',
                 'twitch_link',
@@ -236,19 +304,21 @@ class UserProfileAdmin(admin.ModelAdmin):
                 'twitter',
                 'stream_status',
             ],
-            'classes': ['collapse']
+            'classes': ['collapse'],
+            'description': 'Connected platforms and streaming status'
         }),
-        ('Legacy Game Profiles (JSON - DEPRECATED)', {
-            'description': '''
-                ⚠️ <strong>TRANSITIONAL:</strong> Game data now managed via Game Passport system (GameProfile model).<br>
-                This JSON field is deprecated and will be removed in Phase 4.<br>
-                <strong>Use the Game Passport inline editor below instead.</strong>
-            ''',
-            'fields': ['game_profiles'],
-            'classes': ['collapse']
+        ('Platform Preferences', {
+            'fields': [
+                'preferred_language',
+                'timezone_pref',
+                'time_format',
+                'theme_preference',
+            ],
+            'description': 'User interface and localization preferences (UP-PHASE6-C)'
         }),
         ('Competitive Career', {
-            'fields': ['reputation_score', 'skill_rating']
+            'fields': ['reputation_score', 'skill_rating'],
+            'description': 'Competitive metrics and rankings'
         }),
         ('Gamification', {
             'fields': [
@@ -256,17 +326,25 @@ class UserProfileAdmin(admin.ModelAdmin):
                 'xp',
                 'pinned_badges',
                 'inventory_items',
-            ]
+            ],
+            'description': 'Progression system and rewards'
         }),
         ('Economy', {
-            'fields': ['deltacoin_balance', 'lifetime_earnings']
+            'fields': ['deltacoin_balance', 'lifetime_earnings'],
+            'description': 'Financial data - balance is cached from economy app (read-only)'
         }),
     ]
     
     inlines = [
+        # Core Settings (Always Edit)
         PrivacySettingsInline,
-        SocialLinkInline,
+        NotificationPreferencesInline,
+        WalletSettingsInline,
+        
+        # Competitive Data
         GameProfileInline,
+        
+        # Optional/Decorative
         UserBadgeInline,
     ]
     
@@ -284,7 +362,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         except Exception:
             return 0
     games_count.short_description = 'Passports'
-    games_count.admin_order_field = 'game_profiles'
+    # Note: Sorting disabled - would require queryset annotation
     
     def games_summary(self, obj):
         """Display summary of games from Game Passport table (first 3 game names)"""
@@ -640,27 +718,10 @@ class UserBadgeAdmin(admin.ModelAdmin):
 # PHASE 3: NEW MODEL ADMINS
 # ============================================================================
 
-@admin.register(SocialLink)
-class SocialLinkAdmin(admin.ModelAdmin):
-    """Social links admin"""
-    
-    list_display = ['user', 'platform', 'handle', 'url', 'is_verified', 'created_at']
-    list_filter = ['platform', 'is_verified', 'created_at']
-    search_fields = ['user__username', 'handle', 'url']
-    readonly_fields = ['created_at', 'updated_at']
-    
-    fieldsets = [
-        ('Social Link', {
-            'fields': ['user', 'platform', 'url', 'handle']
-        }),
-        ('Verification', {
-            'fields': ['is_verified']
-        }),
-        ('Metadata', {
-            'fields': ['created_at', 'updated_at'],
-            'classes': ['collapse']
-        }),
-    ]
+# @admin.register(SocialLink) - REMOVED: Orphaned model, no views use it
+# class SocialLinkAdmin(admin.ModelAdmin):
+#     """Social links admin - ORPHANED, unregistered in Phase 5B"""
+#     pass
 
 
 @admin.register(GameProfile)
@@ -1004,35 +1065,10 @@ class AchievementAdmin(admin.ModelAdmin):
     ]
 
 
-@admin.register(Match)
-class MatchAdmin(admin.ModelAdmin):
-    """Match history admin"""
-    
-    list_display = [
-        'user',
-        'game_name',
-        'result',
-        'score',
-        'kda',
-        'played_at',
-    ]
-    
-    list_filter = ['result', 'game_name', 'mode', 'played_at']
-    search_fields = ['user__username', 'game_name']
-    date_hierarchy = 'played_at'
-    
-    fieldsets = [
-        ('Match Info', {
-            'fields': ['user', 'game_name', 'mode', 'result', 'played_at']
-        }),
-        ('Stats', {
-            'fields': ['score', 'kda', 'duration']
-        }),
-        ('Metadata', {
-            'fields': ['metadata'],
-            'classes': ['collapse']
-        }),
-    ]
+# @admin.register(Match) - REMOVED: Placeholder admin, unregistered until tournament system writes data
+# Match model kept for future but admin hidden in Phase 5B
+# class MatchAdmin(admin.ModelAdmin):
+#     pass
 
 
 @admin.register(Certificate)
@@ -1079,252 +1115,16 @@ class CertificateAdmin(admin.ModelAdmin):
 # UP-M2: ACTIVITY & STATS ADMINS
 # ============================================================================
 
-@admin.register(UserActivity)
-class UserActivityAdmin(admin.ModelAdmin):
-    """User activity log admin - read-only audit trail"""
-    
-    list_display = [
-        'user_link',
-        'event_type',
-        'created_at',
-        'metadata_preview',
-    ]
-    
-    list_filter = [
-        'event_type',
-        'created_at',
-    ]
-    
-    search_fields = [
-        'user__username',
-        'user__email',
-        'event_type',
-    ]
-    
-    readonly_fields = [
-        'user',
-        'event_type',
-        'metadata',
-        'created_at',
-    ]
-    
-    date_hierarchy = 'created_at'
-    
-    fieldsets = [
-        ('Activity Event', {
-            'fields': ['user', 'event_type', 'created_at']
-        }),
-        ('Event Data', {
-            'fields': ['metadata'],
-        }),
-    ]
-    
-    def user_link(self, obj):
-        """Link to user profile admin"""
-        url = reverse('admin:user_profile_userprofile_change', args=[obj.user.userprofile.id])
-        return format_html('<a href="{}">{}</a>', url, obj.user.username)
-    user_link.short_description = 'User'
-    
-    def metadata_preview(self, obj):
-        """Show metadata preview"""
-        if obj.metadata:
-            preview = str(obj.metadata)[:50]
-            return preview + '...' if len(str(obj.metadata)) > 50 else preview
-        return '—'
-    metadata_preview.short_description = 'Metadata'
-    
-    def has_add_permission(self, request):
-        """Prevent manual creation - activity is event-sourced"""
-        return False
-    
-    def has_delete_permission(self, request, obj=None):
-        """Prevent deletion - activity is immutable"""
-        return False
+# @admin.register(UserActivity) - REMOVED: Orphaned model, no views write events
+# UserActivity model exists but never used - unregistered in Phase 5B
+# class UserActivityAdmin(admin.ModelAdmin):
+#     pass
 
 
-@admin.register(UserProfileStats)
-class UserProfileStatsAdmin(admin.ModelAdmin):
-    """User profile stats admin - read-only derived data with recompute action"""
-    
-    list_display = [
-        'user_link',
-        'public_id',
-        'deltacoin_balance',
-        'tournaments_played',
-        'tournaments_won',
-        'matches_played',
-        'matches_won',
-        'teams_joined',
-        'computed_at',
-    ]
-    
-    list_filter = [
-        'computed_at',
-    ]
-    
-    search_fields = [
-        'user__username',
-        'user__email',
-        'public_id',
-    ]
-    
-    readonly_fields = [
-        'user',
-        'public_id',
-        'deltacoin_balance',
-        'lifetime_earnings',
-        'tournaments_played',
-        'tournaments_won',
-        'tournaments_top3',
-        'matches_played',
-        'matches_won',
-        'teams_joined',
-        'current_team',
-        'computed_at',
-    ]
-    
-    fieldsets = [
-        ('User', {
-            'fields': ['user', 'public_id']
-        }),
-        ('Economy Stats (Synced from Wallet)', {
-            'fields': ['deltacoin_balance', 'lifetime_earnings'],
-            'description': 'These fields are synced from DeltaCrownWallet. Use "Reconcile Economy" action to fix drift.',
-        }),
-        ('Tournament Stats (Derived)', {
-            'fields': [
-                'tournaments_played',
-                'tournaments_won',
-                'tournaments_top3',
-            ],
-            'description': 'Computed from Tournament, Registration, TournamentResult tables.',
-        }),
-        ('Match Stats (Derived)', {
-            'fields': ['matches_played', 'matches_won'],
-            'description': 'Computed from Match model.',
-        }),
-        ('Team Stats (Derived)', {
-            'fields': ['teams_joined', 'current_team'],
-            'description': 'Computed from TeamMembership model.',
-        }),
-        ('Metadata', {
-            'fields': ['computed_at'],
-        }),
-    ]
-    
-    actions = ['recompute_stats', 'reconcile_economy']
-    
-    def user_link(self, obj):
-        """Link to user profile admin"""
-        url = reverse('admin:user_profile_userprofile_change', args=[obj.user.userprofile.id])
-        return format_html('<a href="{}">{}</a>', url, obj.user.username)
-    user_link.short_description = 'User'
-    
-    @admin.action(description='🔄 Recompute selected users\' stats (idempotent, safe)')
-    def recompute_stats(self, request, queryset):
-        """Recompute stats for selected users (calls tournament_stats service)"""
-        if not request.user.is_superuser:
-            self.message_user(request, "Only superusers can recompute stats.", level=messages.ERROR)
-            return
-        
-        count = 0
-        errors = []
-        
-        for stats in queryset.select_related('user'):
-            try:
-                # Call idempotent recompute service
-                TournamentStatsService.recompute_user_stats(stats.user)
-                
-                # Record audit event
-                AuditService.record_event(
-                    subject_user_id=stats.user.id,
-                    event_type='stats_recomputed',
-                    source_app='user_profile',
-                    object_type='userprofilestats',
-                    object_id=stats.id,
-                    actor_user_id=request.user.id,
-                    metadata={'trigger': 'admin_action'},
-                )
-                
-                count += 1
-            except Exception as e:
-                errors.append(f"{stats.user.username}: {e}")
-        
-        if errors:
-            self.message_user(
-                request,
-                f"Recomputed {count} stats with {len(errors)} errors: {'; '.join(errors[:5])}",
-                level=messages.WARNING
-            )
-        else:
-            self.message_user(
-                request,
-                f"✅ Successfully recomputed stats for {count} user(s).",
-                level=messages.SUCCESS
-            )
-    
-    @admin.action(description='💰 Reconcile selected users\' economy (sync wallet → profile)')
-    def reconcile_economy(self, request, queryset):
-        """Reconcile economy for selected users (syncs wallet to profile)"""
-        if not request.user.is_superuser:
-            self.message_user(request, "Only superusers can reconcile economy.", level=messages.ERROR)
-            return
-        
-        count = 0
-        drifts = []
-        errors = []
-        
-        for stats in queryset.select_related('user'):
-            try:
-                # Check drift first
-                drift = get_balance_drift(user_id=stats.user.id)
-                if drift != 0:
-                    drifts.append(f"{stats.user.username}: {drift:+d}")
-                
-                # Sync wallet to profile
-                sync_profile_by_user_id(stats.user.id)
-                
-                # Record audit event
-                AuditService.record_event(
-                    subject_user_id=stats.user.id,
-                    event_type='economy_sync',
-                    source_app='user_profile',
-                    object_type='userprofilestats',
-                    object_id=stats.id,
-                    actor_user_id=request.user.id,
-                    metadata={'trigger': 'admin_action', 'drift_corrected': drift},
-                )
-                
-                count += 1
-            except Exception as e:
-                errors.append(f"{stats.user.username}: {e}")
-        
-        if errors:
-            self.message_user(
-                request,
-                f"Reconciled {count} users with {len(errors)} errors: {'; '.join(errors[:5])}",
-                level=messages.WARNING
-            )
-        elif drifts:
-            self.message_user(
-                request,
-                f"✅ Reconciled {count} user(s). Drifts corrected: {'; '.join(drifts[:10])}",
-                level=messages.SUCCESS
-            )
-        else:
-            self.message_user(
-                request,
-                f"✅ Reconciled {count} user(s). No drift detected.",
-                level=messages.SUCCESS
-            )
-    
-    def has_add_permission(self, request):
-        """Prevent manual creation - stats are derived"""
-        return False
-    
-    def has_delete_permission(self, request, obj=None):
-        """Prevent deletion - stats should persist"""
-        return False
+# @admin.register(UserProfileStats) - REMOVED: Orphaned model, no views read stats
+# UserProfileStats model exists but never queried by views - unregistered in Phase 5B
+# class UserProfileStatsAdmin(admin.ModelAdmin):
+#     pass
 
 
 # ============================================================================
@@ -1557,3 +1357,178 @@ class GameProfileConfigAdmin(admin.ModelAdmin):
         }
 
 
+# ============================================================================
+# UP-PHASE6-C: Settings Redesign Models
+# ============================================================================
+
+@admin.register(NotificationPreferences)
+class NotificationPreferencesAdmin(admin.ModelAdmin):
+    """
+    Admin for NotificationPreferences model.
+    
+    Displays all email and platform notification preferences for users.
+    Read-only view with link to user profile.
+    """
+    list_display = [
+        'user_profile_link',
+        'email_tournament_reminders',
+        'email_match_results',
+        'email_team_invites',
+        'notify_tournament_start',
+        'notify_team_messages',
+        'updated_at',
+    ]
+    list_filter = [
+        'email_tournament_reminders',
+        'email_match_results',
+        'email_team_invites',
+        'email_achievements',
+        'email_platform_updates',
+        'notify_tournament_start',
+        'notify_team_messages',
+        'notify_follows',
+        'notify_achievements',
+    ]
+    search_fields = ['user_profile__user__username', 'user_profile__display_name']
+    readonly_fields = ['user_profile', 'created_at', 'updated_at']
+    
+    fieldsets = [
+        ('User', {
+            'fields': ['user_profile']
+        }),
+        ('Email Notifications', {
+            'fields': [
+                'email_tournament_reminders',
+                'email_match_results',
+                'email_team_invites',
+                'email_achievements',
+                'email_platform_updates',
+            ]
+        }),
+        ('Platform Notifications', {
+            'fields': [
+                'notify_tournament_start',
+                'notify_team_messages',
+                'notify_follows',
+                'notify_achievements',
+            ]
+        }),
+        ('Timestamps', {
+            'fields': ['created_at', 'updated_at'],
+            'classes': ['collapse']
+        }),
+    ]
+    
+    def user_profile_link(self, obj):
+        """Link to user profile admin"""
+        if obj.user_profile:
+            url = reverse('admin:user_profile_userprofile_change', args=[obj.user_profile.pk])
+            return format_html('<a href="{}">{}</a>', url, obj.user_profile)
+        return '-'
+    user_profile_link.short_description = 'User Profile'
+    
+    def has_add_permission(self, request):
+        """Created automatically via UserProfile"""
+        return False
+
+
+@admin.register(WalletSettings)
+class WalletSettingsAdmin(admin.ModelAdmin):
+    """
+    Admin for WalletSettings model.
+    
+    Displays Bangladesh mobile banking settings and withdrawal preferences.
+    Contains sensitive account numbers - restricted access recommended.
+    
+    SECURITY WARNING: Account numbers visible in list view.
+    Restrict admin access to trusted staff only.
+    """
+    list_display = [
+        'user_profile_link',
+        'bkash_status',
+        'nagad_status',
+        'rocket_status',
+        'auto_withdrawal_threshold',
+        'updated_at',
+    ]
+    list_filter = [
+        'bkash_enabled',
+        'nagad_enabled',
+        'rocket_enabled',
+        'auto_convert_to_usd',
+    ]
+    search_fields = [
+        'user_profile__user__username',
+        'user_profile__display_name',
+        'bkash_account',
+        'nagad_account',
+        'rocket_account',
+    ]
+    readonly_fields = ['user_profile', 'created_at', 'updated_at', 'enabled_methods_display']
+    
+    fieldsets = [
+        ('User', {
+            'fields': ['user_profile']
+        }),
+        ('bKash Settings', {
+            'fields': ['bkash_enabled', 'bkash_account']
+        }),
+        ('Nagad Settings', {
+            'fields': ['nagad_enabled', 'nagad_account']
+        }),
+        ('Rocket Settings', {
+            'fields': ['rocket_enabled', 'rocket_account']
+        }),
+        ('Withdrawal Preferences', {
+            'fields': [
+                'auto_withdrawal_threshold',
+                'auto_convert_to_usd',
+                'enabled_methods_display',
+            ]
+        }),
+        ('Timestamps', {
+            'fields': ['created_at', 'updated_at'],
+            'classes': ['collapse']
+        }),
+    ]
+    
+    def user_profile_link(self, obj):
+        """Link to user profile admin"""
+        if obj.user_profile:
+            url = reverse('admin:user_profile_userprofile_change', args=[obj.user_profile.pk])
+            return format_html('<a href="{}">{}</a>', url, obj.user_profile)
+        return '-'
+    user_profile_link.short_description = 'User Profile'
+    
+    def bkash_status(self, obj):
+        """Display bKash status with icon"""
+        if obj.bkash_enabled and obj.bkash_account:
+            return format_html('<span style="color: green;">✓ {}</span>', obj.bkash_account)
+        return format_html('<span style="color: gray;">✗ Not configured</span>')
+    bkash_status.short_description = 'bKash'
+    
+    def nagad_status(self, obj):
+        """Display Nagad status with icon"""
+        if obj.nagad_enabled and obj.nagad_account:
+            return format_html('<span style="color: green;">✓ {}</span>', obj.nagad_account)
+        return format_html('<span style="color: gray;">✗ Not configured</span>')
+    nagad_status.short_description = 'Nagad'
+    
+    def rocket_status(self, obj):
+        """Display Rocket status with icon"""
+        if obj.rocket_enabled and obj.rocket_account:
+            return format_html('<span style="color: green;">✓ {}</span>', obj.rocket_account)
+        return format_html('<span style="color: gray;">✗ Not configured</span>')
+    rocket_status.short_description = 'Rocket'
+    
+    def enabled_methods_display(self, obj):
+        """Display list of enabled payment methods"""
+        methods = obj.get_enabled_methods()
+        if methods:
+            return ', '.join(methods)
+        return 'None'
+    enabled_methods_display.short_description = 'Enabled Methods'
+    
+    def has_add_permission(self, request):
+        """Created automatically via UserProfile"""
+        return False

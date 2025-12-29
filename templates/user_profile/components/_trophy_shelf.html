@@ -3,6 +3,7 @@
      Section 3.3.4 - Master Plan
      Display: Recent Achievements & Badges
      Layout: Horizontal Scroll (Mobile), Grid (Desktop)
+     Phase 6C: Privacy-aware with locked states
      ============================================ -->
 <div class="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl p-5 md:p-6 
             hover:border-slate-700/50 transition-all duration-300 shadow-lg hover:shadow-xl">
@@ -13,7 +14,7 @@
             <i class="fas fa-trophy text-amber-400"></i>
             <span>Achievements</span>
         </h3>
-        {% if achievements %}
+        {% if can_view_achievements and achievements %}
         <a href="{% url 'user_profile:achievements' profile_user.username %}" 
            class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-all duration-200 
                   hover:scale-110 active:scale-95 flex items-center gap-1.5">
@@ -23,12 +24,13 @@
         {% endif %}
     </div>
     
-    <!-- Trophies Grid/Scroll -->
-    {% if achievements %}
-    <div class="overflow-x-auto md:overflow-visible -mx-2 px-2 md:mx-0 md:px-0 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-        <div class="flex md:grid md:grid-cols-3 gap-3 md:gap-4 min-w-max md:min-w-0">
-            
-            {% for achievement in achievements|slice:":6" %}
+    <!-- Trophies Grid/Scroll (Visible only if can_view) -->
+    {% if can_view_achievements %}
+        {% if achievements %}
+        <div class="overflow-x-auto md:overflow-visible -mx-2 px-2 md:mx-0 md:px-0 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            <div class="flex md:grid md:grid-cols-3 gap-3 md:gap-4 min-w-max md:min-w-0">
+                
+                {% for achievement in achievements|slice:":6" %}
             <div class="flex-shrink-0 w-28 md:w-auto group">
                 <!-- Trophy Card -->
                 <div class="relative aspect-square rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border 
@@ -78,38 +80,60 @@
                 </p>
             </div>
             {% endfor %}
-            
+                
+            </div>
         </div>
-    </div>
-    
-    <!-- Achievement Count (Mobile Only) -->
-    <div class="md:hidden mt-4 text-center">
-        <p class="text-slate-500 text-xs">
-            Showing <span class="text-white font-semibold">{{ achievements|slice:":6"|length }}</span> of 
-            <span class="text-white font-semibold">{{ achievements|length }}</span> achievements
-        </p>
-    </div>
-    
+        
+        <!-- Achievement Count (Mobile Only) -->
+        <div class="md:hidden mt-4 text-center">
+            <p class="text-slate-500 text-xs">
+                Showing <span class="text-white font-semibold">{{ achievements|slice:":6"|length }}</span> of 
+                <span class="text-white font-semibold">{{ achievements|length }}</span> achievements
+            </p>
+        </div>
+        
+        {% else %}
+        
+        <!-- Empty State - Owner has no achievements -->
+        <div class="text-center py-10 md:py-12">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
+                <i class="fas fa-trophy text-slate-600 text-3xl"></i>
+            </div>
+            {% if is_own_profile %}
+            <p class="text-slate-400 text-sm font-semibold mb-2">No achievements yet!</p>
+            <p class="text-slate-600 text-xs mb-5">Compete in tournaments to earn trophies and badges</p>
+            <a href="{% url 'tournaments:browse' %}" 
+               class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
+                      text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 
+                      transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
+                <i class="fas fa-gamepad"></i>
+                <span>Browse Tournaments</span>
+            </a>
+            {% else %}
+            <p class="text-slate-500 text-sm italic">No achievements earned yet</p>
+            <p class="text-slate-600 text-xs mt-1">Check back later!</p>
+            {% endif %}
+        </div>
+        
+        {% endif %}
+        
     {% else %}
     
-    <!-- Empty State -->
+    <!-- Privacy Locked State (Visitor cannot view achievements) -->
     <div class="text-center py-10 md:py-12">
-        <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 flex items-center justify-center">
-            <i class="fas fa-trophy text-slate-600 text-3xl"></i>
+        <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-800/50 border-2 border-amber-500/30 flex items-center justify-center">
+            <i class="fas fa-lock text-amber-500 text-2xl"></i>
         </div>
-        {% if is_own_profile %}
-        <p class="text-slate-400 text-sm font-semibold mb-2">No achievements yet!</p>
-        <p class="text-slate-600 text-xs mb-5">Compete in tournaments to earn trophies and badges</p>
-        <a href="{% url 'tournaments:browse' %}" 
+        <p class="text-slate-400 text-sm font-semibold mb-2">Achievements are Private</p>
+        <p class="text-slate-600 text-xs mb-5">Follow {{ profile.display_name }} to see their achievements</p>
+        {% if not request.user.is_authenticated %}
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}" 
            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 
                   text-white text-sm font-bold hover:from-indigo-500 hover:to-purple-500 
                   transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl">
-            <i class="fas fa-gamepad"></i>
-            <span>Browse Tournaments</span>
+            <i class="fas fa-user-plus"></i>
+            <span>Login to Follow</span>
         </a>
-        {% else %}
-        <p class="text-slate-500 text-sm italic">No achievements earned yet</p>
-        <p class="text-slate-600 text-xs mt-1">Check back later!</p>
         {% endif %}
     </div>
     

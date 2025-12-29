@@ -361,3 +361,95 @@ def test_public_profile_does_not_expose_is_staff(client):
     # Context should NOT have is_staff in profile dict
     if 'profile' in response.context:
         assert 'is_staff' not in response.context['profile']
+
+
+# ============================================
+# REGRESSION TEST: Follow Import (UP-PHASE10)
+# ============================================
+
+def test_profile_public_v2_follow_import_regression(client, alice_fe_v2, bob_fe_v2):
+    """
+    Regression test for Follow ImportError (UP-PHASE10 Blocker A).
+    
+    Before fix: ImportError: cannot import name 'Follow' from apps.user_profile.models
+    After fix: Follow is properly exported from models.__init__.py
+    
+    This test ensures profile pages load without import errors.
+    """
+    # Create a follow relationship
+    from apps.user_profile.models import Follow
+    Follow.objects.create(follower=bob_fe_v2, following=alice_fe_v2)
+    
+    # Test 1: Profile loads for anonymous user (no follow context)
+    response = client.get(reverse('user_profile:profile_public_v2', kwargs={'username': 'alice_fe_v2'}))
+    assert response.status_code == 200, "Profile should load without Follow import error"
+    assert 'follower_count' in response.context
+    assert response.context['follower_count'] == 1
+    
+    # Test 2: Profile loads for authenticated user (with follow check)
+    client.force_login(bob_fe_v2)
+    response = client.get(reverse('user_profile:profile_public_v2', kwargs={'username': 'alice_fe_v2'}))
+    assert response.status_code == 200
+    assert response.context['is_following'] is True
+    assert response.context['following_count'] == 0  # Bob is following 1 (Alice)
+    assert response.context['follower_count'] == 1  # Alice has 1 follower (Bob)
+
+
+# ============================================
+# REGRESSION TEST: Settings Page Alpine (UP-PHASE10)
+# ============================================
+
+def test_settings_page_loads_without_js_errors(client, alice_fe_v2):
+    """
+    Regression test for Settings Page Alpine boot failure (UP-PHASE10 Blocker B).
+    
+    Before fix: settingsApp is not defined, Alpine expression errors
+    After fix: settingsApp() is properly defined on window before Alpine loads
+    
+    This test ensures /me/settings/ renders with correct JS includes.
+    """
+    client.force_login(alice_fe_v2)
+    response = client.get(reverse('user_profile:profile_settings_v2'))
+    
+    assert response.status_code == 200, "Settings page should load"
+    
+    # Check Alpine CDN is loaded
+    assert b'alpinejs' in response.content, "Alpine.js should be included"
+    
+    # Check settingsApp() is defined (should be in window scope)
+    assert b'window.settingsApp' in response.content or b'function settingsApp()' in response.content, \
+        "settingsApp() must be defined before Alpine initializes"
+    
+    # Check main settings container has x-data attribute
+    assert b'x-data="settingsApp()"' in response.content, \
+        "Settings container must have Alpine x-data directive"
+    
+    # Check no obvious JS syntax errors (emojis should be UTF-8 encoded properly)
+    content_str = response.content.decode('utf-8')
+    assert '⚙️' in content_str or 'Menu' in content_str, "Emojis or fallback text should render"
+
+
+def test_settings_page_includes_all_sections(client, alice_fe_v2):
+    """Verify settings page includes all required sections."""
+    client.force_login(alice_fe_v2)
+    response = client.get(reverse('user_profile:profile_settings_v2'))
+    
+    content = response.content.decode('utf-8')
+    
+    # Check all section navigation items exist
+    assert 'activeSection === \'profile\'' in content
+    assert 'activeSection === \'privacy\'' in content
+    assert 'activeSection === \'notifications\'' in content
+    assert 'activeSection === \'platform\'' in content
+    assert 'activeSection === \'wallet\'' in content
+    assert 'activeSection === \'account\'' in content
+
+
+def test_settings_page_requires_authentication(client):
+    """Unauthenticated users should be redirected to login."""
+    response = client.get(reverse('user_profile:profile_settings_v2'))
+    
+    # Should redirect to login (302) or return 403/401
+    assert response.status_code in [302, 401, 403], \
+        "Settings page should require authentication"
+

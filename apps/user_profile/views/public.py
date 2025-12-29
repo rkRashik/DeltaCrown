@@ -51,10 +51,13 @@ def public_profile(request: HttpRequest, username: str) -> HttpResponse:
             "is_private": True,
         })
 
-    # Render with field-level toggles
-    show_email = bool(getattr(profile, "show_email", False))
-    show_phone = bool(getattr(profile, "show_phone", False))
-    show_socials = getattr(profile, "show_socials", True)
+    # Get privacy settings from PrivacySettings model (canonical source)
+    from apps.user_profile.models_main import PrivacySettings
+    privacy_settings, _ = PrivacySettings.objects.get_or_create(user_profile=profile)
+    
+    show_email = privacy_settings.show_email
+    show_phone = privacy_settings.show_phone
+    show_socials = privacy_settings.show_social_links
 
     # Best-effort fields (won't crash if missing)
     phone = getattr(profile, "phone", None)

@@ -3,6 +3,7 @@
      Section 3.3.3 - Master Plan
      Display: Connected Social Platforms
      Owner: Add/Edit via Modal
+     Phase 6C: Privacy-aware with locked states
      ============================================ -->
 <div class="glass-card p-6 space-y-4">
     
@@ -17,8 +18,9 @@
         {% endif %}
     </div>
     
-    <!-- Social Links Grid -->
-    {% if social_links %}
+    {% if can_view_social_links %}
+        <!-- Social Links Grid -->
+        {% if social_links %}
     <div class="space-y-2">
         
         {% for social in social_links %}
@@ -62,17 +64,31 @@
         </a>
         {% endfor %}
         
-    </div>
+        </div>
+        
+        {% else %}
+        
+        <!-- Empty State - Owner has no social links -->
+        <div class="text-center py-6">
+            {% if is_own_profile %}
+            <p class="text-slate-500 text-sm">No social links yet</p>
+            <p class="text-slate-600 text-xs mt-1">Connect your platforms to grow your following</p>
+            {% else %}
+            <p class="text-slate-500 text-sm italic">No social links connected</p>
+            {% endif %}
+        </div>
+        
+        {% endif %}
+    
     {% else %}
     
-    <!-- Empty State -->
-    <div class="text-center py-6">
-        {% if is_own_profile %}
-        <p class="text-slate-500 text-sm">No social links yet</p>
-        <p class="text-slate-600 text-xs mt-1">Connect your platforms to grow your following</p>
-        {% else %}
-        <p class="text-slate-500 text-sm italic">No social links connected</p>
-        {% endif %}
+    <!-- Privacy Locked State (Visitor cannot view social links) -->
+    <div class="text-center py-8">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800/50 border-2 border-blue-500/30 flex items-center justify-center">
+            <i class="fas fa-lock text-blue-500 text-xl"></i>
+        </div>
+        <p class="text-slate-400 text-sm font-semibold mb-2">Social Links are Private</p>
+        <p class="text-slate-600 text-xs">Follow {{ profile.display_name }} to see their socials</p>
     </div>
     
     {% endif %}
@@ -135,13 +151,10 @@
                                 x-model="selectedPlatform"
                                 class="glass-input w-full px-4 py-3 pr-10 rounded-lg text-white appearance-none cursor-pointer
                                        focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                            <option value="twitch">Twitch</option>
                             <option value="youtube">YouTube</option>
-                            <option value="twitter">Twitter</option>
+                            <option value="twitch">Twitch</option>
                             <option value="discord">Discord</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="facebook">Facebook</option>
+                            <option value="twitter">Twitter (X)</option>
                         </select>
                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                             <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,6 +162,7 @@
                             </svg>
                         </div>
                     </div>
+                    <p class="text-slate-500 text-xs mt-2">Only esports-relevant platforms</p>
                 </div>
                 
                 <!-- URL Input -->

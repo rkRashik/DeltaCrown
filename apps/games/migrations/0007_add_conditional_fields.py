@@ -10,19 +10,22 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="game",
-            name="has_rank_system",
-            field=models.BooleanField(
-                default=False, help_text="Does this game have a competitive rank/tier system?"
-            ),
+        migrations.RunSQL(
+            sql="""
+                ALTER TABLE games_game
+                ADD COLUMN IF NOT EXISTS has_rank_system boolean DEFAULT false NOT NULL;
+            """,
+            reverse_sql="""
+                ALTER TABLE games_game DROP COLUMN IF EXISTS has_rank_system;
+            """,
         ),
-        migrations.AddField(
-            model_name="game",
-            name="has_servers",
-            field=models.BooleanField(
-                default=False,
-                help_text="Does this game have regional servers that affect gameplay/ranking?",
-            ),
+        migrations.RunSQL(
+            sql="""
+                ALTER TABLE games_game
+                ADD COLUMN IF NOT EXISTS has_servers boolean DEFAULT false NOT NULL;
+            """,
+            reverse_sql="""
+                ALTER TABLE games_game DROP COLUMN IF EXISTS has_servers;
+            """,
         ),
     ]
